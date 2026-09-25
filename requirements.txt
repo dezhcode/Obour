@@ -1,0 +1,9 @@
+aiogram>=3.31,<4  # 3.31 اولین نسخه با پشتیبانی کامل Rich Message (Bot API 10.1-10.3: جدول واقعی)
+aiohttp>=3.9
+aiosqlite>=0.20
+pasarguard>=2.4.0
+python-dotenv>=1.0
+qrcode[pil]>=7.4
+tzdata
+# برای پروکسی SOCKS5 لازم است (فقط اگر TG_PROXY از نوع socks5 باشد)
+aiohttp-socks>=0.9

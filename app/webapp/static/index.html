@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Obour | عبور</title>
+<link rel="preload" href="__BASE__static/fonts/peyda-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="__BASE__static/fonts/peyda-800.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="__BASE__static/peyda.css">
+<link rel="stylesheet" href="__BASE__static/custom-font.css">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   عبور — کارت عبور · نسخه 6
+   از روی سیستم طراحی «عبور — کارت عبور». فقط تم روشن.
+
+   اصول (از کتاب برند):
+   - رنگ یعنی معنا: فیروزه ای اینترنت، کهربایی پول، بنفش AI،
+     مرجانی پشتیبانی. آبی brand فقط اقدام اصلی — یکی در هر صفحه.
+   - یک قهرمان در هر صفحه.
+   - سطح تخت با خط مو؛ سایه فقط زیر کارت عبور، ناوبری و شیت.
+     بدون بلور، بدون هاله، بدون گرادیان پس زمینه.
+   ═══════════════════════════════════════════════ */
+:root{
+  --ground:#EDF1F8; --surface:#FFFFFF; --sunk:#E3E9F3; --line:#D5DDEA;
+  --ink:#0A1633; --ink-2:#3E4B69; --ink-3:#56637F;
+  --brand:#1D55F0; --on-brand:#FFFFFF;
+  --navy:#0A2572; --deep:#071B55; --ocean:#0B5F74; --indigo:#3F2FA0; --ember:#8C3A17;
+  --on-pass:#F1F6FF; --on-pass-2:#A9C4F5; --tunnel:#46E1F4;
+  --net:#0E8FAE; --net-t:#D8F1F7; --net-i:#06505F;
+  /* دکمه خرید اینترنت. --net زیر متن سفید 3.78:1 بود؛ این پله تیره تر 4.96:1 */
+  --net-btn:#0A7A96; --net-btn-d:#086A83;
+  --cash:#E09A1F; --cash-t:#FCEFD3; --cash-i:#7A4A00;
+  --ai:#6A55E0; --ai-t:#E7E3FC; --ai-i:#3F2DA6;
+  --help:#E0573E; --help-t:#FCE4DE; --help-i:#9B2F1B;
+  --ok:#0B7A55; --warn:#8A5D00; --bad:#C0392B;
+  --nav-bg:#0A1633; --nav-icon:#9AAACB; --nav-on:#EDF1F8;
+  --shadow-pass:0 18px 34px -18px rgba(10,37,114,.55);
+  --shadow-sheet:0 -12px 40px -12px rgba(10,22,51,.28);
+  --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:22px;
+  --pad:22px;
+  --ease:cubic-bezier(.22,.9,.3,1); --spring:cubic-bezier(.34,1.3,.5,1);
+
+  /* فاصله های امن تلگرام (Bot API 8.0): safe = دستگاه، csafe = دکمه های تلگرام */
+  --safe-t:max(env(safe-area-inset-top,0px), var(--tg-sa-t,0px));
+  --safe-b:max(env(safe-area-inset-bottom,0px), calc(var(--tg-sa-b,0px) + var(--tg-csa-b,0px)));
+  --safe-l:max(env(safe-area-inset-left,0px), var(--tg-sa-l,0px));
+  --safe-r:max(env(safe-area-inset-right,0px), var(--tg-sa-r,0px));
+  --top:calc(var(--safe-t) + var(--tg-csa-t,0px));
+  --vh:100vh;
+  --nav-h:62px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--ground)}
+body{
+  font-family:var(--font-custom,'Peyda'),'Peyda',system-ui,sans-serif;
+  color:var(--ink);font-size:15px;line-height:1.6;overflow:hidden;
+  display:flex;justify-content:center;
+}
+button,a{font-family:inherit;color:inherit;text-decoration:none;cursor:pointer}
+button{border:none;background:none}
+::-webkit-scrollbar{display:none}
+
+/* تور ایمنی SVG. آیکنی که اندازه صریح ندارد کل عرض پدرش را می گیرد -
+   همان فلش غول پیکر روی کارت لینک دعوت در 6.0.0، و شکل سفید بزرگ در
+   5.10.0. این قاعده اول فایل است تا هر قاعده خاص تر بعدی بر آن غالب
+   شود؛ فقط SVG هایی را می گیرد که هیچ کس اندازه شان را تعیین نکرده. */
+svg:not([width]){width:1.2em;height:1.2em;flex-shrink:0}
+
+/* عدد: رقم لاتین، ۸۰۰، عرض ثابت */
+.n{font-weight:800;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;display:inline-block}
+
+/* ═══ قاب ═══ */
+#app{position:relative;width:100%;max-width:480px;height:var(--vh);overflow:hidden;background:var(--ground)}
+.scroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:calc(var(--top) + 6px) var(--safe-r) calc(var(--nav-h) + 40px + var(--safe-b)) var(--safe-l)}
+#app.no-nav .scroll{padding-bottom:calc(96px + var(--safe-b))}
+.page{animation:rise .32s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#sub{position:absolute;inset:0;z-index:30;pointer-events:none}
+#sub .scroll{background:var(--ground);pointer-events:auto;animation:slide .3s var(--ease) both}
+@keyframes slide{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
+
+/* ═══ سربرگ صفحه ═══ */
+.topbar{display:flex;align-items:center;gap:12px;padding:14px var(--pad) 8px}
+.topbar-t{font-size:22px;font-weight:800;letter-spacing:-.3px;line-height:1.35}
+.topbar-s{font-size:12px;color:var(--ink-3)}
+.back{width:42px;height:42px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* برگشت بومی تلگرام که هست، دکمه داخل صفحه تکراری است */
+html.tg-back .back{display:none}
+.hello{display:flex;align-items:center;justify-content:space-between;padding:14px var(--pad) 2px}
+.hello-s{font-size:13px;color:var(--ink-3)}
+.hello-t{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.logo{width:40px;height:40px;border-radius:12px;display:block}
+
+.sec{display:flex;align-items:center;justify-content:space-between;padding:24px var(--pad) 10px}
+.sec-t{font-size:17px;font-weight:800}
+.sec-e{font-size:12px;color:var(--ink-3)}
+.gap{height:12px}
+.mx{margin:0 var(--pad)}
+
+/* ═══ کارت عبور ═══ */
+.pass{
+  --p:var(--navy); --p2:var(--on-pass-2); --pd:var(--deep);
+  position:relative;height:214px;border-radius:var(--r-xl);background:var(--p);color:var(--on-pass);
+  padding:20px 20px 18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-pass);
+}
+/* رنگ ثانویه سیستم روی اقیانوسی (4.1:1) و آجری (4.4:1) زیر حد بود */
+.pass.ocean{--p:var(--ocean);--p2:#D3E4EE;--pd:rgba(0,0,0,.24)}
+.pass.indigo{--p:var(--indigo);--p2:#D3E4EE;--pd:rgba(0,0,0,.24)}
+.pass.ember{--p:var(--ember);--p2:#D3E4EE;--pd:rgba(0,0,0,.24)}
+.pass.dim{filter:saturate(.55)}
+.pass > *{position:relative}
+.pass-art{position:absolute !important;left:-40px;bottom:-60px;opacity:.18;pointer-events:none}
+.pass-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pass-name{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pass-st{display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:13px;background:var(--pd);font-size:12px;font-weight:600;flex-shrink:0}
+.pass-st i{width:7px;height:7px;border-radius:4px;background:var(--tunnel)}
+.pass-st.warn i{background:#FBBF24} .pass-st.bad i{background:#F87171}
+.pass-big{display:flex;align-items:baseline;gap:6px;margin-top:18px}
+.pass-num{font-size:48px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.pass-unit{font-size:15px;font-weight:600;color:var(--p2)}
+.pass-rail{height:5px;border-radius:3px;background:var(--pd);margin-top:16px;overflow:hidden}
+.pass-rail span{display:block;height:5px;border-radius:3px;background:var(--tunnel);transition:width .8s var(--ease)}
+.pass-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;gap:10px}
+.pass-meta{font-size:12px;color:var(--p2)}
+.pass-meta .n{color:var(--on-pass)}
+.pass-btn{height:34px;padding:0 14px;border-radius:17px;background:var(--on-pass);color:var(--p);font-size:13px;font-weight:800;display:flex;align-items:center;flex-shrink:0}
+.pass-btn:active{transform:scale(.95)}
+.pass-btn svg{width:17px;height:17px}
+
+/* ═══ اسلایدر کارت عبور ═══
+   هر سرویس یک کارت؛ با انگشت ورق می خورند. scroll-snap جای کارت را
+   تضمین می کند (بومی، روان حتی روی گوشی ضعیف)، و جاوااسکریپت فقط حالت
+   کارت های کناری را با فاصله شان از مرکز تنظیم می کند: کمی عقب تر،
+   کمی چرخیده، کمی کم رنگ تر - حس ورق زدن یک دسته کارت. */
+.slider{position:relative}
+.slides{display:flex;gap:12px;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;
+  padding:6px var(--pad) 26px;scroll-padding-inline:var(--pad);scrollbar-width:none;perspective:900px;
+  -webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.slide{flex:0 0 84%;scroll-snap-align:center;scroll-snap-stop:always;transform-origin:50% 100%;
+  will-change:transform;transition:opacity .2s}
+.slide:only-child{flex-basis:100%}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:-10px}
+.dot{width:6px;height:6px;border-radius:3px;background:var(--line);transition:width .3s var(--spring),background .3s}
+.dot.on{width:20px;background:var(--navy)}
+html.perf-low .slide{transform:none !important;opacity:1 !important}
+
+/* ═══ کارت لینک دعوت ═══
+   نسخه 6.0.0 لینک و دو دکمه را در یک ردیف فشرده بود؛ دکمه اشتراک متن
+   دوخطی شد و آیکن های بی اندازه روی همه چیز افتادند. حالا سه طبقه:
+   عنوان، لینک با دکمه کپی کنارش، و اشتراک تمام عرض. */
+.invite{height:auto;gap:14px;cursor:default}
+.invite-h{display:flex;align-items:center;gap:12px}
+.invite-link{display:flex;align-items:center;gap:8px;background:var(--deep);border-radius:var(--r-md);padding:6px 6px 6px 12px}
+.invite-url{flex-grow:1;min-width:0;direction:ltr;text-align:left;font-size:12.5px;font-weight:600;color:var(--on-pass-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-inline-start:6px}
+.invite-copy{flex-shrink:0;height:38px;padding:0 12px;border-radius:11px;background:rgba(255,255,255,.12);color:var(--on-pass);
+  display:flex;align-items:center;gap:6px;font-size:13px;font-weight:800}
+.invite-copy svg{width:16px;height:16px}
+.invite-copy:active,.invite-share:active{transform:scale(.96)}
+.invite-share{height:50px;border-radius:var(--r-md);background:var(--on-pass);color:var(--navy);font-size:15px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.invite-share svg{width:18px;height:18px}
+
+/* ═══ سطح ها ═══ */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg)}
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);padding:20px}
+.group{margin:0 var(--pad);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;background:var(--surface)}
+.row{display:flex;align-items:center;gap:14px;padding:13px 16px;width:100%;text-align:right;background:var(--surface)}
+.row + .row{border-top:1px solid var(--line)}
+.row:active{background:var(--ground)}
+.row-t{font-size:15px;font-weight:600;display:block}
+.row-s{font-size:12px;color:var(--ink-3);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-m{flex-grow:1;min-width:0}
+.row-e{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.ic{width:40px;height:40px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--sunk);color:var(--ink-2)}
+.ic.lg{width:46px;height:46px}
+.ic svg{width:19px;height:19px}
+.ic.net{background:var(--net-t);color:var(--net-i)} .ic.cash{background:var(--cash-t);color:var(--cash-i)}
+.ic.ai{background:var(--ai-t);color:var(--ai-i)} .ic.help{background:var(--help-t);color:var(--help-i)}
+.ic.navy{background:var(--navy);color:var(--tunnel)}
+.chev{width:16px;height:16px;color:var(--ink-3);flex-shrink:0}
+.kv{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;background:var(--surface)}
+.kv + .kv{border-top:1px solid var(--line)}
+.kv-k{font-size:13px;color:var(--ink-3)} .kv-v{font-size:14px;font-weight:600;text-align:left}
+
+/* نوار کیف پول */
+.wallet{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.wallet-l{font-size:12px;color:var(--ink-3)}
+.wallet-a{font-size:20px}
+
+/* کاشی دسته */
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 var(--pad)}
+.tile{height:112px;border-radius:var(--r-lg);padding:14px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:right}
+.tile svg{width:24px;height:24px}
+.tile-t{font-size:15px;font-weight:800;display:block}
+.tile-s{font-size:11px;display:block}
+.tile.net{background:var(--net-t);color:var(--net-i)} .tile.ai{background:var(--ai-t);color:var(--ai-i)}
+.tile:active{transform:scale(.97)}
+
+/* ═══ دکمه ها ═══ */
+.btn{height:52px;border-radius:var(--r-md);font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 18px;transition:transform .15s var(--ease)}
+.btn:active{transform:scale(.97)}
+.btn svg{width:19px;height:19px}
+.btn-p{background:var(--brand);color:var(--on-brand)}
+.btn-s{background:var(--surface);color:var(--ink);border:1px solid var(--line);font-weight:600}
+.btn-d{background:var(--ink);color:var(--ground)}
+.btn-sm{height:38px;font-size:13px;padding:0 16px;border-radius:12px}
+.btn-sq{width:52px;padding:0}
+.btn-block{width:100%}
+.btn[disabled]{opacity:.55}
+
+/* ═══ برچسب ═══ */
+.badge{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 11px;border-radius:13px;background:var(--surface);border:1px solid var(--line);font-size:11.5px;font-weight:600;color:var(--ink);white-space:nowrap;flex-shrink:0}
+.badge i{width:7px;height:7px;border-radius:4px;background:var(--ink-3)}
+.badge.ok i{background:var(--ok)} .badge.warn i{background:#E0A000} .badge.bad i{background:var(--bad)} .badge.ai i{background:var(--ai)}
+
+/* ═══ ریل تب ═══ */
+.tabs{--n:3;--i:0;position:relative;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));padding:4px;border-radius:var(--r-md);background:var(--sunk);margin:0 var(--pad)}
+.tabs-ind{position:absolute;top:4px;bottom:4px;width:calc((100% - 8px) / var(--n));inset-inline-start:calc(4px + var(--i) * (100% - 8px) / var(--n));
+  border-radius:11px;background:var(--surface);box-shadow:0 1px 3px rgba(10,22,51,.12);transition:inset-inline-start .36s var(--spring)}
+.tab{position:relative;z-index:1;padding:7px 2px;display:flex;flex-direction:column;align-items:center;color:var(--ink-3);transition:color .2s}
+.tab-t{font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px}
+.tab-t svg{width:14px;height:14px}
+.tab-s{font-size:10px}
+.tab.on{color:var(--ink)} .tab.on .tab-t{font-weight:800}
+.tabs.scroll{display:flex;overflow-x:auto;gap:2px} .tabs.scroll .tabs-ind{display:none}
+.tabs.scroll .tab{flex:0 0 auto;padding:7px 14px} .tabs.scroll .tab.on{background:var(--surface);border-radius:11px}
+
+/* ═══ انتخاب نوع محصول ═══ */
+.kinds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:8px var(--pad) 14px}
+.kind{position:relative;display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);text-align:right;transition:border-color .2s}
+.kind.on{border:2px solid var(--brand);padding:13px}
+.kind-t{font-size:14px;font-weight:800;display:block} .kind-s{font-size:11px;color:var(--ink-3);display:block}
+.kind-ok{position:absolute;top:11px;left:11px;width:20px;height:20px;border-radius:10px;background:var(--brand);color:var(--on-brand);display:none;align-items:center;justify-content:center}
+.kind-ok svg{width:12px;height:12px}
+.kind.on .kind-ok{display:flex}
+
+/* ═══ پلن ═══ */
+.plan{padding:16px;display:flex;flex-direction:column;gap:14px}
+.plan-name{font-size:16px;font-weight:800}
+.best{height:auto;gap:14px}
+.best-flag{align-self:flex-start;height:24px;padding:0 10px;border-radius:12px;background:var(--tunnel);color:var(--deep);font-size:11px;font-weight:800;display:flex;align-items:center;gap:5px}
+.best-flag svg{width:12px;height:12px}
+.short{font-size:12px;color:var(--ink-3);text-align:center}
+
+/* ═══ کارت پلن: حجم و قیمت هم وزن، دکمه بی تردید ═══ */
+.plan-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.plan-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.plan-stats > div{border-radius:var(--r-md);padding:10px 12px 11px;display:flex;flex-direction:column;gap:2px}
+.stat-vol{background:var(--net-t);color:var(--net-i)}
+.stat-price{background:var(--sunk);color:var(--ink)}
+.stat-l{font-size:11px;font-weight:600;opacity:.8}
+.stat-v{display:flex;align-items:baseline;gap:5px;direction:rtl}
+.stat-v .n{font-size:28px;letter-spacing:-.8px;line-height:1.1}
+.stat-price .stat-v .n{font-size:24px}
+.stat-u{font-size:12px;font-weight:700}
+.plan-stats.on-pass .stat-vol{background:rgba(70,225,244,.16);color:var(--on-pass)}
+.plan-stats.on-pass .stat-price{background:var(--pd);color:var(--on-pass)}
+.plan-stats.on-pass .stat-vol .n{font-size:34px}
+.plan-sub{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
+.plan-sub svg{width:14px;height:14px}
+.plan-sub.on-pass{color:var(--p2)}
+.plan-sub.on-pass .n{color:var(--on-pass)}
+.btn-buy{background:var(--net-btn);color:#fff;box-shadow:0 8px 18px -10px rgba(10,122,150,.8)}
+.btn-buy:active{background:var(--net-btn-d)}
+.btn-buy-pass{background:var(--on-pass);color:var(--navy);height:54px;font-size:16px}
+.btn-buy, .btn-buy-pass{justify-content:flex-start;padding:0 18px}
+.btn-buy span, .btn-buy-pass span{flex-grow:1;text-align:right}
+.buy-arrow{flex-grow:0 !important;width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.2)}
+.btn-buy-pass .buy-arrow{background:var(--navy);color:var(--on-pass)}
+.buy-arrow svg{width:16px;height:16px}
+.btn-short{background:var(--cash-t);color:var(--cash-i);font-size:14px;font-weight:700}
+
+/* بنر ۱۶:۹ */
+.banner{margin:0 var(--pad);aspect-ratio:16/9;border-radius:var(--r-xl);overflow:hidden;background:var(--indigo);position:relative}
+.banner img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* ═══ نمودار ═══ */
+:root{--uc-a:var(--brand);--uc-b:var(--brand)}
+.uc{display:block;overflow:visible}
+.uc-grid{stroke:var(--line);stroke-width:1;stroke-dasharray:3 5}
+.uc-base{stroke:var(--line);stroke-width:1}
+.uc-y{font-size:9px;font-weight:600;fill:var(--ink-3);font-family:inherit}
+.uc-x{font-size:10px;font-weight:700;fill:var(--ink-2);font-family:inherit}
+.uc-line{filter:none;stroke-dasharray:1;stroke-dashoffset:1;animation:ucDraw 1s var(--ease) .1s forwards}
+.uc-area{opacity:0;animation:ucFade .7s ease .45s forwards}
+.uc-stem{stroke:var(--brand);stroke-width:1.2}
+.uc-pill{fill:var(--brand)} .uc-pill-min{fill:var(--net)}
+.uc-pill-t{font-size:10px;font-weight:800;fill:#fff;font-family:inherit}
+.uc-dot{fill:var(--surface);stroke:var(--brand);stroke-width:2.2}
+.uc-halo{display:none}
+.uc-pill,.uc-pill-t,.uc-stem,.uc-dot{opacity:0;animation:ucFade .35s ease .9s forwards}
+@keyframes ucDraw{to{stroke-dashoffset:0}} @keyframes ucFade{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.uc-line{animation:none;stroke-dashoffset:0}.uc-area,.uc-pill,.uc-pill-t,.uc-stem,.uc-dot{animation:none;opacity:1}}
+.chart{padding:16px 14px 10px}
+.chart-h{display:flex;justify-content:space-between;align-items:flex-end;padding:0 4px 6px}
+.lbl{font-size:11px;font-weight:600;color:var(--ink-3)}
+
+/* ═══ گفتگو ═══ */
+.chat{display:flex;flex-direction:column;gap:3px;padding:0 18px}
+.bubble-row{display:flex} .bubble-row.mine{justify-content:flex-start} .bubble-row.theirs{justify-content:flex-end}
+.bubble-row.turn{margin-top:10px}
+.bubble{display:flow-root;max-width:78%;min-width:64px;padding:8px 12px 6px;border-radius:18px;font-size:14px;line-height:1.75}
+.bubble-text{white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere}
+.bubble-time{float:left;margin:7px 10px 0 0;font-size:10px;font-weight:600;opacity:.7;direction:ltr;font-variant-numeric:tabular-nums}
+.bubble-mine{background:var(--brand);color:var(--on-brand)}
+.bubble-theirs{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.bubble-row.tail.mine .bubble{border-bottom-right-radius:6px}
+.bubble-row.tail.theirs .bubble{border-bottom-left-radius:6px}
+.bubble-who{display:block;font-size:11px;font-weight:800;color:var(--help-i);margin-bottom:2px}
+.bubble-photo{display:flex;align-items:center;gap:7px;padding:8px 10px;margin:2px 0 4px;border-radius:12px;font-size:12px;font-weight:600;background:rgba(0,0,0,.08)}
+.bubble-photo svg{width:15px;height:15px}
+.day-sep{display:flex;justify-content:center;margin:14px 0 6px}
+.day-sep span{padding:4px 12px;border-radius:12px;background:var(--sunk);font-size:11px;font-weight:800;color:var(--ink-2)}
+.foot{position:absolute;left:0;right:0;bottom:0;z-index:35;padding:12px var(--pad) calc(18px + var(--safe-b));background:var(--ground);border-top:1px solid var(--line)}
+
+/* ═══ شارژ ═══ */
+.amt-in{display:flex;align-items:baseline;gap:8px;margin:6px 0 14px;border-bottom:2px solid var(--line);padding-bottom:6px}
+.amt-in:focus-within{border-color:var(--brand)}
+.amt-in input{flex-grow:1;min-width:0;border:none;outline:none;background:none;font:800 36px/1.2 inherit;color:var(--ink);
+  letter-spacing:-1px;text-align:left;font-variant-numeric:tabular-nums}
+.amt-in span{font-size:15px;font-weight:600;color:var(--ink-3)}
+.presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.preset{height:44px;border-radius:12px;background:var(--sunk);color:var(--ink-2);font-size:14px;border:2px solid transparent}
+.preset.on{background:var(--cash-t);color:var(--cash-i);border-color:var(--cash)}
+.paycard{height:auto;gap:8px;cursor:default}
+.upload{min-height:150px;border:2px dashed var(--line);border-radius:var(--r-lg);background:var(--surface);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;text-align:center;
+  cursor:pointer;background-size:cover;background-position:center;position:relative;overflow:hidden}
+.upload.has{border-style:solid;border-color:var(--ok)}
+.upload.has::before{content:"";position:absolute;inset:0;background:rgba(10,22,51,.55)}
+.upload.has > *{position:relative;color:#fff}
+.upload.has .ic{background:var(--ok);color:#fff}
+.upload-t{font-size:14px;font-weight:800}
+
+/* ═══ قوانین و نوشتن ═══ */
+.rules{padding:18px;font-size:14px;line-height:2;white-space:pre-wrap;color:var(--ink-2)}
+.compose{width:100%;border:none;outline:none;resize:none;background:none;font:400 15px/1.9 inherit;color:var(--ink)}
+.compose::placeholder{color:var(--ink-3)}
+.foot.reply{display:flex;align-items:flex-end;gap:10px}
+.reply-in{flex-grow:1;min-height:48px;max-height:120px;background:var(--surface);border:1px solid var(--line);
+  border-radius:24px;padding:11px 16px;line-height:1.6}
+.reply-in:focus{border-color:var(--brand)}
+.reply-go{width:48px;height:48px;border-radius:24px;background:var(--brand);color:var(--on-brand);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.reply-go svg{width:20px;height:20px}
+.reply-go[disabled]{opacity:.5}
+
+/* ═══ ناوبری شناور ═══ */
+#nav{position:absolute;z-index:40;left:var(--pad);right:var(--pad);bottom:calc(18px + var(--safe-b));height:var(--nav-h);
+  border-radius:var(--r-xl);background:var(--nav-bg);box-shadow:var(--shadow-pass);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0 6px;transition:transform .3s var(--ease)}
+#app.no-nav #nav{transform:translateY(140%)}
+.nav-i{display:flex;align-items:center;justify-content:center;color:var(--nav-icon)}
+.nav-i svg{width:22px;height:22px}
+.nav-pill{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:16px;background:var(--nav-on);color:var(--ink);font-size:12px;font-weight:800}
+.nav-pill svg{width:18px;height:18px}
+
+/* ═══ شیت ═══ */
+#scrim{position:absolute;inset:0;z-index:50;background:rgba(10,22,51,.42);opacity:0;pointer-events:none;transition:opacity .25s}
+#scrim.on{opacity:1;pointer-events:auto}
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:51;max-height:88%;overflow-y:auto;background:var(--surface);border-radius:var(--r-xl) var(--r-xl) 0 0;
+  box-shadow:var(--shadow-sheet);padding:10px var(--pad) calc(26px + var(--safe-b));transform:translateY(105%);transition:transform .38s var(--ease)}
+#sheet.on{transform:none}
+.grip{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 16px}
+.sheet-t{font-size:17px;font-weight:800}
+.qr{background:#fff;border-radius:var(--r-lg);border:1px solid var(--line);padding:14px;display:flex;justify-content:center}
+.qr svg{width:100%;max-width:240px;height:auto;display:block}
+
+/* ═══ توست، اسکلت، خالی ═══ */
+#toast{position:absolute;z-index:60;top:calc(var(--top) + 14px);left:50%;transform:translate(-50%,-16px);opacity:0;pointer-events:none;
+  display:flex;align-items:center;gap:8px;padding:11px 18px;border-radius:22px;background:var(--ink);color:var(--ground);font-size:13px;font-weight:600;
+  white-space:nowrap;max-width:90%;transition:all .3s var(--spring)}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast svg{width:16px;height:16px}
+.sk{background:var(--sunk);border-radius:var(--r-lg);position:relative;overflow:hidden}
+.sk::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:sh 1.3s infinite}
+@keyframes sh{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+.empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 22px;text-align:center}
+.empty-t{font-size:15px;font-weight:800} .empty-s{font-size:13px;color:var(--ink-3);max-width:260px}
+.newpass{margin:0 var(--pad);min-height:236px;border-radius:var(--r-xl);border:2px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center}
+.stale{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--warn);margin:10px var(--pad) 0}
+.stale svg{width:13px;height:13px}
+.linkbox{direction:ltr;text-align:left;background:var(--sunk);border-radius:12px;padding:11px 12px;font-size:12.5px;font-weight:600;word-break:break-all;color:var(--ink-2)}
+.pass .linkbox{background:var(--deep);color:var(--on-pass-2)}
+
+/* ═══ اسپلش ═══ */
+#splash{position:absolute;inset:0;z-index:100;background:var(--ground);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s,visibility .4s}
+#splash.off{opacity:0;visibility:hidden}
+#splash .logo{width:72px;height:72px;border-radius:22px;box-shadow:var(--shadow-pass)}
+.bar{width:110px;height:3px;border-radius:2px;background:var(--sunk);overflow:hidden}
+.bar i{display:block;width:40%;height:100%;background:var(--brand);border-radius:2px;animation:ld 1.1s var(--ease) infinite}
+@keyframes ld{from{transform:translateX(260%)}to{transform:translateX(-260%)}}
+
+/* اندروید ضعیف (کلاس عملکرد تلگرام): انیمیشن های تزئینی خاموش */
+html.perf-low .page, html.perf-low #sub .scroll{animation:none}
+/* تمام صفحه تلگرام: فاصله ها از --top می آیند؛ این کلاس فقط نشانگر است */
+html.is-fs{--fs:1}
+html.perf-low .sk::after{display:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="view" class="scroll"></div>
+  <div id="sub"></div>
+  <nav id="nav" aria-label="ناوبری"></nav>
+  <div id="scrim" onclick="App.closeSheet()"></div>
+  <div id="sheet" role="dialog" aria-modal="true"></div>
+  <div id="toast" role="status"></div>
+  <div id="splash"><img class="logo" id="logo-src" src="data:image/webp;base64,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" alt="عبور"><div class="bar"><i></i></div></div>
+</div>
+<script>
+"use strict";
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+
+/* ═════════ HELPERS ═════════ */
+const $ = id => document.getElementById(id);
+/* اعداد همه جا لاتین. جداکننده هزارگان می ماند چون خواندن مبلغ
+   بدون آن سخت است. */
+const fa = n => Number(n || 0).toLocaleString('en-US');
+const money = n => fa(Math.abs(Math.round(n)));
+/* هر متن سروری از اینجا رد می شود: نام سرویس و متن تیکت را کاربر نوشته */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const el = html => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+
+const GB = 1024 ** 3;
+function gb(n){
+  if (n == null) return 'نامحدود';
+  if (n >= GB) return fa((n / GB).toFixed(n >= 10 * GB ? 0 : 1)) + ' گیگ';
+  return fa(Math.round(n / 1048576)) + ' مگ';
+}
+/* تقویم شمسی با رقم لاتین: nu-latn */
+const JD = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'});
+const JT = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{hour:'2-digit',minute:'2-digit',hour12:false});
+const jdate = iso => { if(!iso) return '—'; const d=new Date(iso); return isNaN(d)?'—':JD.format(d); };
+const jtime = iso => { if(!iso) return ''; const d=new Date(iso); return isNaN(d)?'':JT.format(d); };
+const jfull  = iso => { if(!iso) return '—'; const d=new Date(iso); return isNaN(d)?'—':JD.format(d)+' · '+JT.format(d); };
+const WD = ['ی','د','س','چ','پ','ج','ش'];
+
+
+
+/* ═════════ ICONS ═════════ */
+const ICON = {
+  home:'<path d="M3 10.5 12 3l9 7.5V21H3z"/>',
+  store:'<path d="M3 9h18l-1.5 11H4.5z"/><path d="M8 9V6a4 4 0 0 1 8 0v3"/>',
+  wallet:'<path d="M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3z"/><path d="M3 7V6a2 2 0 0 1 2-2h11"/><circle cx="17" cy="13.5" r="1.2"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/>',
+  spark:'<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/>',
+  chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.3A8 8 0 1 1 21 12z"/>',
+  chev:'<path d="M14 6l-6 6 6 6"/>', back:'<path d="M9 6l6 6-6 6"/>',
+  down:'<path d="M12 5v13M6 13l6 6 6-6"/>', up:'<path d="M12 19V6M6 11l6-6 6 6"/>',
+  gift:'<rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 13h18M12 9v12"/><path d="M12 9S9 3 7 5s5 4 5 4 5 2 5-4-5 4-5 4"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
+  qr:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 19h2v2h-2z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>', check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  share:'<path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4M12 2v13"/>',
+  book:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h7"/>',
+  phone:'<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+  bolt:'<path d="M13 3L4 14h7l-1 7 9-11h-7z"/>',
+  warn:'<path d="M12 4 3 19h18z"/><path d="M12 10v4M12 17h.01"/>',
+  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
+  refresh:'<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>',
+};
+const ic = (k, sw) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.8}" stroke-linecap="round" stroke-linejoin="round">${ICON[k]||''}</svg>`;
+const N = v => `<span class="n">${esc(v)}</span>`;
+const logoSrc = () => { const i = $('logo-src'); return (i && i.src) || ''; };
+function greet(){
+  const h = new Date().getHours();
+  return h < 5 ? 'شب بخیر' : h < 12 ? 'صبح بخیر' : h < 17 ? 'روز بخیر' : h < 21 ? 'عصر بخیر' : 'شب بخیر';
+}
+
+/* ═════════ NETWORK ═════════ */
+/* مسیر پایه را سرور تزریق می کند. حدس زدن از روی location.pathname
+   شکننده است: با و بدون اسلش پایانی دو جواب متفاوت می دهد. */
+const BASE = '__BASE__' + 'api/';
+const STATIC = '__BASE__' + 'static/';
+const INIT = tg ? (tg.initData || '') : '';
+
+async function api(path, body){
+  const opt = { headers:{ 'X-Init-Data': INIT }, cache:'no-store' };
+  if (body) {
+    opt.method = 'POST';
+    opt.headers['Content-Type'] = 'application/json';
+    opt.body = JSON.stringify(body);
+  }
+  const res = await fetch(BASE + path, opt);
+  let payload = null;
+  try { payload = await res.json(); } catch(e){}
+  if (!res.ok) {
+    const err = new Error((payload && payload.error) || 'خطای ارتباط');
+    err.code = payload && payload.code; err.status = res.status;
+    throw err;
+  }
+  return payload;
+}
+
+
+
+/* ═════════ VIEWPORT ═════════
+   تمام صفحه و فاصله های امن، طبق مستند Bot API 8.0.
+
+   - تمام صفحه فقط روی موبایل. روی دسکتاپ و وب تلگرام پنجره خودش
+     اندازه دارد و تمام صفحه کردن فقط پنجره کاربر را می گیرد.
+   - فاصله ها با رویداد زنده به روز می شوند؛ چرخش گوشی، باز و بسته شدن
+     تمام صفحه، و تغییر دکمه های تلگرام همه آن ها را عوض می کنند.
+   - اگر تلگرام قدیمی تر از ۸.۰ باشد، همه چیز مثل قبل می ماند: فاصله ها
+     صفر و مینی اپ در همان برگه معمولی. */
+const Viewport = {
+  MOBILE: ['android', 'android_x', 'ios'],
+
+  init(){
+    const root = document.documentElement;
+
+    /* برگشت بومی تلگرام از ۶.۱ هست؛ وقتی هست، دکمه برگشت داخل صفحه
+       پنهان می شود تا دو دکمه برگشت کنار هم دیده نشوند. */
+    if (tg.isVersionAtLeast && tg.isVersionAtLeast('6.1')) root.classList.add('tg-back');
+
+    this.detectPerf();
+    this.apply();
+
+    ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged']
+      .forEach(ev => { try { tg.onEvent(ev, () => this.apply()); } catch(e){} });
+    /* شکست تمام صفحه (مثلا UNSUPPORTED) خطا نیست؛ فقط در همان برگه می مانیم */
+    try { tg.onEvent('fullscreenFailed', () => this.apply()); } catch(e){}
+
+    const mobile = this.MOBILE.indexOf(tg.platform) !== -1;
+    if (mobile && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && !tg.isFullscreen) {
+      try { tg.requestFullscreen(); } catch(e){}
+    }
+  },
+
+  /* اعداد تلگرام را در متغیرهای CSS می ریزد. محاسبه فاصله ها کار CSS
+     است (--top = safe + content)؛ اینجا فقط منبع عدد عوض می شود. */
+  apply(){
+    const root = document.documentElement;
+    const sa = tg.safeAreaInset || {};
+    const ca = tg.contentSafeAreaInset || {};
+    const px = v => (Number(v) > 0 ? Math.round(Number(v)) : 0) + 'px';
+    root.style.setProperty('--tg-sa-t', px(sa.top));
+    root.style.setProperty('--tg-sa-b', px(sa.bottom));
+    root.style.setProperty('--tg-sa-l', px(sa.left));
+    root.style.setProperty('--tg-sa-r', px(sa.right));
+    root.style.setProperty('--tg-csa-t', px(ca.top));
+    root.style.setProperty('--tg-csa-b', px(ca.bottom));
+    root.classList.toggle('is-fs', !!tg.isFullscreen);
+    App.syncHeight();
+  },
+
+  /* کلاس عملکرد اندروید از User-Agent، مثل:
+     Telegram-Android/11.4.2 (Samsung SM-A125F; Android 12; SDK 31; LOW)
+     فقط LOW را جدی می گیریم؛ AVERAGE و HIGH همان ظاهر کامل را دارند. */
+  detectPerf(){
+    const m = /Telegram-Android\/[\d.]+\s*\([^)]*;\s*(LOW|AVERAGE|HIGH)\s*\)/i
+      .exec(navigator.userAgent || '');
+    if (m && m[1].toUpperCase() === 'LOW') document.documentElement.classList.add('perf-low');
+  }
+};
+
+
+
+/* ═════════ APP ═════════ */
+const App = {
+  tabName:'home', boot:null, stack:[],
+
+  async start(){
+    if (tg) {
+      tg.ready(); tg.expand();
+      /* فقط تم روشن. رنگ هدر و پس زمینه تلگرام همیشه مه روشن ماست،
+         حتی اگر کاربر تلگرام را تیره کرده باشد - وگرنه بین نوار تلگرام
+         و صفحه یک درز تیره می افتد. */
+      try { tg.setHeaderColor('#EDF1F8'); tg.setBackgroundColor('#EDF1F8'); } catch(e){}
+      try { tg.setBottomBarColor && tg.setBottomBarColor('#EDF1F8'); } catch(e){}
+      try { tg.disableVerticalSwipes(); } catch(e){}
+      try { tg.BackButton.onClick(() => App.back()); } catch(e){}
+      Viewport.init();
+    }
+    this.syncHeight();
+    window.addEventListener('resize', () => this.syncHeight());
+    this.renderNav();
+    let err = null;
+    try { this.boot = await api('bootstrap'); } catch(e) { err = e; }
+    $('splash').classList.add('off');
+    if (err) return this.fatal(err);
+    this.tab('home');
+  },
+
+  syncHeight(){
+    const fs = tg && tg.isFullscreen;
+    const h = !fs && tg && tg.viewportStableHeight ? tg.viewportStableHeight : window.innerHeight;
+    document.documentElement.style.setProperty('--vh', h + 'px');
+  },
+
+  haptic(k){ try { tg.HapticFeedback.impactOccurred(k || 'light'); } catch(e){} },
+  notify(k){ try { tg.HapticFeedback.notificationOccurred(k); } catch(e){} },
+
+  TABS: [['home','خانه'],['store','فروشگاه'],['wallet','کیف پول'],['account','حساب']],
+  NAV_ICON: { home:'home', store:'store', wallet:'wallet', account:'user' },
+
+  renderNav(){
+    $('nav').innerHTML = this.TABS.map(([k, l]) => k === this.tabName
+      ? `<button class="nav-i" onclick="App.tab('${k}')" aria-current="page"><span class="nav-pill">${ic(this.NAV_ICON[k],2)}${l}</span></button>`
+      : `<button class="nav-i" onclick="App.tab('${k}')" aria-label="${l}">${ic(this.NAV_ICON[k])}</button>`).join('');
+  },
+
+  tab(name){
+    this.tabName = name;
+    this.closeAll(); this.closeSheet(); this.renderNav(); this.haptic();
+    const v = $('view'); v.scrollTop = 0;
+    v.innerHTML = '<div class="page"></div>';
+    Pages[name](v.firstElementChild);
+  },
+
+  /* پشته زیرصفحه ها: برگشت از گفتگو به فهرست تیکت ها، نه به تب */
+  go(name, param){ this.stack.push([name, param]); this.renderSub(); },
+  back(){ this.stack.pop(); this.renderSub(); },
+  closeAll(){ this.stack = []; this.renderSub(); },
+  renderSub(){
+    const box = $('sub'); box.innerHTML = '';
+    const top = this.stack[this.stack.length - 1];
+    $('app').classList.toggle('no-nav', !!(top && SubPages[top[0]].noNav));
+    if (!top) { try { tg.BackButton.hide(); } catch(e){} return; }
+    try { tg.BackButton.show(); } catch(e){}
+    box.innerHTML = '<div class="scroll"><div class="page"></div></div>';
+    SubPages[top[0]](box.firstElementChild.firstElementChild, top[1]);
+  },
+
+  sheet(html){ $('sheet').innerHTML = '<div class="grip"></div>' + html; $('sheet').classList.add('on'); $('scrim').classList.add('on'); this.haptic(); },
+  closeSheet(){ $('sheet').classList.remove('on'); $('scrim').classList.remove('on'); },
+
+  toast(msg, bad){
+    const t = $('toast');
+    t.innerHTML = ic(bad ? 'warn' : 'check', 2.2) + '<span>' + esc(msg) + '</span>';
+    t.classList.add('on'); clearTimeout(this._t);
+    this._t = setTimeout(() => t.classList.remove('on'), 2200);
+  },
+
+  /* موجودی یک منبع دارد. هر جا عددش نشان داده می شود data-bal دارد. */
+  setBalance(v){
+    if (this.boot) this.boot.user.balance = v;
+    document.querySelectorAll && document.querySelectorAll('[data-bal]').forEach(e => e.textContent = fa(v));
+  },
+
+  /* کپی در وب ویو تلگرام.
+
+     navigator.clipboard در وب ویو تلگرام (مخصوصا iOS) اغلب رد می شود
+     یا بی صدا هیچ کاری نمی کند. بدتر اینکه Promise است: وقتی reject
+     می شود، «ژست کاربر» تمام شده و راه جایگزین هم دیگر مجاز نیست.
+
+     پس ترتیب برعکس است: اول روش قدیمی execCommand که همزمان است و
+     داخل همان کلیک اجرا می شود؛ فقط اگر آن شکست خورد سراغ روش مدرن
+     می رویم. textarea هم باید واقعا در صفحه و قابل انتخاب باشد -
+     display:none یا opacity صفر روی iOS انتخاب نمی شود. */
+  copy(text){
+    const value = String(text == null ? '' : text);
+    const done = () => { this.haptic('medium'); this.toast('کپی شد'); };
+
+    let ok = false;
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = value;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText =
+        'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;' +
+        'outline:0;opacity:0.01;z-index:-1;font-size:16px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, value.length);   /* iOS بدون این کپی نمی کند */
+      ok = document.execCommand('copy');
+      ta.remove();
+    } catch(e) { ok = false; }
+
+    if (ok) return done();
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(value)
+        .then(done)
+        .catch(() => this.copyFallback(value));
+    }
+    this.copyFallback(value);
+  },
+
+  /* آخرین راه: متن را نشان بده تا کاربر خودش دست بگیرد. بدتر از
+     کپی خودکار است ولی خیلی بهتر از دکمه ای که بی صدا هیچ نمی کند. */
+  copyFallback(value){
+    this.sheet(`<div class="sheet-t" style="margin-bottom:6px">دستی کپی کن</div>
+      <div class="topbar-s" style="margin-bottom:12px">مرورگر اجازه کپی خودکار نداد. روی متن نگه دار و کپی کن:</div>
+      <textarea readonly onclick="this.select()" class="linkbox" style="width:100%;min-height:110px;border:none;resize:none;font-family:inherit">${esc(value)}</textarea>
+      <button class="btn btn-s btn-block" style="margin-top:12px" onclick="App.closeSheet()">بستن</button>`);
+  },
+
+
+
+  openBot(start){
+    const u = (this.boot && this.boot.bot && this.boot.bot.username) || '';
+    if (!u) return this.toast('لینک ربات در دسترس نیست', true);
+    const link = 'https://t.me/' + u + (start ? '?start=' + encodeURIComponent(start) : '');
+    this.haptic('medium');
+    if (tg && tg.openTelegramLink) { tg.openTelegramLink(link); setTimeout(() => { try { tg.close(); } catch(e){} }, 150); }
+    else location.href = link;
+  },
+
+  /* اشتراک با پنجره بومی تلگرام: کاربر مستقیم مخاطب را انتخاب می کند */
+  share(url, text){
+    const link = 'https://t.me/share/url?url=' + encodeURIComponent(url) + (text ? '&text=' + encodeURIComponent(text) : '');
+    if (tg && tg.openTelegramLink) tg.openTelegramLink(link); else this.copy(url);
+  },
+
+  fatal(err){
+    const noAcc = err.code === 'no_account';
+    $('nav').style.display = 'none';
+    $('view').innerHTML = `<div class="page empty" style="min-height:70%;justify-content:center">
+      <img class="logo" src="${logoSrc()}" alt="" style="width:64px;height:64px;border-radius:20px">
+      <div class="empty-t">${noAcc ? 'اول در ربات ثبت نام کن' : 'باز نشد'}</div>
+      <div class="empty-s">${esc(noAcc ? 'در ربات /start بزن و قوانین را بپذیر، بعد برگرد.' : (err.message || 'ارتباط برقرار نشد.'))}</div>
+      <button class="btn btn-p" style="margin-top:6px" onclick="${noAcc ? 'App.openBot()' : 'location.reload()'}">${noAcc ? 'رفتن به ربات' : 'تلاش دوباره'}</button>
+    </div>`;
+  }
+};
+
+/* ═════════ اجزا ═════════ */
+const skel = (n, h) => Array.from({length:n}, () => `<div class="sk mx" style="height:${h}px;margin-bottom:12px"></div>`).join('');
+const emptyBox = (t, s, action) => `<div class="empty"><div class="ic lg">${ic('list')}</div><div class="empty-t">${esc(t)}</div>${s ? `<div class="empty-s">${esc(s)}</div>` : ''}${action || ''}</div>`;
+const Sec = (t, e) => `<div class="sec"><div class="sec-t">${esc(t)}</div>${e ? `<div class="sec-e">${e}</div>` : ''}</div>`;
+function Top(title, sub){
+  return `<div class="topbar"><button class="back" onclick="App.back()" aria-label="برگشت">${ic('back',2)}</button>
+    <div style="flex-grow:1;min-width:0"><div class="topbar-t">${esc(title)}</div>${sub ? `<div class="topbar-s">${sub}</div>` : ''}</div></div>`;
+}
+const TabTop = (title, sub) => `<div class="topbar"><div><div class="topbar-t">${esc(title)}</div>${sub ? `<div class="topbar-s">${esc(sub)}</div>` : ''}</div></div>`;
+function Badge(kind, text){ return `<span class="badge ${kind}"><i></i>${esc(text)}</span>`; }
+function Row(o){
+  return `<button class="row" onclick="${o.fn || ''}">
+    <span class="ic ${o.kind || ''}">${ic(o.icon)}</span>
+    <span class="row-m"><span class="row-t">${esc(o.title)}</span>${o.sub ? `<span class="row-s" ${o.subColor ? `style="color:${o.subColor}"` : ''}>${o.subHtml ? o.sub : esc(o.sub)}</span>` : ''}</span>
+    ${o.end ? `<span class="row-e">${o.end}</span>` : ''}${o.fn ? `<span class="chev">${ic('chev',2)}</span>` : ''}</button>`;
+}
+const Group = rows => `<div class="group">${rows}</div>`;
+const KV = pairs => `<div class="group">${pairs.map(([k, v]) => `<div class="kv"><span class="kv-k">${esc(k)}</span><span class="kv-v">${v}</span></div>`).join('')}</div>`;
+
+/* ریل تب؛ نشانگر درجا می لغزد (ساخت دوباره، انیمیشن را می کشت) */
+function Tabs(id, items, on, handler){
+  const n = items.length, scroll = n > 4;
+  return `<div class="tabs${scroll ? ' scroll' : ''}" id="${id}" style="--n:${n};--i:${on}">${scroll ? '' : '<span class="tabs-ind"></span>'}
+    ${items.map((x, i) => `<button class="tab${i === on ? ' on' : ''}" onclick="${handler}(${i})"><span class="tab-t">${x.icon ? ic(x.icon) : ''}${esc(x.t)}</span>${x.s != null ? `<span class="tab-s">${esc(x.s)}</span>` : ''}</button>`).join('')}</div>`;
+}
+function slideTabs(id, i){
+  const el = $(id); if (!el) return;
+  el.style.setProperty('--i', i);
+  (el.querySelectorAll ? el.querySelectorAll('.tab') : []).forEach((b, k) => b.classList.toggle('on', k === i));
+}
+
+/* ── کارت عبور ── */
+const PASS_COLORS = ['navy', 'ocean', 'indigo', 'ember'];
+const TUNNEL = `<svg class="pass-art" width="190" height="190" viewBox="0 0 190 190" fill="none" aria-hidden="true"><path d="M20 190V95a75 75 0 0 1 150 0v95" stroke="var(--tunnel)" stroke-width="16"/><path d="M55 190V95a40 40 0 0 1 80 0v95" stroke="var(--tunnel)" stroke-width="10"/></svg>`;
+const STATUS = {
+  active:  { t:'فعال',        c:'' },
+  warn:    { t:'رو به اتمام', c:'warn' },
+  finished:{ t:'حجم تمام شد', c:'bad' },
+  expired: { t:'منقضی',       c:'bad' },
+};
+function Pass(s, color, btn){
+  const st = STATUS[s.status] || STATUS.active;
+  const left = s.limit_bytes ? Math.max(0, s.limit_bytes - s.used_bytes) : null;
+  const pct = s.limit_bytes ? Math.max(0, 100 - Math.min(100, s.percent)) : 100;
+  const dead = s.expired || s.status === 'finished';
+  const b = btn || (dead
+    ? `<button class="pass-btn" onclick="event.stopPropagation();App.tab('store')">تمدید</button>`
+    : `<button class="pass-btn" onclick="event.stopPropagation();App.go('detail',${s.id})">اتصال</button>`);
+  return `<div class="pass ${color}${dead ? ' dim' : ''}" onclick="App.go('detail',${s.id})" role="button" aria-label="${esc(s.title)}">${TUNNEL}
+    <div class="pass-head"><span class="pass-name">${esc(s.title)}</span><span class="pass-st ${st.c}"><i></i>${st.t}</span></div>
+    <div class="pass-big"><span class="pass-num n">${left == null ? '∞' : esc(gbShort(left).replace(/[GM]$/, ''))}</span><span class="pass-unit">${left == null ? 'نامحدود' : (left >= GB ? 'گیگ مانده' : 'مگ مانده')}</span></div>
+    <div class="pass-rail"><span style="width:${pct}%"></span></div>
+    <div class="pass-foot"><span class="pass-meta">${dead ? 'منقضی شده' : `${N(s.days_left)} روز · تا ${N(jdate(s.expire_at))}`}</span>${b}</div>
+  </div>`;
+}
+/* اسلایدر کارت های عبور. رنگ هر کارت از جایگاهش می آید: اول سرمه ای،
+   بعد اقیانوسی، نیلی، آجری. */
+function Slider(items){
+  return `<div class="slider"><div class="slides" id="slides" onscroll="SliderFx.tick()">${
+    items.map((s, i) => `<div class="slide">${Pass(s, PASS_COLORS[i % 4])}</div>`).join('')}</div>
+    ${items.length > 1 ? `<div class="dots" id="dots">${items.map((_, i) => `<span class="dot${i ? '' : ' on'}"></span>`).join('')}</div>` : ''}</div>`;
+}
+const SliderFx = {
+  idx:0, raf:0,
+  tick(){
+    if (this.raf) return;
+    this.raf = requestAnimationFrame(() => { this.raf = 0; this.apply(); });
+  },
+  apply(){
+    const box = $('slides'); if (!box || !box.getBoundingClientRect) return;
+    const c = box.getBoundingClientRect(), mid = c.left + c.width / 2;
+    let best = 0, bestD = 1e9;
+    [...box.children].forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      /* d: فاصله از مرکز به اندازه عرض یک کارت؛ جهت مستقل از RTL */
+      const d = Math.max(-1, Math.min(1, (r.left + r.width / 2 - mid) / r.width));
+      const a = Math.abs(d);
+      if (!document.documentElement.classList.contains('perf-low')) {
+        el.style.transform = `translateY(${a * 14}px) scale(${1 - a * .07}) rotateY(${-d * 14}deg) rotateZ(${d * 2.5}deg)`;
+        el.style.opacity = String(1 - a * .35);
+      }
+      if (a < bestD) { bestD = a; best = i; }
+    });
+    if (best !== this.idx) {
+      this.idx = best;
+      try { tg.HapticFeedback.selectionChanged(); } catch(e){}
+      const dots = $('dots');
+      if (dots) [...dots.children].forEach((d, i) => d.classList.toggle('on', i === best));
+    }
+  }
+};
+function WalletStrip(bal){
+  const empty = !(bal > 0);
+  return `<div class="card wallet mx"><span class="ic cash">${ic('wallet')}</span>
+    <div style="flex-grow:1"><div class="wallet-l">${empty ? 'کیف پولت خالی است' : 'موجودی کیف پول'}</div>
+      <div><span class="n wallet-a" data-bal>${fa(bal)}</span> <span class="wallet-l">تومان</span></div></div>
+    <button class="btn btn-sm ${empty ? 'btn-p' : 'btn-d'}" onclick="App.go('topup')">شارژ</button></div>`;
+}
+function Kinds(active){
+  const k = (key, icon, t, s) => `<button class="kind${key === active ? ' on' : ''}" data-kind="${key}" onclick="Store.to('${key}')">
+    <span class="kind-ok">${ic('check',2.6)}</span><span class="ic ${key === 'vpn' ? 'net' : 'ai'}">${ic(icon)}</span>
+    <span><span class="kind-t">${t}</span><span class="kind-s">${s}</span></span></button>`;
+  return `<div class="kinds" id="kinds">${k('vpn','globe','اینترنت آزاد','کانفیگ پرسرعت، همه کشورها')}${k('ai','spark','هوش مصنوعی','اشتراک سرویس‌های AI')}</div>`;
+}
+/* ═════════ CHART ═════════
+   نمودار خطی مصرف. SVG خالص، بدون کتابخانه.
+
+   منحنی با درون یابی یکنوا (Fritsch–Carlson) ساخته می شود، نه
+   منحنی های نرم معمولی مثل Catmull-Rom. منحنی معمولی بین دو نقطه
+   «بیش جهش» دارد: روزی که مصرف صفر بوده، منحنی زیر صفر می رود و مصرف
+   منفی نشان می دهد - که از نظر داده دروغ است. درون یابی یکنوا هرگز از
+   بازه دو نقطه کنارش بیرون نمی زند و همچنان نرم است.
+
+   محور زمان از چپ به راست است، مثل همه نمودارهای زمانی، حتی در
+   رابط راست به چپ. */
+let CHART_SEQ = 0;
+
+function monotonePath(pts){
+  const n = pts.length;
+  if (n < 2) return '';
+  if (n === 2) return `M${pts[0][0]},${pts[0][1]}L${pts[1][0]},${pts[1][1]}`;
+  const dx = [], dy = [], m = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = pts[i+1][0] - pts[i][0];
+    dy[i] = pts[i+1][1] - pts[i][1];
+    m[i]  = dx[i] ? dy[i] / dx[i] : 0;
+  }
+  // شیب هر نقطه: میانگین شیب دو طرف، صفر اگر جهت عوض شده
+  const t = [m[0]];
+  for (let i = 1; i < n - 1; i++) t[i] = (m[i-1] * m[i] <= 0) ? 0 : (m[i-1] + m[i]) / 2;
+  t[n-1] = m[n-2];
+  // اصلاح Fritsch–Carlson: جلوی بیش جهش را می گیرد
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) { t[i] = 0; t[i+1] = 0; continue; }
+    const a = t[i] / m[i], b = t[i+1] / m[i], h = a*a + b*b;
+    if (h > 9) { const k = 3 / Math.sqrt(h); t[i] = k * a * m[i]; t[i+1] = k * b * m[i]; }
+  }
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += `C${(pts[i][0] + h).toFixed(1)},${(pts[i][1] + t[i]*h).toFixed(1)} `
+       + `${(pts[i+1][0] - h).toFixed(1)},${(pts[i+1][1] - t[i+1]*h).toFixed(1)} `
+       + `${pts[i+1][0].toFixed(1)},${pts[i+1][1].toFixed(1)}`;
+  }
+  return d;
+}
+
+/* گام های «گرد» محور عمودی: ۱، ۲ یا ۵ برابر توانی از ده */
+function niceStep(max, ticks){
+  const raw = max / ticks;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / pow;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * pow;
+}
+
+function gbShort(b){
+  const g = b / GB;
+  if (g >= 10) return Math.round(g) + 'G';
+  if (g >= 1)  return g.toFixed(1).replace(/\.0$/, '') + 'G';
+  return Math.round(b / 1048576) + 'M';
+}
+
+/* days: [{day:'2026-09-14', bytes:123}] */
+function UsageChart(days){
+  if (!days || days.length < 2)
+    return `<div class="short" style="padding:26px 0">
+      برای نمودار دست کم دو روز آمار لازم است</div>`;
+
+  const id = 'uc' + (++CHART_SEQ);
+  const W = 320, H = 168;
+  const L = 30, R = 12, T = 30, B = 26;          // جا برای محور و برچسب ها
+  const iw = W - L - R, ih = H - T - B;
+
+  const vals = days.map(d => Math.max(0, d.bytes || 0));
+  const maxV = Math.max(...vals);
+  /* گام محور در واحد خودش (گیگ یا مگ) گرد می شود، نه در بایت. گرد
+     کردن در بایت گام ۲ میلیارد بایت می داد = ۱.۸۶ گیگ، و محور برچسب
+     های بی معنی مثل 1.9G و 3.7G می گرفت. */
+  const unit = maxV >= GB ? GB : 1048576;
+  const step = niceStep(Math.max(maxV / unit, 1), 3) * unit;
+  const top  = step * Math.max(1, Math.ceil(maxV / step));
+  const axis = v => {
+    const n = v / unit;
+    return (Number.isInteger(n) ? n : +n.toFixed(1)) + (unit === GB ? 'G' : 'M');
+  };
+
+  const x = i => L + (vals.length === 1 ? iw / 2 : i * iw / (vals.length - 1));
+  const y = v => T + ih - (v / top) * ih;
+  const pts = vals.map((v, i) => [x(i), y(v)]);
+  const line = monotonePath(pts);
+  const area = `${line}L${pts[pts.length-1][0]},${T + ih}L${pts[0][0]},${T + ih}Z`;
+
+  const grid = [];
+  for (let v = step; v <= top + 1; v += step) {
+    grid.push(`<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="uc-grid"/>
+      <text x="${L - 6}" y="${y(v) + 3}" class="uc-y" text-anchor="end">${axis(v)}</text>`);
+  }
+
+  const xl = days.map((d, i) => `<text x="${x(i)}" y="${H - 6}" class="uc-x" text-anchor="middle">${
+    WD[new Date(d.day).getDay()] || ''}</text>`).join('');
+
+  /* برچسب بیشینه بالای نقطه، کمینه زیر آن. اگر همه روزها برابر
+     باشند فقط یکی نشان داده می شود. */
+  const iMax = vals.indexOf(maxV);
+  const minV = Math.min(...vals);
+  const iMin = vals.lastIndexOf(minV);
+  const marker = (i, up) => {
+    const [px, py] = pts[i];
+    const label = gbShort(vals[i]);
+    const w = 12 + label.length * 6.4;
+    // قرص نباید از لبه ها بیرون بزند
+    const cx = Math.min(W - R - w / 2, Math.max(L + w / 2, px));
+    const ly = up ? Math.max(4, py - 30) : Math.min(H - B - 18, py + 12);
+    const stemTo = up ? ly + 18 : ly;
+    return `<line x1="${px}" x2="${px}" y1="${py}" y2="${stemTo}" class="uc-stem"/>
+      <g transform="translate(${cx - w / 2},${ly})">
+        <rect width="${w}" height="18" rx="9" class="${up ? 'uc-pill' : 'uc-pill uc-pill-min'}"/>
+        <text x="${w / 2}" y="12.5" text-anchor="middle" class="uc-pill-t">${label}</text>
+      </g>
+      <circle cx="${px}" cy="${py}" r="7" class="uc-halo"/>
+      <circle cx="${px}" cy="${py}" r="3.6" class="uc-dot"/>`;
+  };
+  /* مقدار مقایسه می شود نه اندیس: وقتی همه روزها برابرند، indexOf و
+     lastIndexOf دو اندیس متفاوت می دهند و دو برچسب با عدد یکسان
+     نشان داده می شد. */
+  const marks = (maxV !== minV && maxV > 0)
+    ? marker(iMin, false) + marker(iMax, true)
+    : marker(iMax, true);
+
+  return `<svg class="uc" viewBox="0 0 ${W} ${H}" width="100%" role="img"
+      aria-label="نمودار مصرف ${days.length} روز اخیر">
+    <defs>
+      <linearGradient id="${id}s" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" style="stop-color:var(--uc-a)"/><stop offset="1" style="stop-color:var(--uc-b)"/>
+      </linearGradient>
+      <linearGradient id="${id}f" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" style="stop-color:var(--uc-b);stop-opacity:.32"/>
+        <stop offset=".7" style="stop-color:var(--uc-b);stop-opacity:.06"/>
+        <stop offset="1" style="stop-color:var(--uc-b);stop-opacity:0"/>
+      </linearGradient>
+      <filter id="${id}g" x="-10%" y="-40%" width="120%" height="180%">
+        <feGaussianBlur stdDeviation="4" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    ${grid.join('')}
+    <line x1="${L}" x2="${W - R}" y1="${T + ih}" y2="${T + ih}" class="uc-base"/>
+    <path d="${area}" fill="url(#${id}f)" class="uc-area"/>
+    <path d="${line}" fill="none" stroke="url(#${id}s)" stroke-width="3"
+      stroke-linecap="round" stroke-linejoin="round" filter="url(#${id}g)"
+      pathLength="1" class="uc-line"/>
+    ${marks}
+    ${xl}
+  </svg>`;
+}
+
+
+
+/* ═════════ خانه ═════════ */
+const Home = {
+  services: [],
+  live(){ return this.services.filter(s => !s.expired).length ? this.services.filter(s => !s.expired) : this.services; },
+};
+
+const Pages = {
+
+async home(p){
+  const b = App.boot, u = b.user;
+  p.innerHTML = `
+    <div class="hello"><div><div class="hello-s">${greet()}</div><div class="hello-t">${esc(u.name)}</div></div>
+      <img class="logo" src="${logoSrc()}" alt="عبور"></div>
+    <div id="home-sec">${Sec('سرویس‌های من')}</div>
+    <div id="home-pass">${skel(1, 236)}</div>
+    <div class="gap" style="height:4px"></div>
+    ${WalletStrip(u.balance)}
+    <div id="home-more"></div>`;
+  try {
+    const { items } = await api('services');
+    Home.services = items.slice();
+    if (!items.length) {
+      $('home-pass').innerHTML = `<div class="newpass">
+        <span class="ic lg net">${ic('plus',2)}</span>
+        <div class="empty-t" style="font-size:17px">اولین کارت عبورت</div>
+        <div class="empty-s">یک پلن انتخاب کن؛ چند ثانیه بعد کارتت اینجا با لینک اتصال آماده است.</div>
+        <button class="btn btn-p" style="height:44px;margin-top:4px" onclick="App.tab('store')">دیدن پلن‌ها</button></div>`;
+      $('home-more').innerHTML = Sec('سه قدم تا اتصال') + Group(
+        [['1','کیف پول را شارژ کن','کارت به کارت، تایید سریع'],
+         ['2','پلن را انتخاب کن','روزانه، هفتگی یا ماهانه'],
+         ['3','وصل شو','برنامه‌ات را انتخاب کن، بقیه خودکار']].map(([n, t, s]) =>
+          `<div class="row"><span class="ic"><span class="n">${n}</span></span><span class="row-m"><span class="row-t">${t}</span><span class="row-s">${s}</span></span></div>`).join(''));
+      return;
+    }
+    const act = items.filter(s => !s.expired).length;
+    $('home-sec').innerHTML = Sec('سرویس‌های من', `${N(act)} فعال`);
+    $('home-pass').innerHTML = Slider(Home.live());
+    SliderFx.idx = 0; SliderFx.apply();
+    const unread = b.counters.unread_replies;
+    $('home-more').innerHTML = Sec('چه چیزی لازم داری؟') + `<div class="tiles">
+        <button class="tile net" onclick="Store.kind='vpn';App.tab('store')">${ic('globe')}<span><span class="tile-t">اینترنت آزاد</span><span class="tile-s">خرید و تمدید</span></span></button>
+        ${b.features.shop_ai ? `<button class="tile ai" onclick="Store.kind='ai';App.tab('store')">${ic('spark')}<span><span class="tile-t">هوش مصنوعی</span><span class="tile-s">اشتراک AI</span></span></button>` : ''}
+      </div><div class="gap"></div>`
+      + Group(Row({ kind:'help', icon:'chat', title:'پشتیبانی و راهنما',
+          sub: unread ? 'یک پاسخ تازه از پشتیبانی' : 'تیکت‌ها و راهنمای اتصال',
+          subColor: unread ? 'var(--help-i)' : '', fn:"App.go('tickets')" }));
+  } catch (err) {
+    $('home-pass').innerHTML = `<div class="card mx">${emptyBox('سرویس‌ها خوانده نشد', err.message)}</div>`;
+  }
+},
+
+async store(p){
+  const ai = App.boot.features.shop_ai;
+  if (!ai) Store.kind = 'vpn';
+  p.innerHTML = TabTop('فروشگاه', 'پرداخت از کیف پول، تحویل فوری')
+    + (ai ? Kinds(Store.kind) : '') + `<div id="store-box">${skel(2, 200)}</div>`;
+  return Store.kind === 'ai' ? Store.loadAi() : Store.loadVpn();
+},
+
+async wallet(p){
+  const bal = App.boot.user.balance;
+  p.innerHTML = TabTop('کیف پول') + `
+    <div class="hero mx" style="margin-top:8px">
+      <div style="display:flex;align-items:center;gap:12px"><span class="ic lg cash">${ic('wallet')}</span><span class="wallet-l" style="font-size:13px">موجودی کیف پول</span></div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin:16px 0"><span class="n" data-bal style="font-size:44px;letter-spacing:-1.2px;line-height:1">${fa(bal)}</span><span class="wallet-l" style="font-size:15px;font-weight:600">تومان</span></div>
+      <button class="btn btn-p btn-block" onclick="App.go('topup')">${ic('plus',2.2)}شارژ کیف پول</button>
+    </div>
+    <div class="gap" style="height:18px"></div><div id="wal-tabs-box"></div><div class="gap"></div><div id="wal-list">${skel(3, 64)}</div>`;
+  Wallet.filter = null; Wallet.offset = 0; Wallet.items = [];
+  Wallet.chips();
+  await Wallet.load();
+},
+
+async account(p){
+  const b = App.boot, u = b.user, c = b.counters;
+  const photo = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.photo_url : '';
+  const letter = esc((u.name || '؟').trim().charAt(0));
+  const canHome = tg && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && tg.addToHomeScreen;
+  p.innerHTML = TabTop('حساب') + `
+    <div class="hero mx" style="margin-top:8px;padding:18px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <span style="position:relative;width:56px;height:56px;border-radius:18px;background:var(--navy);color:var(--on-pass);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;overflow:hidden;flex-shrink:0">${letter}
+          ${photo ? `<img src="${esc(photo)}" alt="" referrerpolicy="no-referrer" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ''}</span>
+        <div style="min-width:0"><div style="font-size:19px;font-weight:800">${esc(u.name)}</div>
+          <div class="topbar-s"><span class="n" style="font-weight:600">${u.username ? '@' + esc(u.username) + ' · ' : ''}ID ${esc(u.telegram_id)}</span></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px">
+        ${[[fa(c.services_active),'سرویس فعال'],[jdate(u.joined_at),'عضویت'],[fa(u.balance),'موجودی']].map(([v, k], i) =>
+          `<div style="background:var(--sunk);border-radius:14px;padding:10px 6px;text-align:center"><div class="n" style="font-size:${i === 1 ? 13 : 16}px" ${i === 2 ? 'data-bal' : ''}>${esc(v)}</div><div class="lbl">${k}</div></div>`).join('')}
+      </div>
+    </div>
+    ${Sec('کارها')}
+    ${Group(
+      (b.features.shop_referral ? Row({ kind:'cash', icon:'gift', title:'هم‌سفرها', sub:'دعوت کن، از هر خرید سهم بگیر', fn:"App.go('referral')" }) : '')
+      + Row({ kind:'help', icon:'chat', title:'تیکت‌های من', sub: c.unread_replies ? 'یک پاسخ تازه' : 'گفتگو با پشتیبانی', subColor: c.unread_replies ? 'var(--help-i)' : '', fn:"App.go('tickets')" })
+      + Row({ kind:'net', icon:'book', title:'راهنمای اتصال', sub:'قدم به قدم، برای دستگاه خودت', fn:"App.go('guide')" }))}
+    <div class="gap"></div>
+    ${Group(
+      (canHome ? Row({ icon:'phone', title:'افزودن به صفحه اصلی', sub:'مثل یک اپ جدا باز شود', fn:'Account.addHome()' }) : '')
+      + Row({ icon:'shield', title:'قوانین و حریم خصوصی', sub: u.rules_accepted ? 'پذیرفته شده' : 'هنوز پذیرفته نشده', fn:"App.go('rules')" }))}
+    <div class="short" style="margin-top:18px">عبور · نسخه ${N(APP_VERSION)}</div>`;
+}
+};
+
+const APP_VERSION = '6.1.1';
+const Account = {
+  addHome(){ try { tg.addToHomeScreen(); } catch(e){ App.toast('این نسخه تلگرام پشتیبانی نمی‌کند', true); } }
+};
+
+/* ═════════ فروشگاه ═════════ */
+const Store = {
+  data:null, kind:'vpn', cat:0,
+
+  /* جابه جایی نوع درجا؛ ساخت دوباره کل صفحه، اسکرول را به بالا می برد */
+  to(k){
+    if (this.kind === k) return;
+    this.kind = k; App.haptic();
+    const box = $('kinds');
+    if (box && box.querySelectorAll) box.querySelectorAll('.kind').forEach(e => e.classList.toggle('on', e.getAttribute('data-kind') === k));
+    $('store-box').innerHTML = skel(2, 200);
+    return k === 'ai' ? this.loadAi() : this.loadVpn();
+  },
+
+  plan(id){ for (const c of (this.data ? this.data.categories : [])) for (const x of c.plans) if (x.id === id) return x; return null; },
+
+  async loadVpn(){
+    try {
+      const d = await api('plans'); this.data = d;
+      if (d.disabled || !d.categories.length) return void ($('store-box').innerHTML = emptyBox('فعلا پلنی برای فروش نیست'));
+      this.cat = Math.min(this.cat, d.categories.length - 1);
+      $('store-box').innerHTML = Tabs('cat-tabs', d.categories.map(c => ({ t:c.title, s: fa(c.plans.length) + ' پلن' })), this.cat, 'Store.pick')
+        + `<div id="plans" style="margin-top:16px"></div>`;
+      this.renderPlans();
+    } catch (err) { $('store-box').innerHTML = emptyBox('پلن‌ها خوانده نشد', err.message); }
+  },
+
+  pick(i){ if (i === this.cat) return; this.cat = i; App.haptic(); slideTabs('cat-tabs', i); this.renderPlans(); },
+
+  /* به صرفه ترین پلن دسته (کمترین قیمت هر گیگ) خودش یک کارت عبور سرمه ای
+     است؛ بقیه کارت سفید. کاربر بدون حساب کردن می بیند کدام را بخرد. */
+  renderPlans(){
+    const plans = this.data.categories[this.cat].plans;
+    const bal = App.boot.user.balance;
+    const per = plans.map(x => x.data_gb ? x.price / x.data_gb : Infinity);
+    const bi = plans.length > 1 && isFinite(Math.min(...per)) ? per.indexOf(Math.min(...per)) : -1;
+    const order = bi >= 0 ? [plans[bi], ...plans.filter((_, i) => i !== bi)] : plans;
+    $('plans').innerHTML = order.map(x => x === plans[bi] ? this.best(x, bal) : this.card(x, bal)).join('<div class="gap"></div>');
+  },
+
+  /* دکمه خرید باید بی تردید دکمه باشد: توپر، به رنگ دسته اینترنت، با
+     آیکن و پیکان. نسخه قبل دکمه سفید با مرز نازک روی کارت سفید بود و
+     کاربر نمی فهمید دکمه است. کمبود موجودی کهربایی است، رنگ پول. */
+  buyBtn(x, bal, onPass){
+    if (bal < x.price)
+      return `<button class="btn btn-block btn-short" onclick="App.go('topup')">${ic('wallet')}<span>${N(money(x.price - bal))} تومان کم داری · شارژ</span></button>`;
+    return `<button class="btn btn-block ${onPass ? 'btn-buy-pass' : 'btn-buy'}" onclick="Buy.confirm(${x.id})">
+      ${ic('store',2)}<span>خرید ${esc(x.title)}</span><span class="buy-arrow">${ic('chev',2.4)}</span></button>`;
+  },
+
+  /* حجم و قیمت هم وزن اند: دو ستون کنار هم، هر دو عدد درشت. حجم قبلا
+     در زیرعنوان 12 پیکسلی کنار روز گم بود، در حالی که برای خریدار
+     اینترنت به اندازه قیمت مهم است. */
+  stats(x, onPass){
+    const perGb = x.data_gb ? fa(Math.round(x.price / x.data_gb)) : '—';
+    return `<div class="plan-stats${onPass ? ' on-pass' : ''}">
+      <div class="stat-vol"><span class="stat-l">حجم</span>
+        <span class="stat-v"><span class="n">${esc(x.data_gb)}</span><span class="stat-u">گیگ</span></span></div>
+      <div class="stat-price"><span class="stat-l">قیمت</span>
+        <span class="stat-v"><span class="n">${fa(x.price)}</span><span class="stat-u">تومان</span></span></div>
+    </div>
+    <div class="plan-sub${onPass ? ' on-pass' : ''}">${ic('globe')}<span>${N(x.duration_days)} روز · همه کشورها · هر گیگ ${N(perGb)} تومان</span></div>`;
+  },
+
+  best(x, bal){
+    return `<div class="pass best mx">${TUNNEL}
+      <div class="plan-head"><span class="best-flag">${ic('spark',2.2)}بهترین ارزش</span></div>
+      <div style="font-size:18px;font-weight:800">${esc(x.title)}</div>
+      ${this.stats(x, true)}${this.buyBtn(x, bal, true)}</div>`;
+  },
+
+  card(x, bal){
+    return `<div class="card plan mx">
+      <div class="plan-head"><span class="plan-name">${esc(x.title)}</span>${x.badge ? Badge('ai', x.badge) : ''}</div>
+      ${this.stats(x, false)}${this.buyBtn(x, bal, false)}</div>`;
+  },
+
+  async loadAi(){
+    try {
+      const d = await api('ai');
+      if (!d.enabled) return void ($('store-box').innerHTML = emptyBox('این بخش فعلا خاموش است'));
+      $('store-box').innerHTML = (d.banner ? `<div class="banner"><img src="${STATIC}ai-banner.jpg" alt="" onerror="this.parentNode.remove()"></div><div class="gap" style="height:14px"></div>` : '')
+        + (d.items.length ? d.items.map(AiCard).join('<div class="gap"></div>') : emptyBox('فعلا محصولی برای نمایش نیست'))
+        + (d.orders.length ? Sec('سفارش‌های من') + Group(d.orders.map(o => {
+            const st = { pending:['warn','در انتظار'], done:['ok','تحویل شد'], delivered:['ok','تحویل شد'], failed:['bad','ناموفق'] }[o.status] || ['', o.status];
+            return Row({ kind:'ai', icon:'spark', title:o.title, sub:`${o.code} · ${jdate(o.created_at)}`, end: Badge(st[0], st[1]) });
+          }).join('')) : '');
+    } catch (err) { $('store-box').innerHTML = emptyBox('محصولات خوانده نشد', err.message); }
+  }
+};
+
+function AiCard(x){
+  const out = x.stock === 0;
+  return `<div class="card plan mx" style="gap:12px">
+    <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic lg ai">${ic('spark')}</span>
+      <div style="flex-grow:1;min-width:0"><div class="plan-name">${esc(x.title)}</div>
+        <div style="margin-top:6px">${x.stock != null ? (out ? Badge('bad', 'ناموجود') : Badge('ok', 'موجود: ' + fa(x.stock))) : ''}</div></div>
+      <div><div class="n" style="font-size:17px">${fa(x.price)}</div><div class="lbl" style="text-align:left">تومان</div></div></div>
+    ${out ? `<div class="short">وقتی موجود شد در ربات خبر بگیر</div>`
+          : `<button class="btn btn-block" style="background:var(--ai-t);color:var(--ai-i);height:46px" onclick="App.openBot('ai')">سفارش در ربات</button>`}
+  </div>`;
+}
+
+/* ═════════ کیف پول ═════════ */
+const Wallet = {
+  filter:null, offset:0, items:[],
+  FILTERS: [{ k:null, t:'همه', icon:'list' }, { k:'charge', t:'شارژ', icon:'down' }, { k:'purchase', t:'خرید', icon:'up' }, { k:'referral', t:'پاداش', icon:'gift' }],
+  chips(){
+    const on = Math.max(0, this.FILTERS.findIndex(f => f.k === this.filter));
+    $('wal-tabs-box').innerHTML = Tabs('wal-tabs', this.FILTERS, on, 'Wallet.pick');
+  },
+  pick(i){
+    const f = this.FILTERS[i]; if (!f || f.k === this.filter) return;
+    slideTabs('wal-tabs', i); App.haptic();
+    this.filter = f.k; this.offset = 0; this.items = [];
+    $('wal-list').innerHTML = skel(3, 64);
+    return this.load();
+  },
+  async load(){
+    try {
+      const d = await api('wallet?offset=' + this.offset + (this.filter ? '&kind=' + this.filter : ''));
+      App.setBalance(d.balance);
+      this.items = this.items.concat(d.items);
+      $('wal-list').innerHTML = this.items.length
+        ? Group(this.items.map(TxRow).join('')) + (d.has_more ? `<button class="btn btn-s mx" style="margin-top:12px;width:calc(100% - 44px)" onclick="Wallet.more()">بیشتر</button>` : '')
+        : emptyBox('هنوز تراکنشی نیست', 'اولین شارژ یا خریدت اینجا ثبت می‌شود.');
+    } catch (err) { $('wal-list').innerHTML = emptyBox('سوابق خوانده نشد', err.message); }
+  },
+  more(){ this.offset += 12; return this.load(); },
+  find(id){ return this.items.find(x => x.id === id); }
+};
+const TX = { charge:['cash','down','شارژ کیف پول'], purchase:['net','up','خرید سرویس'], referral:['cash','gift','پاداش هم‌سفر'] };
+const TXS = { pending:['warn','در انتظار'], approved:['ok','تایید شده'], rejected:['bad','رد شده'], failed:['bad','ناموفق'] };
+function TxRow(t){
+  const m = TX[t.type] || ['', 'list', t.type];
+  const st = TXS[t.status];
+  const pos = t.amount > 0, dead = t.status === 'rejected' || t.status === 'failed' || t.status === 'pending';
+  const color = dead ? 'var(--ink-3)' : pos ? 'var(--ok)' : 'var(--ink)';
+  return Row({ kind:m[0], icon:m[1], title:m[2], sub:`${jdate(t.created_at)} · ${t.code}`, fn:`Sheets.tx(${t.id})`,
+    end:`<span class="n" style="font-size:14px;color:${color}">${pos ? '+' : '−'}${money(t.amount)}</span>${st && t.status !== 'approved' ? Badge(st[0], st[1]) : ''}` });
+}
+
+/* ═════════ خرید ═════════ */
+const Buy = {
+  busy:false,
+  plan(id){ return Store.plan(id); },
+  nonce(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'n' + Date.now() + Math.random().toString(36).slice(2, 12); },
+  confirm(id){
+    const x = this.plan(id); if (!x) return;
+    const bal = App.boot.user.balance;
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span class="ic lg navy">${ic('globe')}</span>
+        <div><div class="sheet-t">${esc(x.title)}</div><div class="topbar-s">اینترنت آزاد</div></div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV([['حجم و مدت', `${N(x.data_gb)} گیگ · ${N(x.duration_days)} روز`], ['قیمت', `${N(fa(x.price))} تومان`],
+        ['موجودی فعلی', `${N(fa(bal))} تومان`], ['موجودی بعد از خرید', `${N(fa(bal - x.price))} تومان`]]).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      <button class="btn btn-p btn-block" id="buy-go" style="margin-top:16px;height:54px;font-size:16px" onclick="Buy.go(${id})">پرداخت از کیف پول</button>
+      <div class="short" style="margin-top:10px">کارت عبور بلافاصله ساخته می‌شود</div>`);
+  },
+  async go(id){
+    if (this.busy) return;
+    this.busy = true;
+    const btn = $('buy-go'); if (btn) { btn.disabled = true; btn.textContent = 'در حال ساخت…'; }
+    App.haptic('medium');
+    try {
+      const r = await api('purchase', { plan_id:id, nonce:this.nonce() });
+      App.setBalance(r.balance); App.notify('success');
+      this.done(r);
+    } catch (err) {
+      App.notify('error');
+      if (err.code === 'rules') { App.closeSheet(); App.toast('اول قوانین را بخوان و بپذیر', true); App.go('rules'); }
+      else if (err.code === 'insufficient') { App.closeSheet(); App.toast(err.message, true); App.go('topup'); }
+      else { if (btn) { btn.disabled = false; btn.textContent = 'تلاش دوباره'; } App.toast(err.message || 'خرید انجام نشد', true); }
+    } finally { this.busy = false; }
+  },
+  done(r){
+    const fake = { id:r.service_id, title:r.title, status:'active', used_bytes:0, limit_bytes:r.plan.data_gb * GB, percent:0,
+                   days_left:r.plan.duration_days, expire_at:null, expired:false };
+    $('sheet').innerHTML = `<div class="grip"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span class="ic" style="width:28px;height:28px;border-radius:14px;background:var(--ok);color:#fff">${ic('check',2.6)}</span><div class="sheet-t">کارت عبورت آماده شد</div></div>
+      ${Pass(fake, 'navy', `<span class="pass-meta">${N(r.plan.duration_days)} روز</span>`).replace(/onclick="App.go\('detail',\d+\)"/, '')}
+      <button class="btn btn-p btn-block" style="margin-top:16px;height:54px;font-size:16px" onclick="App.closeSheet();App.go('detail',${r.service_id})">${ic('bolt',2)}وصل شوم</button>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px">
+        <button class="btn btn-s" style="height:46px" onclick="App.copy(${esc(JSON.stringify(r.sub_url))})">${ic('copy')}کپی لینک</button>
+        <button class="btn btn-s" style="height:46px" onclick="App.closeSheet();App.tab('home')">خانه</button></div>`;
+  }
+};
+
+/* ═════════ زیرصفحه ها ═════════ */
+const SubPages = {
+
+async detail(p, id){
+  p.innerHTML = Top('سرویس') + skel(1, 214) + skel(1, 200);
+  try {
+    const s = await api('service?id=' + id);
+    Sheets.last = s;
+    const days = s.daily.slice(-7), sum = days.reduce((a, x) => a + x.bytes, 0);
+    const i = Math.max(0, Home.services.findIndex(x => x.id === s.id));
+    p.innerHTML = Top(s.title, `اینترنت آزاد · <span class="n" style="font-weight:600">${esc(s.panel_username)}</span>`)
+      + `<div class="mx" style="margin-top:8px">${Pass(s, PASS_COLORS[i % 4], (s.expired || s.status === 'finished')
+          ? `<button class="pass-btn" onclick="event.stopPropagation();App.tab('store')">تمدید</button>`
+          : `<button class="pass-btn" onclick="event.stopPropagation();App.tab('store')">تمدید</button>`).replace(/ onclick="App.go\('detail',\d+\)" role="button"/, '')}</div>`
+      + (s.fresh ? '' : `<div class="stale">${ic('warn',2)}پنل جواب نداد؛ عدد از آخرین آمار روزانه است</div>`)
+      + `<div style="display:flex;gap:10px;margin:16px var(--pad) 0">
+          <button class="btn btn-p" style="flex-grow:1" onclick="Sheets.connect()">${ic('bolt',2)}وصل شوم</button>
+          <button class="btn btn-s btn-sq" onclick="App.copy(${esc(JSON.stringify(s.sub_url))})" aria-label="کپی لینک">${ic('copy')}</button>
+          <button class="btn btn-s btn-sq" onclick="Sheets.qr(${s.id})" aria-label="QR">${ic('qr')}</button></div>`
+      + (days.length ? Sec('مصرف') + `<div class="card chart mx"><div class="chart-h">
+          <div><div class="lbl">مصرف ${N(days.length)} روز اخیر</div><div class="n" style="font-size:22px">${esc(gbShort(sum))}</div></div>
+          <div style="text-align:left"><div class="lbl">میانگین روزانه</div><div class="n">${esc(gbShort(sum / days.length))}</div></div></div>${UsageChart(days)}</div>` : '')
+      + (s.import_links.length ? Sec('اتصال سریع', 'برنامه‌ات را بزن') + Group(s.import_links.map((a, k) =>
+          `<a class="row" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="ic net">${ic('phone')}</span><span class="row-m"><span class="row-t">${esc(a.label)}</span><span class="row-s">افزودن خودکار اشتراک</span></span>${k === 0 ? Badge('ok', 'پیشنهادی') : ''}<span class="chev">${ic('chev',2)}</span></a>`).join('')) : '')
+      + Sec('جزئیات') + KV([['حجم کل', s.limit_bytes ? `${N(gbShort(s.limit_bytes))}` : 'نامحدود'], ['مصرف شده', N(gbShort(s.used_bytes))],
+          ['تاریخ ساخت', N(jdate(s.created_at))], ['انقضا', N(jdate(s.expire_at))]]);
+  } catch (err) { p.innerHTML = Top('سرویس') + emptyBox('سرویس خوانده نشد', err.message); }
+},
+
+async referral(p){
+  p.innerHTML = Top('هم‌سفرها', 'دعوت کن، با هم عبور کنید') + skel(2, 160);
+  try {
+    const d = await api('referral');
+    p.innerHTML = Top('هم‌سفرها', 'دعوت کن، با هم عبور کنید') + `
+      <div class="hero mx" style="margin-top:8px">
+        <div class="wallet-l" style="font-size:13px">درآمد تو از هم‌سفرها</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px"><span class="n" style="font-size:44px;letter-spacing:-1.2px;line-height:1">${fa(d.stats.total)}</span><span class="wallet-l" style="font-size:15px;font-weight:600">تومان</span></div>
+        <div style="font-size:13px;color:var(--ink-2);margin-top:8px">از هر خرید هم‌سفرهایت ${N(d.percent + '%')} به کیف پولت اضافه می‌شود.</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px">
+          ${[[d.stats.joined,'دعوت شده'],[d.stats.buyers,'خریدار'],[d.stats.month,'30 روز اخیر']].map(([v, k]) =>
+            `<div style="background:var(--sunk);border-radius:14px;padding:10px 6px;text-align:center"><div class="n" style="font-size:16px">${fa(v)}</div><div class="lbl">${k}</div></div>`).join('')}</div>
+      </div><div class="gap" style="height:16px"></div>
+      ${d.link ? `<div class="pass invite mx">${TUNNEL}
+        <div class="invite-h"><span class="ic navy" style="background:var(--deep)">${ic('gift')}</span>
+          <div><div style="font-size:15px;font-weight:800">لینک دعوت تو</div><div class="pass-meta">هر کس با این لینک بیاید، هم‌سفر توست</div></div></div>
+        <div class="invite-link"><span class="invite-url">${esc(d.link.replace(/^https?:\/\//, ''))}</span>
+          <button class="invite-copy" onclick="App.copy(${esc(JSON.stringify(d.link))})" aria-label="کپی لینک">${ic('copy')}<span>کپی</span></button></div>
+        <button class="invite-share" onclick="App.share(${esc(JSON.stringify(d.link))},'با عبور، اینترنت آزاد')">${ic('share',2)}اشتراک با دوستان در تلگرام</button>
+      </div>` : ''}
+      ${d.log.length ? Sec('آخرین پاداش‌ها') + Group(d.log.map(r => Row({ kind:'cash', icon:'gift', title:r.name, sub:`${jdate(r.created_at)} · ${r.kind || 'خرید'}`,
+          end:`<span class="n" style="color:var(--ok)">+${fa(r.reward)}</span>` })).join('')) : emptyBox('هنوز پاداشی نگرفته‌ای', 'لینک را برای دوستانت بفرست.')}`;
+  } catch (err) { p.innerHTML = Top('هم‌سفرها') + emptyBox('خوانده نشد', err.message); }
+},
+
+async tickets(p){
+  p.innerHTML = Top('تیکت‌های من', 'برای دیدن گفتگو روی تیکت بزن') + skel(3, 100);
+  const st = { open:['ai','باز'], answered:['ok','پاسخ داده شده'], closed:['','بسته'] };
+  try {
+    const d = await api('tickets');
+    p.innerHTML = Top('تیکت‌های من', 'برای دیدن گفتگو روی تیکت بزن') + '<div class="gap" style="height:8px"></div>'
+      + (d.items.length ? d.items.map(t => { const s = st[t.status] || ['', t.status];
+          return `<button class="card mx" style="display:flex;flex-direction:column;gap:8px;padding:14px 16px;width:calc(100% - 44px);text-align:right;margin-bottom:12px" onclick="App.go('thread',${t.id})">
+            <span style="display:flex;justify-content:space-between;align-items:center;width:100%">${Badge(s[0], s[1])}<span class="n" style="font-size:12px;color:var(--ink-3)">${esc(t.code)}</span></span>
+            <span style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%">${t.has_photo ? '[تصویر] ' : ''}${esc(t.preview)}</span>
+            <span style="display:flex;justify-content:space-between;width:100%;font-size:12px;color:var(--ink-3)"><span>${t.replies ? N(t.replies) + ' پاسخ' : 'بدون پاسخ'}</span>${N(jdate(t.last_at))}</span></button>`; }).join('')
+        : emptyBox('تیکتی نداری', 'اگر مشکلی داری، همین جا بپرس.'))
+      + `<button class="btn btn-p mx" style="width:calc(100% - 44px);margin-top:4px" onclick="App.go('compose')">${ic('plus',2.2)}تیکت جدید</button>`;
+  } catch (err) { p.innerHTML = Top('تیکت‌های من') + emptyBox('خوانده نشد', err.message); }
+},
+
+async thread(p, id){
+  p.innerHTML = Top('گفتگو') + skel(3, 60);
+  const st = { open:'باز', answered:'پاسخ داده شده', closed:'بسته' };
+  try {
+    const t = await api('ticket?id=' + id);
+    p.innerHTML = Top(t.code, `${st[t.status] || t.status} · ${N(t.messages.length)} پیام`) + Thread(t.messages)
+      + (t.status === 'closed'
+        ? `<div class="short" style="margin-top:18px">این گفتگو بسته شده است</div>
+           <div class="foot"><button class="btn btn-p btn-block" onclick="App.go('compose')">${ic('plus',2.2)}تیکت تازه</button></div>`
+        : `<div class="foot reply"><textarea id="tk-body" class="compose reply-in" rows="1" maxlength="2000" placeholder="پاسخت را بنویس…"
+             oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+           <button class="reply-go" id="tk-go" onclick="Compose.send()" aria-label="ارسال">${ic('up',2.4)}</button></div>`);
+    const sc = p.parentNode; if (sc && sc.scrollHeight) sc.scrollTop = sc.scrollHeight;
+  } catch (err) { p.innerHTML = Top('گفتگو') + emptyBox('خوانده نشد', err.message); }
+}
+};
+/* ═════════ شارژ کیف پول ═════════
+   دو قدم، همان ترتیب ربات: مبلغ → کارت و رسید. مبلغ یکتا از سرور می آید
+   (سه رقم آخر شناسه کاربر است) و درخواست باز قبلی دوباره نشان داده
+   می شود، نه اینکه مبلغ تازه ای رزرو شود. */
+SubPages.topup = async function(p){
+  p.innerHTML = Top('شارژ کیف پول') + skel(1, 220);
+  try {
+    const d = await api('topup');
+    Topup.info = d;
+    if (!d.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + emptyBox('شارژ فعلا ممکن نیست', 'شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.'));
+    if (d.open) { Topup.req = { txn_id:d.open.txn_id, amount:d.open.amount, card:d.card }; return Topup.step2(p); }
+    Topup.step1(p);
+  } catch (err) { p.innerHTML = Top('شارژ کیف پول') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.topup.noNav = true;
+
+const Topup = {
+  info:null, req:null, amount:0, img:null, busy:false,
+  step1(p){
+    p = p || $('sub').querySelector('.page');
+    const d = this.info, pick = this.amount || d.presets[1] || d.presets[0];
+    this.amount = pick;
+    p.innerHTML = Top('شارژ کیف پول', 'قدم 1 از 2 · مبلغ') + `
+      <div class="hero mx" style="margin-top:8px">
+        <div class="lbl">مبلغ شارژ</div>
+        <div class="amt-in"><input id="amt" inputmode="numeric" dir="ltr" value="${fa(pick)}" oninput="Topup.typed(this)" aria-label="مبلغ به تومان"><span>تومان</span></div>
+        <div class="presets">${d.presets.map(v => `<button class="preset${v === pick ? ' on' : ''}" onclick="Topup.set(${v})"><span class="n">${fa(v)}</span></button>`).join('')}</div>
+        <div class="short" style="text-align:right;margin-top:10px">حداقل ${N(fa(d.min))} تومان · پرداخت کارت به کارت، تایید در چند دقیقه</div>
+      </div>
+      <div class="foot"><button class="btn btn-p btn-block" id="amt-go" onclick="Topup.start()">ادامه و دیدن شماره کارت</button></div>`;
+  },
+  set(v){
+    this.amount = v; App.haptic();
+    const i = $('amt'); if (i) i.value = fa(v);
+    document.querySelectorAll && document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.textContent.replace(/,/g,'') == String(v)));
+  },
+  typed(el){
+    const v = parseInt(String(el.value).replace(/[^\d]/g, '').replace(/^0+/, '') || '0', 10);
+    this.amount = v;
+    el.value = v ? fa(v) : '';
+    document.querySelectorAll && document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.textContent.replace(/,/g,'') == String(v)));
+  },
+  async start(){
+    if (this.busy) return;
+    if (this.amount < this.info.min) return App.toast('حداقل شارژ ' + fa(this.info.min) + ' تومان است', true);
+    this.busy = true; const b = $('amt-go'); if (b) { b.disabled = true; b.textContent = 'در حال رزرو مبلغ…'; }
+    try {
+      this.req = await api('topup/start', { amount:this.amount });
+      App.haptic('medium'); this.step2();
+    } catch (err) { App.toast(err.message, true); if (b) { b.disabled = false; b.textContent = 'ادامه و دیدن شماره کارت'; } }
+    finally { this.busy = false; }
+  },
+  step2(p){
+    p = p || $('sub').querySelector('.page');
+    const r = this.req, c = r.card || {};
+    const num = String(c.number || '').replace(/[^\d]/g, '');
+    const pretty = num.replace(/(\d{4})(?=\d)/g, '$1 ');
+    this.img = null;
+    p.innerHTML = Top('شارژ کیف پول', 'قدم 2 از 2 · پرداخت و رسید') + `
+      <div class="pass mx paycard">${TUNNEL}
+        <div class="pass-meta">دقیقا همین مبلغ را واریز کن</div>
+        <div style="display:flex;align-items:baseline;gap:8px"><span class="n" style="font-size:38px;letter-spacing:-1px;line-height:1.1">${fa(r.amount)}</span><span class="pass-meta" style="font-size:14px">تومان</span>
+          <button class="invite-copy" style="margin-inline-start:auto" onclick="App.copy('${r.amount}')" aria-label="کپی مبلغ">${ic('copy')}</button></div>
+        <div class="pass-meta" style="font-size:11.5px">سه رقم آخر شناسه توست؛ با آن رسیدت شناخته می‌شود.</div>
+        <div class="invite-link" style="margin-top:4px"><span class="invite-url" style="font-size:16px;letter-spacing:1px;color:var(--on-pass)">${esc(pretty)}</span>
+          <button class="invite-copy" onclick="App.copy('${esc(num)}')">${ic('copy')}<span>کپی</span></button></div>
+        <div class="pass-meta">${esc(c.holder || '')}${c.bank ? ' · ' + esc(c.bank) : ''}</div>
+      </div>
+      ${Sec('عکس رسید')}
+      <label class="upload mx" id="up">
+        <input type="file" accept="image/*" onchange="Topup.pick(this)" hidden>
+        <span class="ic lg cash">${ic('image')}</span>
+        <span class="upload-t" id="up-t">عکس رسید را انتخاب کن</span>
+        <span class="short">اسکرین‌شات یا عکس رسید بانکی</span>
+      </label>
+      <div class="short" style="margin:12px var(--pad) 0">مهلت پرداخت 30 دقیقه است. بعد از تایید، مبلغ به کیف پولت اضافه می‌شود و در ربات خبر می‌گیری.</div>
+      <div class="foot"><button class="btn btn-p btn-block" id="rc-go" disabled onclick="Topup.send()">ارسال رسید</button></div>`;
+  },
+  /* عکس روی گوشی کوچک می شود (حداکثر ۱۶۰۰ پیکسل، JPEG). هم آپلود روی
+     اینترنت کند سریع تر می شود و هم اطلاعات جانبی عکس (مثل موقعیت
+     مکانی در EXIF) پاک می شود. */
+  pick(input){
+    const f = input.files && input.files[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        this.img = cv.toDataURL('image/jpeg', .85);
+        const up = $('up');
+        up.classList.add('has'); up.style.backgroundImage = `url(${this.img})`;
+        $('up-t').textContent = 'رسید انتخاب شد · برای عوض کردن بزن';
+        const b = $('rc-go'); if (b) b.disabled = false;
+        App.haptic();
+      };
+      img.onerror = () => App.toast('این فایل عکس نیست', true);
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(f);
+  },
+  async send(){
+    if (this.busy || !this.img) return;
+    this.busy = true; const b = $('rc-go'); if (b) { b.disabled = true; b.textContent = 'در حال ارسال…'; }
+    try {
+      const r = await api('topup/receipt', { txn_id:this.req.txn_id, image:this.img });
+      App.notify('success');
+      $('sub').querySelector('.page').innerHTML = Top('شارژ کیف پول') + `<div class="empty" style="padding-top:40px">
+        <span class="ic lg" style="background:var(--ok);color:#fff;border-radius:23px">${ic('check',2.6)}</span>
+        <div class="empty-t" style="font-size:19px">رسیدت رسید</div>
+        <div class="empty-s">شارژ ${N(fa(r.amount))} تومان در حال بررسی است. بعد از تایید، در ربات خبر می‌گیری.</div>
+        ${r.code ? `<div class="badge" style="margin-top:6px">کد پیگیری ${N(r.code)}</div>` : ''}
+      </div><div class="foot"><button class="btn btn-p btn-block" onclick="App.tab('wallet')">برگشت به کیف پول</button></div>`;
+      this.req = null; this.amount = 0;
+    } catch (err) { App.toast(err.message, true); if (b) { b.disabled = false; b.textContent = 'ارسال رسید'; } }
+    finally { this.busy = false; }
+  }
+};
+
+/* ═════════ قوانین ═════════ */
+SubPages.rules = async function(p){
+  p.innerHTML = Top('قوانین و حریم خصوصی') + skel(1, 300);
+  try {
+    const d = await api('rules');
+    p.innerHTML = Top('قوانین و حریم خصوصی', d.accepted ? `پذیرفته شده · ${N(jdate(d.accepted_at))}` : 'پیش از خرید، یک بار بخوان و بپذیر')
+      + `<div class="card mx rules">${d.text ? esc(d.text) : 'متن قوانین هنوز تنظیم نشده است.'}</div>`
+      + (d.accepted ? '' : `<div class="foot"><button class="btn btn-p btn-block" id="rl-go" onclick="Rules.accept()">${ic('check',2.2)}خواندم و می‌پذیرم</button></div>`);
+  } catch (err) { p.innerHTML = Top('قوانین') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.rules.noNav = true;
+const Rules = {
+  async accept(){
+    const b = $('rl-go'); if (b) b.disabled = true;
+    try {
+      await api('rules/accept', {});
+      App.boot.user.rules_accepted = true; App.notify('success'); App.toast('قوانین پذیرفته شد');
+      App.back();
+    } catch (err) { App.toast(err.message, true); if (b) b.disabled = false; }
+  }
+};
+
+/* ═════════ راهنمای اتصال ═════════
+   دستگاه کاربر از خود تلگرام خوانده می شود و همان اول باز است. */
+SubPages.guide = async function(p){
+  p.innerHTML = Top('راهنمای اتصال') + skel(1, 260);
+  try {
+    const d = await api('guide');
+    Guide.items = d.items;
+    const plat = tg && tg.platform || '';
+    const want = /ios|macos/.test(plat) ? 'ios' : /android/.test(plat) ? 'android' : /tdesktop|windows/.test(plat) ? 'windows' : '';
+    Guide.on = Math.max(0, d.items.findIndex(x => x.key === want));
+    p.innerHTML = Top('راهنمای اتصال', 'دستگاهت را انتخاب کن')
+      + (d.items.length ? Tabs('gd-tabs', d.items.map(x => ({ t:x.title })), Guide.on, 'Guide.pick') + '<div id="gd-body" style="margin-top:14px"></div>'
+                        : emptyBox('راهنما هنوز تنظیم نشده'));
+    if (d.items.length) Guide.render();
+  } catch (err) { p.innerHTML = Top('راهنمای اتصال') + emptyBox('خوانده نشد', err.message); }
+};
+const Guide = {
+  items:[], on:0,
+  pick(i){ if (i === this.on) return; this.on = i; App.haptic(); slideTabs('gd-tabs', i); this.render(); },
+  render(){
+    const x = this.items[this.on]; if (!x) return;
+    const lines = x.body.split('\n').map(l => l.trim()).filter(Boolean);
+    const steps = lines.filter(l => /^\d+[.)]/.test(l)), rest = lines.filter(l => !/^\d+[.)]/.test(l));
+    $('gd-body').innerHTML = (steps.length ? `<div class="group">${steps.map(l => {
+        const m = l.match(/^(\d+)[.)]\s*(.*)$/);
+        return `<div class="row"><span class="ic net"><span class="n">${esc(m[1])}</span></span><span class="row-m"><span class="row-t" style="font-weight:400">${esc(m[2])}</span></span></div>`;
+      }).join('')}</div>` : '')
+      + rest.map(l => `<div class="short" style="text-align:right;margin:12px var(--pad) 0">${esc(l)}</div>`).join('')
+      + `<button class="btn btn-s mx" style="margin-top:16px;width:calc(100% - 44px)" onclick="App.go('compose')">${ic('chat')}باز هم وصل نشد؟ بپرس</button>`;
+  }
+};
+
+/* ═════════ تیکت جدید ═════════ */
+SubPages.compose = function(p){
+  p.innerHTML = Top('تیکت جدید', 'پاسخ پشتیبانی هم اینجا و هم در ربات می‌رسد') + `
+    <div class="card mx" style="padding:14px">
+      <textarea id="tk-body" class="compose" rows="7" maxlength="2000" placeholder="مشکلت را بنویس؛ مثلا کدام سرویس، روی چه دستگاهی، و چه پیغامی می‌بینی." oninput="Compose.count(this)"></textarea>
+      <div class="short" style="text-align:left" id="tk-count"><span class="n">0</span> / <span class="n">2000</span></div>
+    </div>
+    <div class="short" style="margin:12px var(--pad) 0;text-align:right">برای فرستادن عکس، فعلا از ربات استفاده کن.</div>
+    <div class="foot"><button class="btn btn-p btn-block" id="tk-go" onclick="Compose.send()">${ic('chat',2)}ارسال به پشتیبانی</button></div>`;
+};
+SubPages.compose.noNav = true;
+const Compose = {
+  busy:false,
+  count(el){ const c = $('tk-count'); if (c) c.innerHTML = `<span class="n">${fa(el.value.length)}</span> / <span class="n">2000</span>`; },
+  async send(threadAfter){
+    const el = $('tk-body'); const body = el ? el.value.trim() : '';
+    if (body.length < 2) return App.toast('پیامت را بنویس', true);
+    if (this.busy) return; this.busy = true;
+    const b = $('tk-go'); if (b) { b.disabled = true; b.textContent = 'در حال ارسال…'; }
+    try {
+      const r = await api('ticket/send', { body });
+      App.notify('success');
+      App.toast(r.is_new ? 'تیکت ' + r.code + ' ساخته شد' : 'به تیکت ' + r.code + ' اضافه شد');
+      App.stack = App.stack.filter(x => x[0] !== 'compose' && x[0] !== 'thread');
+      App.go('thread', r.thread_id);
+    } catch (err) { App.toast(err.message, true); if (b) { b.disabled = false; b.innerHTML = ic('chat',2) + 'ارسال به پشتیبانی'; } }
+    finally { this.busy = false; }
+  }
+};
+
+/* گفتگو تمام صفحه است: نوار ناوبری کنار می رود و جایش دکمه پاسخ می نشیند */
+SubPages.thread.noNav = true;
+
+function Thread(messages){
+  let out = '', lastDay = '', prevSide = null;
+  messages.forEach((m, i) => {
+    const day = jdate(m.created_at);
+    if (day !== lastDay) {
+      out += `<div class="day-sep"><span>${esc(day)}</span></div>`;
+      lastDay = day; prevSide = null;
+    }
+    const next = messages[i + 1];
+    const tail = !next || next.side !== m.side || jdate(next.created_at) !== day;
+    const first = prevSide !== m.side;
+    out += Bubble(m, first, tail, prevSide !== null && first);
+    prevSide = m.side;
+  });
+  return `<div class="chat">${out}</div>`;
+}
+
+function Bubble(m, first, tail, turn){
+  const mine = m.side === 'user';
+  const cls = ['bubble-row', mine ? 'mine' : 'theirs'];
+  if (tail) cls.push('tail');
+  if (turn) cls.push('turn');
+  return `<div class="${cls.join(' ')}"><div class="bubble ${mine ? 'bubble-mine' : 'bubble-theirs'}">`
+    + (!mine && first ? `<span class="bubble-who">پشتیبانی</span>` : '')
+    + (m.has_photo ? `<div class="bubble-photo">${ic('image')}تصویر — در ربات ببین</div>` : '')
+    + (m.body ? `<span class="bubble-text">${esc(m.body)}</span>` : '')
+    /* ساعت بعد از متن: شناوری که بعد از متن بیاید، اگر جا باشد روی
+       همان خط آخر می نشیند و اگر نباشد به خط بعد می رود. */
+    + `<span class="bubble-time">${jtime(m.created_at)}</span>`
+    + `</div></div>`;
+}
+
+
+
+/* ═════════ شیت ها ═════════ */
+const Sheets = {
+  last:null,
+  connect(){
+    const s = this.last; if (!s) return;
+    App.sheet(`<div class="sheet-t" style="margin-bottom:4px">وصل شوم</div><div class="topbar-s" style="margin-bottom:14px">برنامه‌ات را بزن؛ اشتراک خودکار اضافه می‌شود.</div>
+      ${s.import_links.length ? `<div style="margin:0 calc(-1 * var(--pad))">${Group(s.import_links.map((a, k) =>
+          `<a class="row" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="ic net">${ic('phone')}</span><span class="row-m"><span class="row-t">${esc(a.label)}</span></span>${k === 0 ? Badge('ok', 'پیشنهادی') : ''}<span class="chev">${ic('chev',2)}</span></a>`).join('')).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>` : ''}
+      <div class="lbl" style="margin:16px 0 8px">یا لینک را دستی اضافه کن</div><div class="linkbox">${esc(s.sub_url)}</div>
+      <button class="btn btn-p btn-block" style="margin-top:12px" onclick="App.copy(${esc(JSON.stringify(s.sub_url))})">${ic('copy')}کپی لینک</button>`);
+  },
+  async qr(id){
+    App.sheet(`<div class="sheet-t" style="margin-bottom:14px">اسکن کن</div><div class="sk" style="height:260px"></div>`);
+    try {
+      const res = await fetch(BASE + 'qr?id=' + id, { headers:{ 'X-Init-Data': INIT } });
+      if (!res.ok) throw new Error('ساخت QR نشد');
+      const svg = await res.text();
+      $('sheet').innerHTML = `<div class="grip"></div><div class="sheet-t" style="margin-bottom:14px">اسکن کن</div><div class="qr">${svg}</div>
+        <div class="short" style="margin-top:12px">در برنامه کلاینت، گزینه افزودن از QR را بزن.</div>`;
+    } catch (err) { $('sheet').innerHTML = `<div class="grip"></div>` + emptyBox('QR ساخته نشد', err.message); }
+  },
+  tx(id){
+    const t = Wallet.find(id); if (!t) return;
+    const m = TX[t.type] || ['', 'list', t.type], st = TXS[t.status], pos = t.amount > 0;
+    App.sheet(`<div style="text-align:center;padding:4px 0 16px"><div class="lbl">${esc(m[2])}</div>
+        <div class="n" style="font-size:34px;margin-top:4px;color:${pos ? 'var(--ok)' : 'var(--ink)'}">${pos ? '+' : '−'}${money(t.amount)}</div><div class="lbl">تومان</div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV([['وضعیت', st ? Badge(st[0], st[1]) : '—'], ['کد پیگیری', N(t.code)], ['تاریخ', N(jfull(t.created_at))]]
+        .concat(t.reject_reason ? [['دلیل', `<span style="color:var(--bad)">${esc(t.reject_reason)}</span>`]] : [])).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      <button class="btn btn-s btn-block" style="margin-top:16px" onclick="App.copy(${esc(JSON.stringify(String(t.code)))})">${ic('copy')}کپی کد پیگیری</button>`);
+  }
+};
+
+/* ═════════ BOOT ═════════ */
+if (!tg || !INIT) {
+  $('splash').classList.add('off'); $('nav').style.display = 'none';
+  $('view').innerHTML = `<div class="page empty" style="min-height:70%;justify-content:center"><img class="logo" src="${logoSrc()}" alt="" style="width:64px;height:64px;border-radius:20px">
+    <div class="empty-t">این صفحه باید از داخل تلگرام باز شود</div><div class="empty-s">از دکمه مینی‌اپ در ربات عبور استفاده کن.</div></div>`;
+} else {
+  App.start();
+}
+</script>
+</body>
+</html>
