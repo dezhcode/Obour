@@ -13,7 +13,7 @@ import time
 
 from typing import TYPE_CHECKING
 
-from app import apps, features, referral
+from app import apps, features, referral, texts
 from app.config import config
 from app.utils import (
     days_left,
@@ -294,7 +294,7 @@ async def plans(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dic
                 for p in rows
             ],
         })
-    return {"categories": out, "disabled": False}
+    return {"categories": out, "disabled": False, "locations": texts.LOCATION_INFO}
 
 
 async def referral(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
