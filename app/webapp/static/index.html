@@ -244,16 +244,24 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .plan-name{font-size:16px;font-weight:800}
 .short{font-size:12px;color:var(--ink-3);text-align:center}
 
-/* ═══ پروفایل (صفحه حساب) ═══
-   بدون قاب: عکس و چند خط متن مستقیم روی زمینه. مشخصات یک خط پیوسته
-   است با جداکننده نقطه، نه چند خانه جدا. */
-.me{display:flex;align-items:center;gap:16px;padding:10px var(--pad) 6px}
-.me-av{position:relative;width:64px;height:64px;border-radius:20px;flex-shrink:0;background:var(--navy);color:var(--tunnel);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;overflow:hidden}
+/* ═══ پروفایل (صفحه حساب): سربرگ سرمه ای ═══
+   نوار سرمه ای با نقش تونل تا لبه بالای صفحه می رود (حاشیه بالای
+   اسکرول را با حاشیه منفی پس می گیرد) و عکس روی لبه پایینش می نشیند.
+   اطلاعات بیرون نوار، یک ردیف متن با آیکن کوچک، بدون جعبه. */
+.band{position:relative;overflow:hidden;background:var(--navy);color:var(--on-pass);border-radius:0 0 28px 28px;
+  margin-top:calc(-6px - var(--top));padding:calc(20px + var(--top)) var(--pad) 0;height:calc(128px + var(--top))}
+.band .pass-art{left:-20px;bottom:-80px;top:auto;opacity:.2}
+.band-t{position:relative;font-size:22px;font-weight:800;letter-spacing:-.3px}
+.me{position:relative;padding:0 var(--pad);margin-top:-46px}
+.me-av{position:relative;width:92px;height:92px;border-radius:30px;background:var(--navy);color:var(--tunnel);display:flex;align-items:center;justify-content:center;
+  font-size:36px;font-weight:800;overflow:hidden;box-shadow:0 0 0 5px var(--ground)}
 .me-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.me-name{font-size:21px;font-weight:800;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.me-sub{font-size:12.5px;color:var(--ink-3);line-height:1.8}
-.me-sub .n{font-weight:600;color:var(--ink-2)}
-.me-st{display:inline-flex;align-items:center;gap:5px;color:var(--ok);font-weight:600}
+.me-name{font-size:23px;font-weight:800;line-height:1.35;margin-top:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-user{font-size:13px;font-weight:600;color:var(--ink-3)}
+.me-line{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:12.5px;color:var(--ink-2)}
+.me-line > span{display:inline-flex;align-items:center;gap:5px}
+.me-line svg{width:15px;height:15px;color:var(--net-i)}
+.me-st{color:var(--ok);font-weight:600}
 .me-st i{width:6px;height:6px;border-radius:3px;background:currentColor}
 .me-st.new{color:var(--ink-3)}
 
@@ -514,6 +522,7 @@ const ICON = {
   warn:'<path d="M12 4 3 19h18z"/><path d="M12 10v4M12 17h.01"/>',
   image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
   list:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   refresh:'<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>',
 };
 const ic = (k, sw) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.8}" stroke-linecap="round" stroke-linejoin="round">${ICON[k]||''}</svg>`;
@@ -1146,13 +1155,16 @@ async account(p){
   const joined = u.joined_at ? new Date(u.joined_at) : null;
   const days = joined && !isNaN(joined) ? Math.max(1, Math.floor((Date.now() - joined) / 864e5)) : null;
   const active = c.services_active > 0;
-  p.innerHTML = TabTop('حساب') + `
+  p.innerHTML = `
+    <div class="band">${TUNNEL}<div class="band-t">حساب</div></div>
     <div class="me">
       <span class="me-av">${letter}${photo ? `<img src="${esc(photo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>
-      <div style="min-width:0">
-        <div class="me-name">${esc(u.name)}</div>
-        <div class="me-sub">${u.username ? `<span class="n">@${esc(u.username)}</span> · ` : ''}عضو از ${N(jdate(u.joined_at))}</div>
-        <div class="me-sub"><span class="me-st${active ? '' : ' new'}"><i></i>${active ? `${N(fa(c.services_active))} سرویس فعال` : 'هنوز سرویسی نداری'}</span>${days ? ` · ${N(fa(days))} روز با عبور` : ''}</div>
+      <div class="me-name">${esc(u.name)}</div>
+      ${u.username ? `<div class="me-user n">@${esc(u.username)}</div>` : ''}
+      <div class="me-line">
+        <span class="me-st${active ? '' : ' new'}"><i></i>${active ? `${N(fa(c.services_active))} سرویس فعال` : 'هنوز سرویسی نداری'}</span>
+        <span>${ic('cal')}عضو از ${N(jdate(u.joined_at))}</span>
+        ${days ? `<span>${ic('globe')}${N(fa(days))} روز با عبور</span>` : ''}
       </div>
     </div>
     ${Sec('کارها')}
