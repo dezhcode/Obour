@@ -1573,7 +1573,7 @@ const Topup = {
           <span class="lbl">مبلغ دقیق واریز</span>
           <span class="pay-v n">${amt.slice(0, cut)}<u>${amt.slice(cut)}</u></span>
           <span class="pay-r">تومان · ${N(fa(r.amount * 10))} ریال</span>
-          <button class="btn btn-sm btn-s" onclick="App.copy('${r.amount}')">${ic('copy')}کپی مبلغ</button>
+          <button class="btn btn-sm btn-s" onclick="App.copy('${r.amount * 10}')">${ic('copy')}کپی مبلغ (ریال)</button>
         </div>
         ${r.expires_at ? `<div class="clock" id="clock" role="timer" aria-label="مهلت پرداخت">
           <svg viewBox="0 0 78 78"><circle class="trk" cx="39" cy="39" r="34"/><circle class="arc" id="clock-arc" cx="39" cy="39" r="34" stroke-dasharray="213.6" stroke-dashoffset="0"/></svg>
