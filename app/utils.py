@@ -7,6 +7,7 @@ import secrets
 
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from app.i18n import t as _t
 
 TZ = ZoneInfo("Asia/Tehran")
 GIB = 1024 ** 3
@@ -116,14 +117,14 @@ def time_left_text(expire_str: str) -> str:
     """
     seconds = _seconds_left(expire_str)
     if seconds <= 0:
-        return "تمام شده"
+        return _t("تمام شده")
     import math
 
     if seconds < 3600:
-        return f"{max(1, math.ceil(seconds / 60))} دقیقه"
+        return f"{max(1, math.ceil(seconds / 60))} {_t('دقیقه')}"
     if seconds < 86400:
-        return f"{math.ceil(seconds / 3600)} ساعت"
-    return f"{math.ceil(seconds / 86400)} روز"
+        return f"{math.ceil(seconds / 3600)} {_t('ساعت')}"
+    return f"{math.ceil(seconds / 86400)} {_t('روز')}"
 
 
 def usage_bar(used: int, total: int | None, width: int = 16) -> str:
@@ -147,15 +148,15 @@ def usage_percent(used: int, total: int | None) -> int:
 
 def fmt_gb(data_bytes: int | None) -> str:
     if data_bytes is None:
-        return "نامحدود"
+        return _t("نامحدود")
     gb = data_bytes / GIB
-    return f"{gb:g} گیگ"
+    return f"{gb:g} {_t('گیگ')}"
 
 
 def fmt_data(data_bytes: int | None) -> str:
     """حجم به شکل «۱۰ GB» برای صفحه سرویس."""
     if data_bytes is None:
-        return "نامحدود"
+        return _t("نامحدود")
     gb = data_bytes / GIB
     if gb and gb < 1:
         return f"{round(gb * 1024):g} MB"

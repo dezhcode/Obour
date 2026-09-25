@@ -7,7 +7,19 @@ from typing import Any, Awaitable, Callable
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject
 
+from . import i18n
 from .keyboards import is_admin
+
+
+async def rules_body(db: Any, user: dict) -> str:  # noqa: ANN401
+    """متن صفحه قوانین. متن خود قوانین را ادمین نوشته و ترجمه نمی شود."""
+    from app import texts
+    from app.utils import esc
+
+    rules = await db.get_setting("rules_text", "")
+    return texts.RULES_INTRO.format(
+        name=esc(user.get("first_name") or i18n.t("دوست من"))
+    ) + "\n\n" + rules
 
 
 class UserMiddleware(BaseMiddleware):
@@ -43,12 +55,18 @@ class UserMiddleware(BaseMiddleware):
             referred_by=referred_by,
         )
         data["user"] = user
+        # زبان همین آپدیت؛ همه texts.X و دکمه ها از اینجا به بعد به این زبان اند
+        i18n.set_lang(i18n.lang_of(user, getattr(tg_user, "language_code", None)))
 
         if user["is_blocked"] and not is_admin(tg_user.id):
             if isinstance(event, Message):
-                await event.answer("دسترسی شما موقتا محدود شده است.")
+                await event.answer(i18n.t("دسترسی شما موقتا محدود شده است."))
             elif isinstance(event, CallbackQuery):
-                await event.answer("دسترسی شما موقتا محدود شده است.", show_alert=True)
+                await event.answer(i18n.t("دسترسی شما موقتا محدود شده است."), show_alert=True)
+            return None
+
+        # دروازه زبان: کاربر تازه اول زبانش را انتخاب می کند، بعد قوانین
+        if await self._lang_block(event, user, tg_user):
             return None
 
         # دروازه قوانین: کاربر جدید تا تایید نکند به بقیه بخش ها نمی رسد.
@@ -56,6 +74,27 @@ class UserMiddleware(BaseMiddleware):
             return None
 
         return await handler(event, data)
+
+    @staticmethod
+    async def _lang_block(event: TelegramObject, user: dict, tg_user: Any) -> bool:  # noqa: ANN401
+        """True یعنی هنوز زبان انتخاب نشده و صفحه انتخاب نشان داده شد.
+
+        پیشنهاد (تیک خورده) زبانی است که از تلگرام کاربر حدس زده شده و
+        متن صفحه به همان زبان است.
+        """
+        if user.get("lang"):
+            return False
+        if isinstance(event, CallbackQuery) and (event.data or "").startswith("lang"):
+            return False
+        from app import keyboards, texts
+
+        guess = i18n.detect(getattr(tg_user, "language_code", None))
+        if isinstance(event, CallbackQuery):
+            await event.answer()
+            await event.message.answer(texts.LANG_PICK, reply_markup=keyboards.lang_kb(guess))
+        elif isinstance(event, Message):
+            await event.answer(texts.LANG_PICK, reply_markup=keyboards.lang_kb(guess))
+        return True
 
     @staticmethod
     async def _rules_block(
@@ -74,17 +113,15 @@ class UserMiddleware(BaseMiddleware):
         if await db.get_setting("rules_enabled", "1") != "1":
             return False
 
-        # اجازه عبور به خود عمل تایید
-        if isinstance(event, CallbackQuery) and event.data == "rules:ok":
+        # اجازه عبور به خود عمل تایید، و به عوض کردن زبان
+        if isinstance(event, CallbackQuery) and (
+            event.data == "rules:ok" or (event.data or "").startswith("lang")
+        ):
             return False
 
-        from app import keyboards, texts
-        from app.utils import esc
+        from app import keyboards
 
-        rules = await db.get_setting("rules_text", "")
-        body = texts.RULES_INTRO.format(
-            name=esc(user.get("first_name") or "دوست من")
-        ) + "\n\n" + rules
+        body = await rules_body(db, user)
 
         if isinstance(event, CallbackQuery):
             await event.answer()

@@ -10,7 +10,7 @@ from aiogram.filters import BaseFilter, Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, TelegramObject
 
-from app import broadcast, effects, features, polls
+from app import i18n, broadcast, effects, features, polls
 from app import emoji as emo
 from app import keyboards, texts, ui
 from app.config import config
@@ -167,7 +167,7 @@ async def cb_admin(call: CallbackQuery, db: Database) -> None:
     await call.answer()
 
 
-async def _notify_user(bot, telegram_id: int, body: str, effect: str = "") -> str:  # noqa: ANN001
+async def _notify_user(bot, telegram_id: int, body: str, effect: str = "", lang: str | None = None) -> str:  # noqa: ANN001
     """خبر دادن به کاربر. خروجی: رشته خالی یعنی موفق، وگرنه علت شکست.
 
     چرا خروجی برمی گرداند؟ چون این پیام ها مهم اند (خبر شارژ، رد رسید)
@@ -182,7 +182,8 @@ async def _notify_user(bot, telegram_id: int, body: str, effect: str = "") -> st
     fx = effects.kwargs(effect, telegram_id) if effect else {}
     for attempt_fx in ((fx, {}) if fx else ({},)):
         try:
-            await bot.send_message(telegram_id, body, **attempt_fx)
+            with i18n.using(lang):
+                await bot.send_message(telegram_id, body, **attempt_fx)
             return ""
         except TelegramForbiddenError:
             log.warning("کاربر %s ربات را بلاک کرده", telegram_id)
@@ -301,13 +302,12 @@ async def cb_charge_approve(call: CallbackQuery, db: Database) -> None:
     except Exception:  # noqa: BLE001
         pass
 
-    err = await _notify_user(
-        call.bot,
-        int(fresh["telegram_id"]),
-        texts.CHARGE_APPROVED.format(
+    with i18n.using(i18n.lang_of(fresh)):
+        body = texts.CHARGE_APPROVED.format(
             amount=f"{txn['amount']:,}", balance=f"{fresh['balance']:,}"
-        ),
-        effect=effects.CHARGE,
+        )
+    err = await _notify_user(
+        call.bot, int(fresh["telegram_id"]), body, effect=effects.CHARGE, lang=i18n.lang_of(fresh)
     )
     if err:
         # شارژ انجام شده ولی کاربر خبر ندارد؛ ادمین باید همین حالا بداند
@@ -326,7 +326,9 @@ async def cb_charge_duplicate(call: CallbackQuery, db: Database) -> None:
         return await call.answer("این رسید قبلا بررسی شده.", show_alert=True)
     await db.release_amount(txn["amount"])
     user = await db.get_user(txn["user_id"])
-    notify_err = await _notify_user(call.bot, int(user["telegram_id"]), texts.DUP_RECEIPT)
+    with i18n.using(i18n.lang_of(user)):
+        body = texts.DUP_RECEIPT
+    notify_err = await _notify_user(call.bot, int(user["telegram_id"]), body, lang=i18n.lang_of(user))
     # ثبت وضعیت روی پیام (بخش ۱۵.۲ سند): جلوگیری از بررسی دوباره
     try:
         await call.message.edit_caption(
@@ -368,9 +370,14 @@ async def _finalize_reject(
         return False, None
     await db.release_amount(txn["amount"])
     user = await db.get_user(txn["user_id"])
-    notify_err = await _notify_user(
-        bot, int(user["telegram_id"]), texts.CHARGE_REJECTED.format(reason=reason)
-    )
+    # دلیل آماده به زبان کاربر؛ دلیلی که ادمین دستی نوشته همان می ماند
+    lang = i18n.lang_of(user)
+    fa_reasons = texts.__dict__["REJECT_REASONS"]
+    code = next((k for k, v in fa_reasons.items() if v == reason), None)
+    with i18n.using(lang):
+        user_reason = texts.REJECT_REASONS[code] if code else reason
+        body = texts.CHARGE_REJECTED.format(reason=user_reason)
+    notify_err = await _notify_user(bot, int(user["telegram_id"]), body, lang=lang)
     suffix = "\n\n" + texts.ADMIN_DECIDED_REJ.format(reason=reason, time=fmt_dt(now_str()))
     try:
         if is_caption:
@@ -616,17 +623,20 @@ async def txt_manual_balance(message: Message, db: Database, state: FSMContext) 
 
     # کاربر باید بفهمد موجودی اش عوض شده. تا حالا این اتفاق بی صدا
     # می افتاد و کاربر تازه موقع خرید بعدی متوجه می شد.
-    if data["direction"] == "add":
-        body = texts.CHARGE_APPROVED.format(
-            amount=f"{amount:,}", balance=f"{fresh['balance']:,}"
-        )
-        effect = effects.CHARGE
-    else:
-        body = texts.BALANCE_TAKEN.format(
-            amount=f"{taken:,}", balance=f"{fresh['balance']:,}"
-        )
-        effect = ""
-    err = await _notify_user(message.bot, int(user["telegram_id"]), body, effect=effect)
+    with i18n.using(i18n.lang_of(fresh)):
+        if data["direction"] == "add":
+            body = texts.CHARGE_APPROVED.format(
+                amount=f"{amount:,}", balance=f"{fresh['balance']:,}"
+            )
+            effect = effects.CHARGE
+        else:
+            body = texts.BALANCE_TAKEN.format(
+                amount=f"{taken:,}", balance=f"{fresh['balance']:,}"
+            )
+            effect = ""
+    err = await _notify_user(
+        message.bot, int(user["telegram_id"]), body, effect=effect, lang=i18n.lang_of(fresh)
+    )
 
     note = texts.ADMIN_BALANCE_DONE.format(balance=f"{fresh['balance']:,}")
     if err:
@@ -1432,7 +1442,8 @@ async def cb_ai_restock(call: CallbackQuery, db: Database) -> None:
     sent = 0
     for row in people:
         try:
-            await call.bot.send_message(int(row["telegram_id"]), texts.AI_RESTOCKED)
+            with i18n.using(i18n.lang_of(row)):
+                await call.bot.send_message(int(row["telegram_id"]), texts.AI_RESTOCKED)
             sent += 1
         except Exception:  # noqa: BLE001
             pass
@@ -2893,11 +2904,12 @@ async def admin_support_reply(message: Message, db: Database) -> None:
     try:
         async def _deliver(rt: int | None) -> None:
             if body and not message.photo:
-                await message.bot.send_message(
-                    user_tg,
-                    texts.SUPPORT_REPLY_GOT.format(body=body),
-                    reply_to_message_id=rt,
-                )
+                with i18n.using(i18n.lang_of(user)):
+                    await message.bot.send_message(
+                        user_tg,
+                        texts.SUPPORT_REPLY_GOT.format(body=body),
+                        reply_to_message_id=rt,
+                    )
             else:
                 await message.copy_to(user_tg, reply_to_message_id=rt)
 

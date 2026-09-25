@@ -657,7 +657,7 @@ async def purchase(
         try:
             await referral.reward_purchase(
                 bot, db, user, result.price, result.txn_id,
-                f"سرویس {plan['title']} رو خرید",
+                "سرویس {title} رو خرید", title=plan["title"],
             )
         except Exception:  # noqa: BLE001
             log.warning("پاداش معرف ثبت نشد txn=%s", result.txn_id, exc_info=True)

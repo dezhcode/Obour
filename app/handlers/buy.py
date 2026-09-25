@@ -29,6 +29,7 @@ from app.services import purchase as purchase_svc
 from app.states import Buy
 from app.ui import edit_or_send
 from app.utils import esc
+from app.i18n import t as _t
 
 log = logging.getLogger("obour.buy")
 router = Router(name="buy")
@@ -100,7 +101,7 @@ async def cb_buy(call: CallbackQuery, db: Database, state: FSMContext, user: dic
     if not cats:
         await edit_or_send(
             call.message,
-            "فعلا پلنی برای فروش فعال نیست. کمی صبر کن یا به پشتیبانی خبر بده.",
+            _t("فعلا پلنی برای فروش فعال نیست. کمی صبر کن یا به پشتیبانی خبر بده."),
             keyboards.back_menu(),
         )
         return await call.answer()
@@ -201,7 +202,7 @@ async def cb_buy_category(call: CallbackQuery, db: Database, user: dict) -> None
         call.message,
         texts.SHOP_CATEGORY_GENERIC.format(
             emoji=cat["emoji"] if cat else "📦",
-            title=esc(cat["title"]) if cat else "پلن ها",
+            title=esc(cat["title"]) if cat else _t("پلن ها"),
             balance=f"{user['balance']:,}",
         ),
         keyboards.plans_kb(plans),
@@ -444,7 +445,7 @@ async def _start_purchase(
             caption=texts.buy_success(
                 sub_url=result.sub_url,
                 balance=f"{result.balance_after:,}",
-                name=esc(result.label) or f"سرویس {result.service_id}",
+                name=esc(result.label) or f"{_t('سرویس')} {result.service_id}",
             ),
             sub_url=result.sub_url,
             reply_markup=keyboards.service_detail_kb(result.service_id, result.sub_url),
@@ -457,7 +458,8 @@ async def _start_purchase(
             user,
             result.price,
             result.txn_id,
-            f"سرویس {esc(plan['title'])} رو خرید",
+            "سرویس {title} رو خرید",
+            title=esc(plan["title"]),
         )
         if call:
             await call.answer()
@@ -543,7 +545,7 @@ async def cb_discount_remove(
     if not plan:
         return await call.answer()
     await _render_plan(call.message, db, state, user, plan)
-    await call.answer("کد حذف شد")
+    await call.answer(_t("کد حذف شد"))
 
 
 @router.message(Buy.waiting_discount, F.text)
@@ -555,7 +557,7 @@ async def msg_discount_code(
     plan = await db.get_plan(plan_id) if plan_id else None
     if not plan:
         await state.clear()
-        return await message.answer("یه اشتباهی پیش اومد. دوباره از فروشگاه شروع کن.")
+        return await message.answer(_t("یه اشتباهی پیش اومد. دوباره از فروشگاه شروع کن."))
 
     code = (message.text or "").strip()
     if not code or len(code) > 40:
@@ -563,7 +565,7 @@ async def msg_discount_code(
 
     d, err = await db.validate_discount(code, user["id"], plan["price"])
     if not d:
-        msg = texts.DISCOUNT_ERR.get(err, "این کد معتبر نیست.")
+        msg = texts.DISCOUNT_ERR.get(err, _t("این کد معتبر نیست."))
         if err == "min_amount":
             other = await db.discount_by_code(code)
             msg = msg.format(min_amount=f"{other['min_amount']:,}" if other else "-")

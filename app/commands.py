@@ -33,6 +33,7 @@ PUBLIC_COMMANDS: list[tuple[str, str]] = [
     ("help", "راهنمای اتصال"),
     ("track", "پیگیری با کد"),
     ("support", "پشتیبانی"),
+    ("lang", "زبان"),
 ]
 
 # دستورهای اضافه ای که فقط ادمین ها در منوی خودشان می بینند
@@ -50,6 +51,13 @@ def _build(items: list[tuple[str, str]]) -> list[BotCommand]:
     return [BotCommand(command=c, description=d) for c, d in items]
 
 
+def _build_lang(items: list[tuple[str, str]], lang: str) -> list[BotCommand]:
+    from . import i18n
+
+    with i18n.using(lang):
+        return [BotCommand(command=c, description=i18n.t(d)) for c, d in items]
+
+
 async def setup_commands(bot) -> None:  # noqa: ANN001
     """ثبت فهرست دستورها روی تلگرام.
 
@@ -61,6 +69,14 @@ async def setup_commands(bot) -> None:  # noqa: ANN001
             _build(PUBLIC_COMMANDS), scope=BotCommandScopeAllPrivateChats()
         )
         log.info("فهرست دستورها ثبت شد: %s مورد", len(PUBLIC_COMMANDS))
+        # همین فهرست به زبان اپ تلگرام کاربر. تلگرام بر اساس language_code
+        # خود اپ انتخاب می کند، نه زبانی که کاربر در ربات برگزیده.
+        for lang in ("en", "ru", "zh"):
+            await bot.set_my_commands(
+                _build_lang(PUBLIC_COMMANDS, lang),
+                scope=BotCommandScopeAllPrivateChats(),
+                language_code=lang,
+            )
     except Exception:  # noqa: BLE001
         log.warning("ثبت فهرست دستورها ناموفق بود", exc_info=True)
         return

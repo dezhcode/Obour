@@ -7,6 +7,7 @@ from aiogram.types import CopyTextButton, InlineKeyboardButton, InlineKeyboardMa
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.config import config
+from app.i18n import t as _t
 
 # ---------- رنگ دکمه ها (Bot API 9.4) ----------
 # تلگرام از فوریه ۲۰۲۶ فیلد style را به InlineKeyboardButton اضافه کرد.
@@ -56,6 +57,10 @@ def _add(
       - اگر alt نداشته باشیم، آیکن گذاشته نمی شود و همان ایموجی متنی
         می ماند؛ یک ایموجی بهتر از دو ایموجی است.
     """
+    # متن دکمه به زبان کاربر؛ ایموجی ابتدای متن جدا ترجمه نمی شود
+    text = _tr(text)
+    alt = _tr(alt) if alt else alt
+
     if style and _STYLE_SUPPORTED:
         kwargs["style"] = style
 
@@ -81,6 +86,18 @@ _EMOJI_LEAD = re.compile(
     r"^[\U0001F000-\U0001FAFF\u2190-\u21FF\u2300-\u27BF\u2B00-\u2BFF"
     r"\uFE0F\u200D\U0001F3FB-\U0001F3FF]+\s*"
 )
+
+
+def _tr(text: str) -> str:
+    """ترجمه متن دکمه. کلید ترجمه متن بدون ایموجی ابتدایی است، پس یک
+    عبارت (مثلا «کیف پول») با هر ایموجی ای که ادمین بگذارد ترجمه می شود."""
+    from app import i18n
+
+    if not text or i18n.get_lang() == i18n.DEFAULT:
+        return text
+    m = _EMOJI_LEAD.match(text)
+    lead = m.group(0) if m else ""
+    return lead + i18n.t(text[len(lead):])
 
 
 def _strip_lead_emoji(text: str) -> str:
@@ -227,7 +244,23 @@ def main_menu(trial_available: bool = False) -> InlineKeyboardMarkup:
     except Exception:  # noqa: BLE001
         pass  # نبود مینی اپ نباید منوی اصلی را بشکند
 
+    _add(kb, "🌐 زبان", callback_data="lang")
+    rows.append(1)
+
     kb.adjust(*rows)
+    return kb.as_markup()
+
+
+def lang_kb(current: str | None = None) -> InlineKeyboardMarkup:
+    """انتخاب زبان. نام هر زبان به خط خودش است و ترجمه نمی شود؛ زبان
+    پیشنهادی (حدس از تلگرام یا انتخاب فعلی) تیک دارد."""
+    from app import i18n
+
+    kb = InlineKeyboardBuilder()
+    for code in i18n.LANGS:
+        mark = " ✓" if code == current else ""
+        kb.button(text=f"{i18n.FLAGS[code]} {i18n.NAMES[code]}{mark}", callback_data=f"lang:{code}")
+    kb.adjust(2, 2)
     return kb.as_markup()
 
 
@@ -340,15 +373,15 @@ def back_menu() -> InlineKeyboardMarkup:
 def _fmt_days(days: int) -> str:
     """نمایش خوانا برای مدت."""
     if days == 1:
-        return "۱ روز"
+        return _t("۱ روز")
     if days == 7:
-        return "۱ هفته"
+        return _t("۱ هفته")
     if days == 14:
-        return "۲ هفته"
+        return _t("۲ هفته")
     if days % 30 == 0:
         months = days // 30
-        return "۱ ماه" if months == 1 else f"{months} ماه"
-    return f"{days} روز"
+        return _t("۱ ماه") if months == 1 else f"{months} {_t('ماه')}"
+    return f"{days} {_t('روز')}"
 
 
 def plan_categories_kb(cats: list[dict]) -> InlineKeyboardMarkup:
@@ -408,7 +441,7 @@ def plans_kb(plans: list[dict], category: str | None = None) -> InlineKeyboardMa
         badge = "🔥 " if p.get("badge") else ""
         _add(
             kb,
-            f"{badge}{p['title']} · {p['data_gb']} گیگ · {p['price']:,} تومان",
+            f"{badge}{p['title']} · {p['data_gb']} {_t('گیگ')} · {p['price']:,} {_t('تومان')}",
             style=PRIMARY if p.get("badge") else None,  # پلن محبوب آبی
             callback_data=f"buy:p:{p['id']}",
         )
@@ -535,7 +568,7 @@ def services_kb(services: list[dict]) -> InlineKeyboardMarkup:
         dot = texts.SVC_DOT[
             service_status(s.get("expire_at"), duration_days=s.get("duration_days"))
         ]
-        _add(kb, f"{dot} {name} · {s['data_gb']} گیگ", callback_data=f"svc:v:{s['id']}")
+        _add(kb, f"{dot} {name} · {s['data_gb']} {_t('گیگ')}", callback_data=f"svc:v:{s['id']}")
     _add(kb, "🛒 خرید سرویس جدید", style=PRIMARY, callback_data="buy")
     _add(kb, "🔙 منوی اصلی", callback_data="menu")
     kb.adjust(1)
@@ -1043,7 +1076,7 @@ def custom_builder_kb(gb: int, days: int) -> InlineKeyboardMarkup:
     from app import emoji as emo
 
     _btn(kb, "minus", alt="کمتر", callback_data=f"cst:gb:{max(gi - 1, 0)}:{di}")
-    _spacer(kb, f"{emo.default('data')} {gb} گیگ")
+    _spacer(kb, f"{emo.default('data')} {gb} {_t('گیگ')}")
     _btn(
         kb,
         "plus",
@@ -1270,7 +1303,7 @@ def join_kb(channels: list[tuple[str, str, str]], target: str = "trial") -> Inli
     kb = InlineKeyboardBuilder()
     rows: list[int] = []
     for _chat, url, title in channels:
-        _add(kb, f"📣 عضویت در {title}", url=url)
+        _add(kb, f"📣 {_t('عضویت در')} {title}", url=url)
         rows.append(1)
     _add(kb, "✅ عضو شدم", style=SUCCESS, callback_data=f"join:ck:{target}")
     _add(kb, "🔙 منوی اصلی", callback_data="menu")

@@ -6,6 +6,20 @@
 from __future__ import annotations
 
 import random
+import sys as _sys
+import types as _types
+
+from app import i18n as _i18n
+
+# ---------- زبان ----------
+# صفحه انتخاب زبان به هر چهار زبان است، چون هنوز نمی دانیم کاربر کدام را
+# می خواند. در locales ترجمه ندارد.
+LANG_PICK = (
+    "🌐 زبانت رو انتخاب کن\n"
+    "Choose your language\n"
+    "Выберите язык\n"
+    "选择你的语言"
+)
 
 # ---------- منو ----------
 # ---------- فروشگاه ----------
@@ -987,7 +1001,7 @@ def ensure_rtl(text_: str) -> str:
     ابتدای هر خط، جهت پایه همیشه راست به چپ می ماند - بدون اینکه
     چیزی از ظاهر متن واقعی دیده شود یا تگ های HTML به هم بریزند.
     """
-    if not text_:
+    if not text_ or not _i18n.is_rtl():
         return text_
     return "\n".join(
         line if (not line or line[0] == _RLM) else _RLM + line
@@ -1098,24 +1112,24 @@ _RENEW_SUCCESS_LINES = (
 
 
 def welcome(**kw) -> str:
-    return MENU.format(line=rotate(_WELCOME_LINES).format(**kw), **kw)
+    return _L("MENU").format(line=rotate(_L("_WELCOME_LINES")).format(**kw), **kw)
 
 
 def welcome_back(**kw) -> str:
-    return MENU.format(line=rotate(_WELCOME_BACK_LINES).format(**kw), **kw)
+    return _L("MENU").format(line=rotate(_L("_WELCOME_BACK_LINES")).format(**kw), **kw)
 
 
 def buy_success(**kw) -> str:
-    kw.setdefault("name", "سرویس جدید")
-    return BUY_SUCCESS.format(line=rotate(_BUY_SUCCESS_LINES), **kw)
+    kw.setdefault("name", _i18n.t("سرویس جدید"))
+    return _L("BUY_SUCCESS").format(line=rotate(_L("_BUY_SUCCESS_LINES")), **kw)
 
 
 def building(**kw) -> str:
-    return rotate(_BUILDING).format(**kw)
+    return rotate(_L("_BUILDING")).format(**kw)
 
 
 def renew_success(**kw) -> str:
-    return RENEW_SUCCESS.format(line=rotate(_RENEW_SUCCESS_LINES), **kw)
+    return _L("RENEW_SUCCESS").format(line=rotate(_L("_RENEW_SUCCESS_LINES")), **kw)
 
 
 # ---------- تست رایگان (بخش ۵.۵ سند) ----------
@@ -1738,12 +1752,12 @@ ADMIN_WINBACK_RESET = "↩️ به متن پیش فرض برگشت."
 
 def warn_data(**kw) -> str:
     kw.pop("name", None)  # قاب جای اسم سرویس را می گیرد، نه اسم کاربر
-    return WARN_DATA.format(line=rotate(_WARN_DATA_LINES), **kw)
+    return _L("WARN_DATA").format(line=rotate(_L("_WARN_DATA_LINES")), **kw)
 
 
 def warn_expire(**kw) -> str:
     kw.pop("name", None)
-    return WARN_EXPIRE.format(line=rotate(_WARN_EXPIRE_LINES), **kw)
+    return _L("WARN_EXPIRE").format(line=rotate(_L("_WARN_EXPIRE_LINES")), **kw)
 
 
 def winback(custom: str = "", **kw) -> str:
@@ -1759,7 +1773,7 @@ def winback(custom: str = "", **kw) -> str:
             # اگر ادمین جای گذاری اشتباه نوشته باشد، متن خام بهتر از
             # کرش کردن کران است
             return custom
-    return WINBACK.format(line=rotate(_WINBACK_LINES), **kw)
+    return _L("WINBACK").format(line=rotate(_L("_WINBACK_LINES")), **kw)
 
 
 # ==================== پیگیری ====================
@@ -2028,3 +2042,27 @@ ADMIN_DEVICES = (
 )
 
 DEVICES_WORKING = "یه لحظه، دارم دستگاه ها رو خارج می کنم و لینک تازه می سازم..."
+
+
+# ==================== زبان ====================
+def _L(name: str):  # noqa: ANN202
+    """ثابت این ماژول به زبان جاری (برای توابع همین فایل)."""
+    return _i18n.text(name, globals()[name])
+
+
+class _LangTexts(_types.ModuleType):
+    """texts.X بیرون از این فایل، ترجمه زبان جاری را برمی گرداند.
+
+    فقط نام های ثابت (حرف بزرگ، یا _ و بعد حرف بزرگ) ترجمه می شوند؛
+    توابع و بقیه دست نمی خورند. ترجمه ها در app/locales هستند و هر ثابتی
+    که آنجا نباشد همان فارسی می ماند.
+    """
+
+    def __getattribute__(self, name: str):  # noqa: ANN204
+        value = super().__getattribute__(name)
+        if name[:1].isupper() or (name[:1] == "_" and name[1:2].isupper()):
+            return _i18n.text(name, value)
+        return value
+
+
+_sys.modules[__name__].__class__ = _LangTexts

@@ -21,6 +21,7 @@ try:
 except Exception:  # noqa: BLE001
     pass
 
+from app import i18n
 from app.config import config
 from app.db import Database
 from app.utils import esc
@@ -57,10 +58,11 @@ async def send_receipt_reminders(db: Database) -> int:
     try:
         for txn in pending:
             try:
-                await bot.send_message(
-                    int(txn["telegram_id"]),
-                    texts.RECEIPT_REMINDER.format(amount=f"{txn['amount']:,}"),
-                )
+                with i18n.using(i18n.lang_of(txn)):
+                    await bot.send_message(
+                        int(txn["telegram_id"]),
+                        texts.RECEIPT_REMINDER.format(amount=f"{txn['amount']:,}"),
+                    )
                 sent += 1
             except Exception as exc:  # noqa: BLE001
                 say(f"  یادآوری برای {txn['telegram_id']} نرفت: {exc}")
@@ -106,15 +108,16 @@ async def send_expiry_warnings(db: Database, days: int = 3) -> int:
         for s in items:
             left = max(1, days_left(s["expire_at"]))
             try:
-                await bot.send_message(
-                    int(s["telegram_id"]),
-                    texts.warn_expire(
-                        name=esc(s.get("first_name") or "دوست من"),
-                        service=esc(s.get("label") or f"سرویس {s['id']}"),
-                        days=left,
-                    ),
-                    reply_markup=keyboards.warn_kb(s["id"]),
-                )
+                with i18n.using(i18n.lang_of(s)):
+                    await bot.send_message(
+                        int(s["telegram_id"]),
+                        texts.warn_expire(
+                            name=esc(s.get("first_name") or i18n.t("دوست من")),
+                            service=esc(s.get("label") or f"{i18n.t('سرویس')} {s['id']}"),
+                            days=left,
+                        ),
+                        reply_markup=keyboards.warn_kb(s["id"]),
+                    )
                 sent += 1
             except Exception as exc:  # noqa: BLE001
                 say(f"  هشدار انقضا برای {s['telegram_id']} نرفت: {exc}")
@@ -171,16 +174,17 @@ async def send_data_warnings(db: Database, threshold: int = 80) -> int:
 
             remaining = max(0, limit - used)
             try:
-                await bot.send_message(
-                    int(s["telegram_id"]),
-                    texts.warn_data(
-                        name=esc(s.get("first_name") or "دوست من"),
-                        service=esc(s.get("label") or f"سرویس {s['id']}"),
-                        percent=percent,
-                        remaining=fmt_gb(remaining / GIB),
-                    ),
-                    reply_markup=keyboards.warn_kb(s["id"]),
-                )
+                with i18n.using(i18n.lang_of(s)):
+                    await bot.send_message(
+                        int(s["telegram_id"]),
+                        texts.warn_data(
+                            name=esc(s.get("first_name") or i18n.t("دوست من")),
+                            service=esc(s.get("label") or f"{i18n.t('سرویس')} {s['id']}"),
+                            percent=percent,
+                            remaining=fmt_gb(remaining / GIB),
+                        ),
+                        reply_markup=keyboards.warn_kb(s["id"]),
+                    )
                 sent += 1
             except Exception as exc:  # noqa: BLE001
                 say(f"  هشدار حجم برای {s['telegram_id']} نرفت: {exc}")
@@ -272,14 +276,18 @@ async def send_winback(db: Database, days_after: int = 2) -> int:
     try:
         for s in items:
             try:
-                await bot.send_message(
-                    int(s["telegram_id"]),
-                    texts.winback(
-                        custom,
-                        name=esc(s.get("first_name") or "دوست من"), code=code
-                    ),
-                    reply_markup=keyboards.winback_kb(),
-                )
+                # متن دلخواه ادمین فقط برای فارسی زبان هاست؛ بقیه قالب
+                # ترجمه شده را می گیرند.
+                lang = i18n.lang_of(s)
+                with i18n.using(lang):
+                    await bot.send_message(
+                        int(s["telegram_id"]),
+                        texts.winback(
+                            custom if lang == i18n.DEFAULT else "",
+                            name=esc(s.get("first_name") or i18n.t("دوست من")), code=code
+                        ),
+                        reply_markup=keyboards.winback_kb(),
+                    )
                 sent += 1
             except Exception as exc:  # noqa: BLE001
                 say(f"  پیام برگشت برای {s['telegram_id']} نرفت: {exc}")

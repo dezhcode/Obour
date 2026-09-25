@@ -19,6 +19,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.db import Database
 from app.keyboards import _add  # noqa: PLC2701
+from app.i18n import t as _t
 
 log = logging.getLogger("obour.polls")
 
@@ -54,13 +55,13 @@ def poll_kb(
 def render(poll: dict, results: list[dict], total: int, show_results: bool) -> str:
     """متن نظرسنجی. اگر نتیجه نمایش داده نشود، فقط سوال می ماند."""
     lines = [
-        "╮── 📊 نظرسنجی",
+        _t("╮── 📊 نظرسنجی"),
         f"│   \u2068{poll['question']}\u2069",
         "",
     ]
     if not show_results:
-        lines.append("یکی از گزینه ها رو انتخاب کن.")
-        lines.append("╯─ نتیجه بعد از رای دادن نشون داده می شه.")
+        lines.append(_t("یکی از گزینه ها رو انتخاب کن."))
+        lines.append(_t("╯─ نتیجه بعد از رای دادن نشون داده می شه."))
         return "\n".join(lines)
 
     for r in results:
@@ -69,9 +70,9 @@ def render(poll: dict, results: list[dict], total: int, show_results: bool) -> s
         filled = round(pct * BAR_LEN / 100)
         bar = "█" * filled + "░" * (BAR_LEN - filled)
         lines.append(f"├ \u2068{r['label']}\u2069")
-        lines.append(f"│  \u2068{bar}\u2069 \u2068{pct}\u2069٪ · \u2068{votes}\u2069 رای")
+        lines.append(f"│  \u2068{bar}\u2069 \u2068{pct}\u2069% · " + _t("{n} رای", n=votes))
     lines.append("")
-    lines.append(f"╯─ مجموع \u2068{total}\u2069 رای · می تونی رایت رو عوض کنی.")
+    lines.append(_t("╯─ مجموع {n} رای · می تونی رایت رو عوض کنی.", n=total))
     return "\n".join(lines)
 
 

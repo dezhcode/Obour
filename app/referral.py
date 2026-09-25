@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 
-from app import effects, texts
+from app import i18n, effects, texts
 from app.config import config
 from app.db import Database
 from app.utils import esc
@@ -27,11 +27,16 @@ async def reward_purchase(
     user: dict,
     amount: int,
     txn_id: int | None,
-    reason: str = "خرید",
+    reason: str = "یک خرید",
+    **reason_kw,
 ) -> int:
-    """پاداش خرید کاربر را به معرفش می دهد. خروجی: مبلغ واریز شده."""
+    """پاداش خرید کاربر را به معرفش می دهد. خروجی: مبلغ واریز شده.
+
+    reason قالب فارسی است (مثل «سرویس {title} رو خرید») و به زبان معرف
+    ترجمه و پر می شود، نه به زبان خریدار.
+    """
     try:
-        return await _reward(bot, db, user, amount, txn_id, reason)
+        return await _reward(bot, db, user, amount, txn_id, (reason, reason_kw))
     except Exception:  # noqa: BLE001
         log.exception("ثبت پاداش معرفی ناموفق بود (txn=%s)", txn_id)
         return 0
@@ -43,7 +48,7 @@ async def _reward(
     user: dict,
     amount: int,
     txn_id: int | None,
-    reason: str,
+    reason: tuple,
 ) -> int:
     if not config.ref_enabled or amount <= 0:
         return 0
@@ -105,21 +110,24 @@ async def _notify(
     invitee: dict,
     reward: int,
     first: bool,
-    reason: str,
+    reason: tuple,
 ) -> None:
-    """خبر دادن به معرف. اگر ربات را بلاک کرده باشد، فقط لاگ می شود."""
+    """خبر دادن به معرف، به زبان خود معرف. اگر ربات را بلاک کرده باشد، فقط لاگ می شود."""
     fresh = await db.get_user(referrer["id"]) or referrer
-    body = texts.REFERRAL_REWARD.format(
-        name=esc((invitee.get("first_name") or "یک هم سفر").strip()),
-        reward=f"{reward:,}",
-        balance=f"{fresh['balance']:,}",
-        reason=reason,
-        note=texts.REFERRAL_FIRST_NOTE if first else "",
-    )
+    template, kw = reason
+    with i18n.using(i18n.lang_of(fresh)):
+        body = texts.REFERRAL_REWARD.format(
+            name=esc((invitee.get("first_name") or i18n.t("یک هم سفر")).strip()),
+            reward=f"{reward:,}",
+            balance=f"{fresh['balance']:,}",
+            reason=i18n.t(template, **kw),
+            note=texts.REFERRAL_FIRST_NOTE if first else "",
+        )
     fx = effects.kwargs(effects.CHARGE, int(referrer["telegram_id"]))
     for attempt_fx in ((fx, {}) if fx else ({},)):
         try:
-            await bot.send_message(int(referrer["telegram_id"]), body, **attempt_fx)
+            with i18n.using(i18n.lang_of(fresh)):
+                await bot.send_message(int(referrer["telegram_id"]), body, **attempt_fx)
             return
         except Exception as exc:  # noqa: BLE001
             if attempt_fx:

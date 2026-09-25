@@ -22,6 +22,7 @@ from app.panel import (
     sub_url_of,
 )
 from app.utils import after_days, custom_price, esc, fmt_dt, price_per_gb
+from app.i18n import t as _t
 
 log = logging.getLogger("obour.extras")
 router = Router(name="extras")
@@ -74,7 +75,7 @@ async def cb_trial(call: CallbackQuery, user: dict) -> None:
     if not features.is_on("shop_trial"):
         return await call.answer(texts.SECTION_OFF, show_alert=True)
     if not config.trial_enabled:
-        return await call.answer("تست رایگان فعلا غیرفعاله.", show_alert=True)
+        return await call.answer(_t("تست رایگان فعلا غیرفعاله."), show_alert=True)
     if user["free_trial_used"]:
         await edit_or_send(call.message, texts.TRIAL_USED, keyboards.back_menu())
         return await call.answer()
@@ -92,7 +93,7 @@ async def cb_trial_ok(
     call: CallbackQuery, db: Database, panel: Panel | None, user: dict
 ) -> None:
     if not config.trial_enabled:
-        return await call.answer("تست رایگان فعلا غیرفعاله.", show_alert=True)
+        return await call.answer(_t("تست رایگان فعلا غیرفعاله."), show_alert=True)
     if panel is None:
         return await call.answer(texts.PANEL_BUSY_ALERT, show_alert=True)
     if await _join_gate(call):
@@ -101,7 +102,7 @@ async def cb_trial_ok(
     # قفل عملیات: جلوی دو کلیک همزمان را می گیرد
     lock = f"pay:{user['id']}"
     if not await db.acquire_lock(lock):
-        return await call.answer("یه لحظه صبر کن، در حال انجامه.", show_alert=True)
+        return await call.answer(_t("یه لحظه صبر کن، در حال انجامه."), show_alert=True)
     try:
         await _make_trial(call, db, panel, user)
     finally:
@@ -179,7 +180,7 @@ async def _make_trial(
     # هدایت به خرید بعد از تست (بخش ۱۳ سند)
     try:
         await call.message.answer(
-            texts.TRIAL_AFTER.format(name=user.get("first_name") or "دوست من"),
+            texts.TRIAL_AFTER.format(name=user.get("first_name") or _t("دوست من")),
             reply_markup=keyboards.trial_after_kb(),
         )
     except Exception:  # noqa: BLE001
@@ -230,7 +231,7 @@ async def cb_custom_adjust(call: CallbackQuery, user: dict) -> None:
     price = custom_price(gb, days, config.custom_rate_per_gb)
     await _show_builder(call, user, int(gi), int(di))
     # بازخورد فوری روی خود دکمه، بدون معطل ماندن برای رندر پیام
-    await ui.toast(call, f"{gb} گیگ · {days} روز — {price:,} تومان")
+    await ui.toast(call, f"{gb} {_t('گیگ')} · {days} {_t('روز')} — {price:,} {_t('تومان')}")
 
 
 @router.callback_query(F.data.startswith("cst:ok:"))
@@ -304,13 +305,13 @@ async def _start_custom(
     if panel is None:
         return await message.answer(texts.PANEL_BUSY_ALERT)
     if data.get("custom_gi") is None:
-        return await message.answer("یه اشتباهی پیش اومد. دوباره از فروشگاه شروع کن.")
+        return await message.answer(_t("یه اشتباهی پیش اومد. دوباره از فروشگاه شروع کن."))
     gb, days = _steps(int(data["custom_gi"]), int(data["custom_di"]))
     price = custom_price(gb, days, config.custom_rate_per_gb)
 
     lock = f"pay:{user['id']}"
     if not await db.acquire_lock(lock):
-        msg = "یه پرداخت همین حالا در جریانه. چند لحظه صبر کن."
+        msg = _t("یه پرداخت همین حالا در جریانه. چند لحظه صبر کن.")
         if call:
             return await call.answer(msg, show_alert=True)
         return await message.answer(msg)
@@ -337,8 +338,8 @@ async def _make_custom(
     )
     if txn_id is None:
         if call:
-            return await call.answer("این خرید در حال پردازشه.", show_alert=True)
-        return await message.answer("این خرید در حال پردازشه.")
+            return await call.answer(_t("این خرید در حال پردازشه."), show_alert=True)
+        return await message.answer(_t("این خرید در حال پردازشه."))
 
     working = await ui.working(
         message, texts.building(name=esc(user.get("first_name") or ""))
@@ -407,7 +408,7 @@ async def _make_custom(
         caption=texts.buy_success(
             sub_url=sub_url,
             balance=f"{fresh['balance']:,}",
-            name=esc(label) or f"سرویس {service_id}",
+            name=esc(label) or f"{_t('سرویس')} {service_id}",
         ),
         sub_url=sub_url,
         reply_markup=keyboards.service_detail_kb(service_id, sub_url),
@@ -513,7 +514,7 @@ async def cb_referral_log(call: CallbackQuery, db: Database, user: dict) -> None
 
     lines = [
         texts.REFERRAL_LOG_ROW.format(
-            name=esc((r["first_name"] or "هم سفر").strip())[:20],
+            name=esc((r["first_name"] or _t("هم سفر")).strip())[:20],
             reward=f"{r['reward']:,}",
             when=fmt_dt(r["created_at"]),
         )
@@ -537,8 +538,8 @@ async def cb_connect(call: CallbackQuery, db: Database, user: dict) -> None:
     service_id = int(call.data.split(":")[1])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        return await call.answer("این سرویس پیدا نشد.", show_alert=True)
-    name = (service.get("label") or "").strip() or f"سرویس {service_id}"
+        return await call.answer(_t("این سرویس پیدا نشد."), show_alert=True)
+    name = (service.get("label") or "").strip() or f"{_t('سرویس')} {service_id}"
     await edit_or_send(
         call.message,
         texts.CONNECT_PICK.format(name=esc(name)),
@@ -555,8 +556,9 @@ async def cb_connect_platform(call: CallbackQuery, db: Database, user: dict) -> 
     _, sid, platform = call.data.split(":")
     service = await db.get_service(int(sid))
     if not service or service["user_id"] != user["id"]:
-        return await call.answer("این سرویس پیدا نشد.", show_alert=True)
+        return await call.answer(_t("این سرویس پیدا نشد."), show_alert=True)
     emoji, title, _apps = PLATFORMS.get(platform, ("📱", "دستگاه", ()))
+    title = _t(title)
     name = (service.get("label") or "").strip() or f"Obour-{sid}"
 
     markup, one_click = keyboards.connect_apps_kb(
