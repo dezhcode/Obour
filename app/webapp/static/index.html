@@ -340,12 +340,12 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .bubble-photo svg{width:15px;height:15px}
 .day-sep{display:flex;justify-content:center;margin:14px 0 6px}
 .day-sep span{padding:4px 12px;border-radius:12px;background:var(--sunk);font-size:11px;font-weight:800;color:var(--ink-2)}
-.foot{position:absolute;left:0;right:0;bottom:0;z-index:35;padding:12px var(--pad) calc(18px + var(--safe-b));background:var(--ground);border-top:1px solid var(--line)}
+.foot{position:absolute;left:0;right:0;bottom:0;z-index:35;pointer-events:auto;padding:12px var(--pad) calc(18px + var(--safe-b));background:var(--ground);border-top:1px solid var(--line)}
 
 /* ═══ شارژ ═══ */
 .amt-in{display:flex;align-items:baseline;gap:8px;margin:6px 0 14px;border-bottom:2px solid var(--line);padding-bottom:6px}
 .amt-in:focus-within{border-color:var(--brand)}
-.amt-in input{flex-grow:1;min-width:0;border:none;outline:none;background:none;font:800 36px/1.2 inherit;color:var(--ink);
+.amt-in input{flex-grow:1;min-width:0;border:none;outline:none;background:none;font-family:inherit;font-weight:800;font-size:36px;line-height:1.2;color:var(--ink);
   letter-spacing:-1px;text-align:left;font-variant-numeric:tabular-nums}
 .amt-in span{font-size:15px;font-weight:600;color:var(--ink-3)}
 .presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -363,7 +363,7 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 
 /* ═══ قوانین و نوشتن ═══ */
 .rules{padding:18px;font-size:14px;line-height:2;white-space:pre-wrap;color:var(--ink-2)}
-.compose{width:100%;border:none;outline:none;resize:none;background:none;font:400 15px/1.9 inherit;color:var(--ink)}
+.compose{width:100%;border:none;outline:none;resize:none;background:none;font-family:inherit;font-weight:400;font-size:15px;line-height:1.9;color:var(--ink)}
 .compose::placeholder{color:var(--ink-3)}
 .foot.reply{display:flex;align-items:flex-end;gap:10px}
 .reply-in{flex-grow:1;min-height:48px;max-height:120px;background:var(--surface);border:1px solid var(--line);
@@ -606,6 +606,7 @@ const App = {
     }
     this.syncHeight();
     window.addEventListener('resize', () => this.syncHeight());
+    this.watchFoot();
     this.renderNav();
     let err = null;
     try { this.boot = await api('bootstrap'); } catch(e) { err = e; }
@@ -652,6 +653,20 @@ const App = {
     try { tg.BackButton.show(); } catch(e){}
     box.innerHTML = '<div class="scroll"><div class="page"></div></div>';
     SubPages[top[0]](box.firstElementChild.firstElementChild, top[1]);
+  },
+
+  /* نوار پایین زیرصفحه (.foot) باید مستقیم زیر #sub باشد. داخل .page که
+     بماند، انیمیشن ورود صفحه (transform) آن را نسبت به خود صفحه جا می دهد
+     و دکمه وسط صفحه، زیر محتوا می افتد؛ داخل .scroll هم با محتوا اسکرول
+     می شود. صفحه ها .foot را همان جای همیشگی می سازند، این ناظر هر بار
+     آن را بیرون می آورد. */
+  watchFoot(){
+    const sub = $('sub');
+    new MutationObserver(() => {
+      const f = sub.querySelector('.page .foot'); if (!f) return;
+      [...sub.children].forEach(x => { if (x.classList.contains('foot')) x.remove(); });
+      sub.appendChild(f);
+    }).observe(sub, { childList:true, subtree:true });
   },
 
   sheet(html){ $('sheet').innerHTML = '<div class="grip"></div>' + html; $('sheet').classList.add('on'); $('scrim').classList.add('on'); this.haptic(); },
