@@ -56,11 +56,16 @@ class ApiError(Exception):
 # ═══════════════════ کمکی ها ═══════════════════
 
 
+WEBAPP_LANGS = ("fa", "en")
+
+
 async def _require_user(db: "Database", wuser: WebAppUser) -> dict:
     """ردیف کاربر در دیتابیس. نبودنش یعنی هنوز /start نزده."""
     user = await db.get_user_by_tg(wuser.id)
-    # زبان این درخواست: انتخاب کاربر، وگرنه زبان تلگرامش
-    i18n.set_lang(i18n.lang_of(user, wuser.language_code))
+    # زبان این درخواست: انتخاب کاربر، وگرنه زبان تلگرامش. مینی اپ فقط
+    # فارسی و انگلیسی دارد؛ روسی و چینی (که ربات دارد) اینجا انگلیسی اند.
+    lang = i18n.lang_of(user, wuser.language_code)
+    i18n.set_lang(lang if lang in WEBAPP_LANGS else "en")
     if not user:
         raise ApiError("هنوز ربات را استارت نکرده ای", 404, "no_account")
     if user["is_blocked"]:
@@ -582,7 +587,7 @@ async def set_lang(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, 
     """زبان کاربر؛ همان ستونی که ربات می خواند، پس هر دو یکی می شوند."""
     user = await _require_user(db, wuser)
     code = i18n.normalize(lang)
-    if not code:
+    if code not in WEBAPP_LANGS:
         raise ApiError("زبان نامعتبر", 400, "bad_request")
     await db.set_user_lang(user["id"], code)
     return {"ok": True, "lang": code}
