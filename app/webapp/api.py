@@ -519,6 +519,7 @@ async def topup_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -
         "enabled": bool(card["number"]),
         "min": await charge_svc.min_charge(db),
         "presets": list(charge_svc.PRESETS),
+        "ttl_minutes": config.charge_ttl_minutes,
         "card": card if prev else None,   # کارت فقط وقتی مبلغ رزرو شده نشان داده می شود
         "open": ({"txn_id": prev["id"], "amount": int(prev["amount"]), "created_at": prev["created_at"],
                   "expires_at": await _amount_expiry(db, prev["amount"])} if prev else None),
@@ -550,7 +551,8 @@ async def topup_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
     if not r["ok"]:
         _charge_error(r)
     return {"txn_id": r["txn_id"], "amount": r["amount"], "card": await charge_svc.card(db),
-            "resumed": r.get("resumed", False), "expires_at": await _amount_expiry(db, r["amount"])}
+            "resumed": r.get("resumed", False), "expires_at": await _amount_expiry(db, r["amount"]),
+            "ttl_minutes": config.charge_ttl_minutes}
 
 
 async def topup_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, txn_id: int, image: bytes, bot=None) -> dict:  # noqa: ANN001

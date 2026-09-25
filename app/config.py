@@ -80,6 +80,12 @@ class Config:
     warn_expire_days: int = int(os.getenv("WARN_EXPIRE_DAYS", "3"))
     winback_after_days: int = int(os.getenv("WINBACK_AFTER_DAYS", "2"))
 
+    # ===== شارژ کیف پول =====
+    # چند دقیقه مبلغ یکتای شارژ برای کاربر نگه داشته می شود. مهلت پرداخت
+    # ربات و تایمر مینی اپ هر دو از همین عدد است. رسیدی که بعد از مهلت
+    # برسد هنوز پذیرفته می شود؛ فقط مبلغ برای دیگران آزاد شده است.
+    charge_ttl_minutes: int = max(1, _int_env("CHARGE_TTL_MINUTES", "2"))
+
     # ===== QR روی قاب برند =====
     # قاب پیش فرض assets/qr_frame.png است (۱۰۸۶ در ۱۴۴۸).
     # مختصات زیر برای همان تصویر اندازه گیری شده: باکس سفید از

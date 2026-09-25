@@ -1658,7 +1658,7 @@ class Database:
 
     # ---------- مبلغ یکتا برای تشخیص رسید ----------
     async def reserve_amount(
-        self, user_id: int, base_amount: int, ttl_minutes: int = 30, tries: int = 60
+        self, user_id: int, base_amount: int, ttl_minutes: int = 2, tries: int = 60
     ) -> int | None:
         """رزرو یک مبلغ یکتا نزدیک به base_amount.
 
@@ -1686,6 +1686,19 @@ class Database:
             except aiosqlite.IntegrityError:
                 continue  # تکراری بود، دوباره امتحان کن
         return None
+
+    async def extend_amount(self, amount: int, user_id: int, ttl_minutes: int) -> bool:
+        """مهلت مبلغ رزرو شده را از همین حالا دوباره شروع می کند.
+
+        ربات مبلغ را در مرحله تایید رزرو می کند؛ با مهلت کوتاه، شمارش باید
+        از لحظه نمایش شماره کارت باشد نه از مرحله تایید.
+        """
+        expires = (datetime.now(TZ) + timedelta(minutes=ttl_minutes)).isoformat(timespec="seconds")
+        rows = await self.execute(
+            "UPDATE pending_amounts SET expires_at = ? WHERE amount = ? AND user_id = ?",
+            (expires, amount, user_id),
+        )
+        return bool(rows)
 
     async def release_amount(self, amount: int) -> None:
         await self.execute("DELETE FROM pending_amounts WHERE amount = ?", (amount,))

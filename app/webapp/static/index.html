@@ -383,7 +383,7 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 
 /* ═══ پرداخت کارت به کارت ═══
    بالا مبلغ دقیق با حلقه مهلت، بعد کارت مقصد به شکل کارت بانکی، بعد
-   چهار قدم کار. سه رقم آخر مبلغ زیرخط کهربایی دارد تا معلوم باشد چرا
+   جای عکس رسید و چهار قدم کار. سه رقم آخر مبلغ زیرخط کهربایی دارد تا معلوم باشد چرا
    عدد رند نیست. */
 .pay{display:flex;align-items:center;gap:14px;padding:16px}
 .pay-m{flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -1518,7 +1518,7 @@ SubPages.topup = async function(p){
     const d = await api('topup');
     Topup.info = d;
     if (!d.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + emptyBox('شارژ فعلا ممکن نیست', 'شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.'));
-    if (d.open) { Topup.req = { txn_id:d.open.txn_id, amount:d.open.amount, card:d.card, expires_at:d.open.expires_at }; return Topup.step2(p); }
+    if (d.open) { Topup.req = { txn_id:d.open.txn_id, amount:d.open.amount, card:d.card, expires_at:d.open.expires_at, ttl_minutes:d.ttl_minutes }; return Topup.step2(p); }
     Topup.step1(p);
   } catch (err) { p.innerHTML = Top('شارژ کیف پول') + emptyBox('خوانده نشد', err.message); }
 };
@@ -1587,13 +1587,6 @@ const Topup = {
         <div class="bank-bot"><div>به نام<b>${esc(c.holder || '—')}</b></div>
           <button class="invite-copy" onclick="App.copy('${esc(num)}')" aria-label="کپی شماره کارت">${ic('copy')}<span>کپی</span></button></div>
       </div>
-      ${Sec('چطور شارژ می‌شود؟')}
-      <div class="card mx"><ol class="steps">
-        <li><span class="d n">1</span><div><b>مبلغ را دقیقا کپی کن</b><p>سه رقم آخر (${N(amt.slice(cut))}) شناسه توست و رسیدت با آن شناخته می‌شود. رندش نکن.</p></div></li>
-        <li><span class="d n">2</span><div><b>کارت به کارت کن</b><p>از اپ بانکت همین مبلغ را به کارت بالا بزن، پیش از تمام شدن مهلت.</p></div></li>
-        <li><span class="d n">3</span><div><b>عکس رسید را بفرست</b><p>اسکرین‌شات رسید بانکی را همین پایین انتخاب کن و «ارسال رسید» را بزن.</p></div></li>
-        <li><span class="d">${ic('check',2.6)}</span><div><b>کیفت شارژ می‌شود</b><p>معمولا چند دقیقه طول می‌کشد. بعد از تایید، مبلغ به کیف پولت اضافه می‌شود و در ربات خبر می‌گیری.</p></div></li>
-      </ol><div class="steps-warn">${ic('warn',2)}<span>اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمی‌شود و تاییدش طول می‌کشد.</span></div></div>
       ${Sec('عکس رسید')}
       <label class="upload mx" id="up">
         <input type="file" accept="image/*" onchange="Topup.pick(this)" hidden>
@@ -1601,6 +1594,13 @@ const Topup = {
         <span class="upload-t" id="up-t">عکس رسید را انتخاب کن</span>
         <span class="short">اسکرین‌شات یا عکس رسید بانکی</span>
       </label>
+      <div class="gap" style="height:6px"></div>${Sec('چطور شارژ می‌شود؟')}
+      <div class="card mx"><ol class="steps">
+        <li><span class="d n">1</span><div><b>مبلغ را دقیقا کپی کن</b><p>سه رقم آخر (${N(amt.slice(cut))}) شناسه توست و رسیدت با آن شناخته می‌شود. رندش نکن.</p></div></li>
+        <li><span class="d n">2</span><div><b>کارت به کارت کن</b><p>از اپ بانکت همین مبلغ را به کارت بالا بزن${r.ttl_minutes ? `، ظرف ${N(r.ttl_minutes)} دقیقه` : ''}.</p></div></li>
+        <li><span class="d n">3</span><div><b>عکس رسید را بفرست</b><p>اسکرین‌شات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.</p></div></li>
+        <li><span class="d">${ic('check',2.6)}</span><div><b>کیفت شارژ می‌شود</b><p>معمولا چند دقیقه طول می‌کشد. بعد از تایید، مبلغ به کیف پولت اضافه می‌شود و در ربات خبر می‌گیری.</p></div></li>
+      </ol><div class="steps-warn">${ic('warn',2)}<span>اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمی‌شود و تاییدش طول می‌کشد.</span></div></div>
       <div class="foot"><button class="btn btn-p btn-block" id="rc-go" disabled onclick="Topup.send()">ارسال رسید</button></div>`;
     this.tick();
   },
@@ -1613,12 +1613,12 @@ const Topup = {
     clearInterval(this._clock);
     const end = this.req && this.req.expires_at ? new Date(this.req.expires_at).getTime() : NaN;
     if (isNaN(end)) return;
-    const TOTAL = 30 * 60 * 1000, LEN = 213.6;
+    const TOTAL = (this.req.ttl_minutes || 30) * 60 * 1000, LEN = 213.6;
     const draw = () => {
       const box = $('clock'); if (!box) return clearInterval(this._clock);
       const left = Math.max(0, end - Date.now()), sec = Math.ceil(left / 1000);
       $('clock-arc').setAttribute('stroke-dashoffset', String(LEN * (1 - Math.min(1, left / TOTAL))));
-      box.classList.toggle('low', left > 0 && left < 5 * 60 * 1000);
+      box.classList.toggle('low', left > 0 && left < Math.min(5 * 60 * 1000, TOTAL / 4));
       box.classList.toggle('over', left <= 0);
       $('clock-t').textContent = left > 0 ? String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0') : 'تمام شد';
       if (left <= 0) {

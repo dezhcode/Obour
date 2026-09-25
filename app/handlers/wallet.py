@@ -42,7 +42,8 @@ async def _send_card(
     """ساخت مبلغ یکتا، ثبت تراکنش در انتظار، و نمایش اطلاعات کارت.
 
     سه رقم آخر مبلغ تصادفی است تا ادمین از روی رسید بفهمد مال کیست.
-    مبلغ رزرو شده ۳۰ دقیقه اعتبار دارد (cron_tasks منقضی ها را پاک می کند).
+    مبلغ رزرو شده config.charge_ttl_minutes دقیقه اعتبار دارد (منقضی ها
+    پاک می شوند). با تایید مبلغ، مهلت از نو شروع می شود.
     """
 
     async def _out(text: str, markup=None) -> None:  # noqa: ANN001
@@ -60,7 +61,7 @@ async def _send_card(
         log.warning("شماره کارت در تنظیمات ثبت نشده - جریان شارژ متوقف شد")
         return await _out(texts.CARD_NOT_SET, keyboards.back_menu())
 
-    exact = exact_amount or await db.reserve_amount(user["id"], amount)
+    exact = exact_amount or await db.reserve_amount(user["id"], amount, ttl_minutes=config.charge_ttl_minutes)
     if exact is None:
         await state.clear()
         return await _out(texts.AMOUNT_BUSY, keyboards.back_menu())
@@ -69,7 +70,8 @@ async def _send_card(
     if confirm_step:
         await state.update_data(pending_amount=exact)
         return await _out(
-            texts.AMOUNT_CONFIRM.format(amount=f"{exact:,}", rial=f"{exact * 10:,}"),
+            texts.AMOUNT_CONFIRM.format(amount=f"{exact:,}", rial=f"{exact * 10:,}",
+                                        minutes=config.charge_ttl_minutes),
             keyboards.amount_confirm_kb(exact),
         )
 
@@ -97,6 +99,7 @@ async def _send_card(
             card_number=card_number,
             card_holder=card_holder or "-",
             bank_name=bank_name or "-",
+            minutes=config.charge_ttl_minutes,
         ),
         keyboards.card_kb_v2(card_number, exact, txn_id),
     )
@@ -145,6 +148,8 @@ async def cb_amount_confirmed(call: CallbackQuery, db: Database, state: FSMConte
             "مهلت این مبلغ تموم شده. دوباره امتحان کن.", show_alert=True
         )
 
+    # مهلت از لحظه دیدن شماره کارت شمرده می شود، نه از مرحله تایید
+    await db.extend_amount(exact, user["id"], config.charge_ttl_minutes)
     await _send_card(
         call.message, db, state, user, exact, edit=True, exact_amount=exact
     )
