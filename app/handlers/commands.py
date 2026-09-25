@@ -20,6 +20,7 @@ from app import join, keyboards, polls, texts
 from app.config import config
 from app.db import Database
 from app.handlers.start import show_menu
+from app.i18n import t as _t
 
 log = logging.getLogger("obour.commands")
 router = Router(name="commands")
@@ -54,6 +55,12 @@ async def cmd_start(
             return await message.answer(text, reply_markup=markup)
 
     await show_menu(message, user)
+
+
+@router.message(Command("lang", "language"))
+async def cmd_lang(message: Message, state: FSMContext, user: dict) -> None:
+    await state.clear()
+    await message.answer(texts.LANG_PICK, reply_markup=keyboards.lang_kb(user.get("lang")))
 
 
 async def _open_page(message: Message, db: Database, user: dict, target: str) -> None:
@@ -103,7 +110,7 @@ async def _shop(message: Message, db: Database, user: dict) -> None:
     cats = await db.shop_categories()
     if not cats:
         return await message.answer(
-            "فعلا پلنی برای فروش فعال نیست.", reply_markup=keyboards.back_menu()
+            _t("فعلا پلنی برای فروش فعال نیست."), reply_markup=keyboards.back_menu()
         )
     await message.answer(
         texts.SHOP.format(balance=f"{user['balance']:,}"),
@@ -117,7 +124,7 @@ async def cmd_buy(message: Message, db: Database, state: FSMContext, user: dict)
     cats = await db.shop_categories()
     if not cats:
         return await message.answer(
-            "فعلا پلنی برای فروش فعال نیست. کمی صبر کن یا به پشتیبانی خبر بده.",
+            _t("فعلا پلنی برای فروش فعال نیست. کمی صبر کن یا به پشتیبانی خبر بده."),
             reply_markup=keyboards.back_menu(),
         )
     await message.answer(
@@ -161,7 +168,7 @@ async def cmd_test(message: Message, state: FSMContext, user: dict) -> None:
     await state.clear()
     if not config.trial_enabled:
         return await message.answer(
-            "تست رایگان فعلا غیرفعاله.", reply_markup=keyboards.back_menu()
+            _t("تست رایگان فعلا غیرفعاله."), reply_markup=keyboards.back_menu()
         )
     if user["free_trial_used"]:
         return await message.answer(

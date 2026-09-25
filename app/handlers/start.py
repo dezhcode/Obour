@@ -14,6 +14,7 @@ from app.keyboards import is_admin
 from app.states import Support
 from app.ui import edit_or_send
 from app.utils import esc, fmt_dt
+from app.i18n import t as _t
 
 log = logging.getLogger("obour.start")
 router = Router(name="start")
@@ -28,7 +29,7 @@ async def show_menu(target: Message, user: dict, edit: bool = False) -> None:
     fn = texts.welcome if not user.get("balance") else texts.welcome_back
     trial_available = config.trial_enabled and not user.get("free_trial_used")
     text = fn(
-        name=esc(user.get("first_name") or "دوست من"),
+        name=esc(user.get("first_name") or _t("دوست من")),
         balance=f"{user['balance']:,}",
     )
     markup = keyboards.main_menu(trial_available)
@@ -44,13 +45,44 @@ async def cb_rules_accept(call: CallbackQuery, db: Database, user: dict) -> None
     """تایید قوانین و ورود به منوی اصلی."""
     await db.accept_rules(user["id"])
     fresh = await db.get_user(user["id"])
-    await call.answer("ممنون ✅")
+    await call.answer(_t("ممنون ✅"))
     try:
         await call.message.delete()
     except Exception:  # noqa: BLE001
         pass
     await call.message.answer(texts.RULES_ACCEPTED)
     await show_menu(call.message, fresh)
+
+
+@router.callback_query(F.data == "lang")
+async def cb_lang_menu(call: CallbackQuery, user: dict) -> None:
+    """عوض کردن زبان از منوی اصلی."""
+    await edit_or_send(call.message, texts.LANG_PICK, keyboards.lang_kb(user.get("lang")))
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("lang:"))
+async def cb_lang_pick(call: CallbackQuery, db: Database, user: dict) -> None:
+    """ثبت زبان. کاربر تازه بعدش قوانین را می بیند، بقیه منوی اصلی را."""
+    from app import i18n
+    from app.middlewares import rules_body
+
+    lang = i18n.normalize(call.data.split(":", 1)[1])
+    if not lang:
+        return await call.answer()
+    first_time = not user.get("lang")
+    await db.set_user_lang(user["id"], lang)
+    i18n.set_lang(lang)
+    fresh = await db.get_user(user["id"]) or {**user, "lang": lang}
+    await call.answer(f"{i18n.FLAGS[lang]} {i18n.NAMES[lang]}")
+
+    needs_rules = (
+        first_time and not fresh.get("rules_accepted_at") and not is_admin(call.from_user.id)
+        and await db.get_setting("rules_enabled", "1") == "1"
+    )
+    if needs_rules:
+        return await edit_or_send(call.message, await rules_body(db, fresh), keyboards.rules_kb())
+    await show_menu(call.message, fresh, edit=True)
 
 
 @router.callback_query(F.data == "menu")
@@ -111,20 +143,20 @@ async def cb_poll_vote(call: CallbackQuery, db: Database, user: dict) -> None:
 
     poll = await db.get_poll(poll_id)
     if not poll:
-        return await call.answer("این نظرسنجی دیگه در دسترس نیست.", show_alert=True)
+        return await call.answer(_t("این نظرسنجی دیگه در دسترس نیست."), show_alert=True)
     if not poll["is_open"]:
-        return await call.answer("رای گیری این نظرسنجی بسته شده.", show_alert=True)
+        return await call.answer(_t("رای گیری این نظرسنجی بسته شده."), show_alert=True)
 
     changed = await db.poll_vote(poll_id, option_id, user["id"])
     if not changed:
-        return await call.answer("همین گزینه رو قبلا انتخاب کرده بودی.")
+        return await call.answer(_t("همین گزینه رو قبلا انتخاب کرده بودی."))
 
     text, markup = await polls.view(db, poll_id, user["id"])
     try:
         await edit_or_send(call.message, text, markup)
     except Exception:  # noqa: BLE001
         log.debug("به روزرسانی نظرسنجی روی پیام انجام نشد", exc_info=True)
-    await call.answer("رایت ثبت شد ✅")
+    await call.answer(_t("رایت ثبت شد ✅"))
 
 
 @router.callback_query(F.data == "sup:list")
@@ -141,16 +173,16 @@ async def cb_tickets(call: CallbackQuery, db: Database, user: dict) -> None:
     # فهرست پیام های رفت و برگشت هم ماهیتا جدولی است (از کی، چی، کی).
     try:
         rich = richtable.table(
-            headers=["از", "پیام", "زمان"],
+            headers=[_t("از"), _t("پیام"), _t("زمان")],
             rows=[
                 [
-                    "تو" if t["direction"] == "in" else "پشتیبانی",
+                    _t("تو") if t["direction"] == "in" else _t("پشتیبانی"),
                     (t["body"] or texts.TICKET_PHOTO)[:80],
                     fmt_dt(t["created_at"]),
                 ]
                 for t in items
             ],
-            caption="💬 گفتگوهای تو با پشتیبانی",
+            caption=_t("💬 گفتگوهای تو با پشتیبانی"),
         )
         await ui.edit_or_send_rich(call.message, rich, markup)
         return await call.answer()
@@ -178,7 +210,7 @@ async def msg_ticket(message: Message, db: Database, state: FSMContext, user: di
     body = (message.caption or message.text or "").strip()
     file_id = message.photo[-1].file_id if message.photo else None
     if not body and not file_id:
-        return await message.answer("پیام خالیه. دوباره بفرست.")
+        return await message.answer(_t("پیام خالیه. دوباره بفرست."))
     _, thread_id, is_new = await db.add_ticket(
         user["id"], "in", body=body, file_id=file_id, user_msg_id=message.message_id
     )
@@ -214,7 +246,7 @@ async def text_fallback(message: Message, db: Database, user: dict) -> None:
         return
     if (message.text or "").startswith("/"):
         return await message.answer(
-            "این دستور رو نمی شناسم. از منوی پایین استفاده کن.",
+            _t("این دستور رو نمی شناسم. از منوی پایین استفاده کن."),
             reply_markup=keyboards.back_menu(),
         )
     _, thread_id, is_new = await db.add_ticket(
@@ -261,7 +293,7 @@ async def _forward_to_support(
                 # جدول تاریخچه: اول Rich Message، اگر نشد متنی
                 try:
                     rich = richtable.table(
-                        headers=["از", "پیام", "زمان"],
+                        headers=[_t("از"), _t("پیام"), _t("زمان")],
                         rows=[
                             [
                                 "کاربر" if h["direction"] == "in" else "پشتیبانی",

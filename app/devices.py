@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 from app.utils import fmt_dt
+from app.i18n import t as _t
 
 _OS_ICONS = (
     ("android", "📱", "اندروید"),
@@ -38,7 +39,7 @@ def icon_and_os(row: dict) -> tuple[str, str]:
     raw = _first(row, "device_os", "os", "platform", "device_type").lower()
     for needle, icon, title in _OS_ICONS:
         if needle in raw:
-            return icon, title
+            return icon, t(title)
     return "📟", raw
 
 
@@ -63,7 +64,7 @@ def title(row: dict) -> str:
 
     # هیچ اطلاعاتی نبود: با چند رقم آخر شناسه، دستگاه ها قابل تفکیک می مانند
     hwid = _first(row, "hwid", "id", "device_id")
-    return f"دستگاه ناشناس ({hwid[-4:]})" if hwid else "دستگاه ناشناس"
+    return f"{_t('دستگاه ناشناس')} ({hwid[-4:]})" if hwid else _t("دستگاه ناشناس")
 
 
 def columns(row: dict) -> tuple[str, str, str]:
@@ -81,7 +82,7 @@ def columns(row: dict) -> tuple[str, str, str]:
         device_col = f"{icon} {os_name}".strip()
     else:
         device_col = f"{icon} {title(row)}".strip()
-    os_col = f"{os_name} {version}".strip() if (os_name or version) else "نامشخص"
+    os_col = f"{os_name} {version}".strip() if (os_name or version) else _t("نامشخص")
     return device_col, os_col, last_seen(row)
 
 
@@ -89,7 +90,7 @@ def last_seen(row: dict) -> str:
     when = _first(
         row, "last_used_at", "last_seen_at", "used_at", "updated_at", "created_at"
     )
-    return fmt_dt(when) if when else "نامشخص"
+    return fmt_dt(when) if when else _t("نامشخص")
 
 
 def limit_of(panel_user) -> int:  # noqa: ANN001

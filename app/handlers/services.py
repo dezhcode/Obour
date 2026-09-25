@@ -39,6 +39,7 @@ from app.utils import (
     usage_bar,
     usage_percent,
 )
+from app.i18n import t as _t
 
 log = logging.getLogger("obour.services")
 router = Router(name="services")
@@ -102,7 +103,7 @@ def _cached_usage(service_id: int) -> tuple[int, int | None] | None:
 
 def _detail_body(service: dict, title: str, used: int, data_limit: int | None) -> str:
     return texts.SERVICE_DETAIL.format(
-        name=esc((service["label"] or "").strip() or f"سرویس {service['id']}"),
+        name=esc((service["label"] or "").strip() or f"{_t('سرویس')} {service['id']}"),
         title=esc(title),
         status=_status_of(service, used, data_limit),
         bar=usage_bar(used, data_limit),
@@ -131,7 +132,7 @@ async def cb_service_detail(
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        await edit_or_send(call.message, "این سرویس پیدا نشد.", keyboards.back_menu())
+        await edit_or_send(call.message, _t("این سرویس پیدا نشد."), keyboards.back_menu())
         return await call.answer()
 
     # کالبک را همین اول جواب می دهیم: اعتبارش حدود ۱۵ ثانیه است و اگر
@@ -141,7 +142,7 @@ async def cb_service_detail(
     except Exception:  # noqa: BLE001
         pass
 
-    title = "سرویس"
+    title = _t("سرویس")
     plan = await db.get_plan(service["plan_id"]) if service["plan_id"] else None
     if plan:
         title = plan["title"]
@@ -260,9 +261,9 @@ async def cb_service_usage(
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        return await call.answer("این سرویس پیدا نشد.", show_alert=True)
+        return await call.answer(_t("این سرویس پیدا نشد."), show_alert=True)
 
-    name = esc((service["label"] or "").strip() or f"سرویس {service_id}")
+    name = esc((service["label"] or "").strip() or f"{_t('سرویس')} {service_id}")
 
     # عکس امروز را همین حالا می گیریم تا کاربر منتظر کرون فردا نماند
     if panel is not None:
@@ -311,12 +312,12 @@ async def cb_service_qr(call: CallbackQuery, db: Database, user: dict) -> None:
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        return await call.answer("سرویس پیدا نشد.", show_alert=True)
+        return await call.answer(_t("سرویس پیدا نشد."), show_alert=True)
     if not service["sub_url"]:
-        return await call.answer("لینک این سرویس ثبت نشده.", show_alert=True)
+        return await call.answer(_t("لینک این سرویس ثبت نشده."), show_alert=True)
     photo = BufferedInputFile(qr_png(service["sub_url"]), filename="obour_qr.png")
     await call.message.answer_photo(
-        photo, caption="📷 QR لینک سرویس", reply_markup=keyboards.qr_kb()
+        photo, caption=_t("📷 QR لینک سرویس"), reply_markup=keyboards.qr_kb()
     )
     await call.answer()
 
@@ -346,10 +347,10 @@ async def cb_renew_confirm(call: CallbackQuery, db: Database, user: dict) -> Non
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"] or not service["plan_id"]:
-        return await call.answer("این سرویس قابل تمدید نیست.", show_alert=True)
+        return await call.answer(_t("این سرویس قابل تمدید نیست."), show_alert=True)
     plan = await db.get_plan(service["plan_id"])
     if not plan:
-        return await call.answer("پلن این سرویس دیگه موجود نیست.", show_alert=True)
+        return await call.answer(_t("پلن این سرویس دیگه موجود نیست."), show_alert=True)
     body = texts.RENEW_CONFIRM.format(
         number=service["id"],
         title=esc(plan["title"]),
@@ -360,7 +361,7 @@ async def cb_renew_confirm(call: CallbackQuery, db: Database, user: dict) -> Non
         total = renew_days(service["expire_at"], plan["duration_days"], True)
         extra = total - plan["duration_days"]
         if extra > 0:
-            body += f"\n\n<i>{extra} روز باقی مانده فعلیت هم اضافه می شه.</i>"
+            body += "\n\n<i>" + _t("{extra} روز باقی مانده فعلیت هم اضافه می شه.", extra=extra) + "</i>"
     await edit_or_send(call.message, body, keyboards.renew_confirm_kb(service_id))
     await call.answer()
 
@@ -372,17 +373,17 @@ async def cb_renew_confirm_ok(
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"] or not service["plan_id"]:
-        return await call.answer("این سرویس قابل تمدید نیست.", show_alert=True)
+        return await call.answer(_t("این سرویس قابل تمدید نیست."), show_alert=True)
     if panel is None:
         return await call.answer(texts.PANEL_BUSY_ALERT, show_alert=True)
     plan = await db.get_plan(service["plan_id"])
     if not plan or not plan["is_active"]:
-        return await call.answer("پلن این سرویس دیگه فعال نیست.", show_alert=True)
+        return await call.answer(_t("پلن این سرویس دیگه فعال نیست."), show_alert=True)
 
     lock = f"pay:{user['id']}"
     if not await db.acquire_lock(lock):
         return await call.answer(
-            "یه پرداخت همین حالا در جریانه. چند لحظه صبر کن.", show_alert=True
+            _t("یه پرداخت همین حالا در جریانه. چند لحظه صبر کن."), show_alert=True
         )
     try:
         await _do_renew(call, db, panel, user, service, plan)
@@ -402,7 +403,7 @@ async def _do_renew(
         user["id"], "purchase", -plan["price"], idem_key=f"rnw:{call.id}"
     )
     if txn_id is None:
-        return await call.answer("این تمدید در حال پردازشه.", show_alert=True)
+        return await call.answer(_t("این تمدید در حال پردازشه."), show_alert=True)
 
     await ui.working(call.message, texts.building(name=esc(user.get("first_name") or "")))
 
@@ -419,7 +420,7 @@ async def _do_renew(
         await db.fail_transaction(txn_id, "سرویس روی پنل پیدا نشد")
         log.error("renew: panel user %s not found", service["panel_username"])
         return await call.message.edit_text(
-            "این سرویس روی سرور پیدا نشد. به پشتیبانی خبر بده تا درستش کنیم.",
+            _t("این سرویس روی سرور پیدا نشد. به پشتیبانی خبر بده تا درستش کنیم."),
             reply_markup=keyboards.back_menu(),
         )
 
@@ -511,7 +512,7 @@ async def _owned(call: CallbackQuery, db: Database, user: dict) -> dict | None:
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        await call.answer("این سرویس پیدا نشد.", show_alert=True)
+        await call.answer(_t("این سرویس پیدا نشد."), show_alert=True)
         return None
     return service
 
@@ -521,7 +522,7 @@ async def _show_devices(
 ) -> None:
     from app import devices as dev
 
-    name = esc((service["label"] or "").strip() or f"سرویس {service['id']}")
+    name = esc((service["label"] or "").strip() or f"{_t('سرویس')} {service['id']}")
     try:
         rows = await panel.get_hwids(service["panel_username"])
     except PanelError as exc:
@@ -553,8 +554,8 @@ async def _show_devices(
 
     markup = keyboards.devices_kb(service["id"], has_devices=True)
     caption = (
-        f"📱 دستگاه های متصل - {name} - {len(rows)} دستگاه"
-        + (f" از {limit}" if limit else "")
+        f"📱 {_t('دستگاه های متصل')} - {name} - {len(rows)} {_t('دستگاه')}"
+        + (f" {_t('از')} {limit}" if limit else "")
     )
 
     # این صفحه هم آماری/جدولی است؛ همان الگوی سوابق: اول جدول واقعی،
@@ -563,7 +564,7 @@ async def _show_devices(
         from app import richtable
 
         rich = richtable.table(
-            headers=["دستگاه", "سیستم عامل", "آخرین اتصال"],
+            headers=[_t("دستگاه"), _t("سیستم عامل"), _t("آخرین اتصال")],
             rows=[list(dev.columns(r)) for r in rows[:20]],
             caption=caption,
         )
@@ -587,7 +588,7 @@ async def _show_devices(
         texts.DEVICES.format(
             name=name,
             count=len(rows),
-            limit=f" از \u2068{limit}\u2069" if limit else "",
+            limit=f" {_t('از')} {limit}" if limit else "",
             rows="\n\n".join(lines),
             note=note,
         ),
@@ -659,7 +660,7 @@ async def cb_devices_reset_ask(call: CallbackQuery, db: Database, user: dict) ->
     service = await _owned(call, db, user)
     if not service:
         return
-    name = esc((service["label"] or "").strip() or f"سرویس {service['id']}")
+    name = esc((service["label"] or "").strip() or f"{_t('سرویس')} {service['id']}")
     await edit_or_send(
         call.message,
         texts.DEVICES_RESET_ASK.format(name=name),
@@ -704,22 +705,22 @@ async def cb_devices_reset(
     await db.update_service_sub(service["id"], new_sub)
     invalidate_usage(service["id"])
 
-    name = esc((service["label"] or "").strip() or f"سرویس {service['id']}")
+    name = esc((service["label"] or "").strip() or f"{_t('سرویس')} {service['id']}")
     await edit_or_send(
         working,
         texts.DEVICES_RESET_DONE.format(
             name=name,
             kicked=(
-                "همه دستگاه ها خارج شدن و "
+                _t("همه دستگاه ها خارج شدن و ")
                 if kicked
-                else "دستگاه ها پاک نشدن ولی "
+                else _t("دستگاه ها پاک نشدن ولی ")
             ),
             sub_url=esc(new_sub),
         ),
         keyboards.service_detail_kb(service["id"], new_sub, True),
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
-    await call.answer("انجام شد")
+    await call.answer(_t("انجام شد"))
 
 
 # ==================== ابطال لینک ساب ====================
@@ -728,8 +729,8 @@ async def cb_service_relink_ask(call: CallbackQuery, db: Database, user: dict) -
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        return await call.answer("سرویس پیدا نشد.", show_alert=True)
-    name = esc((service["label"] or "").strip() or f"سرویس {service['id']}")
+        return await call.answer(_t("سرویس پیدا نشد."), show_alert=True)
+    name = esc((service["label"] or "").strip() or f"{_t('سرویس')} {service['id']}")
     await edit_or_send(
         call.message,
         texts.SERVICE_RELINK_ASK.format(name=name),
@@ -745,7 +746,7 @@ async def cb_service_relink_ok(
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        return await call.answer("سرویس پیدا نشد.", show_alert=True)
+        return await call.answer(_t("سرویس پیدا نشد."), show_alert=True)
     if panel is None:
         return await call.answer(texts.PANEL_BUSY_ALERT, show_alert=True)
 
@@ -768,13 +769,13 @@ async def cb_service_relink_ok(
     await db.update_service_sub(service_id, new_sub)
     invalidate_usage(service_id)
 
-    name = esc((service["label"] or "").strip() or f"سرویس {service['id']}")
+    name = esc((service["label"] or "").strip() or f"{_t('سرویس')} {service['id']}")
     await edit_or_send(
         call.message,
         texts.SERVICE_RELINKED.format(name=name, sub_url=esc(new_sub)),
         keyboards.service_detail_kb(service_id, new_sub, True),
     )
-    await call.answer("لینک عوض شد")
+    await call.answer(_t("لینک عوض شد"))
 
 
 # ==================== حذف سرویس ====================
@@ -783,9 +784,9 @@ async def cb_service_delete_ask(call: CallbackQuery, db: Database, user: dict) -
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        return await call.answer("سرویس پیدا نشد.", show_alert=True)
+        return await call.answer(_t("سرویس پیدا نشد."), show_alert=True)
 
-    name = esc((service["label"] or "").strip() or f"سرویس {service['id']}")
+    name = esc((service["label"] or "").strip() or f"{_t('سرویس')} {service['id']}")
     body = texts.SERVICE_DELETE_ASK.format(name=name)
     # اگر سرویس هنوز اعتبار دارد، هشدار جدی تری نشان می دهیم تا کاربر
     # اشتباهی سرویس فعالی را که پولش را داده پاک نکند.
@@ -802,7 +803,7 @@ async def cb_service_delete_ok(
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        return await call.answer("سرویس پیدا نشد.", show_alert=True)
+        return await call.answer(_t("سرویس پیدا نشد."), show_alert=True)
 
     # اول از پنل، بعد از دیتابیس. اگر ترتیب برعکس بود و حذف از پنل
     # شکست می خورد، سرویس از لیست کاربر می رفت ولی روی سرور زنده
@@ -816,7 +817,7 @@ async def cb_service_delete_ok(
                 keyboards.service_detail_kb(service_id, service["sub_url"], True),
             )
 
-    name = esc((service["label"] or "").strip() or f"سرویس {service['id']}")
+    name = esc((service["label"] or "").strip() or f"{_t('سرویس')} {service['id']}")
     await db.delete_service(service_id, user["id"])
 
     services = await db.user_services(user["id"])
@@ -830,7 +831,7 @@ async def cb_service_delete_ok(
         await edit_or_send(
             call.message, texts.SERVICES_EMPTY, keyboards.back_menu()
         )
-    await call.answer("حذف شد")
+    await call.answer(_t("حذف شد"))
 
 
 # ==================== انتخاب نام برای سرویس ====================
@@ -841,7 +842,7 @@ async def cb_service_rename(
     service_id = int(call.data.split(":")[2])
     service = await db.get_service(service_id)
     if not service or service["user_id"] != user["id"]:
-        return await call.answer("سرویس پیدا نشد.", show_alert=True)
+        return await call.answer(_t("سرویس پیدا نشد."), show_alert=True)
 
     await state.set_state(Service.waiting_name)
     await state.update_data(service_id=service_id)
@@ -857,18 +858,18 @@ async def txt_service_name(
     service_id = data.get("service_id")
     if not service_id:
         await state.clear()
-        return await message.answer("یه اشتباهی پیش اومد. دوباره از سرویس های من شروع کن.")
+        return await message.answer(_t("یه اشتباهی پیش اومد. دوباره از سرویس های من شروع کن."))
 
     raw = (message.text or "").strip()
     if len(raw) > 30:
         return await message.answer(texts.SERVICE_NAME_TOO_LONG)
 
-    clear = raw.lower() in ("حذف", "پاک", "-", "delete", "clear")
+    clear = raw.lower() in ("حذف", "پاک", "-", "delete", "clear", "удалить", "删除")
     label = None if clear else raw
 
     if not await db.set_service_label(service_id, user["id"], label):
         await state.clear()
-        return await message.answer("سرویس پیدا نشد.")
+        return await message.answer(_t("سرویس پیدا نشد."))
 
     await state.clear()
     await message.answer(

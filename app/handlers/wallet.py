@@ -13,6 +13,7 @@ from app.db import Database
 from app.states import Wallet
 from app.ui import edit_or_send
 from app.utils import esc, fmt_dt, now_str
+from app.i18n import t as _t
 
 log = logging.getLogger("obour.wallet")
 router = Router(name="wallet")
@@ -42,7 +43,8 @@ async def _send_card(
     """ساخت مبلغ یکتا، ثبت تراکنش در انتظار، و نمایش اطلاعات کارت.
 
     سه رقم آخر مبلغ تصادفی است تا ادمین از روی رسید بفهمد مال کیست.
-    مبلغ رزرو شده ۳۰ دقیقه اعتبار دارد (cron_tasks منقضی ها را پاک می کند).
+    مبلغ رزرو شده config.charge_ttl_minutes دقیقه اعتبار دارد (منقضی ها
+    پاک می شوند). با تایید مبلغ، مهلت از نو شروع می شود.
     """
 
     async def _out(text: str, markup=None) -> None:  # noqa: ANN001
@@ -60,7 +62,7 @@ async def _send_card(
         log.warning("شماره کارت در تنظیمات ثبت نشده - جریان شارژ متوقف شد")
         return await _out(texts.CARD_NOT_SET, keyboards.back_menu())
 
-    exact = exact_amount or await db.reserve_amount(user["id"], amount)
+    exact = exact_amount or await db.reserve_amount(user["id"], amount, ttl_minutes=config.charge_ttl_minutes)
     if exact is None:
         await state.clear()
         return await _out(texts.AMOUNT_BUSY, keyboards.back_menu())
@@ -69,7 +71,8 @@ async def _send_card(
     if confirm_step:
         await state.update_data(pending_amount=exact)
         return await _out(
-            texts.AMOUNT_CONFIRM.format(amount=f"{exact:,}", rial=f"{exact * 10:,}"),
+            texts.AMOUNT_CONFIRM.format(amount=f"{exact:,}", rial=f"{exact * 10:,}",
+                                        minutes=config.charge_ttl_minutes),
             keyboards.amount_confirm_kb(exact),
         )
 
@@ -97,6 +100,7 @@ async def _send_card(
             card_number=card_number,
             card_holder=card_holder or "-",
             bank_name=bank_name or "-",
+            minutes=config.charge_ttl_minutes,
         ),
         keyboards.card_kb_v2(card_number, exact, txn_id),
     )
@@ -106,11 +110,11 @@ async def _start_charge(call: CallbackQuery, db: Database, state: FSMContext, am
     """مرحله اول: نمایش مبلغ اختصاصی برای تایید."""
     user = await db.get_user_by_tg(call.from_user.id)
     if not user:
-        return await call.answer("یه بار /start بزن و دوباره امتحان کن.", show_alert=True)
+        return await call.answer(_t("یه بار /start بزن و دوباره امتحان کن."), show_alert=True)
     min_charge = int(await db.get_setting("min_charge", "50000"))
     if amount < min_charge:
         return await call.answer(
-            f"حداقل شارژ {min_charge:,} تومانه.", show_alert=True
+            _t("حداقل شارژ {amount} تومانه.", amount=f"{min_charge:,}"), show_alert=True
         )
     await _send_card(call.message, db, state, user, amount, edit=True, confirm_step=True)
 
@@ -125,7 +129,7 @@ async def cb_amount_confirmed(call: CallbackQuery, db: Database, state: FSMConte
     try:
         exact = int(call.data.split(":")[2])
     except (IndexError, ValueError):
-        return await call.answer("درخواست نامعتبر.", show_alert=True)
+        return await call.answer(_t("درخواست نامعتبر."), show_alert=True)
 
     data = await state.get_data()
     reserved = data.get("pending_amount")
@@ -133,7 +137,7 @@ async def cb_amount_confirmed(call: CallbackQuery, db: Database, state: FSMConte
         # مبلغ با رزرو نمی خواند (دستکاری یا جلسه منقضی)
         await state.clear()
         return await call.answer(
-            "این درخواست معتبر نیست. دوباره از کیف پول شروع کن.", show_alert=True
+            _t("این درخواست معتبر نیست. دوباره از کیف پول شروع کن."), show_alert=True
         )
 
     # تایید نهایی که این مبلغ واقعا برای همین کاربر رزرو شده
@@ -142,9 +146,11 @@ async def cb_amount_confirmed(call: CallbackQuery, db: Database, state: FSMConte
     if not owner or owner["user_id"] != user["id"]:
         await state.clear()
         return await call.answer(
-            "مهلت این مبلغ تموم شده. دوباره امتحان کن.", show_alert=True
+            _t("مهلت این مبلغ تموم شده. دوباره امتحان کن."), show_alert=True
         )
 
+    # مهلت از لحظه دیدن شماره کارت شمرده می شود، نه از مرحله تایید
+    await db.extend_amount(exact, user["id"], config.charge_ttl_minutes)
     await _send_card(
         call.message, db, state, user, exact, edit=True, exact_amount=exact
     )
@@ -211,7 +217,7 @@ async def cb_paid(call: CallbackQuery, db: Database, state: FSMContext) -> None:
     txn_id = int(call.data.split(":")[2])
     user = await db.get_user_by_tg(call.from_user.id)
     if not await db.mark_paid(txn_id, user["id"]):
-        return await call.answer("این درخواست دیگه فعال نیست.", show_alert=True)
+        return await call.answer(_t("این درخواست دیگه فعال نیست."), show_alert=True)
 
     txn = await db.get_transaction(txn_id)
     await state.set_state(Wallet.waiting_receipt)
@@ -223,7 +229,7 @@ async def cb_paid(call: CallbackQuery, db: Database, state: FSMContext) -> None:
         ),
         keyboards.awaiting_receipt_kb(txn_id),
     )
-    await call.answer("ثبت شد ✅")
+    await call.answer(_t("ثبت شد ✅"))
 
 
 @router.callback_query(F.data.startswith("wal:cancel:"))
@@ -234,9 +240,9 @@ async def cb_cancel_charge(call: CallbackQuery, db: Database, state: FSMContext)
     txn = await db.cancel_charge(txn_id, user["id"])
     await state.clear()
     if txn is None:
-        return await call.answer("این درخواست قبلا بسته شده.", show_alert=True)
+        return await call.answer(_t("این درخواست قبلا بسته شده."), show_alert=True)
     await edit_or_send(call.message, texts.CHARGE_CANCELLED, keyboards.back_menu())
-    await call.answer("لغو شد")
+    await call.answer(_t("لغو شد"))
 
 
 @router.message(Wallet.waiting_receipt, F.photo)
@@ -245,7 +251,7 @@ async def photo_receipt(message: Message, db: Database, state: FSMContext) -> No
     txn_id = data.get("txn_id")
     if not txn_id:
         await state.clear()
-        return await message.answer("یه اشتباهی پیش اومد. دوباره از کیف پول شروع کن.")
+        return await message.answer(_t("یه اشتباهی پیش اومد. دوباره از کیف پول شروع کن."))
 
     # تراکنش باید مال همین کاربر و هنوز باز باشد. بدون این بررسی، یک
     # آیدی جا مانده در state می توانست رسید را به تراکنش بسته شده بچسباند.
@@ -253,7 +259,7 @@ async def photo_receipt(message: Message, db: Database, state: FSMContext) -> No
     me = await db.get_user_by_tg(message.from_user.id)
     if not txn or not me or txn["user_id"] != me["id"] or txn["status"] != "pending":
         await state.clear()
-        return await message.answer("این درخواست شارژ دیگه باز نیست. از کیف پول شروع کن.")
+        return await message.answer(_t("این درخواست شارژ دیگه باز نیست. از کیف پول شروع کن."))
 
     await db.set_receipt(txn_id, message.photo[-1].file_id)
     await state.clear()

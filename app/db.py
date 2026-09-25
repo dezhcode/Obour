@@ -490,6 +490,8 @@ class Database:
             ("tickets", "status", "ALTER TABLE tickets ADD COLUMN status TEXT"),
             ("tickets", "closed_at", "ALTER TABLE tickets ADD COLUMN closed_at TEXT"),
             ("tickets", "thread_id", "ALTER TABLE tickets ADD COLUMN thread_id INTEGER"),
+            # زبان انتخابی کاربر؛ NULL یعنی هنوز انتخاب نکرده (حدس از تلگرام)
+            ("users", "lang", "ALTER TABLE users ADD COLUMN lang TEXT"),
         ]
         for table, column, sql in migrations:
             cur = await self._conn.execute(f"PRAGMA table_info({table})")
@@ -501,6 +503,10 @@ class Database:
                 # تا دفعه بعد با صفحه قوانین غافلگیر نشوند.
                 # ردیف های قدیمی هم کد پیگیری بگیرند، وگرنه کاربر برای
                 # خرید دیروزش کدی ندارد و /track جواب نمی دهد.
+                # کاربرانی که پیش از چندزبانه شدن بودند فارسی زبان اند؛ صفحه
+                # انتخاب زبان فقط برای کاربران تازه می آید.
+                if (table, column) == ("users", "lang"):
+                    await self._conn.execute("UPDATE users SET lang = 'fa' WHERE lang IS NULL")
                 if (table, column) == ("transactions", "code"):
                     await self._conn.execute(
                         "UPDATE transactions SET code = 'OB-' || "
@@ -606,6 +612,9 @@ class Database:
             )
             row = await self.fetchone("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
         return dict(row)
+
+    async def set_user_lang(self, user_id: int, lang: str) -> None:
+        await self.execute("UPDATE users SET lang = ? WHERE id = ?", (lang, user_id))
 
     async def get_user_by_tg(self, telegram_id: int) -> dict | None:
         row = await self.fetchone("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
@@ -1009,7 +1018,7 @@ class Database:
         now = datetime.now(TZ)
         soon = (now + timedelta(days=days)).isoformat(timespec="seconds")
         rows = await self.fetchall(
-            """SELECT s.*, u.telegram_id, u.first_name
+            """SELECT s.*, u.telegram_id, u.first_name, u.lang
                FROM services s JOIN users u ON u.id = s.user_id
                WHERE s.is_active = 1
                  AND s.warn_expire_at IS NULL
@@ -1022,7 +1031,7 @@ class Database:
     async def active_services_for_check(self) -> list[dict]:
         """سرویس های فعالی که هنوز هشدار حجم نگرفته اند (برای بررسی مصرف)."""
         rows = await self.fetchall(
-            """SELECT s.*, u.telegram_id, u.first_name
+            """SELECT s.*, u.telegram_id, u.first_name, u.lang
                FROM services s JOIN users u ON u.id = s.user_id
                WHERE s.is_active = 1
                  AND s.warn_data_at IS NULL
@@ -1042,7 +1051,7 @@ class Database:
         now = datetime.now(TZ)
         cutoff = (now - timedelta(days=days_after)).isoformat(timespec="seconds")
         rows = await self.fetchall(
-            """SELECT s.*, u.telegram_id, u.first_name
+            """SELECT s.*, u.telegram_id, u.first_name, u.lang
                FROM services s JOIN users u ON u.id = s.user_id
                WHERE s.winback_at IS NULL
                  AND s.expire_at <= ?
@@ -1640,7 +1649,7 @@ class Database:
             timespec="seconds"
         )
         rows = await self.fetchall(
-            """SELECT t.*, u.telegram_id
+            """SELECT t.*, u.telegram_id, u.lang
                FROM transactions t JOIN users u ON u.id = t.user_id
                WHERE t.type = 'charge' AND t.status = 'pending'
                  AND t.paid_at IS NOT NULL AND t.paid_at < ?
@@ -1658,7 +1667,7 @@ class Database:
 
     # ---------- مبلغ یکتا برای تشخیص رسید ----------
     async def reserve_amount(
-        self, user_id: int, base_amount: int, ttl_minutes: int = 30, tries: int = 60
+        self, user_id: int, base_amount: int, ttl_minutes: int = 2, tries: int = 60
     ) -> int | None:
         """رزرو یک مبلغ یکتا نزدیک به base_amount.
 
@@ -1686,6 +1695,19 @@ class Database:
             except aiosqlite.IntegrityError:
                 continue  # تکراری بود، دوباره امتحان کن
         return None
+
+    async def extend_amount(self, amount: int, user_id: int, ttl_minutes: int) -> bool:
+        """مهلت مبلغ رزرو شده را از همین حالا دوباره شروع می کند.
+
+        ربات مبلغ را در مرحله تایید رزرو می کند؛ با مهلت کوتاه، شمارش باید
+        از لحظه نمایش شماره کارت باشد نه از مرحله تایید.
+        """
+        expires = (datetime.now(TZ) + timedelta(minutes=ttl_minutes)).isoformat(timespec="seconds")
+        rows = await self.execute(
+            "UPDATE pending_amounts SET expires_at = ? WHERE amount = ? AND user_id = ?",
+            (expires, amount, user_id),
+        )
+        return bool(rows)
 
     async def release_amount(self, amount: int) -> None:
         await self.execute("DELETE FROM pending_amounts WHERE amount = ?", (amount,))
@@ -2011,7 +2033,7 @@ class Database:
 
     async def ai_waitlist_all(self) -> list[dict]:
         rows = await self.fetchall(
-            """SELECT w.user_id, u.telegram_id FROM ai_waitlist w
+            """SELECT w.user_id, u.telegram_id, u.lang FROM ai_waitlist w
                JOIN users u ON u.id = w.user_id"""
         )
         return [dict(r) for r in rows]

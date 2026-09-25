@@ -1,7 +1,7 @@
 """شارژ کیف پول — مستقل از رابط.
 
 همان ترتیب ربات (handlers/wallet.py):
-  ۱. مبلغ یکتا رزرو می شود (سه رقم آخر تصادفی، ۳۰ دقیقه اعتبار) تا ادمین
+  ۱. مبلغ یکتا رزرو می شود (سه رقم آخر تصادفی، اعتبار config.charge_ttl_minutes) تا ادمین
      از روی رسید بفهمد پرداخت مال کیست
   ۲. تراکنش شارژ «در انتظار» ثبت می شود
   ۳. کاربر رسید را می فرستد؛ برای ادمین ها با همان کیبورد تایید/رد ربات
@@ -90,7 +90,8 @@ async def start(db: "Database", user: dict, amount: int) -> dict:
     if prev and abs(int(prev["amount"]) - amount) < 1000:
         return {"ok": True, "txn_id": prev["id"], "amount": int(prev["amount"]), "resumed": True}
 
-    exact = await db.reserve_amount(user["id"], amount)
+    from app.config import config
+    exact = await db.reserve_amount(user["id"], amount, ttl_minutes=config.charge_ttl_minutes)
     if exact is None:
         return {"ok": False, "error": AMOUNT_BUSY}
     txn_id = await db.insert_transaction(

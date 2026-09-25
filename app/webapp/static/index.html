@@ -244,6 +244,46 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .plan-name{font-size:16px;font-weight:800}
 .short{font-size:12px;color:var(--ink-3);text-align:center}
 
+/* ═══ زبان های چپ به راست ═══
+   مینی اپ فارسی و انگلیسی دارد (ربات چهار زبان). چیدمان با
+   ویژگی های منطقی (inset-inline، gap) نوشته شده و خودش برمی گردد؛ این
+   چند قاعده فقط جاهایی است که سمت راست صریح بود. */
+html[dir=ltr] .row, html[dir=ltr] .tile, html[dir=ltr] .kind, html[dir=ltr] .loc-top{text-align:left}
+html[dir=ltr] .kv-v{text-align:right}
+html[dir=ltr] [style*="text-align:right"]{text-align:left !important}
+html[dir=ltr] .chev svg, html[dir=ltr] .back svg, html[dir=ltr] .loc-all svg{transform:scaleX(-1)}
+html[dir=ltr] .bubble-row.mine{justify-content:flex-end}
+html[dir=ltr] .bubble-row.theirs{justify-content:flex-start}
+html[dir=ltr] .bubble-time{float:right;margin:7px 0 0 10px}
+/* پیدا برای فارسی ساخته شده و فاصله لاتین و سیریلیک را خیلی باریک
+   می کشد (کلمه ها به هم می چسبیدند). انگلیسی با فونت سیستم. */
+html:not([lang=fa]) body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif}
+.langs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.lang-o{height:56px;border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:10px;padding:0 14px;font-size:15px;font-weight:700}
+.lang-o.on{border:2px solid var(--brand);padding:0 13px}
+.lang-o span{font-size:20px}
+
+/* ═══ پروفایل (صفحه حساب): سربرگ سرمه ای ═══
+   نوار سرمه ای با نقش تونل تا لبه بالای صفحه می رود (حاشیه بالای
+   اسکرول را با حاشیه منفی پس می گیرد) و عکس روی لبه پایینش می نشیند.
+   اطلاعات بیرون نوار، یک ردیف متن با آیکن کوچک، بدون جعبه. */
+.band{position:relative;overflow:hidden;background:var(--navy);color:var(--on-pass);border-radius:0 0 28px 28px;
+  margin-top:calc(-6px - var(--top));padding:calc(20px + var(--top)) var(--pad) 0;height:calc(128px + var(--top))}
+.band .pass-art{left:-20px;bottom:-80px;top:auto;opacity:.2}
+.band-t{position:relative;font-size:22px;font-weight:800;letter-spacing:-.3px}
+.me{position:relative;padding:0 var(--pad);margin-top:-46px}
+.me-av{position:relative;width:92px;height:92px;border-radius:30px;background:var(--navy);color:var(--tunnel);display:flex;align-items:center;justify-content:center;
+  font-size:36px;font-weight:800;overflow:hidden;box-shadow:0 0 0 5px var(--ground)}
+.me-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.me-name{font-size:23px;font-weight:800;line-height:1.35;margin-top:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-user{font-size:13px;font-weight:600;color:var(--ink-3)}
+.me-line{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:12.5px;color:var(--ink-2)}
+.me-line > span{display:inline-flex;align-items:center;gap:5px}
+.me-line svg{width:15px;height:15px;color:var(--net-i)}
+.me-st{color:var(--ok);font-weight:600}
+.me-st i{width:6px;height:6px;border-radius:3px;background:currentColor}
+.me-st.new{color:var(--ink-3)}
+
 /* ═══ کارت لوکیشن بالای فروشگاه ═══
    همان صفحه «سرورها و لوکیشن ها»ی ربات، کوتاه: تعداد، ردیف کشورها،
    و دو قول مهم (قیمت هر گیگ و تعداد دستگاه). بقیه در شیت. */
@@ -351,7 +391,6 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .preset{height:44px;border-radius:12px;background:var(--sunk);color:var(--ink-2);font-size:14px;border:2px solid transparent}
 .preset.on{background:var(--cash-t);color:var(--cash-i);border-color:var(--cash)}
-.paycard{height:auto;gap:8px;cursor:default}
 .upload{min-height:150px;border:2px dashed var(--line);border-radius:var(--r-lg);background:var(--surface);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;text-align:center;
   cursor:pointer;background-size:cover;background-position:center;position:relative;overflow:hidden}
@@ -360,6 +399,54 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .upload.has > *{position:relative;color:#fff}
 .upload.has .ic{background:var(--ok);color:#fff}
 .upload-t{font-size:14px;font-weight:800}
+
+/* ═══ پرداخت کارت به کارت ═══
+   بالا مبلغ دقیق با حلقه مهلت، بعد کارت مقصد به شکل کارت بانکی، بعد
+   جای عکس رسید و چهار قدم کار. سه رقم آخر مبلغ زیرخط کهربایی دارد تا معلوم باشد چرا
+   عدد رند نیست. */
+.pay{display:flex;align-items:center;gap:14px;padding:16px}
+.pay-m{flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pay-v{font-size:30px;letter-spacing:-.8px;line-height:1.15}
+.pay-v u{color:var(--cash);text-decoration:underline;text-decoration-thickness:2.5px;text-underline-offset:6px}
+.pay-r{font-size:11.5px;color:var(--ink-3)}
+.pay .btn-sm{align-self:flex-start;margin-top:8px;height:34px;padding:0 12px;gap:6px}
+.pay .btn-sm svg{width:15px;height:15px}
+.clock{position:relative;width:78px;height:78px;flex-shrink:0}
+.clock svg{position:absolute;inset:0;width:78px;height:78px;transform:rotate(-90deg)}
+.clock circle{fill:none;stroke-width:6}
+.clock .trk{stroke:var(--sunk)}
+.clock .arc{stroke:var(--cash);stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke .3s}
+.clock.low .arc{stroke:var(--help)} .clock.over .arc{stroke:var(--bad)}
+.clock-in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2}
+.clock-in b{font-size:16px}
+.clock-in span{font-size:9.5px;font-weight:600;color:var(--ink-3)}
+.clock.over .clock-in b{font-size:12px;color:var(--bad)}
+.expired{display:flex;gap:10px;align-items:center;margin:10px var(--pad) 0;padding:10px 12px;border-radius:var(--r-md);background:var(--help-t);color:var(--help-i);font-size:12.5px;line-height:1.7}
+.expired svg{width:16px;height:16px;flex-shrink:0}
+.expired button{margin-inline-start:auto;flex-shrink:0;height:32px;padding:0 12px;border-radius:10px;background:var(--help-i);color:#fff;font-size:12px;font-weight:800}
+.bank{position:relative;margin:12px var(--pad) 0;aspect-ratio:1.586;max-height:230px;border-radius:18px;padding:18px;color:var(--on-pass);overflow:hidden;
+  background:radial-gradient(120% 90% at 100% 0%,#1D3F9E 0%,var(--navy) 55%,var(--deep) 100%);box-shadow:var(--shadow-pass);display:flex;flex-direction:column}
+.bank > *{position:relative}
+.bank .pass-art{left:-30px;bottom:-60px}
+.bank-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:800;color:var(--on-pass-2)}
+.emv{width:40px;height:30px;border-radius:7px;background:linear-gradient(135deg,#E9C77B,#B8893A);margin-top:14px;position:relative}
+.emv::after{content:"";position:absolute;inset:7px 9px;border:1.5px solid rgba(90,60,10,.35);border-radius:3px}
+.bank-no{margin-top:auto;direction:ltr;text-align:left;font-size:21px;letter-spacing:2.5px;font-weight:800;white-space:nowrap}
+.bank-bot{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:10px;font-size:12px;color:var(--on-pass-2)}
+.bank-bot b{display:block;font-size:13px;color:var(--on-pass)}
+.steps{list-style:none;margin:0;padding:16px}
+.steps li{position:relative;display:flex;gap:12px;padding-bottom:14px}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{content:"";position:absolute;inset-inline-start:13px;top:30px;bottom:2px;width:2px;background:var(--line)}
+.steps li:last-child::before{display:none}
+.steps .d{width:28px;height:28px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--net-t);color:var(--net-i)}
+.steps li:first-child .d{background:var(--cash-t);color:var(--cash-i)}
+.steps li:last-child .d{background:var(--ok);color:#fff}
+.steps .d svg{width:14px;height:14px}
+.steps b{display:block;font-size:14px;font-weight:800}
+.steps p{margin:2px 0 0;font-size:12.5px;color:var(--ink-2);line-height:1.8}
+.steps-warn{display:flex;gap:8px;align-items:flex-start;margin:0 16px 16px;padding:10px 12px;border-radius:var(--r-md);background:var(--cash-t);color:var(--cash-i);font-size:12.5px;line-height:1.8}
+.steps-warn svg{width:16px;height:16px;flex-shrink:0;margin-top:3px}
 
 /* ═══ قوانین و نوشتن ═══ */
 .rules{padding:18px;font-size:14px;line-height:2;white-space:pre-wrap;color:var(--ink-2)}
@@ -377,10 +464,22 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 #nav{position:absolute;z-index:40;left:var(--pad);right:var(--pad);bottom:calc(18px + var(--safe-b));height:var(--nav-h);
   border-radius:var(--r-xl);background:var(--nav-bg);box-shadow:var(--shadow-pass);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0 6px;transition:transform .3s var(--ease)}
 #app.no-nav #nav{transform:translateY(140%)}
-.nav-i{display:flex;align-items:center;justify-content:center;color:var(--nav-icon)}
+.nav-i{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;color:var(--nav-icon)}
 .nav-i svg{width:22px;height:22px}
-.nav-pill{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:16px;background:var(--nav-on);color:var(--ink);font-size:12px;font-weight:800}
+.nav-i:active svg{transform:scale(.88)}
+.nav-pill{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:16px;color:var(--ink);font-size:12px;font-weight:800}
 .nav-pill svg{width:18px;height:18px}
+.nav-l{animation:navIn .3s var(--ease) .06s both}
+@keyframes navIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+/* قرص روشن تب فعال یک عنصر ثابت است که زیر تب ها سر می خورد؛ دکمه ها
+   هر بار از نو ساخته می شوند ولی این نه، تا جای قبلی اش را یادش بماند.
+   جا و پهنایش را App.placeNav از روی قرص تب فعال اندازه می گیرد. */
+.nav-ind{position:absolute;z-index:0;top:calc((var(--nav-h) - 40px) / 2);height:40px;left:0;width:0;border-radius:16px;background:var(--nav-on);
+  pointer-events:none;transition:left .45s var(--spring),width .45s var(--spring)}
+.nav-ind.still{transition:none}
+html.perf-low .nav-ind{transition:left .2s var(--ease),width .2s var(--ease)}
+html.perf-low .nav-l{animation:none}
+@media (prefers-reduced-motion:reduce){.nav-ind{transition:none}.nav-l{animation:none}}
 
 /* ═══ شیت ═══ */
 #scrim{position:absolute;inset:0;z-index:50;background:rgba(10,22,51,.42);opacity:0;pointer-events:none;transition:opacity .25s}
@@ -439,6 +538,78 @@ html.perf-low .sk::after{display:none}
 "use strict";
 const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
+/* ═════════ زبان ═════════
+   متن های صفحه فارسی نوشته شده اند و فارسی کلید ترجمه است. بعد از هر
+   رندر، مترجم گره های متنی و چند ویژگی (placeholder، aria-label) را با
+   واژه نامه زبان کاربر عوض می کند؛ عددها در <span class="n"> جدا هستند،
+   پس تکه های متن بی عدد می مانند و مستقیم پیدا می شوند. هر تکه ای که در
+   واژه نامه نباشد فارسی می ماند تا چیزی خالی نشود.
+   متن هایی که از سرور می آیند (خطاها، راهنما، لوکیشن ها) را خود سرور به
+   زبان کاربر می فرستد؛ نام پلن ها و متن قوانین را ادمین نوشته و ترجمه
+   نمی شوند. */
+const L10N = {"en":{") شناسه توست و رسیدت با آن شناخته میشود. رندش نکن.":") identify you and that's how your receipt is recognised. Don't round it.","سه رقم آخر (":"The last three digits (","از اپ بانکت همین مبلغ را به کارت بالا بزن، ظرف":"In your bank app, send this exact amount to the card above, within","دقیقه.":"minutes.","از اپ بانکت همین مبلغ را به کارت بالا بزن.":"In your bank app, send this exact amount to the card above.","{n} روز اخیر":"Last {n} days","روز اخیر":"days","نمودار مصرف {n} روز اخیر":"Usage chart for the last {n} days","{n} پلن":"{n} plans","{n} کانفیگ":"{n} configs","موجود: {n}":"In stock: {n}","موجود:":"In stock:","QR ساخته نشد":"Couldn't make the QR","ساخت QR نشد":"Couldn't make the QR","[تصویر]":"[image]","تصویر — در ربات ببین":"Image — view it in the bot","· شناسه":"· ID","آخرین پاداشها":"Latest rewards","اتصال":"Connect","اتصال سریع":"Quick connect","ادامه و دیدن شماره کارت":"Continue to the card number","ارتباط برقرار نشد.":"Couldn't connect.","ارسال":"Send","ارسال به پشتیبانی":"Send to support","ارسال رسید":"Send receipt","از هر خرید همسفرهایت":"From every purchase your fellow travellers make,","به کیف پولت اضافه میشود.":"goes to your wallet.","اسکرینشات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.":"Choose the bank receipt screenshot above and tap «Send receipt».","اسکرینشات یا عکس رسید بانکی":"A screenshot or photo of the bank receipt","اسکن کن":"Scan it","اشتراک AI":"AI subscriptions","اشتراک با دوستان در تلگرام":"Share with friends on Telegram","اشتراک سرویسهای AI":"AI service subscriptions","اضافه شد":"added","افزودن به صفحه اصلی":"Add to home screen","افزودن خودکار اشتراک":"Adds the subscription automatically","اندروید":"Android","انقضا":"Expiry","انگلیس":"UK","اول در ربات ثبت نام کن":"Sign up in the bot first","اول قوانین را بخوان و بپذیر":"Read and accept the rules first","اولین شارژ یا خریدت اینجا ثبت میشود.":"Your first top-up or purchase will show up here.","اولین کارت عبورت":"Your first Obour pass","اگر مشکلی داری، همین جا بپرس.":"If something's wrong, ask right here.","اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمیشود و تاییدش طول میکشد.":"If you pay less or more, your receipt isn't recognised automatically and approval takes longer.","این بخش فعلا خاموش است":"This section is off for now","این فایل عکس نیست":"This file isn't an image","این نسخه تلگرام پشتیبانی نمیکند":"This Telegram version doesn't support it","این گفتگو بسته شده است":"This conversation is closed","اینترنت آزاد":"Free internet","اینترنت آزاد ·":"Free internet ·","با عبور، اینترنت آزاد":"Free internet with Obour","با هر خریدی همه این لوکیشنها رو یکجا میگیری؛ لازم نیست جدا بخری.":"Every purchase gives you all these locations at once; no need to buy them separately.","باز":"Open","باز نشد":"It didn't open","باز هم وصل نشد؟ بپرس":"Still not connecting? Ask us","بانک":"Bank","بدون پاسخ":"No replies","برای دیدن گفتگو روی تیکت بزن":"Tap a ticket to see the conversation","برای فرستادن عکس، فعلا از ربات استفاده کن.":"To send a photo, use the bot for now.","برای نمودار دست کم دو روز آمار لازم است":"The chart needs at least two days of data","برنامهات را انتخاب کن، بقیه خودکار":"Choose your app, the rest is automatic","برنامهات را بزن":"Tap your app","برنامهات را بزن؛ اشتراک خودکار اضافه میشود.":"Tap your app; the subscription is added automatically.","برگشت":"Back","بستن":"Close","بسته":"Closed","به تیکت":"to ticket","به نام":"Card holder","بهترین ارزش":"Best value","بیشتر":"More","تاریخ":"Date","تاریخ ساخت":"Created","تایید شده":"Approved","تحویل شد":"Delivered","تلاش دوباره":"Try again","تمام شد":"Over","تمدید":"Renew","تنظیمات":"Settings","تومان":"toman","تومان ·":"toman ·","تومان · پرداخت کارت به کارت، تایید در چند دقیقه":"toman · card-to-card payment, approved in a few minutes","تومان است":"toman","تیکت":"Ticket","تیکت تازه":"New ticket","تیکت جدید":"New ticket","تیکتی نداری":"No tickets","تیکتها و راهنمای اتصال":"Tickets and connection guide","تیکتهای من":"My tickets","جزئیات":"Details","حجم تمام شد":"Data used up","حجم و مدت":"Data and duration","حجم کل":"Total data","حداقل":"Minimum","حداقل شارژ":"Minimum top-up","حساب":"Account","خانه":"Home","خرید":"Buy","خرید انجام نشد":"The purchase didn't go through","خرید سرویس":"Service purchase","خرید و تمدید":"Buy and renew","خریدار":"Buyers","خطای ارتباط":"Connection error","خوانده نشد":"Couldn't load","در انتظار":"Pending","در حال ارسال…":"Sending…","در حال رزرو مبلغ…":"Reserving the amount…","در حال ساخت…":"Creating…","در ربات /start بزن و قوانین را بپذیر، بعد برگرد.":"Send /start in the bot and accept the rules, then come back.","درآمد تو از همسفرها":"Your earnings from fellow travellers","دستگاهت را انتخاب کن":"Choose your device","دستی کپی کن":"Copy it by hand","دعوت شده":"Invited","دعوت کن، از هر خرید سهم بگیر":"Invite, earn from every purchase","دعوت کن، با هم عبور کنید":"Invite friends, travel together","دلیل":"Reason","دیدن پلنها":"See plans","راهنما هنوز تنظیم نشده":"The guide isn't set up yet","راهنمای اتصال":"Connection guide","رد شده":"Rejected","رسید انتخاب شد · برای عوض کردن بزن":"Receipt selected · tap to change","رفتن به ربات":"Go to the bot","رو به اتمام":"Running low","روز":"days","روز · تا":"days · until","روز · همه کشورها":"days · all countries","روز با عبور":"days with Obour","روز بخیر":"Good afternoon","روزانه":"Daily","روزانه، هفتگی یا ماهانه":"Daily, weekly or monthly","روی همه دستگاههات کار میکنه، بدون محدودیت تعداد دستگاه":"Works on all your devices, with no device limit","ریال":"rial","زبان":"Language","ساخته شد":"created","سرورها و لوکیشنها":"Servers & locations","سرویس":"Service","سرویس خوانده نشد":"Couldn't load the service","سرویس فعال":"active services","سرویسها خوانده نشد":"Couldn't load services","سرویسهای من":"My services","سفارش در ربات":"Order in the bot","سفارشهای من":"My orders","سه قدم تا اتصال":"Three steps to connect","سوابق خوانده نشد":"Couldn't load history","شارژ":"Top up","شارژ فعلا ممکن نیست":"Top-up isn't possible right now","شارژ و سوابق":"Top-up and history","شارژ کیف پول":"Top up wallet","شب بخیر":"Good evening","شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.":"The card number isn't set up yet. Contact support.","صبح بخیر":"Good morning","عبور · نسخه":"Obour · version","عصر بخیر":"Good evening","عضو از":"Member since","عکس رسید":"Receipt photo","عکس رسید را انتخاب کن":"Choose the receipt photo","عکس رسید را بفرست":"Send the receipt photo","فروشگاه":"Shop","فعال":"Active","فعلا محصولی برای نمایش نیست":"No products to show right now","فعلا پلنی برای فروش نیست":"No plans on sale right now","قدم 1 از 2 · مبلغ":"Step 1 of 2 · amount","قدم 2 از 2 · پرداخت و رسید":"Step 2 of 2 · payment and receipt","قدم به قدم، برای دستگاه خودت":"Step by step, for your device","قوانین":"Rules","قوانین و حریم خصوصی":"Rules and privacy","قوانین پذیرفته شد":"Rules accepted","قیمت":"Price","قیمت هر گیگ به پلن بستگی داره؛ هرچی حجم بیشتر، هر گیگ ارزونتر":"The price per GB depends on the plan; the more data, the cheaper each GB","لینک دعوت تو":"Your invite link","لینک را برای دوستانت بفرست.":"Send the link to your friends.","لینک ربات در دسترس نیست":"The bot link isn't available","ماهانه":"Monthly","مبلغ به تومان":"Amount in toman","مبلغ تازه":"New amount","مبلغ دقیق واریز":"Exact amount to pay","مبلغ را دقیقا کپی کن":"Copy the exact amount","مبلغ شارژ":"Top-up amount","متن قوانین هنوز تنظیم نشده است.":"The rules haven't been written yet.","مثل یک اپ جدا باز شود":"Opens like a separate app","محصولات خوانده نشد":"Couldn't load products","مرورگر اجازه کپی خودکار نداد. روی متن نگه دار و کپی کن:":"The browser didn't allow automatic copying. Press and hold the text to copy it:","مشکلت را بنویس؛ مثلا کدام سرویس، روی چه دستگاهی، و چه پیغامی میبینی.":"Describe the problem: which service, on what device, and what message you see.","مصرف":"Usage","مصرف شده":"Used","معمولا چند دقیقه طول میکشد. بعد از تایید، مبلغ به کیف پولت اضافه میشود و در ربات خبر میگیری.":"It usually takes a few minutes. Once approved, the amount is added to your wallet and you're notified in the bot.","منقضی":"Expired","منقضی شده":"Expired","مهلت تمام شد. اگر واریز کردهای رسید را بفرست، وگرنه مبلغ تازه بگیر.":"Time's up. If you've paid, send the receipt; otherwise get a new amount.","مهلت پرداخت":"Time to pay","موجودی بعد از خرید":"Balance after purchase","موجودی فعلی":"Current balance","موجودی کیف پول":"Wallet balance","مگ":"MB","مگ مانده":"MB left","گیگ مانده":"GB left","میانگین روزانه":"Daily average","نامحدود":"Unlimited","ناموجود":"Out of stock","ناموفق":"Failed","ناوبری":"Navigation","هر کس با این لینک بیاید، همسفر توست":"Anyone who joins with this link is your fellow traveller","هر گیگ":"per GB","هفتگی":"Weekly","همه":"All","همه توی یک لینک؛ هر کدوم رو خواستی توی اپ انتخاب کن":"All in one link; pick any of them in the app","همه کشورها":"All countries","همسفرها":"Fellow travellers","هنوز تراکنشی نیست":"No transactions yet","هنوز سرویسی نداری":"No services yet","هنوز پاداشی نگرفتهای":"No rewards yet","هنوز پذیرفته نشده":"Not accepted yet","هوش مصنوعی":"AI","وصل شو":"Connect","وصل شوم":"Connect me","وضعیت":"Status","وقتی موجود شد در ربات خبر بگیر":"Get notified in the bot when it's back in stock","پاداش":"Reward","پاداش همسفر":"Referral reward","پاسخ":"replies","پاسخ داده شده":"Answered","پاسخ پشتیبانی هم اینجا و هم در ربات میرسد":"Support's reply arrives both here and in the bot","پاسخت را بنویس…":"Write your reply…","پذیرفته شده":"Accepted","پذیرفته شده ·":"Accepted ·","پرداخت از کیف پول":"Pay from wallet","پرداخت از کیف پول، تحویل فوری":"Pay from your wallet, instant delivery","پشتیبانی":"Support","پشتیبانی و راهنما":"Support and guide","پلن":"Plan","پلن را انتخاب کن":"Choose a plan","پلنها خوانده نشد":"Couldn't load plans","پنل جواب نداد؛ عدد از آخرین آمار روزانه است":"The server didn't respond; the figure is from the last daily snapshot","پیام":"Message","پیامت را بنویس":"Write your message","پیش از خرید، یک بار بخوان و بپذیر":"Read and accept once before buying","پیشنهادی":"Recommended","چطور شارژ میشود؟":"How does the top-up work?","چه چیزی لازم داری؟":"What do you need?","کارت به کارت کن":"Pay card to card","کارت به کارت، تایید سریع":"Card to card, quick approval","کارت عبور بلافاصله ساخته میشود":"Your pass is created instantly","کارت عبورت آماده شد":"Your pass is ready","کارت مقصد":"Destination card","کارها":"Actions","کانفیگ":"configs","کانفیگ در":"configs in","کانفیگ پرسرعت، همه کشورها":"Fast configs, every country","کشور":"countries","کد پیگیری":"Tracking code","کم":"short","کپی":"Copy","کپی شد":"Copied","کپی شماره کارت":"Copy card number","کپی لینک":"Copy link","کپی مبلغ (ریال)":"Copy amount (rial)","کیف پول":"Wallet","کیف پول را شارژ کن":"Top up your wallet","کیف پولت خالی است":"Your wallet is empty","کیفت شارژ میشود":"Your wallet is topped up","گفتگو":"Conversation","گفتگو با پشتیبانی":"Chat with support","گیگ":"GB","گیگ ·":"GB ·","یا لینک را دستی اضافه کن":"Or add the link manually","یک پاسخ تازه":"One new reply","یک پاسخ تازه از پشتیبانی":"A new reply from support","یک پلن انتخاب کن؛ چند ثانیه بعد کارتت اینجا با لینک اتصال آماده است.":"Pick a plan; a few seconds later your pass is here with its connection link.","دقیقا همین مبلغ را واریز کن":"Pay exactly this amount","سه رقم آخر شناسه توست؛ با آن رسیدت شناخته میشود.":"The last three digits identify you; that's how your receipt is recognised.","رسیدت رسید":"Receipt received","برگشت به کیف پول":"Back to wallet","خواندم و میپذیرم":"I've read and accept","دیدن پلن ها":"See plans","تیکت جدید ·":"New ticket · ","پیامت را بنویس.":"Write your message.","سرویسها":"Services","سرویسهای من ·":"My services ·","{n} فعال":"{n} active","{n} سرویس فعال":"{n} active services","{n} پاسخ":"{n} replies","{n} پیام":"{n} messages","{n} تومان کم داری · شارژ":"{n} toman short · top up","{n} گیگ":"{n} GB","{n} روز":"{n} days","کپی مبلغ":"Copy amount"}};
+/* مینی اپ فقط فارسی و انگلیسی دارد؛ ربات چهار زبان. کاربری که در ربات
+   روسی یا چینی است، اینجا انگلیسی می بیند. */
+const LANG_NAMES = { fa:['🇮🇷','فارسی'], en:['🇬🇧','English'] };
+const I18N = {
+  lang:'fa', dict:null, busy:false,
+  FA:/[؀-ۿ]/,
+  guess(){
+    const c = ((tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code) || '').toLowerCase().split('-')[0];
+    return c === 'fa' || c === 'ps' || c === 'tg' ? 'fa' : c ? 'en' : 'fa';
+  },
+  use(lang){
+    this.lang = lang === 'fa' ? 'fa' : L10N[lang] ? lang : 'en';
+    this.dict = this.lang === 'fa' ? null : L10N[this.lang];
+    const root = document.documentElement;
+    root.lang = this.lang;
+    root.dir = this.lang === 'fa' ? 'rtl' : 'ltr';
+    setDateFormats(this.lang);
+    this.all();
+  },
+  /* کلید بدون نیم فاصله و فاصله اضافه. اگر خود عبارت نبود، عددهایش
+     {n} می شوند (مثل «4 پلن» → «{n} پلن») و بعد سر جایشان برمی گردند. */
+  norm(s){ return s.replace(/\u200c/g, '').replace(/\s+/g, ' ').trim(); },
+  text(s){
+    const d = this.dict; if (!d || !s || !this.FA.test(s)) return s;
+    const k = this.norm(s);
+    let v = d[k];
+    if (v == null) {
+      const nums = k.match(/\d[\d,./]*/g);
+      if (nums) { const tpl = d[k.replace(/\d[\d,./]*/g, '{n}')]; if (tpl != null) { let i = 0; v = tpl.replace(/\{n\}/g, () => nums[i++] || ''); } }
+    }
+    if (v == null) return s;
+    const lead = s.match(/^\s*/)[0], tail = s.match(/\s*$/)[0];
+    return lead + v + tail;
+  },
+  node(n){
+    if (n.nodeType === 3) { const v = this.text(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; return; }
+    if (n.nodeType !== 1) return;
+    for (const a of ['placeholder','aria-label','title']) {
+      const v = n.getAttribute && n.getAttribute(a);
+      if (v && this.FA.test(v)) n.setAttribute(a, this.text(v));
+    }
+    const w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    for (let c = w.nextNode(); c; c = w.nextNode()) {
+      if (c.nodeType === 3) { const v = this.text(c.nodeValue); if (v !== c.nodeValue) c.nodeValue = v; }
+      else for (const a of ['placeholder','aria-label','title']) {
+        const v = c.getAttribute(a); if (v && this.FA.test(v)) c.setAttribute(a, this.text(v));
+      }
+    }
+  },
+  all(){ if (this.dict) this.node(document.body); },
+  watch(){
+    new MutationObserver(ms => {
+      if (!this.dict) return;
+      for (const m of ms) {
+        if (m.type === 'characterData') this.node(m.target);
+        else m.addedNodes.forEach(n => this.node(n));
+      }
+    }).observe(document.body, { childList:true, subtree:true, characterData:true });
+  },
+  t(s){ return this.text(s); }
+};
+
 /* ═════════ HELPERS ═════════ */
 const $ = id => document.getElementById(id);
 /* اعداد همه جا لاتین. جداکننده هزارگان می ماند چون خواندن مبلغ
@@ -457,12 +628,25 @@ function gb(n){
   return fa(Math.round(n / 1048576)) + ' مگ';
 }
 /* تقویم شمسی با رقم لاتین: nu-latn */
-const JD = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'});
-const JT = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{hour:'2-digit',minute:'2-digit',hour12:false});
+/* فارسی: تقویم شمسی؛ بقیه: میلادی به شکل 2026-09-25. رقم ها همیشه لاتین. */
+let JD = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'});
+let JT = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{hour:'2-digit',minute:'2-digit',hour12:false});
+let WD = ['ی','د','س','چ','پ','ج','ش'];
+function setDateFormats(lang){
+  if (lang === 'fa') {
+    JD = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'});
+    JT = new Intl.DateTimeFormat('fa-IR-u-ca-persian-nu-latn',{hour:'2-digit',minute:'2-digit',hour12:false});
+    WD = ['ی','د','س','چ','پ','ج','ش'];
+    return;
+  }
+  JD = new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit'});
+  JT = new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
+  const f = new Intl.DateTimeFormat(lang, { weekday:'narrow' });
+  WD = [0,1,2,3,4,5,6].map(i => f.format(new Date(Date.UTC(2024, 0, 7 + i, 12))));
+}
 const jdate = iso => { if(!iso) return '—'; const d=new Date(iso); return isNaN(d)?'—':JD.format(d); };
 const jtime = iso => { if(!iso) return ''; const d=new Date(iso); return isNaN(d)?'':JT.format(d); };
 const jfull  = iso => { if(!iso) return '—'; const d=new Date(iso); return isNaN(d)?'—':JD.format(d)+' · '+JT.format(d); };
-const WD = ['ی','د','س','چ','پ','ج','ش'];
 
 
 
@@ -489,6 +673,7 @@ const ICON = {
   warn:'<path d="M12 4 3 19h18z"/><path d="M12 10v4M12 17h.01"/>',
   image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
   list:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   refresh:'<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>',
 };
 const ic = (k, sw) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.8}" stroke-linecap="round" stroke-linejoin="round">${ICON[k]||''}</svg>`;
@@ -605,11 +790,15 @@ const App = {
       Viewport.init();
     }
     this.syncHeight();
-    window.addEventListener('resize', () => this.syncHeight());
+    window.addEventListener('resize', () => { this.syncHeight(); this.placeNav(); });
+    try { document.fonts.ready.then(() => this.placeNav()); } catch(e){}
     this.watchFoot();
     this.renderNav();
     let err = null;
+    I18N.watch();
+    I18N.use(I18N.guess());
     try { this.boot = await api('bootstrap'); } catch(e) { err = e; }
+    if (this.boot && this.boot.user && this.boot.user.lang) I18N.use(this.boot.user.lang);
     $('splash').classList.add('off');
     if (err) return this.fatal(err);
     this.tab('home');
@@ -628,9 +817,27 @@ const App = {
   NAV_ICON: { home:'home', store:'store', wallet:'wallet', account:'user' },
 
   renderNav(){
-    $('nav').innerHTML = this.TABS.map(([k, l]) => k === this.tabName
-      ? `<button class="nav-i" onclick="App.tab('${k}')" aria-current="page"><span class="nav-pill">${ic(this.NAV_ICON[k],2)}${l}</span></button>`
-      : `<button class="nav-i" onclick="App.tab('${k}')" aria-label="${l}">${ic(this.NAV_ICON[k])}</button>`).join('');
+    const nav = $('nav');
+    let ind = $('nav-ind');
+    if (!ind) { nav.innerHTML = '<span class="nav-ind still" id="nav-ind" aria-hidden="true"></span>'; ind = $('nav-ind'); }
+    nav.querySelectorAll('.nav-i').forEach(b => b.remove());
+    nav.insertAdjacentHTML('beforeend', this.TABS.map(([k, l]) => k === this.tabName
+      ? `<button class="nav-i" onclick="App.tab('${k}')" aria-current="page"><span class="nav-pill">${ic(this.NAV_ICON[k],2)}<span class="nav-l">${l}</span></span></button>`
+      : `<button class="nav-i" onclick="App.tab('${k}')" aria-label="${l}">${ic(this.NAV_ICON[k])}</button>`).join(''));
+    this.placeNav();
+  },
+
+  /* قرص را زیر تب فعال می برد. بار اول (کلاس still) بی انیمیشن می نشیند.
+     پهنای قرص به طول نام تب بستگی دارد، پس بعد از رسیدن فونت هم دوباره
+     اندازه گرفته می شود. */
+  placeNav(){
+    const nav = $('nav'), ind = $('nav-ind'), pill = nav && nav.querySelector('.nav-pill');
+    if (!ind || !pill || !pill.getBoundingClientRect) return;
+    const n = nav.getBoundingClientRect(), r = pill.getBoundingClientRect();
+    if (!r.width) return;
+    ind.style.left = (r.left - n.left) + 'px';
+    ind.style.width = r.width + 'px';
+    if (ind.classList.contains('still')) requestAnimationFrame(() => requestAnimationFrame(() => ind.classList.remove('still')));
   },
 
   tab(name){
@@ -1099,34 +1306,54 @@ async account(p){
   const photo = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.photo_url : '';
   const letter = esc((u.name || '؟').trim().charAt(0));
   const canHome = tg && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && tg.addToHomeScreen;
-  p.innerHTML = TabTop('حساب') + `
-    <div class="hero mx" style="margin-top:8px;padding:18px">
-      <div style="display:flex;align-items:center;gap:14px">
-        <span style="position:relative;width:56px;height:56px;border-radius:18px;background:var(--navy);color:var(--on-pass);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;overflow:hidden;flex-shrink:0">${letter}
-          ${photo ? `<img src="${esc(photo)}" alt="" referrerpolicy="no-referrer" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ''}</span>
-        <div style="min-width:0"><div style="font-size:19px;font-weight:800">${esc(u.name)}</div>
-          <div class="topbar-s"><span class="n" style="font-weight:600">${u.username ? '@' + esc(u.username) + ' · ' : ''}ID ${esc(u.telegram_id)}</span></div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px">
-        ${[[fa(c.services_active),'سرویس فعال'],[jdate(u.joined_at),'عضویت'],[fa(u.balance),'موجودی']].map(([v, k], i) =>
-          `<div style="background:var(--sunk);border-radius:14px;padding:10px 6px;text-align:center"><div class="n" style="font-size:${i === 1 ? 13 : 16}px" ${i === 2 ? 'data-bal' : ''}>${esc(v)}</div><div class="lbl">${k}</div></div>`).join('')}
+  const joined = u.joined_at ? new Date(u.joined_at) : null;
+  const days = joined && !isNaN(joined) ? Math.max(1, Math.floor((Date.now() - joined) / 864e5)) : null;
+  const active = c.services_active > 0;
+  p.innerHTML = `
+    <div class="band">${TUNNEL}<div class="band-t">حساب</div></div>
+    <div class="me">
+      <span class="me-av">${letter}${photo ? `<img src="${esc(photo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>
+      <div class="me-name">${esc(u.name)}</div>
+      ${u.username ? `<div class="me-user n">@${esc(u.username)}</div>` : ''}
+      <div class="me-line">
+        <span class="me-st${active ? '' : ' new'}"><i></i>${active ? `${N(fa(c.services_active))} سرویس فعال` : 'هنوز سرویسی نداری'}</span>
+        <span>${ic('cal')}عضو از ${N(jdate(u.joined_at))}</span>
+        ${days ? `<span>${ic('globe')}${N(fa(days))} روز با عبور</span>` : ''}
       </div>
     </div>
     ${Sec('کارها')}
     ${Group(
-      (b.features.shop_referral ? Row({ kind:'cash', icon:'gift', title:'هم‌سفرها', sub:'دعوت کن، از هر خرید سهم بگیر', fn:"App.go('referral')" }) : '')
+      Row({ kind:'cash', icon:'wallet', title:'کیف پول', sub:'شارژ و سوابق', fn:"App.tab('wallet')",
+            end:`<span><span class="n" data-bal style="font-size:14px">${fa(u.balance)}</span> <span class="lbl">تومان</span></span>` })
+      + (b.features.shop_referral ? Row({ kind:'cash', icon:'gift', title:'هم‌سفرها', sub:'دعوت کن، از هر خرید سهم بگیر', fn:"App.go('referral')" }) : '')
       + Row({ kind:'help', icon:'chat', title:'تیکت‌های من', sub: c.unread_replies ? 'یک پاسخ تازه' : 'گفتگو با پشتیبانی', subColor: c.unread_replies ? 'var(--help-i)' : '', fn:"App.go('tickets')" })
       + Row({ kind:'net', icon:'book', title:'راهنمای اتصال', sub:'قدم به قدم، برای دستگاه خودت', fn:"App.go('guide')" }))}
-    <div class="gap"></div>
+    ${Sec('تنظیمات')}
     ${Group(
-      (canHome ? Row({ icon:'phone', title:'افزودن به صفحه اصلی', sub:'مثل یک اپ جدا باز شود', fn:'Account.addHome()' }) : '')
+      Row({ icon:'globe', title:'زبان', sub: LANG_NAMES[I18N.lang][1], fn:'Account.lang()' })
+      + (canHome ? Row({ icon:'phone', title:'افزودن به صفحه اصلی', sub:'مثل یک اپ جدا باز شود', fn:'Account.addHome()' }) : '')
       + Row({ icon:'shield', title:'قوانین و حریم خصوصی', sub: u.rules_accepted ? 'پذیرفته شده' : 'هنوز پذیرفته نشده', fn:"App.go('rules')" }))}
-    <div class="short" style="margin-top:18px">عبور · نسخه ${N(APP_VERSION)}</div>`;
+    <div class="short" style="margin-top:18px">عبور · نسخه ${N(APP_VERSION)} · شناسه ${N(u.telegram_id)}</div>`;
 }
 };
 
 const APP_VERSION = '6.1.1';
 const Account = {
+  /* زبان با ربات یکی است: همان ستون users.lang، پس انتخاب اینجا زبان
+     ربات را هم عوض می کند. عوض کردنش صفحه را از نو می سازد. */
+  lang(){
+    App.sheet(`<div class="sheet-t">زبان</div><div class="topbar-s">Language</div>
+      <div class="langs">${Object.entries(LANG_NAMES).map(([k, [f, n]]) =>
+        `<button class="lang-o${k === I18N.lang ? ' on' : ''}" onclick="Account.setLang('${k}')"><span>${f}</span>${n}</button>`).join('')}</div>`);
+  },
+  async setLang(k){
+    App.closeSheet();
+    if (k === I18N.lang) return;
+    try { await api('lang', { lang:k }); } catch(e) { return App.toast(e.message, true); }
+    App.boot.user.lang = k;
+    I18N.use(k);
+    App.renderNav(); App.tab(App.tabName);
+  },
   addHome(){ try { tg.addToHomeScreen(); } catch(e){ App.toast('این نسخه تلگرام پشتیبانی نمی‌کند', true); } }
 };
 
@@ -1414,7 +1641,7 @@ SubPages.topup = async function(p){
     const d = await api('topup');
     Topup.info = d;
     if (!d.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + emptyBox('شارژ فعلا ممکن نیست', 'شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.'));
-    if (d.open) { Topup.req = { txn_id:d.open.txn_id, amount:d.open.amount, card:d.card }; return Topup.step2(p); }
+    if (d.open) { Topup.req = { txn_id:d.open.txn_id, amount:d.open.amount, card:d.card, expires_at:d.open.expires_at, ttl_minutes:d.ttl_minutes }; return Topup.step2(p); }
     Topup.step1(p);
   } catch (err) { p.innerHTML = Top('شارژ کیف پول') + emptyBox('خوانده نشد', err.message); }
 };
@@ -1461,16 +1688,27 @@ const Topup = {
     const r = this.req, c = r.card || {};
     const num = String(c.number || '').replace(/[^\d]/g, '');
     const pretty = num.replace(/(\d{4})(?=\d)/g, '$1 ');
+    const amt = fa(r.amount), cut = amt.length - 3;
     this.img = null;
     p.innerHTML = Top('شارژ کیف پول', 'قدم 2 از 2 · پرداخت و رسید') + `
-      <div class="pass mx paycard">${TUNNEL}
-        <div class="pass-meta">دقیقا همین مبلغ را واریز کن</div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span class="n" style="font-size:38px;letter-spacing:-1px;line-height:1.1">${fa(r.amount)}</span><span class="pass-meta" style="font-size:14px">تومان</span>
-          <button class="invite-copy" style="margin-inline-start:auto" onclick="App.copy('${r.amount}')" aria-label="کپی مبلغ">${ic('copy')}</button></div>
-        <div class="pass-meta" style="font-size:11.5px">سه رقم آخر شناسه توست؛ با آن رسیدت شناخته می‌شود.</div>
-        <div class="invite-link" style="margin-top:4px"><span class="invite-url" style="font-size:16px;letter-spacing:1px;color:var(--on-pass)">${esc(pretty)}</span>
-          <button class="invite-copy" onclick="App.copy('${esc(num)}')">${ic('copy')}<span>کپی</span></button></div>
-        <div class="pass-meta">${esc(c.holder || '')}${c.bank ? ' · ' + esc(c.bank) : ''}</div>
+      <div class="card pay mx" style="margin-top:8px">
+        <div class="pay-m">
+          <span class="lbl">مبلغ دقیق واریز</span>
+          <span class="pay-v n">${amt.slice(0, cut)}<u>${amt.slice(cut)}</u></span>
+          <span class="pay-r">تومان · ${N(fa(r.amount * 10))} ریال</span>
+          <button class="btn btn-sm btn-s" onclick="App.copy('${r.amount * 10}')">${ic('copy')}کپی مبلغ (ریال)</button>
+        </div>
+        ${r.expires_at ? `<div class="clock" id="clock" role="timer" aria-label="مهلت پرداخت">
+          <svg viewBox="0 0 78 78"><circle class="trk" cx="39" cy="39" r="34"/><circle class="arc" id="clock-arc" cx="39" cy="39" r="34" stroke-dasharray="213.6" stroke-dashoffset="0"/></svg>
+          <div class="clock-in"><b class="n" id="clock-t">--:--</b><span>مهلت پرداخت</span></div></div>` : ''}
+      </div>
+      <div id="expired"></div>
+      <div class="bank">${TUNNEL}
+        <div class="bank-top"><span>کارت مقصد</span><span>${c.bank ? 'بانک ' + esc(c.bank) : ''}</span></div>
+        <div class="emv" aria-hidden="true"></div>
+        <div class="bank-no n">${esc(pretty)}</div>
+        <div class="bank-bot"><div>به نام<b>${esc(c.holder || '—')}</b></div>
+          <button class="invite-copy" onclick="App.copy('${esc(num)}')" aria-label="کپی شماره کارت">${ic('copy')}<span>کپی</span></button></div>
       </div>
       ${Sec('عکس رسید')}
       <label class="upload mx" id="up">
@@ -1479,8 +1717,41 @@ const Topup = {
         <span class="upload-t" id="up-t">عکس رسید را انتخاب کن</span>
         <span class="short">اسکرین‌شات یا عکس رسید بانکی</span>
       </label>
-      <div class="short" style="margin:12px var(--pad) 0">مهلت پرداخت 30 دقیقه است. بعد از تایید، مبلغ به کیف پولت اضافه می‌شود و در ربات خبر می‌گیری.</div>
+      <div class="gap" style="height:6px"></div>${Sec('چطور شارژ می‌شود؟')}
+      <div class="card mx"><ol class="steps">
+        <li><span class="d n">1</span><div><b>مبلغ را دقیقا کپی کن</b><p>سه رقم آخر (${N(amt.slice(cut))}) شناسه توست و رسیدت با آن شناخته می‌شود. رندش نکن.</p></div></li>
+        <li><span class="d n">2</span><div><b>کارت به کارت کن</b><p>از اپ بانکت همین مبلغ را به کارت بالا بزن${r.ttl_minutes ? `، ظرف ${N(r.ttl_minutes)} دقیقه` : ''}.</p></div></li>
+        <li><span class="d n">3</span><div><b>عکس رسید را بفرست</b><p>اسکرین‌شات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.</p></div></li>
+        <li><span class="d">${ic('check',2.6)}</span><div><b>کیفت شارژ می‌شود</b><p>معمولا چند دقیقه طول می‌کشد. بعد از تایید، مبلغ به کیف پولت اضافه می‌شود و در ربات خبر می‌گیری.</p></div></li>
+      </ol><div class="steps-warn">${ic('warn',2)}<span>اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمی‌شود و تاییدش طول می‌کشد.</span></div></div>
       <div class="foot"><button class="btn btn-p btn-block" id="rc-go" disabled onclick="Topup.send()">ارسال رسید</button></div>`;
+    this.tick();
+  },
+
+  /* شمارش معکوس مهلت مبلغ رزرو شده، از روی زمان پایان سرور. وقتی صفحه
+     عوض شود (حلقه دیگر نیست) خودش می ایستد. مهلت که تمام شود رسید
+     همچنان فرستادنی است - شاید کاربر واریز کرده - ولی پیشنهاد مبلغ تازه
+     هم می آید. */
+  tick(){
+    clearInterval(this._clock);
+    const end = this.req && this.req.expires_at ? new Date(this.req.expires_at).getTime() : NaN;
+    if (isNaN(end)) return;
+    const TOTAL = (this.req.ttl_minutes || 30) * 60 * 1000, LEN = 213.6;
+    const draw = () => {
+      const box = $('clock'); if (!box) return clearInterval(this._clock);
+      const left = Math.max(0, end - Date.now()), sec = Math.ceil(left / 1000);
+      $('clock-arc').setAttribute('stroke-dashoffset', String(LEN * (1 - Math.min(1, left / TOTAL))));
+      box.classList.toggle('low', left > 0 && left < Math.min(5 * 60 * 1000, TOTAL / 4));
+      box.classList.toggle('over', left <= 0);
+      $('clock-t').textContent = left > 0 ? String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0') : 'تمام شد';
+      if (left <= 0) {
+        clearInterval(this._clock);
+        $('expired').innerHTML = `<div class="expired">${ic('warn',2)}<span>مهلت تمام شد. اگر واریز کرده‌ای رسید را بفرست، وگرنه مبلغ تازه بگیر.</span>
+          <button onclick="Topup.req=null;Topup.step1()">مبلغ تازه</button></div>`;
+      }
+    };
+    draw();
+    this._clock = setInterval(draw, 1000);
   },
   /* عکس روی گوشی کوچک می شود (حداکثر ۱۶۰۰ پیکسل، JPEG). هم آپلود روی
      اینترنت کند سریع تر می شود و هم اطلاعات جانبی عکس (مثل موقعیت

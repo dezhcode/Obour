@@ -26,6 +26,7 @@ from app import features, keyboards, pricing, texts
 from app.db import Database
 from app.ui import edit_or_send
 from app.warzone import Warzone, WarzoneError, WarzoneNoFunds, WarzoneUnknown
+from app.i18n import t as _t
 
 log = logging.getLogger("obour.ai")
 router = Router(name="ai")
@@ -88,7 +89,7 @@ async def cb_ai_product(call: CallbackQuery, db: Database, user: dict) -> None:
     await edit_or_send(
         call.message,
         texts.AI_PRODUCT.format(
-            name=product.get("name") or "اشتراک هوش مصنوعی",
+            name=product.get("name") or _t("اشتراک هوش مصنوعی"),
             price=f"{b.final:,}",
             balance=f"{user['balance']:,}",
             stock=stock,
@@ -267,8 +268,8 @@ async def cb_ai_notify_me(call: CallbackQuery, db: Database, user: dict) -> None
     """ثبت نام در فهرست انتظار موجود شدن."""
     added = await db.ai_waitlist_add(user["id"])
     await call.answer(
-        "باشه، به محض موجود شدن خبرت می کنیم ✅" if added
-        else "قبلا ثبت نامت رو داشتیم، صبر کن 🔔",
+        _t("باشه، به محض موجود شدن خبرت می کنیم ✅") if added
+        else _t("قبلا ثبت نامت رو داشتیم، صبر کن 🔔"),
         show_alert=True,
     )
 
@@ -286,14 +287,14 @@ async def cb_ai_status_live(call: CallbackQuery, db: Database, user: dict) -> No
     order_id = int(call.data.split(":")[2])
     order = await db.get_ai_order(order_id)
     if not order:
-        return await call.answer("این سفارش پیدا نشد.", show_alert=True)
+        return await call.answer(_t("این سفارش پیدا نشد."), show_alert=True)
     is_admin = user["telegram_id"] in config.admin_ids
     if not is_admin and order["user_id"] != user["id"]:
-        return await call.answer("این سفارش مال تو نیست.", show_alert=True)
+        return await call.answer(_t("این سفارش مال تو نیست."), show_alert=True)
     if not order.get("provider_order_id"):
         return await call.answer(texts.AI_STATUS_LIVE_UNKNOWN, show_alert=True)
 
-    await call.answer("در حال بررسی...")
+    await call.answer(_t("در حال بررسی..."))
     wz = await _client(db)
     try:
         found = await wz.find_order(order["provider_order_id"])

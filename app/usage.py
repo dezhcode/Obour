@@ -16,6 +16,7 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from app.utils import GIB, days_left, fmt_data
+from app.i18n import t as _t
 
 _WEEKDAYS = ("دوشنبه", "سه شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه")
 _BLOCKS = "▁▂▃▄▅▆▇█"
@@ -51,10 +52,10 @@ def label(day: date) -> str:
     today = date.today()
     delta = (today - day).days
     if delta == 0:
-        return "امروز"
+        return _t("امروز")
     if delta == 1:
-        return "دیروز"
-    return _WEEKDAYS[day.weekday()]
+        return _t("دیروز")
+    return t(_WEEKDAYS[day.weekday()])
 
 
 def chart(deltas: list[tuple[date, int]], width: int = 7) -> str:

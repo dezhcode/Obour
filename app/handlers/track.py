@@ -21,6 +21,7 @@ from app.db import Database
 from app.states import Track
 from app.ui import edit_or_send
 from app.utils import esc, fmt_dt, normalize_code
+from app.i18n import t as _t
 
 log = logging.getLogger("obour.track")
 router = Router(name="track")
@@ -52,27 +53,27 @@ def _status_title(txn: dict) -> str:
 
 def _timeline(txn: dict) -> str:
     """خط زمانی یک تراکنش بر اساس ستون های زمانی که پر شده اند."""
-    steps: list[tuple[str, str | None]] = [("ثبت درخواست", txn["created_at"])]
+    steps: list[tuple[str, str | None]] = [(_t("ثبت درخواست"), txn["created_at"])]
     if txn["type"] == "charge":
-        steps.append(("اعلام واریز", txn.get("paid_at")))
+        steps.append((_t("اعلام واریز"), txn.get("paid_at")))
         steps.append(
-            ("ارسال رسید", txn["created_at"] if txn.get("receipt_file_id") else None)
+            (_t("ارسال رسید"), txn["created_at"] if txn.get("receipt_file_id") else None)
         )
     if txn.get("cancelled_at"):
-        steps.append(("لغو توسط تو", txn["cancelled_at"]))
+        steps.append((_t("لغو توسط تو"), txn["cancelled_at"]))
     elif txn["status"] == "approved":
-        steps.append(("تایید", txn.get("decided_at")))
+        steps.append((_t("تایید"), txn.get("decided_at")))
     elif txn["status"] == "rejected":
-        steps.append(("رد شدن", txn.get("decided_at")))
+        steps.append((_t("رد شدن"), txn.get("decided_at")))
     elif txn["status"] == "failed":
-        steps.append(("توقف با خطا", txn.get("decided_at")))
+        steps.append((_t("توقف با خطا"), txn.get("decided_at")))
     else:
-        steps.append(("بررسی پشتیبانی", None))
+        steps.append((_t("بررسی پشتیبانی"), None))
 
     lines = []
     for title, when in steps:
         mark = "✅" if when else "⏳"
-        tail = f" · \u2068{fmt_dt(when)}\u2069" if when else " · هنوز انجام نشده"
+        tail = f" · \u2068{fmt_dt(when)}\u2069" if when else " · " + _t("هنوز انجام نشده")
         lines.append(f"├ {mark} \u2068{title}\u2069{tail}")
     return "\n".join(lines)
 
@@ -108,13 +109,13 @@ async def _show_ticket_track(
     برسد - بدون اینکه دنبال پیام اصلی تیکت بگردد.
     """
     status = ticket.get("status") or "open"
-    steps = [("ارسال تیکت", ticket["created_at"])]
-    steps.append(("پاسخ پشتیبانی", ticket["created_at"] if status == "answered" else None))
+    steps = [(_t("ارسال تیکت"), ticket["created_at"])]
+    steps.append((_t("پاسخ پشتیبانی"), ticket["created_at"] if status == "answered" else None))
     if status == "closed":
-        steps.append(("بسته شدن", ticket.get("closed_at")))
+        steps.append((_t("بسته شدن"), ticket.get("closed_at")))
     lines = [
         f"├ {'✅' if when else '⏳'} \u2068{title}\u2069"
-        + (f" · \u2068{fmt_dt(when)}\u2069" if when else " · در انتظار")
+        + (f" · \u2068{fmt_dt(when)}\u2069" if when else " · " + _t("در انتظار"))
         for title, when in steps
     ]
     body = (ticket.get("body") or texts.TICKET_PHOTO)[:200]
@@ -144,13 +145,13 @@ async def _show_ai_order_track(message: Message, order: dict) -> None:
 
     provider_line = ""
     if order.get("provider_order_id"):
-        provider_line = f"کد نزد سرویس دهنده: \u2068{order['provider_order_id']}\u2069\n"
+        provider_line = f"{_t('کد نزد سرویس دهنده')}: {order['provider_order_id']}\n"
 
     links_line = ""
     if order.get("products"):
         try:
             items = json.loads(order["products"])
-            links_line = "\nلینک تحویل:\n" + "\n".join(f"<code>{p}</code>" for p in items) + "\n"
+            links_line = "\n" + _t("لینک تحویل") + ":\n" + "\n".join(f"<code>{p}</code>" for p in items) + "\n"
         except Exception:  # noqa: BLE001
             pass
 
@@ -258,7 +259,7 @@ async def _history(
     # همان قالب متنی قبلی برمی گردیم - کاربر چیزی از دست نمی دهد.
     try:
         rich = richtable.table(
-            headers=["نوع", "مبلغ", "کد", "تاریخ", "وضعیت"],
+            headers=[_t("نوع"), _t("مبلغ"), _t("کد"), _t("تاریخ"), _t("وضعیت")],
             rows=[
                 [
                     texts.TXN_KIND.get(t["type"], t["type"]),
@@ -269,7 +270,7 @@ async def _history(
                 ]
                 for t in items
             ],
-            caption=f"🗂 سوابق - {shown} از {total} مورد",
+            caption="🗂 " + _t("سوابق - {shown} از {total} مورد", shown=shown, total=total),
         )
         await ui.edit_or_send_rich(message, rich, markup)
         return
@@ -317,7 +318,7 @@ async def cb_history_page(call: CallbackQuery, db: Database, user: dict) -> None
 async def cb_history_item(call: CallbackQuery, db: Database, user: dict) -> None:
     txn = await db.get_transaction(int(call.data.split(":")[2]))
     if not txn or txn["user_id"] != user["id"]:
-        return await call.answer("این مورد پیدا نشد.", show_alert=True)
+        return await call.answer(_t("این مورد پیدا نشد."), show_alert=True)
     await _show_txn(call.message, db, txn)
     await call.answer()
 
@@ -337,10 +338,10 @@ async def cb_ticket_list(call: CallbackQuery, db: Database, user: dict) -> None:
     # فهرست تیکت ها هم ماهیتا جدولی است؛ اول جدول واقعی Rich Message.
     try:
         rich = richtable.table(
-            headers=["وضعیت", "کد", "پیام", "زمان", "پاسخ"],
+            headers=[_t("وضعیت"), _t("کد"), _t("پیام"), _t("زمان"), _t("پاسخ")],
             rows=[
                 [
-                    texts.TICKET_STATUS.get(t.get("status") or "open", "🟡 باز"),
+                    texts.TICKET_STATUS.get(t.get("status") or "open", _t("🟡 باز")),
                     str(t.get("code") or t["id"]),
                     (t.get("body") or texts.TICKET_PHOTO)[:60],
                     fmt_dt(t["created_at"]),
@@ -348,7 +349,7 @@ async def cb_ticket_list(call: CallbackQuery, db: Database, user: dict) -> None:
                 ]
                 for t in items
             ],
-            caption=f"🎫 تیکت های من - {len(items)} مورد",
+            caption="🎫 " + _t("تیکت های من - {n} مورد", n=len(items)),
         )
         await ui.edit_or_send_rich(call.message, rich, markup)
         return await call.answer()
@@ -360,7 +361,7 @@ async def cb_ticket_list(call: CallbackQuery, db: Database, user: dict) -> None:
         body = (t.get("body") or texts.TICKET_PHOTO)[:60]
         rows.append(
             texts.TICKET_ROW.format(
-                status=texts.TICKET_STATUS.get(t.get("status") or "open", "🟡 باز"),
+                status=texts.TICKET_STATUS.get(t.get("status") or "open", _t("🟡 باز")),
                 code=t.get("code") or t["id"],
                 body=esc(body),
                 when=fmt_dt(t["created_at"]),
@@ -380,7 +381,7 @@ async def cb_ticket_view(call: CallbackQuery, db: Database, user: dict) -> None:
     ticket_id = int(call.data.split(":")[2])
     messages = await db.ticket_messages(ticket_id, user["id"])
     if not messages or messages[0]["direction"] != "in":
-        return await call.answer("این تیکت پیدا نشد.", show_alert=True)
+        return await call.answer(_t("این تیکت پیدا نشد."), show_alert=True)
 
     head = messages[0]
     rows = []
@@ -408,7 +409,7 @@ async def cb_ticket_view(call: CallbackQuery, db: Database, user: dict) -> None:
 async def cb_ticket_close(call: CallbackQuery, db: Database, user: dict) -> None:
     ticket_id = int(call.data.split(":")[2])
     if not await db.close_ticket(ticket_id, user["id"]):
-        return await call.answer("این تیکت قبلا بسته شده.", show_alert=True)
+        return await call.answer(_t("این تیکت قبلا بسته شده."), show_alert=True)
     await call.answer(texts.TICKET_CLOSED, show_alert=True)
     await cb_ticket_list(call, db, user)
 
@@ -422,10 +423,10 @@ async def cb_ticket_bump(call: CallbackQuery, db: Database, user: dict) -> None:
     ticket_id = int(call.data.split(":")[2])
     messages = await db.ticket_messages(ticket_id, user["id"])
     if not messages:
-        return await call.answer("این تیکت پیدا نشد.", show_alert=True)
+        return await call.answer(_t("این تیکت پیدا نشد."), show_alert=True)
     head = messages[0]
     if (head.get("status") or "open") == "closed":
-        return await call.answer("این تیکت بسته شده.", show_alert=True)
+        return await call.answer(_t("این تیکت بسته شده."), show_alert=True)
 
     if not await db.acquire_lock(f"bump:{ticket_id}", ttl_seconds=1800):
         return await call.answer(texts.TICKET_BUMP_TOO_SOON, show_alert=True)
@@ -448,6 +449,6 @@ async def cb_ticket_bump(call: CallbackQuery, db: Database, user: dict) -> None:
         except Exception:  # noqa: BLE001
             log.warning("پیگیری تیکت به ادمین %s نرفت", admin_id, exc_info=True)
     await call.answer(
-        texts.TICKET_BUMP_SENT if sent else "پشتیبانی در دسترس نیست، بعدا امتحان کن.",
+        texts.TICKET_BUMP_SENT if sent else _t("پشتیبانی در دسترس نیست، بعدا امتحان کن."),
         show_alert=True,
     )
