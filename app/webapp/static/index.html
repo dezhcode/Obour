@@ -244,6 +244,42 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .plan-name{font-size:16px;font-weight:800}
 .short{font-size:12px;color:var(--ink-3);text-align:center}
 
+/* ═══ گذرنامه عبور (صفحه حساب) ═══
+   حساب کاربر یک گذرنامه است: عکس و نام، سه خانه مشخصات، و نوار
+   ماشین خوان پایین مثل گذرنامه واقعی. همان سرمه ای و تونل کارت عبور؛
+   قرمز و طلایی گذرنامه های واقعی نمی آید چون رنگ ها معنا دارند. */
+.pp{position:relative;margin:8px var(--pad) 0;border-radius:var(--r-xl);background:var(--navy);color:var(--on-pass);overflow:hidden;box-shadow:var(--shadow-pass)}
+.pp > *{position:relative}
+.pp-art{position:absolute !important;left:-40px;bottom:-40px;opacity:.14;pointer-events:none}
+.pp-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px 0}
+.pp-k{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.3px;color:var(--on-pass-2)}
+.pp-k svg{width:14px;height:14px;color:var(--tunnel)}
+.pp-no{font-size:11px;font-weight:600;color:var(--on-pass-2);letter-spacing:.5px}
+.pp-id{display:flex;align-items:center;gap:16px;padding:16px 18px 18px}
+.pp-av{position:relative;width:72px;height:72px;border-radius:22px;flex-shrink:0;background:var(--deep);color:var(--tunnel);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;overflow:hidden;
+  box-shadow:0 0 0 3px var(--navy),0 0 0 5px var(--tunnel)}
+.pp-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pp-name{font-size:21px;font-weight:800;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-user{font-size:12.5px;font-weight:600;color:var(--on-pass-2)}
+.pp-st{display:flex;width:max-content;align-items:center;gap:6px;height:24px;padding:0 10px;margin-top:8px;border-radius:12px;background:var(--deep);font-size:11.5px;font-weight:600}
+.pp-st i{width:7px;height:7px;border-radius:4px;background:var(--tunnel)}
+.pp-st.new i{background:var(--on-pass-2)}
+.pp-f{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 18px;border-top:1px solid rgba(169,196,245,.22)}
+.pp-f div{display:flex;flex-direction:column;gap:2px;padding:12px 0 14px}
+.pp-f div + div{border-inline-start:1px solid rgba(169,196,245,.22);padding-inline-start:12px}
+.pp-f span{font-size:10.5px;font-weight:600;color:var(--on-pass-2)}
+.pp-f b{font-size:15px}
+.pp-mrz{background:var(--deep);padding:10px 18px 12px;direction:ltr;text-align:left;font:600 11px/1.6 ui-monospace,'SF Mono',Menlo,Consolas,monospace;letter-spacing:.14em;color:var(--on-pass-2);
+  white-space:nowrap;overflow:hidden;opacity:.85}
+
+/* کارهای حساب: سه کاشی کنار هم به رنگ دسته خودشان */
+.acts{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:10px;padding:0 var(--pad)}
+.act{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:12px;min-height:108px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);text-align:right;transition:transform .15s var(--ease)}
+.act:active{transform:scale(.97)}
+.act-t{font-size:14px;font-weight:800;display:block}
+.act-s{font-size:11px;color:var(--ink-3);display:block;line-height:1.5}
+.act-dot{position:absolute;top:10px;left:10px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--help);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center}
+
 /* ═══ کارت لوکیشن بالای فروشگاه ═══
    همان صفحه «سرورها و لوکیشن ها»ی ربات، کوتاه: تعداد، ردیف کشورها،
    و دو قول مهم (قیمت هر گیگ و تعداد دستگاه). بقیه در شیت. */
@@ -1130,25 +1166,39 @@ async account(p){
   const photo = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.photo_url : '';
   const letter = esc((u.name || '؟').trim().charAt(0));
   const canHome = tg && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && tg.addToHomeScreen;
+  const joined = u.joined_at ? new Date(u.joined_at) : null;
+  const days = joined && !isNaN(joined) ? Math.max(1, Math.floor((Date.now() - joined) / 864e5)) : null;
+  const active = c.services_active > 0;
+  const acts = [
+    b.features.shop_referral && { kind:'cash', icon:'gift', t:'هم‌سفرها', s:'دعوت کن، سهم بگیر', fn:"App.go('referral')" },
+    { kind:'help', icon:'chat', t:'تیکت‌ها', s: c.unread_replies ? 'پاسخ تازه داری' : 'گفتگو با پشتیبانی', fn:"App.go('tickets')", dot:c.unread_replies },
+    { kind:'net', icon:'book', t:'راهنما', s:'اتصال قدم به قدم', fn:"App.go('guide')" },
+  ].filter(Boolean);
   p.innerHTML = TabTop('حساب') + `
-    <div class="hero mx" style="margin-top:8px;padding:18px">
-      <div style="display:flex;align-items:center;gap:14px">
-        <span style="position:relative;width:56px;height:56px;border-radius:18px;background:var(--navy);color:var(--on-pass);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;overflow:hidden;flex-shrink:0">${letter}
-          ${photo ? `<img src="${esc(photo)}" alt="" referrerpolicy="no-referrer" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ''}</span>
-        <div style="min-width:0"><div style="font-size:19px;font-weight:800">${esc(u.name)}</div>
-          <div class="topbar-s"><span class="n" style="font-weight:600">${u.username ? '@' + esc(u.username) + ' · ' : ''}ID ${esc(u.telegram_id)}</span></div></div>
+    <div class="pp">${TUNNEL.replace('class="pass-art"', 'class="pp-art"')}
+      <div class="pp-h"><span class="pp-k">${ic('shield',2)}گذرنامه عبور</span><span class="pp-no n">OB-${esc(u.telegram_id)}</span></div>
+      <div class="pp-id">
+        <span class="pp-av">${letter}${photo ? `<img src="${esc(photo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>
+        <div style="min-width:0">
+          <div class="pp-name">${esc(u.name)}</div>
+          ${u.username ? `<div class="pp-user n">@${esc(u.username)}</div>` : ''}
+          <span class="pp-st${active ? '' : ' new'}"><i></i>${active ? 'مسافر فعال' : 'منتظر اولین سفر'}</span>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px">
-        ${[[fa(c.services_active),'سرویس فعال'],[jdate(u.joined_at),'عضویت'],[fa(u.balance),'موجودی']].map(([v, k], i) =>
-          `<div style="background:var(--sunk);border-radius:14px;padding:10px 6px;text-align:center"><div class="n" style="font-size:${i === 1 ? 13 : 16}px" ${i === 2 ? 'data-bal' : ''}>${esc(v)}</div><div class="lbl">${k}</div></div>`).join('')}
+      <div class="pp-f">
+        <div><span>عضو از</span><b class="n">${esc(jdate(u.joined_at))}</b></div>
+        <div><span>همراهی</span><b>${days == null ? '—' : `${N(fa(days))} <small style="font-size:11px;font-weight:600">روز</small>`}</b></div>
+        <div><span>سرویس فعال</span><b class="n">${fa(c.services_active)}</b></div>
       </div>
+      <div class="pp-mrz" aria-hidden="true">${Account.mrz(u)}</div>
     </div>
+    <div class="gap" style="height:14px"></div>
+    ${WalletStrip(u.balance)}
     ${Sec('کارها')}
-    ${Group(
-      (b.features.shop_referral ? Row({ kind:'cash', icon:'gift', title:'هم‌سفرها', sub:'دعوت کن، از هر خرید سهم بگیر', fn:"App.go('referral')" }) : '')
-      + Row({ kind:'help', icon:'chat', title:'تیکت‌های من', sub: c.unread_replies ? 'یک پاسخ تازه' : 'گفتگو با پشتیبانی', subColor: c.unread_replies ? 'var(--help-i)' : '', fn:"App.go('tickets')" })
-      + Row({ kind:'net', icon:'book', title:'راهنمای اتصال', sub:'قدم به قدم، برای دستگاه خودت', fn:"App.go('guide')" }))}
-    <div class="gap"></div>
+    <div class="acts" style="--n:${acts.length}">${acts.map(a => `<button class="act" onclick="${a.fn}">
+        ${a.dot ? `<span class="act-dot n">${fa(a.dot)}</span>` : ''}<span class="ic ${a.kind}">${ic(a.icon)}</span>
+        <span><span class="act-t">${a.t}</span><span class="act-s"${a.dot ? ' style="color:var(--help-i)"' : ''}>${a.s}</span></span></button>`).join('')}</div>
+    ${Sec('تنظیمات')}
     ${Group(
       (canHome ? Row({ icon:'phone', title:'افزودن به صفحه اصلی', sub:'مثل یک اپ جدا باز شود', fn:'Account.addHome()' }) : '')
       + Row({ icon:'shield', title:'قوانین و حریم خصوصی', sub: u.rules_accepted ? 'پذیرفته شده' : 'هنوز پذیرفته نشده', fn:"App.go('rules')" }))}
@@ -1158,6 +1208,14 @@ async account(p){
 
 const APP_VERSION = '6.1.1';
 const Account = {
+  /* دو خط ماشین خوان گذرنامه، فقط تزئینی: نام کاربری یا MEMBER، شناسه
+     تلگرام و تاریخ عضویت، با < پر شده تا ۳۰ نویسه. */
+  mrz(u){
+    const pad = t => (t + '<'.repeat(30)).slice(0, 30);
+    const who = String(u.username || 'MEMBER').toUpperCase().replace(/[^A-Z0-9]/g, '<');
+    const d = jdate(u.joined_at).replace(/\D/g, '') || '<<<<<<<<';
+    return esc(pad('P<OBR<<' + who)) + '<br>' + esc(pad(String(u.telegram_id) + '<' + d + '<IRN'));
+  },
   addHome(){ try { tg.addToHomeScreen(); } catch(e){ App.toast('این نسخه تلگرام پشتیبانی نمی‌کند', true); } }
 };
 
