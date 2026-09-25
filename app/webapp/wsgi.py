@@ -236,7 +236,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
     # فهرست سفید نوشتن. هر مسیر دیگری خواندنی می ماند، تا اگر روزی
     # اندپوینتی اضافه شد بی سروصدا قابل نوشتن نشود.
     WRITE_PATHS = ("/api/purchase", "/api/topup/start", "/api/topup/receipt",
-                   "/api/rules/accept", "/api/ticket/send")
+                   "/api/rules/accept", "/api/ticket/send", "/api/lang")
     if method == "POST":
         if path not in WRITE_PATHS:
             return _json(
@@ -446,7 +446,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             return _json(start_response, data)
 
         # ---------- نوشتن های دیگر: شارژ، قوانین، تیکت ----------
-        if name in ("topup/start", "topup/receipt", "rules/accept", "ticket/send"):
+        if name in ("topup/start", "topup/receipt", "rules/accept", "ticket/send", "lang"):
             if method != "POST":
                 return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
             if not _write_rate_ok(wuser.id):
@@ -474,6 +474,10 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                     return _json(start_response, {"error": "عکس رسید نرسید", "code": "bad_request"}, "400 Bad Request")
                 return _json(start_response, runtime.run(
                     webapi.topup_receipt(db, panel, wuser, txn_id=txn_id, image=image, bot=runtime.bot), timeout=60))
+            if name == "lang":
+                body = _body(environ, limit=256)
+                return _json(start_response, runtime.run(
+                    webapi.set_lang(db, panel, wuser, lang=str(body.get("lang") or "")), timeout=20))
             if name == "rules/accept":
                 return _json(start_response, runtime.run(webapi.rules_accept(db, panel, wuser), timeout=20))
             if name == "ticket/send":

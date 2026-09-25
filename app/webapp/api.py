@@ -13,7 +13,7 @@ import time
 
 from typing import TYPE_CHECKING
 
-from app import apps, features, referral, texts
+from app import apps, features, i18n, referral, texts
 from app.config import config
 from app.utils import (
     days_left,
@@ -45,6 +45,8 @@ class ApiError(Exception):
     """خطای قابل نمایش به کاربر. status کد HTTP است."""
 
     def __init__(self, message: str, status: int = 400, code: str = "") -> None:
+        # پیام به زبان کاربر همین درخواست (_require_user زبان را تنظیم کرده)
+        message = i18n.t(message)
         super().__init__(message)
         self.message = message
         self.status = status
@@ -57,6 +59,8 @@ class ApiError(Exception):
 async def _require_user(db: "Database", wuser: WebAppUser) -> dict:
     """ردیف کاربر در دیتابیس. نبودنش یعنی هنوز /start نزده."""
     user = await db.get_user_by_tg(wuser.id)
+    # زبان این درخواست: انتخاب کاربر، وگرنه زبان تلگرامش
+    i18n.set_lang(i18n.lang_of(user, wuser.language_code))
     if not user:
         raise ApiError("هنوز ربات را استارت نکرده ای", 404, "no_account")
     if user["is_blocked"]:
@@ -102,7 +106,7 @@ def _service_card(service: dict, used: int, limit: int | None, source: str) -> d
     )
     return {
         "id": service["id"],
-        "title": service.get("label") or f"سرویس {service['id']}",
+        "title": service.get("label") or f"{i18n.t('سرویس')} {service['id']}",
         "status": status,
         "used_bytes": used,
         "limit_bytes": limit,
@@ -130,12 +134,13 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
     return {
         "user": {
             "telegram_id": user["telegram_id"],
-            "name": user.get("first_name") or wuser.first_name or "کاربر",
+            "name": user.get("first_name") or wuser.first_name or i18n.t("کاربر"),
             "username": user.get("username") or wuser.username or "",
             "balance": int(user["balance"]),
             "joined_at": user["created_at"],
             "rules_accepted": bool(user.get("rules_accepted_at")),
             "trial_used": bool(user.get("free_trial_used")),
+            "lang": i18n.get_lang(),
         },
         "counters": {
             "services_total": len(services),
@@ -320,7 +325,7 @@ async def referral(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> 
                 "order_amount": int(r["order_amount"] or 0),
                 "kind": r.get("kind") or "",
                 "created_at": r["created_at"],
-                "name": r.get("first_name") or "کاربر",
+                "name": r.get("first_name") or i18n.t("کاربر"),
             }
             for r in log_rows
         ],
@@ -346,7 +351,7 @@ async def tickets(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> d
                 "created_at": t["created_at"],
                 "last_at": t.get("last_at") or t["created_at"],
                 "replies": int(t.get("replies") or 0),
-                "preview": (t.get("body") or "").strip()[:90] or "بدون متن",
+                "preview": (t.get("body") or "").strip()[:90] or i18n.t("بدون متن"),
                 "has_photo": bool(t.get("file_id")),
             }
             for t in threads
@@ -467,7 +472,7 @@ async def ai_catalog(
             for pr in products or []:
                 items.append({
                     "id": str(pr.get("id") or pr.get("service_id") or ""),
-                    "title": pr.get("title") or pr.get("name") or "محصول",
+                    "title": pr.get("title") or pr.get("name") or i18n.t("محصول"),
                     "price": pr.get("price_toman") or pr.get("price") or 0,
                     "stock": pr.get("stock"),
                     "order_link": (
@@ -487,7 +492,7 @@ async def ai_catalog(
         "orders": [
             {
                 "id": o["id"],
-                "title": o.get("title") or "سفارش",
+                "title": o.get("title") or i18n.t("سفارش"),
                 "status": o.get("status") or "pending",
                 "code": o.get("code") or "",
                 "price": int(o.get("price") or 0),
@@ -541,7 +546,7 @@ _CHARGE_ERR = {
 def _charge_error(r: dict) -> None:
     status, msg = _CHARGE_ERR.get(r.get("error"), (400, "انجام نشد"))
     if r.get("error") == charge_svc.TOO_SMALL and r.get("min"):
-        msg = f"حداقل شارژ {r['min']:,} تومان است"
+        msg = i18n.t("حداقل شارژ {amount} تومانه.", amount=f"{r['min']:,}")
     raise ApiError(msg, status, r.get("error") or "")
 
 
@@ -573,6 +578,16 @@ async def rules(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dic
     }
 
 
+async def set_lang(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, lang: str) -> dict:
+    """زبان کاربر؛ همان ستونی که ربات می خواند، پس هر دو یکی می شوند."""
+    user = await _require_user(db, wuser)
+    code = i18n.normalize(lang)
+    if not code:
+        raise ApiError("زبان نامعتبر", 400, "bad_request")
+    await db.set_user_lang(user["id"], code)
+    return {"ok": True, "lang": code}
+
+
 async def rules_accept(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     user = await _require_user(db, wuser)
     await db.accept_rules(user["id"])
@@ -587,7 +602,7 @@ async def guide(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dic
     items = []
     for key, body in getattr(texts, "GUIDE", {}).items():
         lines = _latin(body).strip().split("\n")
-        items.append({"key": key, "title": names.get(key, lines[0].strip()), "body": "\n".join(lines[1:]).strip()})
+        items.append({"key": key, "title": i18n.t(names.get(key, lines[0].strip())), "body": "\n".join(lines[1:]).strip()})
     return {"items": items}
 
 
@@ -666,7 +681,7 @@ async def purchase(
         "ok": True,
         "service_id": result.service_id,
         "sub_url": result.sub_url,
-        "title": result.label or f"سرویس {result.service_id}",
+        "title": result.label or f"{i18n.t('سرویس')} {result.service_id}",
         "price": result.price,
         "balance": result.balance_after,
         "plan": {"title": plan["title"], "data_gb": plan["data_gb"],
