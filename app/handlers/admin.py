@@ -1740,10 +1740,31 @@ async def cb_admin_settings(call: CallbackQuery, db: Database) -> None:
             card_holder=await db.get_setting("card_holder") or "-",
             bank_name=await db.get_setting("bank_name") or "-",
             min_charge=f"{int(await db.get_setting('min_charge', '50000')):,}",
+            **await _crypto_settings_lines(db),
         ),
         reply_markup=keyboards.admin_setting_kb(),
     )
     await call.answer()
+
+
+async def _crypto_settings_lines(db: Database) -> dict:
+    from app.services import crypto
+
+    if not crypto.enabled():
+        state = "خاموش · TON_RECEIVE_ADDRESS در .env خالی یا نامعتبر است"
+    else:
+        net = "🧪 testnet" if crypto.testnet() else "mainnet"
+        usdt = "USDT روشن" if crypto.usdt_master() else "USDT خاموش (TON_USDT_MASTER)"
+        state = f"روشن · {net} · {usdt}\n<code>{crypto.pay_address()}</code>"
+    manual_ton = await db.get_setting("crypto_ton_rate", "0") or "0"
+    r = await crypto.rates(db)
+    ton = f"{r['TON']:,}" if r["TON"] else "نامعلوم"
+    rates = (
+        f"تتر: {int(await db.get_setting('crypto_usdt_rate', '0') or 0):,} · "
+        f"TON: {ton}{' (خودکار)' if manual_ton in ('', '0') else ''} · "
+        f"کارمزد: {await crypto.fee_percent(db):g}٪"
+    )
+    return {"crypto_state": state, "crypto_rates": rates}
 
 
 @router.callback_query(F.data.startswith("adm:set:"))
@@ -1781,6 +1802,20 @@ async def txt_admin_setting(message: Message, db: Database, state: FSMContext) -
         if not clean.isdigit() or int(clean) < 1000:
             return await message.answer("لطفا یه عدد بزرگ تر از ۱۰۰۰ بفرست.")
         await db.set_setting("min_charge", clean)
+    elif field in ("crypto_usdt_rate", "crypto_ton_rate"):
+        clean = value.replace(",", "").replace("،", "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
+        if not clean.isdigit():
+            return await message.answer("لطفا یه عدد (تومان) بفرست.")
+        await db.set_setting(field, str(int(clean)))
+    elif field == "crypto_fee_percent":
+        clean = value.replace("٪", "").replace("%", "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٫", "0123456789."))
+        try:
+            fee = float(clean)
+        except ValueError:
+            return await message.answer("لطفا یه عدد بین ۰ تا ۵۰ بفرست.")
+        if not 0 <= fee <= 50:
+            return await message.answer("لطفا یه عدد بین ۰ تا ۵۰ بفرست.")
+        await db.set_setting(field, f"{fee:g}")
     elif field == "card_number":
         digits = "".join(ch for ch in value if ch.isdigit())
         if len(digits) != 16:

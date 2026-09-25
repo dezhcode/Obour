@@ -537,3 +537,50 @@ PHRASES = {
     "سرویسش رو تمدید کرد": "a renewal",
     "یک سرویس دلخواه ساخت": "a custom service purchase",
 }
+
+
+# ---------- Crypto top-up (TON / USDT on the TON network) ----------
+TEXTS.update({
+    "CRYPTO_WALLET": "╭── 💎 Top up with crypto\n│   TON · USDT on the TON network\n\n💳 Current balance\n{balance} toman\n\nChoose a top-up amount in toman, or send the number.\n╰─ Minimum top-up {min_charge} toman",
+    "CRYPTO_PICK": "╭── 💎 Top up {amount} toman\n│   Choose a currency\n\n{lines}\n\nWhich currency will you pay with?\n╰─ The amount stays fixed until the invoice expires",
+    "CRYPTO_INVOICE": (
+        "╭── 💎 Invoice {code}\n│   Top-up of {toman} toman\n\n"
+        "💰 Exact amount\n<code>{crypto}</code> {asset}\n\n"
+        "📬 Wallet address (TON network)\n<code>{address}</code>\n\n"
+        "📝 Comment (Memo)\n<code>{code}</code>\n"
+        "╰─ ⏱ Time to pay: {minutes} minutes\n\n"
+        "<blockquote>⚠️ Always include the comment; without it your payment can't be recognised automatically. "
+        "An amount lower than the invoice isn't credited automatically either.</blockquote>\n"
+        "Tap «Pay with Tonkeeper» and everything is filled in for you. "
+        "A few seconds after you pay, your wallet is topped up automatically and I'll let you know here."
+    ),
+    "CRYPTO_USDT_NOTE": "\n\n💡 You'll also need about 0.1 TON in your wallet for the network fee (most of it comes back).",
+    "CRYPTO_TESTNET_NOTE": "\n\n🧪 <b>Test mode (testnet)</b>: pay only with a testnet wallet.",
+    "CRYPTO_PAID": "╭── ✅ Your payment arrived\n│   {crypto} {asset} · {code}\n\n{amount} toman was added to your wallet.\n\n💰 Balance\n╰─ {balance} toman",
+    "CRYPTO_UNDERPAID": "╭── ⚠️ The amount was lower than the invoice\n│   Invoice {code}\n\nReceived: <b>{paid} {asset}</b>\nRequired: <b>{need} {asset}</b>\n\nYour wallet wasn't topped up automatically. Support will review it and get back to you.",
+})
+
+PHRASES.update({
+    "پرداخت با TON / USDT": "Pay with TON / USDT",
+    "پرداخت با Tonkeeper": "Pay with Tonkeeper",
+    "پرداخت با TON Connect": "Pay with TON Connect",
+    "کپی آدرس": "Copy address",
+    "کپی مبلغ": "Copy amount",
+    "کپی کامنت": "Copy comment",
+    "بررسی پرداخت": "Check payment",
+    "پرداخت کریپتو فعلا فعال نیست.": "Crypto payment isn't available right now.",
+    "مبلغ رو به تومان بفرست.": "Send the amount in toman.",
+    "نرخ ارزها هنوز تنظیم نشده. کمی بعد دوباره امتحان کن یا از کارت به کارت استفاده کن.": "Exchange rates aren't set yet. Try again a bit later or use a card transfer.",
+    "نرخ این ارز الان در دسترس نیست. ارز دیگه رو امتحان کن.": "This currency's rate isn't available right now. Try the other one.",
+    "شارژ شد ✅": "Topped up ✅",
+    "مبلغ رسیده کمتر از فاکتور بود؛ پشتیبانی بررسی می کنه.": "The amount received was lower than the invoice; support will review it.",
+    "هنوز پرداختی با این کامنت نرسیده. اگه پرداخت کردی، چند ثانیه دیگه دوباره بزن.": "No payment with this comment has arrived yet. If you've paid, tap again in a few seconds.",
+    # API (mini app)
+    "پرداخت کریپتو فعلا فعال نیست": "Crypto payment isn't available right now",
+    "نرخ این ارز الان در دسترس نیست": "This currency's rate isn't available right now",
+    "ارز نامعتبر": "Invalid currency",
+    "فاکتور پیدا نشد": "Invoice not found",
+    "این فاکتور دیگر باز نیست": "This invoice is no longer open",
+    "آدرس کیف پول نامعتبر است": "The wallet address is invalid",
+    "ارتباط با شبکه TON برقرار نشد، دوباره امتحان کن": "Couldn't reach the TON network, try again",
+})

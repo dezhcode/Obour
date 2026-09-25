@@ -23,6 +23,7 @@ from app.utils import (
     usage_percent,
 )
 from app.services import charge as charge_svc
+from app.services import crypto as crypto_svc
 from app.services import purchase as purchase_svc
 from app.services import support as support_svc
 from app.webapp.auth import WebAppUser
@@ -161,6 +162,7 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
             "username": bot_username,
             "link": f"https://t.me/{bot_username}" if bot_username else "",
         },
+        "crypto": crypto_svc.enabled(),
         "readonly": False,
     }
 
@@ -573,6 +575,102 @@ async def topup_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser
     return {"ok": True, "code": r.get("code"), "amount": r["amount"]}
 
 
+# ═══════════════════ کریپتو (TON Connect) ═══════════════════
+
+
+async def crypto_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """صفحه شارژ کریپتو: نرخ ها (برای پیش نمایش مبلغ) و فاکتور باز قبلی.
+
+    مبلغ نهایی همیشه از سرور می آید؛ پیش نمایش سمت کلاینت با همان گرد
+    کردن ساخته می شود ولی فقط برای نمایش است.
+    """
+    user = await _require_user(db, wuser)
+    if not crypto_svc.enabled():
+        return {"enabled": False}
+    r = await crypto_svc.rates(db)
+    prev = await db.open_crypto_invoice(user["id"])
+    bot_username = await db.get_setting("bot_username", "")
+    return {
+        "enabled": True,
+        "rates": {a: v for a, v in r.items() if v},
+        "fee": await crypto_svc.fee_percent(db),
+        "decimals": {a: crypto_svc.decimals(a) for a in crypto_svc.ASSETS},
+        "min": await charge_svc.min_charge(db),
+        "presets": list(charge_svc.PRESETS),
+        "network": crypto_svc.network_id(),
+        "testnet": crypto_svc.testnet(),
+        "address": crypto_svc.pay_address(),
+        "return_url": f"https://t.me/{bot_username}" if bot_username else "",
+        "open": crypto_svc.public(prev) if prev else None,
+    }
+
+
+_CRYPTO_ERR = {
+    crypto_svc.OFF: (503, "پرداخت کریپتو فعلا فعال نیست"),
+    crypto_svc.NO_RATE: (503, "نرخ این ارز الان در دسترس نیست"),
+    crypto_svc.BAD_ASSET: (400, "ارز نامعتبر"),
+    crypto_svc.TOO_LARGE: (400, "مبلغ بیش از حد مجاز است"),
+}
+
+
+async def crypto_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, toman: int, asset: str) -> dict:
+    user = await _require_user(db, wuser)
+    r = await crypto_svc.create_invoice(db, user, toman, asset, source="webapp")
+    if not r["ok"]:
+        if r["error"] == crypto_svc.TOO_SMALL:
+            raise ApiError(i18n.t("حداقل شارژ {amount} تومانه.", amount=f"{r['min']:,}"), 400, r["error"])
+        status, msg = _CRYPTO_ERR.get(r["error"], (400, "انجام نشد"))
+        raise ApiError(msg, status, r["error"])
+    return crypto_svc.public(r["invoice"])
+
+
+async def _own_invoice(db: "Database", user: dict, invoice_id: int) -> dict:
+    inv = await db.get_crypto_invoice(invoice_id)
+    if not inv or inv["user_id"] != user["id"]:
+        raise ApiError("فاکتور پیدا نشد", 404, "not_found")
+    return inv
+
+
+async def crypto_pay(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, invoice_id: int, wallet: str, bot=None) -> dict:  # noqa: ANN001
+    """پیام های sendTransaction برای کیف پول وصل شده.
+
+    برای USDT آدرس کیف پول جتونِ خودِ کاربر لازم است، پس آدرس کیف پول
+    TON Connect او را می گیریم. هیچ چیزی از این پاسخ به عنوان پرداخت
+    حساب نمی شود؛ فقط تراکنش روی زنجیره.
+    """
+    user = await _require_user(db, wuser)
+    inv = await _own_invoice(db, user, invoice_id)
+    if inv["status"] != "pending":
+        raise ApiError("این فاکتور دیگر باز نیست", 409, "not_open")
+    try:
+        messages = await crypto_svc.ton_connect_messages(inv, wallet)
+    except crypto_svc.TonError:
+        raise ApiError("آدرس کیف پول نامعتبر است", 400, "bad_wallet") from None
+    except crypto_svc.TonApiError:
+        log.warning("ساخت پیام TON Connect نشد", exc_info=True)
+        raise ApiError("ارتباط با شبکه TON برقرار نشد، دوباره امتحان کن", 502, "network") from None
+    crypto_svc.ensure_watcher(db, bot)
+    return {"messages": messages, "network": crypto_svc.network_id(),
+            "valid_until": int(time.time()) + 600}
+
+
+async def crypto_status(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, invoice_id: int, bot=None) -> dict:  # noqa: ANN001
+    user = await _require_user(db, wuser)
+    inv = await _own_invoice(db, user, invoice_id)
+    if inv["status"] == "pending":
+        await crypto_svc.scan(db, bot)
+        inv = await db.get_crypto_invoice(invoice_id)
+        crypto_svc.ensure_watcher(db, bot)
+    fresh = await db.get_user(user["id"])
+    return {**crypto_svc.public(inv), "balance": int(fresh["balance"])}
+
+
+async def crypto_cancel(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, invoice_id: int) -> dict:
+    user = await _require_user(db, wuser)
+    await db.cancel_crypto_invoice(invoice_id, user["id"])
+    return {"ok": True}
+
+
 async def rules(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     user = await _require_user(db, wuser)
     return {
@@ -716,6 +814,7 @@ ROUTES = {
     "tickets": tickets,
     "ai": ai_catalog,
     "topup": topup_info,
+    "crypto": crypto_info,
     "rules": rules,
     "guide": guide,
 }

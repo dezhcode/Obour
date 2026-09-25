@@ -35,7 +35,10 @@ _CSP = (
     # محتوای ناامن بار نشود.
     "img-src 'self' data: https:; "
     "font-src 'self' data:; "
-    "connect-src 'self'; "
+    # connect-src: TON Connect با bridge کیف پول ها (دامنه های متعدد و
+    # متغیر، مثل bridge.tonapi.io) و فهرست کیف پول ها در config.ton.org
+    # حرف می زند. فقط https؛ اسکریپتش از خود سرور ما بار می شود.
+    "connect-src 'self' https:; "
     "frame-ancestors https://web.telegram.org https://*.telegram.org; "
     "base-uri 'none'; form-action 'none'"
 )
@@ -236,7 +239,8 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
     # فهرست سفید نوشتن. هر مسیر دیگری خواندنی می ماند، تا اگر روزی
     # اندپوینتی اضافه شد بی سروصدا قابل نوشتن نشود.
     WRITE_PATHS = ("/api/purchase", "/api/topup/start", "/api/topup/receipt",
-                   "/api/rules/accept", "/api/ticket/send", "/api/lang")
+                   "/api/rules/accept", "/api/ticket/send", "/api/lang",
+                   "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel")
     if method == "POST":
         if path not in WRITE_PATHS:
             return _json(
@@ -294,6 +298,25 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
 
     if path.startswith("/static/"):
         return _serve_static(start_response, path[len("/static/"):])
+
+    # manifest برای TON Connect. کیف پول ها (Tonkeeper و ...) آن را بدون
+    # احراز هویت می خوانند تا نام و آیکن اپ را به کاربر نشان دهند.
+    if path == "/tonconnect-manifest.json":
+        from app import webapp as _webapp
+
+        base = _webapp.url()
+        body = json.dumps({
+            "url": base,
+            "name": "Obour",
+            "iconUrl": f"{base}/static/ton-icon.png",
+        }).encode("utf-8")
+        start_response("200 OK", [
+            ("Content-Type", "application/json"),
+            ("Content-Length", str(len(body))),
+            ("Access-Control-Allow-Origin", "*"),
+            ("Cache-Control", "public, max-age=3600"),
+        ])
+        return [body]
 
     if not path.startswith("/api/"):
         return _json(start_response, {"error": "not found"}, "404 Not Found")
@@ -484,6 +507,35 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                 body = _body(environ, limit=16384)
                 return _json(start_response, runtime.run(
                     webapi.ticket_send(db, panel, wuser, body=str(body.get("body") or ""), bot=runtime.bot), timeout=30))
+
+        # ---------- کریپتو (TON Connect) ----------
+        if name in ("crypto/start", "crypto/pay", "crypto/cancel"):
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=1024)
+            try:
+                invoice_id = int(body.get("id") or 0)
+                toman = int(body.get("toman") or 0)
+            except (TypeError, ValueError):
+                invoice_id = toman = 0
+            if name == "crypto/start":
+                if toman <= 0:
+                    return _json(start_response, {"error": "مبلغ نامعتبر", "code": "bad_request"}, "400 Bad Request")
+                return _json(start_response, runtime.run(webapi.crypto_start(
+                    db, panel, wuser, toman=toman, asset=str(body.get("asset") or "")), timeout=30))
+            if invoice_id <= 0:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            if name == "crypto/pay":
+                return _json(start_response, runtime.run(webapi.crypto_pay(
+                    db, panel, wuser, invoice_id=invoice_id, wallet=str(body.get("wallet") or "")[:100],
+                    bot=runtime.bot), timeout=40))
+            return _json(start_response, runtime.run(webapi.crypto_cancel(
+                db, panel, wuser, invoice_id=invoice_id), timeout=20))
+        if name == "crypto/status":
+            return _json(start_response, runtime.run(webapi.crypto_status(
+                db, panel, wuser, invoice_id=int(query.get("id") or 0), bot=runtime.bot), timeout=40))
 
         # ---------- بقیه ----------
         handler = webapi.ROUTES.get(name)

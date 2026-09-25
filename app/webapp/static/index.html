@@ -255,6 +255,8 @@ html[dir=ltr] .chev svg, html[dir=ltr] .back svg, html[dir=ltr] .loc-all svg{tra
 html[dir=ltr] .bubble-row.mine{justify-content:flex-end}
 html[dir=ltr] .bubble-row.theirs{justify-content:flex-start}
 html[dir=ltr] .bubble-time{float:right;margin:7px 0 0 10px}
+html[dir=ltr] .kind-ok{left:auto;right:11px}
+html[dir=ltr] .clock-in span{font-size:8px;letter-spacing:-.2px}
 /* پیدا برای فارسی ساخته شده و فاصله لاتین و سیریلیک را خیلی باریک
    می کشد (کلمه ها به هم می چسبیدند). انگلیسی با فونت سیستم. */
 html:not([lang=fa]) body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif}
@@ -448,6 +450,41 @@ html:not([lang=fa]) body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'
 .steps-warn{display:flex;gap:8px;align-items:flex-start;margin:0 16px 16px;padding:10px 12px;border-radius:var(--r-md);background:var(--cash-t);color:var(--cash-i);font-size:12.5px;line-height:1.8}
 .steps-warn svg{width:16px;height:16px;flex-shrink:0;margin-top:3px}
 
+/* ═══ پرداخت کریپتو (TON Connect) ═══
+   ارزها مثل ردیف های انتخابی، کیف پول وصل شده یک نوار جدا، و فاکتور همان
+   قالب پرداخت کارتی: مبلغ درشت با حلقه مهلت. جزئیات دستی (آدرس، مبلغ،
+   کامنت) برای کسی است که از صرافی یا کیف پول بدون TON Connect می پردازد. */
+.cx-assets{margin:0 var(--pad);display:flex;flex-direction:column;gap:10px}
+.cx-a{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);text-align:start;width:100%;transition:border-color .2s}
+.cx-a.on{border:2px solid var(--brand);padding:13px}
+.cx-i{width:42px;height:42px;border-radius:21px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.cx-i svg{width:22px;height:22px}
+.cx-i.ton{background:#0098EA} .cx-i.usdt{background:#26A17B}
+.cx-n{flex-grow:1;min-width:0} .cx-n b{display:block;font-size:15px;font-weight:800} .cx-n span{font-size:11.5px;color:var(--ink-3)}
+.cx-v{font-size:16px;font-weight:800;direction:ltr;white-space:nowrap}
+.cx-v small{font-size:11px;font-weight:600;color:var(--ink-3);margin-left:4px}
+/* فاصله لاتین فونت فارسی خیلی باریک است؛ بین عدد و نام ارز حاشیه واقعی می گذاریم */
+.cx-u{margin-left:.32em}
+.cx-w{display:flex;align-items:center;gap:12px;margin:0 var(--pad);padding:12px 14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line)}
+.cx-w .row-m b{display:block;font-size:14px;font-weight:800}
+.cx-w .row-m span{font-size:12px;color:var(--ink-3);direction:ltr;display:inline-block}
+.cx-w .dot{width:10px;height:10px;border-radius:5px;background:var(--line);flex-shrink:0}
+.cx-w.on .dot{background:var(--ok);box-shadow:0 0 0 4px rgba(11,122,85,.15)}
+.cx-net{display:inline-flex;align-items:center;gap:6px;margin:0 var(--pad) 10px;padding:4px 10px;border-radius:10px;background:var(--help-t);color:var(--help-i);font-size:11.5px;font-weight:800}
+.cx-st{display:flex;align-items:center;gap:10px;margin:10px var(--pad) 0;padding:11px 13px;border-radius:var(--r-md);background:var(--net-t);color:var(--net-i);font-size:12.5px;line-height:1.7}
+.cx-st.sent{background:var(--cash-t);color:var(--cash-i)}
+.cx-spin{width:16px;height:16px;border-radius:8px;border:2.5px solid currentColor;border-top-color:transparent;animation:cxspin .8s linear infinite;flex-shrink:0}
+@keyframes cxspin{to{transform:rotate(360deg)}}
+.cx-kv{padding:4px 16px}
+.cx-kv > div{display:flex;align-items:center;gap:10px;padding:10px 0}
+.cx-kv > div + div{border-top:1px solid var(--line)}
+.cx-kv .k{font-size:12px;color:var(--ink-3);flex-shrink:0;width:62px}
+.cx-kv .v{flex-grow:1;min-width:0;font-size:13.5px;font-weight:800;direction:ltr;text-align:left;word-break:break-all;line-height:1.5}
+.cx-kv .v.addr{font-size:11.5px;font-weight:600}
+.cx-kv button{width:34px;height:34px;border-radius:10px;background:var(--sunk);color:var(--ink-2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cx-kv button svg{width:15px;height:15px}
+.foot .cx-alt{display:block;width:100%;margin-top:10px;font-size:13px;font-weight:700;color:var(--brand);text-align:center}
+
 /* ═══ قوانین و نوشتن ═══ */
 .rules{padding:18px;font-size:14px;line-height:2;white-space:pre-wrap;color:var(--ink-2)}
 .compose{width:100%;border:none;outline:none;resize:none;background:none;font-family:inherit;font-weight:400;font-size:15px;line-height:1.9;color:var(--ink)}
@@ -547,7 +584,7 @@ const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : 
    متن هایی که از سرور می آیند (خطاها، راهنما، لوکیشن ها) را خود سرور به
    زبان کاربر می فرستد؛ نام پلن ها و متن قوانین را ادمین نوشته و ترجمه
    نمی شوند. */
-const L10N = {"en":{") شناسه توست و رسیدت با آن شناخته میشود. رندش نکن.":") identify you and that's how your receipt is recognised. Don't round it.","سه رقم آخر (":"The last three digits (","از اپ بانکت همین مبلغ را به کارت بالا بزن، ظرف":"In your bank app, send this exact amount to the card above, within","دقیقه.":"minutes.","از اپ بانکت همین مبلغ را به کارت بالا بزن.":"In your bank app, send this exact amount to the card above.","{n} روز اخیر":"Last {n} days","روز اخیر":"days","نمودار مصرف {n} روز اخیر":"Usage chart for the last {n} days","{n} پلن":"{n} plans","{n} کانفیگ":"{n} configs","موجود: {n}":"In stock: {n}","موجود:":"In stock:","QR ساخته نشد":"Couldn't make the QR","ساخت QR نشد":"Couldn't make the QR","[تصویر]":"[image]","تصویر — در ربات ببین":"Image — view it in the bot","· شناسه":"· ID","آخرین پاداشها":"Latest rewards","اتصال":"Connect","اتصال سریع":"Quick connect","ادامه و دیدن شماره کارت":"Continue to the card number","ارتباط برقرار نشد.":"Couldn't connect.","ارسال":"Send","ارسال به پشتیبانی":"Send to support","ارسال رسید":"Send receipt","از هر خرید همسفرهایت":"From every purchase your fellow travellers make,","به کیف پولت اضافه میشود.":"goes to your wallet.","اسکرینشات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.":"Choose the bank receipt screenshot above and tap «Send receipt».","اسکرینشات یا عکس رسید بانکی":"A screenshot or photo of the bank receipt","اسکن کن":"Scan it","اشتراک AI":"AI subscriptions","اشتراک با دوستان در تلگرام":"Share with friends on Telegram","اشتراک سرویسهای AI":"AI service subscriptions","اضافه شد":"added","افزودن به صفحه اصلی":"Add to home screen","افزودن خودکار اشتراک":"Adds the subscription automatically","اندروید":"Android","انقضا":"Expiry","انگلیس":"UK","اول در ربات ثبت نام کن":"Sign up in the bot first","اول قوانین را بخوان و بپذیر":"Read and accept the rules first","اولین شارژ یا خریدت اینجا ثبت میشود.":"Your first top-up or purchase will show up here.","اولین کارت عبورت":"Your first Obour pass","اگر مشکلی داری، همین جا بپرس.":"If something's wrong, ask right here.","اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمیشود و تاییدش طول میکشد.":"If you pay less or more, your receipt isn't recognised automatically and approval takes longer.","این بخش فعلا خاموش است":"This section is off for now","این فایل عکس نیست":"This file isn't an image","این نسخه تلگرام پشتیبانی نمیکند":"This Telegram version doesn't support it","این گفتگو بسته شده است":"This conversation is closed","اینترنت آزاد":"Free internet","اینترنت آزاد ·":"Free internet ·","با عبور، اینترنت آزاد":"Free internet with Obour","با هر خریدی همه این لوکیشنها رو یکجا میگیری؛ لازم نیست جدا بخری.":"Every purchase gives you all these locations at once; no need to buy them separately.","باز":"Open","باز نشد":"It didn't open","باز هم وصل نشد؟ بپرس":"Still not connecting? Ask us","بانک":"Bank","بدون پاسخ":"No replies","برای دیدن گفتگو روی تیکت بزن":"Tap a ticket to see the conversation","برای فرستادن عکس، فعلا از ربات استفاده کن.":"To send a photo, use the bot for now.","برای نمودار دست کم دو روز آمار لازم است":"The chart needs at least two days of data","برنامهات را انتخاب کن، بقیه خودکار":"Choose your app, the rest is automatic","برنامهات را بزن":"Tap your app","برنامهات را بزن؛ اشتراک خودکار اضافه میشود.":"Tap your app; the subscription is added automatically.","برگشت":"Back","بستن":"Close","بسته":"Closed","به تیکت":"to ticket","به نام":"Card holder","بهترین ارزش":"Best value","بیشتر":"More","تاریخ":"Date","تاریخ ساخت":"Created","تایید شده":"Approved","تحویل شد":"Delivered","تلاش دوباره":"Try again","تمام شد":"Over","تمدید":"Renew","تنظیمات":"Settings","تومان":"toman","تومان ·":"toman ·","تومان · پرداخت کارت به کارت، تایید در چند دقیقه":"toman · card-to-card payment, approved in a few minutes","تومان است":"toman","تیکت":"Ticket","تیکت تازه":"New ticket","تیکت جدید":"New ticket","تیکتی نداری":"No tickets","تیکتها و راهنمای اتصال":"Tickets and connection guide","تیکتهای من":"My tickets","جزئیات":"Details","حجم تمام شد":"Data used up","حجم و مدت":"Data and duration","حجم کل":"Total data","حداقل":"Minimum","حداقل شارژ":"Minimum top-up","حساب":"Account","خانه":"Home","خرید":"Buy","خرید انجام نشد":"The purchase didn't go through","خرید سرویس":"Service purchase","خرید و تمدید":"Buy and renew","خریدار":"Buyers","خطای ارتباط":"Connection error","خوانده نشد":"Couldn't load","در انتظار":"Pending","در حال ارسال…":"Sending…","در حال رزرو مبلغ…":"Reserving the amount…","در حال ساخت…":"Creating…","در ربات /start بزن و قوانین را بپذیر، بعد برگرد.":"Send /start in the bot and accept the rules, then come back.","درآمد تو از همسفرها":"Your earnings from fellow travellers","دستگاهت را انتخاب کن":"Choose your device","دستی کپی کن":"Copy it by hand","دعوت شده":"Invited","دعوت کن، از هر خرید سهم بگیر":"Invite, earn from every purchase","دعوت کن، با هم عبور کنید":"Invite friends, travel together","دلیل":"Reason","دیدن پلنها":"See plans","راهنما هنوز تنظیم نشده":"The guide isn't set up yet","راهنمای اتصال":"Connection guide","رد شده":"Rejected","رسید انتخاب شد · برای عوض کردن بزن":"Receipt selected · tap to change","رفتن به ربات":"Go to the bot","رو به اتمام":"Running low","روز":"days","روز · تا":"days · until","روز · همه کشورها":"days · all countries","روز با عبور":"days with Obour","روز بخیر":"Good afternoon","روزانه":"Daily","روزانه، هفتگی یا ماهانه":"Daily, weekly or monthly","روی همه دستگاههات کار میکنه، بدون محدودیت تعداد دستگاه":"Works on all your devices, with no device limit","ریال":"rial","زبان":"Language","ساخته شد":"created","سرورها و لوکیشنها":"Servers & locations","سرویس":"Service","سرویس خوانده نشد":"Couldn't load the service","سرویس فعال":"active services","سرویسها خوانده نشد":"Couldn't load services","سرویسهای من":"My services","سفارش در ربات":"Order in the bot","سفارشهای من":"My orders","سه قدم تا اتصال":"Three steps to connect","سوابق خوانده نشد":"Couldn't load history","شارژ":"Top up","شارژ فعلا ممکن نیست":"Top-up isn't possible right now","شارژ و سوابق":"Top-up and history","شارژ کیف پول":"Top up wallet","شب بخیر":"Good evening","شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.":"The card number isn't set up yet. Contact support.","صبح بخیر":"Good morning","عبور · نسخه":"Obour · version","عصر بخیر":"Good evening","عضو از":"Member since","عکس رسید":"Receipt photo","عکس رسید را انتخاب کن":"Choose the receipt photo","عکس رسید را بفرست":"Send the receipt photo","فروشگاه":"Shop","فعال":"Active","فعلا محصولی برای نمایش نیست":"No products to show right now","فعلا پلنی برای فروش نیست":"No plans on sale right now","قدم 1 از 2 · مبلغ":"Step 1 of 2 · amount","قدم 2 از 2 · پرداخت و رسید":"Step 2 of 2 · payment and receipt","قدم به قدم، برای دستگاه خودت":"Step by step, for your device","قوانین":"Rules","قوانین و حریم خصوصی":"Rules and privacy","قوانین پذیرفته شد":"Rules accepted","قیمت":"Price","قیمت هر گیگ به پلن بستگی داره؛ هرچی حجم بیشتر، هر گیگ ارزونتر":"The price per GB depends on the plan; the more data, the cheaper each GB","لینک دعوت تو":"Your invite link","لینک را برای دوستانت بفرست.":"Send the link to your friends.","لینک ربات در دسترس نیست":"The bot link isn't available","ماهانه":"Monthly","مبلغ به تومان":"Amount in toman","مبلغ تازه":"New amount","مبلغ دقیق واریز":"Exact amount to pay","مبلغ را دقیقا کپی کن":"Copy the exact amount","مبلغ شارژ":"Top-up amount","متن قوانین هنوز تنظیم نشده است.":"The rules haven't been written yet.","مثل یک اپ جدا باز شود":"Opens like a separate app","محصولات خوانده نشد":"Couldn't load products","مرورگر اجازه کپی خودکار نداد. روی متن نگه دار و کپی کن:":"The browser didn't allow automatic copying. Press and hold the text to copy it:","مشکلت را بنویس؛ مثلا کدام سرویس، روی چه دستگاهی، و چه پیغامی میبینی.":"Describe the problem: which service, on what device, and what message you see.","مصرف":"Usage","مصرف شده":"Used","معمولا چند دقیقه طول میکشد. بعد از تایید، مبلغ به کیف پولت اضافه میشود و در ربات خبر میگیری.":"It usually takes a few minutes. Once approved, the amount is added to your wallet and you're notified in the bot.","منقضی":"Expired","منقضی شده":"Expired","مهلت تمام شد. اگر واریز کردهای رسید را بفرست، وگرنه مبلغ تازه بگیر.":"Time's up. If you've paid, send the receipt; otherwise get a new amount.","مهلت پرداخت":"Time to pay","موجودی بعد از خرید":"Balance after purchase","موجودی فعلی":"Current balance","موجودی کیف پول":"Wallet balance","مگ":"MB","مگ مانده":"MB left","گیگ مانده":"GB left","میانگین روزانه":"Daily average","نامحدود":"Unlimited","ناموجود":"Out of stock","ناموفق":"Failed","ناوبری":"Navigation","هر کس با این لینک بیاید، همسفر توست":"Anyone who joins with this link is your fellow traveller","هر گیگ":"per GB","هفتگی":"Weekly","همه":"All","همه توی یک لینک؛ هر کدوم رو خواستی توی اپ انتخاب کن":"All in one link; pick any of them in the app","همه کشورها":"All countries","همسفرها":"Fellow travellers","هنوز تراکنشی نیست":"No transactions yet","هنوز سرویسی نداری":"No services yet","هنوز پاداشی نگرفتهای":"No rewards yet","هنوز پذیرفته نشده":"Not accepted yet","هوش مصنوعی":"AI","وصل شو":"Connect","وصل شوم":"Connect me","وضعیت":"Status","وقتی موجود شد در ربات خبر بگیر":"Get notified in the bot when it's back in stock","پاداش":"Reward","پاداش همسفر":"Referral reward","پاسخ":"replies","پاسخ داده شده":"Answered","پاسخ پشتیبانی هم اینجا و هم در ربات میرسد":"Support's reply arrives both here and in the bot","پاسخت را بنویس…":"Write your reply…","پذیرفته شده":"Accepted","پذیرفته شده ·":"Accepted ·","پرداخت از کیف پول":"Pay from wallet","پرداخت از کیف پول، تحویل فوری":"Pay from your wallet, instant delivery","پشتیبانی":"Support","پشتیبانی و راهنما":"Support and guide","پلن":"Plan","پلن را انتخاب کن":"Choose a plan","پلنها خوانده نشد":"Couldn't load plans","پنل جواب نداد؛ عدد از آخرین آمار روزانه است":"The server didn't respond; the figure is from the last daily snapshot","پیام":"Message","پیامت را بنویس":"Write your message","پیش از خرید، یک بار بخوان و بپذیر":"Read and accept once before buying","پیشنهادی":"Recommended","چطور شارژ میشود؟":"How does the top-up work?","چه چیزی لازم داری؟":"What do you need?","کارت به کارت کن":"Pay card to card","کارت به کارت، تایید سریع":"Card to card, quick approval","کارت عبور بلافاصله ساخته میشود":"Your pass is created instantly","کارت عبورت آماده شد":"Your pass is ready","کارت مقصد":"Destination card","کارها":"Actions","کانفیگ":"configs","کانفیگ در":"configs in","کانفیگ پرسرعت، همه کشورها":"Fast configs, every country","کشور":"countries","کد پیگیری":"Tracking code","کم":"short","کپی":"Copy","کپی شد":"Copied","کپی شماره کارت":"Copy card number","کپی لینک":"Copy link","کپی مبلغ (ریال)":"Copy amount (rial)","کیف پول":"Wallet","کیف پول را شارژ کن":"Top up your wallet","کیف پولت خالی است":"Your wallet is empty","کیفت شارژ میشود":"Your wallet is topped up","گفتگو":"Conversation","گفتگو با پشتیبانی":"Chat with support","گیگ":"GB","گیگ ·":"GB ·","یا لینک را دستی اضافه کن":"Or add the link manually","یک پاسخ تازه":"One new reply","یک پاسخ تازه از پشتیبانی":"A new reply from support","یک پلن انتخاب کن؛ چند ثانیه بعد کارتت اینجا با لینک اتصال آماده است.":"Pick a plan; a few seconds later your pass is here with its connection link.","دقیقا همین مبلغ را واریز کن":"Pay exactly this amount","سه رقم آخر شناسه توست؛ با آن رسیدت شناخته میشود.":"The last three digits identify you; that's how your receipt is recognised.","رسیدت رسید":"Receipt received","برگشت به کیف پول":"Back to wallet","خواندم و میپذیرم":"I've read and accept","دیدن پلن ها":"See plans","تیکت جدید ·":"New ticket · ","پیامت را بنویس.":"Write your message.","سرویسها":"Services","سرویسهای من ·":"My services ·","{n} فعال":"{n} active","{n} سرویس فعال":"{n} active services","{n} پاسخ":"{n} replies","{n} پیام":"{n} messages","{n} تومان کم داری · شارژ":"{n} toman short · top up","{n} گیگ":"{n} GB","{n} روز":"{n} days","کپی مبلغ":"Copy amount","باز ·":"Open ·","بسته ·":"Closed ·","پاسخ داده شده ·":"Answered ·","اولین خرید":"First purchase","ماهانه {n} گیگ":"Monthly {n} GB","هفتگی {n} گیگ":"Weekly {n} GB","روزانه {n} گیگ":"Daily {n} GB","ماهانه نامحدود":"Monthly unlimited","{n} ماهه {n} گیگ":"{n}-month {n} GB","{n} روزه {n} گیگ":"{n}-day {n} GB","{n} ماهه":"{n} months","{n} روزه":"{n} days","{n} گیگ {n} روزه":"{n} GB {n} days","{n} گیگ {n} ماهه":"{n} GB {n} months","سرویس اصلی":"Main service","یک ماه":"one month","· یک ماه":"· one month"}};
+const L10N = {"en":{") شناسه توست و رسیدت با آن شناخته میشود. رندش نکن.":") identify you and that's how your receipt is recognised. Don't round it.","سه رقم آخر (":"The last three digits (","از اپ بانکت همین مبلغ را به کارت بالا بزن، ظرف":"In your bank app, send this exact amount to the card above, within","دقیقه.":"minutes.","از اپ بانکت همین مبلغ را به کارت بالا بزن.":"In your bank app, send this exact amount to the card above.","{n} روز اخیر":"Last {n} days","روز اخیر":"days","نمودار مصرف {n} روز اخیر":"Usage chart for the last {n} days","{n} پلن":"{n} plans","{n} کانفیگ":"{n} configs","موجود: {n}":"In stock: {n}","موجود:":"In stock:","QR ساخته نشد":"Couldn't make the QR","ساخت QR نشد":"Couldn't make the QR","[تصویر]":"[image]","تصویر — در ربات ببین":"Image — view it in the bot","· شناسه":"· ID","آخرین پاداشها":"Latest rewards","اتصال":"Connect","اتصال سریع":"Quick connect","ادامه و دیدن شماره کارت":"Continue to the card number","ارتباط برقرار نشد.":"Couldn't connect.","ارسال":"Send","ارسال به پشتیبانی":"Send to support","ارسال رسید":"Send receipt","از هر خرید همسفرهایت":"From every purchase your fellow travellers make,","به کیف پولت اضافه میشود.":"goes to your wallet.","اسکرینشات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.":"Choose the bank receipt screenshot above and tap «Send receipt».","اسکرینشات یا عکس رسید بانکی":"A screenshot or photo of the bank receipt","اسکن کن":"Scan it","اشتراک AI":"AI subscriptions","اشتراک با دوستان در تلگرام":"Share with friends on Telegram","اشتراک سرویسهای AI":"AI service subscriptions","اضافه شد":"added","افزودن به صفحه اصلی":"Add to home screen","افزودن خودکار اشتراک":"Adds the subscription automatically","اندروید":"Android","انقضا":"Expiry","انگلیس":"UK","اول در ربات ثبت نام کن":"Sign up in the bot first","اول قوانین را بخوان و بپذیر":"Read and accept the rules first","اولین شارژ یا خریدت اینجا ثبت میشود.":"Your first top-up or purchase will show up here.","اولین کارت عبورت":"Your first Obour pass","اگر مشکلی داری، همین جا بپرس.":"If something's wrong, ask right here.","اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمیشود و تاییدش طول میکشد.":"If you pay less or more, your receipt isn't recognised automatically and approval takes longer.","این بخش فعلا خاموش است":"This section is off for now","این فایل عکس نیست":"This file isn't an image","این نسخه تلگرام پشتیبانی نمیکند":"This Telegram version doesn't support it","این گفتگو بسته شده است":"This conversation is closed","اینترنت آزاد":"Free internet","اینترنت آزاد ·":"Free internet ·","با عبور، اینترنت آزاد":"Free internet with Obour","با هر خریدی همه این لوکیشنها رو یکجا میگیری؛ لازم نیست جدا بخری.":"Every purchase gives you all these locations at once; no need to buy them separately.","باز":"Open","باز نشد":"It didn't open","باز هم وصل نشد؟ بپرس":"Still not connecting? Ask us","بانک":"Bank","بدون پاسخ":"No replies","برای دیدن گفتگو روی تیکت بزن":"Tap a ticket to see the conversation","برای فرستادن عکس، فعلا از ربات استفاده کن.":"To send a photo, use the bot for now.","برای نمودار دست کم دو روز آمار لازم است":"The chart needs at least two days of data","برنامهات را انتخاب کن، بقیه خودکار":"Choose your app, the rest is automatic","برنامهات را بزن":"Tap your app","برنامهات را بزن؛ اشتراک خودکار اضافه میشود.":"Tap your app; the subscription is added automatically.","برگشت":"Back","بستن":"Close","بسته":"Closed","به تیکت":"to ticket","به نام":"Card holder","بهترین ارزش":"Best value","بیشتر":"More","تاریخ":"Date","تاریخ ساخت":"Created","تایید شده":"Approved","تحویل شد":"Delivered","تلاش دوباره":"Try again","تمام شد":"Over","تمدید":"Renew","تنظیمات":"Settings","تومان":"toman","تومان ·":"toman ·","تومان · پرداخت کارت به کارت، تایید در چند دقیقه":"toman · card-to-card payment, approved in a few minutes","تومان است":"toman","تیکت":"Ticket","تیکت تازه":"New ticket","تیکت جدید":"New ticket","تیکتی نداری":"No tickets","تیکتها و راهنمای اتصال":"Tickets and connection guide","تیکتهای من":"My tickets","جزئیات":"Details","حجم تمام شد":"Data used up","حجم و مدت":"Data and duration","حجم کل":"Total data","حداقل":"Minimum","حداقل شارژ":"Minimum top-up","حساب":"Account","خانه":"Home","خرید":"Buy","خرید انجام نشد":"The purchase didn't go through","خرید سرویس":"Service purchase","خرید و تمدید":"Buy and renew","خریدار":"Buyers","خطای ارتباط":"Connection error","خوانده نشد":"Couldn't load","در انتظار":"Pending","در حال ارسال…":"Sending…","در حال رزرو مبلغ…":"Reserving the amount…","در حال ساخت…":"Creating…","در ربات /start بزن و قوانین را بپذیر، بعد برگرد.":"Send /start in the bot and accept the rules, then come back.","درآمد تو از همسفرها":"Your earnings from fellow travellers","دستگاهت را انتخاب کن":"Choose your device","دستی کپی کن":"Copy it by hand","دعوت شده":"Invited","دعوت کن، از هر خرید سهم بگیر":"Invite, earn from every purchase","دعوت کن، با هم عبور کنید":"Invite friends, travel together","دلیل":"Reason","دیدن پلنها":"See plans","راهنما هنوز تنظیم نشده":"The guide isn't set up yet","راهنمای اتصال":"Connection guide","رد شده":"Rejected","رسید انتخاب شد · برای عوض کردن بزن":"Receipt selected · tap to change","رفتن به ربات":"Go to the bot","رو به اتمام":"Running low","روز":"days","روز · تا":"days · until","روز · همه کشورها":"days · all countries","روز با عبور":"days with Obour","روز بخیر":"Good afternoon","روزانه":"Daily","روزانه، هفتگی یا ماهانه":"Daily, weekly or monthly","روی همه دستگاههات کار میکنه، بدون محدودیت تعداد دستگاه":"Works on all your devices, with no device limit","ریال":"rial","زبان":"Language","ساخته شد":"created","سرورها و لوکیشنها":"Servers & locations","سرویس":"Service","سرویس خوانده نشد":"Couldn't load the service","سرویس فعال":"active services","سرویسها خوانده نشد":"Couldn't load services","سرویسهای من":"My services","سفارش در ربات":"Order in the bot","سفارشهای من":"My orders","سه قدم تا اتصال":"Three steps to connect","سوابق خوانده نشد":"Couldn't load history","شارژ":"Top up","شارژ فعلا ممکن نیست":"Top-up isn't possible right now","شارژ و سوابق":"Top-up and history","شارژ کیف پول":"Top up wallet","شب بخیر":"Good evening","شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.":"The card number isn't set up yet. Contact support.","صبح بخیر":"Good morning","عبور · نسخه":"Obour · version","عصر بخیر":"Good evening","عضو از":"Member since","عکس رسید":"Receipt photo","عکس رسید را انتخاب کن":"Choose the receipt photo","عکس رسید را بفرست":"Send the receipt photo","فروشگاه":"Shop","فعال":"Active","فعلا محصولی برای نمایش نیست":"No products to show right now","فعلا پلنی برای فروش نیست":"No plans on sale right now","قدم 1 از 2 · مبلغ":"Step 1 of 2 · amount","قدم 2 از 2 · پرداخت و رسید":"Step 2 of 2 · payment and receipt","قدم به قدم، برای دستگاه خودت":"Step by step, for your device","قوانین":"Rules","قوانین و حریم خصوصی":"Rules and privacy","قوانین پذیرفته شد":"Rules accepted","قیمت":"Price","قیمت هر گیگ به پلن بستگی داره؛ هرچی حجم بیشتر، هر گیگ ارزونتر":"The price per GB depends on the plan; the more data, the cheaper each GB","لینک دعوت تو":"Your invite link","لینک را برای دوستانت بفرست.":"Send the link to your friends.","لینک ربات در دسترس نیست":"The bot link isn't available","ماهانه":"Monthly","مبلغ به تومان":"Amount in toman","مبلغ تازه":"New amount","مبلغ دقیق واریز":"Exact amount to pay","مبلغ را دقیقا کپی کن":"Copy the exact amount","مبلغ شارژ":"Top-up amount","متن قوانین هنوز تنظیم نشده است.":"The rules haven't been written yet.","مثل یک اپ جدا باز شود":"Opens like a separate app","محصولات خوانده نشد":"Couldn't load products","مرورگر اجازه کپی خودکار نداد. روی متن نگه دار و کپی کن:":"The browser didn't allow automatic copying. Press and hold the text to copy it:","مشکلت را بنویس؛ مثلا کدام سرویس، روی چه دستگاهی، و چه پیغامی میبینی.":"Describe the problem: which service, on what device, and what message you see.","مصرف":"Usage","مصرف شده":"Used","معمولا چند دقیقه طول میکشد. بعد از تایید، مبلغ به کیف پولت اضافه میشود و در ربات خبر میگیری.":"It usually takes a few minutes. Once approved, the amount is added to your wallet and you're notified in the bot.","منقضی":"Expired","منقضی شده":"Expired","مهلت تمام شد. اگر واریز کردهای رسید را بفرست، وگرنه مبلغ تازه بگیر.":"Time's up. If you've paid, send the receipt; otherwise get a new amount.","مهلت پرداخت":"Time to pay","موجودی بعد از خرید":"Balance after purchase","موجودی فعلی":"Current balance","موجودی کیف پول":"Wallet balance","مگ":"MB","مگ مانده":"MB left","گیگ مانده":"GB left","میانگین روزانه":"Daily average","نامحدود":"Unlimited","ناموجود":"Out of stock","ناموفق":"Failed","ناوبری":"Navigation","هر کس با این لینک بیاید، همسفر توست":"Anyone who joins with this link is your fellow traveller","هر گیگ":"per GB","هفتگی":"Weekly","همه":"All","همه توی یک لینک؛ هر کدوم رو خواستی توی اپ انتخاب کن":"All in one link; pick any of them in the app","همه کشورها":"All countries","همسفرها":"Fellow travellers","هنوز تراکنشی نیست":"No transactions yet","هنوز سرویسی نداری":"No services yet","هنوز پاداشی نگرفتهای":"No rewards yet","هنوز پذیرفته نشده":"Not accepted yet","هوش مصنوعی":"AI","وصل شو":"Connect","وصل شوم":"Connect me","وضعیت":"Status","وقتی موجود شد در ربات خبر بگیر":"Get notified in the bot when it's back in stock","پاداش":"Reward","پاداش همسفر":"Referral reward","پاسخ":"replies","پاسخ داده شده":"Answered","پاسخ پشتیبانی هم اینجا و هم در ربات میرسد":"Support's reply arrives both here and in the bot","پاسخت را بنویس…":"Write your reply…","پذیرفته شده":"Accepted","پذیرفته شده ·":"Accepted ·","پرداخت از کیف پول":"Pay from wallet","پرداخت از کیف پول، تحویل فوری":"Pay from your wallet, instant delivery","پشتیبانی":"Support","پشتیبانی و راهنما":"Support and guide","پلن":"Plan","پلن را انتخاب کن":"Choose a plan","پلنها خوانده نشد":"Couldn't load plans","پنل جواب نداد؛ عدد از آخرین آمار روزانه است":"The server didn't respond; the figure is from the last daily snapshot","پیام":"Message","پیامت را بنویس":"Write your message","پیش از خرید، یک بار بخوان و بپذیر":"Read and accept once before buying","پیشنهادی":"Recommended","چطور شارژ میشود؟":"How does the top-up work?","چه چیزی لازم داری؟":"What do you need?","کارت به کارت کن":"Pay card to card","کارت به کارت، تایید سریع":"Card to card, quick approval","کارت عبور بلافاصله ساخته میشود":"Your pass is created instantly","کارت عبورت آماده شد":"Your pass is ready","کارت مقصد":"Destination card","کارها":"Actions","کانفیگ":"configs","کانفیگ در":"configs in","کانفیگ پرسرعت، همه کشورها":"Fast configs, every country","کشور":"countries","کد پیگیری":"Tracking code","کم":"short","کپی":"Copy","کپی شد":"Copied","کپی شماره کارت":"Copy card number","کپی لینک":"Copy link","کپی مبلغ (ریال)":"Copy amount (rial)","کیف پول":"Wallet","کیف پول را شارژ کن":"Top up your wallet","کیف پولت خالی است":"Your wallet is empty","کیفت شارژ میشود":"Your wallet is topped up","گفتگو":"Conversation","گفتگو با پشتیبانی":"Chat with support","گیگ":"GB","گیگ ·":"GB ·","یا لینک را دستی اضافه کن":"Or add the link manually","یک پاسخ تازه":"One new reply","یک پاسخ تازه از پشتیبانی":"A new reply from support","یک پلن انتخاب کن؛ چند ثانیه بعد کارتت اینجا با لینک اتصال آماده است.":"Pick a plan; a few seconds later your pass is here with its connection link.","دقیقا همین مبلغ را واریز کن":"Pay exactly this amount","سه رقم آخر شناسه توست؛ با آن رسیدت شناخته میشود.":"The last three digits identify you; that's how your receipt is recognised.","رسیدت رسید":"Receipt received","برگشت به کیف پول":"Back to wallet","خواندم و میپذیرم":"I've read and accept","دیدن پلن ها":"See plans","تیکت جدید ·":"New ticket · ","پیامت را بنویس.":"Write your message.","سرویسها":"Services","سرویسهای من ·":"My services ·","{n} فعال":"{n} active","{n} سرویس فعال":"{n} active services","{n} پاسخ":"{n} replies","{n} پیام":"{n} messages","{n} تومان کم داری · شارژ":"{n} toman short · top up","{n} گیگ":"{n} GB","{n} روز":"{n} days","کپی مبلغ":"Copy amount","باز ·":"Open ·","بسته ·":"Closed ·","پاسخ داده شده ·":"Answered ·","اولین خرید":"First purchase","ماهانه {n} گیگ":"Monthly {n} GB","هفتگی {n} گیگ":"Weekly {n} GB","روزانه {n} گیگ":"Daily {n} GB","ماهانه نامحدود":"Monthly unlimited","{n} ماهه {n} گیگ":"{n}-month {n} GB","{n} روزه {n} گیگ":"{n}-day {n} GB","{n} ماهه":"{n} months","{n} روزه":"{n} days","{n} گیگ {n} روزه":"{n} GB {n} days","{n} گیگ {n} ماهه":"{n} GB {n} months","سرویس اصلی":"Main service","یک ماه":"one month","· یک ماه":"· one month","کارت به کارت":"Card to card","کارت بانکی ایران":"Iranian bank card","کیف پول کریپتو":"Crypto wallet","کریپتو · TON / USDT":"Crypto · TON / USDT","حالت تست (testnet)":"Test mode (testnet)","تومان · تایید خودکار، بدون رسید":"toman · automatic approval, no receipt","با چه ارزی؟":"Which currency?","Tether · شبکه TON":"Tether · TON network","کیف پول وصل است":"Wallet connected","کیف پولی وصل نیست":"No wallet connected","Tonkeeper، Telegram Wallet، MyTonWallet و…":"Tonkeeper, Telegram Wallet, MyTonWallet…","قطع":"Disconnect","پرداخت":"Pay","پرداخت {n} TON":"Pay {n} TON","پرداخت {n} USDT":"Pay {n} USDT","در حال ساخت فاکتور…":"Creating the invoice…","TON Connect بار نشد":"TON Connect didn't load","اتصال کیف پول نشد":"Couldn't connect the wallet","پرداخت کریپتو":"Crypto payment","فاکتور":"Invoice","مبلغ دقیق":"Exact amount","تومان · testnet":"toman · testnet","منتظر پرداختت هستیم. بعد از پرداخت، کیف پولت خودکار شارژ میشود.":"Waiting for your payment. Once you pay, your wallet is topped up automatically.","پرداخت دستی":"Pay manually","آدرس":"Address","مبلغ":"Amount","کامنت":"Comment","کپی آدرس":"Copy address","کپی کامنت":"Copy comment","فقط روی شبکه TON بفرست و کامنت را حتما بنویس؛ بدون کامنت یا با مبلغ کمتر، شارژ خودکار انجام نمیشود.":"Send only on the TON network and always include the comment; without it, or with a lower amount, the top-up won't be automatic.","برای کارمزد شبکه حدود {n} TON هم در کیف پولت لازم است.":"You'll also need about {n} TON in your wallet for the network fee.","پرداخت با کیف پول":"Pay with wallet","باز کردن در Tonkeeper":"Open in Tonkeeper","انصراف و مبلغ تازه":"Cancel and start over","تراکنش فرستاده شد. منتظر تایید شبکهایم؛ معمولا کمتر از یک دقیقه.":"Transaction sent. Waiting for network confirmation; usually under a minute.","پرداخت را در کیف پول رد کردی":"You declined the payment in your wallet","پرداخت انجام نشد":"The payment didn't go through","کیف پولت شارژ شد":"Your wallet is topped up","موجودی:":"Balance:","مبلغ کمتر از فاکتور بود":"The amount was lower than the invoice","رسیده:":"Received:","لازم:":"Required:","کیف پولت خودکار شارژ نشد؛ پشتیبانی بررسی میکند.":"Your wallet wasn't topped up automatically; support will review it.","پرداخت کریپتو فعلا فعال نیست":"Crypto payment isn't available right now","از کارت به کارت استفاده کن یا بعدا سر بزن.":"Use a card transfer or check back later.","نرخ ارزها هنوز تنظیم نشده":"Exchange rates aren't set yet","کمی بعد دوباره امتحان کن یا از کارت به کارت استفاده کن.":"Try again a bit later or use a card transfer.","مهلت تمام شد. اگر پرداخت کردهای صبر کن، خودکار شناخته میشود؛ وگرنه فاکتور تازه بگیر.":"Time's up. If you've paid, just wait, it's recognised automatically; otherwise get a new invoice.","فاکتور تازه":"New invoice"}};
 /* مینی اپ فقط فارسی و انگلیسی دارد؛ ربات چهار زبان. کاربری که در ربات
    روسی یا چینی است، اینجا انگلیسی می بیند. */
 const LANG_NAMES = { fa:['🇮🇷','فارسی'], en:['🇬🇧','English'] };
@@ -675,6 +712,10 @@ const ICON = {
   list:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
   cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   refresh:'<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>',
+  ton:'<path d="M5.5 5h13l-6.5 14z"/><path d="M12 5v14"/>',
+  usdt:'<path d="M7 6h10M12 6v12"/><ellipse cx="12" cy="11" rx="6" ry="2"/>',
+  card:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>',
+  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
 };
 const ic = (k, sw) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.8}" stroke-linecap="round" stroke-linejoin="round">${ICON[k]||''}</svg>`;
 const N = v => `<span class="n">${esc(v)}</span>`;
@@ -802,6 +843,8 @@ const App = {
     $('splash').classList.add('off');
     if (err) return this.fatal(err);
     this.tab('home');
+    /* دکمه «پرداخت با TON Connect» ربات مینی اپ را با #crypto باز می کند */
+    if (location.hash === '#crypto' && this.boot.crypto) { Topup.method = 'crypto'; this.go('topup'); }
   },
 
   syncHeight(){
@@ -1636,10 +1679,13 @@ async thread(p, id){
    (سه رقم آخر شناسه کاربر است) و درخواست باز قبلی دوباره نشان داده
    می شود، نه اینکه مبلغ تازه ای رزرو شود. */
 SubPages.topup = async function(p){
+  const crypto = !!(App.boot && App.boot.crypto);
+  if (crypto && Topup.method === 'crypto') return Crypto.load(p);
   p.innerHTML = Top('شارژ کیف پول') + skel(1, 220);
   try {
     const d = await api('topup');
     Topup.info = d;
+    if (!d.enabled && crypto) { Topup.method = 'crypto'; return Crypto.load(p); }
     if (!d.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + emptyBox('شارژ فعلا ممکن نیست', 'شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.'));
     if (d.open) { Topup.req = { txn_id:d.open.txn_id, amount:d.open.amount, card:d.card, expires_at:d.open.expires_at, ttl_minutes:d.ttl_minutes }; return Topup.step2(p); }
     Topup.step1(p);
@@ -1647,13 +1693,32 @@ SubPages.topup = async function(p){
 };
 SubPages.topup.noNav = true;
 
+/* دو راه شارژ کنار هم: کارت بانکی ایران، یا کریپتو برای کسی که بیرون از
+   ایران است. فقط وقتی کریپتو روشن است دیده می شود. */
+function PayMethods(active){
+  if (!(App.boot && App.boot.crypto)) return '';
+  const k = (key, icon, t, sub) => `<button class="kind${key === active ? ' on' : ''}" onclick="Topup.to('${key}')">
+    <span class="kind-ok">${ic('check',2.6)}</span><span class="ic ${key === 'card' ? 'cash' : 'net'}">${ic(icon)}</span>
+    <span><span class="kind-t">${t}</span><span class="kind-s">${sub}</span></span></button>`;
+  return `<div class="kinds">${k('card','card','کارت به کارت','کارت بانکی ایران')}${k('crypto','ton','TON / USDT','کیف پول کریپتو')}</div>`;
+}
+
 const Topup = {
-  info:null, req:null, amount:0, img:null, busy:false,
+  info:null, req:null, amount:0, img:null, busy:false, method:'card',
+  to(m){
+    if (m === this.method) return;
+    this.method = m; App.haptic();
+    const p = $('sub').querySelector('.page');
+    if (m === 'crypto') return Crypto.load(p);
+    if (!this.info) return SubPages.topup(p);
+    if (!this.info.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + PayMethods('card') + emptyBox('شارژ فعلا ممکن نیست', 'شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.'));
+    this.req ? this.step2(p) : this.step1(p);
+  },
   step1(p){
     p = p || $('sub').querySelector('.page');
     const d = this.info, pick = this.amount || d.presets[1] || d.presets[0];
     this.amount = pick;
-    p.innerHTML = Top('شارژ کیف پول', 'قدم 1 از 2 · مبلغ') + `
+    p.innerHTML = Top('شارژ کیف پول', 'قدم 1 از 2 · مبلغ') + PayMethods('card') + `
       <div class="hero mx" style="margin-top:8px">
         <div class="lbl">مبلغ شارژ</div>
         <div class="amt-in"><input id="amt" inputmode="numeric" dir="ltr" value="${fa(pick)}" oninput="Topup.typed(this)" aria-label="مبلغ به تومان"><span>تومان</span></div>
@@ -1746,7 +1811,10 @@ const Topup = {
       $('clock-t').textContent = left > 0 ? String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0') : 'تمام شد';
       if (left <= 0) {
         clearInterval(this._clock);
-        $('expired').innerHTML = `<div class="expired">${ic('warn',2)}<span>مهلت تمام شد. اگر واریز کرده‌ای رسید را بفرست، وگرنه مبلغ تازه بگیر.</span>
+        $('expired').innerHTML = this.method === 'crypto'
+          ? `<div class="expired">${ic('warn',2)}<span>مهلت تمام شد. اگر پرداخت کرده‌ای صبر کن، خودکار شناخته می‌شود؛ وگرنه فاکتور تازه بگیر.</span>
+          <button onclick="Crypto.cancel()">فاکتور تازه</button></div>`
+          : `<div class="expired">${ic('warn',2)}<span>مهلت تمام شد. اگر واریز کرده‌ای رسید را بفرست، وگرنه مبلغ تازه بگیر.</span>
           <button onclick="Topup.req=null;Topup.step1()">مبلغ تازه</button></div>`;
       }
     };
@@ -1794,6 +1862,251 @@ const Topup = {
     } catch (err) { App.toast(err.message, true); if (b) { b.disabled = false; b.textContent = 'ارسال رسید'; } }
     finally { this.busy = false; }
   }
+};
+
+/* ═════════ شارژ با کریپتو (TON Connect) ═════════
+   مبلغ به تومان → ارز (TON یا USDT) → کیف پول با TON Connect وصل می شود و
+   تراکنش را امضا می کند. کد فاکتور در کامنت تراکنش است و سرور تراکنش را
+   روی زنجیره می بیند و خودش کیف پول را شارژ می کند؛ این صفحه فقط هر چند
+   ثانیه وضعیت را می پرسد. جواب sendTransaction هیچ وقت مبنای شارژ نیست.
+   اسکریپت TON Connect فقط وقتی کاربر به این صفحه می آید بار می شود. */
+const Crypto = {
+  info:null, inv:null, asset:'', amount:0, ui:null, busy:false, pendingPay:false, _poll:null,
+  NAMES:{ TON:['TON','Toncoin'], USDT:['USDT','Tether · شبکه TON'] },
+
+  async load(p){
+    p = p || $('sub').querySelector('.page');
+    p.innerHTML = Top('شارژ کیف پول', 'کریپتو · TON / USDT') + PayMethods('crypto') + skel(2, 120);
+    try {
+      const d = await api('crypto');
+      this.info = d;
+      if (!d.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + PayMethods('crypto') + emptyBox('پرداخت کریپتو فعلا فعال نیست', 'از کارت به کارت استفاده کن یا بعدا سر بزن.'));
+      const assets = Object.keys(d.rates || {});
+      if (!assets.length) return void (p.innerHTML = Top('شارژ کیف پول') + PayMethods('crypto') + emptyBox('نرخ ارزها هنوز تنظیم نشده', 'کمی بعد دوباره امتحان کن یا از کارت به کارت استفاده کن.'));
+      if (!assets.includes(this.asset)) this.asset = assets[0];
+      if (d.open && d.open.status === 'pending') { this.inv = d.open; return this.invoice(p); }
+      this.step1(p);
+      this.ensureUI().catch(() => {});
+    } catch (err) { p.innerHTML = Top('شارژ کیف پول') + PayMethods('crypto') + emptyBox('خوانده نشد', err.message); }
+  },
+
+  /* همان گرد کردن سرور: رو به بالا به ۰٫۰۱. فقط برای نمایش؛ مبلغ نهایی
+     از فاکتور سرور می آید. */
+  quote(toman, asset){
+    const d = this.info, rate = d.rates[asset];
+    if (!rate || !toman) return '';
+    const v = Math.ceil((toman * (1 + (d.fee || 0) / 100) / rate) * 100 - 1e-9) / 100;
+    return v.toFixed(2).replace(/\.?0+$/, '');
+  },
+
+  step1(p){
+    p = p || $('sub').querySelector('.page');
+    const d = this.info, pick = this.amount || Topup.amount || d.presets[1] || d.presets[0];
+    this.amount = pick;
+    p.innerHTML = Top('شارژ کیف پول', 'کریپتو · TON / USDT') + PayMethods('crypto')
+      + (d.testnet ? `<div class="cx-net">${ic('warn',2)}<span>حالت تست (testnet)</span></div>` : '') + `
+      <div class="hero mx" style="margin-top:8px">
+        <div class="lbl">مبلغ شارژ</div>
+        <div class="amt-in"><input id="amt" inputmode="numeric" dir="ltr" value="${fa(pick)}" oninput="Crypto.typed(this)" aria-label="مبلغ به تومان"><span>تومان</span></div>
+        <div class="presets">${d.presets.map(v => `<button class="preset${v === pick ? ' on' : ''}" onclick="Crypto.set(${v})"><span class="n">${fa(v)}</span></button>`).join('')}</div>
+        <div class="short" style="text-align:right;margin-top:10px">حداقل ${N(fa(d.min))} تومان · تایید خودکار، بدون رسید</div>
+      </div>
+      ${Sec('با چه ارزی؟')}
+      <div class="cx-assets">${Object.keys(d.rates).map(a => `<button class="cx-a${a === this.asset ? ' on' : ''}" data-a="${a}" onclick="Crypto.pick('${a}')">
+        <span class="cx-i ${a.toLowerCase()}">${ic(a.toLowerCase(), 2)}</span>
+        <span class="cx-n"><b>${this.NAMES[a][0]}</b><span>${this.NAMES[a][1]}</span></span>
+        <span class="cx-v"><span id="cx-v-${a}">${this.quote(pick, a)}</span><small>${a}</small></span></button>`).join('')}</div>
+      ${Sec('کیف پول')}
+      <div id="cx-w">${this.walletRow()}</div>
+      <div class="foot"><button class="btn btn-p btn-block" id="cx-go" onclick="Crypto.start()">${this.goLabel()}</button></div>`;
+  },
+  goLabel(){ const q = this.quote(this.amount, this.asset); return q ? `پرداخت <bdi dir="ltr">${q}<span class="cx-u">${this.asset}</span></bdi>` : 'پرداخت'; },
+  refresh(){
+    Object.keys(this.info.rates).forEach(a => { const e = $('cx-v-' + a); if (e) e.textContent = this.quote(this.amount, a); });
+    const b = $('cx-go'); if (b && !this.busy) b.innerHTML = this.goLabel();
+  },
+  set(v){
+    this.amount = v; App.haptic();
+    const i = $('amt'); if (i) i.value = fa(v);
+    document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.textContent.replace(/,/g,'') == String(v)));
+    this.refresh();
+  },
+  typed(el){
+    const v = parseInt(String(el.value).replace(/[^\d]/g, '').replace(/^0+/, '') || '0', 10);
+    this.amount = v; el.value = v ? fa(v) : '';
+    document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.textContent.replace(/,/g,'') == String(v)));
+    this.refresh();
+  },
+  pick(a){
+    this.asset = a; App.haptic();
+    document.querySelectorAll('.cx-a').forEach(b => b.classList.toggle('on', b.getAttribute('data-a') === a));
+    this.refresh();
+  },
+
+  /* ---------- TON Connect ---------- */
+  address(){ return this.ui && this.ui.account ? this.ui.account.address : ''; },
+  short(raw){
+    let a = raw;
+    try { a = TON_CONNECT_UI.toUserFriendlyAddress(raw, !!(this.info && this.info.testnet)); } catch(e){}
+    return a.length > 14 ? a.slice(0, 6) + '…' + a.slice(-6) : a;
+  },
+  walletRow(){
+    const a = this.address();
+    return a
+      ? `<div class="cx-w on"><span class="dot"></span><span class="row-m"><b>کیف پول وصل است</b><span class="n">${esc(this.short(a))}</span></span>
+          <button class="btn btn-sm btn-s" onclick="Crypto.disconnect()">قطع</button></div>`
+      : `<div class="cx-w"><span class="dot"></span><span class="row-m"><b>کیف پولی وصل نیست</b><span>Tonkeeper، Telegram Wallet، MyTonWallet و…</span></span>
+          <button class="btn btn-sm btn-p" onclick="Crypto.connect()">اتصال</button></div>`;
+  },
+  _loading:null,
+  loadScript(){
+    if (window.TON_CONNECT_UI) return Promise.resolve();
+    if (this._loading) return this._loading;
+    this._loading = new Promise((ok, bad) => {
+      const sc = document.createElement('script');
+      sc.src = STATIC + 'tonconnect-ui.min.js?v=3.0.2';
+      sc.onload = ok; sc.onerror = () => { this._loading = null; bad(new Error('TON Connect بار نشد')); };
+      document.head.appendChild(sc);
+    });
+    return this._loading;
+  },
+  async ensureUI(){
+    if (this.ui) return this.ui;
+    await this.loadScript();
+    const ui = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: new URL('__BASE__tonconnect-manifest.json', location.href).href,
+      analytics: { mode: 'off' },
+    });
+    const opts = { language: 'en' };
+    if (this.info && this.info.return_url) opts.actionsConfiguration = { twaReturnUrl: this.info.return_url };
+    ui.uiOptions = opts;
+    try { ui.setConnectionNetwork && ui.setConnectionNetwork(this.info && this.info.network); } catch(e){}
+    ui.onStatusChange(w => {
+      const box = $('cx-w'); if (box) box.innerHTML = this.walletRow();
+      if (w && this.pendingPay) { this.pendingPay = false; this.pay(); }
+    }, () => {});
+    this.ui = ui;
+    try { await ui.connectionRestored; } catch(e){}
+    const box = $('cx-w'); if (box) box.innerHTML = this.walletRow();
+    return ui;
+  },
+  async connect(){
+    try { const ui = await this.ensureUI(); if (!ui.connected) await ui.openModal(); }
+    catch (err) { App.toast(err.message || 'اتصال کیف پول نشد', true); }
+  },
+  async disconnect(){
+    try { await this.ui.disconnect(); } catch(e){}
+    const box = $('cx-w'); if (box) box.innerHTML = this.walletRow();
+  },
+
+  /* ---------- فاکتور ---------- */
+  async start(){
+    if (this.busy) return;
+    if (this.amount < this.info.min) return App.toast('حداقل شارژ ' + fa(this.info.min) + ' تومان است', true);
+    this.busy = true; const b = $('cx-go'); if (b) { b.disabled = true; b.textContent = 'در حال ساخت فاکتور…'; }
+    try {
+      this.inv = await api('crypto/start', { toman:this.amount, asset:this.asset });
+      App.haptic('medium');
+      this.invoice();
+      this.busy = false;
+      this.pay();
+    } catch (err) { App.toast(err.message, true); if (b) { b.disabled = false; b.innerHTML = this.goLabel(); } }
+    finally { this.busy = false; }
+  },
+
+  invoice(p){
+    p = p || $('sub').querySelector('.page');
+    const v = this.inv, testnet = this.info && this.info.testnet;
+    p.innerHTML = Top('پرداخت کریپتو', I18N.t('فاکتور') + ' ' + v.code) + `
+      <div class="card pay mx" id="cx-inv" style="margin-top:8px">
+        <div class="pay-m">
+          <span class="lbl">مبلغ دقیق</span>
+          <span class="pay-v n" dir="ltr" style="text-align:start">${esc(v.amount)}<small class="cx-u" style="font-size:15px;color:var(--ink-3)">${v.asset}</small></span>
+          <span class="pay-r">شارژ ${N(fa(v.toman))} تومان${testnet ? ' · testnet' : ''}</span>
+        </div>
+        <div class="clock" id="clock" role="timer" aria-label="مهلت پرداخت">
+          <svg viewBox="0 0 78 78"><circle class="trk" cx="39" cy="39" r="34"/><circle class="arc" id="clock-arc" cx="39" cy="39" r="34" stroke-dasharray="213.6" stroke-dashoffset="0"/></svg>
+          <div class="clock-in"><b class="n" id="clock-t">--:--</b><span>مهلت پرداخت</span></div></div>
+      </div>
+      <div id="cx-st" class="cx-st"><span class="cx-spin"></span><span>منتظر پرداختت هستیم. بعد از پرداخت، کیف پولت خودکار شارژ می‌شود.</span></div>
+      <div id="expired"></div>
+      ${Sec('پرداخت دستی')}
+      <div class="card mx cx-kv">
+        <div><span class="k">آدرس</span><span class="v addr">${esc(v.address)}</span><button onclick="App.copy('${esc(v.address)}')" aria-label="کپی آدرس">${ic('copy')}</button></div>
+        <div><span class="k">مبلغ</span><span class="v">${esc(v.amount)}<span class="cx-u">${v.asset}</span></span><button onclick="App.copy('${esc(v.amount)}')" aria-label="کپی مبلغ">${ic('copy')}</button></div>
+        <div><span class="k">کامنت</span><span class="v">${esc(v.code)}</span><button onclick="App.copy('${esc(v.code)}')" aria-label="کپی کامنت">${ic('copy')}</button></div>
+      </div>
+      <div class="card mx" style="margin-top:10px"><div class="steps-warn" style="margin:14px">${ic('warn',2)}<span><span>فقط روی شبکه TON بفرست و کامنت را حتما بنویس؛ بدون کامنت یا با مبلغ کمتر، شارژ خودکار انجام نمی‌شود.</span>${v.asset === 'USDT' ? ' <span>برای کارمزد شبکه حدود 0.1 TON هم در کیف پولت لازم است.</span>' : ''}</span></div></div>
+      <div class="foot"><button class="btn btn-p btn-block" id="cx-pay" onclick="Crypto.pay()">${ic('wallet',2)}پرداخت با کیف پول</button>
+        <button class="cx-alt" onclick="Crypto.openLink()">${ic('link',2)} باز کردن در Tonkeeper</button>
+        <button class="cx-alt" style="color:var(--ink-3);margin-top:6px" onclick="Crypto.cancel()">انصراف و مبلغ تازه</button></div>`;
+    Topup.req = { expires_at:v.expires_at, ttl_minutes:v.ttl_minutes || 20 };
+    Topup.tick();
+    this.watch();
+  },
+  openLink(){ try { tg ? tg.openLink(this.inv.link) : window.open(this.inv.link, '_blank'); } catch(e){ window.open(this.inv.link, '_blank'); } },
+
+  async pay(){
+    if (this.busy || !this.inv) return;
+    let ui;
+    try { ui = await this.ensureUI(); } catch (err) { return App.toast(err.message, true); }
+    if (!ui.connected) { this.pendingPay = true; return this.connect(); }
+    this.busy = true; const b = $('cx-pay'); if (b) b.disabled = true;
+    try {
+      const r = await api('crypto/pay', { id:this.inv.id, wallet:this.address() });
+      await ui.sendTransaction({ validUntil:r.valid_until, network:r.network, messages:r.messages });
+      App.notify('success');
+      const st = $('cx-st');
+      if (st) { st.classList.add('sent'); st.innerHTML = '<span class="cx-spin"></span><span>تراکنش فرستاده شد. منتظر تایید شبکه‌ایم؛ معمولا کمتر از یک دقیقه.</span>'; }
+      this.check();
+    } catch (err) {
+      const m = String((err && (err.name + ' ' + err.message)) || '');
+      App.toast(/reject|declin|cancel/i.test(m) ? 'پرداخت را در کیف پول رد کردی' : (err.message || 'پرداخت انجام نشد'), true);
+    } finally { this.busy = false; if (b) b.disabled = false; }
+  },
+
+  watch(){
+    clearInterval(this._poll);
+    this._poll = setInterval(() => this.check(), 5000);
+  },
+  async check(){
+    if (!$('cx-inv') || !this.inv) return clearInterval(this._poll);
+    try {
+      const s = await api('crypto/status?id=' + this.inv.id);
+      if (s.status === 'paid') this.done(s);
+      else if (s.status === 'underpaid') this.under(s);
+    } catch(e){}
+  },
+  done(s){
+    clearInterval(this._poll); clearInterval(Topup._clock);
+    App.notify('success');
+    if (App.boot && App.boot.user) App.boot.user.balance = s.balance;
+    this.inv = null; Topup.req = null;
+    $('sub').querySelector('.page').innerHTML = Top('شارژ کیف پول') + `<div class="empty" style="padding-top:40px">
+      <span class="ic lg" style="background:var(--ok);color:#fff;border-radius:23px">${ic('check',2.6)}</span>
+      <div class="empty-t" style="font-size:19px">کیف پولت شارژ شد</div>
+      <div class="empty-s">+${N(fa(s.toman))} تومان · ${N(s.paid_amount || s.amount)} ${s.asset}</div>
+      <div class="empty-s">موجودی: ${N(fa(s.balance))} تومان</div>
+      <div class="badge" style="margin-top:6px">${N(s.code)}</div>
+    </div><div class="foot"><button class="btn btn-p btn-block" onclick="App.tab('wallet')">برگشت به کیف پول</button></div>`;
+  },
+  under(s){
+    clearInterval(this._poll); clearInterval(Topup._clock);
+    this.inv = null; Topup.req = null;
+    $('sub').querySelector('.page').innerHTML = Top('شارژ کیف پول') + `<div class="empty" style="padding-top:40px">
+      <span class="ic lg" style="background:var(--help-t);color:var(--help-i);border-radius:23px">${ic('warn',2.2)}</span>
+      <div class="empty-t" style="font-size:19px">مبلغ کمتر از فاکتور بود</div>
+      <div class="empty-s">رسیده: ${N(s.paid_amount)} ${s.asset}</div><div class="empty-s">لازم: ${N(s.amount)} ${s.asset}</div>
+      <div class="empty-s">کیف پولت خودکار شارژ نشد؛ پشتیبانی بررسی می‌کند.</div>
+    </div><div class="foot"><button class="btn btn-p btn-block" onclick="App.go('compose')">گفتگو با پشتیبانی</button></div>`;
+  },
+  async cancel(){
+    clearInterval(this._poll);
+    const id = this.inv && this.inv.id;
+    this.inv = null; Topup.req = null;
+    if (id) try { await api('crypto/cancel', { id }); } catch(e){}
+    this.step1();
+  },
 };
 
 /* ═════════ قوانین ═════════ */

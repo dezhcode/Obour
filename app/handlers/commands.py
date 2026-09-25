@@ -21,6 +21,7 @@ from app.config import config
 from app.db import Database
 from app.handlers.start import show_menu
 from app.i18n import t as _t
+from app.services import crypto as crypto_svc
 
 log = logging.getLogger("obour.commands")
 router = Router(name="commands")
@@ -100,7 +101,7 @@ async def _open_page(message: Message, db: Database, user: dict, target: str) ->
             texts.WALLET.format(
                 balance=f"{user['balance']:,}", min_charge=f"{min_charge:,}"
             ),
-            reply_markup=keyboards.wallet_amounts(),
+            reply_markup=keyboards.wallet_amounts(crypto=crypto_svc.enabled()),
         )
     # بقیه صفحه ها: منوی اصلی (امن ترین حالت)
     await show_menu(message, user)
@@ -159,7 +160,7 @@ async def cmd_wallet(
         texts.WALLET.format(
             balance=f"{user['balance']:,}", min_charge=f"{min_charge:,}"
         ),
-        reply_markup=keyboards.wallet_amounts(),
+        reply_markup=keyboards.wallet_amounts(crypto=crypto_svc.enabled()),
     )
 
 

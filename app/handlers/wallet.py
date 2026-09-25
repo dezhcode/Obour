@@ -14,6 +14,7 @@ from app.states import Wallet
 from app.ui import edit_or_send
 from app.utils import esc, fmt_dt, now_str
 from app.i18n import t as _t
+from app.services import crypto as crypto_svc
 
 log = logging.getLogger("obour.wallet")
 router = Router(name="wallet")
@@ -25,7 +26,7 @@ async def cb_wallet(call: CallbackQuery, db: Database, user: dict) -> None:
     await edit_or_send(
         call.message,
         texts.WALLET.format(balance=f"{user['balance']:,}", min_charge=f"{min_charge:,}"),
-        keyboards.wallet_amounts(),
+        keyboards.wallet_amounts(crypto=crypto_svc.enabled()),
     )
     await call.answer()
 
@@ -288,3 +289,163 @@ async def photo_receipt(message: Message, db: Database, state: FSMContext) -> No
         except Exception:  # noqa: BLE001
             log.warning("charge notify to admin %s failed", admin_id, exc_info=True)
 
+
+
+# ═══════════════════ شارژ با کریپتو (TON / USDT) ═══════════════════
+# منطق فاکتور، نرخ و تایید در app/services/crypto.py است؛ اینجا فقط
+# گفتگوی ربات. تایید خودکار است: پایشگر تراکنش را روی زنجیره می بیند.
+
+
+async def _crypto_home(message: Message, db: Database, user: dict, edit: bool = True) -> None:
+    min_charge = int(await db.get_setting("min_charge", "50000"))
+    body = texts.CRYPTO_WALLET.format(balance=f"{user['balance']:,}", min_charge=f"{min_charge:,}")
+    if edit:
+        await edit_or_send(message, body, keyboards.crypto_amounts())
+    else:
+        await message.answer(body, reply_markup=keyboards.crypto_amounts())
+
+
+@router.callback_query(F.data == "cw")
+async def cb_crypto(call: CallbackQuery, db: Database, state: FSMContext, user: dict) -> None:
+    if not crypto_svc.enabled():
+        return await call.answer(_t("پرداخت کریپتو فعلا فعال نیست."), show_alert=True)
+    await state.clear()
+    await _crypto_home(call.message, db, user)
+    await call.answer()
+
+
+@router.callback_query(F.data == "cw:custom")
+async def cb_crypto_custom(call: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Wallet.crypto_amount)
+    await call.answer(_t("مبلغ رو به تومان بفرست."), show_alert=True)
+
+
+async def _crypto_pick(message: Message, db: Database, amount: int, edit: bool) -> None:
+    """نمایش مبلغ هر ارز برای این مبلغ تومانی."""
+    min_charge = int(await db.get_setting("min_charge", "50000"))
+    if amount < min_charge:
+        text = texts.INVALID_AMOUNT.format(min_charge=f"{min_charge:,}")
+        return await (edit_or_send(message, text, keyboards.crypto_amounts()) if edit else message.answer(text))
+    quotes = await crypto_svc.quote(db, amount)
+    if not quotes:
+        text = _t("نرخ ارزها هنوز تنظیم نشده. کمی بعد دوباره امتحان کن یا از کارت به کارت استفاده کن.")
+        return await (edit_or_send(message, text, keyboards.crypto_amounts()) if edit else message.answer(text))
+    icons = {"TON": "💎", "USDT": "💵"}
+    lines = "\n".join(f"{icons[a]} <b>{q['amount']} {a}</b>" for a, q in quotes.items())
+    body = texts.CRYPTO_PICK.format(amount=f"{amount:,}", lines=lines)
+    kb = keyboards.crypto_assets(amount, quotes)
+    if edit:
+        await edit_or_send(message, body, kb)
+    else:
+        await message.answer(body, reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("cw:a:"))
+async def cb_crypto_amount(call: CallbackQuery, db: Database) -> None:
+    try:
+        amount = int(call.data.split(":")[2])
+    except (IndexError, ValueError):
+        return await call.answer(_t("درخواست نامعتبر."), show_alert=True)
+    await _crypto_pick(call.message, db, amount, edit=True)
+    await call.answer()
+
+
+@router.message(Wallet.crypto_amount, F.text)
+async def txt_crypto_amount(message: Message, db: Database, state: FSMContext) -> None:
+    raw = message.text.strip().replace(",", "").replace("،", "")
+    raw = raw.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
+    await ui.consume(message)
+    if not raw.isdigit():
+        min_charge = int(await db.get_setting("min_charge", "50000"))
+        return await message.answer(texts.INVALID_AMOUNT.format(min_charge=f"{min_charge:,}"))
+    await state.clear()
+    await _crypto_pick(message, db, int(raw), edit=False)
+
+
+def _invoice_text(inv: dict) -> str:
+    body = texts.CRYPTO_INVOICE.format(
+        code=inv["code"], toman=f"{inv['toman']:,}",
+        crypto=crypto_svc.fmt_units(inv["units"], inv["asset"]), asset=inv["asset"],
+        address=crypto_svc.pay_address(), minutes=config.crypto_invoice_minutes,
+    )
+    if inv["asset"] == crypto_svc.USDT:
+        body += texts.CRYPTO_USDT_NOTE
+    if crypto_svc.testnet():
+        body += texts.CRYPTO_TESTNET_NOTE
+    return body
+
+
+def _invoice_kb(inv: dict):  # noqa: ANN202
+    from app import webapp as _webapp
+
+    wa = _webapp.url()
+    return keyboards.crypto_invoice_kb(
+        inv, crypto_svc.tonkeeper_link(inv), crypto_svc.pay_address(),
+        crypto_svc.fmt_units(inv["units"], inv["asset"]),
+        webapp_url=f"{wa}#crypto" if wa else "",
+    )
+
+
+@router.callback_query(F.data.startswith("cw:p:"))
+async def cb_crypto_invoice(call: CallbackQuery, db: Database, user: dict) -> None:
+    try:
+        _, _, amount, asset = call.data.split(":")
+        amount = int(amount)
+    except ValueError:
+        return await call.answer(_t("درخواست نامعتبر."), show_alert=True)
+    r = await crypto_svc.create_invoice(db, user, amount, asset, source="bot")
+    if not r["ok"]:
+        msg = {
+            crypto_svc.OFF: "پرداخت کریپتو فعلا فعال نیست.",
+            crypto_svc.NO_RATE: "نرخ این ارز الان در دسترس نیست. ارز دیگه رو امتحان کن.",
+            crypto_svc.TOO_LARGE: "مبلغ بیش از حد مجاز است",
+        }.get(r["error"], "انجام نشد")
+        if r["error"] == crypto_svc.TOO_SMALL:
+            return await call.answer(_t("حداقل شارژ {amount} تومانه.", amount=f"{r['min']:,}"), show_alert=True)
+        return await call.answer(_t(msg), show_alert=True)
+    inv = r["invoice"]
+    await edit_or_send(call.message, _invoice_text(inv), _invoice_kb(inv))
+    crypto_svc.ensure_watcher(db, call.bot)
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("cw:chk:"))
+async def cb_crypto_check(call: CallbackQuery, db: Database, user: dict) -> None:
+    try:
+        inv_id = int(call.data.split(":")[2])
+    except (IndexError, ValueError):
+        return await call.answer(_t("درخواست نامعتبر."), show_alert=True)
+    inv = await db.get_crypto_invoice(inv_id)
+    if not inv or inv["user_id"] != user["id"]:
+        return await call.answer(_t("این درخواست دیگه فعال نیست."), show_alert=True)
+    if inv["status"] == "pending":
+        await crypto_svc.scan(db, call.bot)
+        inv = await db.get_crypto_invoice(inv_id)
+    if inv["status"] == "paid":
+        fresh = await db.get_user(user["id"])
+        await edit_or_send(call.message, texts.CRYPTO_PAID.format(
+            amount=f"{inv['toman']:,}", crypto=crypto_svc.fmt_units(inv["paid_units"], inv["asset"]),
+            asset=inv["asset"], balance=f"{fresh['balance']:,}", code=inv["code"],
+        ), keyboards.back_menu())
+        return await call.answer(_t("شارژ شد ✅"))
+    if inv["status"] == "underpaid":
+        return await call.answer(_t("مبلغ رسیده کمتر از فاکتور بود؛ پشتیبانی بررسی می کنه."), show_alert=True)
+    if inv["status"] == "cancelled":
+        return await call.answer(_t("این درخواست قبلا بسته شده."), show_alert=True)
+    crypto_svc.ensure_watcher(db, call.bot)
+    await call.answer(
+        _t("هنوز پرداختی با این کامنت نرسیده. اگه پرداخت کردی، چند ثانیه دیگه دوباره بزن."),
+        show_alert=True,
+    )
+
+
+@router.callback_query(F.data.startswith("cw:x:"))
+async def cb_crypto_cancel(call: CallbackQuery, db: Database, user: dict) -> None:
+    try:
+        inv_id = int(call.data.split(":")[2])
+    except (IndexError, ValueError):
+        return await call.answer(_t("درخواست نامعتبر."), show_alert=True)
+    if not await db.cancel_crypto_invoice(inv_id, user["id"]):
+        return await call.answer(_t("این درخواست قبلا بسته شده."), show_alert=True)
+    await edit_or_send(call.message, texts.CHARGE_CANCELLED, keyboards.back_menu())
+    await call.answer(_t("لغو شد"))

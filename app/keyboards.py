@@ -491,14 +491,62 @@ def plan_confirm(
     return kb.as_markup()
 
 
-def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000)) -> InlineKeyboardMarkup:
+def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000), crypto: bool = False) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     for amount in presets:
         kb.button(text=f"{amount:,}", callback_data=f"wal:c:{amount}")
     _add(kb, "✍️ مبلغ دلخواه", style=PRIMARY, callback_data="wal:custom")
     _btn(kb, "history", "سوابق من", callback_data="hist")
+    rows = [3, 2]
+    if crypto:
+        # برای کاربرهای خارج از کشور که کارت ایرانی ندارند
+        _add(kb, "💎 پرداخت با TON / USDT", callback_data="cw")
+        rows.append(1)
     _add(kb, "🔙 منوی اصلی", callback_data="menu")
-    kb.adjust(3, 2, 1)
+    kb.adjust(*rows, 1)
+    return kb.as_markup()
+
+
+def crypto_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000)) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for amount in presets:
+        kb.button(text=f"{amount:,}", callback_data=f"cw:a:{amount}")
+    _add(kb, "✍️ مبلغ دلخواه", style=PRIMARY, callback_data="cw:custom")
+    _add(kb, "🔙 برگشت", callback_data="wal")
+    kb.adjust(3, 1, 1)
+    return kb.as_markup()
+
+
+def crypto_assets(amount: int, quotes: dict) -> InlineKeyboardMarkup:
+    """یک دکمه برای هر ارزی که نرخ دارد، با مبلغش روی خود دکمه."""
+    kb = InlineKeyboardBuilder()
+    icons = {"TON": "💎", "USDT": "💵"}
+    for asset, q in quotes.items():
+        _add(kb, f"{icons.get(asset, '•')} {q['amount']} {asset}", style=PRIMARY,
+             callback_data=f"cw:p:{amount}:{asset}")
+    _add(kb, "🔙 برگشت", callback_data="cw")
+    kb.adjust(*([1] * (len(quotes) + 1)))
+    return kb.as_markup()
+
+
+def crypto_invoice_kb(inv: dict, link: str, address: str, amount: str, webapp_url: str = "") -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    rows = []
+    _add(kb, "💎 پرداخت با Tonkeeper", style=SUCCESS, url=link)
+    rows.append(1)
+    if webapp_url:
+        from aiogram.types import WebAppInfo
+
+        _add(kb, "📱 پرداخت با TON Connect", web_app=WebAppInfo(url=webapp_url))
+        rows.append(1)
+    _add(kb, "کپی آدرس", copy_text=CopyTextButton(text=address))
+    _add(kb, "کپی مبلغ", copy_text=CopyTextButton(text=amount))
+    _add(kb, "کپی کامنت", copy_text=CopyTextButton(text=inv["code"]))
+    rows.append(3)
+    _add(kb, "🔄 بررسی پرداخت", callback_data=f"cw:chk:{inv['id']}")
+    _add(kb, "❌ انصراف", style=DANGER, callback_data=f"cw:x:{inv['id']}")
+    rows.append(2)
+    kb.adjust(*rows)
     return kb.as_markup()
 
 
@@ -990,6 +1038,9 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _add(kb, "👤 صاحب کارت", callback_data="adm:set:card_holder")
     _add(kb, "🏦 بانک", callback_data="adm:set:bank_name")
     _add(kb, "🔢 حداقل شارژ", callback_data="adm:set:min_charge")
+    _add(kb, "💵 نرخ تتر", callback_data="adm:set:crypto_usdt_rate")
+    _add(kb, "💎 نرخ TON", callback_data="adm:set:crypto_ton_rate")
+    _add(kb, "➗ کارمزد کریپتو", callback_data="adm:set:crypto_fee_percent")
     _add(kb, "🌐 گروه های پنل", callback_data="adm:groups")
     _add(kb, "🎨 ایموجی ها", callback_data="adm:emo")
     _add(kb, "♨️ قوانین", callback_data="adm:rules")
@@ -998,7 +1049,7 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _btn(kb, "ai", "خدمات هوش مصنوعی", callback_data="adm:ai")
     _add(kb, "🎬 افکت پیام", callback_data="adm:fx")
     _add(kb, "🔙 داشبورد", callback_data="adm")
-    kb.adjust(2, 2, 2, 2, 2, 1)
+    kb.adjust(2, 2, 2, 2, 2, 2, 1, 1)
     return kb.as_markup()
 
 

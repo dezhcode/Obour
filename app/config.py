@@ -167,6 +167,24 @@ class Config:
     channel_id: str = os.getenv("CHANNEL_ID", "")
     join_for_trial: bool = _bool("JOIN_FOR_TRIAL", "true")
 
+    # ===== پرداخت کریپتو (TON و USDT روی شبکه TON) =====
+    # بدون آدرس کیف پول، این بخش کلا خاموش است. کلید خصوصی هیچ وقت لازم
+    # نیست: ربات فقط تراکنش های ورودی این آدرس را می خواند.
+    ton_network: str = (os.getenv("TON_NETWORK", "").strip().lower() or "mainnet")
+    ton_receive_address: str = os.getenv("TON_RECEIVE_ADDRESS", "").strip()
+    # کلید Toncenter از @tonapibot (برای testnet کلید جدا می دهد)
+    toncenter_api_key: str = os.getenv("TONCENTER_API_KEY", "").strip()
+    # خالی = آدرس پیش فرض Toncenter برای همان شبکه
+    toncenter_url: str = os.getenv("TONCENTER_URL", "").strip().rstrip("/")
+    # مستر جتون USDT. روی mainnet خالی بماند (آدرس رسمی تتر استفاده می شود).
+    # روی testnet تتر رسمی نیست؛ یک جتون تستی با ۶ رقم اعشار بساز و آدرسش را بگذار.
+    ton_usdt_master: str = os.getenv("TON_USDT_MASTER", "").strip()
+    ton_usdt_decimals: int = _int_env("TON_USDT_DECIMALS", "6")
+    # مهلت پرداخت هر فاکتور (دقیقه)؛ پول دیرتر هم تا ۴۸ ساعت شناخته می شود
+    crypto_invoice_minutes: int = _int_env("CRYPTO_INVOICE_MINUTES", "20")
+    # اگر هاست به toncenter.com دسترسی ندارد: http://host:port یا socks5://...
+    ton_proxy: str = os.getenv("TON_PROXY", "").strip()
+
     webhook_mode: bool = _bool("WEBHOOK_MODE")
     webhook_base_url: str = os.getenv("WEBHOOK_BASE_URL", "").rstrip("/")
     webhook_path: str = "/" + (os.getenv("WEBHOOK_PATH", "").strip().strip("/") or "webhook/obour")
