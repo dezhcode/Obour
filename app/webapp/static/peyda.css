@@ -1,0 +1,30 @@
+/* پیدا — فونت اصلی مینی اپ عبور.
+   چهار وزن، همان هایی که طراحی واقعا استفاده می کند: ۴۰۰ برای متن،
+   ۶۰۰ برای عنوان و دکمه، ۷۰۰ و ۸۰۰ برای عدد و مبلغ.
+
+   وزن های دیگر (Thin، Light، Medium، Black) عمدا نیامدند: هر وزن
+   حدود ۲۷ کیلوبایت است و روی اینترنت موبایل ایران، هر فایل اضافه
+   یعنی چند صد میلی ثانیه تاخیر تا متن با فونت درست بنشیند.
+
+   font-display:swap یعنی متن بلافاصله با فونت سیستم دیده می شود و
+   بعد به پیدا سوییچ می کند - بهتر از صفحه خالی. */
+@font-face{
+  font-family:'Peyda';
+  src:url('fonts/peyda-400.woff2') format('woff2');
+  font-weight:400; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:'Peyda';
+  src:url('fonts/peyda-600.woff2') format('woff2');
+  font-weight:600; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:'Peyda';
+  src:url('fonts/peyda-700.woff2') format('woff2');
+  font-weight:700; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:'Peyda';
+  src:url('fonts/peyda-800.woff2') format('woff2');
+  font-weight:800; font-style:normal; font-display:swap;
+}
