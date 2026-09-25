@@ -377,10 +377,22 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 #nav{position:absolute;z-index:40;left:var(--pad);right:var(--pad);bottom:calc(18px + var(--safe-b));height:var(--nav-h);
   border-radius:var(--r-xl);background:var(--nav-bg);box-shadow:var(--shadow-pass);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0 6px;transition:transform .3s var(--ease)}
 #app.no-nav #nav{transform:translateY(140%)}
-.nav-i{display:flex;align-items:center;justify-content:center;color:var(--nav-icon)}
+.nav-i{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;color:var(--nav-icon)}
 .nav-i svg{width:22px;height:22px}
-.nav-pill{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:16px;background:var(--nav-on);color:var(--ink);font-size:12px;font-weight:800}
+.nav-i:active svg{transform:scale(.88)}
+.nav-pill{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:16px;color:var(--ink);font-size:12px;font-weight:800}
 .nav-pill svg{width:18px;height:18px}
+.nav-l{animation:navIn .3s var(--ease) .06s both}
+@keyframes navIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+/* قرص روشن تب فعال یک عنصر ثابت است که زیر تب ها سر می خورد؛ دکمه ها
+   هر بار از نو ساخته می شوند ولی این نه، تا جای قبلی اش را یادش بماند.
+   جا و پهنایش را App.placeNav از روی قرص تب فعال اندازه می گیرد. */
+.nav-ind{position:absolute;z-index:0;top:calc((var(--nav-h) - 40px) / 2);height:40px;left:0;width:0;border-radius:16px;background:var(--nav-on);
+  pointer-events:none;transition:left .45s var(--spring),width .45s var(--spring)}
+.nav-ind.still{transition:none}
+html.perf-low .nav-ind{transition:left .2s var(--ease),width .2s var(--ease)}
+html.perf-low .nav-l{animation:none}
+@media (prefers-reduced-motion:reduce){.nav-ind{transition:none}.nav-l{animation:none}}
 
 /* ═══ شیت ═══ */
 #scrim{position:absolute;inset:0;z-index:50;background:rgba(10,22,51,.42);opacity:0;pointer-events:none;transition:opacity .25s}
@@ -605,7 +617,8 @@ const App = {
       Viewport.init();
     }
     this.syncHeight();
-    window.addEventListener('resize', () => this.syncHeight());
+    window.addEventListener('resize', () => { this.syncHeight(); this.placeNav(); });
+    try { document.fonts.ready.then(() => this.placeNav()); } catch(e){}
     this.watchFoot();
     this.renderNav();
     let err = null;
@@ -628,9 +641,27 @@ const App = {
   NAV_ICON: { home:'home', store:'store', wallet:'wallet', account:'user' },
 
   renderNav(){
-    $('nav').innerHTML = this.TABS.map(([k, l]) => k === this.tabName
-      ? `<button class="nav-i" onclick="App.tab('${k}')" aria-current="page"><span class="nav-pill">${ic(this.NAV_ICON[k],2)}${l}</span></button>`
-      : `<button class="nav-i" onclick="App.tab('${k}')" aria-label="${l}">${ic(this.NAV_ICON[k])}</button>`).join('');
+    const nav = $('nav');
+    let ind = $('nav-ind');
+    if (!ind) { nav.innerHTML = '<span class="nav-ind still" id="nav-ind" aria-hidden="true"></span>'; ind = $('nav-ind'); }
+    nav.querySelectorAll('.nav-i').forEach(b => b.remove());
+    nav.insertAdjacentHTML('beforeend', this.TABS.map(([k, l]) => k === this.tabName
+      ? `<button class="nav-i" onclick="App.tab('${k}')" aria-current="page"><span class="nav-pill">${ic(this.NAV_ICON[k],2)}<span class="nav-l">${l}</span></span></button>`
+      : `<button class="nav-i" onclick="App.tab('${k}')" aria-label="${l}">${ic(this.NAV_ICON[k])}</button>`).join(''));
+    this.placeNav();
+  },
+
+  /* قرص را زیر تب فعال می برد. بار اول (کلاس still) بی انیمیشن می نشیند.
+     پهنای قرص به طول نام تب بستگی دارد، پس بعد از رسیدن فونت هم دوباره
+     اندازه گرفته می شود. */
+  placeNav(){
+    const nav = $('nav'), ind = $('nav-ind'), pill = nav && nav.querySelector('.nav-pill');
+    if (!ind || !pill || !pill.getBoundingClientRect) return;
+    const n = nav.getBoundingClientRect(), r = pill.getBoundingClientRect();
+    if (!r.width) return;
+    ind.style.left = (r.left - n.left) + 'px';
+    ind.style.width = r.width + 'px';
+    if (ind.classList.contains('still')) requestAnimationFrame(() => requestAnimationFrame(() => ind.classList.remove('still')));
   },
 
   tab(name){
