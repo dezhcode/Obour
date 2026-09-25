@@ -504,6 +504,12 @@ def _latin(text: str) -> str:
     return (text or "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
 
 
+async def _amount_expiry(db: "Database", amount: int) -> str | None:
+    """پایان مهلت مبلغ رزرو شده؛ تایمر صفحه پرداخت از روی همین است."""
+    row = await db.find_by_amount(int(amount))
+    return row["expires_at"] if row else None
+
+
 async def topup_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     """اطلاعات صفحه شارژ: حداقل، مبلغ های آماده، و درخواست باز قبلی."""
     user = await _require_user(db, wuser)
@@ -514,7 +520,8 @@ async def topup_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -
         "min": await charge_svc.min_charge(db),
         "presets": list(charge_svc.PRESETS),
         "card": card if prev else None,   # کارت فقط وقتی مبلغ رزرو شده نشان داده می شود
-        "open": ({"txn_id": prev["id"], "amount": int(prev["amount"]), "created_at": prev["created_at"]} if prev else None),
+        "open": ({"txn_id": prev["id"], "amount": int(prev["amount"]), "created_at": prev["created_at"],
+                  "expires_at": await _amount_expiry(db, prev["amount"])} if prev else None),
     }
 
 
@@ -542,7 +549,8 @@ async def topup_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
     r = await charge_svc.start(db, user, amount)
     if not r["ok"]:
         _charge_error(r)
-    return {"txn_id": r["txn_id"], "amount": r["amount"], "card": await charge_svc.card(db), "resumed": r.get("resumed", False)}
+    return {"txn_id": r["txn_id"], "amount": r["amount"], "card": await charge_svc.card(db),
+            "resumed": r.get("resumed", False), "expires_at": await _amount_expiry(db, r["amount"])}
 
 
 async def topup_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, txn_id: int, image: bytes, bot=None) -> dict:  # noqa: ANN001

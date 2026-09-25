@@ -372,7 +372,6 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .preset{height:44px;border-radius:12px;background:var(--sunk);color:var(--ink-2);font-size:14px;border:2px solid transparent}
 .preset.on{background:var(--cash-t);color:var(--cash-i);border-color:var(--cash)}
-.paycard{height:auto;gap:8px;cursor:default}
 .upload{min-height:150px;border:2px dashed var(--line);border-radius:var(--r-lg);background:var(--surface);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;text-align:center;
   cursor:pointer;background-size:cover;background-position:center;position:relative;overflow:hidden}
@@ -381,6 +380,54 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .upload.has > *{position:relative;color:#fff}
 .upload.has .ic{background:var(--ok);color:#fff}
 .upload-t{font-size:14px;font-weight:800}
+
+/* ═══ پرداخت کارت به کارت ═══
+   بالا مبلغ دقیق با حلقه مهلت، بعد کارت مقصد به شکل کارت بانکی، بعد
+   چهار قدم کار. سه رقم آخر مبلغ زیرخط کهربایی دارد تا معلوم باشد چرا
+   عدد رند نیست. */
+.pay{display:flex;align-items:center;gap:14px;padding:16px}
+.pay-m{flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.pay-v{font-size:30px;letter-spacing:-.8px;line-height:1.15}
+.pay-v u{color:var(--cash);text-decoration:underline;text-decoration-thickness:2.5px;text-underline-offset:6px}
+.pay-r{font-size:11.5px;color:var(--ink-3)}
+.pay .btn-sm{align-self:flex-start;margin-top:8px;height:34px;padding:0 12px;gap:6px}
+.pay .btn-sm svg{width:15px;height:15px}
+.clock{position:relative;width:78px;height:78px;flex-shrink:0}
+.clock svg{position:absolute;inset:0;width:78px;height:78px;transform:rotate(-90deg)}
+.clock circle{fill:none;stroke-width:6}
+.clock .trk{stroke:var(--sunk)}
+.clock .arc{stroke:var(--cash);stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke .3s}
+.clock.low .arc{stroke:var(--help)} .clock.over .arc{stroke:var(--bad)}
+.clock-in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2}
+.clock-in b{font-size:16px}
+.clock-in span{font-size:9.5px;font-weight:600;color:var(--ink-3)}
+.clock.over .clock-in b{font-size:12px;color:var(--bad)}
+.expired{display:flex;gap:10px;align-items:center;margin:10px var(--pad) 0;padding:10px 12px;border-radius:var(--r-md);background:var(--help-t);color:var(--help-i);font-size:12.5px;line-height:1.7}
+.expired svg{width:16px;height:16px;flex-shrink:0}
+.expired button{margin-inline-start:auto;flex-shrink:0;height:32px;padding:0 12px;border-radius:10px;background:var(--help-i);color:#fff;font-size:12px;font-weight:800}
+.bank{position:relative;margin:12px var(--pad) 0;aspect-ratio:1.586;max-height:230px;border-radius:18px;padding:18px;color:var(--on-pass);overflow:hidden;
+  background:radial-gradient(120% 90% at 100% 0%,#1D3F9E 0%,var(--navy) 55%,var(--deep) 100%);box-shadow:var(--shadow-pass);display:flex;flex-direction:column}
+.bank > *{position:relative}
+.bank .pass-art{left:-30px;bottom:-60px}
+.bank-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:800;color:var(--on-pass-2)}
+.emv{width:40px;height:30px;border-radius:7px;background:linear-gradient(135deg,#E9C77B,#B8893A);margin-top:14px;position:relative}
+.emv::after{content:"";position:absolute;inset:7px 9px;border:1.5px solid rgba(90,60,10,.35);border-radius:3px}
+.bank-no{margin-top:auto;direction:ltr;text-align:left;font-size:21px;letter-spacing:2.5px;font-weight:800;white-space:nowrap}
+.bank-bot{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:10px;font-size:12px;color:var(--on-pass-2)}
+.bank-bot b{display:block;font-size:13px;color:var(--on-pass)}
+.steps{list-style:none;margin:0;padding:16px}
+.steps li{position:relative;display:flex;gap:12px;padding-bottom:14px}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{content:"";position:absolute;right:13px;top:30px;bottom:2px;width:2px;background:var(--line)}
+.steps li:last-child::before{display:none}
+.steps .d{width:28px;height:28px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--net-t);color:var(--net-i)}
+.steps li:first-child .d{background:var(--cash-t);color:var(--cash-i)}
+.steps li:last-child .d{background:var(--ok);color:#fff}
+.steps .d svg{width:14px;height:14px}
+.steps b{display:block;font-size:14px;font-weight:800}
+.steps p{margin:2px 0 0;font-size:12.5px;color:var(--ink-2);line-height:1.8}
+.steps-warn{display:flex;gap:8px;align-items:flex-start;margin:0 16px 16px;padding:10px 12px;border-radius:var(--r-md);background:var(--cash-t);color:var(--cash-i);font-size:12.5px;line-height:1.8}
+.steps-warn svg{width:16px;height:16px;flex-shrink:0;margin-top:3px}
 
 /* ═══ قوانین و نوشتن ═══ */
 .rules{padding:18px;font-size:14px;line-height:2;white-space:pre-wrap;color:var(--ink-2)}
@@ -1471,7 +1518,7 @@ SubPages.topup = async function(p){
     const d = await api('topup');
     Topup.info = d;
     if (!d.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + emptyBox('شارژ فعلا ممکن نیست', 'شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.'));
-    if (d.open) { Topup.req = { txn_id:d.open.txn_id, amount:d.open.amount, card:d.card }; return Topup.step2(p); }
+    if (d.open) { Topup.req = { txn_id:d.open.txn_id, amount:d.open.amount, card:d.card, expires_at:d.open.expires_at }; return Topup.step2(p); }
     Topup.step1(p);
   } catch (err) { p.innerHTML = Top('شارژ کیف پول') + emptyBox('خوانده نشد', err.message); }
 };
@@ -1518,17 +1565,35 @@ const Topup = {
     const r = this.req, c = r.card || {};
     const num = String(c.number || '').replace(/[^\d]/g, '');
     const pretty = num.replace(/(\d{4})(?=\d)/g, '$1 ');
+    const amt = fa(r.amount), cut = amt.length - 3;
     this.img = null;
     p.innerHTML = Top('شارژ کیف پول', 'قدم 2 از 2 · پرداخت و رسید') + `
-      <div class="pass mx paycard">${TUNNEL}
-        <div class="pass-meta">دقیقا همین مبلغ را واریز کن</div>
-        <div style="display:flex;align-items:baseline;gap:8px"><span class="n" style="font-size:38px;letter-spacing:-1px;line-height:1.1">${fa(r.amount)}</span><span class="pass-meta" style="font-size:14px">تومان</span>
-          <button class="invite-copy" style="margin-inline-start:auto" onclick="App.copy('${r.amount}')" aria-label="کپی مبلغ">${ic('copy')}</button></div>
-        <div class="pass-meta" style="font-size:11.5px">سه رقم آخر شناسه توست؛ با آن رسیدت شناخته می‌شود.</div>
-        <div class="invite-link" style="margin-top:4px"><span class="invite-url" style="font-size:16px;letter-spacing:1px;color:var(--on-pass)">${esc(pretty)}</span>
-          <button class="invite-copy" onclick="App.copy('${esc(num)}')">${ic('copy')}<span>کپی</span></button></div>
-        <div class="pass-meta">${esc(c.holder || '')}${c.bank ? ' · ' + esc(c.bank) : ''}</div>
+      <div class="card pay mx" style="margin-top:8px">
+        <div class="pay-m">
+          <span class="lbl">مبلغ دقیق واریز</span>
+          <span class="pay-v n">${amt.slice(0, cut)}<u>${amt.slice(cut)}</u></span>
+          <span class="pay-r">تومان · ${N(fa(r.amount * 10))} ریال</span>
+          <button class="btn btn-sm btn-s" onclick="App.copy('${r.amount}')">${ic('copy')}کپی مبلغ</button>
+        </div>
+        ${r.expires_at ? `<div class="clock" id="clock" role="timer" aria-label="مهلت پرداخت">
+          <svg viewBox="0 0 78 78"><circle class="trk" cx="39" cy="39" r="34"/><circle class="arc" id="clock-arc" cx="39" cy="39" r="34" stroke-dasharray="213.6" stroke-dashoffset="0"/></svg>
+          <div class="clock-in"><b class="n" id="clock-t">--:--</b><span>مهلت پرداخت</span></div></div>` : ''}
       </div>
+      <div id="expired"></div>
+      <div class="bank">${TUNNEL}
+        <div class="bank-top"><span>کارت مقصد</span><span>${c.bank ? 'بانک ' + esc(c.bank) : ''}</span></div>
+        <div class="emv" aria-hidden="true"></div>
+        <div class="bank-no n">${esc(pretty)}</div>
+        <div class="bank-bot"><div>به نام<b>${esc(c.holder || '—')}</b></div>
+          <button class="invite-copy" onclick="App.copy('${esc(num)}')" aria-label="کپی شماره کارت">${ic('copy')}<span>کپی</span></button></div>
+      </div>
+      ${Sec('چطور شارژ می‌شود؟')}
+      <div class="card mx"><ol class="steps">
+        <li><span class="d n">1</span><div><b>مبلغ را دقیقا کپی کن</b><p>سه رقم آخر (${N(amt.slice(cut))}) شناسه توست و رسیدت با آن شناخته می‌شود. رندش نکن.</p></div></li>
+        <li><span class="d n">2</span><div><b>کارت به کارت کن</b><p>از اپ بانکت همین مبلغ را به کارت بالا بزن، پیش از تمام شدن مهلت.</p></div></li>
+        <li><span class="d n">3</span><div><b>عکس رسید را بفرست</b><p>اسکرین‌شات رسید بانکی را همین پایین انتخاب کن و «ارسال رسید» را بزن.</p></div></li>
+        <li><span class="d">${ic('check',2.6)}</span><div><b>کیفت شارژ می‌شود</b><p>معمولا چند دقیقه طول می‌کشد. بعد از تایید، مبلغ به کیف پولت اضافه می‌شود و در ربات خبر می‌گیری.</p></div></li>
+      </ol><div class="steps-warn">${ic('warn',2)}<span>اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمی‌شود و تاییدش طول می‌کشد.</span></div></div>
       ${Sec('عکس رسید')}
       <label class="upload mx" id="up">
         <input type="file" accept="image/*" onchange="Topup.pick(this)" hidden>
@@ -1536,8 +1601,34 @@ const Topup = {
         <span class="upload-t" id="up-t">عکس رسید را انتخاب کن</span>
         <span class="short">اسکرین‌شات یا عکس رسید بانکی</span>
       </label>
-      <div class="short" style="margin:12px var(--pad) 0">مهلت پرداخت 30 دقیقه است. بعد از تایید، مبلغ به کیف پولت اضافه می‌شود و در ربات خبر می‌گیری.</div>
       <div class="foot"><button class="btn btn-p btn-block" id="rc-go" disabled onclick="Topup.send()">ارسال رسید</button></div>`;
+    this.tick();
+  },
+
+  /* شمارش معکوس مهلت مبلغ رزرو شده، از روی زمان پایان سرور. وقتی صفحه
+     عوض شود (حلقه دیگر نیست) خودش می ایستد. مهلت که تمام شود رسید
+     همچنان فرستادنی است - شاید کاربر واریز کرده - ولی پیشنهاد مبلغ تازه
+     هم می آید. */
+  tick(){
+    clearInterval(this._clock);
+    const end = this.req && this.req.expires_at ? new Date(this.req.expires_at).getTime() : NaN;
+    if (isNaN(end)) return;
+    const TOTAL = 30 * 60 * 1000, LEN = 213.6;
+    const draw = () => {
+      const box = $('clock'); if (!box) return clearInterval(this._clock);
+      const left = Math.max(0, end - Date.now()), sec = Math.ceil(left / 1000);
+      $('clock-arc').setAttribute('stroke-dashoffset', String(LEN * (1 - Math.min(1, left / TOTAL))));
+      box.classList.toggle('low', left > 0 && left < 5 * 60 * 1000);
+      box.classList.toggle('over', left <= 0);
+      $('clock-t').textContent = left > 0 ? String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0') : 'تمام شد';
+      if (left <= 0) {
+        clearInterval(this._clock);
+        $('expired').innerHTML = `<div class="expired">${ic('warn',2)}<span>مهلت تمام شد. اگر واریز کرده‌ای رسید را بفرست، وگرنه مبلغ تازه بگیر.</span>
+          <button onclick="Topup.req=null;Topup.step1()">مبلغ تازه</button></div>`;
+      }
+    };
+    draw();
+    this._clock = setInterval(draw, 1000);
   },
   /* عکس روی گوشی کوچک می شود (حداکثر ۱۶۰۰ پیکسل، JPEG). هم آپلود روی
      اینترنت کند سریع تر می شود و هم اطلاعات جانبی عکس (مثل موقعیت
