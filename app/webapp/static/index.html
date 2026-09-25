@@ -242,38 +242,62 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 /* ═══ پلن ═══ */
 .plan{padding:16px;display:flex;flex-direction:column;gap:14px}
 .plan-name{font-size:16px;font-weight:800}
-.best{height:auto;gap:14px}
-.best-flag{align-self:flex-start;height:24px;padding:0 10px;border-radius:12px;background:var(--tunnel);color:var(--deep);font-size:11px;font-weight:800;display:flex;align-items:center;gap:5px}
-.best-flag svg{width:12px;height:12px}
 .short{font-size:12px;color:var(--ink-3);text-align:center}
 
-/* ═══ کارت پلن: حجم و قیمت هم وزن، دکمه بی تردید ═══ */
-.plan-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.plan-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.plan-stats > div{border-radius:var(--r-md);padding:10px 12px 11px;display:flex;flex-direction:column;gap:2px}
-.stat-vol{background:var(--net-t);color:var(--net-i)}
-.stat-price{background:var(--sunk);color:var(--ink)}
-.stat-l{font-size:11px;font-weight:600;opacity:.8}
-.stat-v{display:flex;align-items:baseline;gap:5px;direction:rtl}
-.stat-v .n{font-size:28px;letter-spacing:-.8px;line-height:1.1}
-.stat-price .stat-v .n{font-size:24px}
-.stat-u{font-size:12px;font-weight:700}
-.plan-stats.on-pass .stat-vol{background:rgba(70,225,244,.16);color:var(--on-pass)}
-.plan-stats.on-pass .stat-price{background:var(--pd);color:var(--on-pass)}
-.plan-stats.on-pass .stat-vol .n{font-size:34px}
-.plan-sub{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-3)}
-.plan-sub svg{width:14px;height:14px}
-.plan-sub.on-pass{color:var(--p2)}
-.plan-sub.on-pass .n{color:var(--on-pass)}
-.btn-buy{background:var(--net-btn);color:#fff;box-shadow:0 8px 18px -10px rgba(10,122,150,.8)}
-.btn-buy:active{background:var(--net-btn-d)}
-.btn-buy-pass{background:var(--on-pass);color:var(--navy);height:54px;font-size:16px}
-.btn-buy, .btn-buy-pass{justify-content:flex-start;padding:0 18px}
-.btn-buy span, .btn-buy-pass span{flex-grow:1;text-align:right}
-.buy-arrow{flex-grow:0 !important;width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.2)}
-.btn-buy-pass .buy-arrow{background:var(--navy);color:var(--on-pass)}
-.buy-arrow svg{width:16px;height:16px}
-.btn-short{background:var(--cash-t);color:var(--cash-i);font-size:14px;font-weight:700}
+/* ═══ کارت لوکیشن بالای فروشگاه ═══
+   همان صفحه «سرورها و لوکیشن ها»ی ربات، کوتاه: تعداد، ردیف کشورها،
+   و دو قول مهم (قیمت هر گیگ و تعداد دستگاه). بقیه در شیت. */
+.loc{margin:0 var(--pad) 14px;padding:0;overflow:hidden}
+.loc-top{display:flex;flex-direction:column;gap:10px;width:100%;padding:14px 16px 12px;text-align:right}
+.loc-h{display:flex;align-items:center;gap:12px}
+.loc-t{font-size:15px;font-weight:800;display:block}
+.loc-s{font-size:12px;color:var(--ink-3);display:block}
+.loc-cs{display:flex;flex-wrap:wrap;gap:6px}
+.loc-c{height:26px;padding:0 10px;border-radius:13px;background:var(--net-t);color:var(--net-i);font-size:12px;font-weight:600;display:inline-flex;align-items:center}
+.loc-c.more{background:var(--sunk);color:var(--ink-2)}
+.loc-all{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:800;color:var(--net-i);margin-inline-start:auto}
+.loc-all svg{width:14px;height:14px}
+.loc-f{display:flex;flex-direction:column;gap:8px;padding:12px 16px 14px;border-top:1px solid var(--line)}
+.loc-f div{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--ink-2);line-height:1.7}
+.loc-f svg{width:16px;height:16px;color:var(--net-i);margin-top:2px}
+.loc-g{padding:12px 0}
+.loc-g + .loc-g{border-top:1px solid var(--line)}
+.loc-g-t{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+.loc-g-n{font-size:12px;color:var(--ink-3);margin-top:2px}
+
+/* ═══ بلیت پلن ═══
+   هر پلن یک بلیت ایستاده، دوتا کنار هم. بالای خط برش حجم و مدت،
+   پایینش قیمت و خرید. به صرفه ترین پلن بلیت سرمه ای است و اول می آید.
+   نیم دایره های دو سر برش هم رنگ زمینه صفحه اند تا بریده به نظر برسند. */
+.tickets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px;padding:10px var(--pad) 0}
+.tickets > :only-child{grid-column:1 / -1}
+.tk{position:relative;display:flex;flex-direction:column;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line)}
+.tk-top{display:flex;flex-direction:column;gap:3px;padding:14px 12px 12px;min-height:100px}
+.tk-vol{display:flex;align-items:baseline;gap:4px;color:var(--net-i)}
+.tk-vol .n{font-size:32px;letter-spacing:-.9px;line-height:1.05}
+.tk-vol small{font-size:12px;font-weight:700}
+.tk-s{font-size:11.5px;color:var(--ink-3)}
+.tk-cut{height:0;border-top:2px dashed var(--line);margin:0 12px;position:relative}
+.tk-cut::before,.tk-cut::after{content:"";position:absolute;top:-10px;width:18px;height:18px;border-radius:9px;background:var(--ground);border:1px solid var(--line)}
+.tk-cut::before{right:-22px;clip-path:inset(0 50% 0 0)}
+.tk-cut::after{left:-22px;clip-path:inset(0 0 0 50%)}
+.tk-bot{display:flex;flex-direction:column;gap:8px;padding:10px 12px 12px}
+.tk-p{font-size:15px}
+.tk-p small{font-size:10.5px;font-weight:600;color:var(--ink-3);margin-inline-start:3px}
+.tk-buy{height:38px;border-radius:12px;background:var(--net-btn);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:5px;width:100%;transition:transform .15s var(--ease)}
+.tk-buy svg{width:15px;height:15px}
+.tk-buy:active{transform:scale(.97);background:var(--net-btn-d)}
+.tk-buy.low{background:var(--cash-t);color:var(--cash-i)}
+.tk-tag{position:absolute;top:-10px;inset-inline-start:10px;height:22px;padding:0 9px;border-radius:11px;font-size:10.5px;font-weight:800;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.tk-tag svg{width:11px;height:11px}
+.tk-tag.best{background:var(--tunnel);color:var(--deep)}
+.tk-tag.plain{background:var(--ai-t);color:var(--ai-i)}
+.tk.best{background:var(--navy);border-color:var(--navy);color:var(--on-pass);box-shadow:var(--shadow-pass)}
+.tk.best .tk-vol{color:var(--on-pass)}
+.tk.best .tk-s,.tk.best .tk-p small{color:var(--on-pass-2)}
+.tk.best .tk-cut{border-color:rgba(169,196,245,.35)}
+.tk.best .tk-cut::before,.tk.best .tk-cut::after{border-color:transparent}
+.tk.best .tk-buy:not(.short){background:var(--on-pass);color:var(--navy)}
 
 /* بنر ۱۶:۹ */
 .banner{margin:0 var(--pad);aspect-ratio:16/9;border-radius:var(--r-xl);overflow:hidden;background:var(--indigo);position:relative}
@@ -1112,60 +1136,62 @@ const Store = {
       const d = await api('plans'); this.data = d;
       if (d.disabled || !d.categories.length) return void ($('store-box').innerHTML = emptyBox('فعلا پلنی برای فروش نیست'));
       this.cat = Math.min(this.cat, d.categories.length - 1);
-      $('store-box').innerHTML = Tabs('cat-tabs', d.categories.map(c => ({ t:c.title, s: fa(c.plans.length) + ' پلن' })), this.cat, 'Store.pick')
-        + `<div id="plans" style="margin-top:16px"></div>`;
+      $('store-box').innerHTML = (d.locations ? this.locCard(d.locations) : '')
+        + Tabs('cat-tabs', d.categories.map(c => ({ t:c.title, s: fa(c.plans.length) + ' پلن' })), this.cat, 'Store.pick')
+        + `<div id="plans"></div>`;
       this.renderPlans();
     } catch (err) { $('store-box').innerHTML = emptyBox('پلن‌ها خوانده نشد', err.message); }
   },
 
+  /* کارت لوکیشن: همان حرف صفحه لوکیشن های ربات، و دو چیزی که خریدار
+     قبل از انتخاب پلن می پرسد - قیمت هر گیگ چرا فرق می کند و روی چند
+     دستگاه کار می کند. */
+  locCard(L){
+    const more = L.countries - L.highlights.length;
+    return `<div class="card loc"><button class="loc-top" onclick="Sheets.locations()">
+        <span class="loc-h"><span class="ic navy">${ic('globe')}</span>
+          <span style="flex-grow:1;min-width:0"><span class="loc-t">${N(L.configs)} کانفیگ در ${N(L.countries)} کشور</span>
+          <span class="loc-s">همه توی یک لینک؛ هر کدوم رو خواستی توی اپ انتخاب کن</span></span></span>
+        <span class="loc-cs">${L.highlights.map(c => `<span class="loc-c">${esc(c)}</span>`).join('')}${more > 0 ? `<span class="loc-c more">${N('+' + more)}</span>` : ''}
+          <span class="loc-all">همه کشورها${ic('chev',2.2)}</span></span>
+      </button>
+      <div class="loc-f">
+        <div>${ic('phone')}<span>روی همه دستگاه‌هات کار می‌کنه، بدون محدودیت تعداد دستگاه</span></div>
+        <div>${ic('store')}<span>قیمت هر گیگ به پلن بستگی داره؛ هرچی حجم بیشتر، هر گیگ ارزون‌تر</span></div>
+      </div></div>`;
+  },
+
   pick(i){ if (i === this.cat) return; this.cat = i; App.haptic(); slideTabs('cat-tabs', i); this.renderPlans(); },
 
-  /* به صرفه ترین پلن دسته (کمترین قیمت هر گیگ) خودش یک کارت عبور سرمه ای
-     است؛ بقیه کارت سفید. کاربر بدون حساب کردن می بیند کدام را بخرد. */
+  /* به صرفه ترین پلن دسته (کمترین قیمت هر گیگ) بلیت سرمه ای است و اول
+     می آید؛ بقیه بلیت سفید. کاربر بدون حساب کردن می بیند کدام را بخرد. */
   renderPlans(){
     const plans = this.data.categories[this.cat].plans;
     const bal = App.boot.user.balance;
     const per = plans.map(x => x.data_gb ? x.price / x.data_gb : Infinity);
     const bi = plans.length > 1 && isFinite(Math.min(...per)) ? per.indexOf(Math.min(...per)) : -1;
     const order = bi >= 0 ? [plans[bi], ...plans.filter((_, i) => i !== bi)] : plans;
-    $('plans').innerHTML = order.map(x => x === plans[bi] ? this.best(x, bal) : this.card(x, bal)).join('<div class="gap"></div>');
+    $('plans').innerHTML = `<div class="tickets">${order.map(x => this.ticket(x, bal, x === plans[bi])).join('')}</div>`;
   },
 
-  /* دکمه خرید باید بی تردید دکمه باشد: توپر، به رنگ دسته اینترنت، با
-     آیکن و پیکان. نسخه قبل دکمه سفید با مرز نازک روی کارت سفید بود و
-     کاربر نمی فهمید دکمه است. کمبود موجودی کهربایی است، رنگ پول. */
-  buyBtn(x, bal, onPass){
-    if (bal < x.price)
-      return `<button class="btn btn-block btn-short" onclick="App.go('topup')">${ic('wallet')}<span>${N(money(x.price - bal))} تومان کم داری · شارژ</span></button>`;
-    return `<button class="btn btn-block ${onPass ? 'btn-buy-pass' : 'btn-buy'}" onclick="Buy.confirm(${x.id})">
-      ${ic('store',2)}<span>خرید ${esc(x.title)}</span><span class="buy-arrow">${ic('chev',2.4)}</span></button>`;
-  },
-
-  /* حجم و قیمت هم وزن اند: دو ستون کنار هم، هر دو عدد درشت. حجم قبلا
-     در زیرعنوان 12 پیکسلی کنار روز گم بود، در حالی که برای خریدار
-     اینترنت به اندازه قیمت مهم است. */
-  stats(x, onPass){
+  /* دکمه خرید توپر و به رنگ دسته اینترنت است. کمبود موجودی کهربایی
+     است، رنگ پول، و مستقیم به شارژ می برد. */
+  ticket(x, bal, best){
     const perGb = x.data_gb ? fa(Math.round(x.price / x.data_gb)) : '—';
-    return `<div class="plan-stats${onPass ? ' on-pass' : ''}">
-      <div class="stat-vol"><span class="stat-l">حجم</span>
-        <span class="stat-v"><span class="n">${esc(x.data_gb)}</span><span class="stat-u">گیگ</span></span></div>
-      <div class="stat-price"><span class="stat-l">قیمت</span>
-        <span class="stat-v"><span class="n">${fa(x.price)}</span><span class="stat-u">تومان</span></span></div>
-    </div>
-    <div class="plan-sub${onPass ? ' on-pass' : ''}">${ic('globe')}<span>${N(x.duration_days)} روز · همه کشورها · هر گیگ ${N(perGb)} تومان</span></div>`;
-  },
-
-  best(x, bal){
-    return `<div class="pass best mx">${TUNNEL}
-      <div class="plan-head"><span class="best-flag">${ic('spark',2.2)}بهترین ارزش</span></div>
-      <div style="font-size:18px;font-weight:800">${esc(x.title)}</div>
-      ${this.stats(x, true)}${this.buyBtn(x, bal, true)}</div>`;
-  },
-
-  card(x, bal){
-    return `<div class="card plan mx">
-      <div class="plan-head"><span class="plan-name">${esc(x.title)}</span>${x.badge ? Badge('ai', x.badge) : ''}</div>
-      ${this.stats(x, false)}${this.buyBtn(x, bal, false)}</div>`;
+    const tag = best ? `<span class="tk-tag best">${ic('spark',2.4)}بهترین ارزش</span>`
+              : x.badge ? `<span class="tk-tag plain">${esc(x.badge)}</span>` : '';
+    const btn = bal < x.price
+      ? `<button class="tk-buy low" onclick="App.go('topup')">${ic('wallet')}<span>${N(money(x.price - bal))} کم</span></button>`
+      : `<button class="tk-buy" onclick="Buy.confirm(${x.id})" aria-label="خرید ${esc(x.title)}">${ic('store',2)}خرید</button>`;
+    return `<div class="tk${best ? ' best' : ''}">${tag}
+      <div class="tk-top">
+        <span class="tk-vol">${x.data_gb ? `${N(x.data_gb)}<small>گیگ</small>` : `${N('∞')}<small>نامحدود</small>`}</span>
+        <span class="tk-s">${N(x.duration_days)} روز · همه کشورها</span>
+        <span class="tk-s">هر گیگ ${N(perGb)} تومان</span>
+      </div>
+      <div class="tk-cut"></div>
+      <div class="tk-bot"><span class="tk-p">${N(fa(x.price))}<small>تومان</small></span>${btn}</div>
+    </div>`;
   },
 
   async loadAi(){
@@ -1608,6 +1634,17 @@ function Bubble(m, first, tail, turn){
 /* ═════════ شیت ها ═════════ */
 const Sheets = {
   last:null,
+  /* صفحه لوکیشن های ربات، از داده ای که همراه پلن ها آمده */
+  locations(){
+    const L = Store.data && Store.data.locations; if (!L) return;
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:4px"><span class="ic lg navy">${ic('globe')}</span>
+        <div><div class="sheet-t">سرورها و لوکیشن‌ها</div><div class="topbar-s">${N(L.configs)} کانفیگ در ${N(L.countries)} کشور</div></div></div>
+      <div class="topbar-s" style="margin:10px 0 4px">با هر خریدی همه این لوکیشن‌ها رو یکجا می‌گیری؛ لازم نیست جدا بخری.</div>
+      ${L.groups.map(g => `<div class="loc-g"><div class="loc-g-t">${esc(g.title)}${g.count ? Badge('', fa(g.count) + ' کانفیگ') : ''}</div>
+        ${g.countries.length > 2 ? `<div class="loc-cs" style="margin:8px 0 6px">${g.countries.map(c => `<span class="loc-c">${esc(c)}</span>`).join('')}</div>` : ''}
+        <div class="loc-g-n">${esc(g.note)}</div></div>`).join('')}
+      <button class="btn btn-s btn-block" style="margin-top:8px" onclick="App.closeSheet()">بستن</button>`);
+  },
   connect(){
     const s = this.last; if (!s) return;
     App.sheet(`<div class="sheet-t" style="margin-bottom:4px">وصل شوم</div><div class="topbar-s" style="margin-bottom:14px">برنامه‌ات را بزن؛ اشتراک خودکار اضافه می‌شود.</div>

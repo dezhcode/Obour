@@ -236,7 +236,7 @@ async def _active_discount(
 
 def _plan_body(plan: dict, user: dict) -> str:
     # خط لوکیشن ها به همه پلن ها اضافه می شود چون همه پلن ها همان
-    # ۲۲ کانفیگ را دارند؛ اگر روزی پلن محدود به لوکیشن اضافه شد،
+    # ۲۳ کانفیگ را دارند؛ اگر روزی پلن محدود به لوکیشن اضافه شد،
     # این خط باید بر اساس خود پلن ساخته شود.
     return texts.PLAN_DETAIL.format(
         badge=texts.PLAN_BADGE_BEST if plan.get("badge") else texts.PLAN_BADGE_PLAIN,
