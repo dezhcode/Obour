@@ -194,6 +194,59 @@ html.perf-low .cat-next > svg{animation:none}
 .ord-big{display:flex;align-items:center;gap:14px;margin-top:18px}
 .ord-big .ai-mono.lg{box-shadow:0 0 0 3px rgba(255,255,255,.16)}
 .ord-t{font-size:20px;font-weight:800;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* ═══ کارت صدفی یخی ═══
+   همان کارت عبور، روی زمینه صدفی روشن و بدون برجستگی: لبه نورانی یک
+   پیکسلی، رگه درخشش ملایم، و نمودار مصرف کم رنگ پشت محتوا. --acc رنگ
+   تأکید هر کارت است (عدد، نمودار، آیکن دسته). */
+.pass.pl{--acc:#1D55F0;--acc2:#6A55E0;--p2:#56637F;--pd:rgba(255,255,255,.72);--tunnel:#0A2572;
+  color:#0A1633;isolation:isolate;
+  background:conic-gradient(from 215deg at 72% 28%,#E4F2FF,#ECE9FF,#E0FBF6,#F3F9FF,#E4F2FF);
+  box-shadow:0 22px 40px -26px rgba(29,85,240,.45),0 2px 6px -2px rgba(10,37,114,.08),inset 0 0 0 1px rgba(255,255,255,.85)}
+.pass.pl::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:2;
+  background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(160,190,255,.35) 40%,rgba(255,255,255,.2) 60%,rgba(123,108,246,.35));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.pass.pl::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(118deg,transparent 32%,rgba(255,255,255,.65) 45%,transparent 58%);mix-blend-mode:soft-light}
+.pass.pl > *{z-index:3}
+.pass.pl .pass-art{opacity:.035;z-index:0}
+.pass.pl .pl-chart{position:absolute !important;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.pass.pl .pass-st{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#0B7A55;font-weight:700}
+.pass.pl .pass-st i{width:6px;height:6px;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 18%,transparent)}
+.pass.pl .pass-st.warn{color:#B25E0B}.pass.pl .pass-st.bad{color:#C0392B}.pass.pl .pass-st.info{color:#3F2DA6}
+.pass.pl .pass-big{margin-top:12px}
+.pass.pl .pass-num{background:linear-gradient(95deg,var(--acc) 10%,var(--acc2) 60%,#0E8FAE);-webkit-background-clip:text;background-clip:text;color:transparent;padding-bottom:2px}
+.pass.pl .pass-unit{font-size:13px}
+.pass.pl.low{--acc:#C2410C;--acc2:#E07A1F}
+.pass.pl.dim{--acc:#56637F;--acc2:#8A94AE;filter:saturate(.35)}
+.pl-split{display:flex;align-items:center;gap:12px;margin-top:8px;font-size:11.5px;color:var(--p2)}
+.pl-split span{display:inline-flex;align-items:center;gap:5px}
+.pl-split i{width:8px;height:8px;border-radius:3px;background:var(--acc)}
+.pl-split i.t{background:rgba(14,143,174,.35)}
+.pl-split .n{color:#0A1633;font-weight:700}
+.pass.pl .pass-meta .n{color:#0A1633;font-weight:700}
+.pass.pl .pass-btn{height:38px;padding:0 16px;border-radius:14px;gap:6px;color:#fff;background:linear-gradient(180deg,#16244F,#0A1633);box-shadow:0 6px 14px -8px rgba(10,22,51,.6)}
+.pass.pl .pass-btn svg{width:16px;height:16px}
+.pl-ib{width:38px;height:38px;border-radius:14px;background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#0A2572;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pl-ib svg{width:17px;height:17px}
+.pl-acts{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pass.pl.cat-vpn,.pass.pl.cat-work{--acc:#1D55F0;--acc2:#3B7BFF}
+.pass.pl.cat-ai{--acc:#5B45D6;--acc2:#8A6CF6}
+.pass.pl.cat-fun{--acc:#D2462E;--acc2:#F07A4A}
+.pass.pl.cat-tools{--acc:#0B7F9C;--acc2:#1FB5C9}
+.pass.pl .cat-ic{background:color-mix(in srgb,var(--acc) 12%,#fff);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9)}
+.pass.pl .cat-ic svg{color:var(--acc)}
+.pass.pl .cat-sub{color:#3E4B69}
+.pass.pl .cat-from .n{color:#0A1633}
+.pass.pl .cat-stack .ai-mono{box-shadow:0 0 0 2.5px #F2F6FF}
+.pass.pl .cat-more{color:var(--acc)}
+.pass.pl .cat-next{background:rgba(255,255,255,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#0A1633}
+.pass.pl .cat-next-i{background:color-mix(in srgb,var(--acc) 12%,#fff)}
+.pass.pl .cat-next-i svg{color:var(--acc)}
+.pass.pl .cat-next > svg{color:var(--acc)}
+.pass.pl .ord-big .ai-mono.lg{box-shadow:0 8px 18px -10px rgba(10,22,51,.45)}
+.pass.pl .ord-t{color:#0A1633}
+html.perf-low .pass.pl::after,html.perf-low .pass.pl .pass-st,html.perf-low .pl-ib,html.perf-low .pass.pl .cat-next{-webkit-backdrop-filter:none;backdrop-filter:none}
 #store-box{will-change:transform,opacity}
 html.perf-low #store-box{will-change:auto}
 
@@ -1377,19 +1430,51 @@ const STATUS = {
   finished:{ t:'حجم تمام شد', c:'bad' },
   expired: { t:'منقضی',       c:'bad' },
 };
+/* نمودار نرم مصرف پشت کارت: از روز خرید تا امروز مصرف تجمعی بالا می رود،
+   خط نقطه چین بالا سقف حجم است و فاصله منحنی تا آن، حجم باقی مانده.
+   خط چین بعد از امروز می گوید با همین سرعت آخر دوره به کجا می رسی. */
+let plSeq = 0;
+function PlChart(s){
+  if (!s.limit_bytes || !s.created_at || !s.expire_at) return '';
+  const W = 328, H = 214, TOP = 92, BOT = 214, id = 'pl' + (++plSeq);
+  const t0 = new Date(s.created_at).getTime(), t1 = new Date(s.expire_at).getTime(), now = Date.now();
+  const span = Math.max(1, t1 - t0), frac = Math.max(.04, Math.min(1, (now - t0) / span));
+  const u = Math.max(0, Math.min(1, s.used_bytes / s.limit_bytes));
+  const low = s.status === 'warn', dead = s.expired || s.status === 'finished';
+  const [a, b, lim] = dead ? ['#8A94AE', '#B4BCD0', '#8A94AE'] : low ? ['#E07A1F', '#F2A93B', '#C0392B'] : ['#3D7BFF', '#7B6CF6', '#0E8FAE'];
+  const tx = +(frac * W).toFixed(1), ty = +(BOT - u * (BOT - TOP)).toFixed(1);
+  /* منحنی ملایم S شکل؛ داده روزانه در این فهرست نیست و شکل فقط نرم است، ابتدا و انتهایش واقعی است */
+  const c = `M0 ${BOT}C${(tx * .35).toFixed(1)} ${BOT} ${(tx * .55).toFixed(1)} ${ty + (BOT - ty) * .35} ${tx} ${ty}`;
+  const proj = Math.min(1, u / frac), py = (BOT - proj * (BOT - TOP)).toFixed(1);
+  return `<svg class="pl-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><defs>
+    <linearGradient id="${id}u" x1="0" y1="${TOP}" x2="0" y2="${BOT}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${a}" stop-opacity=".26"/><stop offset=".7" stop-color="${b}" stop-opacity=".08"/><stop offset="1" stop-color="${b}" stop-opacity="0"/></linearGradient>
+    <linearGradient id="${id}l" x1="0" y1="0" x2="${tx}" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${b}" stop-opacity=".15"/><stop offset="1" stop-color="${a}" stop-opacity=".55"/></linearGradient>
+    <linearGradient id="${id}r" x1="0" y1="${TOP}" x2="0" y2="${ty}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${lim}" stop-opacity=".16"/><stop offset="1" stop-color="${lim}" stop-opacity=".02"/></linearGradient>
+    <radialGradient id="${id}g"><stop offset="0" stop-color="${a}" stop-opacity=".45"/><stop offset="1" stop-color="${a}" stop-opacity="0"/></radialGradient></defs>
+    <rect x="${tx - 1}" y="${TOP}" width="2" height="${Math.max(0, ty - TOP)}" fill="url(#${id}r)"/>
+    <path d="M0 ${TOP}H${W}" stroke="${lim}" stroke-opacity=".28" stroke-width="1.2" stroke-dasharray="2 5" stroke-linecap="round"/>
+    <path d="${c}L${tx} ${BOT}H0Z" fill="url(#${id}u)"/>
+    <path d="${c}" fill="none" stroke="url(#${id}l)" stroke-width="2" stroke-linecap="round"/>
+    ${tx < W ? `<path d="M${tx} ${ty}L${W} ${py}" stroke="${a}" stroke-opacity=".22" stroke-width="1.5" stroke-dasharray="3 5" stroke-linecap="round"/>` : ''}
+    <circle cx="${tx}" cy="${ty}" r="11" fill="url(#${id}g)"/><circle cx="${tx}" cy="${ty}" r="3.2" fill="#fff" stroke="${a}" stroke-opacity=".8" stroke-width="1.6"/></svg>`;
+}
 function Pass(s, color, btn){
   const st = STATUS[s.status] || STATUS.active;
   const left = s.limit_bytes ? Math.max(0, s.limit_bytes - s.used_bytes) : null;
-  const pct = s.limit_bytes ? Math.max(0, 100 - Math.min(100, s.percent)) : 100;
   const dead = s.expired || s.status === 'finished';
+  const unit = v => esc(gbShort(v).replace(/[GM]$/, ''));
   const b = btn || (dead
-    ? `<button class="pass-btn" onclick="event.stopPropagation();App.tab('store')">تمدید</button>`
-    : `<button class="pass-btn" onclick="event.stopPropagation();App.go('detail',${s.id})">اتصال</button>`);
-  return `<div class="pass ${color}${dead ? ' dim' : ''}" onclick="App.go('detail',${s.id})" role="button" aria-label="${esc(s.title)}">${TUNNEL}
+    ? `<button class="pass-btn" onclick="event.stopPropagation();App.tab('store')">${ic('refresh', 2)}تمدید</button>`
+    : `<button class="pass-btn" onclick="event.stopPropagation();App.go('detail',${s.id})">${ic('bolt', 2)}اتصال</button>`);
+  const split = s.limit_bytes
+    ? `<div class="pl-split"><span><i></i>مصرف <b class="n">${unit(s.used_bytes)}</b></span><span><i class="t"></i>کل <b class="n">${unit(s.limit_bytes)}</b> ${s.limit_bytes >= GB ? 'گیگ' : 'مگ'}</span></div>`
+    : `<div class="pl-split"><span><i></i>مصرف <b class="n">${unit(s.used_bytes)}</b> ${s.used_bytes >= GB ? 'گیگ' : 'مگ'}</span></div>`;
+  return `<div class="pass pl${s.status === 'warn' ? ' low' : ''}${dead ? ' dim' : ''}" onclick="App.go('detail',${s.id})" role="button" aria-label="${esc(s.title)}">${PlChart(s)}${TUNNEL}
     <div class="pass-head"><span class="pass-name">${esc(s.title)}</span><span class="pass-st ${st.c}"><i></i>${st.t}</span></div>
-    <div class="pass-big"><span class="pass-num n">${left == null ? '∞' : esc(gbShort(left).replace(/[GM]$/, ''))}</span><span class="pass-unit">${left == null ? 'نامحدود' : (left >= GB ? 'گیگ مانده' : 'مگ مانده')}</span></div>
-    <div class="pass-rail"><span style="width:${pct}%"></span></div>
-    <div class="pass-foot"><span class="pass-meta">${dead ? 'منقضی شده' : `${N(s.days_left)} روز · تا ${N(jdate(s.expire_at))}`}</span>${b}</div>
+    <div class="pass-big"><span class="pass-num n">${left == null ? '∞' : unit(left)}</span><span class="pass-unit">${left == null ? 'نامحدود' : (left >= GB ? 'گیگ مانده' : 'مگ مانده')}</span></div>
+    ${split}
+    <div class="pass-foot"><span class="pass-meta">${dead ? `منقضی شده · <span class="n">${N(jdate(s.expire_at))}</span>` : `<span class="n">${N(s.days_left)}</span> روز · تا <span class="n">${N(jdate(s.expire_at))}</span>`}</span>
+      <span class="pl-acts">${btn ? '' : `<button class="pl-ib" onclick="event.stopPropagation();Sheets.qr(${s.id})" aria-label="QR">${ic('qr', 2)}</button>`}${b}</span></div>
   </div>`;
 }
 /* اسلایدر کارت های عبور. رنگ هر کارت از جایگاهش می آید: اول سرمه ای،
@@ -1446,7 +1531,7 @@ const ORDER_ST = { delivered:['','تحویل شد'], done:['','تحویل شد']
 function OrderPass(o){
   const st = ORDER_ST[o.status] || ['', o.status], cat = SHOP_CATS[o.category] ? o.category : 'ai';
   const kindTxt = { link:'لینک فعال‌سازی', manual:'تحویل دستی', slot:'فعال روی ایمیل', upgrade_account:'ارتقای اکانت' }[o.kind] || 'اکانت آماده';
-  return `<div class="${'pass ord-pass cat-' + cat}" onclick="App.go('ai_order', ${o.id})" role="button" aria-label="${esc(o.title)}">${TUNNEL}
+  return `<div class="${'pass pl ord-pass cat-' + cat}" onclick="App.go('ai_order', ${o.id})" role="button" aria-label="${esc(o.title)}">${TUNNEL}
     <div class="pass-head"><span class="pass-name"><span>${SHOP_CATS[cat][2]}</span></span><span class="pass-st ${st[0]}"><i></i>${st[1]}</span></div>
     <div class="ord-big">${AiThumb({ title:o.title, image:o.image, brand:o.brand }, 'lg')}
       <div style="min-width:0"><div class="ord-t ai-lat">${esc(o.title)}</div><div class="pass-meta">${kindTxt}</div></div></div>
@@ -1492,7 +1577,7 @@ function CatDeck(active, counts){
     const stack = key === 'vpn'
       ? ''
       : list.slice(0, 5).map(x => AiThumb(x)).join('') + (list.length > 5 ? `<span class="cat-more">${esc('+' + fa(list.length - 5))}</span>` : '');
-    return `<div class="slide"><div class="${'pass cat-pass cat-' + key}" onclick="Store.tapCat('${key}')" role="button" aria-label="${esc(I18N.t(t))}">${TUNNEL}
+    return `<div class="slide"><div class="${'pass pl cat-pass cat-' + key}" onclick="Store.tapCat('${key}')" role="button" aria-label="${esc(I18N.t(t))}">${TUNNEL}
       <div class="pass-head"><span class="pass-name"><span class="cat-ic">${ic(icon, 2)}</span><span class="cat-t">${t}</span></span>${key === 'vpn' ? '' : `<span class="pass-st"><i></i>${esc(pill)}</span>`}</div>
       <div class="cat-sub">${key === 'vpn' ? 'کانفیگ پرسرعت، همه کشورها، همه توی یک لینک' : sub}</div>
       <div class="cat-row"><div class="cat-stack">${stack || `<span class="pass-meta">روزانه، هفتگی و ماهانه</span>`}</div>
