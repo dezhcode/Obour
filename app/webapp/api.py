@@ -841,6 +841,55 @@ async def purchase(
     }
 
 
+async def custom_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """جدول قیمت «بساز به سلیقه خودت»: همه ترکیب های حجم و مدت.
+
+    ۶۴ عدد است؛ یک بار فرستاده می شود تا لغزنده ها بی درنگ قیمت را نشان
+    دهند. موقع خرید قیمت دوباره در سرور حساب می شود.
+    """
+    await _require_user(db, wuser)
+    from app.keyboards import CUSTOM_DAY_STEPS, CUSTOM_GB_STEPS
+    from app.utils import custom_price
+
+    if not features.is_on("shop_custom"):
+        return {"enabled": False}
+    return {
+        "enabled": True,
+        "gb": list(CUSTOM_GB_STEPS),
+        "days": list(CUSTOM_DAY_STEPS),
+        "prices": [[custom_price(g, d, config.custom_rate_per_gb) for d in CUSTOM_DAY_STEPS] for g in CUSTOM_GB_STEPS],
+    }
+
+
+async def custom_buy(
+    db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+    gb: int, days: int, nonce: str, bot=None,  # noqa: ANN001
+) -> dict:
+    """خرید سرویس دلخواه؛ همان دروازه ها و خطاهای خرید پلن."""
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_custom") or not features.is_on("shop_vpn"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    if not user.get("rules_accepted_at") and await db.get_setting("rules_enabled", "1") == "1":
+        raise ApiError("اول باید قوانین را در ربات بپذیری", 403, "rules")
+    result = await purchase_svc.purchase_custom(
+        db, panel, user, int(gb), int(days), idem=f"wac:{wuser.id}:{nonce}"[:120],
+    )
+    if not result.ok:
+        status, msg = _PURCHASE_ERRORS.get(result.error, (400, "خرید انجام نشد"))
+        raise ApiError(msg, status, result.error)
+    if bot is not None:
+        try:
+            await referral_mod.reward_purchase(bot, db, user, result.price, result.txn_id, "یک سرویس دلخواه ساخت")
+        except Exception:  # noqa: BLE001
+            log.warning("پاداش معرف ثبت نشد txn=%s", result.txn_id, exc_info=True)
+    return {
+        "ok": True, "service_id": result.service_id, "sub_url": result.sub_url,
+        "title": result.label or f"{i18n.t('سرویس')} {result.service_id}",
+        "price": result.price, "balance": result.balance_after,
+        "plan": {"title": "", "data_gb": int(gb), "duration_days": int(days)},
+    }
+
+
 # کد خطای سرویس -> (کد HTTP، متنی که کاربر مینی اپ می بیند)
 _PURCHASE_ERRORS = {
     purchase_svc.PLAN_UNAVAILABLE: (404, "این پلن دیگر موجود نیست"),
@@ -865,6 +914,7 @@ ROUTES = {
     "topup": topup_info,
     "crypto": crypto_info,
     "stars": stars_info,
+    "custom": custom_info,
     "rules": rules,
     "guide": guide,
 }

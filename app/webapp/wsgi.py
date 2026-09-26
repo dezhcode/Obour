@@ -253,7 +253,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
 
     # فهرست سفید نوشتن. هر مسیر دیگری خواندنی می ماند، تا اگر روزی
     # اندپوینتی اضافه شد بی سروصدا قابل نوشتن نشود.
-    WRITE_PATHS = ("/api/purchase", "/api/topup/start", "/api/topup/receipt",
+    WRITE_PATHS = ("/api/purchase", "/api/custom/buy", "/api/topup/start", "/api/topup/receipt",
                    "/api/rules/accept", "/api/ticket/send", "/api/lang",
                    "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
                    "/api/stars/start",
@@ -554,6 +554,23 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
         if name == "crypto/status":
             return _json(start_response, runtime.run(webapi.crypto_status(
                 db, panel, wuser, invoice_id=int(query.get("id") or 0), bot=runtime.bot), timeout=40))
+
+        # ---------- خرید دلخواه ----------
+        if name == "custom/buy":
+            if method != "POST":
+                return _json(start_response, {"error": "خرید فقط با POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=512)
+            try:
+                gb, days = int(body.get("gb") or 0), int(body.get("days") or 0)
+            except (TypeError, ValueError):
+                gb = days = 0
+            nonce = str(body.get("nonce") or "")[:64]
+            if gb <= 0 or days <= 0 or len(nonce) < 8:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            return _json(start_response, runtime.run(webapi.custom_buy(
+                db, panel, wuser, gb=gb, days=days, nonce=nonce, bot=runtime.bot), timeout=90))
 
         # ---------- پنل ادمین ----------
         # هر تابع admin_api خودش ادمین بودن را از روی آیدی امضا شده
