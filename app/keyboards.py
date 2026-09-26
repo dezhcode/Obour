@@ -1773,6 +1773,7 @@ def admin_ai_kb(has_key: bool) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     _add(kb, "🔑 کلید API", style=PRIMARY, callback_data="adm:ai:key")
     _add(kb, "💱 نرخ دلار", callback_data="adm:ai:f:ai_usd_rate")
+    _add(kb, "➕ سود ثابت (تومان)", style=PRIMARY, callback_data="adm:ai:f:ai_markup_toman")
     _add(kb, "📈 درصد سود", callback_data="adm:ai:f:ai_profit_percent")
     _add(kb, "💳 درصد کارمزد", callback_data="adm:ai:f:ai_fee_percent")
     _add(kb, "🛡 حاشیه نوسان", callback_data="adm:ai:f:ai_buffer_percent")
@@ -1784,7 +1785,7 @@ def admin_ai_kb(has_key: bool) -> InlineKeyboardMarkup:
         _btn(kb, "bell", "موجود شد، خبردار کن", style=SUCCESS, callback_data="adm:ai:restock")
     _add(kb, "🔎 سفارش های مبهم", callback_data="adm:ai:unknown")
     _add(kb, "🔙 تنظیمات", callback_data="adm:set")
-    kb.adjust(1, 2, 2, 2, 2, 1, 2) if has_key else kb.adjust(1, 2, 2, 2, 1, 1)
+    kb.adjust(1, 1, 1, 2, 2, 2, 2, 1, 2) if has_key else kb.adjust(1, 1, 1, 2, 2, 2, 1, 1)
     return kb.as_markup()
 
 

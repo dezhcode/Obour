@@ -12,6 +12,13 @@
     → اگر سود ریالی از حداقل کمتر شد، حداقل اعمال می شود
     → رند رو به بالا به نزدیک ترین واحد
 
+سود ثابت (ai_markup_toman):
+اگر ادمین آن را بیشتر از صفر بگذارد، قیمت ساده می شود:
+    قیمت کاربر = قیمت API به تومان + همین مبلغ ثابت (بعد رند رو به بالا)
+و درصد سود، کارمزد، حاشیه نوسان و حداقل سود نادیده گرفته می شوند. یعنی
+قیمت همیشه دقیقا همین مقدار (مثلا ۱۰۰، ۱۵۰ یا ۲۰۰ هزار تومان) از قیمت
+محصول در API بالاتر است. صفر = برگشت به حالت درصدی.
+
 چرا حاشیه نوسان جدا از سود؟
 اگر همه را در یک عدد جمع کنی، وقتی دلار می پرد نمی فهمی سود واقعی ات
 چقدر آب رفته. جدا بودنشان یعنی می شود گفت «۲۰٪ سود می خواهم و ۸٪ هم
@@ -31,6 +38,8 @@ from app.db import Database
 # کلید تنظیمات -> (عنوان فارسی، پیش فرض، توضیح)
 FIELDS: dict[str, tuple[str, str, str]] = {
     "ai_usd_rate": ("نرخ دلار (تومان)", "0", "قیمت هر دلار به تومان"),
+    "ai_markup_toman": ("سود ثابت (تومان)", "0",
+                        "قیمت کاربر = قیمت API + همین مبلغ، مثلا 100000. صفر یعنی حالت درصدی"),
     "ai_profit_percent": ("درصد سود", "20", "سود خالص شما"),
     "ai_fee_percent": ("درصد کارمزد", "3", "کارمزد انتقال پول و درگاه"),
     "ai_buffer_percent": ("حاشیه نوسان ارز", "8", "سپر در برابر جهش نرخ"),
@@ -50,6 +59,7 @@ class Breakdown:
     fee: int
     buffer: int
     final: int
+    fixed: int = 0   # سود ثابت تومانی؛ صفر یعنی حالت درصدی
 
     @property
     def net_profit(self) -> int:
@@ -72,6 +82,14 @@ def compute(usd: float, cfg: dict[str, float]) -> Breakdown:
     """قیمت نهایی تومانی از قیمت دلاری."""
     rate = int(cfg.get("ai_usd_rate") or 0)
     base = usd * rate
+    step = int(cfg.get("ai_round_to") or 1) or 1
+
+    # حالت سود ثابت: قیمت API + مبلغ ثابت، بدون درصدها
+    fixed = int(cfg.get("ai_markup_toman") or 0)
+    if fixed > 0:
+        final = int(math.ceil((base + fixed) / step) * step)
+        return Breakdown(usd=usd, rate=rate, base=int(base), profit=final - int(base),
+                         fee=0, buffer=0, final=final, fixed=fixed)
     profit = base * (cfg.get("ai_profit_percent", 0) / 100)
     fee = base * (cfg.get("ai_fee_percent", 0) / 100)
     buffer_ = base * (cfg.get("ai_buffer_percent", 0) / 100)
@@ -84,7 +102,6 @@ def compute(usd: float, cfg: dict[str, float]) -> Breakdown:
     if (total - base - fee) < min_profit:
         total = base + fee + min_profit
 
-    step = int(cfg.get("ai_round_to") or 1) or 1
     final = int(math.ceil(total / step) * step)
 
     return Breakdown(
@@ -109,6 +126,15 @@ def is_configured(cfg: dict[str, float]) -> bool:
 
 def explain(b: Breakdown) -> str:
     """ریز محاسبه، برای صفحه تنظیمات ادمین."""
+    if b.fixed:
+        return (
+            "╮── 🧮 ریز قیمت (سود ثابت)\n"
+            f"│   \u2068{b.usd:g}\u2069 دلار\n\n"
+            f"├ قیمت API (× \u2068{b.rate:,}\u2069): \u2068{b.base:,}\u2069\n"
+            f"├ سود ثابت: \u2068{b.fixed:,}\u2069\n\n"
+            f"💰 قیمت کاربر: <b>\u2068{b.final:,}\u2069</b> تومان\n"
+            f"╯─ سود شما: \u2068{b.net_profit:,}\u2069 تومان"
+        )
     return (
         "╮── 🧮 ریز قیمت\n"
         f"│   \u2068{b.usd:g}\u2069 دلار\n\n"
