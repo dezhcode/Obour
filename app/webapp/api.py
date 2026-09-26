@@ -166,7 +166,7 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
             "link": f"https://t.me/{bot_username}" if bot_username else "",
         },
         # روش های شارژ این کاربر؛ کارت به کارت فقط برای فارسی
-        "pay_methods": (methods := await payments_svc.available(db)),
+        "pay_methods": (methods := await payments_svc.available(db, telegram_id=wuser.id)),
         "crypto": payments_svc.CRYPTO in methods,
         # فقط برای نمایش ردیف «پنل مدیریت»؛ هر درخواست ادمین جدا بررسی می شود
         "is_admin": wuser.id in config.admin_ids,
@@ -692,7 +692,7 @@ async def crypto_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
     کردن ساخته می شود ولی فقط برای نمایش است.
     """
     user = await _require_user(db, wuser)
-    if not crypto_svc.enabled():
+    if not crypto_svc.allowed_for(wuser.id):
         return {"enabled": False}
     r = await crypto_svc.rates(db)
     prev = await db.open_crypto_invoice(user["id"])
@@ -747,6 +747,8 @@ async def crypto_pay(db: "Database", panel: "Panel | None", wuser: WebAppUser, *
     """
     user = await _require_user(db, wuser)
     inv = await _own_invoice(db, user, invoice_id)
+    if not crypto_svc.allowed_for(wuser.id):
+        raise ApiError("پرداخت کریپتو فعلا فعال نیست", 503, crypto_svc.OFF)
     if inv["status"] != "pending":
         raise ApiError("این فاکتور دیگر باز نیست", 409, "not_open")
     try:

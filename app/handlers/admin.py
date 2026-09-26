@@ -1673,7 +1673,7 @@ async def _crypto_settings_lines(db: Database) -> dict:
     if not crypto.enabled():
         state = "خاموش · TON_RECEIVE_ADDRESS در .env خالی یا نامعتبر است"
     else:
-        net = "🧪 testnet" if crypto.testnet() else "mainnet"
+        net = "🧪 testnet (فقط ادمین ها می بینند)" if crypto.testnet() else "mainnet"
         usdt = "USDT روشن" if crypto.usdt_master() else "USDT خاموش (TON_USDT_MASTER)"
         state = f"روشن · {net} · {usdt}\n<code>{crypto.pay_address()}</code>"
     manual_ton = await db.get_setting("crypto_ton_rate", "0") or "0"

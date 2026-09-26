@@ -32,7 +32,7 @@ async def wallet_view(db: Database, user: dict) -> tuple[str, object]:
     کارت به کارت ندارند (کارت ایرانی ندارند)؛ فقط انتخاب روش.
     """
     min_charge = int(await db.get_setting("min_charge", "50000"))
-    methods = await payments.available(db)
+    methods = await payments.available(db, telegram_id=user["telegram_id"])
     fmt = {"balance": f"{user['balance']:,}", "min_charge": f"{min_charge:,}"}
     if payments.CARD in methods:
         return texts.WALLET.format(**fmt), keyboards.wallet_amounts(
@@ -344,7 +344,7 @@ async def _crypto_home(message: Message, db: Database, user: dict, edit: bool = 
 
 @router.callback_query(F.data == "cw")
 async def cb_crypto(call: CallbackQuery, db: Database, state: FSMContext, user: dict) -> None:
-    if not crypto_svc.enabled():
+    if not crypto_svc.allowed_for(user["telegram_id"]):
         return await call.answer(_t("پرداخت کریپتو فعلا فعال نیست."), show_alert=True)
     await state.clear()
     await _crypto_home(call.message, db, user)

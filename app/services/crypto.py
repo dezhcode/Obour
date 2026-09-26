@@ -284,6 +284,20 @@ def enabled() -> bool:
     return receive_address() is not None
 
 
+def allowed_for(telegram_id: int | None) -> bool:
+    """آیا این کاربر می تواند با کریپتو پرداخت کند؟
+
+    روی testnet سکه ها مجانی اند ولی کیف پول تومانی را واقعا شارژ
+    می کنند؛ پس در حالت تست فقط ادمین ها پرداخت کریپتو را می بینند و
+    می توانند فاکتور بسازند. روی mainnet برای همه باز است.
+    """
+    if not enabled():
+        return False
+    if not testnet():
+        return True
+    return telegram_id is not None and int(telegram_id) in config.admin_ids
+
+
 async def configured(db: "Database") -> bool:
     """آدرس هست و دست کم یک نرخ تعیین شده (بدون خواندن قیمت از اینترنت)."""
     for key in ("crypto_usdt_rate", "crypto_ton_rate"):
@@ -324,7 +338,7 @@ def _new_code() -> str:
 
 async def create_invoice(db: "Database", user: dict, toman: int, asset: str, source: str) -> dict:
     """{ok, invoice} یا {ok: False, error}."""
-    if not enabled():
+    if not allowed_for(user.get("telegram_id")):
         return {"ok": False, "error": OFF}
     asset = (asset or "").upper()
     if asset not in ASSETS:

@@ -24,13 +24,14 @@ def card_allowed(lang: str | None = None) -> bool:
     return (lang or i18n.get_lang()) == "fa"
 
 
-async def available(db: "Database", lang: str | None = None) -> list[str]:
+async def available(db: "Database", lang: str | None = None, telegram_id: int | None = None) -> list[str]:
     from app.services import crypto, stars
 
     out = []
     if card_allowed(lang) and await db.get_setting("card_number", ""):
         out.append(CARD)
-    if crypto.enabled() and await crypto.configured(db):
+    # روی testnet فقط ادمین (سکه تست مجانی است ولی شارژ واقعی می دهد)
+    if crypto.allowed_for(telegram_id) and await crypto.configured(db):
         out.append(CRYPTO)
     if await stars.enabled(db):
         out.append(STARS)
