@@ -466,6 +466,110 @@ html[dir=ltr] .kinds.k3 .kind-ok{left:auto;right:9px}
 .st-big span{font-size:13px;font-weight:700;opacity:.9}
 .ai-how{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:12px;color:var(--ink-3)}
 .ai-how svg{width:14px;height:14px;color:var(--ai-i)}
+
+/* ═══ هوش مصنوعی ═══
+   همان زبان کارت عبور، به رنگ نیلی دسته AI. هر محصول یک کاشی رنگ برند
+   (حرف اول، نه لوگو)؛ قیمت همیشه سمت انتها. صفحه محصول یک کارت نیلی
+   قهرمان دارد و بعد از خرید، اطلاعات ورود روی یک «کارت ورود» نیلی می آید. */
+.ai-hero{margin:8px var(--pad) 0;padding:20px;border-radius:var(--r-xl);color:var(--on-pass);position:relative;overflow:hidden;
+  background:radial-gradient(120% 90% at 100% 0%,#6A55E0 0%,var(--indigo) 52%,#241A6E 100%);box-shadow:0 18px 34px -18px rgba(63,47,160,.6)}
+.ai-hero > *{position:relative}
+.ai-hero .pass-art{left:-30px;bottom:-70px}
+.ai-hero-t{font-size:21px;font-weight:800;letter-spacing:-.3px;line-height:1.45}
+.ai-hero-s{font-size:12.5px;color:#DAD4FF;margin-top:4px;line-height:1.9}
+.ai-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.ai-chips span{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:14px;background:rgba(255,255,255,.13);font-size:11.5px;font-weight:700}
+.ai-chips svg{width:13px;height:13px;color:var(--tunnel)}
+.ai-hero .pass-foot{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.14)}
+.ai-hero .pass-meta{color:#DAD4FF}
+.ai-hero .pass-btn{color:var(--indigo)}
+.ai-mono{--b:var(--indigo);width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--b);color:#fff;font-size:15px;font-weight:800;letter-spacing:-.3px;direction:ltr;font-family:system-ui,sans-serif}
+.ai-mono svg{width:22px;height:22px}
+.ai-mono.lg{width:58px;height:58px;border-radius:17px;font-size:18px;box-shadow:0 0 0 3px rgba(255,255,255,.16)}
+.ai-mono.sm{width:40px;height:40px;border-radius:var(--r-md);font-size:13px}
+.ai-list{display:flex;flex-direction:column;gap:10px;padding:0 var(--pad)}
+.ai-p{display:flex;align-items:center;gap:12px;padding:14px 12px 14px 14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);
+  width:100%;text-align:start;transition:transform .15s var(--ease)}
+.ai-p:active{transform:scale(.985)}
+.ai-p-m{flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ai-p-t{font-size:15px;font-weight:800;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+/* فاصله حروف لاتین در فونت فارسی خیلی تنگ است؛ نام محصول ها لاتین اند */
+html[lang=fa] .ai-lat{word-spacing:.28em}
+.ai-p .ai-how{margin-top:0}
+.ai-p-st{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--ok)}
+.ai-p-st::before{content:"";width:6px;height:6px;border-radius:3px;background:currentColor}
+.ai-p-st.bad{color:var(--bad)}
+.ai-p-e{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;line-height:1.35}
+.ai-p-e .n{font-size:16px}
+.ai-p.out{opacity:.62}
+.ai-p .chev{margin-inline-start:-4px}
+.sec-a{font-size:13px;font-weight:800;color:var(--ai-i)}
+
+.ai-pass{height:auto;background:radial-gradient(120% 90% at 100% 0%,#6A55E0 0%,var(--indigo) 52%,#241A6E 100%);box-shadow:0 18px 34px -18px rgba(63,47,160,.6)}
+.ai-pass-h{display:flex;align-items:center;gap:12px}
+.ai-pass-t{font-size:18px;font-weight:800;line-height:1.4;overflow-wrap:anywhere}
+.ai-pass-s{font-size:12px;color:var(--p2);margin-top:2px}
+.ai-pass .pass-st{align-self:flex-start}
+.ai-price{display:flex;align-items:baseline;gap:6px;margin-top:20px}
+.ai-price .n{font-size:40px;letter-spacing:-1.2px;line-height:1}
+.ai-price small{font-size:14px;font-weight:600;color:var(--p2)}
+.ai-pass .pass-foot{margin-top:12px}
+.ai-months{display:grid;grid-template-columns:repeat(var(--c,3),minmax(0,1fr));gap:8px;padding:0 var(--pad)}
+.ai-m{padding:12px 8px;border-radius:var(--r-md);background:var(--surface);border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:transform .15s var(--ease)}
+.ai-m:active{transform:scale(.96)}
+.ai-m b{font-size:15px;font-weight:800} .ai-m > span{font-size:11.5px;color:var(--ink-3)}
+.ai-m.on{border-color:var(--ai);background:var(--ai-t);color:var(--ai-i)} .ai-m.on > span{color:var(--ai-i)}
+.ai-box{padding:14px 16px}
+.ai-in{width:100%;height:52px;border-radius:var(--r-md);border:1.5px solid var(--line);background:var(--ground);padding:0 14px;font:inherit;font-size:15px;
+  direction:ltr;text-align:left;color:var(--ink);outline:none;transition:border-color .2s}
+.ai-in:focus{border-color:var(--ai)} .ai-in.bad{border-color:var(--bad)} .ai-in.ok{border-color:var(--ok)}
+.ai-hint{font-size:12px;color:var(--ink-3);line-height:1.9;margin-top:8px}
+.ai-steps{padding:4px 16px}
+.ai-step{display:flex;gap:12px;padding:12px 0}
+.ai-step + .ai-step{border-top:1px dashed var(--line)}
+.ai-step > i{width:30px;height:30px;border-radius:15px;background:var(--ai-t);color:var(--ai-i);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-step > i svg{width:15px;height:15px}
+.ai-step b{font-size:14px;font-weight:800;display:block} .ai-step span{font-size:12.5px;color:var(--ink-3);line-height:1.85;display:block}
+.ai-desc{word-spacing:.2em;padding:14px 16px;font-size:13px;line-height:2;color:var(--ink-2);white-space:pre-line;overflow-wrap:anywhere}
+.ai-desc.clip{max-height:10em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+.ai-more{display:block;margin:8px auto 0;font-size:13px;font-weight:800;color:var(--ai-i)}
+.ai-warn{display:flex;gap:10px;margin:14px var(--pad) 0;padding:12px 14px;border-radius:var(--r-md);background:var(--cash-t);color:var(--cash-i);font-size:12.5px;line-height:1.9}
+.ai-warn svg{width:18px;height:18px;margin-top:3px;flex-shrink:0}
+.btn-ai{background:var(--ai-i);color:#fff}
+.btn-ai:active{background:#33238C}
+.ai-wait{padding:10px 0 6px;text-align:center}
+.ai-orb{width:76px;height:76px;margin:6px auto 16px;border-radius:38px;background:var(--ai-t);color:var(--ai-i);display:flex;align-items:center;justify-content:center;position:relative}
+.ai-orb::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:3px solid transparent;border-top-color:var(--ai);border-inline-end-color:var(--ai);animation:ai-spin 1s linear infinite}
+.ai-orb svg{width:30px;height:30px;animation:ai-pulse 1.6s var(--ease) infinite}
+@keyframes ai-spin{to{transform:rotate(360deg)}}
+@keyframes ai-pulse{50%{transform:scale(.8);opacity:.7}}
+
+.ai-st{margin:8px var(--pad) 0;padding:18px;border-radius:var(--r-xl);background:var(--surface);border:1px solid var(--line)}
+.ai-st-h{display:flex;gap:14px;align-items:center}
+.ai-st-i{width:46px;height:46px;border-radius:23px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;background:var(--ink-3)}
+.ai-st-i svg{width:22px;height:22px}
+.ai-st.ok .ai-st-i{background:var(--ok)} .ai-st.warn .ai-st-i{background:var(--cash)} .ai-st.bad .ai-st-i{background:var(--bad)}
+.ai-st-t{font-size:18px;font-weight:800;line-height:1.4} .ai-st-c{font-size:12px;color:var(--ink-3)}
+.ai-st-s{font-size:13px;color:var(--ink-2);line-height:1.95;margin-top:12px}
+.ai-st-e{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border-radius:var(--r-md);background:var(--sunk);font-size:13.5px;font-weight:700}
+.ai-st-e svg{width:16px;height:16px;color:var(--ai-i)}
+.ai-st-e span{direction:ltr;overflow-wrap:anywhere}
+.ai-st .btn{margin-top:14px}
+.ai-cred{height:auto;gap:12px;cursor:default;background:radial-gradient(120% 90% at 100% 0%,#6A55E0 0%,var(--indigo) 52%,#241A6E 100%)}
+.ai-cred + .ai-cred{margin-top:12px}
+.ai-f{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.22);border-radius:var(--r-md);padding:8px;padding-inline-start:12px}
+.ai-f-m{flex-grow:1;min-width:0}
+.ai-f-k{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--p2)}
+.ai-f-k svg{width:12px;height:12px}
+.ai-f-v{display:block;font-size:15px;font-weight:700;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.2px;margin-top:1px}
+.ai-f-v.txt{font-family:inherit;white-space:normal;text-align:start;word-spacing:.2em;font-size:13px;font-weight:600;line-height:1.8;letter-spacing:0}
+.ai-f-b{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.12);color:var(--on-pass);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-f-b svg{width:17px;height:17px}
+.ai-f-b:active{transform:scale(.92)}
+.ai-cred .invite-share{color:var(--indigo)}
 .cx-assets{margin:0 var(--pad);display:flex;flex-direction:column;gap:10px}
 .cx-a{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);text-align:start;width:100%;transition:border-color .2s}
 .cx-a.on{border:2px solid var(--brand);padding:13px}
@@ -809,6 +913,10 @@ const ICON = {
   phone:'<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>',
   shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
   bolt:'<path d="M13 3L4 14h7l-1 7 9-11h-7z"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   warn:'<path d="M12 4 3 19h18z"/><path d="M12 10v4M12 17h.01"/>',
   image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
   list:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
@@ -1597,32 +1705,19 @@ const Store = {
 
   async loadAi(){
     try {
-      const d = await api('ai');
+      const d = await api('ai'); AI.d = d;
       if (!d.enabled) return void ($('store-box').innerHTML = emptyBox('این بخش فعلا خاموش است'));
-      $('store-box').innerHTML = (d.banner ? `<div class="banner"><img src="${STATIC}ai-banner.jpg" alt="" onerror="this.parentNode.remove()"></div><div class="gap" style="height:14px"></div>` : '')
-        + (d.items.length ? d.items.map(AiCard).join('<div class="gap"></div>') : emptyBox('فعلا محصولی برای نمایش نیست'))
-        + (d.orders.length ? Sec('سفارش‌های من') + Group(d.orders.map(o => {
-            const st = { pending:['warn','در انتظار'], processing:['warn','در انتظار فروشنده'], unknown:['warn','در حال بررسی'], done:['ok','تحویل شد'], delivered:['ok','تحویل شد'], failed:['bad','ناموفق'] }[o.status] || ['', o.status];
-            return Row({ kind:'ai', icon:'spark', title:o.title, sub:`${o.code} · ${jdate(o.created_at)}`, end: Badge(st[0], st[1]) });
-          }).join('')) : '');
+      if (d.balance != null) App.setBalance(d.balance);
+      const items = d.items.filter(x => x.stock !== 0).concat(d.items.filter(x => x.stock === 0));
+      $('store-box').innerHTML = AI.hero()
+        + (d.banner ? `<div class="gap" style="height:14px"></div><div class="banner"><img src="${STATIC}ai-banner.jpg" alt="" onerror="this.parentNode.remove()"></div>` : '')
+        + Sec('محصولات', esc(fa(items.length) + ' محصول'))
+        + (items.length ? `<div class="ai-list">${items.map(x => AI.card(x)).join('')}</div>` : emptyBox('فعلا محصولی برای نمایش نیست', 'کمی بعد دوباره سر بزن.'))
+        + (d.orders.length ? Sec('سفارش‌های من', d.orders.length > 3 ? `<button class="sec-a" onclick="App.go('ai_orders')">همه</button>` : '')
+            + Group(d.orders.slice(0, 3).map(o => AI.orderRow(o)).join('')) : '');
     } catch (err) { $('store-box').innerHTML = emptyBox('محصولات خوانده نشد', err.message); }
   }
 };
-
-/* نحوه تحویل هر نوع محصول canboso، کوتاه */
-const AI_HOW = { account:['bolt','تحویل فوری نام کاربری و رمز'], slot:['user','فعال‌سازی روی ایمیل خودت'], upgrade_account:['up','ارتقای اکانت خودت'] };
-function AiCard(x){
-  const out = x.stock === 0, how = AI_HOW[x.type] || AI_HOW.account;
-  return `<div class="card plan mx" style="gap:12px">
-    <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic lg ai">${ic('spark')}</span>
-      <div style="flex-grow:1;min-width:0"><div class="plan-name">${esc(x.title)}</div>
-        <div class="ai-how">${ic(how[0], 2)}<span>${how[1]}</span></div>
-        <div style="margin-top:6px">${out ? Badge('bad', 'ناموجود') : x.stock != null ? Badge('ok', 'موجود: ' + fa(x.stock)) : Badge('ok', 'موجود')}</div></div>
-      <div style="text-align:left">${x.from_price ? '<div class="lbl">از</div>' : ''}<div class="n" style="font-size:17px">${fa(x.price)}</div><div class="lbl" style="text-align:left">تومان</div></div></div>
-    ${out ? `<div class="short">وقتی موجود شد در ربات خبر بگیر</div>`
-          : `<button class="btn btn-block" style="background:var(--ai-t);color:var(--ai-i);height:46px" onclick="App.openBot(${esc(JSON.stringify('ai_' + x.id))})">سفارش در ربات</button>`}
-  </div>`;
-}
 
 /* ═════════ کیف پول ═════════ */
 const Wallet = {
@@ -2466,6 +2561,341 @@ SubPages.custom = async function(p){
 };
 SubPages.custom.noNav = true;
 SubPages.detail.noNav = true;
+
+/* ═════════ هوش مصنوعی: فروشگاه، خرید و تحویل ═════════
+   مثل خرید کانفیگ: پرداخت از کیف پول و تحویل همین جا. منطق خرید همان
+   ai_shop.buy ربات است؛ سرور محصول و قیمت را موقع خرید دوباره و بدون کش
+   از فروشنده می گیرد، پس قیمتی که اینجا دیده می شود فقط برای نمایش است.
+   اطلاعات ورود فقط در صفحه خود سفارش خوانده می شود، نه در فهرست ها. */
+const AI_HOW = { account:['bolt','تحویل فوری نام کاربری و رمز'], slot:['mail','فعال‌سازی روی ایمیل خودت'], upgrade_account:['up','ارتقای اکانت خودت'] };
+const AI_STEPS = {
+  account: [['wallet','پرداخت از کیف پول','مبلغ از موجودی کیف پولت کم می‌شود.'],
+            ['bolt','تحویل همین‌جا','نام کاربری و رمز چند ثانیه بعد روی همین صفحه می‌آید.'],
+            ['shield','همیشه در دسترس','اطلاعات ورود در «سفارش‌های من» می‌ماند.']],
+  slot:    [['mail','ایمیلت را بنویس','اشتراک روی همین ایمیل فعال می‌شود.'],
+            ['wallet','پرداخت از کیف پول','سفارش همان لحظه برای فروشنده ثبت می‌شود.'],
+            ['clock','فعال‌سازی روی ایمیلت','فروشنده فعالش می‌کند و ممکن است کمی طول بکشد. ایمیلت را چک کن.']],
+  upgrade_account: [['mail','ایمیل اکانتت را بنویس','همان اکانتی که می‌خواهی ارتقا پیدا کند.'],
+            ['wallet','پرداخت از کیف پول','سفارش همان لحظه برای فروشنده ثبت می‌شود.'],
+            ['up','ارتقای اکانت','ارتقا روی همان اکانت انجام می‌شود؛ وضعیتش در «سفارش‌های من» است.']],
+};
+const AI_ST = {
+  delivered: ['ok','check','تحویل شد','اطلاعات ورود همین پایین است و همیشه در «سفارش‌های من» می‌ماند.'],
+  processing:['warn','clock','در انتظار فروشنده','سفارشت ثبت شد و فروشنده انجامش می‌دهد. معمولا کمی طول می‌کشد و لازم نیست کاری بکنی.'],
+  unknown:   ['warn','refresh','در حال بررسی','جواب فروشنده به‌موقع نرسید. نگران نباش: یا سفارش انجام می‌شود یا مبلغ کامل به کیف پولت برمی‌گردد.'],
+  failed:    ['bad','warn','ناموفق','فروشنده سفارش را انجام نداد و مبلغ به کیف پولت برگشت.'],
+};
+AI_ST.done = AI_ST.delivered; AI_ST.pending = AI_ST.unknown;
+/* رنگ برند و حرف اول؛ لوگوی واقعی نه */
+const AI_BRANDS = [
+  [/chat\s*gpt|openai|\bgpt/i, '#10A37F', 'GPT'], [/claude|anthropic/i, '#C15F3C', 'C'], [/gemini|google/i, '#2F6BEA', 'G'],
+  [/midjourney/i, '#1E2230', 'MJ'], [/perplexity/i, '#1F7A8C', 'P'], [/grok|x\.ai/i, '#16181D', 'X'], [/cursor/i, '#26262B', 'Cu'],
+  [/copilot|github/i, '#24292F', 'Co'], [/canva/i, '#7D2AE8', 'Ca'], [/capcut/i, '#18181B', 'CC'], [/suno/i, '#2E2E36', 'S'],
+  [/eleven/i, '#26262B', '11'], [/netflix/i, '#B20710', 'N'], [/spotify/i, '#1A8F45', 'S'], [/youtube/i, '#CC2A2A', 'YT'],
+];
+const AI_EMAIL = /^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/;
+function AiMono(name, size){
+  let c = 'var(--indigo)', t = '';
+  for (const [re, col, tx] of AI_BRANDS) if (re.test(name || '')) { c = col; t = tx; break; }
+  if (!t) { const w = String(name || '').replace(/[^A-Za-z0-9]/g, ''); t = w ? w[0].toUpperCase() : ''; }
+  return `<span class="ai-mono${size ? ' ' + size : ''}" style="--b:${c}" aria-hidden="true">${t ? esc(t) : ic('spark', 2)}</span>`;
+}
+
+const AI = {
+  d:null, x:null, m:null, email:'', o:null, busy:false,
+
+  hero(){
+    return `<div class="ai-hero">${TUNNEL}
+      <div class="ai-hero-t">هوش مصنوعی، بی‌مرز</div>
+      <div class="ai-hero-s">اشتراک ابزارهای هوش مصنوعی؛ از کیف پولت بخر و همین‌جا تحویل بگیر.</div>
+      <div class="ai-chips"><span>${ic('bolt',2)}تحویل در همین صفحه</span><span>${ic('wallet',2)}پرداخت از کیف پول</span><span>${ic('shield',2)}پیگیری و پشتیبانی</span></div>
+      <div class="pass-foot"><span class="pass-meta"><span>موجودی کیف پول</span> <b class="n" data-bal>${fa(App.boot.user.balance)}</b> <span>تومان</span></span>
+        <button class="pass-btn" onclick="App.go('topup')">شارژ</button></div>
+    </div>`;
+  },
+
+  card(x){
+    const out = x.stock === 0, how = AI_HOW[x.type] || AI_HOW.account;
+    return `<button class="ai-p${out ? ' out' : ''}" onclick="App.go('ai_product', ${esc(JSON.stringify(x.id))})">
+      ${AiMono(x.title)}
+      <span class="ai-p-m"><span class="ai-p-t ai-lat">${esc(x.title)}</span>
+        <span class="ai-how">${ic(how[0], 2)}<span>${how[1]}</span></span>
+        <span class="ai-p-st${out ? ' bad' : ''}">${out ? 'ناموجود' : x.stock != null ? `<span>موجود:</span> ${N(fa(x.stock))}` : 'موجود'}</span></span>
+      <span class="ai-p-e">${x.from_price ? '<span class="lbl">از</span>' : ''}<span class="n">${fa(x.price)}</span><span class="lbl">تومان</span></span>
+      <span class="chev">${ic('chev',2)}</span></button>`;
+  },
+
+  orderRow(o){
+    const st = AI_ST[o.status] || ['', 'list', o.status];
+    return `<button class="row" onclick="App.go('ai_order', ${o.id})">${AiMono(o.title, 'sm')}
+      <span class="row-m"><span class="row-t ai-lat">${esc(o.title)}</span><span class="row-s"><span class="n">${esc(o.code)}</span> · ${esc(jdate(o.created_at))}</span></span>
+      <span class="row-e">${Badge(st[0], st[2])}</span><span class="chev">${ic('chev',2)}</span></button>`;
+  },
+
+  /* ── صفحه محصول ── */
+  price(){
+    const x = this.x;
+    if (x.months.length) { const m = x.months.find(k => k.months === this.m) || x.months[0]; return m.price; }
+    return x.price;
+  },
+  productPage(x){
+    const out = x.stock === 0, how = AI_HOW[x.type] || AI_HOW.account;
+    const steps = (AI_STEPS[x.type] || AI_STEPS.account).filter(s => x.needs_email || s[0] !== 'mail');
+    const long = (x.description || '').length > 240;
+    return Top('هوش مصنوعی', `<span class="ai-lat">${esc(x.title)}</span>`) + `
+      <div class="pass ai-pass mx">${TUNNEL}
+        <div class="ai-pass-h">${AiMono(x.title, 'lg')}
+          <div style="flex-grow:1;min-width:0"><div class="ai-pass-t ai-lat">${esc(x.title)}</div><div class="ai-pass-s">${how[1]}</div></div></div>
+        <div class="ai-price"><span class="n" id="ai-price"></span><small>تومان</small></div>
+        <div class="pass-foot"><span class="pass-meta" id="ai-meta"></span>
+          <span class="pass-st${out ? ' bad' : ''}"><i></i>${out ? 'ناموجود' : x.stock != null ? `<span>موجود:</span> ${N(fa(x.stock))}` : 'موجود'}</span></div>
+      </div>
+      ${x.months.length ? Sec('مدت اشتراک') + `<div class="ai-months" id="ai-months" style="--c:${x.months.length <= 4 ? x.months.length : x.months.length % 4 === 0 ? 4 : 3}">${x.months.map(m =>
+          `<button class="ai-m" data-m="${m.months}" onclick="AI.pick(${m.months})"><b>${N(m.months)} <span>ماه</span></b><span>${N(fa(m.price))}</span></button>`).join('')}</div>` : ''}
+      ${x.needs_email ? Sec(x.type === 'upgrade_account' ? 'ایمیل اکانتت' : 'ایمیل برای فعال‌سازی') + `<div class="card mx ai-box">
+          <input class="ai-in" id="ai-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" dir="ltr"
+            placeholder="name@gmail.com" maxlength="120" value="${esc(this.email)}" oninput="AI.render()" aria-label="ایمیل">
+          <div class="ai-hint">اشتراک روی همین ایمیل فعال می‌شود و بعد از خرید قابل تغییر نیست.</div></div>` : ''}
+      ${Sec('چطور تحویل می‌گیری')}<div class="card mx ai-steps">${steps.map(s =>
+          `<div class="ai-step"><i>${ic(s[0], 2)}</i><div><b>${s[1]}</b><span>${s[2]}</span></div></div>`).join('')}</div>
+      ${x.description ? Sec('درباره محصول') + `<div class="card mx"><div class="ai-desc${long ? ' clip' : ''}" id="ai-desc" dir="auto">${esc(x.description)}</div>
+          ${long ? `<button class="ai-more" style="margin-bottom:12px" onclick="AI.more(this)">بیشتر</button>` : ''}</div>` : ''}
+      <div class="ai-warn">${ic('warn', 2)}<span>تحویل برگشت‌پذیر نیست؛ قبل از پرداخت مطمئن شو همین محصول را می‌خواهی.</span></div>
+      <div class="foot"><button class="btn btn-block" id="ai-go" onclick="AI.go()"></button></div>`;
+  },
+  more(b){ const d = $('ai-desc'); if (d) d.classList.remove('clip'); b.remove(); },
+  pick(m){ if (m === this.m) return; this.m = m; App.haptic(); this.render(); },
+  render(){
+    const x = this.x; if (!x) return;
+    const price = this.price(), bal = App.boot.user.balance, out = x.stock === 0;
+    const pe = $('ai-price'); if (pe) pe.textContent = fa(price);
+    const meta = $('ai-meta');
+    if (meta) meta.innerHTML = bal >= price ? `<span>موجودی کیف پول</span> <b class="n" data-bal>${fa(bal)}</b> <span>تومان</span>`
+                                            : `${N(money(price - bal))} <span>تومان کم داری</span>`;
+    const box = $('ai-months');
+    if (box && box.querySelectorAll) box.querySelectorAll('.ai-m').forEach(e => e.classList.toggle('on', +e.getAttribute('data-m') === this.m));
+    const inp = $('ai-email');
+    if (inp) { this.email = inp.value.trim(); inp.classList.toggle('ok', AI_EMAIL.test(this.email)); if (AI_EMAIL.test(this.email)) inp.classList.remove('bad'); }
+    const b = $('ai-go'); if (!b || this.busy) return;
+    b.className = 'btn btn-block ' + (out ? 'btn-s' : bal < price ? 'btn-d' : 'btn-ai');
+    b.innerHTML = out ? `${ic('clock', 2)}<span>وقتی موجود شد خبرم کن</span>`
+      : bal < price ? `${ic('wallet')}<span>${N(money(price - bal))} کم · شارژ</span>`
+      : `${ic('spark', 2)}<span>پرداخت</span> ${N(fa(price))} <span>تومان</span>`;
+  },
+  go(){
+    const x = this.x, price = this.price(), bal = App.boot.user.balance;
+    if (x.stock === 0) return this.notify();
+    if (bal < price) return App.go('topup');
+    const inp = $('ai-email');
+    if (x.needs_email && !AI_EMAIL.test(this.email)) {
+      if (inp) { inp.classList.add('bad'); inp.focus(); }
+      App.notify('error'); return App.toast('ایمیل را درست بنویس؛ مثل name@gmail.com', true);
+    }
+    const how = AI_HOW[x.type] || AI_HOW.account;
+    const rows = [['محصول', `<span class="ai-lat">${esc(x.title)}</span>`]];
+    if (x.months.length) rows.push(['مدت', `${N(this.m)} <span>ماه</span>`]);
+    if (x.needs_email) rows.push(['ایمیل', `<span dir="ltr" style="overflow-wrap:anywhere">${esc(this.email)}</span>`]);
+    rows.push(['قیمت', `${N(fa(price))} <span>تومان</span>`], ['موجودی بعد از خرید', `${N(fa(bal - price))} <span>تومان</span>`]);
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${AiMono(x.title)}
+        <div><div class="sheet-t">تایید خرید</div><div class="topbar-s">${how[1]}</div></div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV(rows).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      ${x.needs_email ? `<div class="ai-warn" style="margin:12px 0 0">${ic('warn', 2)}<span>ایمیل را یک بار دیگر چک کن؛ بعد از خرید قابل تغییر نیست.</span></div>` : ''}
+      <button class="btn btn-ai btn-block" id="ai-buy" style="margin-top:16px;height:54px;font-size:16px" onclick="AI.buy()">${ic('spark', 2)}پرداخت و دریافت</button>
+      <div class="short" style="margin-top:10px">تحویل برگشت‌پذیر نیست</div>`);
+  },
+  async buy(){
+    if (this.busy) return;
+    this.busy = true;
+    const x = this.x;
+    $('sheet').innerHTML = `<div class="grip"></div><div class="ai-wait"><div class="ai-orb">${ic('spark', 2)}</div>
+      <div class="sheet-t">در حال گرفتن سفارش از فروشنده…</div>
+      <div class="short" style="margin-top:6px">ممکن است تا یک دقیقه طول بکشد؛ این صفحه را نبند.</div></div>`;
+    App.haptic('medium');
+    try {
+      const r = await api('ai/buy', { product_id:x.id, months:x.months.length ? this.m : null, email:x.needs_email ? this.email : '', nonce:Buy.nonce() });
+      App.setBalance(r.balance); App.notify(r.status === 'delivered' ? 'success' : 'warning');
+      App.closeSheet(); this.d = null;
+      App.stack.pop(); App.go('ai_order', { id:r.order.id, order:r.order, fresh:true });
+    } catch (err) {
+      App.notify('error'); App.closeSheet();
+      if (err.code === 'rules') { App.toast('اول قوانین را بخوان و بپذیر', true); App.go('rules'); }
+      else if (err.code === 'insufficient') { App.toast(err.message, true); App.go('topup'); }
+      else if (!err.status || err.code === 'server' || err.status === 504) {
+        /* جواب نرسید؛ خرید ممکن است انجام شده باشد. نتیجه در سفارش ها */
+        this.d = null; App.toast('جواب دیر رسید؛ نتیجه را در «سفارش‌های من» ببین', true);
+        App.stack.pop(); App.go('ai_orders');
+      } else {
+        App.toast(err.message || 'خرید انجام نشد', true);
+        if (err.code === 'unavailable') { this.d = null; const p = $('sub').querySelector('.page'); if (p) SubPages.ai_product(p, x.id); }
+      }
+    } finally { this.busy = false; this.render(); }
+  },
+  async notify(){
+    try {
+      const r = await api('ai/notify', {});
+      App.notify('success'); App.toast(r.added ? 'باشه؛ وقتی موجود شد در ربات خبرت می‌کنیم' : 'قبلا ثبت شده؛ خبرت می‌کنیم');
+    } catch (err) { App.toast(err.message, true); }
+  },
+
+  /* ── صفحه سفارش ── */
+  field(label, icon, value, i, key, opt){
+    opt = opt || {};
+    const shown = opt.secret ? '••••••••' : esc(value);
+    return `<div class="ai-f"><span class="ai-f-m"><span class="ai-f-k">${ic(icon, 2)}<span>${label}</span></span>
+        <span class="ai-f-v${opt.text ? ' txt' : ''}" id="aif-${i}-${key}" dir="${opt.text ? 'auto' : 'ltr'}">${shown}</span></span>
+      ${opt.secret ? `<button class="ai-f-b" onclick="AI.reveal(${i})" aria-label="نمایش رمز">${ic('eye')}</button>` : ''}
+      ${opt.text ? '' : `<button class="ai-f-b" onclick="App.copy(${esc(JSON.stringify(value))})" aria-label="کپی">${ic('copy')}</button>`}</div>`;
+  },
+  cred(o, a, i){
+    const n = o.delivery.length;
+    return `<div class="pass ai-cred mx">${TUNNEL}
+      <div class="pass-head"><span class="pass-name">${n > 1 ? `<span>اکانت</span> ${N(i + 1)}` : 'اطلاعات ورود'}</span>
+        <span class="pass-st ai-lat"><i></i>${esc(o.title)}</span></div>
+      ${a.user ? this.field('نام کاربری', 'user', a.user, i, 'u') : ''}
+      ${a.password ? this.field('رمز', 'key', a.password, i, 'p', { secret:true }) : ''}
+      ${a.verifyEmail ? this.field('ایمیل بازیابی', 'mail', a.verifyEmail, i, 'v') : ''}
+      ${a.expiryText ? this.field('انقضا', 'cal', a.expiryText, i, 'e', { text:true }) : ''}
+      ${a.otherInfo ? this.field('توضیحات', 'book', a.otherInfo, i, 'o', { text:true }) : ''}
+      <button class="invite-share" onclick="AI.copyAll(${i})">${ic('copy', 2)}کپی همه</button>
+    </div>`;
+  },
+  reveal(i){
+    const a = this.o && this.o.delivery[i], el = $('aif-' + i + '-p'); if (!a || !el) return;
+    el.textContent = el.textContent === a.password ? '••••••••' : a.password; App.haptic();
+  },
+  copyAll(i){
+    const a = this.o && this.o.delivery[i]; if (!a) return;
+    const L = [[I18N.t('نام کاربری'), a.user], [I18N.t('رمز'), a.password], [I18N.t('ایمیل بازیابی'), a.verifyEmail], [I18N.t('انقضا'), a.expiryText], ['', a.otherInfo]];
+    App.copy(L.filter(r => r[1]).map(r => r[0] ? r[0] + ': ' + r[1] : r[1]).join('\n'));
+  },
+  orderPage(o, fresh){
+    const st = AI_ST[o.status] || ['', 'list', o.status, ''];
+    const wait = o.status === 'unknown' || o.status === 'pending';
+    const rows = [['محصول', `<span class="ai-lat">${esc(o.title)}</span>`], ['کد پیگیری', `<span class="n">${esc(o.code)}</span>`]];
+    if (o.provider_code) rows.push(['کد فروشنده', `<span class="n">${esc(o.provider_code)}</span>`]);
+    if (o.email) rows.push(['ایمیل', `<span dir="ltr" style="overflow-wrap:anywhere">${esc(o.email)}</span>`]);
+    if (o.months) rows.push(['مدت', `${N(o.months)} <span>ماه</span>`]);
+    rows.push(['مبلغ', `${N(fa(o.price))} <span>تومان</span>`], ['تاریخ', N(jfull(o.created_at))]);
+    return Top('سفارش', `<span class="n">${esc(o.code)}</span>`) + `
+      <div class="ai-st ${st[0]}">
+        <div class="ai-st-h"><span class="ai-st-i">${ic(st[1], 2.4)}</span>
+          <div style="min-width:0"><div class="ai-st-t">${fresh && st[0] === 'ok' ? 'تحویل شد؛ مبارکت باشه' : st[2]}</div><div class="ai-st-c ai-lat">${esc(o.title)}</div></div></div>
+        <div class="ai-st-s">${st[3]}</div>
+        ${o.status === 'processing' && o.email ? `<div class="ai-st-e">${ic('mail', 2)}<span>${esc(o.email)}</span></div>` : ''}
+        ${wait ? `<button class="btn btn-s btn-block" id="ai-chk" onclick="AI.check(${o.id})">${ic('refresh', 2)}بررسی دوباره</button>` : ''}
+      </div>
+      ${o.delivery && o.delivery.length ? '<div class="gap" style="height:14px"></div>' + o.delivery.map((a, i) => this.cred(o, a, i)).join('') : ''}
+      ${o.links && o.links.length ? Sec('تحویل') + Group(o.links.map(l => `<div class="kv"><span class="kv-v" dir="ltr" style="overflow-wrap:anywhere;text-align:left">${esc(l)}</span>
+          <button class="ai-f-b" style="background:var(--sunk);color:var(--ink)" onclick="App.copy(${esc(JSON.stringify(l))})" aria-label="کپی">${ic('copy')}</button></div>`).join('')) : ''}
+      ${Sec('جزئیات سفارش')}${KV(rows)}
+      ${Sec('کارها')}${Group(
+        Row({ kind:'help', icon:'chat', title:'مشکلی داری؟', sub:'به پشتیبانی بگو؛ کد سفارش خودکار نوشته می‌شود', fn:`AI.support(${esc(JSON.stringify(o.code))})` })
+        + (o.product_id ? Row({ kind:'ai', icon:'refresh', title:'خرید دوباره', sub:o.title, fn:`App.go('ai_product', ${esc(JSON.stringify(o.product_id))})` }) : ''))}
+      ${o.delivery && o.delivery.length ? `<div class="short" style="margin:14px var(--pad) 0">این اطلاعات را با کسی به اشتراک نگذار؛ اگر رمز را عوض کنی، پشتیبانی دیگر نمی‌تواند کمکت کند.</div>` : ''}`;
+  },
+  support(code){
+    App.go('compose');
+    const t = $('tk-body');
+    if (t) { t.value = I18N.t('سفارش هوش مصنوعی') + ' ' + code + '\n'; try { Compose.count(t); } catch(e){} t.focus(); }
+  },
+  async check(id){
+    if (this.busy) return;
+    this.busy = true;
+    const b = $('ai-chk'); if (b) { b.disabled = true; b.textContent = I18N.t('در حال بررسی…'); }
+    try {
+      const r = await api('ai/check', { id });
+      if (r.balance != null) App.setBalance(r.balance);
+      this.o = r.order; this.d = null;
+      const top = App.stack[App.stack.length - 1]; if (top && top[0] === 'ai_order') top[1] = { id, order:r.order };
+      const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(r.order);
+      App.notify(r.status === 'delivered' ? 'success' : 'warning');
+      App.toast(r.status === 'delivered' ? 'تحویل شد' : r.status === 'failed' ? 'مبلغ به کیف پولت برگشت'
+              : r.status === 'processing' ? 'سفارش ثبت شد؛ در انتظار فروشنده' : 'هنوز جوابی نیامده؛ کمی بعد دوباره امتحان کن');
+    } catch (err) {
+      App.toast(err.message, true);
+      if (b) { b.disabled = false; b.innerHTML = `${ic('refresh', 2)}${esc(I18N.t('بررسی دوباره'))}`; }
+    } finally { this.busy = false; }
+  },
+};
+
+SubPages.ai_product = async function(p, id){
+  p.innerHTML = Top('هوش مصنوعی') + skel(1, 210) + skel(2, 120);
+  try {
+    if (!AI.d || !AI.d.items.some(i => i.id === id)) AI.d = await api('ai');
+    const x = AI.d.items.find(i => i.id === id);
+    if (!AI.d.enabled || !x) return void (p.innerHTML = Top('هوش مصنوعی') + emptyBox('این محصول دیگر در فروشگاه نیست', 'فهرست تازه را در فروشگاه ببین.'));
+    if (!AI.x || AI.x.id !== x.id) AI.m = x.months.length ? x.months[0].months : null;
+    AI.x = x;
+    p.innerHTML = AI.productPage(x);
+    AI.render();
+  } catch (err) { p.innerHTML = Top('هوش مصنوعی') + emptyBox('محصول خوانده نشد', err.message); }
+};
+SubPages.ai_order = async function(p, a){
+  const id = a && typeof a === 'object' ? a.id : a;
+  p.innerHTML = Top('سفارش') + skel(1, 150) + skel(1, 230);
+  try {
+    const o = (a && a.order) || await api('ai/order?id=' + id);
+    AI.o = o;
+    p.innerHTML = AI.orderPage(o, a && a.fresh);
+    if (a && a.fresh) a.fresh = false;
+  } catch (err) { p.innerHTML = Top('سفارش') + emptyBox('سفارش خوانده نشد', err.message); }
+};
+SubPages.ai_orders = async function(p){
+  p.innerHTML = Top('سفارش‌های هوش مصنوعی') + skel(4, 64);
+  try {
+    const d = AI.d = await api('ai');
+    p.innerHTML = Top('سفارش‌های هوش مصنوعی', 'اطلاعات تحویل همیشه اینجا می‌ماند') + '<div class="gap" style="height:8px"></div>'
+      + (d.orders.length ? Group(d.orders.map(o => AI.orderRow(o)).join('')) : emptyBox('هنوز سفارشی نداری', 'از فروشگاه یک محصول انتخاب کن.'));
+  } catch (err) { p.innerHTML = Top('سفارش‌های هوش مصنوعی') + emptyBox('سفارش‌ها خوانده نشد', err.message); }
+};
+['ai_product', 'ai_order'].forEach(k => SubPages[k].noNav = true);
+/* ترجمه صفحه های هوش مصنوعی؛ کلیدها مثل بقیه کاتالوگ بی نیم فاصله می شوند */
+Object.entries({
+  'هوش مصنوعی، بی‌مرز':'AI, without borders',
+  'اشتراک ابزارهای هوش مصنوعی؛ از کیف پولت بخر و همین‌جا تحویل بگیر.':'Subscriptions to AI tools; pay from your wallet and get them right here.',
+  'تحویل در همین صفحه':'Delivered on this page', 'پیگیری و پشتیبانی':'Tracking and support',
+  'محصولات':'Products', 'محصول':'Product', '{n} محصول':'{n} products', 'کمی بعد دوباره سر بزن.':'Check back a little later.',
+  'ارتقای اکانت':'Account upgrade', 'ارتقا روی همان اکانت انجام می‌شود؛ وضعیتش در «سفارش‌های من» است.':'The upgrade is applied to that same account; track it in “My orders”.',
+  'از فروشگاه یک محصول انتخاب کن.':'Pick a product from the shop.',
+  'اشتراک روی همین ایمیل فعال می‌شود و بعد از خرید قابل تغییر نیست.':'The subscription is activated on this email and can’t be changed after purchase.',
+  'اشتراک روی همین ایمیل فعال می‌شود.':'The subscription is activated on this email.',
+  'اطلاعات ورود':'Login details', 'اطلاعات ورود در «سفارش‌های من» می‌ماند.':'Your login details stay in “My orders”.',
+  'اطلاعات ورود همین پایین است و همیشه در «سفارش‌های من» می‌ماند.':'Your login details are right below and always stay in “My orders”.',
+  'اکانت':'Account', 'ایمیل':'Email', 'ایمیل اکانتت':'Your account email', 'ایمیل اکانتت را بنویس':'Enter your account email',
+  'ایمیل بازیابی':'Recovery email', 'ایمیل برای فعال‌سازی':'Email for activation',
+  'ایمیل را درست بنویس؛ مثل name@gmail.com':'Enter a valid email, like name@gmail.com', 'ایمیلت را بنویس':'Enter your email',
+  'این اطلاعات را با کسی به اشتراک نگذار؛ اگر رمز را عوض کنی، پشتیبانی دیگر نمی‌تواند کمکت کند.':'Don’t share these details with anyone. If you change the password, support can no longer help you with it.',
+  'باشه؛ وقتی موجود شد در ربات خبرت می‌کنیم':'Got it; we’ll message you in the bot when it’s back',
+  'بررسی دوباره':'Check again', 'به پشتیبانی بگو؛ کد سفارش خودکار نوشته می‌شود':'Tell support; the order code is filled in for you',
+  'تایید خرید':'Confirm purchase', 'تحویل':'Delivery', 'تحویل برگشت‌پذیر نیست':'Delivery can’t be reversed',
+  'تحویل برگشت‌پذیر نیست؛ قبل از پرداخت مطمئن شو همین محصول را می‌خواهی.':'Delivery can’t be reversed; make sure this is the product you want before paying.',
+  'تحویل شد؛ مبارکت باشه':'Delivered — enjoy!', 'تحویل همین‌جا':'Delivered right here', 'توضیحات':'Notes',
+  'تومان کم داری':'toman short', 'جزئیات سفارش':'Order details',
+  'جواب دیر رسید؛ نتیجه را در «سفارش‌های من» ببین':'The reply was late; check the result in “My orders”',
+  'جواب فروشنده به‌موقع نرسید. نگران نباش: یا سفارش انجام می‌شود یا مبلغ کامل به کیف پولت برمی‌گردد.':'The seller didn’t reply in time. Don’t worry: either the order goes through or the full amount returns to your wallet.',
+  'خرید دوباره':'Buy again', 'در حال بررسی…':'Checking…', 'در حال گرفتن سفارش از فروشنده…':'Getting your order from the seller…',
+  'درباره محصول':'About this product', 'رمز':'Password', 'سفارش':'Order',
+  'سفارش ثبت شد؛ در انتظار فروشنده':'Order placed; waiting for the seller',
+  'سفارش همان لحظه برای فروشنده ثبت می‌شود.':'Your order goes to the seller right away.', 'سفارش هوش مصنوعی':'AI order',
+  'سفارشت ثبت شد و فروشنده انجامش می‌دهد. معمولا کمی طول می‌کشد و لازم نیست کاری بکنی.':'Your order is placed and the seller is completing it. It usually takes a little while; you don’t need to do anything.',
+  'سفارش‌ها خوانده نشد':'Couldn’t load orders', 'سفارش‌های هوش مصنوعی':'AI orders',
+  'فروشنده سفارش را انجام نداد و مبلغ به کیف پولت برگشت.':'The seller didn’t complete the order and the amount went back to your wallet.',
+  'فروشنده فعالش می‌کند و ممکن است کمی طول بکشد. ایمیلت را چک کن.':'The seller activates it, which can take a little while. Keep an eye on your inbox.',
+  'فعال‌سازی روی ایمیلت':'Activated on your email', 'فقط برای توست':'Only for you',
+  'قبلا ثبت شده؛ خبرت می‌کنیم':'Already on the list; we’ll let you know', 'ماه':'mo',
+  'مبلغ از موجودی کیف پولت کم می‌شود.':'The amount is taken from your wallet balance.', 'مبلغ به کیف پولت برگشت':'The amount went back to your wallet',
+  'مدت اشتراک':'Subscription length', 'مشکلی داری؟':'Something wrong?',
+  'ممکن است تا یک دقیقه طول بکشد؛ این صفحه را نبند.':'This can take up to a minute; keep this page open.',
+  'نام کاربری و رمز چند ثانیه بعد روی همین صفحه می‌آید.':'The username and password appear on this page a few seconds later.',
+  'همان اکانتی که می‌خواهی ارتقا پیدا کند.':'The account you want upgraded.', 'همیشه در دسترس':'Always available',
+  'هنوز جوابی نیامده؛ کمی بعد دوباره امتحان کن':'No answer yet; try again in a little while', 'هنوز سفارشی نداری':'No orders yet',
+  'وقتی موجود شد خبرم کن':'Notify me when it’s back', 'چطور تحویل می‌گیری':'How you get it', 'کد فروشنده':'Seller code',
+  'ایمیل را یک بار دیگر چک کن؛ بعد از خرید قابل تغییر نیست.':'Check the email once more; it can’t be changed after purchase.',
+  'این محصول دیگر در فروشگاه نیست':'This product is no longer in the shop', 'فهرست تازه را در فروشگاه ببین.':'See the latest list in the shop.',
+  'محصول خوانده نشد':'Couldn’t load the product', 'سفارش خوانده نشد':'Couldn’t load the order',
+  'اطلاعات تحویل همیشه اینجا می‌ماند':'Delivery details always stay here', 'نمایش رمز':'Show password', 'کپی همه':'Copy all',
+  'پرداخت و دریافت':'Pay and receive', 'فعال‌سازی روی ایمیل خودت':'Activated on your own email',
+}).forEach(([k, v]) => { L10N.en[I18N.norm(k)] = v; });
 
 /* ═════════ پنل مدیریت (فقط ادمین) ═════════
    ردیفش فقط وقتی bootstrap می گوید ادمینی دیده می شود، ولی امنیت اینجا

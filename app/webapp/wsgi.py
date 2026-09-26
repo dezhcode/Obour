@@ -256,7 +256,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
     WRITE_PATHS = ("/api/purchase", "/api/custom/buy", "/api/service/renew", "/api/topup/start", "/api/topup/receipt",
                    "/api/rules/accept", "/api/ticket/send", "/api/lang",
                    "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
-                   "/api/stars/start",
+                   "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
                    "/api/admin/plan", "/api/admin/setting", "/api/admin/feature")
     if method == "POST":
@@ -571,6 +571,42 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                 return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
             return _json(start_response, runtime.run(webapi.service_renew(
                 db, panel, wuser, service_id=sid, nonce=nonce, bot=runtime.bot), timeout=90))
+
+        # ---------- هوش مصنوعی: سفارش، خرید، بررسی دوباره ----------
+        if name == "ai/order":
+            return _json(start_response, runtime.run(webapi.ai_order(
+                db, panel, wuser, int(query.get("id") or 0)), timeout=20))
+        if name in ("ai/buy", "ai/check", "ai/notify"):
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=1024)
+            if name == "ai/notify":
+                return _json(start_response, runtime.run(webapi.ai_notify(db, panel, wuser), timeout=20))
+            if name == "ai/check":
+                try:
+                    oid = int(body.get("id") or 0)
+                except (TypeError, ValueError):
+                    oid = 0
+                if oid <= 0:
+                    return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+                return _json(start_response, runtime.run(webapi.ai_check(
+                    db, panel, wuser, order_id=oid, bot=runtime.bot), timeout=170))
+            pid = str(body.get("product_id") or "")[:80]
+            nonce = str(body.get("nonce") or "")[:64]
+            try:
+                months = int(body.get("months") or 0) or None
+            except (TypeError, ValueError):
+                months = None
+            if not pid or len(nonce) < 8:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            # تایم اوت بلند: سرویس دهنده با تلاش دوباره تا دو دقیقه طول
+            # می کشد. اگر همین هم گذشت، خرید در پس زمینه تمام می شود و
+            # نتیجه اش در «سفارش های من» پیداست.
+            return _json(start_response, runtime.run(webapi.ai_buy(
+                db, panel, wuser, product_id=pid, months=months, email=str(body.get("email") or ""),
+                nonce=nonce, bot=runtime.bot), timeout=170))
 
         # ---------- خرید دلخواه ----------
         if name == "custom/buy":

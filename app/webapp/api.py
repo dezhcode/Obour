@@ -521,15 +521,15 @@ async def qr_payload(
 async def ai_catalog(
     db: "Database", panel: "Panel | None", wuser: WebAppUser
 ) -> dict:
-    """محصولات هوش مصنوعی برای نمایش در مینی اپ.
+    """ویترین و فروشگاه هوش مصنوعی مینی اپ.
 
-    سفارش نهایی عمدا در ربات می ماند: قیمت این محصولات دلاری است و به
-    موجودی لحظه ای فروشنده بستگی دارد، پس یک مسیر پرداخت دوم برایش
-    درست کردن ریسکی است که ارزشش را ندارد. مینی اپ فقط ویترین است.
+    قیمت ها همین جا از سرویس دهنده خوانده و به تومان تبدیل می شوند، ولی
+    این فقط برای نمایش است: موقع خرید، ai_shop.buy محصول و قیمت را دوباره
+    و بدون کش از سرویس دهنده می گیرد.
     """
     user = await _require_user(db, wuser)
     if not features.is_on("shop_ai"):
-        return {"enabled": False, "items": [], "banner": False}
+        return {"enabled": False, "items": [], "orders": [], "banner": False}
 
     bot_username = await db.get_setting("bot_username", "")
     has_banner = bool(await db.get_setting("webapp_ai_banner", ""))
@@ -544,37 +544,153 @@ async def ai_catalog(
         except CanbosoError:
             cat = {"items": []}
         for x in cat["items"]:
+            months = [{"months": m, "price": x["month_prices"][m]} for m in x["months"]]
             items.append({
                 "id": x["id"],
                 "title": x["name"],
-                "price": min(x["month_prices"].values()) if x["months"] else x["price"],
-                "from_price": bool(x["months"]),
+                "description": (x.get("description") or "")[:900],
+                "price": min(m["price"] for m in months) if months else x["price"],
+                "from_price": bool(months),
+                "months": months,
+                "needs_email": bool(x["needs_email"]),
                 "stock": x["stock"] if x["available"] else 0,
                 "type": x["type"],
-                "order_link": (f"https://t.me/{bot_username}?start=ai_{x['id']}" if bot_username else ""),
             })
     except Exception:  # noqa: BLE001
         # نبود کاتالوگ نباید صفحه را بشکند؛ ویترین خالی بهتر از خطاست.
         log.warning("کاتالوگ هوش مصنوعی خوانده نشد", exc_info=True)
 
-    orders = await db.user_ai_orders(user["id"], limit=5)
+    orders = await db.user_ai_orders(user["id"], limit=20)
     return {
         "enabled": True,
         "banner": has_banner,
         "items": items,
-        "orders": [
-            {
-                "id": o["id"],
-                "title": o.get("title") or i18n.t("سفارش"),
-                "status": o.get("status") or "pending",
-                "code": o.get("code") or "",
-                "price": int(o.get("price") or 0),
-                "created_at": o["created_at"],
-            }
-            for o in orders
-        ],
+        "balance": int(user["balance"]),
+        "orders": [_ai_order_out(o) for o in orders],
         "bot_link": f"https://t.me/{bot_username}" if bot_username else "",
     }
+
+
+def _ai_order_out(o: dict, full: bool = False) -> dict:
+    """سفارش برای مینی اپ. اطلاعات ورود فقط در حالت full (صفحه خود سفارش)."""
+    from app.services import ai_shop
+
+    d = ai_shop.delivery_of(o)
+    out = {
+        "id": o["id"],
+        "title": o.get("title") or i18n.t("سفارش"),
+        "status": o.get("status") or "pending",
+        "code": o.get("code") or "",
+        "price": int(o.get("price") or 0),
+        "created_at": o["created_at"],
+        "delivered_at": o.get("delivered_at"),
+        "product_id": o.get("service_id") or "",
+        "accounts": len(d.get("accounts") or []),
+    }
+    if full:
+        out.update({
+            "provider_code": o.get("provider_order_id") or "",
+            "email": d.get("email") or "",
+            "months": d.get("months") or None,
+            "links": [str(x) for x in (d.get("links") or [])][:20],
+            "delivery": [
+                {k: str(a.get(k) or "")[:500] for k in ("user", "password", "verifyEmail", "expiryText", "otherInfo")}
+                for a in (d.get("accounts") or [])[:20]
+            ],
+        })
+    return out
+
+
+async def ai_order(db: "Database", panel: "Panel | None", wuser: WebAppUser, order_id: int) -> dict:
+    """یک سفارش هوش مصنوعی با اطلاعات تحویل؛ فقط برای صاحب همان سفارش."""
+    user = await _require_user(db, wuser)
+    o = await db.get_ai_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    return _ai_order_out(o, full=True)
+
+
+# وضعیت خرید -> (کد HTTP، پیام) برای وقت هایی که خریدی انجام نشده
+_AI_ERRORS = {
+    "insufficient": (402, "موجودی کیف پولت کافی نیست"),
+    "unavailable": (409, "این محصول همین الان موجود نیست؛ پولی کم نشد"),
+    "locked": (409, "یه خرید دیگه همین حالا در جریانه"),
+    "not_configured": (503, "فروش این بخش فعلا در دسترس نیست"),
+    "bad_input": (400, "اطلاعات خرید کامل نیست؛ ایمیل و مدت را چک کن"),
+}
+
+
+async def ai_buy(
+    db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+    product_id: str, months: int | None, email: str | None, nonce: str, bot=None,  # noqa: ANN001
+) -> dict:
+    """خرید محصول هوش مصنوعی از مینی اپ؛ همان ai_shop.buy که ربات دارد.
+
+    دروازه ها همان ربات اند (بخش روشن، قوانین). nonce هر بار زدن دکمه
+    «پرداخت» تازه است؛ ارسال دوباره همان nonce (دابل کلیک، شبکه ضعیف)
+    خرید دوم نمی سازد.
+    """
+    from app.services import ai_shop
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_ai"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    if not user.get("rules_accepted_at") and await db.get_setting("rules_enabled", "1") == "1":
+        raise ApiError("اول باید قوانین را در ربات بپذیری", 403, "rules")
+    email = (email or "").strip()[:120] or None
+    if email and not ai_shop.EMAIL_RE.match(email):
+        raise ApiError("ایمیل درست نیست", 400, "bad_email")
+    if not await db.acquire_lock(f"ainonce:{wuser.id}:{nonce}", ttl_seconds=86400):
+        raise ApiError("این خرید در حال پردازشه", 409, "duplicate")
+
+    r = await ai_shop.buy(db, bot, user, str(product_id), months=months, email=email)
+    status = r["status"]
+    fresh = await db.get_user(user["id"])
+    balance = int((fresh or user)["balance"])
+    if status in (ai_shop.DELIVERED, ai_shop.PROCESSING, ai_shop.UNKNOWN):
+        return {"ok": True, "status": status, "balance": balance, "order": _ai_order_out(r["order"], full=True)}
+    if status in (ai_shop.FAILED, ai_shop.NO_FUNDS):
+        if r.get("order"):
+            raise ApiError("فروشنده سفارش را انجام نداد؛ پولت به کیف پول برگشت", 502, "refunded")
+        raise ApiError("ارتباط با فروشنده برقرار نشد؛ پولی کم نشد", 503, "provider")
+    code, msg = _AI_ERRORS.get(status, (400, "خرید انجام نشد"))
+    raise ApiError(msg, code, status)
+
+
+async def ai_check(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, order_id: int, bot=None) -> dict:  # noqa: ANN001
+    """بررسی دوباره سفارش مبهم با همان Idempotency-Key.
+
+    امن است: اگر خرید اول انجام شده بود سرویس دهنده همان پاسخ را برمی گرداند
+    و اگر نه همان خرید (که پولش کم شده) انجام می شود. هر سفارش هر ۳۰ ثانیه
+    یک بار، و نه همزمان با خرید دیگر همین کاربر.
+    """
+    from app.services import ai_shop
+
+    user = await _require_user(db, wuser)
+    o = await db.get_ai_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    if o["status"] not in (ai_shop.UNKNOWN, "pending") or not o.get("idem_key"):
+        return {"ok": True, "status": o["status"], "order": _ai_order_out(o, full=True)}
+    if not await db.acquire_lock(f"aichk:{o['id']}", ttl_seconds=30):
+        raise ApiError("همین الان بررسی شد؛ کمی بعد دوباره امتحان کن", 429, "rate")
+    lock = f"ai:{user['id']}"
+    if not await db.acquire_lock(lock, ttl_seconds=120):
+        raise ApiError("یه خرید دیگه همین حالا در جریانه", 409, "locked")
+    try:
+        await ai_shop.resolve(db, bot, o)
+    finally:
+        await db.release_lock(lock)
+    o = await db.get_ai_order(o["id"])
+    fresh = await db.get_user(user["id"])
+    return {"ok": True, "status": o["status"], "balance": int((fresh or user)["balance"]),
+            "order": _ai_order_out(o, full=True)}
+
+
+async def ai_notify(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """ثبت نام در فهرست «وقتی موجود شد خبرم کن»."""
+    user = await _require_user(db, wuser)
+    return {"ok": True, "added": await db.ai_waitlist_add(user["id"])}
 
 
 def _latin(text: str) -> str:
@@ -980,4 +1096,4 @@ ROUTES = {
     "guide": guide,
 }
 
-__all__ = ["ROUTES", "ApiError", "service_detail", "ticket_thread", "qr_payload", "qr_svg", "purchase"]
+__all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase"]

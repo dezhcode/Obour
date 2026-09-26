@@ -648,3 +648,16 @@ PHRASES.update({
     "ایمیل": "Email", "نام کاربری": "Username", "رمز": "Password", "ایمیل بازیابی": "Recovery email",
     "انقضا": "Expires", "فعال سازی روی ایمیل": "Activation on email",
 })
+
+# ---------- Mini app AI purchase ----------
+PHRASES.update({
+    "اطلاعات خرید کامل نیست؛ ایمیل و مدت را چک کن": "Purchase details are incomplete; check the email and duration",
+    "همین الان بررسی شد؛ کمی بعد دوباره امتحان کن": "Just checked; try again in a moment",
+    "فروش این بخش فعلا در دسترس نیست": "This section isn't selling right now",
+    "ارتباط با فروشنده برقرار نشد؛ پولی کم نشد": "Couldn't reach the seller; nothing was charged",
+    "یه خرید دیگه همین حالا در جریانه": "Another purchase is in progress right now",
+    "سفارش پیدا نشد": "Order not found",
+    "فروشنده سفارش را انجام نداد؛ پولت به کیف پول برگشت": "The seller didn't complete the order; your money is back in your wallet",
+    "این محصول همین الان موجود نیست؛ پولی کم نشد": "This product just went out of stock; nothing was charged",
+    "ایمیل درست نیست": "That email isn't valid",
+})
