@@ -391,7 +391,8 @@ async def buy(
         )
         request = {"product_id": str(product_id), "months": months if req["months"] else None,
                    "email": email if req["email"] else None, "expected_cost": cost,
-                   "guide": guide_of(p, await db.product_meta(str(product_id)))[:2500]}
+                   "guide": guide_of(p, await db.product_meta(str(product_id)))[:2500],
+                   "category": auto_category(p), "brand": str(p.get("emoji") or ""), "kind": delivery_kind(p)}
         idem = f"obour-{order['code']}-{uuid.uuid4().hex[:16]}"
         await db.set_ai_request(order["id"], idem, json.dumps(request, ensure_ascii=False), currency)
         order = await db.get_ai_order(order["id"])

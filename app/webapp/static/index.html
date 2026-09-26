@@ -148,6 +148,31 @@ html.tg-back .back{display:none}
 .dot.on{width:20px;background:var(--navy)}
 html.perf-low .slide{transform:none !important;opacity:1 !important}
 
+/* کارت دسته و کارت خرید آماده: همان کارت عبور با گرادیان رنگ دسته */
+.pass.cat-vpn{--p:var(--navy);background:radial-gradient(120% 90% at 100% 0%,#1D3F9E 0%,var(--navy) 55%,var(--deep) 100%)}
+.pass.cat-ai{--p:var(--indigo);--p2:#DAD4FF;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#6A55E0 0%,var(--indigo) 52%,#241A6E 100%)}
+.pass.cat-work{--p:#1D4FB8;--p2:#D5E3FF;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#3B7BFF 0%,#1D4FB8 52%,var(--deep) 100%)}
+.pass.cat-fun{--p:var(--ember);--p2:#FFDCCF;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#E0573E 0%,var(--ember) 55%,#4A1E0B 100%)}
+.pass.cat-tools{--p:var(--ocean);--p2:#D3EEF4;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#1497B3 0%,var(--ocean) 55%,#063645 100%)}
+.cat-pass{height:196px;cursor:pointer}
+.cat-pass .pass-name{display:flex;align-items:center;gap:10px;font-size:18px}
+.cat-ic{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cat-ic svg{width:20px;height:20px;color:var(--tunnel)}
+.cat-sub{font-size:12.5px;color:var(--p2);margin-top:12px;line-height:1.8}
+.cat-stack{display:flex;align-items:center;margin-top:12px;min-height:36px}
+.cat-stack .ai-mono{width:34px;height:34px;border-radius:11px;font-size:11px;box-shadow:0 0 0 2px var(--p)}
+.cat-stack .ai-mono + .ai-mono{margin-inline-start:-8px}
+.cat-more{margin-inline-start:8px;font-size:12px;font-weight:800;color:var(--p2)}
+.cat-deck .slides{padding-bottom:22px}
+.cat-deck .slide{flex-basis:80%;scroll-snap-stop:normal}
+.cat-deck .dots{margin-top:-8px;margin-bottom:6px}
+.ord-pass{cursor:pointer}
+.ord-big{display:flex;align-items:center;gap:14px;margin-top:18px}
+.ord-big .ai-mono.lg{box-shadow:0 0 0 3px rgba(255,255,255,.16)}
+.ord-t{font-size:20px;font-weight:800;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#store-box{will-change:transform,opacity}
+html.perf-low #store-box{will-change:auto}
+
 /* ═══ کارت لینک دعوت ═══
    نسخه 6.0.0 لینک و دو دکمه را در یک ردیف فشرده بود؛ دکمه اشتراک متن
    دوخطی شد و آیکن های بی اندازه روی همه چیز افتادند. حالا سه طبقه:
@@ -1321,18 +1346,22 @@ function Pass(s, color, btn){
 /* اسلایدر کارت های عبور. رنگ هر کارت از جایگاهش می آید: اول سرمه ای،
    بعد اقیانوسی، نیلی، آجری. */
 function Slider(items){
-  return `<div class="slider"><div class="slides" id="slides" onscroll="SliderFx.tick()">${
-    items.map((s, i) => `<div class="slide">${Pass(s, PASS_COLORS[i % 4])}</div>`).join('')}</div>
+  return `<div class="slider"><div class="slides" id="slides" data-dots="dots" onscroll="SliderFx.tick('slides')">${
+    items.map((s, i) => `<div class="slide">${s._order ? OrderPass(s._order) : Pass(s, PASS_COLORS[i % 4])}</div>`).join('')}</div>
     ${items.length > 1 ? `<div class="dots" id="dots">${items.map((_, i) => `<span class="dot${i ? '' : ' on'}"></span>`).join('')}</div>` : ''}</div>`;
 }
+/* حرکت دسته کارت ها؛ برای هر اسلایدر جدا (کارت های خانه، دسته های فروشگاه).
+   hooks[id] وقتی کارت وسط عوض شد صدا زده می شود. */
 const SliderFx = {
-  idx:0, raf:0,
-  tick(){
-    if (this.raf) return;
-    this.raf = requestAnimationFrame(() => { this.raf = 0; this.apply(); });
+  raf:{}, hooks:{},
+  tick(id){
+    id = id || 'slides';
+    if (this.raf[id]) return;
+    this.raf[id] = requestAnimationFrame(() => { this.raf[id] = 0; this.apply(id); });
   },
-  apply(){
-    const box = $('slides'); if (!box || !box.getBoundingClientRect) return;
+  apply(id){
+    id = id || 'slides';
+    const box = $(id); if (!box || !box.getBoundingClientRect) return;
     const c = box.getBoundingClientRect(), mid = c.left + c.width / 2;
     let best = 0, bestD = 1e9;
     [...box.children].forEach((el, i) => {
@@ -1346,14 +1375,36 @@ const SliderFx = {
       }
       if (a < bestD) { bestD = a; best = i; }
     });
-    if (best !== this.idx) {
-      this.idx = best;
+    if (best !== +(box.dataset.idx || 0)) {
+      box.dataset.idx = best;
       try { tg.HapticFeedback.selectionChanged(); } catch(e){}
-      const dots = $('dots');
+      const dots = box.dataset.dots && $(box.dataset.dots);
       if (dots) [...dots.children].forEach((d, i) => d.classList.toggle('on', i === best));
+      if (this.hooks[id]) this.hooks[id](best);
     }
+  },
+  /* کارت i را وسط می آورد؛ بدون انیمیشن برای جای اولیه */
+  center(id, i, smooth){
+    const box = $(id); if (!box || !box.children[i]) return;
+    const el = box.children[i], c = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+    box.scrollBy({ left: (r.left + r.width / 2) - (c.left + c.width / 2), behavior: smooth ? 'smooth' : 'auto' });
+    if (!smooth) { box.dataset.idx = i; this.apply(id); }
   }
 };
+
+/* کارت خرید آماده در صفحه خانه، هم خانواده کارت عبور؛ رنگ از دسته */
+const ORDER_ST = { delivered:['','تحویل شد'], done:['','تحویل شد'], processing:['warn','در انتظار فروشنده'], unknown:['warn','در حال بررسی'], pending:['warn','در حال بررسی'], failed:['bad','ناموفق'] };
+function OrderPass(o){
+  const st = ORDER_ST[o.status] || ['', o.status], cat = SHOP_CATS[o.category] ? o.category : 'ai';
+  const kindTxt = { link:'لینک فعال‌سازی', manual:'تحویل دستی', slot:'فعال روی ایمیل', upgrade_account:'ارتقای اکانت' }[o.kind] || 'اکانت آماده';
+  return `<div class="pass cat-${cat} ord-pass" onclick="App.go('ai_order', ${o.id})" role="button" aria-label="${esc(o.title)}">${TUNNEL}
+    <div class="pass-head"><span class="pass-name"><span>${SHOP_CATS[cat][2]}</span></span><span class="pass-st ${st[0]}"><i></i>${st[1]}</span></div>
+    <div class="ord-big">${AiThumb({ title:o.title, image:o.image, brand:o.brand }, 'lg')}
+      <div style="min-width:0"><div class="ord-t ai-lat">${esc(o.title)}</div><div class="pass-meta">${kindTxt}</div></div></div>
+    <div class="pass-foot"><span class="pass-meta"><span class="n">${esc(o.code)}</span> · ${N(jdate(o.created_at))}</span>
+      <button class="pass-btn" onclick="event.stopPropagation();App.go('ai_order', ${o.id})">جزئیات</button></div>
+  </div>`;
+}
 function WalletStrip(bal){
   const empty = !(bal > 0);
   return `<div class="card wallet mx"><span class="ic cash">${ic('wallet')}</span>
@@ -1371,15 +1422,33 @@ const SHOP_CATS = {
   fun:  ['play',  'fun',   'سرگرمی',      'فیلم، موسیقی و ویدیو'],
   tools:['tool',  'tools', 'ابزار',        'آموزش، ایمیل و بیشتر'],
 };
-function Kinds(active, counts){
+/* دسته ها به شکل دسته کارت، مثل کارت های «سرویس های من»: ورق بزن، کارت وسط
+   دسته فعال است و محتوای زیرش با حرکت جابه جا می شود. */
+function CatDeck(active, counts){
   const vpnOn = App.boot.features.shop_vpn !== false, aiOn = App.boot.features.shop_ai;
-  const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : aiOn && (!counts || counts[k]));
-  const k = key => { const [icon, tone, t, sub] = SHOP_CATS[key];
-    const n = counts && key !== 'vpn' ? counts[key] : null;
-    return `<button class="kind${key === active ? ' on' : ''}" data-kind="${key}" onclick="Store.to('${key}')">
-    <span class="kind-ok">${ic('check',2.6)}</span><span class="ic ${tone}">${ic(icon)}</span>
-    <span><span class="kind-t">${t}</span><span class="kind-s">${n != null ? esc(fa(n) + ' محصول') : sub}</span></span></button>`; };
-  return `<div class="kinds row" id="kinds">${keys.map(k).join('')}</div>`;
+  const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : aiOn && (!counts || counts[k] || k === active));
+  Store.deckKeys = keys;
+  const items = (AI.d && AI.d.items) || [];
+  const card = key => {
+    const [icon, , t, sub] = SHOP_CATS[key];
+    const list = items.filter(x => x.category === key && x.stock !== 0);
+    const n = counts ? counts[key] || 0 : null;
+    const minP = list.length ? Math.min(...list.map(x => x.price)) : 0;
+    const pill = key === 'vpn' ? 'کانفیگ عبور' : n != null ? fa(n) + ' محصول' : '…';
+    const stack = key === 'vpn'
+      ? ''
+      : list.slice(0, 5).map(x => AiThumb(x)).join('') + (list.length > 5 ? `<span class="cat-more">${esc('+' + fa(list.length - 5))}</span>` : '');
+    return `<div class="slide"><div class="pass cat-pass cat-${key}" onclick="Store.tapCat('${key}')" role="button" aria-label="${esc(I18N.t(t))}">${TUNNEL}
+      <div class="pass-head"><span class="pass-name"><span class="cat-ic">${ic(icon, 2)}</span><span>${t}</span></span><span class="pass-st"><i></i>${esc(pill)}</span></div>
+      <div class="cat-sub">${key === 'vpn' ? 'کانفیگ پرسرعت، همه کشورها، همه توی یک لینک' : sub}</div>
+      <div class="cat-stack">${stack}</div>
+      <div class="pass-foot"><span class="pass-meta">${minP ? `<span>از</span> ${N(fa(minP))} <span>تومان</span>` : key === 'vpn' ? 'روزانه، هفتگی و ماهانه' : ''}</span>
+        <span class="pass-btn">${key === active ? 'همین‌جا' : 'دیدن'}</span></div>
+    </div></div>`;
+  };
+  return `<div class="slider cat-deck"><div class="slides" id="cat-slides" data-dots="cat-dots" data-idx="${Math.max(0, keys.indexOf(active))}"
+      onscroll="SliderFx.tick('cat-slides');Store.settle()">${keys.map(card).join('')}</div>
+    ${keys.length > 1 ? `<div class="dots" id="cat-dots">${keys.map(k => `<span class="dot${k === active ? ' on' : ''}"></span>`).join('')}</div>` : ''}</div>`;
 }
 /* ═════════ CHART ═════════
    نمودار خطی مصرف. SVG خالص، بدون کتابخانه.
@@ -1537,7 +1606,7 @@ function UsageChart(days){
 
 /* ═════════ خانه ═════════ */
 const Home = {
-  services: [],
+  services: [], orders: [],
   live(){ return this.services.filter(s => !s.expired).length ? this.services.filter(s => !s.expired) : this.services; },
 };
 
@@ -1554,9 +1623,11 @@ async home(p){
     ${WalletStrip(u.balance)}
     <div id="home-more"></div>`;
   try {
-    const { items } = await api('services');
+    const [{ items }, orders] = await Promise.all([api('services'),
+      b.features.shop_ai ? api('ai/orders').then(r => r.items).catch(() => []) : Promise.resolve([])]);
     Home.services = items.slice();
-    if (!items.length) {
+    Home.orders = orders.filter(o => o.status !== 'failed');
+    if (!items.length && !Home.orders.length) {
       $('home-pass').innerHTML = `<div class="newpass">
         <span class="ic lg net">${ic('plus',2)}</span>
         <div class="empty-t" style="font-size:17px">اولین کارت عبورت</div>
@@ -1569,10 +1640,10 @@ async home(p){
           `<div class="row"><span class="ic"><span class="n">${n}</span></span><span class="row-m"><span class="row-t">${t}</span><span class="row-s">${s}</span></span></div>`).join(''));
       return;
     }
-    const act = items.filter(s => !s.expired).length;
+    const act = items.filter(s => !s.expired).length + Home.orders.filter(o => o.status === 'delivered' || o.status === 'done').length;
     $('home-sec').innerHTML = Sec('سرویس‌های من', `${N(act)} فعال`);
-    $('home-pass').innerHTML = Slider(Home.live());
-    SliderFx.idx = 0; SliderFx.apply();
+    $('home-pass').innerHTML = Slider(Home.live().concat(Home.orders.map(o => ({ _order:o }))));
+    SliderFx.apply('slides');
     const unread = b.counters.unread_replies;
     $('home-more').innerHTML = Sec('چه چیزی لازم داری؟') + `<div class="tiles">
         <button class="tile net" onclick="Store.kind='vpn';App.tab('store')">${ic('globe')}<span><span class="tile-t">اینترنت آزاد</span><span class="tile-s">خرید و تمدید</span></span></button>
@@ -1591,7 +1662,8 @@ async store(p){
   if (!ai) Store.kind = 'vpn';
   if (App.boot.features.shop_vpn === false && Store.kind === 'vpn') Store.kind = 'ai';
   p.innerHTML = TabTop('فروشگاه', 'پرداخت از کیف پول، تحویل فوری')
-    + (ai ? `<div id="kinds-box">${Kinds(Store.kind)}</div>` : '') + `<div id="store-box">${skel(2, 200)}</div>`;
+    + (ai ? `<div id="kinds-box">${CatDeck(Store.kind)}</div>` : '') + `<div id="store-box">${skel(2, 200)}</div>`;
+  if (ai) Store.mountDeck();
   const first = Store.kind === 'vpn' ? Store.loadVpn() : Store.loadAi();
   if (ai) Store.catalog();
   return first;
@@ -1673,12 +1745,48 @@ const Store = {
   data:null, kind:'vpn', cat:0,
 
   /* جابه جایی نوع درجا؛ ساخت دوباره کل صفحه، اسکرول را به بالا می برد */
-  to(k){
+  deckKeys:[],
+  mountDeck(){
+    SliderFx.hooks['cat-slides'] = () => {};
+    requestAnimationFrame(() => SliderFx.center('cat-slides', Math.max(0, this.deckKeys.indexOf(this.kind)), false));
+  },
+  /* کارت وسط بعد از ایستادن ورق زدن، دسته فعال می شود */
+  settle(){
+    clearTimeout(this._settle);
+    this._settle = setTimeout(() => {
+      const box = $('cat-slides'); if (!box) return;
+      const k = this.deckKeys[+(box.dataset.idx || 0)];
+      if (this._target) { if (k === this._target) this._target = null; return; }
+      if (k && k !== this.kind) this.to(k);
+    }, 170);
+  },
+  tapCat(k){
+    const i = this.deckKeys.indexOf(k);
+    if (k === this.kind) return;
+    this._target = k;
+    SliderFx.center('cat-slides', i, true);
+    this.to(k);
+  },
+  /* جابه جایی دسته: محتوای قبلی به سمت ورق خوردن بیرون می رود و تازه از سمت دیگر می آید */
+  async to(k){
     if (this.kind === k) return;
+    const from = this.deckKeys.indexOf(this.kind), dest = this.deckKeys.indexOf(k);
     this.kind = k; App.haptic();
-    const box = $('kinds');
-    if (box && box.querySelectorAll) box.querySelectorAll('.kind').forEach(e => e.classList.toggle('on', e.getAttribute('data-kind') === k));
-    $('store-box').innerHTML = skel(2, 200);
+    const box = $('cat-slides');
+    if (box) box.querySelectorAll('.cat-pass .pass-btn').forEach((b, i) => b.textContent = I18N.t(i === dest ? 'همین‌جا' : 'دیدن'));
+    const sb = $('store-box');
+    const rtl = document.documentElement.dir === 'rtl', dir = (dest > from ? 1 : -1) * (rtl ? 1 : -1);
+    const calm = document.documentElement.classList.contains('perf-low') || !sb.animate;
+    let out = null;
+    if (!calm) {
+      out = sb.animate([{ opacity:1, transform:'none' }, { opacity:0, transform:`translateX(${dir * 36}px) scale(.98)` }],
+                       { duration:170, easing:'cubic-bezier(.4,0,1,1)', fill:'forwards' });
+      await out.finished.catch(() => {});
+    }
+    sb.innerHTML = skel(2, 200);
+    if (out) out.cancel();
+    if (!calm) sb.animate([{ opacity:0, transform:`translateX(${-dir * 36}px) scale(.98)` }, { opacity:1, transform:'none' }],
+                          { duration:320, easing:'cubic-bezier(.22,.9,.3,1)' });
     return k === 'vpn' ? this.loadVpn() : this.loadAi();
   },
 
@@ -1687,7 +1795,8 @@ const Store = {
     if (!AI.d || force) { try { AI.d = await api('ai'); } catch(e){ return null; } }
     const counts = {};
     for (const x of AI.d.items || []) counts[x.category] = (counts[x.category] || 0) + 1;
-    const box = $('kinds-box'); if (box) box.innerHTML = Kinds(this.kind, counts);
+    const box = $('kinds-box');
+    if (box) { box.innerHTML = CatDeck(this.kind, counts); this.mountDeck(); }
     if (this.kind === 'vpn') this.vpnExtra();
     return AI.d;
   },
@@ -1782,7 +1891,7 @@ const Store = {
       if (d.balance != null) App.setBalance(d.balance);
       const all = d.items.filter(x => (x.category || 'ai') === cat);
       const items = all.filter(x => x.stock !== 0).concat(all.filter(x => x.stock === 0));
-      $('store-box').innerHTML = AI.hero(cat)
+      $('store-box').innerHTML = WalletStrip(App.boot.user.balance)
         + (d.banner ? `<div class="gap" style="height:14px"></div><div class="banner"><img src="${STATIC}ai-banner.jpg" alt="" onerror="this.parentNode.remove()"></div>` : '')
         + Sec('محصولات', esc(fa(items.length) + ' محصول'))
         + (items.length ? `<div class="ai-list">${items.map(x => AI.card(x)).join('')}</div>` : emptyBox('فعلا محصولی برای نمایش نیست', 'کمی بعد دوباره سر بزن.'))
@@ -3004,6 +3113,14 @@ Object.entries({
   'محصول خوانده نشد':'Couldn’t load the product', 'سفارش خوانده نشد':'Couldn’t load the order',
   'اطلاعات تحویل همیشه اینجا می‌ماند':'Delivery details always stay here', 'نمایش رمز':'Show password', 'کپی همه':'Copy all',
   'پرداخت و دریافت':'Pay and receive', 'فعال‌سازی روی ایمیل خودت':'Activated on your own email',
+  "کانفیگ عبور":"Obour configs",
+  "کانفیگ پرسرعت، همه کشورها، همه توی یک لینک":"Fast configs, every country, all in one link",
+  "روزانه، هفتگی و ماهانه":"Daily, weekly and monthly",
+  "همین‌جا":"Here",
+  "دیدن":"View",
+  "تحویل دستی":"Manual delivery",
+  "فعال روی ایمیل":"Active on your email",
+  "اکانت آماده":"Ready-made account",
   "کانفیگ پرسرعت":"Fast configs",
   "باز کردن لینک":"Open link",
   "ابزار کاری":"Work tools",
