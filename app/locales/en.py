@@ -627,6 +627,8 @@ TEXTS.update({
         "account": "📦 After paying, you get the username and password right here.",
         "slot": "📧 Activated on your own email. After paying, the seller completes it, which can take a little while.",
         "upgrade_account": "⬆️ Your own account is upgraded; we'll ask for your account email.",
+        "link": "🔗 After paying, you get the activation link or code right here. Activate it as soon as you can.",
+        "manual": "⏳ Manual delivery: after paying, the seller prepares your order, which can take a little while.",
     },
     "AI_STOCK": "In stock: {n}",
     "AI_STOCK_OPEN": "Available",
@@ -647,6 +649,7 @@ PHRASES.update({
     "ناموجود": "Out of stock", "ادامه و وارد کردن ایمیل": "Continue and enter email", "مدت": "Duration",
     "ایمیل": "Email", "نام کاربری": "Username", "رمز": "Password", "ایمیل بازیابی": "Recovery email",
     "انقضا": "Expires", "فعال سازی روی ایمیل": "Activation on email",
+    "لینک فعال سازی": "Activation link",
 })
 
 # ---------- Mini app AI purchase ----------

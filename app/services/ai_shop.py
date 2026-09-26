@@ -69,6 +69,28 @@ def requirements(p: dict) -> dict:
     }
 
 
+_LINK_RE = re.compile(r"\b(link|voucher|coupon|redeem|offer)\b", re.I)
+
+
+def delivery_kind(p: dict) -> str:
+    """نحوه تحویل برای نمایش به کاربر.
+
+    canboso فقط account و slot و upgrade_account دارد، ولی بسیاری از
+    «account» ها در واقع لینک یا کد فعال سازی اند (Redeem Link، Voucher،
+    Coupon) و بعضی «Manual Delivery» اند که فروشنده دستی تحویل می دهد.
+    نام محصول تنها نشانه است؛ پس از آن حدس می زنیم.
+    """
+    t = str(p.get("productType") or "account")
+    if t != "account":
+        return t
+    name = str(p.get("name") or "")
+    if re.search(r"manual", name, re.I):
+        return "manual"
+    if _LINK_RE.search(name) or re.search(r"redeem link|voucher link|coupon", str(p.get("description") or ""), re.I):
+        return "link"
+    return "account"
+
+
 def stock_of(p: dict) -> int | None:
     """None یعنی سرویس دهنده عددی نداده (محدودیت اعلام نشده)."""
     av = (p.get("availability") or {}).get("available")
@@ -188,6 +210,8 @@ async def catalog(db: "Database", force: bool = False, admin: bool = False) -> d
             "name": str(p.get("name") or ""),
             "description": str(p.get("description") or ""),
             "type": str(p.get("productType") or "account"),
+            "kind": delivery_kind(p),
+            "brand": str(p.get("emoji") or ""),
             "stock": stock,
             "api_stock": api_stock,
             "wallet_stock": wallet,
@@ -304,7 +328,9 @@ async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, fi
         return {"status": FAILED, "order": await db.get_ai_order(order["id"]), "error": str(exc)}
 
     o = result.get("order") or {}
-    status = PROCESSING if is_waiting(result) and not accounts_of(result) else DELIVERED
+    # بدون اطلاعات ورود، «تحویل شد» معنا ندارد (مثل محصولات Manual Delivery
+    # که canboso بعدا تحویل می دهد): در انتظار فروشنده می ماند.
+    status = DELIVERED if accounts_of(result) else PROCESSING
     delivery = {
         "accounts": accounts_of(result),
         "email": o.get("customerEmail") or req.get("email"),
@@ -315,6 +341,10 @@ async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, fi
     await db.finish_ai_order(order["id"], status, provider_order_id=str(o.get("orderCode") or ""),
                              products=json.dumps(delivery, ensure_ascii=False))
     log.info("سفارش هوش مصنوعی %s: %s", order["code"], status)
+    if status == PROCESSING and not req.get("email") and first:
+        # محصول ایمیلی (slot) عادی است؛ ولی account بی تحویل را ادمین باید ببیند
+        await _alert_admins(bot, f"⏳ سفارش <code>{order['code']}</code> ({esc(order['title'])}) پذیرفته شد ولی "
+                                 f"اطلاعات تحویل نیامد. کد canboso: <code>{esc(str(o.get('orderCode') or '-'))}</code>")
 
     # اگر هزینه واقعی بیشتر از برآورد شد (مثلا تخفیف یا قیمت ماهانه)،
     # از کاربر چیزی اضافه کم نمی شود؛ فقط ادمین باخبر می شود.
@@ -367,8 +397,13 @@ def delivery_html(order: dict) -> str:
     lines: list[str] = []
     for i, a in enumerate(d.get("accounts") or [], 1):
         head = f"👤 {i}. " if len(d.get("accounts") or []) > 1 else "👤 "
-        lines.append(head + i18n.t("نام کاربری") + f": <code>{esc(a.get('user') or '-')}</code>")
-        lines.append("🔑 " + i18n.t("رمز") + f": <code>{esc(a.get('password') or '-')}</code>")
+        user = str(a.get("user") or "")
+        if user.startswith(("http://", "https://")) and not a.get("password"):
+            lines.append("🔗 " + i18n.t("لینک فعال سازی") + f": <code>{esc(user)}</code>")
+        else:
+            lines.append(head + i18n.t("نام کاربری") + f": <code>{esc(user or '-')}</code>")
+        if a.get("password"):
+            lines.append("🔑 " + i18n.t("رمز") + f": <code>{esc(a['password'])}</code>")
         if a.get("verifyEmail"):
             lines.append("📧 " + i18n.t("ایمیل بازیابی") + f": <code>{esc(a['verifyEmail'])}</code>")
         if a.get("expiryText"):

@@ -2567,7 +2567,8 @@ SubPages.detail.noNav = true;
    ai_shop.buy ربات است؛ سرور محصول و قیمت را موقع خرید دوباره و بدون کش
    از فروشنده می گیرد، پس قیمتی که اینجا دیده می شود فقط برای نمایش است.
    اطلاعات ورود فقط در صفحه خود سفارش خوانده می شود، نه در فهرست ها. */
-const AI_HOW = { account:['bolt','تحویل فوری نام کاربری و رمز'], slot:['mail','فعال‌سازی روی ایمیل خودت'], upgrade_account:['up','ارتقای اکانت خودت'] };
+const AI_HOW = { account:['bolt','تحویل فوری نام کاربری و رمز'], slot:['mail','فعال‌سازی روی ایمیل خودت'], upgrade_account:['up','ارتقای اکانت خودت'],
+  link:['link','تحویل فوری لینک یا کد فعال‌سازی'], manual:['clock','تحویل دستی توسط فروشنده'] };
 const AI_STEPS = {
   account: [['wallet','پرداخت از کیف پول','مبلغ از موجودی کیف پولت کم می‌شود.'],
             ['bolt','تحویل همین‌جا','نام کاربری و رمز چند ثانیه بعد روی همین صفحه می‌آید.'],
@@ -2578,6 +2579,12 @@ const AI_STEPS = {
   upgrade_account: [['mail','ایمیل اکانتت را بنویس','همان اکانتی که می‌خواهی ارتقا پیدا کند.'],
             ['wallet','پرداخت از کیف پول','سفارش همان لحظه برای فروشنده ثبت می‌شود.'],
             ['up','ارتقای اکانت','ارتقا روی همان اکانت انجام می‌شود؛ وضعیتش در «سفارش‌های من» است.']],
+  link:    [['wallet','پرداخت از کیف پول','مبلغ از موجودی کیف پولت کم می‌شود.'],
+            ['link','لینک یا کد همین‌جا','چند ثانیه بعد روی همین صفحه می‌آید و در «سفارش‌های من» می‌ماند.'],
+            ['bolt','زود فعالش کن','بیشتر لینک‌ها فقط تا مدت کوتاهی ضمانت دارند؛ توضیح محصول را بخوان.']],
+  manual:  [['wallet','پرداخت از کیف پول','سفارش همان لحظه برای فروشنده ثبت می‌شود.'],
+            ['clock','آماده‌سازی توسط فروشنده','این محصول دستی تحویل می‌شود و ممکن است کمی طول بکشد.'],
+            ['shield','تحویل در «سفارش‌های من»','وقتی آماده شد، اطلاعاتش در صفحه سفارش می‌آید.']],
 };
 const AI_ST = {
   delivered: ['ok','check','تحویل شد','اطلاعات ورود همین پایین است و همیشه در «سفارش‌های من» می‌ماند.'],
@@ -2594,9 +2601,15 @@ const AI_BRANDS = [
   [/eleven/i, '#26262B', '11'], [/netflix/i, '#B20710', 'N'], [/spotify/i, '#1A8F45', 'S'], [/youtube/i, '#CC2A2A', 'YT'],
 ];
 const AI_EMAIL = /^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/;
-function AiMono(name, size){
+/* کلید emoji خود canboso، مطمئن تر از حدس از روی نام */
+const AI_BRAND_KEYS = { google_one:['#2F6BEA','G'], gemini:['#2F6BEA','G'], chatgpt:['#10A37F','GPT'], elevenlabs:['#26262B','11'], grok:['#16181D','X'],
+  capcut:['#18181B','CC'], youtube:['#CC2A2A','YT'], lovable:['#E0457B','L'], notion:['#26262B','N'], duolingo:['#4C9A1A','D'], wispr_flow:['#3A3F8F','W'],
+  udemy:['#5624D0','U'], microsoft_office_365:['#D83B01','M'], canva:['#7D2AE8','Ca'], surfshark:['#178A8A','S'], nordvpn:['#4687FF','N'],
+  spotify:['#1A8F45','S'], netflix:['#B20710','N'], figma:['#A259FF','F'], gmail:['#C5221F','G'], claude:['#C15F3C','C'], midjourney:['#1E2230','MJ'] };
+function AiMono(name, size, brand){
   let c = 'var(--indigo)', t = '';
-  for (const [re, col, tx] of AI_BRANDS) if (re.test(name || '')) { c = col; t = tx; break; }
+  if (brand && AI_BRAND_KEYS[brand]) [c, t] = AI_BRAND_KEYS[brand];
+  else for (const [re, col, tx] of AI_BRANDS) if (re.test(name || '')) { c = col; t = tx; break; }
   if (!t) { const w = String(name || '').replace(/[^A-Za-z0-9]/g, ''); t = w ? w[0].toUpperCase() : ''; }
   return `<span class="ai-mono${size ? ' ' + size : ''}" style="--b:${c}" aria-hidden="true">${t ? esc(t) : ic('spark', 2)}</span>`;
 }
@@ -2617,7 +2630,7 @@ const AI = {
   card(x){
     const out = x.stock === 0, how = AI_HOW[x.type] || AI_HOW.account;
     return `<button class="ai-p${out ? ' out' : ''}" onclick="App.go('ai_product', ${esc(JSON.stringify(x.id))})">
-      ${AiMono(x.title)}
+      ${AiMono(x.title, '', x.brand)}
       <span class="ai-p-m"><span class="ai-p-t ai-lat">${esc(x.title)}</span>
         <span class="ai-how">${ic(how[0], 2)}<span>${how[1]}</span></span>
         <span class="ai-p-st${out ? ' bad' : ''}">${out ? 'ناموجود' : x.stock != null ? `<span>موجود:</span> ${N(fa(x.stock))}` : 'موجود'}</span></span>
@@ -2644,7 +2657,7 @@ const AI = {
     const long = (x.description || '').length > 240;
     return Top('هوش مصنوعی', `<span class="ai-lat">${esc(x.title)}</span>`) + `
       <div class="pass ai-pass mx">${TUNNEL}
-        <div class="ai-pass-h">${AiMono(x.title, 'lg')}
+        <div class="ai-pass-h">${AiMono(x.title, 'lg', x.brand)}
           <div style="flex-grow:1;min-width:0"><div class="ai-pass-t ai-lat">${esc(x.title)}</div><div class="ai-pass-s">${how[1]}</div></div></div>
         <div class="ai-price"><span class="n" id="ai-price"></span><small>تومان</small></div>
         <div class="pass-foot"><span class="pass-meta" id="ai-meta"></span>
@@ -2696,7 +2709,7 @@ const AI = {
     if (x.months.length) rows.push(['مدت', `${N(this.m)} <span>ماه</span>`]);
     if (x.needs_email) rows.push(['ایمیل', `<span dir="ltr" style="overflow-wrap:anywhere">${esc(this.email)}</span>`]);
     rows.push(['قیمت', `${N(fa(price))} <span>تومان</span>`], ['موجودی بعد از خرید', `${N(fa(bal - price))} <span>تومان</span>`]);
-    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${AiMono(x.title)}
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${AiMono(x.title, '', x.brand)}
         <div><div class="sheet-t">تایید خرید</div><div class="topbar-s">${how[1]}</div></div></div>
       <div style="margin:0 calc(-1 * var(--pad))">${KV(rows).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
       ${x.needs_email ? `<div class="ai-warn" style="margin:12px 0 0">${ic('warn', 2)}<span>ایمیل را یک بار دیگر چک کن؛ بعد از خرید قابل تغییر نیست.</span></div>` : ''}
@@ -2751,7 +2764,7 @@ const AI = {
     return `<div class="pass ai-cred mx">${TUNNEL}
       <div class="pass-head"><span class="pass-name">${n > 1 ? `<span>اکانت</span> ${N(i + 1)}` : 'اطلاعات ورود'}</span>
         <span class="pass-st ai-lat"><i></i>${esc(o.title)}</span></div>
-      ${a.user ? this.field('نام کاربری', 'user', a.user, i, 'u') : ''}
+      ${a.user ? (/^https?:\/\//.test(a.user) && !a.password ? this.field('لینک فعال‌سازی', 'link', a.user, i, 'u') : this.field('نام کاربری', 'user', a.user, i, 'u')) : ''}
       ${a.password ? this.field('رمز', 'key', a.password, i, 'p', { secret:true }) : ''}
       ${a.verifyEmail ? this.field('ایمیل بازیابی', 'mail', a.verifyEmail, i, 'v') : ''}
       ${a.expiryText ? this.field('انقضا', 'cal', a.expiryText, i, 'e', { text:true }) : ''}
@@ -2765,7 +2778,7 @@ const AI = {
   },
   copyAll(i){
     const a = this.o && this.o.delivery[i]; if (!a) return;
-    const L = [[I18N.t('نام کاربری'), a.user], [I18N.t('رمز'), a.password], [I18N.t('ایمیل بازیابی'), a.verifyEmail], [I18N.t('انقضا'), a.expiryText], ['', a.otherInfo]];
+    const L = [[I18N.t(/^https?:\/\//.test(a.user || '') && !a.password ? 'لینک فعال‌سازی' : 'نام کاربری'), a.user], [I18N.t('رمز'), a.password], [I18N.t('ایمیل بازیابی'), a.verifyEmail], [I18N.t('انقضا'), a.expiryText], ['', a.otherInfo]];
     App.copy(L.filter(r => r[1]).map(r => r[0] ? r[0] + ': ' + r[1] : r[1]).join('\n'));
   },
   orderPage(o, fresh){
@@ -2895,6 +2908,17 @@ Object.entries({
   'محصول خوانده نشد':'Couldn’t load the product', 'سفارش خوانده نشد':'Couldn’t load the order',
   'اطلاعات تحویل همیشه اینجا می‌ماند':'Delivery details always stay here', 'نمایش رمز':'Show password', 'کپی همه':'Copy all',
   'پرداخت و دریافت':'Pay and receive', 'فعال‌سازی روی ایمیل خودت':'Activated on your own email',
+  "تحویل فوری لینک یا کد فعال‌سازی":"Instant activation link or code",
+  "تحویل دستی توسط فروشنده":"Delivered manually by the seller",
+  "لینک یا کد همین‌جا":"Link or code right here",
+  "چند ثانیه بعد روی همین صفحه می‌آید و در «سفارش‌های من» می‌ماند.":"It appears on this page a few seconds later and stays in “My orders”.",
+  "زود فعالش کن":"Activate it soon",
+  "بیشتر لینک‌ها فقط تا مدت کوتاهی ضمانت دارند؛ توضیح محصول را بخوان.":"Most links are only guaranteed for a short time; read the product description.",
+  "آماده‌سازی توسط فروشنده":"Prepared by the seller",
+  "این محصول دستی تحویل می‌شود و ممکن است کمی طول بکشد.":"This product is delivered manually and can take a little while.",
+  "تحویل در «سفارش‌های من»":"Delivered in “My orders”",
+  "وقتی آماده شد، اطلاعاتش در صفحه سفارش می‌آید.":"When it’s ready, the details appear on the order page.",
+  "لینک فعال‌سازی":"Activation link",
   "محصولات هوش مصنوعی":"AI products",
   "نمایش محصولات و موجودی کیف پول canboso":"Product visibility and canboso wallet stock",
   "کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها":"Card, rates, payment methods and sections",

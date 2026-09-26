@@ -78,7 +78,7 @@ def _card(item: dict, balance: int) -> str:
     return texts.AI_PRODUCT.format(
         name=esc(item["name"]), stock=stock,
         description=(desc + "\n\n") if desc else "",
-        how=texts.AI_HOW.get(item["type"], texts.AI_HOW["account"]),
+        how=texts.AI_HOW.get(item.get("kind") or item["type"], texts.AI_HOW["account"]),
         price=price, balance=f"{balance:,}",
     )
 

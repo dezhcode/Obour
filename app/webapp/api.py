@@ -554,7 +554,8 @@ async def ai_catalog(
                 "months": months,
                 "needs_email": bool(x["needs_email"]),
                 "stock": x["stock"] if x["available"] else 0,
-                "type": x["type"],
+                "type": x["kind"],
+                "brand": x["brand"],
             })
     except Exception:  # noqa: BLE001
         # نبود کاتالوگ نباید صفحه را بشکند؛ ویترین خالی بهتر از خطاست.
