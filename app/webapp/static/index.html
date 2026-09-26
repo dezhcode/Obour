@@ -1613,9 +1613,9 @@ function AiCard(x){
     <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic lg ai">${ic('spark')}</span>
       <div style="flex-grow:1;min-width:0"><div class="plan-name">${esc(x.title)}</div>
         <div style="margin-top:6px">${x.stock != null ? (out ? Badge('bad', 'ناموجود') : Badge('ok', 'موجود: ' + fa(x.stock))) : ''}</div></div>
-      <div><div class="n" style="font-size:17px">${fa(x.price)}</div><div class="lbl" style="text-align:left">تومان</div></div></div>
+      <div><div class="n" style="font-size:17px">${fa(x.price)}${x.from_price ? '+' : ''}</div><div class="lbl" style="text-align:left">تومان</div></div></div>
     ${out ? `<div class="short">وقتی موجود شد در ربات خبر بگیر</div>`
-          : `<button class="btn btn-block" style="background:var(--ai-t);color:var(--ai-i);height:46px" onclick="App.openBot('ai')">سفارش در ربات</button>`}
+          : `<button class="btn btn-block" style="background:var(--ai-t);color:var(--ai-i);height:46px" onclick="App.openBot(${esc(JSON.stringify('ai_' + x.id))})">سفارش در ربات</button>`}
   </div>`;
 }
 

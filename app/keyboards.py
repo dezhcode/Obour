@@ -296,22 +296,26 @@ def shop_hub_kb() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def ai_shop_kb() -> InlineKeyboardMarkup:
-    """صفحه خدمات هوش مصنوعی."""
+def ai_shop_kb(items: list[dict] | None = None) -> InlineKeyboardMarkup:
+    """کاتالوگ خدمات هوش مصنوعی: یک دکمه برای هر محصول با قیمتش."""
     kb = InlineKeyboardBuilder()
-    _btn(kb, "ai", "اشتراک جمنای پرو", style=PRIMARY, callback_data="ai:buy")
+    rows = []
+    for x in items or []:
+        price = f"{x['price']:,}" if not x["months"] else f"{min(x['month_prices'].values()):,}+"
+        label = f"{x['name']} · {price}" if x["available"] else f"{x['name']} · " + _t("ناموجود")
+        kb.button(text=label[:60], callback_data=f"ai:p:{x['id']}"[:64])
+        rows.append(1)
     _btn(kb, "history", "سفارش های من", callback_data="ai:mine")
     _btn(kb, "back", "فروشگاه", callback_data="buy")
-    kb.adjust(1, 2)
+    kb.adjust(*rows, 2)
     return kb.as_markup()
 
 
-def ai_track_kb(order_id: int, has_provider_code: bool) -> InlineKeyboardMarkup:
+def ai_track_kb(order_id: int, has_provider_code: bool = False) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    if has_provider_code:
-        _btn(kb, "sync", "وضعیت لحظه ای", style=PRIMARY, callback_data=f"ai:status:{order_id}")
+    _btn(kb, "history", "سفارش های من", callback_data="ai:mine")
     _btn(kb, "back", "منوی اصلی", callback_data="menu")
-    kb.adjust(1, 1) if has_provider_code else kb.adjust(1)
+    kb.adjust(2)
     return kb.as_markup()
 
 
@@ -324,15 +328,53 @@ def ai_notify_kb() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def ai_product_kb(affordable: bool) -> InlineKeyboardMarkup:
-    """کارت محصول. اگر موجودی کم باشد، دکمه خرید جایش را به شارژ می دهد."""
+def ai_product_kb(item: dict, balance: int) -> InlineKeyboardMarkup:
+    """کارت محصول: مدت (اگر ماهانه است)، ایمیل (اگر لازم است) یا خرید مستقیم.
+
+    اگر موجودی کم باشد، دکمه خرید جایش را به شارژ می دهد.
+    """
+    kb = InlineKeyboardBuilder()
+    rows = []
+    pid = item["id"]
+    if item["months"]:
+        for m in item["months"]:
+            price = item["month_prices"][m]
+            kb.button(text=f"{m} " + _t("ماه") + f" · {price:,}", callback_data=f"ai:m:{pid}:{m}"[:64])
+        n = len(item["months"])
+        rows += [2] * (n // 2) + ([1] if n % 2 else [])
+    elif item["price"] > balance:
+        _btn(kb, "wallet", "شارژ کیف پول", style=SUCCESS, callback_data="wal")
+        rows.append(1)
+    elif item["needs_email"]:
+        _btn(kb, "ok", "ادامه و وارد کردن ایمیل", style=SUCCESS, callback_data=f"ai:e:{pid}"[:64])
+        rows.append(1)
+    else:
+        _btn(kb, "ok", "تایید و خرید", style=SUCCESS, callback_data=f"ai:ok:{pid}"[:64])
+        rows.append(1)
+    _btn(kb, "back", "برگشت", callback_data="buy:ai")
+    rows.append(1)
+    kb.adjust(*rows)
+    return kb.as_markup()
+
+
+def ai_confirm_kb(affordable: bool) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     if affordable:
-        _btn(kb, "ok", "تایید و خرید", style=SUCCESS, callback_data="ai:ok")
+        _btn(kb, "ok", "تایید و خرید", style=SUCCESS, callback_data="ai:go")
     else:
         _btn(kb, "wallet", "شارژ کیف پول", style=SUCCESS, callback_data="wal")
     _btn(kb, "back", "برگشت", callback_data="buy:ai")
     kb.adjust(1, 1)
+    return kb.as_markup()
+
+
+def admin_ai_unknown_kb(rows: list[dict]) -> InlineKeyboardMarkup:
+    """یک دکمه «بررسی دوباره» برای هر سفارش مبهم."""
+    kb = InlineKeyboardBuilder()
+    for o in rows[:10]:
+        _add(kb, f"🔄 بررسی دوباره {o['code']}", callback_data=f"adm:ai:rs:{o['id']}")
+    _add(kb, "🔙 خدمات هوش مصنوعی", callback_data="adm:ai")
+    kb.adjust(1)
     return kb.as_markup()
 
 

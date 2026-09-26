@@ -141,19 +141,16 @@ async def _show_ticket_track(
 
 async def _show_ai_order_track(message: Message, order: dict) -> None:
     """صفحه پیگیری یک سفارش هوش مصنوعی."""
-    import json
-
     provider_line = ""
     if order.get("provider_order_id"):
         provider_line = f"{_t('کد نزد سرویس دهنده')}: {order['provider_order_id']}\n"
 
+    from app.services import ai_shop
+
     links_line = ""
-    if order.get("products"):
-        try:
-            items = json.loads(order["products"])
-            links_line = "\n" + _t("لینک تحویل") + ":\n" + "\n".join(f"<code>{p}</code>" for p in items) + "\n"
-        except Exception:  # noqa: BLE001
-            pass
+    info = ai_shop.delivery_html(order)
+    if info and order.get("status") in ("delivered", "processing"):
+        links_line = "\n" + info + "\n"
 
     await edit_or_send(
         message,

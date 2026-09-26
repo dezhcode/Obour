@@ -93,7 +93,7 @@ def self_check() -> list[tuple[str, bool, str]]:
         add("بخش های قابل خاموش کردن", False, str(exc))
 
     try:
-        from app import pricing, warzone  # noqa: F401
+        from app import canboso, pricing  # noqa: F401
         from app.db import Database as _D
 
         add("خدمات هوش مصنوعی", hasattr(_D, "create_ai_order"))

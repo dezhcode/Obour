@@ -280,7 +280,7 @@ CREATE TABLE IF NOT EXISTS poll_votes (
 CREATE INDEX IF NOT EXISTS idx_poll_opt ON poll_options(poll_id, position);
 CREATE INDEX IF NOT EXISTS idx_poll_votes ON poll_votes(poll_id, option_id);
 
--- سفارش های خدمات هوش مصنوعی (واسط warzoneshop).
+-- سفارش های خدمات هوش مصنوعی (canboso.com؛ سفارش های قدیمی از warzoneshop).
 -- چرا جدول جدا و نه استفاده از services؟ چون ماهیتش فرق دارد: اینجا
 -- حجم و انقضا نداریم، بلکه یک یا چند «لینک تحویل» داریم که صادر شده و
 -- برگشت ناپذیرند.
@@ -493,6 +493,11 @@ class Database:
         """
         assert self._conn
         migrations = [
+            # canboso: کلید یکتای خرید و خود درخواست، تا سفارش مبهم با همان
+            # کلید دوباره پرسیده شود؛ ارز هزینه (VND یا USD)
+            ("ai_orders", "idem_key", "ALTER TABLE ai_orders ADD COLUMN idem_key TEXT"),
+            ("ai_orders", "request", "ALTER TABLE ai_orders ADD COLUMN request TEXT"),
+            ("ai_orders", "cost_currency", "ALTER TABLE ai_orders ADD COLUMN cost_currency TEXT"),
             ("services", "label", "ALTER TABLE services ADD COLUMN label TEXT"),
             (
                 "users",
@@ -2019,6 +2024,13 @@ class Database:
                 now_str() if status == "delivered" else None,
                 order_id,
             ),
+        )
+
+    async def set_ai_request(self, order_id: int, idem_key: str, request: str, currency: str) -> None:
+        """کلید یکتا و درخواست، *قبل* از تماس با سرویس دهنده."""
+        await self.execute(
+            "UPDATE ai_orders SET idem_key = ?, request = ?, cost_currency = ? WHERE id = ?",
+            (idem_key, request, currency, order_id),
         )
 
     async def get_ai_order(self, order_id: int) -> dict | None:

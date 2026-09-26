@@ -595,3 +595,34 @@ PHRASES.update({
     "این فاکتور معتبر نیست. از کیف پول دوباره شروع کن.": "该账单无效。请从钱包重新开始。",
     "این فاکتور قبلا پرداخت شده.": "该账单已支付。",
 })
+
+
+# ---------- AI 商店（canboso 目录） ----------
+TEXTS.update({
+    "AI_SHOP": "╭── 🤖 AI 服务\n│   共 {count} 件商品\n\n选择你想要的商品，每个按钮上都标有价格。\n\n💰 余额\n╰─ {balance} 托曼",
+    "AI_PRODUCT": "╭── 🤖 {name}\n│   {stock}\n\n{description}{how}\n\n<blockquote>⚠️ 交付后无法撤回；购买前请确认这是你需要的。</blockquote>\n\n💰 价格：<b>{price}</b> 托曼\n╰─ 你的余额：{balance} 托曼",
+    "AI_HOW": {
+        "account": "📦 付款后，账号和密码会直接在这里交付给你。",
+        "slot": "📧 在你自己的邮箱上开通。付款后由卖家完成，可能需要一点时间。",
+        "upgrade_account": "⬆️ 升级你自己的账号；我们会询问你的账号邮箱。",
+    },
+    "AI_STOCK": "库存：{n}",
+    "AI_STOCK_OPEN": "有货",
+    "AI_ASK_EMAIL": "╭── 📧 邮箱\n│   {name}\n\n请发送要开通订阅的邮箱。\n╰─ 请仔细核对；购买后无法更改。",
+    "AI_BAD_EMAIL": "这个邮箱看起来不对。请重新发送，例如 name@gmail.com",
+    "AI_PICK_MONTHS": "╭── 🗓 订阅时长\n│   {name}\n\n要几个月？每个选项的价格在按钮上。\n╰─ 你的余额：{balance} 托曼",
+    "AI_CONFIRM": "╭── ✅ 确认购买\n│   {name}\n\n{details}💰 价格：<b>{price}</b> 托曼\n╰─ 你的余额：{balance} 托曼",
+    "AI_DELIVERED": "╭── ✅ 已交付\n│   {name}\n\n{delivery}\n\n<blockquote>请立即把这些信息保存到安全的地方。如有问题，把跟踪码发给客服。</blockquote>\n\n🔎 我们的跟踪码\n├ <code>{code}</code>\n供应商订单号\n╰─ <code>{provider_code}</code>",
+    "AI_ACCEPTED": "╭── ⏳ 订单已提交\n│   {name}\n\n订单已被接受，卖家会在 <code>{email}</code> 上为你开通。通常需要一点时间，你无需任何操作。\n\n🔎 我们的跟踪码\n├ <code>{code}</code>\n供应商订单号\n╰─ <code>{provider_code}</code>",
+    "AI_PENDING_REVIEW": "╭── ⏳ 审核中\n│   {code}\n\n供应商没有及时回应，所以订单状态暂不明确。客服已收到通知，会进行核查。\n\n<blockquote>如果订单已完成，信息会发送给你；如果没有，全部金额将退回。</blockquote>\n╰─ 请保存上面的代码。",
+    "AI_ORDERS": "╭── 🤖 AI 订单\n│   共 {count} 个订单\n\n{rows}\n\n╰─ 交付信息始终可以在这里查看。",
+    "AI_STATUS": {"pending": "⏳ 处理中", "processing": "⏳ 等待卖家", "delivered": "✅ 已交付", "failed": "❌ 失败", "unknown": "🔎 审核中"},
+    "AI_TEMP_UNAVAILABLE": "╭── 🤖 暂时缺货\n│   AI 服务\n\n这个商品刚刚售罄。补货后我们会通知你，不用一直来看。\n\n╰─ 点下面的按钮，补货后第一时间收到消息。",
+    "AI_RESTOCKED": "🔔 好消息！<b>AI 服务</b>的商品已补货。\n去商店 → AI 服务看看吧。",
+    "AI_SHOP_SOON": "╭── 🤖 AI 服务\n│   即将上线\n\n这个板块正在准备中。很快你就能在这里购买 AI 工具订阅。\n\n💰 余额\n╰─ {balance} 托曼",
+})
+PHRASES.update({
+    "ناموجود": "缺货", "ادامه و وارد کردن ایمیل": "继续并填写邮箱", "مدت": "时长",
+    "ایمیل": "邮箱", "نام کاربری": "账号", "رمز": "密码", "ایمیل بازیابی": "辅助邮箱",
+    "انقضا": "到期", "فعال سازی روی ایمیل": "在邮箱上开通",
+})

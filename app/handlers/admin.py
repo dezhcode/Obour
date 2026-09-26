@@ -1209,8 +1209,10 @@ async def _rules_home(message: Message, db: Database) -> None:
 async def _ai_home(message: Message, db: Database) -> None:
     from app import pricing
 
+    from app.services import ai_shop
+
     cfg = await pricing.load(db)
-    key = await db.get_setting("ai_api_key", "")
+    key = await ai_shop.api_key(db)
     stats = await db.ai_stats()
 
     # موجودی نزد سرویس دهنده را همین جا نشان می دهیم، نه پشت یک دکمه.
@@ -1224,7 +1226,9 @@ async def _ai_home(message: Message, db: Database) -> None:
         try:
             bal = await wz.balance()
             if bal is not None:
-                wallet = f"${bal:g}" + (" ⚠️ خالی" if bal <= 0 else "")
+                wallet = (bal["text"] or f"{bal['balance']:g} {bal['currency']}") + (" ⚠️ خالی" if bal["balance"] <= 0 else "")
+            else:
+                wallet = "خوانده نشد"
         except Exception:  # noqa: BLE001
             wallet = "خوانده نشد"
         finally:
@@ -1237,7 +1241,7 @@ async def _ai_home(message: Message, db: Database) -> None:
     await edit_or_send(
         message,
         texts.ADMIN_AI.format(
-            key="تنظیم شده ✅" if key else "تنظیم نشده ❌",
+            key=("از .env ✅" if config.canboso_api_key else "تنظیم شده ✅") if key else "تنظیم نشده ❌",
             wallet=wallet,
             fields="\n".join(lines),
             delivered=stats.get("delivered") or 0,
@@ -1313,23 +1317,26 @@ async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> Non
 
 @router.callback_query(F.data == "adm:ai:preview")
 async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
-    """قیمت واقعی محصول با تنظیمات فعلی."""
+    """قیمت همه محصولات canboso با تنظیمات فعلی: قیمت API ← قیمت کاربر."""
     from app import pricing
-    from app.handlers.ai import GEMINI_SERVICE_ID, _client
-    from app.warzone import WarzoneError
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
 
-    wz = await _client(db)
     try:
-        product = await wz.product(GEMINI_SERVICE_ID)
-        cost = float(product["price"]) if product and product.get("price") else None
-    except WarzoneError as exc:
-        await wz.close()
-        return await call.answer(f"خواندن قیمت نشد: {exc}", show_alert=True)
-    await wz.close()
-    if cost is None:
-        return await call.answer("قیمت محصول در دسترس نیست.", show_alert=True)
-    b = await pricing.price_for(db, cost)
-    await call.message.answer(pricing.explain(b))
+        cat = await ai_shop.catalog(db, force=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
+    if not cat["items"]:
+        return await call.answer("محصولی نیامد؛ نرخ ارز کیف پول (دلار یا دونگ) را تنظیم کرده ای؟", show_alert=True)
+    cfg = await pricing.load(db)
+    rows = []
+    for x in cat["items"][:25]:
+        b = pricing.compute(x["cost"], cfg, x["currency"])
+        stock = "∞" if x["stock"] is None else x["stock"]
+        rows.append(f"• <b>{esc(x['name'])}</b> ({stock})\n   {x['cost']:g} {x['currency']} → {b.final:,} تومان"
+                    + (f" · سود {b.net_profit:,}" if b.net_profit else ""))
+    first = pricing.compute(cat["items"][0]["cost"], cfg, cat["items"][0]["currency"])
+    await call.message.answer("🧮 <b>قیمت محصولات برای کاربر</b>\n\n" + "\n".join(rows) + "\n\n" + pricing.explain(first))
     await call.answer()
 
 
@@ -1341,7 +1348,7 @@ async def cb_ai_balance(call: CallbackQuery, db: Database) -> None:
     bal = await wz.balance()
     await wz.close()
     await call.answer(
-        f"موجودی شما نزد سرویس دهنده: {bal}" if bal is not None
+        f"موجودی شما نزد canboso: {bal['text'] or bal['balance']}" if bal is not None
         else "موجودی خوانده نشد.",
         show_alert=True,
     )
@@ -1374,7 +1381,9 @@ async def cb_ai_restock(call: CallbackQuery, db: Database) -> None:
 @router.callback_query(F.data == "adm:ai:unknown")
 async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
     """سفارش هایی که وضعیتشان مبهم مانده و دست ادمین را می خواهند."""
-    rows = await db.ai_orders_by_status("unknown")
+    rows = await db.ai_orders_by_status("unknown") + [
+        o for o in await db.ai_orders_by_status("pending") if o.get("idem_key")
+    ]
     if not rows:
         return await call.answer("سفارش مبهمی نیست ✅", show_alert=True)
     body = "\n\n".join(
@@ -1390,9 +1399,37 @@ async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
     await edit_or_send(
         call.message,
         texts.ADMIN_AI_UNKNOWN_LIST.format(count=len(rows), rows=body),
-        keyboards.admin_ai_kb(True),
+        keyboards.admin_ai_unknown_kb(rows),
     )
     await call.answer()
+
+
+@router.callback_query(F.data.startswith("adm:ai:rs:"))
+async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
+    """سفارش مبهم را با همان Idempotency-Key از canboso دوباره می پرسد.
+
+    اگر اولی انجام شده بود همان پاسخ برمی گردد و تحویل می شود؛ اگر نه،
+    همین حالا انجام می شود (پول کاربر از قبل کم شده) یا اگر قطعا ممکن
+    نیست، پولش برمی گردد. در هر حال خریدار خبردار می شود.
+    """
+    from app.handlers.ai import notify_buyer
+    from app.services import ai_shop
+
+    order = await db.get_ai_order(int(call.data.split(":")[3]))
+    if not order:
+        return await call.answer("سفارش پیدا نشد.", show_alert=True)
+    await call.answer("در حال پرسیدن از canboso…")
+    r = await ai_shop.resolve(db, call.bot, order)
+    await notify_buyer(call.bot, db, r)
+    label = {
+        ai_shop.DELIVERED: "✅ تحویل شد و برای کاربر فرستاده شد",
+        ai_shop.PROCESSING: "⏳ پذیرفته شد؛ در انتظار فروشنده",
+        ai_shop.FAILED: "↩️ انجام نشد؛ پول کاربر برگشت",
+        ai_shop.NO_FUNDS: "↩️ موجودی canboso کم است؛ پول کاربر برگشت",
+        ai_shop.UNKNOWN: "🔎 هنوز مبهم است؛ کمی بعد دوباره امتحان کن",
+    }.get(r["status"], r["status"])
+    await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
+    await cb_ai_unknown(call, db)
 
 
 # ---------- بخش های ربات ----------

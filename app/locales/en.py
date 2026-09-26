@@ -617,3 +617,34 @@ PHRASES.update({
     "این سرویس روی سرور پیدا نشد؛ به پشتیبانی خبر بده": "This service wasn't found on the server; tell support",
     "تمدید نشد، پولی کم نشده": "Couldn't renew; nothing was charged",
 })
+
+
+# ---------- AI shop (canboso catalog) ----------
+TEXTS.update({
+    "AI_SHOP": "╭── 🤖 AI services\n│   {count} products\n\nPick the product you want. Each price is on its button.\n\n💰 Balance\n╰─ {balance} toman",
+    "AI_PRODUCT": "╭── 🤖 {name}\n│   {stock}\n\n{description}{how}\n\n<blockquote>⚠️ Delivery can't be reversed; make sure this is what you want before buying.</blockquote>\n\n💰 Price: <b>{price}</b> toman\n╰─ Your balance: {balance} toman",
+    "AI_HOW": {
+        "account": "📦 After paying, you get the username and password right here.",
+        "slot": "📧 Activated on your own email. After paying, the seller completes it, which can take a little while.",
+        "upgrade_account": "⬆️ Your own account is upgraded; we'll ask for your account email.",
+    },
+    "AI_STOCK": "In stock: {n}",
+    "AI_STOCK_OPEN": "Available",
+    "AI_ASK_EMAIL": "╭── 📧 Email\n│   {name}\n\nSend the email the subscription should be activated on.\n╰─ Double-check it; it can't be changed after purchase.",
+    "AI_BAD_EMAIL": "That email doesn't look right. Send it again, e.g. name@gmail.com",
+    "AI_PICK_MONTHS": "╭── 🗓 Subscription length\n│   {name}\n\nHow many months? Each option's price is on its button.\n╰─ Your balance: {balance} toman",
+    "AI_CONFIRM": "╭── ✅ Confirm purchase\n│   {name}\n\n{details}💰 Price: <b>{price}</b> toman\n╰─ Your balance: {balance} toman",
+    "AI_DELIVERED": "╭── ✅ Delivered\n│   {name}\n\n{delivery}\n\n<blockquote>Save these details somewhere safe right now. If anything's wrong, give the tracking code to support.</blockquote>\n\n🔎 Our tracking code\n├ <code>{code}</code>\nProvider order code\n╰─ <code>{provider_code}</code>",
+    "AI_ACCEPTED": "╭── ⏳ Order placed\n│   {name}\n\nYour order was accepted and the seller will activate it on <code>{email}</code>. It usually takes a little while; you don't need to do anything.\n\n🔎 Our tracking code\n├ <code>{code}</code>\nProvider order code\n╰─ <code>{provider_code}</code>",
+    "AI_PENDING_REVIEW": "╭── ⏳ Under review\n│   {code}\n\nThe provider didn't answer in time, so your order's status is unclear. Support has just been notified and will check it.\n\n<blockquote>If the order went through, its details will be sent to you. If not, the full amount comes back.</blockquote>\n╰─ Keep the code above.",
+    "AI_ORDERS": "╭── 🤖 AI orders\n│   {count} orders\n\n{rows}\n\n╰─ Delivery details are always available here.",
+    "AI_STATUS": {"pending": "⏳ In progress", "processing": "⏳ Waiting for the seller", "delivered": "✅ Delivered", "failed": "❌ Failed", "unknown": "🔎 Under review"},
+    "AI_TEMP_UNAVAILABLE": "╭── 🤖 Out of stock\n│   AI services\n\nThis product has just run out. We'll let you know once it's back — no need to keep checking.\n\n╰─ Tap the button below to get a message as soon as it's back.",
+    "AI_RESTOCKED": "🔔 Good news! <b>AI services</b> products are back in stock.\nSee them in the shop → AI services.",
+    "AI_SHOP_SOON": "╭── 🤖 AI services\n│   Coming soon\n\nThis section is being set up. Soon you'll be able to buy AI tool subscriptions right here.\n\n💰 Balance\n╰─ {balance} toman",
+})
+PHRASES.update({
+    "ناموجود": "Out of stock", "ادامه و وارد کردن ایمیل": "Continue and enter email", "مدت": "Duration",
+    "ایمیل": "Email", "نام کاربری": "Username", "رمز": "Password", "ایمیل بازیابی": "Recovery email",
+    "انقضا": "Expires", "فعال سازی روی ایمیل": "Activation on email",
+})

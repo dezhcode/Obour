@@ -38,6 +38,8 @@ from app.db import Database
 # کلید تنظیمات -> (عنوان فارسی، پیش فرض، توضیح)
 FIELDS: dict[str, tuple[str, str, str]] = {
     "ai_usd_rate": ("نرخ دلار (تومان)", "0", "قیمت هر دلار به تومان"),
+    "ai_vnd_rate": ("نرخ دونگ ویتنام (تومان)", "0",
+                    "تومان به ازای هر ۱ دونگ، اگر کیف پول canboso دونگی است (مثلا 4.1)"),
     "ai_markup_toman": ("سود ثابت (تومان)", "0",
                         "قیمت کاربر = قیمت API + همین مبلغ، مثلا 100000. صفر یعنی حالت درصدی"),
     "ai_profit_percent": ("درصد سود", "20", "سود خالص شما"),
@@ -53,13 +55,14 @@ class Breakdown:
     """ریز محاسبه یک قیمت - برای پیش نمایش در پنل ادمین."""
 
     usd: float
-    rate: int
+    rate: float
     base: int
     profit: int
     fee: int
     buffer: int
     final: int
     fixed: int = 0   # سود ثابت تومانی؛ صفر یعنی حالت درصدی
+    currency: str = "USD"
 
     @property
     def net_profit(self) -> int:
@@ -78,18 +81,28 @@ async def load(db: Database) -> dict[str, float]:
     return out
 
 
-def compute(usd: float, cfg: dict[str, float]) -> Breakdown:
-    """قیمت نهایی تومانی از قیمت دلاری."""
-    rate = int(cfg.get("ai_usd_rate") or 0)
-    base = usd * rate
+def rate_for(cfg: dict[str, float], currency: str = "USD") -> float:
+    """تومان به ازای یک واحد از ارز کیف پول سرویس دهنده."""
+    currency = (currency or "USD").upper()
+    if currency == "VND":
+        return float(cfg.get("ai_vnd_rate") or 0)
+    if currency in ("USD", "USDT"):
+        return float(cfg.get("ai_usd_rate") or 0)
+    return 0.0
+
+
+def compute(usd: float, cfg: dict[str, float], currency: str = "USD") -> Breakdown:
+    """قیمت نهایی تومانی از قیمت سرویس دهنده (دلار یا دونگ)."""
+    rate = rate_for(cfg, currency)
+    base = round(usd * rate, 6)
     step = int(cfg.get("ai_round_to") or 1) or 1
 
     # حالت سود ثابت: قیمت API + مبلغ ثابت، بدون درصدها
     fixed = int(cfg.get("ai_markup_toman") or 0)
     if fixed > 0:
         final = int(math.ceil((base + fixed) / step) * step)
-        return Breakdown(usd=usd, rate=rate, base=int(base), profit=final - int(base),
-                         fee=0, buffer=0, final=final, fixed=fixed)
+        return Breakdown(usd=usd, rate=rate, base=int(round(base)), profit=final - int(round(base)),
+                         fee=0, buffer=0, final=final, fixed=fixed, currency=currency)
     profit = base * (cfg.get("ai_profit_percent", 0) / 100)
     fee = base * (cfg.get("ai_fee_percent", 0) / 100)
     buffer_ = base * (cfg.get("ai_buffer_percent", 0) / 100)
@@ -107,21 +120,26 @@ def compute(usd: float, cfg: dict[str, float]) -> Breakdown:
     return Breakdown(
         usd=usd,
         rate=rate,
-        base=int(base),
+        base=int(round(base)),
         profit=int(profit),
         fee=int(fee),
         buffer=int(buffer_),
         final=final,
+        currency=currency,
     )
 
 
-async def price_for(db: Database, usd: float) -> Breakdown:
-    return compute(usd, await load(db))
+async def price_for(db: Database, usd: float, currency: str = "USD") -> Breakdown:
+    return compute(usd, await load(db), currency)
 
 
-def is_configured(cfg: dict[str, float]) -> bool:
-    """بدون نرخ دلار هیچ قیمتی معنا ندارد."""
-    return bool(cfg.get("ai_usd_rate"))
+def is_configured(cfg: dict[str, float], currency: str = "USD") -> bool:
+    """بدون نرخ ارز کیف پول سرویس دهنده هیچ قیمتی معنا ندارد."""
+    return rate_for(cfg, currency) > 0
+
+
+def _unit(currency: str) -> str:
+    return {"VND": "دونگ", "USD": "دلار", "USDT": "تتر"}.get((currency or "").upper(), currency)
 
 
 def explain(b: Breakdown) -> str:
@@ -129,16 +147,16 @@ def explain(b: Breakdown) -> str:
     if b.fixed:
         return (
             "╮── 🧮 ریز قیمت (سود ثابت)\n"
-            f"│   \u2068{b.usd:g}\u2069 دلار\n\n"
-            f"├ قیمت API (× \u2068{b.rate:,}\u2069): \u2068{b.base:,}\u2069\n"
+            f"│   \u2068{b.usd:g}\u2069 {_unit(b.currency)}\n\n"
+            f"├ قیمت API (× \u2068{b.rate:g}\u2069): \u2068{b.base:,}\u2069\n"
             f"├ سود ثابت: \u2068{b.fixed:,}\u2069\n\n"
             f"💰 قیمت کاربر: <b>\u2068{b.final:,}\u2069</b> تومان\n"
             f"╯─ سود شما: \u2068{b.net_profit:,}\u2069 تومان"
         )
     return (
         "╮── 🧮 ریز قیمت\n"
-        f"│   \u2068{b.usd:g}\u2069 دلار\n\n"
-        f"├ پایه (× \u2068{b.rate:,}\u2069): \u2068{b.base:,}\u2069\n"
+        f"│   \u2068{b.usd:g}\u2069 {_unit(b.currency)}\n\n"
+        f"├ پایه (× \u2068{b.rate:g}\u2069): \u2068{b.base:,}\u2069\n"
         f"├ سود: \u2068{b.profit:,}\u2069\n"
         f"├ کارمزد: \u2068{b.fee:,}\u2069\n"
         f"├ حاشیه نوسان: \u2068{b.buffer:,}\u2069\n\n"

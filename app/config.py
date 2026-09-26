@@ -167,6 +167,11 @@ class Config:
     channel_id: str = os.getenv("CHANNEL_ID", "")
     join_for_trial: bool = _bool("JOIN_FOR_TRIAL", "true")
 
+    # ===== خدمات هوش مصنوعی (canboso.com) =====
+    # کلید خریدار (tgb_...) از ربات canboso. اگر خالی باشد، کلیدی که
+    # ادمین در پنل گذاشته استفاده می شود.
+    canboso_api_key: str = os.getenv("CANBOSO_API_KEY", "").strip()
+
     # ===== پرداخت کریپتو (TON و USDT روی شبکه TON) =====
     # بدون آدرس کیف پول، این بخش کلا خاموش است. کلید خصوصی هیچ وقت لازم
     # نیست: ربات فقط تراکنش های ورودی این آدرس را می خواند.

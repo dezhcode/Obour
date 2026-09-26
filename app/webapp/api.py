@@ -536,22 +536,23 @@ async def ai_catalog(
 
     items: list[dict] = []
     try:
-        from app.warzone import Warzone
+        from app.canboso import CanbosoError
+        from app.services import ai_shop
 
-        key = await db.get_setting("ai_api_key", "")
-        if key:
-            products = await Warzone(key).products()
-            for pr in products or []:
-                items.append({
-                    "id": str(pr.get("id") or pr.get("service_id") or ""),
-                    "title": pr.get("title") or pr.get("name") or i18n.t("محصول"),
-                    "price": pr.get("price_toman") or pr.get("price") or 0,
-                    "stock": pr.get("stock"),
-                    "order_link": (
-                        f"https://t.me/{bot_username}?start=ai_{pr.get('id')}"
-                        if bot_username else ""
-                    ),
-                })
+        try:
+            cat = await ai_shop.catalog(db)
+        except CanbosoError:
+            cat = {"items": []}
+        for x in cat["items"]:
+            items.append({
+                "id": x["id"],
+                "title": x["name"],
+                "price": min(x["month_prices"].values()) if x["months"] else x["price"],
+                "from_price": bool(x["months"]),
+                "stock": x["stock"] if x["available"] else 0,
+                "type": x["type"],
+                "order_link": (f"https://t.me/{bot_username}?start=ai_{x['id']}" if bot_username else ""),
+            })
     except Exception:  # noqa: BLE001
         # نبود کاتالوگ نباید صفحه را بشکند؛ ویترین خالی بهتر از خطاست.
         log.warning("کاتالوگ هوش مصنوعی خوانده نشد", exc_info=True)
