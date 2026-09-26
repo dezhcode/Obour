@@ -607,3 +607,13 @@ PHRASES.update({
     "کارت به کارت فقط برای کاربرهای ایران است": "Card transfer is only for users in Iran",
     "فاکتور ستاره ساخته نشد، دوباره امتحان کن": "Couldn't create the Stars invoice, try again",
 })
+
+
+# ---------- Renew from the mini app ----------
+PHRASES.update({
+    "این سرویس قابل تمدید نیست": "This service can't be renewed",
+    "پلن این سرویس دیگر فعال نیست؛ یک پلن تازه بخر": "This service's plan is no longer active; buy a new plan",
+    "این تمدید در حال پردازشه": "This renewal is already being processed",
+    "این سرویس روی سرور پیدا نشد؛ به پشتیبانی خبر بده": "This service wasn't found on the server; tell support",
+    "تمدید نشد، پولی کم نشده": "Couldn't renew; nothing was charged",
+})

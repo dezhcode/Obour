@@ -233,15 +233,73 @@ async def service_detail(
             if url:
                 import_links.append({"key": key, "label": label, "url": url})
 
+    # برنامه ها به تفکیک سیستم عامل: لینک نصب + لینک افزودن خودکار اشتراک.
+    # صفحه سرویس با همین، قدم به قدم می گوید کاربر چه کند.
+    platforms = []
+    for pkey, (_emoji, ptitle, _keys) in apps.PLATFORMS.items():
+        items = []
+        for akey, aname in apps.platform_apps(pkey):
+            imp = apps.import_link(akey, sub_url, card["title"]) if apps.is_allowed_sub(sub_url) else ""
+            items.append({"key": akey, "name": aname, "install": apps.STORES.get(akey, ""), "import": imp or ""})
+        platforms.append({"key": pkey, "title": i18n.t(ptitle), "apps": items})
+
+    # تمدید با همان پلن: قیمت و روزهای بعد از تمدید از قبل معلوم است
+    from app.services import renew as renew_svc
+
+    plan, why = await renew_svc.plan_of(db, service)
+    renew = {"available": plan is not None, "reason": why}
+    if plan is not None:
+        renew.update(price=int(plan["price"]), data_gb=plan["data_gb"],
+                     plan_days=plan["duration_days"], days=renew_svc.total_days(service, plan))
+
     return {
         **card,
         "panel_username": service["panel_username"],
         "sub_url": sub_url,
         "qr_url": f"qr?id={service_id}",
         "import_links": import_links,
+        "platforms": platforms,
+        "plan": ({"title": plan["title"], "data_gb": plan["data_gb"], "duration_days": plan["duration_days"],
+                  "price": int(plan["price"])} if plan else None),
+        "data_gb": service.get("data_gb"),
+        "duration_days": service.get("duration_days"),
+        "renew": renew,
+        "locations": texts.LOCATION_INFO,
         "daily": daily[1:],  # روز اول فقط مبنای اختلاف است
         "usage_source": source,
     }
+
+
+async def service_renew(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+                        service_id: int, nonce: str, bot=None) -> dict:  # noqa: ANN001
+    """تمدید سرویس با همان پلن؛ همان منطق دکمه تمدید ربات."""
+    from app.services import renew as renew_svc
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_vpn"):
+        raise ApiError("فروشگاه فعلا خاموش است", 403, "feature_off")
+    service = await db.get_service(service_id)
+    if not service or service["user_id"] != user["id"] or not service["is_active"]:
+        raise ApiError("سرویس پیدا نشد", 404, "not_found")
+    r = await renew_svc.renew(db, panel, user, service, idem=f"warn:{wuser.id}:{nonce}"[:120])
+    if not r.ok:
+        status, msg = {
+            renew_svc.NOT_RENEWABLE: (400, "این سرویس قابل تمدید نیست"),
+            renew_svc.PLAN_GONE: (409, "پلن این سرویس دیگر فعال نیست؛ یک پلن تازه بخر"),
+            renew_svc.PANEL_BUSY: (503, "پنل در دسترس نیست، چند دقیقه دیگر امتحان کن"),
+            renew_svc.LOCKED: (409, "یه پرداخت همین حالا در جریانه"),
+            renew_svc.DUPLICATE: (409, "این تمدید در حال پردازشه"),
+            renew_svc.NOT_ON_PANEL: (404, "این سرویس روی سرور پیدا نشد؛ به پشتیبانی خبر بده"),
+            renew_svc.INSUFFICIENT: (402, "موجودی کیف پولت کافی نیست"),
+        }.get(r.error, (502, "تمدید نشد، پولی کم نشده"))
+        raise ApiError(msg, status, "insufficient" if r.error == renew_svc.INSUFFICIENT else r.error)
+    _usage_cache.pop(int(service_id), None)
+    if bot is not None:
+        try:
+            await referral_mod.reward_purchase(bot, db, user, r.price, r.txn_id, "سرویسش رو تمدید کرد")
+        except Exception:  # noqa: BLE001
+            log.warning("پاداش معرف تمدید ثبت نشد txn=%s", r.txn_id, exc_info=True)
+    return {"ok": True, "balance": r.balance, "days": r.days, "expire_at": r.expire_at, "price": r.price}
 
 
 async def wallet(
