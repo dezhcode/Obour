@@ -185,6 +185,10 @@ class Config:
     # اگر هاست به toncenter.com دسترسی ندارد: http://host:port یا socks5://...
     ton_proxy: str = os.getenv("TON_PROXY", "").strip()
 
+    # نوع آپدیت هایی که وبهوک می گیرد. pre_checkout_query برای پرداخت
+    # Telegram Stars لازم است؛ بدون آن پرداخت ستاره بعد از ۱۰ ثانیه رد می شود.
+    allowed_updates: tuple = ("message", "callback_query", "my_chat_member", "pre_checkout_query")
+
     webhook_mode: bool = _bool("WEBHOOK_MODE")
     webhook_base_url: str = os.getenv("WEBHOOK_BASE_URL", "").rstrip("/")
     webhook_path: str = "/" + (os.getenv("WEBHOOK_PATH", "").strip().strip("/") or "webhook/obour")

@@ -24,6 +24,8 @@ from app.utils import (
 )
 from app.services import charge as charge_svc
 from app.services import crypto as crypto_svc
+from app.services import payments as payments_svc
+from app.services import stars as stars_svc
 from app.services import purchase as purchase_svc
 from app.services import support as support_svc
 from app.webapp.auth import WebAppUser
@@ -162,7 +164,9 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
             "username": bot_username,
             "link": f"https://t.me/{bot_username}" if bot_username else "",
         },
-        "crypto": crypto_svc.enabled(),
+        # روش های شارژ این کاربر؛ کارت به کارت فقط برای فارسی
+        "pay_methods": (methods := await payments_svc.available(db)),
+        "crypto": payments_svc.CRYPTO in methods,
         "readonly": False,
     }
 
@@ -525,6 +529,8 @@ async def _amount_expiry(db: "Database", amount: int) -> str | None:
 async def topup_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     """اطلاعات صفحه شارژ: حداقل، مبلغ های آماده، و درخواست باز قبلی."""
     user = await _require_user(db, wuser)
+    if not payments_svc.card_allowed():
+        return {"enabled": False, "card_blocked": True}
     card = await charge_svc.card(db)
     prev = await charge_svc.open_request(db, user)
     return {
@@ -559,6 +565,8 @@ def _charge_error(r: dict) -> None:
 
 async def topup_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, amount: int) -> dict:
     user = await _require_user(db, wuser)
+    if not payments_svc.card_allowed():
+        raise ApiError("کارت به کارت فقط برای کاربرهای ایران است", 403, "card_blocked")
     r = await charge_svc.start(db, user, amount)
     if not r["ok"]:
         _charge_error(r)
@@ -573,6 +581,44 @@ async def topup_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser
     if not r["ok"]:
         _charge_error(r)
     return {"ok": True, "code": r.get("code"), "amount": r["amount"]}
+
+
+# ═══════════════════ Telegram Stars ═══════════════════
+
+
+async def stars_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    await _require_user(db, wuser)
+    rate = await stars_svc.rate(db)
+    return {"enabled": rate > 0, "rate": rate, "min": await charge_svc.min_charge(db),
+            "presets": list(charge_svc.PRESETS), "max_stars": stars_svc.MAX_STARS}
+
+
+async def stars_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, toman: int, bot=None) -> dict:  # noqa: ANN001
+    """فاکتور ستاره + لینک برای Telegram.WebApp.openInvoice."""
+    user = await _require_user(db, wuser)
+    r = await stars_svc.create(db, user, toman, source="webapp")
+    if not r["ok"]:
+        if r["error"] == stars_svc.TOO_SMALL:
+            raise ApiError(i18n.t("حداقل شارژ {amount} تومانه.", amount=f"{r['min']:,}"), 400, r["error"])
+        if r["error"] == stars_svc.TOO_LARGE:
+            raise ApiError(i18n.t("سقف هر پرداخت با Stars {amount} تومانه.", amount=f"{r.get('max', 0):,}"), 400, r["error"])
+        raise ApiError("پرداخت با Stars فعلا فعال نیست", 503, r["error"])
+    inv = r["invoice"]
+    try:
+        link = await stars_svc.invoice_link(bot, inv)
+    except Exception:  # noqa: BLE001
+        log.warning("لینک فاکتور ستاره ساخته نشد", exc_info=True)
+        raise ApiError("فاکتور ستاره ساخته نشد، دوباره امتحان کن", 502, "network") from None
+    return {**stars_svc.public(inv), "link": link}
+
+
+async def stars_status(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, invoice_id: int) -> dict:
+    user = await _require_user(db, wuser)
+    inv = await db.get_stars_invoice(invoice_id)
+    if not inv or inv["user_id"] != user["id"]:
+        raise ApiError("فاکتور پیدا نشد", 404, "not_found")
+    fresh = await db.get_user(user["id"])
+    return {**stars_svc.public(inv), "balance": int(fresh["balance"])}
 
 
 # ═══════════════════ کریپتو (TON Connect) ═══════════════════
@@ -815,6 +861,7 @@ ROUTES = {
     "ai": ai_catalog,
     "topup": topup_info,
     "crypto": crypto_info,
+    "stars": stars_info,
     "rules": rules,
     "guide": guide,
 }

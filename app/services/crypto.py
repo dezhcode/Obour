@@ -284,6 +284,17 @@ def enabled() -> bool:
     return receive_address() is not None
 
 
+async def configured(db: "Database") -> bool:
+    """آدرس هست و دست کم یک نرخ تعیین شده (بدون خواندن قیمت از اینترنت)."""
+    for key in ("crypto_usdt_rate", "crypto_ton_rate"):
+        try:
+            if float((await db.get_setting(key, "0") or "0").replace(",", "")) > 0:
+                return True
+        except ValueError:
+            pass
+    return False
+
+
 def to_units(toman: int, rate: int, asset: str, fee: float = 0.0) -> int:
     """تومان -> کوچک ترین واحد ارز، گرد شده رو به بالا به ۰٫۰۱."""
     d = decimals(asset)

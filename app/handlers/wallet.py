@@ -5,9 +5,9 @@ import logging
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, PreCheckoutQuery
 
-from app import keyboards, texts, ui
+from app import i18n, keyboards, texts, ui
 from app.config import config
 from app.db import Database
 from app.states import Wallet
@@ -15,20 +15,49 @@ from app.ui import edit_or_send
 from app.utils import esc, fmt_dt, now_str
 from app.i18n import t as _t
 from app.services import crypto as crypto_svc
+from app.services import payments
+from app.services import stars as stars_svc
 
 log = logging.getLogger("obour.wallet")
 router = Router(name="wallet")
+# پرداخت های تلگرام (Stars) روتر جدا دارند که قبل از همه ثبت می شود؛ تا هیچ
+# هندلر state داری (مثلا وسط یک کار ادمین) پیام پرداخت موفق را نگیرد.
+pay_router = Router(name="payments")
+
+
+async def wallet_view(db: Database, user: dict) -> tuple[str, object]:
+    """صفحه کیف پول، بسته به زبان کاربر.
+
+    فارسی: مبلغ های کارت به کارت و زیرش کریپتو و Stars. بقیه زبان ها
+    کارت به کارت ندارند (کارت ایرانی ندارند)؛ فقط انتخاب روش.
+    """
+    min_charge = int(await db.get_setting("min_charge", "50000"))
+    methods = await payments.available(db)
+    fmt = {"balance": f"{user['balance']:,}", "min_charge": f"{min_charge:,}"}
+    if payments.CARD in methods:
+        return texts.WALLET.format(**fmt), keyboards.wallet_amounts(
+            crypto=payments.CRYPTO in methods, stars=payments.STARS in methods)
+    return texts.WALLET_INTL.format(**fmt), keyboards.wallet_methods(
+        crypto=payments.CRYPTO in methods, stars=payments.STARS in methods)
 
 
 @router.callback_query(F.data == "wal")
 async def cb_wallet(call: CallbackQuery, db: Database, user: dict) -> None:
-    min_charge = int(await db.get_setting("min_charge", "50000"))
-    await edit_or_send(
-        call.message,
-        texts.WALLET.format(balance=f"{user['balance']:,}", min_charge=f"{min_charge:,}"),
-        keyboards.wallet_amounts(crypto=crypto_svc.enabled()),
-    )
+    body, kb = await wallet_view(db, user)
+    await edit_or_send(call.message, body, kb)
     await call.answer()
+
+
+async def _card_blocked(call_or_msg) -> bool:  # noqa: ANN001
+    """کارت به کارت برای کاربر غیر فارسی بسته است، حتی با callback دستی."""
+    if payments.card_allowed():
+        return False
+    text = _t("کارت به کارت فقط برای کاربرهای ایران است. از TON / USDT یا Stars استفاده کن.")
+    if isinstance(call_or_msg, CallbackQuery):
+        await call_or_msg.answer(text, show_alert=True)
+    else:
+        await call_or_msg.answer(text)
+    return True
 
 
 async def _send_card(
@@ -109,6 +138,8 @@ async def _send_card(
 
 async def _start_charge(call: CallbackQuery, db: Database, state: FSMContext, amount: int) -> None:
     """مرحله اول: نمایش مبلغ اختصاصی برای تایید."""
+    if await _card_blocked(call):
+        return
     user = await db.get_user_by_tg(call.from_user.id)
     if not user:
         return await call.answer(_t("یه بار /start بزن و دوباره امتحان کن."), show_alert=True)
@@ -127,6 +158,8 @@ async def cb_amount_confirmed(call: CallbackQuery, db: Database, state: FSMConte
     مبلغ با آنچه در state رزرو شده تطبیق داده می شود تا کسی نتواند با
     دستکاری callback مبلغ دلخواه بسازد.
     """
+    if await _card_blocked(call):
+        return
     try:
         exact = int(call.data.split(":")[2])
     except (IndexError, ValueError):
@@ -167,6 +200,8 @@ async def cb_charge_preset(call: CallbackQuery, db: Database, state: FSMContext)
 
 @router.callback_query(F.data == "wal:custom")
 async def cb_charge_custom(call: CallbackQuery, db: Database, state: FSMContext) -> None:
+    if await _card_blocked(call):
+        return
     min_charge = int(await db.get_setting("min_charge", "50000"))
     await state.set_state(Wallet.waiting_amount)
     prompt = await edit_or_send(
@@ -189,6 +224,8 @@ async def txt_custom_amount(message: Message, db: Database, state: FSMContext) -
     پیام کاربر پاک می شود و همان پیامی که مبلغ را پرسیده بود ویرایش
     می شود، تا چت تمیز بماند و مبلغ تایپ شده باقی نماند.
     """
+    if await _card_blocked(message):
+        return await state.clear()
     min_charge = int(await db.get_setting("min_charge", "50000"))
     raw = message.text.strip().replace(",", "").replace("،", "")
     data = await state.get_data()
@@ -328,7 +365,7 @@ async def _crypto_pick(message: Message, db: Database, amount: int, edit: bool) 
         return await (edit_or_send(message, text, keyboards.crypto_amounts()) if edit else message.answer(text))
     quotes = await crypto_svc.quote(db, amount)
     if not quotes:
-        text = _t("نرخ ارزها هنوز تنظیم نشده. کمی بعد دوباره امتحان کن یا از کارت به کارت استفاده کن.")
+        text = _t("نرخ ارزها هنوز تنظیم نشده. کمی بعد دوباره امتحان کن.")
         return await (edit_or_send(message, text, keyboards.crypto_amounts()) if edit else message.answer(text))
     icons = {"TON": "💎", "USDT": "💵"}
     lines = "\n".join(f"{icons[a]} <b>{q['amount']} {a}</b>" for a, q in quotes.items())
@@ -449,3 +486,99 @@ async def cb_crypto_cancel(call: CallbackQuery, db: Database, user: dict) -> Non
         return await call.answer(_t("این درخواست قبلا بسته شده."), show_alert=True)
     await edit_or_send(call.message, texts.CHARGE_CANCELLED, keyboards.back_menu())
     await call.answer(_t("لغو شد"))
+
+
+# ═══════════════════ شارژ با Telegram Stars ═══════════════════
+# ستاره ها را خود تلگرام می گیرد؛ ما فاکتور می سازیم، pre_checkout را تایید
+# می کنیم و با successful_payment کیف پول تومانی را شارژ می کنیم.
+
+
+async def _stars_home(message: Message, db: Database, user: dict, edit: bool = True) -> None:
+    rate = await stars_svc.rate(db)
+    min_charge = int(await db.get_setting("min_charge", "50000"))
+    body = texts.STARS_WALLET.format(balance=f"{user['balance']:,}", min_charge=f"{min_charge:,}", rate=f"{rate:,}")
+    kb = keyboards.stars_amounts(rate)
+    if edit:
+        await edit_or_send(message, body, kb)
+    else:
+        await message.answer(body, reply_markup=kb)
+
+
+@router.callback_query(F.data == "sw")
+async def cb_stars(call: CallbackQuery, db: Database, state: FSMContext, user: dict) -> None:
+    if not await stars_svc.enabled(db):
+        return await call.answer(_t("پرداخت با Stars فعلا فعال نیست."), show_alert=True)
+    await state.clear()
+    await _stars_home(call.message, db, user)
+    await call.answer()
+
+
+@router.callback_query(F.data == "sw:custom")
+async def cb_stars_custom(call: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Wallet.stars_amount)
+    await call.answer(_t("مبلغ رو به تومان بفرست."), show_alert=True)
+
+
+async def _stars_invoice(message: Message, db: Database, user: dict, amount: int) -> str | None:
+    """فاکتور ستاره را در چت می فرستد. خروجی: متن خطا، یا None."""
+    r = await stars_svc.create(db, user, amount, source="bot")
+    if not r["ok"]:
+        if r["error"] == stars_svc.TOO_SMALL:
+            return _t("حداقل شارژ {amount} تومانه.", amount=f"{r['min']:,}")
+        if r["error"] == stars_svc.TOO_LARGE:
+            return _t("سقف هر پرداخت با Stars {amount} تومانه.", amount=f"{r.get('max', 0):,}")
+        return _t("پرداخت با Stars فعلا فعال نیست.")
+    await stars_svc.send_invoice(message.bot, message.chat.id, r["invoice"])
+    return None
+
+
+@router.callback_query(F.data.startswith("sw:a:"))
+async def cb_stars_amount(call: CallbackQuery, db: Database, user: dict) -> None:
+    try:
+        amount = int(call.data.split(":")[2])
+    except (IndexError, ValueError):
+        return await call.answer(_t("درخواست نامعتبر."), show_alert=True)
+    err = await _stars_invoice(call.message, db, user, amount)
+    await call.answer(err or "", show_alert=bool(err))
+
+
+@router.message(Wallet.stars_amount, F.text)
+async def txt_stars_amount(message: Message, db: Database, state: FSMContext, user: dict) -> None:
+    raw = message.text.strip().replace(",", "").replace("،", "")
+    raw = raw.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
+    await ui.consume(message)
+    if not raw.isdigit():
+        min_charge = int(await db.get_setting("min_charge", "50000"))
+        return await message.answer(texts.INVALID_AMOUNT.format(min_charge=f"{min_charge:,}"))
+    await state.clear()
+    err = await _stars_invoice(message, db, user, int(raw))
+    if err:
+        await message.answer(err)
+
+
+@pay_router.pre_checkout_query()
+async def on_pre_checkout(query: PreCheckoutQuery, db: Database) -> None:
+    """تلگرام پیش از کم کردن ستاره می پرسد. باید ظرف ۱۰ ثانیه جواب داد."""
+    user = await db.get_user_by_tg(query.from_user.id)
+    with i18n.using(i18n.lang_of(user, query.from_user.language_code)):
+        err = await stars_svc.check_pre_checkout(
+            db, query.invoice_payload, query.from_user.id, query.total_amount, query.currency,
+        )
+    if err:
+        await query.answer(ok=False, error_message=err)
+    else:
+        await query.answer(ok=True)
+
+
+@pay_router.message(F.successful_payment)
+async def on_successful_payment(message: Message, db: Database) -> None:
+    pay = message.successful_payment
+    inv = await stars_svc.settle(
+        db, message.bot, payload=pay.invoice_payload, telegram_id=message.from_user.id,
+        total=pay.total_amount, currency=pay.currency, charge_id=pay.telegram_payment_charge_id,
+    )
+    if inv is None:
+        return
+    await message.answer(texts.STARS_PAID.format(
+        stars=inv["stars"], amount=f"{inv['toman']:,}", balance=f"{inv['balance']:,}",
+    ), reply_markup=keyboards.back_menu())

@@ -355,6 +355,22 @@ CREATE TABLE IF NOT EXISTS crypto_invoices (
   expires_at TEXT NOT NULL,
   paid_at TEXT
 );
+-- فاکتور شارژ با Telegram Stars. payload فاکتور تلگرام «st:<id>» است؛
+-- charge_id (شناسه پرداخت تلگرام) یکتاست تا هیچ پرداختی دو بار حساب نشود
+-- و برای برگرداندن ستاره (refundStarPayment) هم لازم است.
+CREATE TABLE IF NOT EXISTS stars_invoices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  toman INTEGER NOT NULL,
+  stars INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',   -- pending | paid
+  source TEXT,
+  charge_id TEXT UNIQUE,
+  txn_id INTEGER,
+  created_at TEXT NOT NULL,
+  paid_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_stars_user ON stars_invoices(user_id, id);
 CREATE INDEX IF NOT EXISTS idx_crypto_status ON crypto_invoices(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_crypto_user ON crypto_invoices(user_id, id);
 
@@ -2223,6 +2239,32 @@ class Database:
             (limit,),
         )
         return [dict(r) for r in rows]
+
+    # ---------- فاکتور Stars ----------
+    async def create_stars_invoice(self, *, user_id: int, toman: int, stars: int, source: str) -> int:
+        return await self.insert(
+            "INSERT INTO stars_invoices(user_id, toman, stars, source, created_at) VALUES (?, ?, ?, ?, ?)",
+            (user_id, toman, stars, source, now_str()),
+        )
+
+    async def get_stars_invoice(self, invoice_id: int) -> dict | None:
+        row = await self.fetchone("SELECT * FROM stars_invoices WHERE id = ?", (invoice_id,))
+        return dict(row) if row else None
+
+    async def settle_stars_invoice(self, invoice_id: int, charge_id: str) -> bool:
+        """بستن اتمیک؛ False یعنی قبلا پرداخت شده یا این charge_id مصرف شده."""
+        try:
+            rc = await self.execute(
+                """UPDATE stars_invoices SET status = 'paid', charge_id = ?, paid_at = ?
+                   WHERE id = ? AND status = 'pending'""",
+                (charge_id, now_str(), invoice_id),
+            )
+        except aiosqlite.IntegrityError:
+            return False
+        return rc == 1
+
+    async def set_stars_txn(self, invoice_id: int, txn_id: int) -> None:
+        await self.execute("UPDATE stars_invoices SET txn_id = ? WHERE id = ?", (txn_id, invoice_id))
 
     # ---------- فاکتور کریپتو ----------
     async def create_crypto_invoice(

@@ -584,3 +584,26 @@ PHRASES.update({
     "آدرس کیف پول نامعتبر است": "The wallet address is invalid",
     "ارتباط با شبکه TON برقرار نشد، دوباره امتحان کن": "Couldn't reach the TON network, try again",
 })
+
+
+# ---------- Telegram Stars and payment methods outside Iran ----------
+TEXTS.update({
+    "WALLET_INTL": "╭── 💰 Wallet\n│   Top up\n\n💳 Current balance\n{balance} toman\n\nHow would you like to top up?\n╰─ Minimum top-up {min_charge} toman",
+    "STARS_WALLET": "╭── ⭐ Top up with Telegram Stars\n│   1 star = {rate} toman\n\n💳 Current balance\n{balance} toman\n\nChoose a top-up amount in toman, or send the number. The number of stars is on each button.\n╰─ Minimum top-up {min_charge} toman",
+    "STARS_PAID": "╭── ✅ Your payment arrived\n│   ⭐ {stars} stars\n\n{amount} toman was added to your wallet.\n\n💰 Balance\n╰─ {balance} toman",
+})
+
+PHRASES.update({
+    "نرخ ارزها هنوز تنظیم نشده. کمی بعد دوباره امتحان کن.": "Exchange rates aren't set yet. Try again a bit later.",
+    "پرداخت با Stars": "Pay with Stars",
+    "کارت به کارت فقط برای کاربرهای ایران است. از TON / USDT یا Stars استفاده کن.": "Card transfer is only for users in Iran. Please use TON / USDT or Stars.",
+    "پرداخت با Stars فعلا فعال نیست.": "Paying with Stars isn't available right now.",
+    "سقف هر پرداخت با Stars {amount} تومانه.": "The maximum for one Stars payment is {amount} toman.",
+    "{amount} تومان به کیف پول عبور اضافه می شود.": "{amount} toman will be added to your Obour wallet.",
+    "این فاکتور معتبر نیست. از کیف پول دوباره شروع کن.": "This invoice isn't valid. Start again from your wallet.",
+    "این فاکتور قبلا پرداخت شده.": "This invoice has already been paid.",
+    # API (mini app)
+    "پرداخت با Stars فعلا فعال نیست": "Paying with Stars isn't available right now",
+    "کارت به کارت فقط برای کاربرهای ایران است": "Card transfer is only for users in Iran",
+    "فاکتور ستاره ساخته نشد، دوباره امتحان کن": "Couldn't create the Stars invoice, try again",
+})

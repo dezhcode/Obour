@@ -491,19 +491,54 @@ def plan_confirm(
     return kb.as_markup()
 
 
-def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000), crypto: bool = False) -> InlineKeyboardMarkup:
+def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000), crypto: bool = False,
+                   stars: bool = False) -> InlineKeyboardMarkup:
+    """کیف پول کاربر فارسی: مبلغ های کارت به کارت، و بقیه روش ها زیرش."""
     kb = InlineKeyboardBuilder()
     for amount in presets:
         kb.button(text=f"{amount:,}", callback_data=f"wal:c:{amount}")
     _add(kb, "✍️ مبلغ دلخواه", style=PRIMARY, callback_data="wal:custom")
     _btn(kb, "history", "سوابق من", callback_data="hist")
     rows = [3, 2]
+    other = []
     if crypto:
-        # برای کاربرهای خارج از کشور که کارت ایرانی ندارند
         _add(kb, "💎 پرداخت با TON / USDT", callback_data="cw")
-        rows.append(1)
+        other.append(1)
+    if stars:
+        _add(kb, "⭐ پرداخت با Stars", callback_data="sw")
+        other.append(1)
+    if len(other) == 2:
+        other = [2]
     _add(kb, "🔙 منوی اصلی", callback_data="menu")
-    kb.adjust(*rows, 1)
+    kb.adjust(*rows, *other, 1)
+    return kb.as_markup()
+
+
+def wallet_methods(crypto: bool, stars: bool) -> InlineKeyboardMarkup:
+    """کیف پول کاربر غیر فارسی: کارت به کارت ندارد، فقط کریپتو و Stars."""
+    kb = InlineKeyboardBuilder()
+    rows = []
+    if crypto:
+        _add(kb, "💎 پرداخت با TON / USDT", style=PRIMARY, callback_data="cw")
+        rows.append(1)
+    if stars:
+        _add(kb, "⭐ پرداخت با Stars", style=PRIMARY, callback_data="sw")
+        rows.append(1)
+    _btn(kb, "history", "سوابق من", callback_data="hist")
+    _add(kb, "🔙 منوی اصلی", callback_data="menu")
+    kb.adjust(*rows, 2)
+    return kb.as_markup()
+
+
+def stars_amounts(rate: int, presets: tuple[int, ...] = (50_000, 100_000, 200_000)) -> InlineKeyboardMarkup:
+    import math
+
+    kb = InlineKeyboardBuilder()
+    for amount in presets:
+        kb.button(text=f"{amount:,} · ⭐{max(1, math.ceil(amount / rate)):,}", callback_data=f"sw:a:{amount}")
+    _add(kb, "✍️ مبلغ دلخواه", style=PRIMARY, callback_data="sw:custom")
+    _add(kb, "🔙 برگشت", callback_data="wal")
+    kb.adjust(1, 1, 1, 1, 1)
     return kb.as_markup()
 
 
@@ -1038,6 +1073,7 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _add(kb, "👤 صاحب کارت", callback_data="adm:set:card_holder")
     _add(kb, "🏦 بانک", callback_data="adm:set:bank_name")
     _add(kb, "🔢 حداقل شارژ", callback_data="adm:set:min_charge")
+    _add(kb, "⭐ نرخ ستاره", callback_data="adm:set:stars_rate")
     _add(kb, "💵 نرخ تتر", callback_data="adm:set:crypto_usdt_rate")
     _add(kb, "💎 نرخ TON", callback_data="adm:set:crypto_ton_rate")
     _add(kb, "➗ کارمزد کریپتو", callback_data="adm:set:crypto_fee_percent")
@@ -1049,7 +1085,7 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _btn(kb, "ai", "خدمات هوش مصنوعی", callback_data="adm:ai")
     _add(kb, "🎬 افکت پیام", callback_data="adm:fx")
     _add(kb, "🔙 داشبورد", callback_data="adm")
-    kb.adjust(2, 2, 2, 2, 2, 2, 1, 1)
+    kb.adjust(2, 2, 2, 2, 2, 2, 2, 1)
     return kb.as_markup()
 
 

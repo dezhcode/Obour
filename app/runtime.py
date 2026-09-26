@@ -116,6 +116,7 @@ def build() -> tuple[Dispatcher, Bot, Database, Panel | None]:
     # روتر دستورها اول از همه: دستور اسلشی باید حتی وسط یک جریان FSM هم
     # کار کند، پس نباید هندلرهای state دار زودتر آن را بگیرند.
     dp.include_routers(
+        wallet.pay_router,
         commands.router,
         admin.router,
         ai.router,
@@ -239,6 +240,22 @@ class Runtime:
                         await self.db.set_setting("bot_username", me.username)
                 except Exception:  # noqa: BLE001
                     log.debug("خواندن نام کاربری ربات نشد", exc_info=True)
+
+                # وبهوکی که قبل از اضافه شدن Stars ثبت شده، pre_checkout_query
+                # را نمی گیرد و پرداخت ستاره بی صدا شکست می خورد. همین جا
+                # درستش می کنیم تا لازم نباشد کسی /setwebhook را دوباره بزند.
+                try:
+                    info = await self.bot.get_webhook_info()
+                    got = set(info.allowed_updates or [])
+                    if info.url and got and not set(config.allowed_updates) <= got:
+                        await self.bot.set_webhook(
+                            url=info.url,
+                            secret_token=config.webhook_secret or None,
+                            allowed_updates=list(config.allowed_updates),
+                        )
+                        log.info("allowed_updates وبهوک به روز شد (pre_checkout_query برای Stars)")
+                except Exception:  # noqa: BLE001
+                    log.warning("بررسی allowed_updates وبهوک نشد", exc_info=True)
 
             fut = asyncio.run_coroutine_threadsafe(_boot(), loop)
             fut.result(timeout=30)

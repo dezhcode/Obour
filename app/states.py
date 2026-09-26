@@ -25,6 +25,7 @@ class Wallet(StatesGroup):
     waiting_amount = State()
     waiting_receipt = State()
     crypto_amount = State()
+    stars_amount = State()
 
 
 class Service(StatesGroup):

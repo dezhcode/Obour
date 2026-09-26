@@ -240,7 +240,8 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
     # اندپوینتی اضافه شد بی سروصدا قابل نوشتن نشود.
     WRITE_PATHS = ("/api/purchase", "/api/topup/start", "/api/topup/receipt",
                    "/api/rules/accept", "/api/ticket/send", "/api/lang",
-                   "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel")
+                   "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
+                   "/api/stars/start")
     if method == "POST":
         if path not in WRITE_PATHS:
             return _json(
@@ -536,6 +537,25 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
         if name == "crypto/status":
             return _json(start_response, runtime.run(webapi.crypto_status(
                 db, panel, wuser, invoice_id=int(query.get("id") or 0), bot=runtime.bot), timeout=40))
+
+        # ---------- Telegram Stars ----------
+        if name == "stars/start":
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=512)
+            try:
+                toman = int(body.get("toman") or 0)
+            except (TypeError, ValueError):
+                toman = 0
+            if toman <= 0:
+                return _json(start_response, {"error": "مبلغ نامعتبر", "code": "bad_request"}, "400 Bad Request")
+            return _json(start_response, runtime.run(webapi.stars_start(
+                db, panel, wuser, toman=toman, bot=runtime.bot), timeout=30))
+        if name == "stars/status":
+            return _json(start_response, runtime.run(webapi.stars_status(
+                db, panel, wuser, invoice_id=int(query.get("id") or 0)), timeout=20))
 
         # ---------- بقیه ----------
         handler = webapi.ROUTES.get(name)

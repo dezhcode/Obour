@@ -351,7 +351,7 @@ def application(environ, start_response):  # noqa: ANN001, ANN201
                     url=config.webhook_url,
                     secret_token=config.webhook_secret or None,
                     drop_pending_updates=True,
-                    allowed_updates=["message", "callback_query", "my_chat_member"],
+                    allowed_updates=list(config.allowed_updates),
                 ),
                 timeout=30,
             )

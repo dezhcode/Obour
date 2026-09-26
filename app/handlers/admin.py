@@ -1764,7 +1764,9 @@ async def _crypto_settings_lines(db: Database) -> dict:
         f"TON: {ton}{' (خودکار)' if manual_ton in ('', '0') else ''} · "
         f"کارمزد: {await crypto.fee_percent(db):g}٪"
     )
-    return {"crypto_state": state, "crypto_rates": rates}
+    stars_rate = int(await db.get_setting("stars_rate", "0") or 0)
+    stars_line = f"هر ستاره = {stars_rate:,} تومان" if stars_rate else "خاموش (نرخ ستاره تعیین نشده)"
+    return {"crypto_state": state, "crypto_rates": rates, "stars_line": stars_line}
 
 
 @router.callback_query(F.data.startswith("adm:set:"))
@@ -1802,7 +1804,7 @@ async def txt_admin_setting(message: Message, db: Database, state: FSMContext) -
         if not clean.isdigit() or int(clean) < 1000:
             return await message.answer("لطفا یه عدد بزرگ تر از ۱۰۰۰ بفرست.")
         await db.set_setting("min_charge", clean)
-    elif field in ("crypto_usdt_rate", "crypto_ton_rate"):
+    elif field in ("crypto_usdt_rate", "crypto_ton_rate", "stars_rate"):
         clean = value.replace(",", "").replace("،", "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
         if not clean.isdigit():
             return await message.answer("لطفا یه عدد (تومان) بفرست.")
