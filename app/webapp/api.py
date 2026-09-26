@@ -545,6 +545,7 @@ async def ai_catalog(
             cat = await ai_shop.catalog(db)
         except CanbosoError:
             cat = {"items": []}
+        sales = await db.ai_sales()
         for x in cat["items"]:
             months = [{"months": m, "price": x["month_prices"][m]} for m in x["months"]]
             items.append({
@@ -561,6 +562,7 @@ async def ai_catalog(
                 "category": x["category"],
                 "image": ai_shop.image_url(x["image"]),
                 "guide": x["guide"][:2500],
+                "sold": sales.get(x["id"], 0),
             })
     except Exception:  # noqa: BLE001
         # نبود کاتالوگ نباید صفحه را بشکند؛ ویترین خالی بهتر از خطاست.

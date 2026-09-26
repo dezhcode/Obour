@@ -2085,6 +2085,13 @@ class Database:
         )
         return dict(row) if row else {}
 
+    async def ai_sales(self) -> dict[str, int]:
+        """تعداد فروش موفق هر محصول فروشگاه؛ برای انتخاب ویترین هر دسته."""
+        rows = await self.fetchall(
+            "SELECT service_id, COUNT(*) AS n FROM ai_orders WHERE status IN ('delivered', 'done') GROUP BY service_id"
+        )
+        return {str(r["service_id"]): int(r["n"]) for r in rows}
+
     # ---------- تنظیمات هر محصول فروشگاه ----------
     async def product_meta_all(self) -> dict[str, dict]:
         rows = await self.fetchall("SELECT * FROM shop_product_meta")
