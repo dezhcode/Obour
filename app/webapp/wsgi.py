@@ -33,7 +33,7 @@ _CSP = (
     # img-src: عکس پروفایل کاربر روی CDN تلگرام است و دامنه اش ثابت
     # نیست (t.me، cdn*.telesco.pe و ...). محدود به https می ماند تا
     # محتوای ناامن بار نشود.
-    "img-src 'self' data: https:; "
+    "img-src 'self' data: blob: https:; "
     "font-src 'self' data:; "
     # connect-src: TON Connect با bridge کیف پول ها (دامنه های متعدد و
     # متغیر، مثل bridge.tonapi.io) و فهرست کیف پول ها در config.ton.org
@@ -66,6 +66,21 @@ def _write_rate_ok(tg_id: int) -> bool:
         return False
     hits.append(now)
     _WRITE_RATE[tg_id] = hits
+    return True
+
+
+# سقف جدا و بازتر برای ادمین: تایید پشت سر هم ده ها رسید نباید قفل شود
+_ADMIN_RATE: dict[int, list[float]] = {}
+
+
+def _admin_rate_ok(tg_id: int) -> bool:
+    now = time.monotonic()
+    hits = [t for t in _ADMIN_RATE.get(tg_id, []) if now - t < 60.0]
+    if len(hits) >= 60:
+        _ADMIN_RATE[tg_id] = hits
+        return False
+    hits.append(now)
+    _ADMIN_RATE[tg_id] = hits
     return True
 
 
@@ -241,7 +256,9 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
     WRITE_PATHS = ("/api/purchase", "/api/topup/start", "/api/topup/receipt",
                    "/api/rules/accept", "/api/ticket/send", "/api/lang",
                    "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
-                   "/api/stars/start")
+                   "/api/stars/start",
+                   "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
+                   "/api/admin/plan", "/api/admin/setting", "/api/admin/feature")
     if method == "POST":
         if path not in WRITE_PATHS:
             return _json(
@@ -537,6 +554,56 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
         if name == "crypto/status":
             return _json(start_response, runtime.run(webapi.crypto_status(
                 db, panel, wuser, invoice_id=int(query.get("id") or 0), bot=runtime.bot), timeout=40))
+
+        # ---------- پنل ادمین ----------
+        # هر تابع admin_api خودش ادمین بودن را از روی آیدی امضا شده
+        # initData می سنجد؛ اینجا فقط مسیریابی و خواندن ورودی است.
+        if name == "admin" or name.startswith("admin/"):
+            from app.webapp import admin_api
+
+            if name in admin_api.READ:
+                return _json(start_response, runtime.run(admin_api.READ[name](db, panel, wuser), timeout=30))
+            if name == "admin/users":
+                return _json(start_response, runtime.run(admin_api.users(
+                    db, panel, wuser, q=str(query.get("q") or "")[:64], page=int(query.get("page") or 0)), timeout=20))
+            if name == "admin/user":
+                return _json(start_response, runtime.run(admin_api.user_detail(
+                    db, panel, wuser, telegram_id=int(query.get("id") or 0)), timeout=20))
+            if name == "admin/receipt":
+                data, ctype = runtime.run(admin_api.receipt(
+                    db, panel, wuser, txn_id=int(query.get("id") or 0), bot=runtime.bot), timeout=40)
+                start_response("200 OK", [
+                    ("Content-Type", ctype), ("Content-Length", str(len(data))),
+                    ("Cache-Control", "private, max-age=600"), ("X-Content-Type-Options", "nosniff"),
+                ])
+                return [data]
+            if method != "POST":
+                return _json(start_response, {"error": "not found", "code": "not_found"}, "404 Not Found")
+            if not _admin_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=2048)
+            if name == "admin/charge":
+                return _json(start_response, runtime.run(admin_api.charge_action(
+                    db, panel, wuser, txn_id=int(body.get("id") or 0), action=str(body.get("action") or ""),
+                    reason=str(body.get("reason") or ""), bot=runtime.bot), timeout=40))
+            if name == "admin/balance":
+                return _json(start_response, runtime.run(admin_api.balance(
+                    db, panel, wuser, telegram_id=int(body.get("id") or 0), amount=int(body.get("amount") or 0),
+                    add=bool(body.get("add")), bot=runtime.bot), timeout=30))
+            if name == "admin/block":
+                return _json(start_response, runtime.run(admin_api.block(
+                    db, panel, wuser, telegram_id=int(body.get("id") or 0), blocked=bool(body.get("blocked"))), timeout=20))
+            if name == "admin/plan":
+                fields = body.get("fields") if isinstance(body.get("fields"), dict) else {}
+                return _json(start_response, runtime.run(admin_api.plan_update(
+                    db, panel, wuser, plan_id=int(body.get("id") or 0), fields=fields), timeout=20))
+            if name == "admin/setting":
+                return _json(start_response, runtime.run(admin_api.setting_save(
+                    db, panel, wuser, field=str(body.get("field") or ""), value=str(body.get("value") or "")[:200]), timeout=20))
+            if name == "admin/feature":
+                return _json(start_response, runtime.run(admin_api.feature_set(
+                    db, panel, wuser, key=str(body.get("key") or ""), on=bool(body.get("on"))), timeout=20))
+            return _json(start_response, {"error": "not found", "code": "not_found"}, "404 Not Found")
 
         # ---------- Telegram Stars ----------
         if name == "stars/start":

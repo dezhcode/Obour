@@ -17,6 +17,7 @@ from app.config import config
 from app.db import Database
 from app.keyboards import is_admin
 from app.panel import Panel, PanelError
+from app.services import admin_ops
 from app.states import Admin
 from app.ui import edit_or_send
 from app.utils import (
@@ -168,33 +169,8 @@ async def cb_admin(call: CallbackQuery, db: Database) -> None:
 
 
 async def _notify_user(bot, telegram_id: int, body: str, effect: str = "", lang: str | None = None) -> str:  # noqa: ANN001
-    """خبر دادن به کاربر. خروجی: رشته خالی یعنی موفق، وگرنه علت شکست.
-
-    چرا خروجی برمی گرداند؟ چون این پیام ها مهم اند (خبر شارژ، رد رسید)
-    و اگر بی صدا رد شوند، کاربر فکر می کند پولش گم شده و ادمین هم خبر
-    ندارد. با برگرداندن علت، ادمین همان لحظه روی دکمه اش هشدار می بیند.
-
-    ارسال در صورت نیاز دو بار تلاش می شود: با افکت، و اگر تلگرام افکت
-    را رد کرد بدون افکت. افکت تزئینی است و نباید جلوی خبر را بگیرد.
-    """
-    from aiogram.exceptions import TelegramForbiddenError
-
-    fx = effects.kwargs(effect, telegram_id) if effect else {}
-    for attempt_fx in ((fx, {}) if fx else ({},)):
-        try:
-            with i18n.using(lang):
-                await bot.send_message(telegram_id, body, **attempt_fx)
-            return ""
-        except TelegramForbiddenError:
-            log.warning("کاربر %s ربات را بلاک کرده", telegram_id)
-            return "کاربر ربات را بلاک کرده"
-        except Exception as exc:  # noqa: BLE001
-            if attempt_fx:
-                effects.disable(effect, str(exc))
-                continue
-            log.error("ارسال پیام به کاربر %s ناموفق بود", telegram_id, exc_info=True)
-            return str(exc)[:80]
-    return "نامشخص"
+    """خبر دادن به کاربر؛ خروجی خالی یعنی موفق، وگرنه علت شکست (admin_ops)."""
+    return await admin_ops.notify_user(bot, telegram_id, body, effect=effect, lang=lang)
 
 
 # ---------- تایید شارژ (مهم ترین بخش) ----------
@@ -276,15 +252,9 @@ async def cb_admin_charge_view(call: CallbackQuery, db: Database) -> None:
 @router.callback_query(F.data.startswith("chg:ok:"))
 async def cb_charge_approve(call: CallbackQuery, db: Database) -> None:
     txn_id = int(call.data.split(":")[2])
-    txn = await db.decide_transaction(txn_id, "approved", call.from_user.id)
-    if txn is None:
+    r = await admin_ops.approve_charge(call.bot, db, txn_id, call.from_user.id)
+    if not r["ok"]:
         return await call.answer("این رسید قبلا بررسی شده.", show_alert=True)
-
-    if not await db.atomic_credit(txn["user_id"], txn["amount"]):
-        log.error("credit failed after approval txn=%s", txn_id)
-    # مبلغ یکتا آزاد شود تا دوباره قابل استفاده باشد و جدول پر نشود
-    await db.release_amount(txn["amount"])
-    fresh = await db.get_user(txn["user_id"])
 
     try:
         await call.message.edit_reply_markup(reply_markup=None)
@@ -302,13 +272,7 @@ async def cb_charge_approve(call: CallbackQuery, db: Database) -> None:
     except Exception:  # noqa: BLE001
         pass
 
-    with i18n.using(i18n.lang_of(fresh)):
-        body = texts.CHARGE_APPROVED.format(
-            amount=f"{txn['amount']:,}", balance=f"{fresh['balance']:,}"
-        )
-    err = await _notify_user(
-        call.bot, int(fresh["telegram_id"]), body, effect=effects.CHARGE, lang=i18n.lang_of(fresh)
-    )
+    err = r["notify_err"]
     if err:
         # شارژ انجام شده ولی کاربر خبر ندارد؛ ادمین باید همین حالا بداند
         await call.answer(
@@ -321,14 +285,10 @@ async def cb_charge_approve(call: CallbackQuery, db: Database) -> None:
 @router.callback_query(F.data.startswith("chg:dup:"))
 async def cb_charge_duplicate(call: CallbackQuery, db: Database) -> None:
     txn_id = int(call.data.split(":")[2])
-    txn = await db.decide_transaction(txn_id, "rejected", call.from_user.id, reason="رسید تکراری")
-    if txn is None:
+    r = await admin_ops.duplicate_charge(call.bot, db, txn_id, call.from_user.id)
+    if not r["ok"]:
         return await call.answer("این رسید قبلا بررسی شده.", show_alert=True)
-    await db.release_amount(txn["amount"])
-    user = await db.get_user(txn["user_id"])
-    with i18n.using(i18n.lang_of(user)):
-        body = texts.DUP_RECEIPT
-    notify_err = await _notify_user(call.bot, int(user["telegram_id"]), body, lang=i18n.lang_of(user))
+    notify_err = r["notify_err"]
     # ثبت وضعیت روی پیام (بخش ۱۵.۲ سند): جلوگیری از بررسی دوباره
     try:
         await call.message.edit_caption(
@@ -365,19 +325,10 @@ async def _finalize_reject(
     خروجی: (موفق بود؟، خطای اطلاع رسانی به کاربر یا None)
     False در جای اول یعنی این رسید قبلا بررسی شده بود.
     """
-    txn = await db.decide_transaction(txn_id, "rejected", admin_id, reason=reason)
-    if txn is None:
+    r = await admin_ops.reject_charge(bot, db, txn_id, admin_id, reason)
+    if not r["ok"]:
         return False, None
-    await db.release_amount(txn["amount"])
-    user = await db.get_user(txn["user_id"])
-    # دلیل آماده به زبان کاربر؛ دلیلی که ادمین دستی نوشته همان می ماند
-    lang = i18n.lang_of(user)
-    fa_reasons = texts.__dict__["REJECT_REASONS"]
-    code = next((k for k, v in fa_reasons.items() if v == reason), None)
-    with i18n.using(lang):
-        user_reason = texts.REJECT_REASONS[code] if code else reason
-        body = texts.CHARGE_REJECTED.format(reason=user_reason)
-    notify_err = await _notify_user(bot, int(user["telegram_id"]), body, lang=lang)
+    notify_err = r["notify_err"]
     suffix = "\n\n" + texts.ADMIN_DECIDED_REJ.format(reason=reason, time=fmt_dt(now_str()))
     try:
         if is_caption:
@@ -551,7 +502,8 @@ async def cb_toggle_block(call: CallbackQuery, db: Database) -> None:
     if not user:
         return await call.answer("کاربر پیدا نشد.", show_alert=True)
     new_state = 0 if user["is_blocked"] else 1
-    await db.execute("UPDATE users SET is_blocked = ? WHERE id = ?", (new_state, user["id"]))
+    if not await admin_ops.set_blocked(db, tg_id, bool(new_state), call.from_user.id):
+        return await call.answer("ادمین را نمی شود مسدود کرد.", show_alert=True)
     await call.answer("مسدود شد 🚫" if new_state else "رفع مسدودی شد ✅")
     await cb_admin_user_refresh(call, db, tg_id)
 
@@ -599,48 +551,16 @@ async def txt_manual_balance(message: Message, db: Database, state: FSMContext) 
     raw = message.text.strip().replace(",", "")
     if not raw.isdigit() or int(raw) <= 0:
         return await message.answer("لطفا یه عدد مثبت به تومان بفرست.")
-    amount = int(raw)
     data = await state.get_data()
     await state.clear()
-    user = await db.get_user_by_tg(data["tg_id"])
-    if not user:
-        return await message.answer(texts.ADMIN_USER_NOT_FOUND)
-
-    if data["direction"] == "add":
-        if not await db.atomic_credit(user["id"], amount):
-            return await message.answer("افزودن موجودی انجام نشد.")
-        await db.insert_transaction(user["id"], "admin_adjust", amount, status="approved")
-    else:
-        # مبلغ از موجودی تازه خوانده می شود، نه از نسخه کش شده. و تراکنش
-        # فقط در صورت موفقیت کسر ثبت می شود تا گزارش مالی دروغ نگوید.
-        taken = min(amount, int(user["balance"]))
-        if taken <= 0 or not await db.atomic_debit(user["id"], taken):
-            return await message.answer("موجودی کاربر به اندازه کافی نبود.")
-        await db.insert_transaction(
-            user["id"], "admin_adjust", -taken, status="approved"
-        )
-    fresh = await db.get_user(user["id"])
-
-    # کاربر باید بفهمد موجودی اش عوض شده. تا حالا این اتفاق بی صدا
-    # می افتاد و کاربر تازه موقع خرید بعدی متوجه می شد.
-    with i18n.using(i18n.lang_of(fresh)):
-        if data["direction"] == "add":
-            body = texts.CHARGE_APPROVED.format(
-                amount=f"{amount:,}", balance=f"{fresh['balance']:,}"
-            )
-            effect = effects.CHARGE
-        else:
-            body = texts.BALANCE_TAKEN.format(
-                amount=f"{taken:,}", balance=f"{fresh['balance']:,}"
-            )
-            effect = ""
-    err = await _notify_user(
-        message.bot, int(user["telegram_id"]), body, effect=effect, lang=i18n.lang_of(fresh)
+    r = await admin_ops.adjust_balance(
+        message.bot, db, int(data["tg_id"]), int(raw), data["direction"] == "add", message.from_user.id,
     )
-
-    note = texts.ADMIN_BALANCE_DONE.format(balance=f"{fresh['balance']:,}")
-    if err:
-        note += f"\n\n⚠️ پیام به کاربر نرسید: {esc(err)}"
+    if not r["ok"]:
+        return await message.answer(r["error"])
+    note = texts.ADMIN_BALANCE_DONE.format(balance=f"{r['balance']:,}")
+    if r["notify_err"]:
+        note += f"\n\n⚠️ پیام به کاربر نرسید: {esc(r['notify_err'])}"
     await message.answer(note)
 
 
@@ -1799,32 +1719,10 @@ async def txt_admin_setting(message: Message, db: Database, state: FSMContext) -
         if not value.isdigit() or int(value) <= 0:
             return await message.answer("لطفا حجم را به گیگ و به صورت عدد بفرست.")
         await db.update_plan(int(data["plan_id"]), data_gb=int(value))
-    elif field == "min_charge":
-        clean = value.replace(",", "").replace("،", "")
-        if not clean.isdigit() or int(clean) < 1000:
-            return await message.answer("لطفا یه عدد بزرگ تر از ۱۰۰۰ بفرست.")
-        await db.set_setting("min_charge", clean)
-    elif field in ("crypto_usdt_rate", "crypto_ton_rate", "stars_rate"):
-        clean = value.replace(",", "").replace("،", "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
-        if not clean.isdigit():
-            return await message.answer("لطفا یه عدد (تومان) بفرست.")
-        await db.set_setting(field, str(int(clean)))
-    elif field == "crypto_fee_percent":
-        clean = value.replace("٪", "").replace("%", "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٫", "0123456789."))
-        try:
-            fee = float(clean)
-        except ValueError:
-            return await message.answer("لطفا یه عدد بین ۰ تا ۵۰ بفرست.")
-        if not 0 <= fee <= 50:
-            return await message.answer("لطفا یه عدد بین ۰ تا ۵۰ بفرست.")
-        await db.set_setting(field, f"{fee:g}")
-    elif field == "card_number":
-        digits = "".join(ch for ch in value if ch.isdigit())
-        if len(digits) != 16:
-            return await message.answer("شماره کارت باید ۱۶ رقم باشه. دوباره بفرست:")
-        await db.set_setting("card_number", digits)
-    elif field in ("card_holder", "bank_name"):
-        await db.set_setting(field, value[:60])
+    elif field in admin_ops.SETTING_FIELDS:
+        ok, msg = await admin_ops.save_setting(db, field, value, message.from_user.id)
+        if not ok:
+            return await message.answer(msg)
     else:
         await state.clear()
         return await message.answer("این فیلد قابل ویرایش نیست.")

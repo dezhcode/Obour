@@ -13,7 +13,8 @@ import time
 
 from typing import TYPE_CHECKING
 
-from app import apps, features, i18n, referral, texts
+from app import apps, features, i18n, texts
+from app import referral as referral_mod
 from app.config import config
 from app.utils import (
     days_left,
@@ -167,6 +168,8 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
         # روش های شارژ این کاربر؛ کارت به کارت فقط برای فارسی
         "pay_methods": (methods := await payments_svc.available(db)),
         "crypto": payments_svc.CRYPTO in methods,
+        # فقط برای نمایش ردیف «پنل مدیریت»؛ هر درخواست ادمین جدا بررسی می شود
+        "is_admin": wuser.id in config.admin_ids,
         "readonly": False,
     }
 
@@ -819,7 +822,7 @@ async def purchase(
     # پاداش معرف. خطایش داخل خودش لاگ می شود و خرید را نمی شکند.
     if bot is not None:
         try:
-            await referral.reward_purchase(
+            await referral_mod.reward_purchase(
                 bot, db, user, result.price, result.txn_id,
                 "سرویس {title} رو خرید", title=plan["title"],
             )

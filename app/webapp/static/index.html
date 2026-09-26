@@ -495,6 +495,33 @@ html[dir=ltr] .kinds.k3 .kind-ok{left:auto;right:9px}
 .cx-kv button svg{width:15px;height:15px}
 .foot .cx-alt{display:block;width:100%;margin-top:10px;font-size:13px;font-weight:700;color:var(--brand);text-align:center}
 
+/* ═══ پنل مدیریت (فقط ادمین) ═══ */
+.adm-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:8px var(--pad) 4px}
+.adm-stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px}
+.adm-stat b{display:block;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.adm-stat span{font-size:12px;color:var(--ink-3)}
+.adm-stat.hot{background:var(--help-t);border-color:transparent} .adm-stat.hot b{color:var(--help-i)}
+.adm-note{margin:14px var(--pad) 0;font-size:12px;color:var(--ink-3);line-height:1.9}
+.adm-rc{display:block;width:calc(100% - 2 * var(--pad));margin:8px var(--pad) 0;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--sunk);min-height:220px;object-fit:contain;max-height:60vh}
+.adm-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.adm-acts .btn-ok{background:var(--ok);color:#fff}
+.adm-acts .btn-no{background:var(--surface);color:var(--bad);border:1.5px solid var(--bad)}
+.adm-in{width:100%;height:48px;border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface);padding:0 14px;font:inherit;font-size:15px;color:var(--ink);outline:none}
+.adm-in:focus{border-color:var(--brand)}
+.adm-f{display:flex;flex-direction:column;gap:6px;padding:12px 16px}
+.adm-f + .adm-f{border-top:1px solid var(--line)}
+.adm-f label{font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.adm-f .row2{display:flex;gap:8px} .adm-f .row2 .adm-in{flex-grow:1;min-width:0}
+.adm-f small{font-size:11.5px;color:var(--ink-3);line-height:1.7}
+.sw{position:relative;width:44px;height:26px;border-radius:13px;background:var(--line);flex-shrink:0;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.sw.on{background:var(--ok)} .sw.on::after{transform:translateX(-18px)}
+html[dir=ltr] .sw.on::after{transform:translateX(18px)}
+.adm-search{display:flex;gap:8px;margin:8px var(--pad) 10px}
+.adm-search .adm-in{flex-grow:1}
+.reasons{display:flex;flex-direction:column;gap:8px;margin:6px 0 12px}
+.reasons button{height:46px;border-radius:12px;background:var(--sunk);font-size:14px;font-weight:600;text-align:start;padding:0 14px}
+
 /* ═══ قوانین و نوشتن ═══ */
 .rules{padding:18px;font-size:14px;line-height:2;white-space:pre-wrap;color:var(--ink-2)}
 .compose{width:100%;border:none;outline:none;resize:none;background:none;font-family:inherit;font-weight:400;font-size:15px;line-height:1.9;color:var(--ink)}
@@ -1376,6 +1403,7 @@ async account(p){
         ${days ? `<span>${ic('globe')}${N(fa(days))} روز با عبور</span>` : ''}
       </div>
     </div>
+    ${b.is_admin ? Sec('مدیریت') + Group(Row({ kind:'ai', icon:'shield', title:'پنل مدیریت', sub:'رسیدها، کاربران، پلن‌ها و تنظیمات', fn:"App.go('admin')" })) : ''}
     ${Sec('کارها')}
     ${Group(
       Row({ kind:'cash', icon:'wallet', title:'کیف پول', sub:'شارژ و سوابق', fn:"App.tab('wallet')",
@@ -2134,6 +2162,265 @@ const Crypto = {
     this.step1();
   },
 };
+
+/* ═════════ پنل مدیریت (فقط ادمین) ═════════
+   ردیفش فقط وقتی bootstrap می گوید ادمینی دیده می شود، ولی امنیت اینجا
+   نیست: سرور هر درخواست /api/admin را با آیدی امضا شده تلگرام می سنجد و
+   برای غیر ادمین «پیدا نشد» می دهد. کارهای پیچیده (ارسال همگانی،
+   نظرسنجی، ایموجی، افکت، هوش مصنوعی، دسته ها) در پنل ربات می مانند. */
+const Admin = {
+  charges:[], reasons:{}, user:null,
+  money(v){ return `${N(fa(v))} تومان`; },
+  /* تایید بومی تلگرام؛ window.confirm در وب ویو همه نسخه ها کار نمی کند */
+  ask(msg){
+    return new Promise(ok => {
+      try { if (tg && tg.showConfirm) return tg.showConfirm(msg, r => ok(!!r)); } catch(e){}
+      ok(window.confirm(msg));
+    });
+  },
+  /* span نه button: داخل ردیف (که خودش button است) دکمه تو در تو مجاز نیست */
+  sw(on, fn){ return `<span class="sw${on ? ' on' : ''}" role="switch" aria-checked="${on}" tabindex="0" onclick="event.stopPropagation();${fn}"></span>`; },
+  async act(path, body, okMsg){
+    try {
+      const r = await api(path, body);
+      App.notify('success');
+      App.toast(r && r.notify_err ? okMsg + ' · پیام به کاربر نرسید' : okMsg, !!(r && r.notify_err));
+      return r;
+    } catch (err) { App.toast(err.message, true); return null; }
+  },
+};
+
+SubPages.admin = async function(p){
+  p.innerHTML = Top('پنل مدیریت') + skel(2, 90);
+  try {
+    const d = await api('admin');
+    p.innerHTML = Top('پنل مدیریت', 'فقط تو این بخش را می‌بینی') + `
+      <div class="adm-stats">
+        <div class="adm-stat${d.pending ? ' hot' : ''}"><b class="n">${fa(d.pending)}</b><span>رسید در انتظار</span></div>
+        <div class="adm-stat"><b class="n">${fa(d.users)}</b><span>کاربر</span></div>
+        <div class="adm-stat"><b class="n">${fa(d.active_services)}</b><span>سرویس فعال</span></div>
+        <div class="adm-stat"><b class="n">${fa(d.today_sales)}</b><span>فروش امروز (تومان)</span></div>
+      </div>
+      ${Sec('مدیریت')}
+      ${Group(
+        Row({ kind:'cash', icon:'image', title:'رسیدهای شارژ', sub: d.pending ? `${fa(d.pending)} رسید منتظر بررسی` : 'رسیدی در انتظار نیست',
+              subColor: d.pending ? 'var(--help-i)' : '', fn:"App.go('adm_charges')" })
+        + Row({ kind:'net', icon:'user', title:'کاربران', sub:'جستجو، موجودی و مسدودی', fn:"App.go('adm_users')" })
+        + Row({ kind:'ai', icon:'list', title:'پلن‌ها', sub:'قیمت، حجم، مدت و روشن/خاموش', fn:"App.go('adm_plans')" })
+        + Row({ kind:'help', icon:'bolt', title:'تنظیمات', sub:'کارت، نرخ‌ها و بخش‌های ربات', fn:"App.go('adm_settings')" }))}
+      <div class="adm-note">ارسال همگانی، نظرسنجی، دسته‌ها، ایموجی‌ها و هوش مصنوعی از پنل ربات (/admin) انجام می‌شود.</div>`;
+  } catch (err) { p.innerHTML = Top('پنل مدیریت') + emptyBox('خوانده نشد', err.message); }
+};
+
+/* ---------- رسیدها ---------- */
+SubPages.adm_charges = async function(p){
+  p.innerHTML = Top('رسیدهای شارژ') + skel(3, 80);
+  try {
+    const d = await api('admin/charges');
+    Admin.charges = d.items; Admin.reasons = d.reasons || {};
+    p.innerHTML = Top('رسیدهای شارژ', d.items.length ? `${fa(d.items.length)} رسید منتظر بررسی` : '')
+      + (d.items.length ? Group(d.items.map(t => Row({ kind:'cash', icon:'image', title:t.user.name,
+          sub:`${t.code} · ${jdate(t.created_at)}`, end:`<span class="n" style="font-weight:800">${fa(t.amount)}</span>`,
+          fn:`App.go('adm_charge',${t.id})` })).join(''))
+        : emptyBox('رسیدی در انتظار نیست', 'رسیدهای تازه اینجا و در ربات می‌آیند.'));
+  } catch (err) { p.innerHTML = Top('رسیدهای شارژ') + emptyBox('خوانده نشد', err.message); }
+};
+
+SubPages.adm_charge = function(p, id){
+  const t = Admin.charges.find(x => x.id === id);
+  if (!t) return void (p.innerHTML = Top('رسید') + emptyBox('این رسید دیگر در انتظار نیست', ''));
+  p.innerHTML = Top('رسید ' + t.code) + `
+    <img class="adm-rc" id="adm-rc" alt="رسید">
+    <div class="gap" style="height:12px"></div>
+    ${KV([['مبلغ', `<b class="n">${fa(t.amount)}</b> تومان`], ['کاربر', esc(t.user.name) + (t.user.username ? ` · <span class="n">@${esc(t.user.username)}</span>` : '')],
+          ['آیدی', `<span class="n">${t.user.telegram_id}</span>`], ['موجودی فعلی', Admin.money(t.user.balance)],
+          ['کد پیگیری', `<span class="n">${esc(t.code)}</span>`], ['زمان', N(jdate(t.created_at))]])}
+    <div class="foot"><div class="adm-acts">
+      <button class="btn btn-ok" onclick="AdminCharge.approve(${id})">${ic('check',2.4)}تایید و شارژ</button>
+      <button class="btn btn-no" onclick="AdminCharge.rejectSheet(${id})">رد</button>
+    </div></div>`;
+  AdminCharge.loadImage(id);
+};
+SubPages.adm_charge.noNav = true;
+
+const AdminCharge = {
+  async loadImage(id){
+    try {
+      const res = await fetch(BASE + 'admin/receipt?id=' + id, { headers:{ 'X-Init-Data': INIT } });
+      if (!res.ok) throw new Error();
+      const url = URL.createObjectURL(await res.blob());
+      const img = $('adm-rc'); if (img) img.src = url;
+    } catch(e) { const img = $('adm-rc'); if (img) img.alt = 'عکس رسید خوانده نشد'; }
+  },
+  async done(id, r){
+    if (!r) return;
+    Admin.charges = Admin.charges.filter(x => x.id !== id);
+    App.back();
+    const p = $('sub').querySelector('.page'); if (p) SubPages.adm_charges(p);
+  },
+  async approve(id){
+    const t = Admin.charges.find(x => x.id === id);
+    if (!await Admin.ask(`شارژ ${fa(t ? t.amount : 0)} تومان تایید شود؟`)) return;
+    this.done(id, await Admin.act('admin/charge', { id, action:'approve' }, 'تایید شد و کیف پول شارژ شد'));
+  },
+  rejectSheet(id){
+    App.sheet(`<div class="sheet-t">دلیل رد</div><div class="reasons">
+      ${Object.entries(Admin.reasons).map(([k, v]) => `<button onclick="AdminCharge.reject(${id},'${k === 'duplicate' ? 'dup' : k}')">${esc(v)}</button>`).join('')}</div>
+      <input class="adm-in" id="rj-t" placeholder="یا دلیل دیگری بنویس…" maxlength="200">
+      <button class="btn btn-p btn-block" style="margin-top:10px" onclick="AdminCharge.reject(${id},'custom')">رد با این دلیل</button>`);
+  },
+  async reject(id, code){
+    let body = { id, action:'reject', reason:code };
+    if (code === 'dup') body = { id, action:'dup' };
+    if (code === 'custom') { const v = ($('rj-t').value || '').trim(); if (!v) return App.toast('دلیل را بنویس', true); body.reason = v; }
+    App.closeSheet();
+    this.done(id, await Admin.act('admin/charge', body, 'رد شد و به کاربر خبر داده شد'));
+  },
+};
+
+/* ---------- کاربران ---------- */
+SubPages.adm_users = async function(p){
+  p.innerHTML = Top('کاربران') + `<div class="adm-search"><input class="adm-in" id="adm-q" dir="auto" placeholder="آیدی عددی، یوزرنیم یا مبلغ رسید"
+      onkeydown="if(event.key==='Enter')AdminUsers.search()"><button class="btn btn-p btn-sq" onclick="AdminUsers.search()" aria-label="جستجو">${ic('list',2)}</button></div>
+    <div id="adm-ul">${skel(4, 60)}</div>`;
+  AdminUsers.load('');
+};
+const AdminUsers = {
+  search(){ this.load(($('adm-q').value || '').trim()); },
+  async load(q){
+    const box = $('adm-ul'); if (!box) return;
+    box.innerHTML = skel(3, 60);
+    try {
+      const d = await api('admin/users?q=' + encodeURIComponent(q));
+      box.innerHTML = (d.note ? `<div class="adm-note" style="margin-top:0;margin-bottom:8px">${esc(d.note)}</div>` : '')
+        + (q ? '' : Sec(`آخرین کاربران · ${fa(d.total)} نفر`))
+        + (d.items.length ? Group(d.items.map(u => Row({ kind: u.blocked ? '' : 'net', icon:'user', title:u.name + (u.blocked ? ' 🚫' : '') + (u.is_admin ? ' ⭐' : ''),
+            sub:(u.username ? '@' + u.username + ' · ' : '') + u.telegram_id, end:`<span class="n">${fa(u.balance)}</span>`,
+            fn:`App.go('adm_user',${u.telegram_id})` })).join('')) : emptyBox('کاربری پیدا نشد', 'آیدی عددی یا یوزرنیم را دقیق بنویس.'));
+    } catch (err) { box.innerHTML = emptyBox('خوانده نشد', err.message); }
+  },
+};
+
+SubPages.adm_user = async function(p, tgId){
+  p.innerHTML = Top('کاربر') + skel(2, 140);
+  try {
+    const u = await api('admin/user?id=' + tgId);
+    Admin.user = u;
+    p.innerHTML = Top(u.name, u.username ? '@' + u.username : String(u.telegram_id)) + `
+      <div class="adm-stats">
+        <div class="adm-stat"><b class="n" data-adm-bal>${fa(u.balance)}</b><span>موجودی (تومان)</span></div>
+        <div class="adm-stat"><b class="n">${fa(u.services)}</b><span>سرویس</span></div>
+        <div class="adm-stat"><b class="n">${fa(u.spent)}</b><span>خرید کل (تومان)</span></div>
+        <div class="adm-stat"><b class="n">${fa(u.charged)}</b><span>شارژ کل (تومان)</span></div>
+      </div>
+      ${KV([['آیدی', `<span class="n">${u.telegram_id}</span>`], ['زبان', esc(u.lang || '—')], ['دعوت‌شده‌ها', N(fa(u.referrals))],
+            ['عضو از', N(jdate(u.created_at))], ['وضعیت', u.blocked ? Badge('bad', 'مسدود') : Badge('ok', 'عادی')]])}
+      ${Sec('کارها')}
+      ${Group(
+        Row({ kind:'cash', icon:'plus', title:'افزایش موجودی', sub:'به کاربر خبر داده می‌شود', fn:'AdminUser.balance(true)' })
+        + Row({ kind:'cash', icon:'wallet', title:'کسر از موجودی', sub:'حداکثر تا موجودی فعلی', fn:'AdminUser.balance(false)' })
+        + (u.is_admin ? '' : Row({ kind: u.blocked ? 'net' : '', icon:'shield', title: u.blocked ? 'رفع مسدودی' : 'مسدود کردن',
+            sub: u.blocked ? 'کاربر دوباره به ربات دسترسی پیدا می‌کند' : 'کاربر دیگر به ربات دسترسی ندارد', fn:'AdminUser.block()' })))}
+      ${u.services_list.length ? Sec('سرویس‌ها') + Group(u.services_list.map(s => Row({ kind: s.expired ? '' : 'net', icon:'globe', title:s.title,
+          sub: (s.expired ? 'منقضی · ' : 'تا ') + jdate(s.expire_at) })).join('')) : ''}`;
+  } catch (err) { p.innerHTML = Top('کاربر') + emptyBox('خوانده نشد', err.message); }
+};
+const AdminUser = {
+  balance(add){
+    App.sheet(`<div class="sheet-t">${add ? 'افزایش موجودی' : 'کسر از موجودی'}</div>
+      <input class="adm-in" id="ab-a" inputmode="numeric" dir="ltr" placeholder="مبلغ به تومان">
+      <button class="btn ${add ? 'btn-p' : 'btn-d'} btn-block" style="margin-top:12px" onclick="AdminUser.doBalance(${add})">${add ? 'افزودن' : 'کسر'}</button>`);
+    setTimeout(() => { const i = $('ab-a'); if (i) i.focus(); }, 250);
+  },
+  async doBalance(add){
+    const amount = parseInt(String($('ab-a').value).replace(/[^\d]/g, '') || '0', 10);
+    if (!amount) return App.toast('مبلغ را بنویس', true);
+    if (!await Admin.ask(`${fa(amount)} تومان ${add ? 'اضافه' : 'کسر'} شود؟`)) return;
+    App.closeSheet();
+    const r = await Admin.act('admin/balance', { id:Admin.user.telegram_id, amount, add }, add ? 'اضافه شد' : 'کسر شد');
+    if (r) document.querySelectorAll('[data-adm-bal]').forEach(e => e.textContent = fa(r.balance));
+  },
+  async block(){
+    const u = Admin.user, to = !u.blocked;
+    if (!await Admin.ask(to ? 'این کاربر مسدود شود؟' : 'مسدودی برداشته شود؟')) return;
+    const r = await Admin.act('admin/block', { id:u.telegram_id, blocked:to }, to ? 'مسدود شد' : 'آزاد شد');
+    if (r) SubPages.adm_user($('sub').querySelector('.page'), u.telegram_id);
+  },
+};
+
+/* ---------- پلن ها ---------- */
+SubPages.adm_plans = async function(p){
+  p.innerHTML = Top('پلن‌ها') + skel(4, 60);
+  try {
+    const d = await api('admin/plans');
+    AdminPlans.data = d.categories;
+    p.innerHTML = Top('پلن‌ها', 'برای ویرایش روی پلن بزن') + d.categories.map(c => Sec((c.emoji ? c.emoji + ' ' : '') + c.title + (c.active ? '' : ' (خاموش)'))
+      + (c.plans.length ? Group(c.plans.map(x => Row({ kind: x.active ? 'net' : '', icon:'globe', title:x.title,
+          sub:`${fa(x.price)} تومان · ${fa(x.data_gb)} گیگ · ${fa(x.duration_days)} روز`,
+          end: Admin.sw(x.active, `AdminPlans.toggle(${x.id})`), fn:`AdminPlans.edit(${x.id})` })).join('')) : emptyBox('پلنی در این دسته نیست', ''))).join('')
+      + `<div class="adm-note">ساخت پلن و دسته‌ی تازه از پنل ربات انجام می‌شود.</div>`;
+  } catch (err) { p.innerHTML = Top('پلن‌ها') + emptyBox('خوانده نشد', err.message); }
+};
+const AdminPlans = {
+  data:[],
+  find(id){ for (const c of this.data) { const x = c.plans.find(y => y.id === id); if (x) return x; } return null; },
+  async toggle(id){
+    const x = this.find(id); if (!x) return;
+    const r = await Admin.act('admin/plan', { id, fields:{ is_active: !x.active } }, x.active ? 'پلن خاموش شد' : 'پلن روشن شد');
+    if (r) SubPages.adm_plans($('sub').querySelector('.page'));
+  },
+  edit(id){
+    const x = this.find(id); if (!x) return;
+    const f = (k, l, v) => `<div class="adm-f" style="padding:8px 0"><label>${l}</label><input class="adm-in" id="pl-${k}" inputmode="numeric" dir="ltr" value="${v}"></div>`;
+    App.sheet(`<div class="sheet-t">${esc(x.title)}</div>${f('price', 'قیمت (تومان)', x.price)}${f('data_gb', 'حجم (گیگ)', x.data_gb)}${f('duration_days', 'مدت (روز)', x.duration_days)}
+      <button class="btn btn-p btn-block" style="margin-top:12px" onclick="AdminPlans.save(${id})">ذخیره</button>`);
+  },
+  async save(id){
+    const fields = {};
+    ['price', 'data_gb', 'duration_days'].forEach(k => fields[k] = String($('pl-' + k).value).replace(/[^\d]/g, ''));
+    App.closeSheet();
+    const r = await Admin.act('admin/plan', { id, fields }, 'ذخیره شد');
+    if (r) SubPages.adm_plans($('sub').querySelector('.page'));
+  },
+};
+
+/* ---------- تنظیمات ---------- */
+const ADM_FIELDS = [
+  ['پرداخت کارت به کارت', [['card_number', 'شماره کارت', 'numeric', ''], ['card_holder', 'نام صاحب کارت', 'text', ''], ['bank_name', 'نام بانک', 'text', ''],
+    ['min_charge', 'حداقل شارژ (تومان)', 'numeric', 'برای همه روش‌ها']]],
+  ['نرخ‌ها', [['stars_rate', 'هر ستاره تلگرام (تومان)', 'numeric', '۰ یعنی Stars خاموش. تلگرام هنگام برداشت هر ستاره را حدود ۰٫۰۱۳ دلار حساب می‌کند.'],
+    ['crypto_usdt_rate', 'هر ۱ تتر (تومان)', 'numeric', '۰ یعنی کریپتو خاموش'], ['crypto_ton_rate', 'هر ۱ TON (تومان)', 'numeric', '۰ یعنی خودکار: قیمت دلاری TON × نرخ تتر'],
+    ['crypto_fee_percent', 'درصد اضافه کریپتو', 'decimal', '۰ تا ۵۰']]],
+];
+SubPages.adm_settings = async function(p){
+  p.innerHTML = Top('تنظیمات') + skel(3, 120);
+  try {
+    const d = await api('admin/settings');
+    const v = d.values;
+    p.innerHTML = Top('تنظیمات') + ADM_FIELDS.map(([title, fields]) => Sec(title) + `<div class="group">${fields.map(([k, l, mode, hint]) => `
+        <div class="adm-f"><label for="st-${k}">${l}</label><div class="row2">
+          <input class="adm-in" id="st-${k}" inputmode="${mode}" dir="${mode === 'text' ? 'auto' : 'ltr'}" value="${esc(v[k] || '')}">
+          <button class="btn btn-sm btn-s" style="height:48px" onclick="AdminSettings.save('${k}')">ذخیره</button></div>
+          ${hint ? `<small>${hint}</small>` : ''}</div>`).join('')}</div>`).join('')
+      + Sec('کریپتو (از فایل .env)') + KV([['وضعیت', d.crypto.enabled ? Badge('ok', d.crypto.testnet ? 'روشن · testnet' : 'روشن') : Badge('bad', 'خاموش')],
+          ['USDT', d.crypto.usdt ? Badge('ok', 'روشن') : Badge('', 'خاموش')]].concat(d.crypto.address ? [['آدرس', `<span class="n" style="font-size:11px;word-break:break-all">${esc(d.crypto.address)}</span>`]] : []))
+      + Sec('بخش‌های ربات') + Group(d.features.map(f => `<div class="row"><span class="row-m"><span class="row-t">${esc(f.title)}</span><span class="row-s">${esc(f.desc)}</span></span>
+          <span class="row-e">${Admin.sw(f.on, `AdminSettings.feature('${f.key}', ${!f.on})`)}</span></div>`).join(''));
+  } catch (err) { p.innerHTML = Top('تنظیمات') + emptyBox('خوانده نشد', err.message); }
+};
+const AdminSettings = {
+  async save(k){
+    const r = await Admin.act('admin/setting', { field:k, value:$('st-' + k).value }, 'ذخیره شد');
+    if (r) { $('st-' + k).value = r.value; if (['stars_rate', 'crypto_usdt_rate', 'crypto_ton_rate', 'card_number'].includes(k)) Admin.refreshBoot(); }
+  },
+  async feature(k, on){
+    const r = await Admin.act('admin/feature', { key:k, on }, on ? 'روشن شد' : 'خاموش شد');
+    if (r) { SubPages.adm_settings($('sub').querySelector('.page')); Admin.refreshBoot(); }
+  },
+};
+['admin', 'adm_charges', 'adm_users', 'adm_user', 'adm_plans', 'adm_settings'].forEach(k => SubPages[k].noNav = true);
+/* روش های پرداخت و بخش ها در bootstrap هستند؛ بعد از تغییر تازه می شوند */
+Admin.refreshBoot = async function(){ try { App.boot = await api('bootstrap'); } catch(e){} };
 
 /* ═════════ شارژ با Telegram Stars ═════════
    مبلغ به تومان → تعداد ستاره (نرخ ادمین) → صفحه پرداخت خود تلگرام با
