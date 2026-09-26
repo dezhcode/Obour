@@ -154,7 +154,31 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .pass.cat-work{--p:#1D4FB8;--p2:#D5E3FF;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#3B7BFF 0%,#1D4FB8 52%,var(--deep) 100%)}
 .pass.cat-fun{--p:var(--ember);--p2:#FFDCCF;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#E0573E 0%,var(--ember) 55%,#4A1E0B 100%)}
 .pass.cat-tools{--p:var(--ocean);--p2:#D3EEF4;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#1497B3 0%,var(--ocean) 55%,#063645 100%)}
-.cat-pass{height:196px;cursor:pointer}
+.cat-pass{height:auto;min-height:188px;cursor:pointer;gap:0}
+.cat-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cat-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cat-pass .pass-name{min-width:0}
+.cat-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;min-height:36px}
+.cat-row .cat-stack{margin-top:0;min-width:0}
+.cat-from{font-size:12px;color:var(--p2);white-space:nowrap;flex-shrink:0}
+.cat-from .n{color:var(--on-pass);font-size:14px}
+/* نوار «بعدی»: تمام عرض پایین کارت، اسم دسته کناری را می گوید */
+.cat-next{display:flex;align-items:center;gap:8px;width:100%;height:40px;margin-top:auto;padding:0 12px;border-radius:13px;
+  background:var(--pd);color:var(--on-pass);font-size:13px;font-weight:800;transition:transform .15s var(--ease),background .2s}
+.cat-pass .cat-next{margin-top:14px}
+.cat-next:active{transform:scale(.97)}
+.cat-next-i{width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cat-next-i svg{width:14px;height:14px;color:var(--tunnel)}
+.cat-next-l{font-weight:600;color:var(--p2)}
+.cat-next-t{flex-grow:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:start}
+.cat-next > svg{width:16px;height:16px;flex-shrink:0;animation:cat-nudge 1.8s var(--ease) infinite}
+.cat-next.back > svg{transform:scaleX(-1);animation:none}
+html[dir=ltr] .cat-next > svg{transform:scaleX(-1)}
+html[dir=ltr] .cat-next.back > svg{transform:none}
+@keyframes cat-nudge{0%,60%,100%{translate:0}30%{translate:-4px}}
+html[dir=ltr] .cat-next > svg{animation-name:cat-nudge-l}
+@keyframes cat-nudge-l{0%,60%,100%{translate:0}30%{translate:4px}}
+html.perf-low .cat-next > svg{animation:none}
 .cat-pass .pass-name{display:flex;align-items:center;gap:10px;font-size:18px}
 .cat-ic{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .cat-ic svg{width:20px;height:20px;color:var(--tunnel)}
@@ -164,7 +188,7 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .cat-stack .ai-mono + .ai-mono{margin-inline-start:-8px}
 .cat-more{margin-inline-start:8px;font-size:12px;font-weight:800;color:var(--p2)}
 .cat-deck .slides{padding-bottom:22px}
-.cat-deck .slide{flex-basis:80%;scroll-snap-stop:normal}
+.cat-deck .slide{flex-basis:76%;scroll-snap-stop:normal}
 .cat-deck .dots{margin-top:-8px;margin-bottom:6px}
 .ord-pass{cursor:pointer}
 .ord-big{display:flex;align-items:center;gap:14px;margin-top:18px}
@@ -1397,7 +1421,7 @@ const ORDER_ST = { delivered:['','تحویل شد'], done:['','تحویل شد']
 function OrderPass(o){
   const st = ORDER_ST[o.status] || ['', o.status], cat = SHOP_CATS[o.category] ? o.category : 'ai';
   const kindTxt = { link:'لینک فعال‌سازی', manual:'تحویل دستی', slot:'فعال روی ایمیل', upgrade_account:'ارتقای اکانت' }[o.kind] || 'اکانت آماده';
-  return `<div class="pass cat-${cat} ord-pass" onclick="App.go('ai_order', ${o.id})" role="button" aria-label="${esc(o.title)}">${TUNNEL}
+  return `<div class="${'pass ord-pass cat-' + cat}" onclick="App.go('ai_order', ${o.id})" role="button" aria-label="${esc(o.title)}">${TUNNEL}
     <div class="pass-head"><span class="pass-name"><span>${SHOP_CATS[cat][2]}</span></span><span class="pass-st ${st[0]}"><i></i>${st[1]}</span></div>
     <div class="ord-big">${AiThumb({ title:o.title, image:o.image, brand:o.brand }, 'lg')}
       <div style="min-width:0"><div class="ord-t ai-lat">${esc(o.title)}</div><div class="pass-meta">${kindTxt}</div></div></div>
@@ -1429,8 +1453,13 @@ function CatDeck(active, counts){
   const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : aiOn && (!counts || counts[k] || k === active));
   Store.deckKeys = keys;
   const items = (AI.d && AI.d.items) || [];
-  const card = key => {
+  const card = (key, i) => {
     const [icon, , t, sub] = SHOP_CATS[key];
+    /* کارت کناری فقط لبه اش پیداست؛ اسم دسته بعدی را روی همین کارت می نویسیم
+       تا کاربر بداند با ورق زدن به کجا می رود. کارت آخر به قبلی اشاره می کند. */
+    const nk = keys[i + 1] || keys[i - 1], back = !keys[i + 1];
+    const hint = nk ? `<button class="cat-next${back ? ' back' : ''}" onclick="event.stopPropagation();Store.tapCat('${nk}')">
+        <span class="cat-next-i">${ic(SHOP_CATS[nk][0], 2)}</span><span class="cat-next-l">${back ? 'قبلی' : 'بعدی'}</span><span class="cat-next-t">${SHOP_CATS[nk][2]}</span>${ic('chev', 2.4)}</button>` : '';
     const list = items.filter(x => x.category === key && x.stock !== 0);
     const n = counts ? counts[key] || 0 : null;
     const minP = list.length ? Math.min(...list.map(x => x.price)) : 0;
@@ -1438,12 +1467,12 @@ function CatDeck(active, counts){
     const stack = key === 'vpn'
       ? ''
       : list.slice(0, 5).map(x => AiThumb(x)).join('') + (list.length > 5 ? `<span class="cat-more">${esc('+' + fa(list.length - 5))}</span>` : '');
-    return `<div class="slide"><div class="pass cat-pass cat-${key}" onclick="Store.tapCat('${key}')" role="button" aria-label="${esc(I18N.t(t))}">${TUNNEL}
-      <div class="pass-head"><span class="pass-name"><span class="cat-ic">${ic(icon, 2)}</span><span>${t}</span></span><span class="pass-st"><i></i>${esc(pill)}</span></div>
+    return `<div class="slide"><div class="${'pass cat-pass cat-' + key}" onclick="Store.tapCat('${key}')" role="button" aria-label="${esc(I18N.t(t))}">${TUNNEL}
+      <div class="pass-head"><span class="pass-name"><span class="cat-ic">${ic(icon, 2)}</span><span class="cat-t">${t}</span></span>${key === 'vpn' ? '' : `<span class="pass-st"><i></i>${esc(pill)}</span>`}</div>
       <div class="cat-sub">${key === 'vpn' ? 'کانفیگ پرسرعت، همه کشورها، همه توی یک لینک' : sub}</div>
-      <div class="cat-stack">${stack}</div>
-      <div class="pass-foot"><span class="pass-meta">${minP ? `<span>از</span> ${N(fa(minP))} <span>تومان</span>` : key === 'vpn' ? 'روزانه، هفتگی و ماهانه' : ''}</span>
-        <span class="pass-btn">${key === active ? 'همین‌جا' : 'دیدن'}</span></div>
+      <div class="cat-row"><div class="cat-stack">${stack || `<span class="pass-meta">روزانه، هفتگی و ماهانه</span>`}</div>
+        ${minP ? `<span class="cat-from"><span>از</span> ${N(fa(minP))} <span>تومان</span></span>` : ''}</div>
+      ${hint}
     </div></div>`;
   };
   return `<div class="slider cat-deck"><div class="slides" id="cat-slides" data-dots="cat-dots" data-idx="${Math.max(0, keys.indexOf(active))}"
@@ -1773,7 +1802,6 @@ const Store = {
     const from = this.deckKeys.indexOf(this.kind), dest = this.deckKeys.indexOf(k);
     this.kind = k; App.haptic();
     const box = $('cat-slides');
-    if (box) box.querySelectorAll('.cat-pass .pass-btn').forEach((b, i) => b.textContent = I18N.t(i === dest ? 'همین‌جا' : 'دیدن'));
     const sb = $('store-box');
     const rtl = document.documentElement.dir === 'rtl', dir = (dest > from ? 1 : -1) * (rtl ? 1 : -1);
     const calm = document.documentElement.classList.contains('perf-low') || !sb.animate;
@@ -3113,6 +3141,8 @@ Object.entries({
   'محصول خوانده نشد':'Couldn’t load the product', 'سفارش خوانده نشد':'Couldn’t load the order',
   'اطلاعات تحویل همیشه اینجا می‌ماند':'Delivery details always stay here', 'نمایش رمز':'Show password', 'کپی همه':'Copy all',
   'پرداخت و دریافت':'Pay and receive', 'فعال‌سازی روی ایمیل خودت':'Activated on your own email',
+  "بعدی":"Next",
+  "قبلی":"Back",
   "کانفیگ عبور":"Obour configs",
   "کانفیگ پرسرعت، همه کشورها، همه توی یک لینک":"Fast configs, every country, all in one link",
   "روزانه، هفتگی و ماهانه":"Daily, weekly and monthly",
