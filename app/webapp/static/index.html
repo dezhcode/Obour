@@ -332,6 +332,31 @@ html:not([lang=fa]) body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'
 .band{position:relative;overflow:hidden;background:var(--navy);color:var(--on-pass);border-radius:0 0 28px 28px;
   margin-top:calc(-6px - var(--top));padding:calc(20px + var(--top)) var(--pad) 0;height:calc(128px + var(--top))}
 .band .pass-art{left:-20px;bottom:-80px;top:auto;opacity:.2}
+/* «دروازه نور»: همان دروازه لوگو، درخشان، از کنار بیرون زده. در صفحه
+   چپ به راست قرینه می شود تا همیشه طرف مقابل متن باشد. */
+.portal-art{position:absolute;inset:0;pointer-events:none;background:#0A2572 url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgc2xpY2UiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYSIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzBBMjU3MiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzA3MUI1NSIvPjwvbGluZWFyR3JhZGllbnQ+PHJhZGlhbEdyYWRpZW50IGlkPSJiIiBjeD0iMjUwIiBjeT0iNTYwIiByPSIzMzAiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNCOUY0RkYiIHN0b3Atb3BhY2l0eT0iLjkiLz48c3RvcCBvZmZzZXQ9Ii4zNSIgc3RvcC1jb2xvcj0iIzFENTVGMCIgc3RvcC1vcGFjaXR5PSIuNTUiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxRDU1RjAiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJjIiB4MT0iMCIgeTE9IjEyMCIgeDI9IjAiIHkyPSI2MjAiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM0NkUxRjQiIHN0b3Atb3BhY2l0eT0iLjkiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxRDU1RjAiIHN0b3Atb3BhY2l0eT0iLjI1Ii8+PC9saW5lYXJHcmFkaWVudD48ZmlsdGVyIGlkPSJkIiB4PSItMzAlIiB5PSItMzAlIiB3aWR0aD0iMTYwJSIgaGVpZ2h0PSIxNjAlIj48ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIyNCIvPjwvZmlsdGVyPjwvZGVmcz48cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjYSkiLz48Y2lyY2xlIGN4PSIyNTAiIGN5PSI1NjAiIHI9IjMzMCIgZmlsbD0idXJsKCNiKSIvPjxwYXRoIGQ9Ik0tMTAgNjY2LjU1VjM4MEEyNjAgMjYwIDAgMCAxIDUxMCAzODBWNjY2LjU1TDQzNS44MyA2NjYuNTVWMzgwQTE4NS44MyAxODUuODMgMCAwIDAgNjQuMTcgMzgwVjY2Ni41NVoiIGZpbGw9IiM0NkUxRjQiIG9wYWNpdHk9Ii4zNSIgZmlsdGVyPSJ1cmwoI2QpIi8+PHBhdGggZD0iTS0xMCA2NjYuNTVWMzgwQTI2MCAyNjAgMCAwIDEgNTEwIDM4MFY2NjYuNTVMNDM1LjgzIDY2Ni41NVYzODBBMTg1LjgzIDE4NS44MyAwIDAgMCA2NC4xNyAzODBWNjY2LjU1WiIgZmlsbD0idXJsKCNjKSIvPjxwYXRoIGQ9Ik0tMTMwIDc5OC44VjM4MEEzODAgMzgwIDAgMCAxIDYzMCAzODBWNzk4LjhMNTIxLjU5IDc5OC44VjM4MEEyNzEuNTkgMjcxLjU5IDAgMCAwIC0yMS41OSAzODBWNzk4LjhaIiBmaWxsPSJub25lIiBzdHJva2U9IiM0NkUxRjQiIHN0cm9rZS1vcGFjaXR5PSIuMTIiIHN0cm9rZS13aWR0aD0iMyIvPjxwYXRoIGQ9Ik0tMjUwIDkzMS4wNVYzODBBNTAwIDUwMCAwIDAgMSA3NTAgMzgwVjkzMS4wNUw2MDcuMzYgOTMxLjA1VjM4MEEzNTcuMzYgMzU3LjM2IDAgMCAwIC0xMDcuMzYgMzgwVjkzMS4wNVoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzQ2RTFGNCIgc3Ryb2tlLW9wYWNpdHk9Ii4wNiIgc3Ryb2tlLXdpZHRoPSIzIi8+PC9zdmc+) left center/cover no-repeat}
+html[dir=ltr] .portal-art{transform:scaleX(-1)}
+.band .portal-art{border-radius:inherit}
+.band-t{z-index:1}
+/* کارت کیف پول: ابعاد کارت بانکی */
+.wcard{position:relative;margin:8px var(--pad) 0;aspect-ratio:1.586;max-height:260px;border-radius:var(--r-xl);overflow:hidden;color:var(--on-pass);
+  padding:18px 20px;display:flex;flex-direction:column;box-shadow:var(--shadow-pass)}
+.wcard::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(7,27,85,0) 30%,rgba(7,27,85,.55));pointer-events:none}
+html[dir=ltr] .wcard::after{background:linear-gradient(240deg,rgba(7,27,85,0) 30%,rgba(7,27,85,.55))}
+.wcard > :not(.portal-art){position:relative;z-index:1}
+.wc-h{display:flex;align-items:center;gap:10px}
+.wc-mark{width:34px;height:34px;flex-shrink:0}
+.wc-t{font-size:15px;font-weight:800}
+.wc-b{margin-top:auto}
+.wc-l{font-size:12px;color:var(--on-pass-2)}
+.wc-a{display:flex;align-items:baseline;gap:8px;margin-top:2px}
+.wc-a .n{font-size:38px;letter-spacing:-1.2px;line-height:1.1;color:#fff}
+.wc-a span:last-child{font-size:14px;font-weight:600;color:var(--on-pass-2)}
+.wc-f{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.wc-id{font-size:12px;letter-spacing:1.5px;color:var(--on-pass-2);direction:ltr;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wc-btn{height:38px;padding:0 16px;border-radius:19px;background:var(--on-pass);color:var(--navy);font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.wc-btn svg{width:16px;height:16px}
+.wc-btn:active{transform:scale(.96)}
 .band-t{position:relative;font-size:22px;font-weight:800;letter-spacing:-.3px}
 .me{position:relative;padding:0 var(--pad);margin-top:-46px}
 .me-av{position:relative;width:92px;height:92px;border-radius:30px;background:var(--navy);color:var(--tunnel);display:flex;align-items:center;justify-content:center;
@@ -1634,6 +1659,8 @@ function UsageChart(days){
 
 
 /* ═════════ خانه ═════════ */
+/* نشان سفید لوگو برای کارت کیف پول (وکتور، جاده محو) */
+const WC_MARK = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768" class="wc-mark" aria-hidden="true"><defs><radialGradient id="wcFade" cx="384" cy="440" r="440" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".04" stop-color="#fff" stop-opacity="0"/><stop offset=".13" stop-color="#fff" stop-opacity=".2"/><stop offset=".24" stop-color="#fff" stop-opacity=".6"/><stop offset=".34" stop-color="#fff" stop-opacity="1"/><stop offset=".5" stop-color="#fff" stop-opacity="1"/><stop offset=".66" stop-color="#fff" stop-opacity=".45"/><stop offset=".85" stop-color="#fff" stop-opacity="0"/></radialGradient><mask id="wcRoad" maskUnits="userSpaceOnUse" x="0" y="0" width="768" height="768"><rect width="768" height="768" fill="url(#wcFade)"/></mask></defs><path fill="#FFFFFF" d="M217.5 495V311.5A166.5 166.5 0 0 1 550.5 311.5V495L503 471V311.5A119 119 0 0 0 265 311.5V471Z"/><path fill="#FFFFFF" mask="url(#wcRoad)" d="M352.5 438L362.5 438L0 702.7L0 659.2ZM415.5 438L405.5 438L768 702.7L768 659.2ZM379 452L389 452L390.5 460L377.5 460ZM378 465L390 465L394.5 481L373.5 481ZM372 494L396 494L400 517L368 517ZM365 537L403 537L410 573L358 573ZM352 603L416 603L433.5 681L334.5 681Z"/></svg>';
 const Home = {
   services: [], orders: [],
   live(){ return this.services.filter(s => !s.expired).length ? this.services.filter(s => !s.expired) : this.services; },
@@ -1701,10 +1728,12 @@ async store(p){
 async wallet(p){
   const bal = App.boot.user.balance;
   p.innerHTML = TabTop('کیف پول') + `
-    <div class="hero mx" style="margin-top:8px">
-      <div style="display:flex;align-items:center;gap:12px"><span class="ic lg cash">${ic('wallet')}</span><span class="wallet-l" style="font-size:13px">موجودی کیف پول</span></div>
-      <div style="display:flex;align-items:baseline;gap:8px;margin:16px 0"><span class="n" data-bal style="font-size:44px;letter-spacing:-1.2px;line-height:1">${fa(bal)}</span><span class="wallet-l" style="font-size:15px;font-weight:600">تومان</span></div>
-      <button class="btn btn-p btn-block" onclick="App.go('topup')">${ic('plus',2.2)}شارژ کیف پول</button>
+    <div class="wcard"><div class="portal-art"></div>
+      <div class="wc-h">${WC_MARK}<span class="wc-t">کیف پول عبور</span></div>
+      <div class="wc-b"><div class="wc-l">موجودی کیف پول</div>
+        <div class="wc-a"><span class="n" data-bal>${fa(bal)}</span><span>تومان</span></div></div>
+      <div class="wc-f"><span class="wc-id">OBOUR · ${esc(String(App.boot.user.telegram_id || '').slice(-4).padStart(4, '•'))}</span>
+        <button class="wc-btn" onclick="App.go('topup')">${ic('plus',2.4)}شارژ کیف پول</button></div>
     </div>
     <div class="gap" style="height:18px"></div><div id="wal-tabs-box"></div><div class="gap"></div><div id="wal-list">${skel(3, 64)}</div>`;
   Wallet.filter = null; Wallet.offset = 0; Wallet.items = [];
@@ -1721,7 +1750,7 @@ async account(p){
   const days = joined && !isNaN(joined) ? Math.max(1, Math.floor((Date.now() - joined) / 864e5)) : null;
   const active = c.services_active > 0;
   p.innerHTML = `
-    <div class="band">${TUNNEL}<div class="band-t">حساب</div></div>
+    <div class="band"><div class="portal-art"></div><div class="band-t">حساب</div></div>
     <div class="me">
       <span class="me-av">${letter}${photo ? `<img src="${esc(photo)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>
       <div class="me-name">${esc(u.name)}</div>
@@ -3141,6 +3170,7 @@ Object.entries({
   'محصول خوانده نشد':'Couldn’t load the product', 'سفارش خوانده نشد':'Couldn’t load the order',
   'اطلاعات تحویل همیشه اینجا می‌ماند':'Delivery details always stay here', 'نمایش رمز':'Show password', 'کپی همه':'Copy all',
   'پرداخت و دریافت':'Pay and receive', 'فعال‌سازی روی ایمیل خودت':'Activated on your own email',
+  "کیف پول عبور":"Obour wallet",
   "بعدی":"Next",
   "قبلی":"Back",
   "کانفیگ عبور":"Obour configs",
