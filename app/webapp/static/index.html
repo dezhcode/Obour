@@ -172,9 +172,9 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .cat-next-l{font-weight:600;color:var(--p2)}
 .cat-next-t{flex-grow:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:start}
 .cat-next > svg{width:16px;height:16px;flex-shrink:0;animation:cat-nudge 1.8s var(--ease) infinite}
-.cat-next.back > svg{transform:scaleX(-1);animation:none}
+.cat-next.prev > svg{transform:scaleX(-1);animation:none}
 html[dir=ltr] .cat-next > svg{transform:scaleX(-1)}
-html[dir=ltr] .cat-next.back > svg{transform:none}
+html[dir=ltr] .cat-next.prev > svg{transform:none}
 @keyframes cat-nudge{0%,60%,100%{translate:0}30%{translate:-4px}}
 html[dir=ltr] .cat-next > svg{animation-name:cat-nudge-l}
 @keyframes cat-nudge-l{0%,60%,100%{translate:0}30%{translate:4px}}
@@ -248,6 +248,68 @@ html.perf-low .cat-next > svg{animation:none}
 .pass.pl .ord-big .ai-mono.lg{box-shadow:0 8px 18px -10px rgba(10,22,51,.45)}
 .pass.pl .ord-t{color:#0A1633}
 html.perf-low .pass.pl::after,html.perf-low .pass.pl .pass-st,html.perf-low .pl-ib,html.perf-low .pass.pl .cat-next{-webkit-backdrop-filter:none;backdrop-filter:none}
+/* ═══ کارت دارک هولوگرامی (اسلایدرهای خانه و فروشگاه) ═══
+   زمینه تیره، یک لایه هولوگرام با mix-blend screen، لبه رنگین کمانی
+   یک پیکسلی و رگه نور مورب. هر دسته فروشگاه طرح خودش را دارد:
+   a شب شفق (سرویس ها و اینترنت آزاد)، d سحابی بنفش (هوش مصنوعی)،
+   c اقیانوس عمیق (ابزار)، b ابسیدین منشوری (سرگرمی)، f فویل پراش (ابزار کاری). */
+.pass.hx{--acc:#46E1F4;--acc2:#8A6CFF;--btn:#46E1F4;--p2:rgba(230,238,255,.72);--num:linear-gradient(95deg,#fff 20%,#9FEFFF 60%,#C9B8FF);
+  --base:radial-gradient(120% 90% at 100% 0%,#1B3A9E 0%,#0B1A4F 45%,#050B24 100%);
+  --holo:conic-gradient(from 200deg at 80% 10%,rgba(70,225,244,0),rgba(70,225,244,.35),rgba(150,110,255,.35),rgba(255,120,200,.22),rgba(70,225,244,0) 60%);
+  --rim:linear-gradient(135deg,#7FF3FF,#8A6CFF 40%,rgba(255,255,255,.1) 60%,#FF8AD8);
+  color:#F3F7FF;isolation:isolate;background:var(--base);
+  box-shadow:0 26px 40px -22px rgba(5,11,36,.75),0 8px 16px -10px rgba(5,11,36,.5)}
+.pass.hx-d{--acc:#FF8FE0;--acc2:#8FA8FF;--btn:#FFB3EC;--num:linear-gradient(95deg,#FFE0F7,#fff 45%,#CFE0FF);
+  --base:radial-gradient(120% 90% at 100% 0%,#5B3BD6 0%,#261766 48%,#0E0830 100%);
+  --holo:radial-gradient(60% 50% at 85% 5%,rgba(255,120,220,.35),transparent 70%),radial-gradient(50% 60% at 10% 100%,rgba(70,225,244,.25),transparent 70%);
+  --rim:linear-gradient(135deg,#FF9BEA,#B69BFF 40%,rgba(255,255,255,.1) 60%,#7FF3FF)}
+.pass.hx-c{--acc:#5CF2D6;--acc2:#4FB8FF;--btn:#6AF5D6;--num:linear-gradient(95deg,#fff 15%,#A8FFEA 55%,#9FDCFF);
+  --base:radial-gradient(120% 90% at 100% 0%,#0E6F86 0%,#063645 50%,#021A22 100%);
+  --holo:conic-gradient(from 160deg at 85% 15%,transparent,rgba(120,255,220,.3),rgba(90,200,255,.28),rgba(200,255,140,.18),transparent 55%);
+  --rim:linear-gradient(135deg,#9BFFE6,#4FD1FF 45%,rgba(255,255,255,.1) 65%,#C8FF8A)}
+.pass.hx-b{--acc:#9CC8FF;--acc2:#FF8AD8;--btn:#FFFFFF;--num:linear-gradient(95deg,#FFE3F4,#FFFFFF 40%,#C9F5FF 70%,#E2D4FF);
+  --base:linear-gradient(160deg,#16181F 0%,#0A0B10 60%,#050507 100%);
+  --holo:linear-gradient(115deg,transparent 30%,rgba(255,90,170,.18) 40%,rgba(255,220,90,.16) 46%,rgba(90,255,190,.16) 52%,rgba(80,160,255,.2) 58%,transparent 70%);
+  --rim:conic-gradient(from 0deg,#FF6AC1,#FFD86A,#6AFFC4,#6AB8FF,#B88CFF,#FF6AC1)}
+.pass.hx-f{--acc:#46E1F4;--acc2:#FF8AD8;--btn:#46E1F4;--num:linear-gradient(95deg,#fff 20%,#A9F2FF 55%,#FFC8EE);
+  --base:radial-gradient(120% 90% at 100% 0%,#173B9A 0%,#0A1A4A 55%,#040A22 100%);
+  --holo:repeating-linear-gradient(115deg,rgba(255,80,160,.07) 0 6px,rgba(255,220,80,.07) 6px 12px,rgba(80,255,190,.07) 12px 18px,rgba(80,160,255,.08) 18px 24px),linear-gradient(115deg,transparent 35%,rgba(255,255,255,.14) 48%,transparent 60%);
+  --rim:conic-gradient(from 90deg,#46E1F4,#FF8AD8,#FFE08A,#8AFFC8,#46E1F4)}
+.pass.hx.low{--acc:#FFB547;--acc2:#FF7A45;--btn:#FFC46B;--num:linear-gradient(95deg,#FFF1D6,#FFC46B 55%,#FF9A62)}
+.pass.hx.dim{filter:saturate(.3) brightness(.92)}
+.pass.hx .hx-holo{position:absolute !important;inset:0;background:var(--holo);mix-blend-mode:screen;z-index:0;pointer-events:none}
+.pass.hx::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.2px;background:var(--rim);opacity:.75;pointer-events:none;z-index:4;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.pass.hx::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.14),transparent 38%),linear-gradient(118deg,transparent 30%,rgba(255,255,255,.16) 44%,transparent 56%)}
+.pass.hx > *{z-index:3}
+.pass.hx .pass-art{opacity:.07;z-index:0;--tunnel:#fff}
+.pass.hx .pl-chart{position:absolute !important;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.pass.hx .pass-st{background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);color:#F3F7FF;font-weight:700}
+.pass.hx .pass-st i{width:6px;height:6px;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.pass.hx .pass-st.warn i{background:#FFB547;box-shadow:0 0 8px #FFB547}.pass.hx .pass-st.bad i{background:#FF7A7A;box-shadow:0 0 8px #FF7A7A}
+.pass.hx .pass-big{margin-top:12px}
+.pass.hx .pass-num{background:var(--num);-webkit-background-clip:text;background-clip:text;color:transparent;padding-bottom:2px;filter:drop-shadow(0 2px 12px rgba(120,200,255,.25))}
+.pass.hx .pass-unit{font-size:13px;color:var(--p2)}
+.pass.hx .pl-split{color:var(--p2)}
+.pass.hx .pl-split i{background:var(--acc)}.pass.hx .pl-split i.t{background:rgba(255,255,255,.35)}
+.pass.hx .pl-split .n,.pass.hx .pass-meta .n{color:#fff;font-weight:700}
+.pass.hx .pass-meta{color:var(--p2)}
+.pass.hx .pass-btn{height:38px;padding:0 16px;border-radius:14px;gap:6px;background:var(--btn);color:#0A1633;box-shadow:0 6px 18px -6px var(--btn)}
+.pass.hx .pass-btn svg{width:16px;height:16px}
+.pass.hx .pl-ib{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);color:#F3F7FF}
+.pass.hx .cat-ic{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
+.pass.hx .cat-ic svg,.pass.hx .cat-next-i svg,.pass.hx .cat-next > svg{color:var(--acc)}
+.pass.hx .cat-sub{color:var(--p2)}
+.pass.hx .cat-from{color:var(--p2)}.pass.hx .cat-from .n{color:#fff}
+.pass.hx .cat-stack .ai-mono{box-shadow:0 0 0 2px rgba(10,14,30,.9)}
+.pass.hx .cat-more{color:var(--acc)}
+.pass.hx .cat-next{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);color:#F3F7FF}
+.pass.hx .cat-next-i{background:rgba(255,255,255,.1)}
+.pass.hx .cat-next-l{color:var(--p2)}
+.pass.hx .ord-big .ai-mono.lg{box-shadow:0 0 0 3px rgba(255,255,255,.12)}
+html.perf-low .pass.hx .pass-st{-webkit-backdrop-filter:none;backdrop-filter:none}
+html.perf-low .pass.hx .pass-num{filter:none}
 #store-box{will-change:transform,opacity}
 html.perf-low #store-box{will-change:auto}
 
@@ -1470,7 +1532,7 @@ function PlChart(s){
   const span = Math.max(1, t1 - t0), frac = Math.max(.04, Math.min(1, (now - t0) / span));
   const u = Math.max(0, Math.min(1, s.used_bytes / s.limit_bytes));
   const low = s.status === 'warn', dead = s.expired || s.status === 'finished';
-  const [a, b, lim] = dead ? ['#8A94AE', '#B4BCD0', '#8A94AE'] : low ? ['#E07A1F', '#F2A93B', '#C0392B'] : ['#3D7BFF', '#7B6CF6', '#0E8FAE'];
+  const [a, b, lim] = dead ? ['#AEB6C8', '#8A94AE', '#FFFFFF'] : low ? ['#FFB547', '#FF7A45', '#FFFFFF'] : ['#46E1F4', '#8A6CFF', '#FFFFFF'];
   const tx = +(frac * W).toFixed(1), ty = +(BOT - u * (BOT - TOP)).toFixed(1);
   /* شیب امروز همان شیب خط پیش بینی است تا منحنی و ادامه اش بی شکستگی به هم برسند.
      داده روزانه در این فهرست نیست؛ ابتدا، امروز و سقف واقعی اند و شکل بینشان فقط نرم است. */
@@ -1480,17 +1542,17 @@ function PlChart(s){
   const proj = tx < W - 2 ? `C${f(tx + d3)} ${f(Math.max(TOP, ty + m * d3))} ${f(W - d3)} ${f(py)} ${W} ${f(py)}` : '';
   const fe = Math.min(1, tx / W);
   return `<svg class="pl-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><defs>
-    <linearGradient id="${id}u" x1="0" y1="${TOP}" x2="0" y2="${BOT}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${a}" stop-opacity=".24"/><stop offset=".75" stop-color="${b}" stop-opacity=".06"/><stop offset="1" stop-color="${b}" stop-opacity="0"/></linearGradient>
+    <linearGradient id="${id}u" x1="0" y1="${TOP}" x2="0" y2="${BOT}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${a}" stop-opacity=".32"/><stop offset=".75" stop-color="${b}" stop-opacity=".08"/><stop offset="1" stop-color="${b}" stop-opacity="0"/></linearGradient>
     <linearGradient id="${id}h" x1="0" y1="0" x2="${W}" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="${f(fe * .5)}" stop-color="#fff"/><stop offset="${f(fe)}" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
     <mask id="${id}m" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="url(#${id}h)"/></mask>
-    <linearGradient id="${id}l" x1="0" y1="0" x2="${tx}" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${b}" stop-opacity=".12"/><stop offset="1" stop-color="${a}" stop-opacity=".6"/></linearGradient>
-    <radialGradient id="${id}g"><stop offset="0" stop-color="${a}" stop-opacity=".4"/><stop offset="1" stop-color="${a}" stop-opacity="0"/></radialGradient></defs>
+    <linearGradient id="${id}l" x1="0" y1="0" x2="${tx}" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${b}" stop-opacity=".2"/><stop offset="1" stop-color="${a}"/></linearGradient>
+    <radialGradient id="${id}g"><stop offset="0" stop-color="${a}" stop-opacity=".7"/><stop offset="1" stop-color="${a}" stop-opacity="0"/></radialGradient></defs>
     <path d="M0 ${TOP}H${W}" stroke="${lim}" stroke-opacity=".26" stroke-width="1.2" stroke-dasharray="2 5" stroke-linecap="round"/>
     <path d="${cur}${proj}L${W} ${BOT}H0Z" fill="url(#${id}u)" mask="url(#${id}m)"/>
-    <path d="${cur}" fill="none" stroke="${a}" stroke-opacity=".10" stroke-width="7" stroke-linecap="round"/>
+    <path d="${cur}" fill="none" stroke="${a}" stroke-opacity=".22" stroke-width="7" stroke-linecap="round"/>
     <path d="${cur}" fill="none" stroke="url(#${id}l)" stroke-width="2.2" stroke-linecap="round"/>
     ${proj ? `<path d="M${tx} ${ty}${proj}" fill="none" stroke="${a}" stroke-opacity=".22" stroke-width="1.5" stroke-dasharray="3 5" stroke-linecap="round"/>` : ''}
-    <circle cx="${tx}" cy="${ty}" r="12" fill="url(#${id}g)"/><circle cx="${tx}" cy="${ty}" r="3.2" fill="#fff" stroke="${a}" stroke-opacity=".8" stroke-width="1.6"/></svg>`;
+    <circle cx="${tx}" cy="${ty}" r="12" fill="url(#${id}g)"/><circle cx="${tx}" cy="${ty}" r="3.4" fill="#fff"/></svg>`;
 }
 function Pass(s, color, btn){
   const st = STATUS[s.status] || STATUS.active;
@@ -1503,7 +1565,7 @@ function Pass(s, color, btn){
   const split = s.limit_bytes
     ? `<div class="pl-split"><span><i></i>مصرف <b class="n">${unit(s.used_bytes)}</b></span><span><i class="t"></i>کل <b class="n">${unit(s.limit_bytes)}</b> ${s.limit_bytes >= GB ? 'گیگ' : 'مگ'}</span></div>`
     : `<div class="pl-split"><span><i></i>مصرف <b class="n">${unit(s.used_bytes)}</b> ${s.used_bytes >= GB ? 'گیگ' : 'مگ'}</span></div>`;
-  return `<div class="pass pl${s.status === 'warn' ? ' low' : ''}${dead ? ' dim' : ''}" onclick="App.go('detail',${s.id})" role="button" aria-label="${esc(s.title)}">${PlChart(s)}${TUNNEL}
+  return `<div class="pass hx${s.status === 'warn' ? ' low' : ''}${dead ? ' dim' : ''}" onclick="App.go('detail',${s.id})" role="button" aria-label="${esc(s.title)}"><span class="hx-holo"></span>${PlChart(s)}${TUNNEL}
     <div class="pass-head"><span class="pass-name">${esc(s.title)}</span><span class="pass-st ${st.c}"><i></i>${st.t}</span></div>
     <div class="pass-big"><span class="pass-num n">${left == null ? '∞' : unit(left)}</span><span class="pass-unit">${left == null ? 'نامحدود' : (left >= GB ? 'گیگ مانده' : 'مگ مانده')}</span></div>
     ${split}
@@ -1560,12 +1622,14 @@ const SliderFx = {
   }
 };
 
+/* طرح هولوگرام هر دسته (کلاس hx-*) */
+const HX = { vpn:'a', ai:'d', tools:'c', fun:'b', work:'f' };
 /* کارت خرید آماده در صفحه خانه، هم خانواده کارت عبور؛ رنگ از دسته */
 const ORDER_ST = { delivered:['','تحویل شد'], done:['','تحویل شد'], processing:['warn','در انتظار فروشنده'], unknown:['warn','در حال بررسی'], pending:['warn','در حال بررسی'], failed:['bad','ناموفق'] };
 function OrderPass(o){
   const st = ORDER_ST[o.status] || ['', o.status], cat = SHOP_CATS[o.category] ? o.category : 'ai';
   const kindTxt = { link:'لینک فعال‌سازی', manual:'تحویل دستی', slot:'فعال روی ایمیل', upgrade_account:'ارتقای اکانت' }[o.kind] || 'اکانت آماده';
-  return `<div class="${'pass pl ord-pass cat-' + cat}" onclick="App.go('ai_order', ${o.id})" role="button" aria-label="${esc(o.title)}">${TUNNEL}
+  return `<div class="${'pass hx hx-' + HX[cat] + ' ord-pass cat-' + cat}" onclick="App.go('ai_order', ${o.id})" role="button" aria-label="${esc(o.title)}"><span class="hx-holo"></span>${TUNNEL}
     <div class="pass-head"><span class="pass-name"><span>${SHOP_CATS[cat][2]}</span></span><span class="pass-st ${st[0]}"><i></i>${st[1]}</span></div>
     <div class="ord-big">${AiThumb({ title:o.title, image:o.image, brand:o.brand }, 'lg')}
       <div style="min-width:0"><div class="ord-t ai-lat">${esc(o.title)}</div><div class="pass-meta">${kindTxt}</div></div></div>
@@ -1602,7 +1666,7 @@ function CatDeck(active, counts){
     /* کارت کناری فقط لبه اش پیداست؛ اسم دسته بعدی را روی همین کارت می نویسیم
        تا کاربر بداند با ورق زدن به کجا می رود. کارت آخر به قبلی اشاره می کند. */
     const nk = keys[i + 1] || keys[i - 1], back = !keys[i + 1];
-    const hint = nk ? `<button class="cat-next${back ? ' back' : ''}" onclick="event.stopPropagation();Store.tapCat('${nk}')">
+    const hint = nk ? `<button class="cat-next${back ? ' prev' : ''}" onclick="event.stopPropagation();Store.tapCat('${nk}')">
         <span class="cat-next-i">${ic(SHOP_CATS[nk][0], 2)}</span><span class="cat-next-l">${back ? 'قبلی' : 'بعدی'}</span><span class="cat-next-t">${SHOP_CATS[nk][2]}</span>${ic('chev', 2.4)}</button>` : '';
     const list = items.filter(x => x.category === key && x.stock !== 0);
     const n = counts ? counts[key] || 0 : null;
@@ -1611,7 +1675,7 @@ function CatDeck(active, counts){
     const stack = key === 'vpn'
       ? ''
       : list.slice(0, 5).map(x => AiThumb(x)).join('') + (list.length > 5 ? `<span class="cat-more">${esc('+' + fa(list.length - 5))}</span>` : '');
-    return `<div class="slide"><div class="${'pass pl cat-pass cat-' + key}" onclick="Store.tapCat('${key}')" role="button" aria-label="${esc(I18N.t(t))}">${TUNNEL}
+    return `<div class="slide"><div class="${'pass hx hx-' + HX[key] + ' cat-pass cat-' + key}" onclick="Store.tapCat('${key}')" role="button" aria-label="${esc(I18N.t(t))}"><span class="hx-holo"></span>${TUNNEL}
       <div class="pass-head"><span class="pass-name"><span class="cat-ic">${ic(icon, 2)}</span><span class="cat-t">${t}</span></span>${key === 'vpn' ? '' : `<span class="pass-st"><i></i>${esc(pill)}</span>`}</div>
       <div class="cat-sub">${key === 'vpn' ? 'کانفیگ پرسرعت، همه کشورها، همه توی یک لینک' : sub}</div>
       <div class="cat-row"><div class="cat-stack">${stack || `<span class="pass-meta">روزانه، هفتگی و ماهانه</span>`}</div>
