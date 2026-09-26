@@ -23,12 +23,11 @@ from aiogram.types import BufferedInputFile, CallbackQuery, LinkPreviewOptions, 
 from app import referral, effects, keyboards, texts, ui
 from app.config import config
 from app.db import Database
-from app.panel import Panel, PanelAmbiguous, PanelError, PanelSafeError, gb_bytes, sub_url_of
+from app.panel import Panel, PanelError, sub_url_of
 from app.states import Service
 from app.ui import edit_or_send
 from app.utils import (
     TZ,
-    after_days,
     esc,
     fmt_data,
     is_expired,
@@ -399,85 +398,25 @@ async def _do_renew(
     service: dict,
     plan: dict,
 ) -> None:
-    txn_id = await db.insert_transaction(
-        user["id"], "purchase", -plan["price"], idem_key=f"rnw:{call.id}"
-    )
-    if txn_id is None:
-        return await call.answer(_t("این تمدید در حال پردازشه."), show_alert=True)
+    """تمدید؛ منطق در app/services/renew.py است (مینی اپ هم همان را صدا می زند)."""
+    from app.services import renew as renew_svc
 
     await ui.working(call.message, texts.building(name=esc(user.get("first_name") or "")))
-
-    # وضعیت قبلی برای برگشت امن و برای تشخیص اعمال شدن تمدید
-    try:
-        before = await panel.get_user(service["panel_username"])
-    except PanelError:
-        await db.fail_transaction(txn_id, "خواندن وضعیت پنل ناموفق")
-        return await call.message.edit_text(
-            texts.PANEL_ERROR, reply_markup=keyboards.back_menu()
-        )
-    if before is None:
-        # سرویس روی پنل نیست. تمدید بی معنی است و نباید پول کسر شود.
-        await db.fail_transaction(txn_id, "سرویس روی پنل پیدا نشد")
-        log.error("renew: panel user %s not found", service["panel_username"])
-        return await call.message.edit_text(
-            _t("این سرویس روی سرور پیدا نشد. به پشتیبانی خبر بده تا درستش کنیم."),
-            reply_markup=keyboards.back_menu(),
-        )
-
-    total_days = renew_days(
-        service["expire_at"], plan["duration_days"], config.renew_keep_remaining
-    )
-    before_expire = _expire_num(before)
-
-    # ۱) تمدید روی پنل (حجم + انقضای جدید + صفر شدن مصرف)
-    try:
-        await panel.renew(
-            service["panel_username"], gb_bytes(plan["data_gb"]), total_days
-        )
-    except PanelSafeError as exc:
-        await db.fail_transaction(txn_id, f"panel rejected: {exc}")
-        return await call.message.edit_text(
-            texts.PANEL_ERROR, reply_markup=keyboards.back_menu()
-        )
-    except PanelAmbiguous as exc:
-        # شاید تمدید انجام شده باشد. اگر بی بررسی لغو کنیم، کاربر سرویس
-        # تمدید شده رایگان می گیرد.
-        log.error("renew AMBIGUOUS for %s", service["panel_username"], exc_info=True)
-        try:
-            after = await panel.get_user(service["panel_username"])
-        except Exception:  # noqa: BLE001
-            after = None
-        applied = after is not None and _expire_num(after) > before_expire + 60
-        if not applied:
-            await db.fail_transaction(txn_id, f"panel ambiguous, not applied: {exc}")
+    r = await renew_svc.run(db, panel, user, service, plan, idem=f"rnw:{call.id}")
+    if not r.ok:
+        if r.error == renew_svc.DUPLICATE:
+            return await call.answer(_t("این تمدید در حال پردازشه."), show_alert=True)
+        if r.error == renew_svc.NOT_ON_PANEL:
             return await call.message.edit_text(
-                texts.PANEL_ERROR, reply_markup=keyboards.back_menu()
+                _t("این سرویس روی سرور پیدا نشد. به پشتیبانی خبر بده تا درستش کنیم."),
+                reply_markup=keyboards.back_menu(),
             )
-        # تمدید واقعا انجام شده -> ادامه تا پول کسر شود
-
-    # ۲) کسر اتمیک؛ اگر شکست خورد تغییرات پنل برگردانده می شود
-    if not await db.atomic_debit(user["id"], plan["price"]):
-        reverted = await panel.revert_renew(
-            service["panel_username"], before.data_limit, getattr(before, "expire", None)
-        )
-        if not reverted:
-            log.error(
-                "برگشت تمدید ناموفق - سرویس %s تمدید شد ولی پول کسر نشد",
-                service["panel_username"],
-            )
-        await db.fail_transaction(txn_id, "موجودی کافی نبود")
-        return await call.message.edit_text(
-            texts.INSUFFICIENT, reply_markup=keyboards.insufficient_kb()
-        )
+        if r.error == renew_svc.INSUFFICIENT:
+            return await call.message.edit_text(texts.INSUFFICIENT, reply_markup=keyboards.insufficient_kb())
+        return await call.message.edit_text(texts.PANEL_ERROR, reply_markup=keyboards.back_menu())
+    txn_id = r.txn_id
 
     service_id = int(service["id"])
-    expire = after_days(total_days)
-    await db.update_service_expire(service_id, expire.isoformat(timespec="seconds"))
-    # هشدارهای حجم و انقضا برای دوره جدید باید دوباره ارسال شوند
-    await db.reset_service_warnings(service_id)
-    if not await db.approve_purchase(txn_id):
-        log.error("تراکنش تمدید %s در حالت pending نبود", txn_id)
-
     fresh = await db.get_user(user["id"])
     body = texts.renew_success(balance=f"{fresh['balance']:,}")
     markup = keyboards.service_detail_kb(service_id, service["sub_url"])

@@ -146,6 +146,10 @@ async def _run_round(bot, db: Database) -> None:  # noqa: ANN001
         except Exception:  # noqa: BLE001
             log.warning("ادامه ارسال همگانی شکست خورد", exc_info=True)
 
+    # پرداخت های کریپتو که دیر رسیده اند (بعد از بسته شدن مینی اپ یا ربات)
+    from app.services import crypto
+
+    await step("پرداخت کریپتو", lambda: crypto.scan(db, bot, force=True))
     await step("عکس مصرف", lambda: tasks.snapshot_usage(db))
     await step("پاکسازی مبالغ", lambda: db.purge_expired_amounts())
     await step("پاکسازی قفل ها", lambda: db.purge_expired_locks())

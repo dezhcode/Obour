@@ -17,6 +17,7 @@ from app.config import config
 from app.db import Database
 from app.keyboards import is_admin
 from app.panel import Panel, PanelError
+from app.services import admin_ops
 from app.states import Admin
 from app.ui import edit_or_send
 from app.utils import (
@@ -168,33 +169,8 @@ async def cb_admin(call: CallbackQuery, db: Database) -> None:
 
 
 async def _notify_user(bot, telegram_id: int, body: str, effect: str = "", lang: str | None = None) -> str:  # noqa: ANN001
-    """خبر دادن به کاربر. خروجی: رشته خالی یعنی موفق، وگرنه علت شکست.
-
-    چرا خروجی برمی گرداند؟ چون این پیام ها مهم اند (خبر شارژ، رد رسید)
-    و اگر بی صدا رد شوند، کاربر فکر می کند پولش گم شده و ادمین هم خبر
-    ندارد. با برگرداندن علت، ادمین همان لحظه روی دکمه اش هشدار می بیند.
-
-    ارسال در صورت نیاز دو بار تلاش می شود: با افکت، و اگر تلگرام افکت
-    را رد کرد بدون افکت. افکت تزئینی است و نباید جلوی خبر را بگیرد.
-    """
-    from aiogram.exceptions import TelegramForbiddenError
-
-    fx = effects.kwargs(effect, telegram_id) if effect else {}
-    for attempt_fx in ((fx, {}) if fx else ({},)):
-        try:
-            with i18n.using(lang):
-                await bot.send_message(telegram_id, body, **attempt_fx)
-            return ""
-        except TelegramForbiddenError:
-            log.warning("کاربر %s ربات را بلاک کرده", telegram_id)
-            return "کاربر ربات را بلاک کرده"
-        except Exception as exc:  # noqa: BLE001
-            if attempt_fx:
-                effects.disable(effect, str(exc))
-                continue
-            log.error("ارسال پیام به کاربر %s ناموفق بود", telegram_id, exc_info=True)
-            return str(exc)[:80]
-    return "نامشخص"
+    """خبر دادن به کاربر؛ خروجی خالی یعنی موفق، وگرنه علت شکست (admin_ops)."""
+    return await admin_ops.notify_user(bot, telegram_id, body, effect=effect, lang=lang)
 
 
 # ---------- تایید شارژ (مهم ترین بخش) ----------
@@ -276,15 +252,9 @@ async def cb_admin_charge_view(call: CallbackQuery, db: Database) -> None:
 @router.callback_query(F.data.startswith("chg:ok:"))
 async def cb_charge_approve(call: CallbackQuery, db: Database) -> None:
     txn_id = int(call.data.split(":")[2])
-    txn = await db.decide_transaction(txn_id, "approved", call.from_user.id)
-    if txn is None:
+    r = await admin_ops.approve_charge(call.bot, db, txn_id, call.from_user.id)
+    if not r["ok"]:
         return await call.answer("این رسید قبلا بررسی شده.", show_alert=True)
-
-    if not await db.atomic_credit(txn["user_id"], txn["amount"]):
-        log.error("credit failed after approval txn=%s", txn_id)
-    # مبلغ یکتا آزاد شود تا دوباره قابل استفاده باشد و جدول پر نشود
-    await db.release_amount(txn["amount"])
-    fresh = await db.get_user(txn["user_id"])
 
     try:
         await call.message.edit_reply_markup(reply_markup=None)
@@ -302,13 +272,7 @@ async def cb_charge_approve(call: CallbackQuery, db: Database) -> None:
     except Exception:  # noqa: BLE001
         pass
 
-    with i18n.using(i18n.lang_of(fresh)):
-        body = texts.CHARGE_APPROVED.format(
-            amount=f"{txn['amount']:,}", balance=f"{fresh['balance']:,}"
-        )
-    err = await _notify_user(
-        call.bot, int(fresh["telegram_id"]), body, effect=effects.CHARGE, lang=i18n.lang_of(fresh)
-    )
+    err = r["notify_err"]
     if err:
         # شارژ انجام شده ولی کاربر خبر ندارد؛ ادمین باید همین حالا بداند
         await call.answer(
@@ -321,14 +285,10 @@ async def cb_charge_approve(call: CallbackQuery, db: Database) -> None:
 @router.callback_query(F.data.startswith("chg:dup:"))
 async def cb_charge_duplicate(call: CallbackQuery, db: Database) -> None:
     txn_id = int(call.data.split(":")[2])
-    txn = await db.decide_transaction(txn_id, "rejected", call.from_user.id, reason="رسید تکراری")
-    if txn is None:
+    r = await admin_ops.duplicate_charge(call.bot, db, txn_id, call.from_user.id)
+    if not r["ok"]:
         return await call.answer("این رسید قبلا بررسی شده.", show_alert=True)
-    await db.release_amount(txn["amount"])
-    user = await db.get_user(txn["user_id"])
-    with i18n.using(i18n.lang_of(user)):
-        body = texts.DUP_RECEIPT
-    notify_err = await _notify_user(call.bot, int(user["telegram_id"]), body, lang=i18n.lang_of(user))
+    notify_err = r["notify_err"]
     # ثبت وضعیت روی پیام (بخش ۱۵.۲ سند): جلوگیری از بررسی دوباره
     try:
         await call.message.edit_caption(
@@ -365,19 +325,10 @@ async def _finalize_reject(
     خروجی: (موفق بود؟، خطای اطلاع رسانی به کاربر یا None)
     False در جای اول یعنی این رسید قبلا بررسی شده بود.
     """
-    txn = await db.decide_transaction(txn_id, "rejected", admin_id, reason=reason)
-    if txn is None:
+    r = await admin_ops.reject_charge(bot, db, txn_id, admin_id, reason)
+    if not r["ok"]:
         return False, None
-    await db.release_amount(txn["amount"])
-    user = await db.get_user(txn["user_id"])
-    # دلیل آماده به زبان کاربر؛ دلیلی که ادمین دستی نوشته همان می ماند
-    lang = i18n.lang_of(user)
-    fa_reasons = texts.__dict__["REJECT_REASONS"]
-    code = next((k for k, v in fa_reasons.items() if v == reason), None)
-    with i18n.using(lang):
-        user_reason = texts.REJECT_REASONS[code] if code else reason
-        body = texts.CHARGE_REJECTED.format(reason=user_reason)
-    notify_err = await _notify_user(bot, int(user["telegram_id"]), body, lang=lang)
+    notify_err = r["notify_err"]
     suffix = "\n\n" + texts.ADMIN_DECIDED_REJ.format(reason=reason, time=fmt_dt(now_str()))
     try:
         if is_caption:
@@ -551,7 +502,8 @@ async def cb_toggle_block(call: CallbackQuery, db: Database) -> None:
     if not user:
         return await call.answer("کاربر پیدا نشد.", show_alert=True)
     new_state = 0 if user["is_blocked"] else 1
-    await db.execute("UPDATE users SET is_blocked = ? WHERE id = ?", (new_state, user["id"]))
+    if not await admin_ops.set_blocked(db, tg_id, bool(new_state), call.from_user.id):
+        return await call.answer("ادمین را نمی شود مسدود کرد.", show_alert=True)
     await call.answer("مسدود شد 🚫" if new_state else "رفع مسدودی شد ✅")
     await cb_admin_user_refresh(call, db, tg_id)
 
@@ -599,48 +551,16 @@ async def txt_manual_balance(message: Message, db: Database, state: FSMContext) 
     raw = message.text.strip().replace(",", "")
     if not raw.isdigit() or int(raw) <= 0:
         return await message.answer("لطفا یه عدد مثبت به تومان بفرست.")
-    amount = int(raw)
     data = await state.get_data()
     await state.clear()
-    user = await db.get_user_by_tg(data["tg_id"])
-    if not user:
-        return await message.answer(texts.ADMIN_USER_NOT_FOUND)
-
-    if data["direction"] == "add":
-        if not await db.atomic_credit(user["id"], amount):
-            return await message.answer("افزودن موجودی انجام نشد.")
-        await db.insert_transaction(user["id"], "admin_adjust", amount, status="approved")
-    else:
-        # مبلغ از موجودی تازه خوانده می شود، نه از نسخه کش شده. و تراکنش
-        # فقط در صورت موفقیت کسر ثبت می شود تا گزارش مالی دروغ نگوید.
-        taken = min(amount, int(user["balance"]))
-        if taken <= 0 or not await db.atomic_debit(user["id"], taken):
-            return await message.answer("موجودی کاربر به اندازه کافی نبود.")
-        await db.insert_transaction(
-            user["id"], "admin_adjust", -taken, status="approved"
-        )
-    fresh = await db.get_user(user["id"])
-
-    # کاربر باید بفهمد موجودی اش عوض شده. تا حالا این اتفاق بی صدا
-    # می افتاد و کاربر تازه موقع خرید بعدی متوجه می شد.
-    with i18n.using(i18n.lang_of(fresh)):
-        if data["direction"] == "add":
-            body = texts.CHARGE_APPROVED.format(
-                amount=f"{amount:,}", balance=f"{fresh['balance']:,}"
-            )
-            effect = effects.CHARGE
-        else:
-            body = texts.BALANCE_TAKEN.format(
-                amount=f"{taken:,}", balance=f"{fresh['balance']:,}"
-            )
-            effect = ""
-    err = await _notify_user(
-        message.bot, int(user["telegram_id"]), body, effect=effect, lang=i18n.lang_of(fresh)
+    r = await admin_ops.adjust_balance(
+        message.bot, db, int(data["tg_id"]), int(raw), data["direction"] == "add", message.from_user.id,
     )
-
-    note = texts.ADMIN_BALANCE_DONE.format(balance=f"{fresh['balance']:,}")
-    if err:
-        note += f"\n\n⚠️ پیام به کاربر نرسید: {esc(err)}"
+    if not r["ok"]:
+        return await message.answer(r["error"])
+    note = texts.ADMIN_BALANCE_DONE.format(balance=f"{r['balance']:,}")
+    if r["notify_err"]:
+        note += f"\n\n⚠️ پیام به کاربر نرسید: {esc(r['notify_err'])}"
     await message.answer(note)
 
 
@@ -1289,8 +1209,10 @@ async def _rules_home(message: Message, db: Database) -> None:
 async def _ai_home(message: Message, db: Database) -> None:
     from app import pricing
 
+    from app.services import ai_shop
+
     cfg = await pricing.load(db)
-    key = await db.get_setting("ai_api_key", "")
+    key = await ai_shop.api_key(db)
     stats = await db.ai_stats()
 
     # موجودی نزد سرویس دهنده را همین جا نشان می دهیم، نه پشت یک دکمه.
@@ -1304,7 +1226,9 @@ async def _ai_home(message: Message, db: Database) -> None:
         try:
             bal = await wz.balance()
             if bal is not None:
-                wallet = f"${bal:g}" + (" ⚠️ خالی" if bal <= 0 else "")
+                wallet = (bal["text"] or f"{bal['balance']:g} {bal['currency']}") + (" ⚠️ خالی" if bal["balance"] <= 0 else "")
+            else:
+                wallet = "خوانده نشد"
         except Exception:  # noqa: BLE001
             wallet = "خوانده نشد"
         finally:
@@ -1317,7 +1241,7 @@ async def _ai_home(message: Message, db: Database) -> None:
     await edit_or_send(
         message,
         texts.ADMIN_AI.format(
-            key="تنظیم شده ✅" if key else "تنظیم نشده ❌",
+            key=("از .env ✅" if config.canboso_api_key else "تنظیم شده ✅") if key else "تنظیم نشده ❌",
             wallet=wallet,
             fields="\n".join(lines),
             delivered=stats.get("delivered") or 0,
@@ -1393,23 +1317,27 @@ async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> Non
 
 @router.callback_query(F.data == "adm:ai:preview")
 async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
-    """قیمت واقعی محصول با تنظیمات فعلی."""
+    """قیمت همه محصولات canboso با تنظیمات فعلی: قیمت API ← قیمت کاربر."""
     from app import pricing
-    from app.handlers.ai import GEMINI_SERVICE_ID, _client
-    from app.warzone import WarzoneError
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
 
-    wz = await _client(db)
     try:
-        product = await wz.product(GEMINI_SERVICE_ID)
-        cost = float(product["price"]) if product and product.get("price") else None
-    except WarzoneError as exc:
-        await wz.close()
-        return await call.answer(f"خواندن قیمت نشد: {exc}", show_alert=True)
-    await wz.close()
-    if cost is None:
-        return await call.answer("قیمت محصول در دسترس نیست.", show_alert=True)
-    b = await pricing.price_for(db, cost)
-    await call.message.answer(pricing.explain(b))
+        cat = await ai_shop.catalog(db, force=True, admin=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
+    cat["items"] = [x for x in cat["items"] if x["priced"]]
+    if not cat["items"]:
+        return await call.answer("محصولی نیامد؛ نرخ ارز کیف پول (دلار یا دونگ) را تنظیم کرده ای؟", show_alert=True)
+    cfg = await pricing.load(db)
+    rows = []
+    for x in cat["items"][:25]:
+        b = pricing.compute(x["cost"], cfg, x["currency"])
+        stock = "∞" if x["stock"] is None else x["stock"]
+        rows.append(f"{'•' if x['visible'] else '🔴'} <b>{esc(x['name'])}</b> ({stock})\n   {x['cost']:g} {x['currency']} → {b.final:,} تومان"
+                    + (f" · سود {b.net_profit:,}" if b.net_profit else ""))
+    first = pricing.compute(cat["items"][0]["cost"], cfg, cat["items"][0]["currency"])
+    await call.message.answer("🧮 <b>قیمت محصولات برای کاربر</b>\n\n" + "\n".join(rows) + "\n\n" + pricing.explain(first))
     await call.answer()
 
 
@@ -1421,7 +1349,7 @@ async def cb_ai_balance(call: CallbackQuery, db: Database) -> None:
     bal = await wz.balance()
     await wz.close()
     await call.answer(
-        f"موجودی شما نزد سرویس دهنده: {bal}" if bal is not None
+        f"موجودی شما نزد canboso: {bal['text'] or bal['balance']}" if bal is not None
         else "موجودی خوانده نشد.",
         show_alert=True,
     )
@@ -1454,7 +1382,9 @@ async def cb_ai_restock(call: CallbackQuery, db: Database) -> None:
 @router.callback_query(F.data == "adm:ai:unknown")
 async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
     """سفارش هایی که وضعیتشان مبهم مانده و دست ادمین را می خواهند."""
-    rows = await db.ai_orders_by_status("unknown")
+    rows = await db.ai_orders_by_status("unknown") + [
+        o for o in await db.ai_orders_by_status("pending") if o.get("idem_key")
+    ]
     if not rows:
         return await call.answer("سفارش مبهمی نیست ✅", show_alert=True)
     body = "\n\n".join(
@@ -1470,9 +1400,201 @@ async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
     await edit_or_send(
         call.message,
         texts.ADMIN_AI_UNKNOWN_LIST.format(count=len(rows), rows=body),
-        keyboards.admin_ai_kb(True),
+        keyboards.admin_ai_unknown_kb(rows),
     )
     await call.answer()
+
+
+@router.callback_query(F.data.startswith("adm:ai:rs:"))
+async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
+    """سفارش مبهم را با همان Idempotency-Key از canboso دوباره می پرسد.
+
+    اگر اولی انجام شده بود همان پاسخ برمی گردد و تحویل می شود؛ اگر نه،
+    همین حالا انجام می شود (پول کاربر از قبل کم شده) یا اگر قطعا ممکن
+    نیست، پولش برمی گردد. در هر حال خریدار خبردار می شود.
+    """
+    from app.handlers.ai import notify_buyer
+    from app.services import ai_shop
+
+    order = await db.get_ai_order(int(call.data.split(":")[3]))
+    if not order:
+        return await call.answer("سفارش پیدا نشد.", show_alert=True)
+    await call.answer("در حال پرسیدن از canboso…")
+    r = await ai_shop.resolve(db, call.bot, order)
+    await notify_buyer(call.bot, db, r)
+    label = {
+        ai_shop.DELIVERED: "✅ تحویل شد و برای کاربر فرستاده شد",
+        ai_shop.PROCESSING: "⏳ پذیرفته شد؛ در انتظار فروشنده",
+        ai_shop.FAILED: "↩️ انجام نشد؛ پول کاربر برگشت",
+        ai_shop.NO_FUNDS: "↩️ موجودی canboso کم است؛ پول کاربر برگشت",
+        ai_shop.UNKNOWN: "🔎 هنوز مبهم است؛ کمی بعد دوباره امتحان کن",
+    }.get(r["status"], r["status"])
+    await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
+    await cb_ai_unknown(call, db)
+
+
+# ---------- محصولات هوش مصنوعی: نمایش و موجودی ----------
+def _stock_txt(v) -> str:  # noqa: ANN001
+    return "∞" if v is None else str(v)
+
+
+async def _ai_products(message: Message, db: Database, page: int) -> None:
+    """همه محصولات canboso با روشن/خاموش نمایش و سه عدد موجودی:
+    موجودی API، تعدادی که پول کیف پول ما می رسد، و کمترینِ این دو که به
+    کاربر نشان داده می شود."""
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    try:
+        cat = await ai_shop.catalog(db, force=True, admin=True)
+    except CanbosoError as exc:
+        return await edit_or_send(message, f"❌ خواندن محصولات نشد: {esc(str(exc))}", keyboards.admin_ai_kb(True))
+    items = cat["items"]
+    bal = cat["balance"]
+    wallet = (bal["text"] or f"{bal['balance']:g} {bal['currency']}") if bal else "خوانده نشد"
+    page = max(0, min(page, (len(items) - 1) // keyboards.AI_PAGE if items else 0))
+    rows = []
+    for x in items[page * keyboards.AI_PAGE:(page + 1) * keyboards.AI_PAGE]:
+        mark = "🟢" if x["visible"] else "🔴"
+        state = "ناموجود" if not x["available"] else f"نمایش: {_stock_txt(x['stock'])}"
+        price = f"{x['price']:,} تومان" if x["priced"] else f"⚠️ نرخ {x['currency']} تنظیم نشده"
+        months = f" · ماه ها: {', '.join(map(str, x['months']))}" if x["months"] else ""
+        rows.append(
+            f"{mark} <b>{esc(x['name'])}</b>\n"
+            f"   <code>{esc(x['id'])}</code> · {esc(x['type'])}{months}\n"
+            f"   {x['cost']:g} {x['currency']} → {price}\n"
+            f"   موجودی API: {_stock_txt(x['api_stock'])} · با کیف پول: {_stock_txt(x['wallet_stock'])} → {state}"
+        )
+    on = sum(1 for x in items if x["visible"])
+    body = (
+        "╮── 🗂 محصولات canboso\n"
+        f"│   {on} از {len(items)} محصول روشن\n\n"
+        f"💼 کیف پول شما نزد canboso: <b>{esc(wallet)}</b>\n\n"
+        + ("\n\n".join(rows) or "محصولی نیامد.")
+        + "\n\n<blockquote>موجودی که کاربر می بیند کمترینِ «موجودی API» و «تعدادی که با کیف پول شما خریدنی است» است. "
+          "🟢 یعنی در ربات و مینی اپ نمایش داده می شود؛ برای عوض کردن روی محصول بزن. "
+          "محصول تازه سرویس دهنده تا روشنش نکنی نمایش داده نمی شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی).</blockquote>"
+    )
+    await edit_or_send(message, body, keyboards.admin_ai_products_kb(items, page))
+
+
+@router.callback_query(F.data.startswith("adm:ai:pl:"))
+async def cb_ai_products(call: CallbackQuery, db: Database) -> None:
+    await call.answer("در حال خواندن از canboso…")
+    await _ai_products(call.message, db, int(call.data.split(":")[3] or 0))
+
+
+@router.callback_query(F.data.startswith("adm:ai:pv:"))
+async def cb_ai_product_toggle(call: CallbackQuery, db: Database) -> None:
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    _, _, _, page, pid = call.data.split(":", 4)
+    try:
+        cat = await ai_shop.catalog(db, admin=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
+    item = next((x for x in cat["items"] if x["id"] == pid), None)
+    if not item:
+        return await call.answer("این محصول دیگر در canboso نیست.", show_alert=True)
+    await ai_shop.set_visible(db, pid, not item["visible"], [x["id"] for x in cat["items"]])
+    await call.answer("روشن شد ✅" if not item["visible"] else "خاموش شد")
+    await _ai_products(call.message, db, int(page or 0))
+
+
+@router.callback_query(F.data.startswith("adm:ai:pa:"))
+async def cb_ai_products_all(call: CallbackQuery, db: Database) -> None:
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    _, _, _, on, page = call.data.split(":")
+    try:
+        cat = await ai_shop.catalog(db, admin=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
+    await ai_shop.set_all_visible(db, [x["id"] for x in cat["items"]] if on == "1" else [])
+    await call.answer("همه روشن شد ✅" if on == "1" else "همه خاموش شد")
+    await _ai_products(call.message, db, int(page or 0))
+
+
+@router.callback_query(F.data == "adm:ai:raw")
+async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
+    """پاسخ خام canboso و برداشت ربات از آن، کنار هم، در یک فایل JSON.
+
+    برای مقایسه درخواست ها و دریافتی ها با آنچه ربات نشان می دهد. کلید API
+    در فایل نیست (فقط در query string درخواست می رود).
+    """
+    import json as _json
+
+    from aiogram.types import BufferedInputFile
+
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    await call.answer("در حال گرفتن خروجی…")
+    cb = await ai_shop.client(db)
+    try:
+        raw = await cb.debug()
+    finally:
+        await cb.close()
+    try:
+        parsed = await ai_shop.catalog(db, force=True, admin=True)
+        for x in parsed["items"]:
+            x.pop("raw", None)
+    except CanbosoError as exc:
+        parsed = {"error": str(exc)}
+    key = await ai_shop.api_key(db)
+    doc = {
+        "requests": {
+            "products": "GET https://canboso.com/api/v2/telegram-buyer/products?key=***",
+            "balance": "GET https://canboso.com/api/v2/telegram-buyer/balance?key=***",
+        },
+        "responses": raw,
+        "bot_view": parsed,
+    }
+    data = _json.dumps(doc, ensure_ascii=False, indent=2, default=str)
+    if key:
+        data = data.replace(key, "***")
+    prod = raw.get("/products", {})
+    bal = raw.get("/balance", {})
+    n = len(((prod.get("body") or {}) if isinstance(prod.get("body"), dict) else {}).get("products") or [])
+    await call.message.answer_document(
+        BufferedInputFile(data.encode("utf-8"), filename="canboso_check.json"),
+        caption=(f"🧪 خروجی خام canboso\n"
+                 f"/products → HTTP {prod.get('status')} · {prod.get('ms', '-')}ms · {n} محصول\n"
+                 f"/balance → HTTP {bal.get('status')} · {bal.get('ms', '-')}ms\n"
+                 "responses = پاسخ خام · bot_view = برداشت ربات (قیمت تومانی و موجودی)"),
+    )
+
+
+# ---------- روش های پرداخت ----------
+@router.callback_query(F.data == "adm:pay")
+async def cb_pay_methods(call: CallbackQuery, db: Database) -> None:
+    from app.services import payments
+
+    await edit_or_send(
+        call.message,
+        "╮── 💳 روش های پرداخت\n│   شارژ کیف پول\n\n"
+        "🟢 روشن · 🔴 خاموش؛ با یک کلیک عوض می شود.\n\n"
+        "<blockquote>کارت به کارت همیشه فقط برای کاربرهای فارسی زبان است. خاموش کردن هر روش فقط "
+        "شروع پرداخت تازه را می بندد؛ پرداخت کریپتو یا Stars که قبلا انجام شده، همچنان به کیف پول می رسد.</blockquote>",
+        keyboards.admin_pay_kb(await payments.switches(db)),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("adm:pay:"))
+async def cb_pay_toggle(call: CallbackQuery, db: Database) -> None:
+    from app.services import payments
+
+    key = call.data.split(":")[2]
+    if key not in payments.METHODS:
+        return await call.answer("پیدا نشد.", show_alert=True)
+    on = not await payments.is_on(db, key)
+    await payments.set_on(db, key, on)
+    log.info("ادمین %s روش پرداخت %s را %s کرد", call.from_user.id, key, "روشن" if on else "خاموش")
+    await call.answer(f"{payments.TITLES[key]} {'روشن' if on else 'خاموش'} شد")
+    await edit_or_send(call.message, call.message.html_text, keyboards.admin_pay_kb(await payments.switches(db)))
 
 
 # ---------- بخش های ربات ----------
@@ -1740,10 +1862,33 @@ async def cb_admin_settings(call: CallbackQuery, db: Database) -> None:
             card_holder=await db.get_setting("card_holder") or "-",
             bank_name=await db.get_setting("bank_name") or "-",
             min_charge=f"{int(await db.get_setting('min_charge', '50000')):,}",
+            **await _crypto_settings_lines(db),
         ),
         reply_markup=keyboards.admin_setting_kb(),
     )
     await call.answer()
+
+
+async def _crypto_settings_lines(db: Database) -> dict:
+    from app.services import crypto
+
+    if not crypto.enabled():
+        state = "خاموش · TON_RECEIVE_ADDRESS در .env خالی یا نامعتبر است"
+    else:
+        net = "🧪 testnet (فقط ادمین ها می بینند)" if crypto.testnet() else "mainnet"
+        usdt = "USDT روشن" if crypto.usdt_master() else "USDT خاموش (TON_USDT_MASTER)"
+        state = f"روشن · {net} · {usdt}\n<code>{crypto.pay_address()}</code>"
+    manual_ton = await db.get_setting("crypto_ton_rate", "0") or "0"
+    r = await crypto.rates(db)
+    ton = f"{r['TON']:,}" if r["TON"] else "نامعلوم"
+    rates = (
+        f"تتر: {int(await db.get_setting('crypto_usdt_rate', '0') or 0):,} · "
+        f"TON: {ton}{' (خودکار)' if manual_ton in ('', '0') else ''} · "
+        f"کارمزد: {await crypto.fee_percent(db):g}٪"
+    )
+    stars_rate = int(await db.get_setting("stars_rate", "0") or 0)
+    stars_line = f"هر ستاره = {stars_rate:,} تومان" if stars_rate else "خاموش (نرخ ستاره تعیین نشده)"
+    return {"crypto_state": state, "crypto_rates": rates, "stars_line": stars_line}
 
 
 @router.callback_query(F.data.startswith("adm:set:"))
@@ -1776,18 +1921,10 @@ async def txt_admin_setting(message: Message, db: Database, state: FSMContext) -
         if not value.isdigit() or int(value) <= 0:
             return await message.answer("لطفا حجم را به گیگ و به صورت عدد بفرست.")
         await db.update_plan(int(data["plan_id"]), data_gb=int(value))
-    elif field == "min_charge":
-        clean = value.replace(",", "").replace("،", "")
-        if not clean.isdigit() or int(clean) < 1000:
-            return await message.answer("لطفا یه عدد بزرگ تر از ۱۰۰۰ بفرست.")
-        await db.set_setting("min_charge", clean)
-    elif field == "card_number":
-        digits = "".join(ch for ch in value if ch.isdigit())
-        if len(digits) != 16:
-            return await message.answer("شماره کارت باید ۱۶ رقم باشه. دوباره بفرست:")
-        await db.set_setting("card_number", digits)
-    elif field in ("card_holder", "bank_name"):
-        await db.set_setting(field, value[:60])
+    elif field in admin_ops.SETTING_FIELDS:
+        ok, msg = await admin_ops.save_setting(db, field, value, message.from_user.id)
+        if not ok:
+            return await message.answer(msg)
     else:
         await state.clear()
         return await message.answer("این فیلد قابل ویرایش نیست.")

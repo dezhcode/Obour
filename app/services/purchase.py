@@ -196,7 +196,7 @@ async def _run(
             panel_username,
             data_bytes=gb_bytes(plan["data_gb"]),
             days=plan["duration_days"],
-            note=f"obour tg:{user['telegram_id']} plan:{plan['id']}",
+            note=f"obour tg:{user['telegram_id']} plan:{plan['id'] or 'custom'}",
         )
     except PanelSafeError as exc:
         # مطمئنیم چیزی ساخته نشد -> لغو امن تراکنش
@@ -263,3 +263,33 @@ async def _run(
         plan=plan,
         discount_used=discount_used,
     )
+
+
+async def purchase_custom(
+    db: "Database",
+    panel: "Panel | None",
+    user: dict,
+    gb: int,
+    days: int,
+    *,
+    label: str = "",
+    idem: str,
+) -> PurchaseResult:
+    """خرید سرویس «بساز به سلیقه خودت».
+
+    حجم و مدت فقط از همان پله های ربات پذیرفته می شوند و قیمت همین جا در
+    سرور حساب می شود؛ عددی که کلاینت نشان داده مبنا نیست. بعد همان مسیر
+    امن خرید پلن (قفل، کسر اتمیک، ساخت روی پنل) با یک پلن موقت طی می شود.
+    """
+    from app.config import config
+    from app.keyboards import CUSTOM_DAY_STEPS, CUSTOM_GB_STEPS
+    from app.utils import custom_price
+
+    if gb not in CUSTOM_GB_STEPS or days not in CUSTOM_DAY_STEPS:
+        return PurchaseResult(False, PLAN_UNAVAILABLE)
+    plan = {
+        "id": None, "is_active": 1, "title": f"{gb} GB · {days} d",
+        "data_gb": gb, "duration_days": days,
+        "price": custom_price(gb, days, config.custom_rate_per_gb),
+    }
+    return await purchase(db, panel, user, plan, label=label, idem=idem)

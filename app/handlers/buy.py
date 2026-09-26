@@ -65,16 +65,13 @@ async def cb_shop_hub(
 
 @router.callback_query(F.data == "buy:ai")
 async def cb_ai_shop(call: CallbackQuery, db: Database, user: dict) -> None:
-    """بخش خدمات هوش مصنوعی.
-
-    فعلا فقط اعلام آمادگی است؛ اتصال به سرویس دهنده در نسخه بعد
-    اضافه می شود.
-    """
+    """بخش خدمات هوش مصنوعی: کاتالوگ canboso با قیمت تومانی."""
     if not features.is_on("shop_ai"):
         return await call.answer(texts.SECTION_OFF, show_alert=True)
-    key = await db.get_setting("ai_api_key", "")
+    from app.services import ai_shop
+
     cfg = await pricing.load(db)
-    if not key or not pricing.is_configured(cfg):
+    if not await ai_shop.api_key(db) or not (pricing.is_configured(cfg, "USD") or pricing.is_configured(cfg, "VND")):
         # هنوز تنظیم نشده: به جای خطای مبهم، همان صفحه «به زودی»
         await edit_or_send(
             call.message,
@@ -82,12 +79,9 @@ async def cb_ai_shop(call: CallbackQuery, db: Database, user: dict) -> None:
             keyboards.back_to_shop_kb(),
         )
         return await call.answer()
+    from app.handlers.ai import show_catalog
 
-    await edit_or_send(
-        call.message,
-        texts.AI_SHOP.format(balance=f"{user['balance']:,}"),
-        keyboards.ai_shop_kb(),
-    )
+    await show_catalog(call.message, db, user)
     await call.answer()
 
 

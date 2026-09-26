@@ -16,7 +16,7 @@ from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from app import join, keyboards, polls, texts
+from app import features, join, keyboards, polls, texts
 from app.config import config
 from app.db import Database
 from app.handlers.start import show_menu
@@ -49,6 +49,12 @@ async def cmd_start(
             from app.handlers.buy import show_plan_from_start
 
             return await show_plan_from_start(message, db, user, plan)
+    if payload.startswith("ai_") and len(payload) > 3 and features.is_on("shop_ai"):
+        # از مینی اپ: «سفارش در ربات» یک محصول هوش مصنوعی
+        from app.handlers.ai import product_from_start
+
+        if await product_from_start(message, db, state, user, payload[3:]):
+            return
     if payload.startswith("poll_") and payload[5:].isdigit():
         text, markup = await polls.view(db, int(payload[5:]), user["id"])
         if text:
@@ -95,13 +101,10 @@ async def _open_page(message: Message, db: Database, user: dict, target: str) ->
             reply_markup=keyboards.services_kb(services),
         )
     if target == "wal":
-        min_charge = int(await db.get_setting("min_charge", "50000"))
-        return await message.answer(
-            texts.WALLET.format(
-                balance=f"{user['balance']:,}", min_charge=f"{min_charge:,}"
-            ),
-            reply_markup=keyboards.wallet_amounts(),
-        )
+        from app.handlers.wallet import wallet_view
+
+        body, kb = await wallet_view(db, user)
+        return await message.answer(body, reply_markup=kb)
     # بقیه صفحه ها: منوی اصلی (امن ترین حالت)
     await show_menu(message, user)
 
@@ -154,13 +157,10 @@ async def cmd_wallet(
     message: Message, db: Database, state: FSMContext, user: dict
 ) -> None:
     await state.clear()
-    min_charge = int(await db.get_setting("min_charge", "50000"))
-    await message.answer(
-        texts.WALLET.format(
-            balance=f"{user['balance']:,}", min_charge=f"{min_charge:,}"
-        ),
-        reply_markup=keyboards.wallet_amounts(),
-    )
+    from app.handlers.wallet import wallet_view
+
+    body, kb = await wallet_view(db, user)
+    await message.answer(body, reply_markup=kb)
 
 
 @router.message(Command("test"))

@@ -296,22 +296,26 @@ def shop_hub_kb() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def ai_shop_kb() -> InlineKeyboardMarkup:
-    """صفحه خدمات هوش مصنوعی."""
+def ai_shop_kb(items: list[dict] | None = None) -> InlineKeyboardMarkup:
+    """کاتالوگ خدمات هوش مصنوعی: یک دکمه برای هر محصول با قیمتش."""
     kb = InlineKeyboardBuilder()
-    _btn(kb, "ai", "اشتراک جمنای پرو", style=PRIMARY, callback_data="ai:buy")
+    rows = []
+    for x in items or []:
+        price = f"{x['price']:,}" if not x["months"] else f"{min(x['month_prices'].values()):,}+"
+        label = f"{x['name']} · {price}" if x["available"] else f"{x['name']} · " + _t("ناموجود")
+        kb.button(text=label[:60], callback_data=f"ai:p:{x['id']}"[:64])
+        rows.append(1)
     _btn(kb, "history", "سفارش های من", callback_data="ai:mine")
     _btn(kb, "back", "فروشگاه", callback_data="buy")
-    kb.adjust(1, 2)
+    kb.adjust(*rows, 2)
     return kb.as_markup()
 
 
-def ai_track_kb(order_id: int, has_provider_code: bool) -> InlineKeyboardMarkup:
+def ai_track_kb(order_id: int, has_provider_code: bool = False) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    if has_provider_code:
-        _btn(kb, "sync", "وضعیت لحظه ای", style=PRIMARY, callback_data=f"ai:status:{order_id}")
+    _btn(kb, "history", "سفارش های من", callback_data="ai:mine")
     _btn(kb, "back", "منوی اصلی", callback_data="menu")
-    kb.adjust(1, 1) if has_provider_code else kb.adjust(1)
+    kb.adjust(2)
     return kb.as_markup()
 
 
@@ -324,15 +328,53 @@ def ai_notify_kb() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def ai_product_kb(affordable: bool) -> InlineKeyboardMarkup:
-    """کارت محصول. اگر موجودی کم باشد، دکمه خرید جایش را به شارژ می دهد."""
+def ai_product_kb(item: dict, balance: int) -> InlineKeyboardMarkup:
+    """کارت محصول: مدت (اگر ماهانه است)، ایمیل (اگر لازم است) یا خرید مستقیم.
+
+    اگر موجودی کم باشد، دکمه خرید جایش را به شارژ می دهد.
+    """
+    kb = InlineKeyboardBuilder()
+    rows = []
+    pid = item["id"]
+    if item["months"]:
+        for m in item["months"]:
+            price = item["month_prices"][m]
+            kb.button(text=f"{m} " + _t("ماه") + f" · {price:,}", callback_data=f"ai:m:{pid}:{m}"[:64])
+        n = len(item["months"])
+        rows += [2] * (n // 2) + ([1] if n % 2 else [])
+    elif item["price"] > balance:
+        _btn(kb, "wallet", "شارژ کیف پول", style=SUCCESS, callback_data="wal")
+        rows.append(1)
+    elif item["needs_email"]:
+        _btn(kb, "ok", "ادامه و وارد کردن ایمیل", style=SUCCESS, callback_data=f"ai:e:{pid}"[:64])
+        rows.append(1)
+    else:
+        _btn(kb, "ok", "تایید و خرید", style=SUCCESS, callback_data=f"ai:ok:{pid}"[:64])
+        rows.append(1)
+    _btn(kb, "back", "برگشت", callback_data="buy:ai")
+    rows.append(1)
+    kb.adjust(*rows)
+    return kb.as_markup()
+
+
+def ai_confirm_kb(affordable: bool) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     if affordable:
-        _btn(kb, "ok", "تایید و خرید", style=SUCCESS, callback_data="ai:ok")
+        _btn(kb, "ok", "تایید و خرید", style=SUCCESS, callback_data="ai:go")
     else:
         _btn(kb, "wallet", "شارژ کیف پول", style=SUCCESS, callback_data="wal")
     _btn(kb, "back", "برگشت", callback_data="buy:ai")
     kb.adjust(1, 1)
+    return kb.as_markup()
+
+
+def admin_ai_unknown_kb(rows: list[dict]) -> InlineKeyboardMarkup:
+    """یک دکمه «بررسی دوباره» برای هر سفارش مبهم."""
+    kb = InlineKeyboardBuilder()
+    for o in rows[:10]:
+        _add(kb, f"🔄 بررسی دوباره {o['code']}", callback_data=f"adm:ai:rs:{o['id']}")
+    _add(kb, "🔙 خدمات هوش مصنوعی", callback_data="adm:ai")
+    kb.adjust(1)
     return kb.as_markup()
 
 
@@ -491,14 +533,97 @@ def plan_confirm(
     return kb.as_markup()
 
 
-def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000)) -> InlineKeyboardMarkup:
+def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000), crypto: bool = False,
+                   stars: bool = False) -> InlineKeyboardMarkup:
+    """کیف پول کاربر فارسی: مبلغ های کارت به کارت، و بقیه روش ها زیرش."""
     kb = InlineKeyboardBuilder()
     for amount in presets:
         kb.button(text=f"{amount:,}", callback_data=f"wal:c:{amount}")
     _add(kb, "✍️ مبلغ دلخواه", style=PRIMARY, callback_data="wal:custom")
     _btn(kb, "history", "سوابق من", callback_data="hist")
+    rows = [3, 2]
+    other = []
+    if crypto:
+        _add(kb, "💎 پرداخت با TON / USDT", callback_data="cw")
+        other.append(1)
+    if stars:
+        _add(kb, "⭐ پرداخت با Stars", callback_data="sw")
+        other.append(1)
+    if len(other) == 2:
+        other = [2]
     _add(kb, "🔙 منوی اصلی", callback_data="menu")
-    kb.adjust(3, 2, 1)
+    kb.adjust(*rows, *other, 1)
+    return kb.as_markup()
+
+
+def wallet_methods(crypto: bool, stars: bool) -> InlineKeyboardMarkup:
+    """کیف پول کاربر غیر فارسی: کارت به کارت ندارد، فقط کریپتو و Stars."""
+    kb = InlineKeyboardBuilder()
+    rows = []
+    if crypto:
+        _add(kb, "💎 پرداخت با TON / USDT", style=PRIMARY, callback_data="cw")
+        rows.append(1)
+    if stars:
+        _add(kb, "⭐ پرداخت با Stars", style=PRIMARY, callback_data="sw")
+        rows.append(1)
+    _btn(kb, "history", "سوابق من", callback_data="hist")
+    _add(kb, "🔙 منوی اصلی", callback_data="menu")
+    kb.adjust(*rows, 2)
+    return kb.as_markup()
+
+
+def stars_amounts(rate: int, presets: tuple[int, ...] = (50_000, 100_000, 200_000)) -> InlineKeyboardMarkup:
+    import math
+
+    kb = InlineKeyboardBuilder()
+    for amount in presets:
+        kb.button(text=f"{amount:,} · ⭐{max(1, math.ceil(amount / rate)):,}", callback_data=f"sw:a:{amount}")
+    _add(kb, "✍️ مبلغ دلخواه", style=PRIMARY, callback_data="sw:custom")
+    _add(kb, "🔙 برگشت", callback_data="wal")
+    kb.adjust(1, 1, 1, 1, 1)
+    return kb.as_markup()
+
+
+def crypto_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000)) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for amount in presets:
+        kb.button(text=f"{amount:,}", callback_data=f"cw:a:{amount}")
+    _add(kb, "✍️ مبلغ دلخواه", style=PRIMARY, callback_data="cw:custom")
+    _add(kb, "🔙 برگشت", callback_data="wal")
+    kb.adjust(3, 1, 1)
+    return kb.as_markup()
+
+
+def crypto_assets(amount: int, quotes: dict) -> InlineKeyboardMarkup:
+    """یک دکمه برای هر ارزی که نرخ دارد، با مبلغش روی خود دکمه."""
+    kb = InlineKeyboardBuilder()
+    icons = {"TON": "💎", "USDT": "💵"}
+    for asset, q in quotes.items():
+        _add(kb, f"{icons.get(asset, '•')} {q['amount']} {asset}", style=PRIMARY,
+             callback_data=f"cw:p:{amount}:{asset}")
+    _add(kb, "🔙 برگشت", callback_data="cw")
+    kb.adjust(*([1] * (len(quotes) + 1)))
+    return kb.as_markup()
+
+
+def crypto_invoice_kb(inv: dict, link: str, address: str, amount: str, webapp_url: str = "") -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    rows = []
+    _add(kb, "💎 پرداخت با Tonkeeper", style=SUCCESS, url=link)
+    rows.append(1)
+    if webapp_url:
+        from aiogram.types import WebAppInfo
+
+        _add(kb, "📱 پرداخت با TON Connect", web_app=WebAppInfo(url=webapp_url))
+        rows.append(1)
+    _add(kb, "کپی آدرس", copy_text=CopyTextButton(text=address))
+    _add(kb, "کپی مبلغ", copy_text=CopyTextButton(text=amount))
+    _add(kb, "کپی کامنت", copy_text=CopyTextButton(text=inv["code"]))
+    rows.append(3)
+    _add(kb, "🔄 بررسی پرداخت", callback_data=f"cw:chk:{inv['id']}")
+    _add(kb, "❌ انصراف", style=DANGER, callback_data=f"cw:x:{inv['id']}")
+    rows.append(2)
+    kb.adjust(*rows)
     return kb.as_markup()
 
 
@@ -990,6 +1115,10 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _add(kb, "👤 صاحب کارت", callback_data="adm:set:card_holder")
     _add(kb, "🏦 بانک", callback_data="adm:set:bank_name")
     _add(kb, "🔢 حداقل شارژ", callback_data="adm:set:min_charge")
+    _add(kb, "⭐ نرخ ستاره", callback_data="adm:set:stars_rate")
+    _add(kb, "💵 نرخ تتر", callback_data="adm:set:crypto_usdt_rate")
+    _add(kb, "💎 نرخ TON", callback_data="adm:set:crypto_ton_rate")
+    _add(kb, "➗ کارمزد کریپتو", callback_data="adm:set:crypto_fee_percent")
     _add(kb, "🌐 گروه های پنل", callback_data="adm:groups")
     _add(kb, "🎨 ایموجی ها", callback_data="adm:emo")
     _add(kb, "♨️ قوانین", callback_data="adm:rules")
@@ -997,8 +1126,9 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _btn(kb, "toggle", "بخش های ربات", callback_data="adm:feat")
     _btn(kb, "ai", "خدمات هوش مصنوعی", callback_data="adm:ai")
     _add(kb, "🎬 افکت پیام", callback_data="adm:fx")
+    _add(kb, "💳 روش های پرداخت", style=PRIMARY, callback_data="adm:pay")
     _add(kb, "🔙 داشبورد", callback_data="adm")
-    kb.adjust(2, 2, 2, 2, 2, 1)
+    kb.adjust(2, 2, 2, 2, 2, 2, 2, 1, 1)
     return kb.as_markup()
 
 
@@ -1686,18 +1816,65 @@ def admin_ai_kb(has_key: bool) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     _add(kb, "🔑 کلید API", style=PRIMARY, callback_data="adm:ai:key")
     _add(kb, "💱 نرخ دلار", callback_data="adm:ai:f:ai_usd_rate")
+    _add(kb, "➕ سود ثابت (تومان)", style=PRIMARY, callback_data="adm:ai:f:ai_markup_toman")
     _add(kb, "📈 درصد سود", callback_data="adm:ai:f:ai_profit_percent")
     _add(kb, "💳 درصد کارمزد", callback_data="adm:ai:f:ai_fee_percent")
     _add(kb, "🛡 حاشیه نوسان", callback_data="adm:ai:f:ai_buffer_percent")
     _add(kb, "⬇️ حداقل سود", callback_data="adm:ai:f:ai_min_profit")
     _add(kb, "🔢 رند کردن", callback_data="adm:ai:f:ai_round_to")
+    _add(kb, "💱 نرخ دونگ (VND)", callback_data="adm:ai:f:ai_vnd_rate")
     if has_key:
-        _add(kb, "🧮 پیش نمایش قیمت", style=SUCCESS, callback_data="adm:ai:preview")
+        _add(kb, "🗂 محصولات و موجودی", style=SUCCESS, callback_data="adm:ai:pl:0")
+        _add(kb, "🧮 پیش نمایش قیمت", callback_data="adm:ai:preview")
+        _add(kb, "🧪 خروجی خام API", callback_data="adm:ai:raw")
         _add(kb, "💼 موجودی من", callback_data="adm:ai:balance")
         _btn(kb, "bell", "موجود شد، خبردار کن", style=SUCCESS, callback_data="adm:ai:restock")
     _add(kb, "🔎 سفارش های مبهم", callback_data="adm:ai:unknown")
     _add(kb, "🔙 تنظیمات", callback_data="adm:set")
-    kb.adjust(1, 2, 2, 2, 2, 1, 2) if has_key else kb.adjust(1, 2, 2, 2, 1, 1)
+    kb.adjust(1, 2, 1, 2, 2, 2, 1, 2, 2, 1, 2) if has_key else kb.adjust(1, 2, 1, 2, 2, 2, 1, 2)
+    return kb.as_markup()
+
+
+AI_PAGE = 10
+
+
+def admin_ai_products_kb(items: list[dict], page: int) -> InlineKeyboardMarkup:
+    """روشن/خاموش کردن نمایش هر محصول؛ سبز یعنی به کاربر نشان داده می شود."""
+    kb = InlineKeyboardBuilder()
+    rows: list[int] = []
+    chunk = items[page * AI_PAGE:(page + 1) * AI_PAGE]
+    for x in chunk:
+        data = f"adm:ai:pv:{page}:{x['id']}"
+        if len(data.encode()) > 64:   # سقف callback_data تلگرام
+            continue
+        mark = "🟢" if x["visible"] else "🔴"
+        stock = "∞" if x["stock"] is None else x["stock"]
+        _add(kb, f"{mark} {x['name'][:34]} · {stock}", style=SUCCESS if x["visible"] else DANGER, callback_data=data)
+        rows.append(1)
+    nav = 0
+    if page > 0:
+        _add(kb, "◀️ قبلی", callback_data=f"adm:ai:pl:{page - 1}"); nav += 1
+    if (page + 1) * AI_PAGE < len(items):
+        _add(kb, "بعدی ▶️", callback_data=f"adm:ai:pl:{page + 1}"); nav += 1
+    if nav:
+        rows.append(nav)
+    _add(kb, "🟢 همه روشن", callback_data=f"adm:ai:pa:1:{page}")
+    _add(kb, "🔴 همه خاموش", callback_data=f"adm:ai:pa:0:{page}")
+    _add(kb, "🔄 تازه کردن", callback_data=f"adm:ai:pl:{page}")
+    _add(kb, "🔙 هوش مصنوعی", callback_data="adm:ai")
+    rows += [2, 2]
+    kb.adjust(*rows)
+    return kb.as_markup()
+
+
+def admin_pay_kb(items: list[dict]) -> InlineKeyboardMarkup:
+    """روشن/خاموش کردن روش های شارژ کیف پول."""
+    kb = InlineKeyboardBuilder()
+    for x in items:
+        _add(kb, f"{'🟢' if x['on'] else '🔴'} {x['title']}", style=SUCCESS if x["on"] else DANGER,
+             callback_data=f"adm:pay:{x['key']}")
+    _add(kb, "🔙 تنظیمات", callback_data="adm:set")
+    kb.adjust(1)
     return kb.as_markup()
 
 

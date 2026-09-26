@@ -65,6 +65,11 @@ class UserMiddleware(BaseMiddleware):
                 await event.answer(i18n.t("دسترسی شما موقتا محدود شده است."), show_alert=True)
             return None
 
+        # پیام پرداخت موفق (Stars) هیچ وقت نباید پشت دروازه ها بماند؛
+        # ستاره کم شده و کیف پول باید همین حالا شارژ شود.
+        if isinstance(event, Message) and event.successful_payment:
+            return await handler(event, data)
+
         # دروازه زبان: کاربر تازه اول زبانش را انتخاب می کند، بعد قوانین
         if await self._lang_block(event, user, tg_user):
             return None
@@ -162,6 +167,9 @@ class ThrottleMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         tg_user = data.get("event_from_user")
+        # پرداخت موفق هرگز دور ریخته نمی شود، هر قدر هم پشت سر هم باشد
+        if isinstance(event, Message) and event.successful_payment:
+            return await handler(event, data)
         if tg_user:
             now = time.monotonic()
             self._cleanup(now)

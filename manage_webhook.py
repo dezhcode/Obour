@@ -37,7 +37,7 @@ async def main() -> None:
                 url=config.webhook_url,
                 secret_token=config.webhook_secret,
                 drop_pending_updates=True,
-                allowed_updates=["message", "callback_query", "my_chat_member"],
+                allowed_updates=list(config.allowed_updates),
             )
             print(f"وبهوک ثبت شد: {config.webhook_url}")
 

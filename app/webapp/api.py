@@ -13,7 +13,8 @@ import time
 
 from typing import TYPE_CHECKING
 
-from app import apps, features, i18n, referral, texts
+from app import apps, features, i18n, texts
+from app import referral as referral_mod
 from app.config import config
 from app.utils import (
     days_left,
@@ -23,6 +24,9 @@ from app.utils import (
     usage_percent,
 )
 from app.services import charge as charge_svc
+from app.services import crypto as crypto_svc
+from app.services import payments as payments_svc
+from app.services import stars as stars_svc
 from app.services import purchase as purchase_svc
 from app.services import support as support_svc
 from app.webapp.auth import WebAppUser
@@ -161,6 +165,11 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
             "username": bot_username,
             "link": f"https://t.me/{bot_username}" if bot_username else "",
         },
+        # روش های شارژ این کاربر؛ کارت به کارت فقط برای فارسی
+        "pay_methods": (methods := await payments_svc.available(db, telegram_id=wuser.id)),
+        "crypto": payments_svc.CRYPTO in methods,
+        # فقط برای نمایش ردیف «پنل مدیریت»؛ هر درخواست ادمین جدا بررسی می شود
+        "is_admin": wuser.id in config.admin_ids,
         "readonly": False,
     }
 
@@ -224,15 +233,73 @@ async def service_detail(
             if url:
                 import_links.append({"key": key, "label": label, "url": url})
 
+    # برنامه ها به تفکیک سیستم عامل: لینک نصب + لینک افزودن خودکار اشتراک.
+    # صفحه سرویس با همین، قدم به قدم می گوید کاربر چه کند.
+    platforms = []
+    for pkey, (_emoji, ptitle, _keys) in apps.PLATFORMS.items():
+        items = []
+        for akey, aname in apps.platform_apps(pkey):
+            imp = apps.import_link(akey, sub_url, card["title"]) if apps.is_allowed_sub(sub_url) else ""
+            items.append({"key": akey, "name": aname, "install": apps.STORES.get(akey, ""), "import": imp or ""})
+        platforms.append({"key": pkey, "title": i18n.t(ptitle), "apps": items})
+
+    # تمدید با همان پلن: قیمت و روزهای بعد از تمدید از قبل معلوم است
+    from app.services import renew as renew_svc
+
+    plan, why = await renew_svc.plan_of(db, service)
+    renew = {"available": plan is not None, "reason": why}
+    if plan is not None:
+        renew.update(price=int(plan["price"]), data_gb=plan["data_gb"],
+                     plan_days=plan["duration_days"], days=renew_svc.total_days(service, plan))
+
     return {
         **card,
         "panel_username": service["panel_username"],
         "sub_url": sub_url,
         "qr_url": f"qr?id={service_id}",
         "import_links": import_links,
+        "platforms": platforms,
+        "plan": ({"title": plan["title"], "data_gb": plan["data_gb"], "duration_days": plan["duration_days"],
+                  "price": int(plan["price"])} if plan else None),
+        "data_gb": service.get("data_gb"),
+        "duration_days": service.get("duration_days"),
+        "renew": renew,
+        "locations": texts.LOCATION_INFO,
         "daily": daily[1:],  # روز اول فقط مبنای اختلاف است
         "usage_source": source,
     }
+
+
+async def service_renew(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+                        service_id: int, nonce: str, bot=None) -> dict:  # noqa: ANN001
+    """تمدید سرویس با همان پلن؛ همان منطق دکمه تمدید ربات."""
+    from app.services import renew as renew_svc
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_vpn"):
+        raise ApiError("فروشگاه فعلا خاموش است", 403, "feature_off")
+    service = await db.get_service(service_id)
+    if not service or service["user_id"] != user["id"] or not service["is_active"]:
+        raise ApiError("سرویس پیدا نشد", 404, "not_found")
+    r = await renew_svc.renew(db, panel, user, service, idem=f"warn:{wuser.id}:{nonce}"[:120])
+    if not r.ok:
+        status, msg = {
+            renew_svc.NOT_RENEWABLE: (400, "این سرویس قابل تمدید نیست"),
+            renew_svc.PLAN_GONE: (409, "پلن این سرویس دیگر فعال نیست؛ یک پلن تازه بخر"),
+            renew_svc.PANEL_BUSY: (503, "پنل در دسترس نیست، چند دقیقه دیگر امتحان کن"),
+            renew_svc.LOCKED: (409, "یه پرداخت همین حالا در جریانه"),
+            renew_svc.DUPLICATE: (409, "این تمدید در حال پردازشه"),
+            renew_svc.NOT_ON_PANEL: (404, "این سرویس روی سرور پیدا نشد؛ به پشتیبانی خبر بده"),
+            renew_svc.INSUFFICIENT: (402, "موجودی کیف پولت کافی نیست"),
+        }.get(r.error, (502, "تمدید نشد، پولی کم نشده"))
+        raise ApiError(msg, status, "insufficient" if r.error == renew_svc.INSUFFICIENT else r.error)
+    _usage_cache.pop(int(service_id), None)
+    if bot is not None:
+        try:
+            await referral_mod.reward_purchase(bot, db, user, r.price, r.txn_id, "سرویسش رو تمدید کرد")
+        except Exception:  # noqa: BLE001
+            log.warning("پاداش معرف تمدید ثبت نشد txn=%s", r.txn_id, exc_info=True)
+    return {"ok": True, "balance": r.balance, "days": r.days, "expire_at": r.expire_at, "price": r.price}
 
 
 async def wallet(
@@ -454,59 +521,176 @@ async def qr_payload(
 async def ai_catalog(
     db: "Database", panel: "Panel | None", wuser: WebAppUser
 ) -> dict:
-    """محصولات هوش مصنوعی برای نمایش در مینی اپ.
+    """ویترین و فروشگاه هوش مصنوعی مینی اپ.
 
-    سفارش نهایی عمدا در ربات می ماند: قیمت این محصولات دلاری است و به
-    موجودی لحظه ای فروشنده بستگی دارد، پس یک مسیر پرداخت دوم برایش
-    درست کردن ریسکی است که ارزشش را ندارد. مینی اپ فقط ویترین است.
+    قیمت ها همین جا از سرویس دهنده خوانده و به تومان تبدیل می شوند، ولی
+    این فقط برای نمایش است: موقع خرید، ai_shop.buy محصول و قیمت را دوباره
+    و بدون کش از سرویس دهنده می گیرد.
     """
     user = await _require_user(db, wuser)
     if not features.is_on("shop_ai"):
-        return {"enabled": False, "items": [], "banner": False}
+        return {"enabled": False, "items": [], "orders": [], "banner": False}
 
     bot_username = await db.get_setting("bot_username", "")
     has_banner = bool(await db.get_setting("webapp_ai_banner", ""))
 
     items: list[dict] = []
     try:
-        from app.warzone import Warzone
+        from app.canboso import CanbosoError
+        from app.services import ai_shop
 
-        key = await db.get_setting("ai_api_key", "")
-        if key:
-            products = await Warzone(key).products()
-            for pr in products or []:
-                items.append({
-                    "id": str(pr.get("id") or pr.get("service_id") or ""),
-                    "title": pr.get("title") or pr.get("name") or i18n.t("محصول"),
-                    "price": pr.get("price_toman") or pr.get("price") or 0,
-                    "stock": pr.get("stock"),
-                    "order_link": (
-                        f"https://t.me/{bot_username}?start=ai_{pr.get('id')}"
-                        if bot_username else ""
-                    ),
-                })
+        try:
+            cat = await ai_shop.catalog(db)
+        except CanbosoError:
+            cat = {"items": []}
+        for x in cat["items"]:
+            months = [{"months": m, "price": x["month_prices"][m]} for m in x["months"]]
+            items.append({
+                "id": x["id"],
+                "title": x["name"],
+                "description": (x.get("description") or "")[:900],
+                "price": min(m["price"] for m in months) if months else x["price"],
+                "from_price": bool(months),
+                "months": months,
+                "needs_email": bool(x["needs_email"]),
+                "stock": x["stock"] if x["available"] else 0,
+                "type": x["type"],
+            })
     except Exception:  # noqa: BLE001
         # نبود کاتالوگ نباید صفحه را بشکند؛ ویترین خالی بهتر از خطاست.
         log.warning("کاتالوگ هوش مصنوعی خوانده نشد", exc_info=True)
 
-    orders = await db.user_ai_orders(user["id"], limit=5)
+    orders = await db.user_ai_orders(user["id"], limit=20)
     return {
         "enabled": True,
         "banner": has_banner,
         "items": items,
-        "orders": [
-            {
-                "id": o["id"],
-                "title": o.get("title") or i18n.t("سفارش"),
-                "status": o.get("status") or "pending",
-                "code": o.get("code") or "",
-                "price": int(o.get("price") or 0),
-                "created_at": o["created_at"],
-            }
-            for o in orders
-        ],
+        "balance": int(user["balance"]),
+        "orders": [_ai_order_out(o) for o in orders],
         "bot_link": f"https://t.me/{bot_username}" if bot_username else "",
     }
+
+
+def _ai_order_out(o: dict, full: bool = False) -> dict:
+    """سفارش برای مینی اپ. اطلاعات ورود فقط در حالت full (صفحه خود سفارش)."""
+    from app.services import ai_shop
+
+    d = ai_shop.delivery_of(o)
+    out = {
+        "id": o["id"],
+        "title": o.get("title") or i18n.t("سفارش"),
+        "status": o.get("status") or "pending",
+        "code": o.get("code") or "",
+        "price": int(o.get("price") or 0),
+        "created_at": o["created_at"],
+        "delivered_at": o.get("delivered_at"),
+        "product_id": o.get("service_id") or "",
+        "accounts": len(d.get("accounts") or []),
+    }
+    if full:
+        out.update({
+            "provider_code": o.get("provider_order_id") or "",
+            "email": d.get("email") or "",
+            "months": d.get("months") or None,
+            "links": [str(x) for x in (d.get("links") or [])][:20],
+            "delivery": [
+                {k: str(a.get(k) or "")[:500] for k in ("user", "password", "verifyEmail", "expiryText", "otherInfo")}
+                for a in (d.get("accounts") or [])[:20]
+            ],
+        })
+    return out
+
+
+async def ai_order(db: "Database", panel: "Panel | None", wuser: WebAppUser, order_id: int) -> dict:
+    """یک سفارش هوش مصنوعی با اطلاعات تحویل؛ فقط برای صاحب همان سفارش."""
+    user = await _require_user(db, wuser)
+    o = await db.get_ai_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    return _ai_order_out(o, full=True)
+
+
+# وضعیت خرید -> (کد HTTP، پیام) برای وقت هایی که خریدی انجام نشده
+_AI_ERRORS = {
+    "insufficient": (402, "موجودی کیف پولت کافی نیست"),
+    "unavailable": (409, "این محصول همین الان موجود نیست؛ پولی کم نشد"),
+    "locked": (409, "یه خرید دیگه همین حالا در جریانه"),
+    "not_configured": (503, "فروش این بخش فعلا در دسترس نیست"),
+    "bad_input": (400, "اطلاعات خرید کامل نیست؛ ایمیل و مدت را چک کن"),
+}
+
+
+async def ai_buy(
+    db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+    product_id: str, months: int | None, email: str | None, nonce: str, bot=None,  # noqa: ANN001
+) -> dict:
+    """خرید محصول هوش مصنوعی از مینی اپ؛ همان ai_shop.buy که ربات دارد.
+
+    دروازه ها همان ربات اند (بخش روشن، قوانین). nonce هر بار زدن دکمه
+    «پرداخت» تازه است؛ ارسال دوباره همان nonce (دابل کلیک، شبکه ضعیف)
+    خرید دوم نمی سازد.
+    """
+    from app.services import ai_shop
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_ai"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    if not user.get("rules_accepted_at") and await db.get_setting("rules_enabled", "1") == "1":
+        raise ApiError("اول باید قوانین را در ربات بپذیری", 403, "rules")
+    email = (email or "").strip()[:120] or None
+    if email and not ai_shop.EMAIL_RE.match(email):
+        raise ApiError("ایمیل درست نیست", 400, "bad_email")
+    if not await db.acquire_lock(f"ainonce:{wuser.id}:{nonce}", ttl_seconds=86400):
+        raise ApiError("این خرید در حال پردازشه", 409, "duplicate")
+
+    r = await ai_shop.buy(db, bot, user, str(product_id), months=months, email=email)
+    status = r["status"]
+    fresh = await db.get_user(user["id"])
+    balance = int((fresh or user)["balance"])
+    if status in (ai_shop.DELIVERED, ai_shop.PROCESSING, ai_shop.UNKNOWN):
+        return {"ok": True, "status": status, "balance": balance, "order": _ai_order_out(r["order"], full=True)}
+    if status in (ai_shop.FAILED, ai_shop.NO_FUNDS):
+        if r.get("order"):
+            raise ApiError("فروشنده سفارش را انجام نداد؛ پولت به کیف پول برگشت", 502, "refunded")
+        raise ApiError("ارتباط با فروشنده برقرار نشد؛ پولی کم نشد", 503, "provider")
+    code, msg = _AI_ERRORS.get(status, (400, "خرید انجام نشد"))
+    raise ApiError(msg, code, status)
+
+
+async def ai_check(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, order_id: int, bot=None) -> dict:  # noqa: ANN001
+    """بررسی دوباره سفارش مبهم با همان Idempotency-Key.
+
+    امن است: اگر خرید اول انجام شده بود سرویس دهنده همان پاسخ را برمی گرداند
+    و اگر نه همان خرید (که پولش کم شده) انجام می شود. هر سفارش هر ۳۰ ثانیه
+    یک بار، و نه همزمان با خرید دیگر همین کاربر.
+    """
+    from app.services import ai_shop
+
+    user = await _require_user(db, wuser)
+    o = await db.get_ai_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    if o["status"] not in (ai_shop.UNKNOWN, "pending") or not o.get("idem_key"):
+        return {"ok": True, "status": o["status"], "order": _ai_order_out(o, full=True)}
+    if not await db.acquire_lock(f"aichk:{o['id']}", ttl_seconds=30):
+        raise ApiError("همین الان بررسی شد؛ کمی بعد دوباره امتحان کن", 429, "rate")
+    lock = f"ai:{user['id']}"
+    if not await db.acquire_lock(lock, ttl_seconds=120):
+        raise ApiError("یه خرید دیگه همین حالا در جریانه", 409, "locked")
+    try:
+        await ai_shop.resolve(db, bot, o)
+    finally:
+        await db.release_lock(lock)
+    o = await db.get_ai_order(o["id"])
+    fresh = await db.get_user(user["id"])
+    return {"ok": True, "status": o["status"], "balance": int((fresh or user)["balance"]),
+            "order": _ai_order_out(o, full=True)}
+
+
+async def ai_notify(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """ثبت نام در فهرست «وقتی موجود شد خبرم کن»."""
+    user = await _require_user(db, wuser)
+    return {"ok": True, "added": await db.ai_waitlist_add(user["id"])}
 
 
 def _latin(text: str) -> str:
@@ -523,6 +707,8 @@ async def _amount_expiry(db: "Database", amount: int) -> str | None:
 async def topup_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     """اطلاعات صفحه شارژ: حداقل، مبلغ های آماده، و درخواست باز قبلی."""
     user = await _require_user(db, wuser)
+    if not await payments_svc.card_ok(db):
+        return {"enabled": False, "card_blocked": True}
     card = await charge_svc.card(db)
     prev = await charge_svc.open_request(db, user)
     return {
@@ -557,6 +743,9 @@ def _charge_error(r: dict) -> None:
 
 async def topup_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, amount: int) -> dict:
     user = await _require_user(db, wuser)
+    if not await payments_svc.card_ok(db):
+        raise ApiError("کارت به کارت فقط برای کاربرهای ایران است" if not payments_svc.card_allowed()
+                       else "کارت به کارت فعلا غیرفعال است", 403, "card_blocked")
     r = await charge_svc.start(db, user, amount)
     if not r["ok"]:
         _charge_error(r)
@@ -571,6 +760,142 @@ async def topup_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser
     if not r["ok"]:
         _charge_error(r)
     return {"ok": True, "code": r.get("code"), "amount": r["amount"]}
+
+
+# ═══════════════════ Telegram Stars ═══════════════════
+
+
+async def stars_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    await _require_user(db, wuser)
+    rate = await stars_svc.rate(db)
+    return {"enabled": rate > 0 and await payments_svc.is_on(db, payments_svc.STARS), "rate": rate, "min": await charge_svc.min_charge(db),
+            "presets": list(charge_svc.PRESETS), "max_stars": stars_svc.MAX_STARS}
+
+
+async def stars_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, toman: int, bot=None) -> dict:  # noqa: ANN001
+    """فاکتور ستاره + لینک برای Telegram.WebApp.openInvoice."""
+    user = await _require_user(db, wuser)
+    r = await stars_svc.create(db, user, toman, source="webapp")
+    if not r["ok"]:
+        if r["error"] == stars_svc.TOO_SMALL:
+            raise ApiError(i18n.t("حداقل شارژ {amount} تومانه.", amount=f"{r['min']:,}"), 400, r["error"])
+        if r["error"] == stars_svc.TOO_LARGE:
+            raise ApiError(i18n.t("سقف هر پرداخت با Stars {amount} تومانه.", amount=f"{r.get('max', 0):,}"), 400, r["error"])
+        raise ApiError("پرداخت با Stars فعلا فعال نیست", 503, r["error"])
+    inv = r["invoice"]
+    try:
+        link = await stars_svc.invoice_link(bot, inv)
+    except Exception:  # noqa: BLE001
+        log.warning("لینک فاکتور ستاره ساخته نشد", exc_info=True)
+        raise ApiError("فاکتور ستاره ساخته نشد، دوباره امتحان کن", 502, "network") from None
+    return {**stars_svc.public(inv), "link": link}
+
+
+async def stars_status(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, invoice_id: int) -> dict:
+    user = await _require_user(db, wuser)
+    inv = await db.get_stars_invoice(invoice_id)
+    if not inv or inv["user_id"] != user["id"]:
+        raise ApiError("فاکتور پیدا نشد", 404, "not_found")
+    fresh = await db.get_user(user["id"])
+    return {**stars_svc.public(inv), "balance": int(fresh["balance"])}
+
+
+# ═══════════════════ کریپتو (TON Connect) ═══════════════════
+
+
+async def crypto_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """صفحه شارژ کریپتو: نرخ ها (برای پیش نمایش مبلغ) و فاکتور باز قبلی.
+
+    مبلغ نهایی همیشه از سرور می آید؛ پیش نمایش سمت کلاینت با همان گرد
+    کردن ساخته می شود ولی فقط برای نمایش است.
+    """
+    user = await _require_user(db, wuser)
+    if not crypto_svc.allowed_for(wuser.id) or not await payments_svc.is_on(db, payments_svc.CRYPTO):
+        return {"enabled": False}
+    r = await crypto_svc.rates(db)
+    prev = await db.open_crypto_invoice(user["id"])
+    bot_username = await db.get_setting("bot_username", "")
+    return {
+        "enabled": True,
+        "rates": {a: v for a, v in r.items() if v},
+        "fee": await crypto_svc.fee_percent(db),
+        "decimals": {a: crypto_svc.decimals(a) for a in crypto_svc.ASSETS},
+        "min": await charge_svc.min_charge(db),
+        "presets": list(charge_svc.PRESETS),
+        "network": crypto_svc.network_id(),
+        "testnet": crypto_svc.testnet(),
+        "address": crypto_svc.pay_address(),
+        "return_url": f"https://t.me/{bot_username}" if bot_username else "",
+        "open": crypto_svc.public(prev) if prev else None,
+    }
+
+
+_CRYPTO_ERR = {
+    crypto_svc.OFF: (503, "پرداخت کریپتو فعلا فعال نیست"),
+    crypto_svc.NO_RATE: (503, "نرخ این ارز الان در دسترس نیست"),
+    crypto_svc.BAD_ASSET: (400, "ارز نامعتبر"),
+    crypto_svc.TOO_LARGE: (400, "مبلغ بیش از حد مجاز است"),
+}
+
+
+async def crypto_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, toman: int, asset: str) -> dict:
+    user = await _require_user(db, wuser)
+    r = await crypto_svc.create_invoice(db, user, toman, asset, source="webapp")
+    if not r["ok"]:
+        if r["error"] == crypto_svc.TOO_SMALL:
+            raise ApiError(i18n.t("حداقل شارژ {amount} تومانه.", amount=f"{r['min']:,}"), 400, r["error"])
+        status, msg = _CRYPTO_ERR.get(r["error"], (400, "انجام نشد"))
+        raise ApiError(msg, status, r["error"])
+    return crypto_svc.public(r["invoice"])
+
+
+async def _own_invoice(db: "Database", user: dict, invoice_id: int) -> dict:
+    inv = await db.get_crypto_invoice(invoice_id)
+    if not inv or inv["user_id"] != user["id"]:
+        raise ApiError("فاکتور پیدا نشد", 404, "not_found")
+    return inv
+
+
+async def crypto_pay(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, invoice_id: int, wallet: str, bot=None) -> dict:  # noqa: ANN001
+    """پیام های sendTransaction برای کیف پول وصل شده.
+
+    برای USDT آدرس کیف پول جتونِ خودِ کاربر لازم است، پس آدرس کیف پول
+    TON Connect او را می گیریم. هیچ چیزی از این پاسخ به عنوان پرداخت
+    حساب نمی شود؛ فقط تراکنش روی زنجیره.
+    """
+    user = await _require_user(db, wuser)
+    inv = await _own_invoice(db, user, invoice_id)
+    if not crypto_svc.allowed_for(wuser.id):
+        raise ApiError("پرداخت کریپتو فعلا فعال نیست", 503, crypto_svc.OFF)
+    if inv["status"] != "pending":
+        raise ApiError("این فاکتور دیگر باز نیست", 409, "not_open")
+    try:
+        messages = await crypto_svc.ton_connect_messages(inv, wallet)
+    except crypto_svc.TonError:
+        raise ApiError("آدرس کیف پول نامعتبر است", 400, "bad_wallet") from None
+    except crypto_svc.TonApiError:
+        log.warning("ساخت پیام TON Connect نشد", exc_info=True)
+        raise ApiError("ارتباط با شبکه TON برقرار نشد، دوباره امتحان کن", 502, "network") from None
+    crypto_svc.ensure_watcher(db, bot)
+    return {"messages": messages, "network": crypto_svc.network_id(),
+            "valid_until": int(time.time()) + 600}
+
+
+async def crypto_status(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, invoice_id: int, bot=None) -> dict:  # noqa: ANN001
+    user = await _require_user(db, wuser)
+    inv = await _own_invoice(db, user, invoice_id)
+    if inv["status"] == "pending":
+        await crypto_svc.scan(db, bot)
+        inv = await db.get_crypto_invoice(invoice_id)
+        crypto_svc.ensure_watcher(db, bot)
+    fresh = await db.get_user(user["id"])
+    return {**crypto_svc.public(inv), "balance": int(fresh["balance"])}
+
+
+async def crypto_cancel(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, invoice_id: int) -> dict:
+    user = await _require_user(db, wuser)
+    await db.cancel_crypto_invoice(invoice_id, user["id"])
+    return {"ok": True}
 
 
 async def rules(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
@@ -675,7 +1000,7 @@ async def purchase(
     # پاداش معرف. خطایش داخل خودش لاگ می شود و خرید را نمی شکند.
     if bot is not None:
         try:
-            await referral.reward_purchase(
+            await referral_mod.reward_purchase(
                 bot, db, user, result.price, result.txn_id,
                 "سرویس {title} رو خرید", title=plan["title"],
             )
@@ -691,6 +1016,55 @@ async def purchase(
         "balance": result.balance_after,
         "plan": {"title": plan["title"], "data_gb": plan["data_gb"],
                  "duration_days": plan["duration_days"]},
+    }
+
+
+async def custom_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """جدول قیمت «بساز به سلیقه خودت»: همه ترکیب های حجم و مدت.
+
+    ۶۴ عدد است؛ یک بار فرستاده می شود تا لغزنده ها بی درنگ قیمت را نشان
+    دهند. موقع خرید قیمت دوباره در سرور حساب می شود.
+    """
+    await _require_user(db, wuser)
+    from app.keyboards import CUSTOM_DAY_STEPS, CUSTOM_GB_STEPS
+    from app.utils import custom_price
+
+    if not features.is_on("shop_custom"):
+        return {"enabled": False}
+    return {
+        "enabled": True,
+        "gb": list(CUSTOM_GB_STEPS),
+        "days": list(CUSTOM_DAY_STEPS),
+        "prices": [[custom_price(g, d, config.custom_rate_per_gb) for d in CUSTOM_DAY_STEPS] for g in CUSTOM_GB_STEPS],
+    }
+
+
+async def custom_buy(
+    db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+    gb: int, days: int, nonce: str, bot=None,  # noqa: ANN001
+) -> dict:
+    """خرید سرویس دلخواه؛ همان دروازه ها و خطاهای خرید پلن."""
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_custom") or not features.is_on("shop_vpn"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    if not user.get("rules_accepted_at") and await db.get_setting("rules_enabled", "1") == "1":
+        raise ApiError("اول باید قوانین را در ربات بپذیری", 403, "rules")
+    result = await purchase_svc.purchase_custom(
+        db, panel, user, int(gb), int(days), idem=f"wac:{wuser.id}:{nonce}"[:120],
+    )
+    if not result.ok:
+        status, msg = _PURCHASE_ERRORS.get(result.error, (400, "خرید انجام نشد"))
+        raise ApiError(msg, status, result.error)
+    if bot is not None:
+        try:
+            await referral_mod.reward_purchase(bot, db, user, result.price, result.txn_id, "یک سرویس دلخواه ساخت")
+        except Exception:  # noqa: BLE001
+            log.warning("پاداش معرف ثبت نشد txn=%s", result.txn_id, exc_info=True)
+    return {
+        "ok": True, "service_id": result.service_id, "sub_url": result.sub_url,
+        "title": result.label or f"{i18n.t('سرویس')} {result.service_id}",
+        "price": result.price, "balance": result.balance_after,
+        "plan": {"title": "", "data_gb": int(gb), "duration_days": int(days)},
     }
 
 
@@ -716,8 +1090,11 @@ ROUTES = {
     "tickets": tickets,
     "ai": ai_catalog,
     "topup": topup_info,
+    "crypto": crypto_info,
+    "stars": stars_info,
+    "custom": custom_info,
     "rules": rules,
     "guide": guide,
 }
 
-__all__ = ["ROUTES", "ApiError", "service_detail", "ticket_thread", "qr_payload", "qr_svg", "purchase"]
+__all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase"]

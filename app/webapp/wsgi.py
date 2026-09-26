@@ -33,9 +33,12 @@ _CSP = (
     # img-src: عکس پروفایل کاربر روی CDN تلگرام است و دامنه اش ثابت
     # نیست (t.me، cdn*.telesco.pe و ...). محدود به https می ماند تا
     # محتوای ناامن بار نشود.
-    "img-src 'self' data: https:; "
+    "img-src 'self' data: blob: https:; "
     "font-src 'self' data:; "
-    "connect-src 'self'; "
+    # connect-src: TON Connect با bridge کیف پول ها (دامنه های متعدد و
+    # متغیر، مثل bridge.tonapi.io) و فهرست کیف پول ها در config.ton.org
+    # حرف می زند. فقط https؛ اسکریپتش از خود سرور ما بار می شود.
+    "connect-src 'self' https:; "
     "frame-ancestors https://web.telegram.org https://*.telegram.org; "
     "base-uri 'none'; form-action 'none'"
 )
@@ -63,6 +66,21 @@ def _write_rate_ok(tg_id: int) -> bool:
         return False
     hits.append(now)
     _WRITE_RATE[tg_id] = hits
+    return True
+
+
+# سقف جدا و بازتر برای ادمین: تایید پشت سر هم ده ها رسید نباید قفل شود
+_ADMIN_RATE: dict[int, list[float]] = {}
+
+
+def _admin_rate_ok(tg_id: int) -> bool:
+    now = time.monotonic()
+    hits = [t for t in _ADMIN_RATE.get(tg_id, []) if now - t < 60.0]
+    if len(hits) >= 60:
+        _ADMIN_RATE[tg_id] = hits
+        return False
+    hits.append(now)
+    _ADMIN_RATE[tg_id] = hits
     return True
 
 
@@ -235,8 +253,13 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
 
     # فهرست سفید نوشتن. هر مسیر دیگری خواندنی می ماند، تا اگر روزی
     # اندپوینتی اضافه شد بی سروصدا قابل نوشتن نشود.
-    WRITE_PATHS = ("/api/purchase", "/api/topup/start", "/api/topup/receipt",
-                   "/api/rules/accept", "/api/ticket/send", "/api/lang")
+    WRITE_PATHS = ("/api/purchase", "/api/custom/buy", "/api/service/renew", "/api/topup/start", "/api/topup/receipt",
+                   "/api/rules/accept", "/api/ticket/send", "/api/lang",
+                   "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
+                   "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
+                   "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
+                   "/api/admin/plan", "/api/admin/setting", "/api/admin/feature",
+                   "/api/admin/pay", "/api/admin/ai/product")
     if method == "POST":
         if path not in WRITE_PATHS:
             return _json(
@@ -294,6 +317,25 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
 
     if path.startswith("/static/"):
         return _serve_static(start_response, path[len("/static/"):])
+
+    # manifest برای TON Connect. کیف پول ها (Tonkeeper و ...) آن را بدون
+    # احراز هویت می خوانند تا نام و آیکن اپ را به کاربر نشان دهند.
+    if path == "/tonconnect-manifest.json":
+        from app import webapp as _webapp
+
+        base = _webapp.url()
+        body = json.dumps({
+            "url": base,
+            "name": "Obour",
+            "iconUrl": f"{base}/static/ton-icon.png",
+        }).encode("utf-8")
+        start_response("200 OK", [
+            ("Content-Type", "application/json"),
+            ("Content-Length", str(len(body))),
+            ("Access-Control-Allow-Origin", "*"),
+            ("Cache-Control", "public, max-age=3600"),
+        ])
+        return [body]
 
     if not path.startswith("/api/"):
         return _json(start_response, {"error": "not found"}, "404 Not Found")
@@ -484,6 +526,181 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                 body = _body(environ, limit=16384)
                 return _json(start_response, runtime.run(
                     webapi.ticket_send(db, panel, wuser, body=str(body.get("body") or ""), bot=runtime.bot), timeout=30))
+
+        # ---------- کریپتو (TON Connect) ----------
+        if name in ("crypto/start", "crypto/pay", "crypto/cancel"):
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=1024)
+            try:
+                invoice_id = int(body.get("id") or 0)
+                toman = int(body.get("toman") or 0)
+            except (TypeError, ValueError):
+                invoice_id = toman = 0
+            if name == "crypto/start":
+                if toman <= 0:
+                    return _json(start_response, {"error": "مبلغ نامعتبر", "code": "bad_request"}, "400 Bad Request")
+                return _json(start_response, runtime.run(webapi.crypto_start(
+                    db, panel, wuser, toman=toman, asset=str(body.get("asset") or "")), timeout=30))
+            if invoice_id <= 0:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            if name == "crypto/pay":
+                return _json(start_response, runtime.run(webapi.crypto_pay(
+                    db, panel, wuser, invoice_id=invoice_id, wallet=str(body.get("wallet") or "")[:100],
+                    bot=runtime.bot), timeout=40))
+            return _json(start_response, runtime.run(webapi.crypto_cancel(
+                db, panel, wuser, invoice_id=invoice_id), timeout=20))
+        if name == "crypto/status":
+            return _json(start_response, runtime.run(webapi.crypto_status(
+                db, panel, wuser, invoice_id=int(query.get("id") or 0), bot=runtime.bot), timeout=40))
+
+        # ---------- تمدید سرویس ----------
+        if name == "service/renew":
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=512)
+            try:
+                sid = int(body.get("id") or 0)
+            except (TypeError, ValueError):
+                sid = 0
+            nonce = str(body.get("nonce") or "")[:64]
+            if sid <= 0 or len(nonce) < 8:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            return _json(start_response, runtime.run(webapi.service_renew(
+                db, panel, wuser, service_id=sid, nonce=nonce, bot=runtime.bot), timeout=90))
+
+        # ---------- هوش مصنوعی: سفارش، خرید، بررسی دوباره ----------
+        if name == "ai/order":
+            return _json(start_response, runtime.run(webapi.ai_order(
+                db, panel, wuser, int(query.get("id") or 0)), timeout=20))
+        if name in ("ai/buy", "ai/check", "ai/notify"):
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=1024)
+            if name == "ai/notify":
+                return _json(start_response, runtime.run(webapi.ai_notify(db, panel, wuser), timeout=20))
+            if name == "ai/check":
+                try:
+                    oid = int(body.get("id") or 0)
+                except (TypeError, ValueError):
+                    oid = 0
+                if oid <= 0:
+                    return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+                return _json(start_response, runtime.run(webapi.ai_check(
+                    db, panel, wuser, order_id=oid, bot=runtime.bot), timeout=170))
+            pid = str(body.get("product_id") or "")[:80]
+            nonce = str(body.get("nonce") or "")[:64]
+            try:
+                months = int(body.get("months") or 0) or None
+            except (TypeError, ValueError):
+                months = None
+            if not pid or len(nonce) < 8:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            # تایم اوت بلند: سرویس دهنده با تلاش دوباره تا دو دقیقه طول
+            # می کشد. اگر همین هم گذشت، خرید در پس زمینه تمام می شود و
+            # نتیجه اش در «سفارش های من» پیداست.
+            return _json(start_response, runtime.run(webapi.ai_buy(
+                db, panel, wuser, product_id=pid, months=months, email=str(body.get("email") or ""),
+                nonce=nonce, bot=runtime.bot), timeout=170))
+
+        # ---------- خرید دلخواه ----------
+        if name == "custom/buy":
+            if method != "POST":
+                return _json(start_response, {"error": "خرید فقط با POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=512)
+            try:
+                gb, days = int(body.get("gb") or 0), int(body.get("days") or 0)
+            except (TypeError, ValueError):
+                gb = days = 0
+            nonce = str(body.get("nonce") or "")[:64]
+            if gb <= 0 or days <= 0 or len(nonce) < 8:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            return _json(start_response, runtime.run(webapi.custom_buy(
+                db, panel, wuser, gb=gb, days=days, nonce=nonce, bot=runtime.bot), timeout=90))
+
+        # ---------- پنل ادمین ----------
+        # هر تابع admin_api خودش ادمین بودن را از روی آیدی امضا شده
+        # initData می سنجد؛ اینجا فقط مسیریابی و خواندن ورودی است.
+        if name == "admin" or name.startswith("admin/"):
+            from app.webapp import admin_api
+
+            if name in admin_api.READ:
+                return _json(start_response, runtime.run(admin_api.READ[name](db, panel, wuser), timeout=30))
+            if name == "admin/users":
+                return _json(start_response, runtime.run(admin_api.users(
+                    db, panel, wuser, q=str(query.get("q") or "")[:64], page=int(query.get("page") or 0)), timeout=20))
+            if name == "admin/user":
+                return _json(start_response, runtime.run(admin_api.user_detail(
+                    db, panel, wuser, telegram_id=int(query.get("id") or 0)), timeout=20))
+            if name == "admin/receipt":
+                data, ctype = runtime.run(admin_api.receipt(
+                    db, panel, wuser, txn_id=int(query.get("id") or 0), bot=runtime.bot), timeout=40)
+                start_response("200 OK", [
+                    ("Content-Type", ctype), ("Content-Length", str(len(data))),
+                    ("Cache-Control", "private, max-age=600"), ("X-Content-Type-Options", "nosniff"),
+                ])
+                return [data]
+            if method != "POST":
+                return _json(start_response, {"error": "not found", "code": "not_found"}, "404 Not Found")
+            if not _admin_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=2048)
+            if name == "admin/charge":
+                return _json(start_response, runtime.run(admin_api.charge_action(
+                    db, panel, wuser, txn_id=int(body.get("id") or 0), action=str(body.get("action") or ""),
+                    reason=str(body.get("reason") or ""), bot=runtime.bot), timeout=40))
+            if name == "admin/balance":
+                return _json(start_response, runtime.run(admin_api.balance(
+                    db, panel, wuser, telegram_id=int(body.get("id") or 0), amount=int(body.get("amount") or 0),
+                    add=bool(body.get("add")), bot=runtime.bot), timeout=30))
+            if name == "admin/block":
+                return _json(start_response, runtime.run(admin_api.block(
+                    db, panel, wuser, telegram_id=int(body.get("id") or 0), blocked=bool(body.get("blocked"))), timeout=20))
+            if name == "admin/plan":
+                fields = body.get("fields") if isinstance(body.get("fields"), dict) else {}
+                return _json(start_response, runtime.run(admin_api.plan_update(
+                    db, panel, wuser, plan_id=int(body.get("id") or 0), fields=fields), timeout=20))
+            if name == "admin/setting":
+                return _json(start_response, runtime.run(admin_api.setting_save(
+                    db, panel, wuser, field=str(body.get("field") or ""), value=str(body.get("value") or "")[:200]), timeout=20))
+            if name == "admin/feature":
+                return _json(start_response, runtime.run(admin_api.feature_set(
+                    db, panel, wuser, key=str(body.get("key") or ""), on=bool(body.get("on"))), timeout=20))
+            if name == "admin/pay":
+                return _json(start_response, runtime.run(admin_api.pay_set(
+                    db, panel, wuser, key=str(body.get("key") or ""), on=bool(body.get("on"))), timeout=20))
+            if name == "admin/ai/product":
+                return _json(start_response, runtime.run(admin_api.ai_product_set(
+                    db, panel, wuser, pid=str(body.get("id") or "")[:80], on=bool(body.get("on")),
+                    all_=bool(body.get("all"))), timeout=40))
+            return _json(start_response, {"error": "not found", "code": "not_found"}, "404 Not Found")
+
+        # ---------- Telegram Stars ----------
+        if name == "stars/start":
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=512)
+            try:
+                toman = int(body.get("toman") or 0)
+            except (TypeError, ValueError):
+                toman = 0
+            if toman <= 0:
+                return _json(start_response, {"error": "مبلغ نامعتبر", "code": "bad_request"}, "400 Bad Request")
+            return _json(start_response, runtime.run(webapi.stars_start(
+                db, panel, wuser, toman=toman, bot=runtime.bot), timeout=30))
+        if name == "stars/status":
+            return _json(start_response, runtime.run(webapi.stars_status(
+                db, panel, wuser, invoice_id=int(query.get("id") or 0)), timeout=20))
 
         # ---------- بقیه ----------
         handler = webapi.ROUTES.get(name)

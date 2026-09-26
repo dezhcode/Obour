@@ -1,5 +1,7 @@
 aiogram>=3.31,<4  # 3.31 اولین نسخه با پشتیبانی کامل Rich Message (Bot API 10.1-10.3: جدول واقعی)
 aiohttp>=3.9
+# کلاینت canboso (خدمات هوش مصنوعی)؛ pasarguard هم آن را می آورد
+httpx>=0.25
 aiosqlite>=0.20
 pasarguard>=2.4.0
 python-dotenv>=1.0

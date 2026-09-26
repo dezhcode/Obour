@@ -280,7 +280,7 @@ CREATE TABLE IF NOT EXISTS poll_votes (
 CREATE INDEX IF NOT EXISTS idx_poll_opt ON poll_options(poll_id, position);
 CREATE INDEX IF NOT EXISTS idx_poll_votes ON poll_votes(poll_id, option_id);
 
--- سفارش های خدمات هوش مصنوعی (واسط warzoneshop).
+-- سفارش های خدمات هوش مصنوعی (canboso.com؛ سفارش های قدیمی از warzoneshop).
 -- چرا جدول جدا و نه استفاده از services؟ چون ماهیتش فرق دارد: اینجا
 -- حجم و انقضا نداریم، بلکه یک یا چند «لینک تحویل» داریم که صادر شده و
 -- برگشت ناپذیرند.
@@ -332,6 +332,48 @@ CREATE TABLE IF NOT EXISTS bot_channels (
   can_post INTEGER NOT NULL DEFAULT 1,
   updated_at TEXT NOT NULL
 );
+-- فاکتور شارژ با کریپتو (TON یا USDT روی شبکه TON). هر فاکتور یک کد
+-- یکتا دارد که کاربر در کامنت تراکنش می فرستد؛ پایشگر تراکنش های ورودی
+-- کیف پول ما را می خواند و با همین کد پیدا می کند مال کدام فاکتور است.
+-- units به کوچک ترین واحد است (nanoTON یا micro USDT). tx_hash یکتاست تا
+-- یک تراکنش زنجیره هیچ وقت دو بار حساب نشود.
+CREATE TABLE IF NOT EXISTS crypto_invoices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  code TEXT NOT NULL UNIQUE,
+  asset TEXT NOT NULL,
+  units INTEGER NOT NULL,
+  toman INTEGER NOT NULL,
+  rate INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',   -- pending | paid | underpaid | cancelled
+  source TEXT,                              -- bot | webapp
+  payer TEXT,
+  paid_units INTEGER,
+  tx_hash TEXT UNIQUE,
+  txn_id INTEGER,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  paid_at TEXT
+);
+-- فاکتور شارژ با Telegram Stars. payload فاکتور تلگرام «st:<id>» است؛
+-- charge_id (شناسه پرداخت تلگرام) یکتاست تا هیچ پرداختی دو بار حساب نشود
+-- و برای برگرداندن ستاره (refundStarPayment) هم لازم است.
+CREATE TABLE IF NOT EXISTS stars_invoices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  toman INTEGER NOT NULL,
+  stars INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',   -- pending | paid
+  source TEXT,
+  charge_id TEXT UNIQUE,
+  txn_id INTEGER,
+  created_at TEXT NOT NULL,
+  paid_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_stars_user ON stars_invoices(user_id, id);
+CREATE INDEX IF NOT EXISTS idx_crypto_status ON crypto_invoices(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_crypto_user ON crypto_invoices(user_id, id);
+
 CREATE INDEX IF NOT EXISTS idx_ref_earn ON referral_earnings(referrer_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_ref_invitee ON referral_earnings(invitee_id);
 CREATE INDEX IF NOT EXISTS idx_txn_user ON transactions(user_id, created_at);
@@ -451,6 +493,11 @@ class Database:
         """
         assert self._conn
         migrations = [
+            # canboso: کلید یکتای خرید و خود درخواست، تا سفارش مبهم با همان
+            # کلید دوباره پرسیده شود؛ ارز هزینه (VND یا USD)
+            ("ai_orders", "idem_key", "ALTER TABLE ai_orders ADD COLUMN idem_key TEXT"),
+            ("ai_orders", "request", "ALTER TABLE ai_orders ADD COLUMN request TEXT"),
+            ("ai_orders", "cost_currency", "ALTER TABLE ai_orders ADD COLUMN cost_currency TEXT"),
             ("services", "label", "ALTER TABLE services ADD COLUMN label TEXT"),
             (
                 "users",
@@ -1979,6 +2026,13 @@ class Database:
             ),
         )
 
+    async def set_ai_request(self, order_id: int, idem_key: str, request: str, currency: str) -> None:
+        """کلید یکتا و درخواست، *قبل* از تماس با سرویس دهنده."""
+        await self.execute(
+            "UPDATE ai_orders SET idem_key = ?, request = ?, cost_currency = ? WHERE id = ?",
+            (idem_key, request, currency, order_id),
+        )
+
     async def get_ai_order(self, order_id: int) -> dict | None:
         row = await self.fetchone("SELECT * FROM ai_orders WHERE id = ?", (order_id,))
         return dict(row) if row else None
@@ -2197,6 +2251,105 @@ class Database:
             (limit,),
         )
         return [dict(r) for r in rows]
+
+    # ---------- فاکتور Stars ----------
+    async def create_stars_invoice(self, *, user_id: int, toman: int, stars: int, source: str) -> int:
+        return await self.insert(
+            "INSERT INTO stars_invoices(user_id, toman, stars, source, created_at) VALUES (?, ?, ?, ?, ?)",
+            (user_id, toman, stars, source, now_str()),
+        )
+
+    async def get_stars_invoice(self, invoice_id: int) -> dict | None:
+        row = await self.fetchone("SELECT * FROM stars_invoices WHERE id = ?", (invoice_id,))
+        return dict(row) if row else None
+
+    async def settle_stars_invoice(self, invoice_id: int, charge_id: str) -> bool:
+        """بستن اتمیک؛ False یعنی قبلا پرداخت شده یا این charge_id مصرف شده."""
+        try:
+            rc = await self.execute(
+                """UPDATE stars_invoices SET status = 'paid', charge_id = ?, paid_at = ?
+                   WHERE id = ? AND status = 'pending'""",
+                (charge_id, now_str(), invoice_id),
+            )
+        except aiosqlite.IntegrityError:
+            return False
+        return rc == 1
+
+    async def set_stars_txn(self, invoice_id: int, txn_id: int) -> None:
+        await self.execute("UPDATE stars_invoices SET txn_id = ? WHERE id = ?", (txn_id, invoice_id))
+
+    # ---------- فاکتور کریپتو ----------
+    async def create_crypto_invoice(
+        self, *, user_id: int, code: str, asset: str, units: int, toman: int,
+        rate: int, source: str, minutes: int,
+    ) -> int:
+        expires = (datetime.now(TZ) + timedelta(minutes=minutes)).isoformat(timespec="seconds")
+        return await self.insert(
+            """INSERT INTO crypto_invoices(user_id, code, asset, units, toman, rate, source, created_at, expires_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, code, asset, units, toman, rate, source, now_str(), expires),
+        )
+
+    async def get_crypto_invoice(self, invoice_id: int) -> dict | None:
+        row = await self.fetchone("SELECT * FROM crypto_invoices WHERE id = ?", (invoice_id,))
+        return dict(row) if row else None
+
+    async def crypto_invoice_by_code(self, code: str) -> dict | None:
+        row = await self.fetchone("SELECT * FROM crypto_invoices WHERE code = ?", (code,))
+        return dict(row) if row else None
+
+    async def open_crypto_invoice(self, user_id: int) -> dict | None:
+        """آخرین فاکتور باز و هنوز در مهلت کاربر، برای ادامه دادن."""
+        row = await self.fetchone(
+            """SELECT * FROM crypto_invoices
+               WHERE user_id = ? AND status = 'pending' AND expires_at > ?
+               ORDER BY id DESC LIMIT 1""",
+            (user_id, now_str()),
+        )
+        return dict(row) if row else None
+
+    async def watch_crypto_invoices(self, hours: int = 48) -> list[dict]:
+        """فاکتورهایی که هنوز ممکن است پولشان برسد.
+
+        بعد از پایان مهلت هم تا چند ساعت نگاه می کنیم: اگر کاربر دیر
+        پرداخت کرده باشد، پولش نباید گم شود.
+        """
+        since = (datetime.now(TZ) - timedelta(hours=hours)).isoformat(timespec="seconds")
+        rows = await self.fetchall(
+            # لغو شده هم: اگر کاربر بعد از «انصراف» باز پرداخت کرد، پولش گم نشود
+            "SELECT * FROM crypto_invoices WHERE status IN ('pending', 'cancelled') AND created_at > ? ORDER BY id",
+            (since,),
+        )
+        return [dict(r) for r in rows]
+
+    async def cancel_crypto_invoice(self, invoice_id: int, user_id: int) -> bool:
+        rc = await self.execute(
+            "UPDATE crypto_invoices SET status = 'cancelled' WHERE id = ? AND user_id = ? AND status = 'pending'",
+            (invoice_id, user_id),
+        )
+        return rc == 1
+
+    async def settle_crypto_invoice(
+        self, invoice_id: int, *, status: str, tx_hash: str, payer: str, paid_units: int,
+    ) -> bool:
+        """بستن اتمیک فاکتور. False یعنی قبلا بسته شده یا این تراکنش مصرف شده."""
+        try:
+            rc = await self.execute(
+                """UPDATE crypto_invoices
+                   SET status = ?, tx_hash = ?, payer = ?, paid_units = ?, paid_at = ?
+                   WHERE id = ? AND status IN ('pending', 'cancelled')""",
+                (status, tx_hash, payer, paid_units, now_str(), invoice_id),
+            )
+        except aiosqlite.IntegrityError:
+            return False
+        return rc == 1
+
+    async def crypto_tx_seen(self, tx_hash: str) -> bool:
+        row = await self.fetchone("SELECT 1 FROM crypto_invoices WHERE tx_hash = ?", (tx_hash,))
+        return row is not None
+
+    async def set_crypto_txn(self, invoice_id: int, txn_id: int) -> None:
+        await self.execute("UPDATE crypto_invoices SET txn_id = ? WHERE id = ?", (txn_id, invoice_id))
 
     async def get_setting(self, key: str, default: str = "") -> str:
         row = await self.fetchone("SELECT value FROM settings WHERE key = ?", (key,))

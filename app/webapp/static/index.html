@@ -255,6 +255,8 @@ html[dir=ltr] .chev svg, html[dir=ltr] .back svg, html[dir=ltr] .loc-all svg{tra
 html[dir=ltr] .bubble-row.mine{justify-content:flex-end}
 html[dir=ltr] .bubble-row.theirs{justify-content:flex-start}
 html[dir=ltr] .bubble-time{float:right;margin:7px 0 0 10px}
+html[dir=ltr] .kind-ok{left:auto;right:11px}
+html[dir=ltr] .clock-in span{font-size:8px;letter-spacing:-.2px}
 /* پیدا برای فارسی ساخته شده و فاصله لاتین و سیریلیک را خیلی باریک
    می کشد (کلمه ها به هم می چسبیدند). انگلیسی با فونت سیستم. */
 html:not([lang=fa]) body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',sans-serif}
@@ -448,6 +450,247 @@ html:not([lang=fa]) body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'
 .steps-warn{display:flex;gap:8px;align-items:flex-start;margin:0 16px 16px;padding:10px 12px;border-radius:var(--r-md);background:var(--cash-t);color:var(--cash-i);font-size:12.5px;line-height:1.8}
 .steps-warn svg{width:16px;height:16px;flex-shrink:0;margin-top:3px}
 
+/* ═══ پرداخت کریپتو (TON Connect) ═══
+   ارزها مثل ردیف های انتخابی، کیف پول وصل شده یک نوار جدا، و فاکتور همان
+   قالب پرداخت کارتی: مبلغ درشت با حلقه مهلت. جزئیات دستی (آدرس، مبلغ،
+   کامنت) برای کسی است که از صرافی یا کیف پول بدون TON Connect می پردازد. */
+.kinds.k3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kinds.k3 .kind{padding:12px 10px;gap:8px} .kinds.k3 .kind.on{padding:11px 9px}
+.kinds.k3 .kind-t{font-size:13px} .kinds.k3 .kind-s{font-size:10.5px}
+.kinds.k3 .kind-ok{top:9px;left:9px;width:18px;height:18px}
+html[dir=ltr] .kinds.k3 .kind-ok{left:auto;right:9px}
+.st-big{display:flex;align-items:center;justify-content:center;gap:10px;margin:4px var(--pad) 0;padding:18px;border-radius:var(--r-xl);
+  background:linear-gradient(135deg,#FFB800 0%,#FF8A00 100%);color:#fff}
+.st-big svg{width:30px;height:30px;fill:#fff;stroke:#fff}
+.st-big b{font-size:34px;font-weight:800;letter-spacing:-.5px;direction:ltr}
+.st-big span{font-size:13px;font-weight:700;opacity:.9}
+.ai-how{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:12px;color:var(--ink-3)}
+.ai-how svg{width:14px;height:14px;color:var(--ai-i)}
+
+/* ═══ هوش مصنوعی ═══
+   همان زبان کارت عبور، به رنگ نیلی دسته AI. هر محصول یک کاشی رنگ برند
+   (حرف اول، نه لوگو)؛ قیمت همیشه سمت انتها. صفحه محصول یک کارت نیلی
+   قهرمان دارد و بعد از خرید، اطلاعات ورود روی یک «کارت ورود» نیلی می آید. */
+.ai-hero{margin:8px var(--pad) 0;padding:20px;border-radius:var(--r-xl);color:var(--on-pass);position:relative;overflow:hidden;
+  background:radial-gradient(120% 90% at 100% 0%,#6A55E0 0%,var(--indigo) 52%,#241A6E 100%);box-shadow:0 18px 34px -18px rgba(63,47,160,.6)}
+.ai-hero > *{position:relative}
+.ai-hero .pass-art{left:-30px;bottom:-70px}
+.ai-hero-t{font-size:21px;font-weight:800;letter-spacing:-.3px;line-height:1.45}
+.ai-hero-s{font-size:12.5px;color:#DAD4FF;margin-top:4px;line-height:1.9}
+.ai-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.ai-chips span{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:14px;background:rgba(255,255,255,.13);font-size:11.5px;font-weight:700}
+.ai-chips svg{width:13px;height:13px;color:var(--tunnel)}
+.ai-hero .pass-foot{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.14)}
+.ai-hero .pass-meta{color:#DAD4FF}
+.ai-hero .pass-btn{color:var(--indigo)}
+.ai-mono{--b:var(--indigo);width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--b);color:#fff;font-size:15px;font-weight:800;letter-spacing:-.3px;direction:ltr;font-family:system-ui,sans-serif}
+.ai-mono svg{width:22px;height:22px}
+.ai-mono.lg{width:58px;height:58px;border-radius:17px;font-size:18px;box-shadow:0 0 0 3px rgba(255,255,255,.16)}
+.ai-mono.sm{width:40px;height:40px;border-radius:var(--r-md);font-size:13px}
+.ai-list{display:flex;flex-direction:column;gap:10px;padding:0 var(--pad)}
+.ai-p{display:flex;align-items:center;gap:12px;padding:14px 12px 14px 14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);
+  width:100%;text-align:start;transition:transform .15s var(--ease)}
+.ai-p:active{transform:scale(.985)}
+.ai-p-m{flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ai-p-t{font-size:15px;font-weight:800;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+/* فاصله حروف لاتین در فونت فارسی خیلی تنگ است؛ نام محصول ها لاتین اند */
+html[lang=fa] .ai-lat{word-spacing:.28em}
+.ai-p .ai-how{margin-top:0}
+.ai-p-st{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--ok)}
+.ai-p-st::before{content:"";width:6px;height:6px;border-radius:3px;background:currentColor}
+.ai-p-st.bad{color:var(--bad)}
+.ai-p-e{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;line-height:1.35}
+.ai-p-e .n{font-size:16px}
+.ai-p.out{opacity:.62}
+.ai-p .chev{margin-inline-start:-4px}
+.sec-a{font-size:13px;font-weight:800;color:var(--ai-i)}
+
+.ai-pass{height:auto;background:radial-gradient(120% 90% at 100% 0%,#6A55E0 0%,var(--indigo) 52%,#241A6E 100%);box-shadow:0 18px 34px -18px rgba(63,47,160,.6)}
+.ai-pass-h{display:flex;align-items:center;gap:12px}
+.ai-pass-t{font-size:18px;font-weight:800;line-height:1.4;overflow-wrap:anywhere}
+.ai-pass-s{font-size:12px;color:var(--p2);margin-top:2px}
+.ai-pass .pass-st{align-self:flex-start}
+.ai-price{display:flex;align-items:baseline;gap:6px;margin-top:20px}
+.ai-price .n{font-size:40px;letter-spacing:-1.2px;line-height:1}
+.ai-price small{font-size:14px;font-weight:600;color:var(--p2)}
+.ai-pass .pass-foot{margin-top:12px}
+.ai-months{display:grid;grid-template-columns:repeat(var(--c,3),minmax(0,1fr));gap:8px;padding:0 var(--pad)}
+.ai-m{padding:12px 8px;border-radius:var(--r-md);background:var(--surface);border:1.5px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:transform .15s var(--ease)}
+.ai-m:active{transform:scale(.96)}
+.ai-m b{font-size:15px;font-weight:800} .ai-m > span{font-size:11.5px;color:var(--ink-3)}
+.ai-m.on{border-color:var(--ai);background:var(--ai-t);color:var(--ai-i)} .ai-m.on > span{color:var(--ai-i)}
+.ai-box{padding:14px 16px}
+.ai-in{width:100%;height:52px;border-radius:var(--r-md);border:1.5px solid var(--line);background:var(--ground);padding:0 14px;font:inherit;font-size:15px;
+  direction:ltr;text-align:left;color:var(--ink);outline:none;transition:border-color .2s}
+.ai-in:focus{border-color:var(--ai)} .ai-in.bad{border-color:var(--bad)} .ai-in.ok{border-color:var(--ok)}
+.ai-hint{font-size:12px;color:var(--ink-3);line-height:1.9;margin-top:8px}
+.ai-steps{padding:4px 16px}
+.ai-step{display:flex;gap:12px;padding:12px 0}
+.ai-step + .ai-step{border-top:1px dashed var(--line)}
+.ai-step > i{width:30px;height:30px;border-radius:15px;background:var(--ai-t);color:var(--ai-i);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-step > i svg{width:15px;height:15px}
+.ai-step b{font-size:14px;font-weight:800;display:block} .ai-step span{font-size:12.5px;color:var(--ink-3);line-height:1.85;display:block}
+.ai-desc{word-spacing:.2em;padding:14px 16px;font-size:13px;line-height:2;color:var(--ink-2);white-space:pre-line;overflow-wrap:anywhere}
+.ai-desc.clip{max-height:10em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+.ai-more{display:block;margin:8px auto 0;font-size:13px;font-weight:800;color:var(--ai-i)}
+.ai-warn{display:flex;gap:10px;margin:14px var(--pad) 0;padding:12px 14px;border-radius:var(--r-md);background:var(--cash-t);color:var(--cash-i);font-size:12.5px;line-height:1.9}
+.ai-warn svg{width:18px;height:18px;margin-top:3px;flex-shrink:0}
+.btn-ai{background:var(--ai-i);color:#fff}
+.btn-ai:active{background:#33238C}
+.ai-wait{padding:10px 0 6px;text-align:center}
+.ai-orb{width:76px;height:76px;margin:6px auto 16px;border-radius:38px;background:var(--ai-t);color:var(--ai-i);display:flex;align-items:center;justify-content:center;position:relative}
+.ai-orb::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:3px solid transparent;border-top-color:var(--ai);border-inline-end-color:var(--ai);animation:ai-spin 1s linear infinite}
+.ai-orb svg{width:30px;height:30px;animation:ai-pulse 1.6s var(--ease) infinite}
+@keyframes ai-spin{to{transform:rotate(360deg)}}
+@keyframes ai-pulse{50%{transform:scale(.8);opacity:.7}}
+
+.ai-st{margin:8px var(--pad) 0;padding:18px;border-radius:var(--r-xl);background:var(--surface);border:1px solid var(--line)}
+.ai-st-h{display:flex;gap:14px;align-items:center}
+.ai-st-i{width:46px;height:46px;border-radius:23px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;background:var(--ink-3)}
+.ai-st-i svg{width:22px;height:22px}
+.ai-st.ok .ai-st-i{background:var(--ok)} .ai-st.warn .ai-st-i{background:var(--cash)} .ai-st.bad .ai-st-i{background:var(--bad)}
+.ai-st-t{font-size:18px;font-weight:800;line-height:1.4} .ai-st-c{font-size:12px;color:var(--ink-3)}
+.ai-st-s{font-size:13px;color:var(--ink-2);line-height:1.95;margin-top:12px}
+.ai-st-e{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border-radius:var(--r-md);background:var(--sunk);font-size:13.5px;font-weight:700}
+.ai-st-e svg{width:16px;height:16px;color:var(--ai-i)}
+.ai-st-e span{direction:ltr;overflow-wrap:anywhere}
+.ai-st .btn{margin-top:14px}
+.ai-cred{height:auto;gap:12px;cursor:default;background:radial-gradient(120% 90% at 100% 0%,#6A55E0 0%,var(--indigo) 52%,#241A6E 100%)}
+.ai-cred + .ai-cred{margin-top:12px}
+.ai-f{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.22);border-radius:var(--r-md);padding:8px;padding-inline-start:12px}
+.ai-f-m{flex-grow:1;min-width:0}
+.ai-f-k{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--p2)}
+.ai-f-k svg{width:12px;height:12px}
+.ai-f-v{display:block;font-size:15px;font-weight:700;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.2px;margin-top:1px}
+.ai-f-v.txt{font-family:inherit;white-space:normal;text-align:start;word-spacing:.2em;font-size:13px;font-weight:600;line-height:1.8;letter-spacing:0}
+.ai-f-b{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.12);color:var(--on-pass);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-f-b svg{width:17px;height:17px}
+.ai-f-b:active{transform:scale(.92)}
+.ai-cred .invite-share{color:var(--indigo)}
+.cx-assets{margin:0 var(--pad);display:flex;flex-direction:column;gap:10px}
+.cx-a{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);text-align:start;width:100%;transition:border-color .2s}
+.cx-a.on{border:2px solid var(--brand);padding:13px}
+.cx-i{width:42px;height:42px;border-radius:21px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.cx-i svg{width:22px;height:22px}
+.cx-i.ton{background:#0098EA} .cx-i.usdt{background:#26A17B}
+.cx-n{flex-grow:1;min-width:0} .cx-n b{display:block;font-size:15px;font-weight:800} .cx-n span{font-size:11.5px;color:var(--ink-3)}
+.cx-v{font-size:16px;font-weight:800;direction:ltr;white-space:nowrap}
+.cx-v small{font-size:11px;font-weight:600;color:var(--ink-3);margin-left:4px}
+/* فاصله لاتین فونت فارسی خیلی باریک است؛ بین عدد و نام ارز حاشیه واقعی می گذاریم */
+.cx-u{margin-left:.32em}
+.cx-w{display:flex;align-items:center;gap:12px;margin:0 var(--pad);padding:12px 14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line)}
+.cx-w .row-m b{display:block;font-size:14px;font-weight:800}
+.cx-w .row-m span{font-size:12px;color:var(--ink-3);direction:ltr;display:inline-block}
+.cx-w .dot{width:10px;height:10px;border-radius:5px;background:var(--line);flex-shrink:0}
+.cx-w.on .dot{background:var(--ok);box-shadow:0 0 0 4px rgba(11,122,85,.15)}
+.cx-net{display:inline-flex;align-items:center;gap:6px;margin:0 var(--pad) 10px;padding:4px 10px;border-radius:10px;background:var(--help-t);color:var(--help-i);font-size:11.5px;font-weight:800}
+.cx-st{display:flex;align-items:center;gap:10px;margin:10px var(--pad) 0;padding:11px 13px;border-radius:var(--r-md);background:var(--net-t);color:var(--net-i);font-size:12.5px;line-height:1.7}
+.cx-st.sent{background:var(--cash-t);color:var(--cash-i)}
+.cx-spin{width:16px;height:16px;border-radius:8px;border:2.5px solid currentColor;border-top-color:transparent;animation:cxspin .8s linear infinite;flex-shrink:0}
+@keyframes cxspin{to{transform:rotate(360deg)}}
+.cx-kv{padding:4px 16px}
+.cx-kv > div{display:flex;align-items:center;gap:10px;padding:10px 0}
+.cx-kv > div + div{border-top:1px solid var(--line)}
+.cx-kv .k{font-size:12px;color:var(--ink-3);flex-shrink:0;width:62px}
+.cx-kv .v{flex-grow:1;min-width:0;font-size:13.5px;font-weight:800;direction:ltr;text-align:left;word-break:break-all;line-height:1.5}
+.cx-kv .v.addr{font-size:11.5px;font-weight:600}
+.cx-kv button{width:34px;height:34px;border-radius:10px;background:var(--sunk);color:var(--ink-2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cx-kv button svg{width:15px;height:15px}
+.foot .cx-alt{display:block;width:100%;margin-top:10px;font-size:13px;font-weight:700;color:var(--brand);text-align:center}
+
+/* ═══ صفحه سرویس ═══ */
+.sv-hero{margin:8px var(--pad) 0;padding:18px;border-radius:var(--r-xl);background:var(--surface);border:1px solid var(--line)}
+.sv-hero.ok{background:linear-gradient(160deg,#E6F6EF 0%,var(--surface) 70%);border-color:#BFE6D3}
+.sv-hero.new{background:linear-gradient(160deg,var(--net-t) 0%,var(--surface) 70%)}
+.sv-hero.warn{background:linear-gradient(160deg,#FFF3D6 0%,var(--surface) 70%);border-color:#F1D48A}
+.sv-hero.bad{background:linear-gradient(160deg,#FDE6E3 0%,var(--surface) 70%);border-color:#F2B8B0}
+.sv-st{display:flex;align-items:center;gap:9px;font-size:17px;font-weight:800}
+.sv-dot{width:10px;height:10px;border-radius:5px;background:var(--ok);box-shadow:0 0 0 4px rgba(11,122,85,.15);flex-shrink:0}
+.sv-hero.new .sv-dot{background:var(--brand);box-shadow:0 0 0 4px rgba(29,85,240,.15)}
+.sv-hero.warn .sv-dot{background:#E0A000;box-shadow:0 0 0 4px rgba(224,160,0,.18)}
+.sv-hero.bad .sv-dot{background:var(--bad);box-shadow:0 0 0 4px rgba(192,57,43,.15)}
+.sv-hint{margin:6px 0 14px;font-size:13px;line-height:1.9;color:var(--ink-2)}
+.sv-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px var(--pad) 0}
+.sv-tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;display:flex;flex-direction:column;gap:2px}
+.sv-tile b{font-size:26px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.sv-tile small{font-size:11.5px;color:var(--ink-3)}
+.sv-bar{margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:12px 14px}
+.sv-bar-h{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2);margin-bottom:8px}
+.sv-track{height:8px;border-radius:4px;background:var(--sunk);overflow:hidden}
+.sv-track i{display:block;height:100%;border-radius:4px;background:var(--brand)}
+.sv-fc{margin-top:8px;font-size:12px;color:var(--ink-3);line-height:1.8}
+.sv-apps{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.sv-app{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 13px;border-radius:12px;background:var(--sunk);color:var(--ink);font-size:13px;font-weight:700;text-decoration:none}
+.sv-app svg{width:15px;height:15px}
+.sv-app.best{background:var(--brand);color:var(--on-brand)}
+.sv-app small{font-size:10px;font-weight:700;opacity:.8;margin-inline-start:4px}
+.sv-rn{padding:16px}
+.sv-rn-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sv-rn-h b{font-size:24px;font-weight:800} .sv-rn-h span{font-size:12.5px;color:var(--ink-3)}
+.sv-rn p{margin:8px 0 12px;font-size:12.5px;line-height:1.9;color:var(--ink-2)}
+
+/* ═══ بساز به سلیقه خودت ═══ */
+.cst-card{display:flex;align-items:center;gap:12px;width:calc(100% - 2 * var(--pad));margin:14px var(--pad) 0;padding:14px 16px;border-radius:var(--r-lg);
+  background:linear-gradient(135deg,var(--navy) 0%,var(--deep) 100%);color:var(--on-pass);text-align:start;position:relative;overflow:hidden}
+.cst-card .ic{background:rgba(255,255,255,.14);color:#fff}
+.cst-card b{display:block;font-size:15px;font-weight:800} .cst-card span.s{font-size:12px;color:var(--on-pass-2)}
+.cst-card .chev svg{color:#fff}
+.cst-hero{margin:8px var(--pad) 0;padding:20px;border-radius:var(--r-xl);color:var(--on-pass);position:relative;overflow:hidden;
+  background:radial-gradient(120% 90% at 100% 0%,#1D3F9E 0%,var(--navy) 55%,var(--deep) 100%)}
+.cst-hero > *{position:relative}
+.cst-hero .pass-art{left:-30px;bottom:-70px}
+.cst-sum{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cst-sum b{font-size:40px;font-weight:800;letter-spacing:-1px;line-height:1.1}
+.cst-sum span{font-size:15px;font-weight:700;color:var(--on-pass-2)}
+.cst-price{margin-top:14px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.cst-price b{font-size:24px;font-weight:800} .cst-price small{font-size:12px;color:var(--on-pass-2);margin-inline-start:4px}
+.cst-price .per{font-size:12px;color:var(--on-pass-2);text-align:end}
+.cst-sl{padding:16px 16px 12px}
+.u-gap{margin-inline-start:.3em}
+.cst-sl + .cst-sl{border-top:1px solid var(--line)}
+.cst-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cst-h b{font-size:14px;font-weight:800} .cst-h span{font-size:14px;font-weight:800;color:var(--brand)}
+.rng{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
+.rng::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to left,var(--brand) var(--p,50%),var(--sunk) var(--p,50%))}
+html[dir=ltr] .rng::-webkit-slider-runnable-track{background:linear-gradient(to right,var(--brand) var(--p,50%),var(--sunk) var(--p,50%))}
+.rng::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:13px;background:#fff;border:3px solid var(--brand);margin-top:-9px;box-shadow:0 2px 6px rgba(10,22,51,.2)}
+.rng::-moz-range-track{height:8px;border-radius:4px;background:var(--sunk)}
+.rng::-moz-range-progress{height:8px;border-radius:4px;background:var(--brand)}
+.rng::-moz-range-thumb{width:22px;height:22px;border-radius:11px;background:#fff;border:3px solid var(--brand)}
+.cst-ticks{display:flex;justify-content:space-between;margin-top:6px;font-size:10.5px;color:var(--ink-3);direction:inherit}
+.cst-ticks span{min-width:0;text-align:center;flex:1}
+.cst-ticks span.on{color:var(--brand);font-weight:800}
+
+/* ═══ پنل مدیریت (فقط ادمین) ═══ */
+.adm-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:8px var(--pad) 4px}
+.adm-stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px}
+.adm-stat b{display:block;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.adm-stat span{font-size:12px;color:var(--ink-3)}
+.adm-stat.hot{background:var(--help-t);border-color:transparent} .adm-stat.hot b{color:var(--help-i)}
+.adm-note{margin:14px var(--pad) 0;font-size:12px;color:var(--ink-3);line-height:1.9}
+.adm-rc{display:block;width:calc(100% - 2 * var(--pad));margin:8px var(--pad) 0;border-radius:var(--r-lg);border:1px solid var(--line);background:var(--sunk);min-height:220px;object-fit:contain;max-height:60vh}
+.adm-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.adm-acts .btn-ok{background:var(--ok);color:#fff}
+.adm-acts .btn-no{background:var(--surface);color:var(--bad);border:1.5px solid var(--bad)}
+.adm-in{width:100%;height:48px;border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface);padding:0 14px;font:inherit;font-size:15px;color:var(--ink);outline:none}
+.adm-in:focus{border-color:var(--brand)}
+.adm-f{display:flex;flex-direction:column;gap:6px;padding:12px 16px}
+.adm-f + .adm-f{border-top:1px solid var(--line)}
+.adm-f label{font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.adm-f .row2{display:flex;gap:8px} .adm-f .row2 .adm-in{flex-grow:1;min-width:0}
+.adm-f small{font-size:11.5px;color:var(--ink-3);line-height:1.7}
+.sw{position:relative;width:44px;height:26px;border-radius:13px;background:var(--line);flex-shrink:0;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.sw.on{background:var(--ok)} .sw.on::after{transform:translateX(-18px)}
+html[dir=ltr] .sw.on::after{transform:translateX(18px)}
+.adm-search{display:flex;gap:8px;margin:8px var(--pad) 10px}
+.adm-search .adm-in{flex-grow:1}
+.reasons{display:flex;flex-direction:column;gap:8px;margin:6px 0 12px}
+.reasons button{height:46px;border-radius:12px;background:var(--sunk);font-size:14px;font-weight:600;text-align:start;padding:0 14px}
+
 /* ═══ قوانین و نوشتن ═══ */
 .rules{padding:18px;font-size:14px;line-height:2;white-space:pre-wrap;color:var(--ink-2)}
 .compose{width:100%;border:none;outline:none;resize:none;background:none;font-family:inherit;font-weight:400;font-size:15px;line-height:1.9;color:var(--ink)}
@@ -547,7 +790,7 @@ const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : 
    متن هایی که از سرور می آیند (خطاها، راهنما، لوکیشن ها) را خود سرور به
    زبان کاربر می فرستد؛ نام پلن ها و متن قوانین را ادمین نوشته و ترجمه
    نمی شوند. */
-const L10N = {"en":{") شناسه توست و رسیدت با آن شناخته میشود. رندش نکن.":") identify you and that's how your receipt is recognised. Don't round it.","سه رقم آخر (":"The last three digits (","از اپ بانکت همین مبلغ را به کارت بالا بزن، ظرف":"In your bank app, send this exact amount to the card above, within","دقیقه.":"minutes.","از اپ بانکت همین مبلغ را به کارت بالا بزن.":"In your bank app, send this exact amount to the card above.","{n} روز اخیر":"Last {n} days","روز اخیر":"days","نمودار مصرف {n} روز اخیر":"Usage chart for the last {n} days","{n} پلن":"{n} plans","{n} کانفیگ":"{n} configs","موجود: {n}":"In stock: {n}","موجود:":"In stock:","QR ساخته نشد":"Couldn't make the QR","ساخت QR نشد":"Couldn't make the QR","[تصویر]":"[image]","تصویر — در ربات ببین":"Image — view it in the bot","· شناسه":"· ID","آخرین پاداشها":"Latest rewards","اتصال":"Connect","اتصال سریع":"Quick connect","ادامه و دیدن شماره کارت":"Continue to the card number","ارتباط برقرار نشد.":"Couldn't connect.","ارسال":"Send","ارسال به پشتیبانی":"Send to support","ارسال رسید":"Send receipt","از هر خرید همسفرهایت":"From every purchase your fellow travellers make,","به کیف پولت اضافه میشود.":"goes to your wallet.","اسکرینشات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.":"Choose the bank receipt screenshot above and tap «Send receipt».","اسکرینشات یا عکس رسید بانکی":"A screenshot or photo of the bank receipt","اسکن کن":"Scan it","اشتراک AI":"AI subscriptions","اشتراک با دوستان در تلگرام":"Share with friends on Telegram","اشتراک سرویسهای AI":"AI service subscriptions","اضافه شد":"added","افزودن به صفحه اصلی":"Add to home screen","افزودن خودکار اشتراک":"Adds the subscription automatically","اندروید":"Android","انقضا":"Expiry","انگلیس":"UK","اول در ربات ثبت نام کن":"Sign up in the bot first","اول قوانین را بخوان و بپذیر":"Read and accept the rules first","اولین شارژ یا خریدت اینجا ثبت میشود.":"Your first top-up or purchase will show up here.","اولین کارت عبورت":"Your first Obour pass","اگر مشکلی داری، همین جا بپرس.":"If something's wrong, ask right here.","اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمیشود و تاییدش طول میکشد.":"If you pay less or more, your receipt isn't recognised automatically and approval takes longer.","این بخش فعلا خاموش است":"This section is off for now","این فایل عکس نیست":"This file isn't an image","این نسخه تلگرام پشتیبانی نمیکند":"This Telegram version doesn't support it","این گفتگو بسته شده است":"This conversation is closed","اینترنت آزاد":"Free internet","اینترنت آزاد ·":"Free internet ·","با عبور، اینترنت آزاد":"Free internet with Obour","با هر خریدی همه این لوکیشنها رو یکجا میگیری؛ لازم نیست جدا بخری.":"Every purchase gives you all these locations at once; no need to buy them separately.","باز":"Open","باز نشد":"It didn't open","باز هم وصل نشد؟ بپرس":"Still not connecting? Ask us","بانک":"Bank","بدون پاسخ":"No replies","برای دیدن گفتگو روی تیکت بزن":"Tap a ticket to see the conversation","برای فرستادن عکس، فعلا از ربات استفاده کن.":"To send a photo, use the bot for now.","برای نمودار دست کم دو روز آمار لازم است":"The chart needs at least two days of data","برنامهات را انتخاب کن، بقیه خودکار":"Choose your app, the rest is automatic","برنامهات را بزن":"Tap your app","برنامهات را بزن؛ اشتراک خودکار اضافه میشود.":"Tap your app; the subscription is added automatically.","برگشت":"Back","بستن":"Close","بسته":"Closed","به تیکت":"to ticket","به نام":"Card holder","بهترین ارزش":"Best value","بیشتر":"More","تاریخ":"Date","تاریخ ساخت":"Created","تایید شده":"Approved","تحویل شد":"Delivered","تلاش دوباره":"Try again","تمام شد":"Over","تمدید":"Renew","تنظیمات":"Settings","تومان":"toman","تومان ·":"toman ·","تومان · پرداخت کارت به کارت، تایید در چند دقیقه":"toman · card-to-card payment, approved in a few minutes","تومان است":"toman","تیکت":"Ticket","تیکت تازه":"New ticket","تیکت جدید":"New ticket","تیکتی نداری":"No tickets","تیکتها و راهنمای اتصال":"Tickets and connection guide","تیکتهای من":"My tickets","جزئیات":"Details","حجم تمام شد":"Data used up","حجم و مدت":"Data and duration","حجم کل":"Total data","حداقل":"Minimum","حداقل شارژ":"Minimum top-up","حساب":"Account","خانه":"Home","خرید":"Buy","خرید انجام نشد":"The purchase didn't go through","خرید سرویس":"Service purchase","خرید و تمدید":"Buy and renew","خریدار":"Buyers","خطای ارتباط":"Connection error","خوانده نشد":"Couldn't load","در انتظار":"Pending","در حال ارسال…":"Sending…","در حال رزرو مبلغ…":"Reserving the amount…","در حال ساخت…":"Creating…","در ربات /start بزن و قوانین را بپذیر، بعد برگرد.":"Send /start in the bot and accept the rules, then come back.","درآمد تو از همسفرها":"Your earnings from fellow travellers","دستگاهت را انتخاب کن":"Choose your device","دستی کپی کن":"Copy it by hand","دعوت شده":"Invited","دعوت کن، از هر خرید سهم بگیر":"Invite, earn from every purchase","دعوت کن، با هم عبور کنید":"Invite friends, travel together","دلیل":"Reason","دیدن پلنها":"See plans","راهنما هنوز تنظیم نشده":"The guide isn't set up yet","راهنمای اتصال":"Connection guide","رد شده":"Rejected","رسید انتخاب شد · برای عوض کردن بزن":"Receipt selected · tap to change","رفتن به ربات":"Go to the bot","رو به اتمام":"Running low","روز":"days","روز · تا":"days · until","روز · همه کشورها":"days · all countries","روز با عبور":"days with Obour","روز بخیر":"Good afternoon","روزانه":"Daily","روزانه، هفتگی یا ماهانه":"Daily, weekly or monthly","روی همه دستگاههات کار میکنه، بدون محدودیت تعداد دستگاه":"Works on all your devices, with no device limit","ریال":"rial","زبان":"Language","ساخته شد":"created","سرورها و لوکیشنها":"Servers & locations","سرویس":"Service","سرویس خوانده نشد":"Couldn't load the service","سرویس فعال":"active services","سرویسها خوانده نشد":"Couldn't load services","سرویسهای من":"My services","سفارش در ربات":"Order in the bot","سفارشهای من":"My orders","سه قدم تا اتصال":"Three steps to connect","سوابق خوانده نشد":"Couldn't load history","شارژ":"Top up","شارژ فعلا ممکن نیست":"Top-up isn't possible right now","شارژ و سوابق":"Top-up and history","شارژ کیف پول":"Top up wallet","شب بخیر":"Good evening","شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.":"The card number isn't set up yet. Contact support.","صبح بخیر":"Good morning","عبور · نسخه":"Obour · version","عصر بخیر":"Good evening","عضو از":"Member since","عکس رسید":"Receipt photo","عکس رسید را انتخاب کن":"Choose the receipt photo","عکس رسید را بفرست":"Send the receipt photo","فروشگاه":"Shop","فعال":"Active","فعلا محصولی برای نمایش نیست":"No products to show right now","فعلا پلنی برای فروش نیست":"No plans on sale right now","قدم 1 از 2 · مبلغ":"Step 1 of 2 · amount","قدم 2 از 2 · پرداخت و رسید":"Step 2 of 2 · payment and receipt","قدم به قدم، برای دستگاه خودت":"Step by step, for your device","قوانین":"Rules","قوانین و حریم خصوصی":"Rules and privacy","قوانین پذیرفته شد":"Rules accepted","قیمت":"Price","قیمت هر گیگ به پلن بستگی داره؛ هرچی حجم بیشتر، هر گیگ ارزونتر":"The price per GB depends on the plan; the more data, the cheaper each GB","لینک دعوت تو":"Your invite link","لینک را برای دوستانت بفرست.":"Send the link to your friends.","لینک ربات در دسترس نیست":"The bot link isn't available","ماهانه":"Monthly","مبلغ به تومان":"Amount in toman","مبلغ تازه":"New amount","مبلغ دقیق واریز":"Exact amount to pay","مبلغ را دقیقا کپی کن":"Copy the exact amount","مبلغ شارژ":"Top-up amount","متن قوانین هنوز تنظیم نشده است.":"The rules haven't been written yet.","مثل یک اپ جدا باز شود":"Opens like a separate app","محصولات خوانده نشد":"Couldn't load products","مرورگر اجازه کپی خودکار نداد. روی متن نگه دار و کپی کن:":"The browser didn't allow automatic copying. Press and hold the text to copy it:","مشکلت را بنویس؛ مثلا کدام سرویس، روی چه دستگاهی، و چه پیغامی میبینی.":"Describe the problem: which service, on what device, and what message you see.","مصرف":"Usage","مصرف شده":"Used","معمولا چند دقیقه طول میکشد. بعد از تایید، مبلغ به کیف پولت اضافه میشود و در ربات خبر میگیری.":"It usually takes a few minutes. Once approved, the amount is added to your wallet and you're notified in the bot.","منقضی":"Expired","منقضی شده":"Expired","مهلت تمام شد. اگر واریز کردهای رسید را بفرست، وگرنه مبلغ تازه بگیر.":"Time's up. If you've paid, send the receipt; otherwise get a new amount.","مهلت پرداخت":"Time to pay","موجودی بعد از خرید":"Balance after purchase","موجودی فعلی":"Current balance","موجودی کیف پول":"Wallet balance","مگ":"MB","مگ مانده":"MB left","گیگ مانده":"GB left","میانگین روزانه":"Daily average","نامحدود":"Unlimited","ناموجود":"Out of stock","ناموفق":"Failed","ناوبری":"Navigation","هر کس با این لینک بیاید، همسفر توست":"Anyone who joins with this link is your fellow traveller","هر گیگ":"per GB","هفتگی":"Weekly","همه":"All","همه توی یک لینک؛ هر کدوم رو خواستی توی اپ انتخاب کن":"All in one link; pick any of them in the app","همه کشورها":"All countries","همسفرها":"Fellow travellers","هنوز تراکنشی نیست":"No transactions yet","هنوز سرویسی نداری":"No services yet","هنوز پاداشی نگرفتهای":"No rewards yet","هنوز پذیرفته نشده":"Not accepted yet","هوش مصنوعی":"AI","وصل شو":"Connect","وصل شوم":"Connect me","وضعیت":"Status","وقتی موجود شد در ربات خبر بگیر":"Get notified in the bot when it's back in stock","پاداش":"Reward","پاداش همسفر":"Referral reward","پاسخ":"replies","پاسخ داده شده":"Answered","پاسخ پشتیبانی هم اینجا و هم در ربات میرسد":"Support's reply arrives both here and in the bot","پاسخت را بنویس…":"Write your reply…","پذیرفته شده":"Accepted","پذیرفته شده ·":"Accepted ·","پرداخت از کیف پول":"Pay from wallet","پرداخت از کیف پول، تحویل فوری":"Pay from your wallet, instant delivery","پشتیبانی":"Support","پشتیبانی و راهنما":"Support and guide","پلن":"Plan","پلن را انتخاب کن":"Choose a plan","پلنها خوانده نشد":"Couldn't load plans","پنل جواب نداد؛ عدد از آخرین آمار روزانه است":"The server didn't respond; the figure is from the last daily snapshot","پیام":"Message","پیامت را بنویس":"Write your message","پیش از خرید، یک بار بخوان و بپذیر":"Read and accept once before buying","پیشنهادی":"Recommended","چطور شارژ میشود؟":"How does the top-up work?","چه چیزی لازم داری؟":"What do you need?","کارت به کارت کن":"Pay card to card","کارت به کارت، تایید سریع":"Card to card, quick approval","کارت عبور بلافاصله ساخته میشود":"Your pass is created instantly","کارت عبورت آماده شد":"Your pass is ready","کارت مقصد":"Destination card","کارها":"Actions","کانفیگ":"configs","کانفیگ در":"configs in","کانفیگ پرسرعت، همه کشورها":"Fast configs, every country","کشور":"countries","کد پیگیری":"Tracking code","کم":"short","کپی":"Copy","کپی شد":"Copied","کپی شماره کارت":"Copy card number","کپی لینک":"Copy link","کپی مبلغ (ریال)":"Copy amount (rial)","کیف پول":"Wallet","کیف پول را شارژ کن":"Top up your wallet","کیف پولت خالی است":"Your wallet is empty","کیفت شارژ میشود":"Your wallet is topped up","گفتگو":"Conversation","گفتگو با پشتیبانی":"Chat with support","گیگ":"GB","گیگ ·":"GB ·","یا لینک را دستی اضافه کن":"Or add the link manually","یک پاسخ تازه":"One new reply","یک پاسخ تازه از پشتیبانی":"A new reply from support","یک پلن انتخاب کن؛ چند ثانیه بعد کارتت اینجا با لینک اتصال آماده است.":"Pick a plan; a few seconds later your pass is here with its connection link.","دقیقا همین مبلغ را واریز کن":"Pay exactly this amount","سه رقم آخر شناسه توست؛ با آن رسیدت شناخته میشود.":"The last three digits identify you; that's how your receipt is recognised.","رسیدت رسید":"Receipt received","برگشت به کیف پول":"Back to wallet","خواندم و میپذیرم":"I've read and accept","دیدن پلن ها":"See plans","تیکت جدید ·":"New ticket · ","پیامت را بنویس.":"Write your message.","سرویسها":"Services","سرویسهای من ·":"My services ·","{n} فعال":"{n} active","{n} سرویس فعال":"{n} active services","{n} پاسخ":"{n} replies","{n} پیام":"{n} messages","{n} تومان کم داری · شارژ":"{n} toman short · top up","{n} گیگ":"{n} GB","{n} روز":"{n} days","کپی مبلغ":"Copy amount"}};
+const L10N = {"en":{") شناسه توست و رسیدت با آن شناخته میشود. رندش نکن.":") identify you and that's how your receipt is recognised. Don't round it.","سه رقم آخر (":"The last three digits (","از اپ بانکت همین مبلغ را به کارت بالا بزن، ظرف":"In your bank app, send this exact amount to the card above, within","دقیقه.":"minutes.","از اپ بانکت همین مبلغ را به کارت بالا بزن.":"In your bank app, send this exact amount to the card above.","{n} روز اخیر":"Last {n} days","روز اخیر":"days","نمودار مصرف {n} روز اخیر":"Usage chart for the last {n} days","{n} پلن":"{n} plans","{n} کانفیگ":"{n} configs","موجود: {n}":"In stock: {n}","موجود:":"In stock:","QR ساخته نشد":"Couldn't make the QR","ساخت QR نشد":"Couldn't make the QR","[تصویر]":"[image]","تصویر — در ربات ببین":"Image — view it in the bot","· شناسه":"· ID","آخرین پاداشها":"Latest rewards","اتصال":"Connect","اتصال سریع":"Quick connect","ادامه و دیدن شماره کارت":"Continue to the card number","ارتباط برقرار نشد.":"Couldn't connect.","ارسال":"Send","ارسال به پشتیبانی":"Send to support","ارسال رسید":"Send receipt","از هر خرید همسفرهایت":"From every purchase your fellow travellers make,","به کیف پولت اضافه میشود.":"goes to your wallet.","اسکرینشات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.":"Choose the bank receipt screenshot above and tap «Send receipt».","اسکرینشات یا عکس رسید بانکی":"A screenshot or photo of the bank receipt","اسکن کن":"Scan it","اشتراک AI":"AI subscriptions","اشتراک با دوستان در تلگرام":"Share with friends on Telegram","اشتراک سرویسهای AI":"AI service subscriptions","اضافه شد":"added","افزودن به صفحه اصلی":"Add to home screen","افزودن خودکار اشتراک":"Adds the subscription automatically","اندروید":"Android","انقضا":"Expiry","انگلیس":"UK","اول در ربات ثبت نام کن":"Sign up in the bot first","اول قوانین را بخوان و بپذیر":"Read and accept the rules first","اولین شارژ یا خریدت اینجا ثبت میشود.":"Your first top-up or purchase will show up here.","اولین کارت عبورت":"Your first Obour pass","اگر مشکلی داری، همین جا بپرس.":"If something's wrong, ask right here.","اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمیشود و تاییدش طول میکشد.":"If you pay less or more, your receipt isn't recognised automatically and approval takes longer.","این بخش فعلا خاموش است":"This section is off for now","این فایل عکس نیست":"This file isn't an image","این نسخه تلگرام پشتیبانی نمیکند":"This Telegram version doesn't support it","این گفتگو بسته شده است":"This conversation is closed","اینترنت آزاد":"Free internet","اینترنت آزاد ·":"Free internet ·","با عبور، اینترنت آزاد":"Free internet with Obour","با هر خریدی همه این لوکیشنها رو یکجا میگیری؛ لازم نیست جدا بخری.":"Every purchase gives you all these locations at once; no need to buy them separately.","باز":"Open","باز نشد":"It didn't open","باز هم وصل نشد؟ بپرس":"Still not connecting? Ask us","بانک":"Bank","بدون پاسخ":"No replies","برای دیدن گفتگو روی تیکت بزن":"Tap a ticket to see the conversation","برای فرستادن عکس، فعلا از ربات استفاده کن.":"To send a photo, use the bot for now.","برای نمودار دست کم دو روز آمار لازم است":"The chart needs at least two days of data","برنامهات را انتخاب کن، بقیه خودکار":"Choose your app, the rest is automatic","برنامهات را بزن":"Tap your app","برنامهات را بزن؛ اشتراک خودکار اضافه میشود.":"Tap your app; the subscription is added automatically.","برگشت":"Back","بستن":"Close","بسته":"Closed","به تیکت":"to ticket","به نام":"Card holder","بهترین ارزش":"Best value","بیشتر":"More","تاریخ":"Date","تاریخ ساخت":"Created","تایید شده":"Approved","تحویل شد":"Delivered","تلاش دوباره":"Try again","تمام شد":"Over","تمدید":"Renew","تنظیمات":"Settings","تومان":"toman","تومان ·":"toman ·","تومان · پرداخت کارت به کارت، تایید در چند دقیقه":"toman · card-to-card payment, approved in a few minutes","تومان است":"toman","تیکت":"Ticket","تیکت تازه":"New ticket","تیکت جدید":"New ticket","تیکتی نداری":"No tickets","تیکتها و راهنمای اتصال":"Tickets and connection guide","تیکتهای من":"My tickets","جزئیات":"Details","حجم تمام شد":"Data used up","حجم و مدت":"Data and duration","حجم کل":"Total data","حداقل":"Minimum","حداقل شارژ":"Minimum top-up","حساب":"Account","خانه":"Home","خرید":"Buy","خرید انجام نشد":"The purchase didn't go through","خرید سرویس":"Service purchase","خرید و تمدید":"Buy and renew","خریدار":"Buyers","خطای ارتباط":"Connection error","خوانده نشد":"Couldn't load","در انتظار":"Pending","در حال ارسال…":"Sending…","در حال رزرو مبلغ…":"Reserving the amount…","در حال ساخت…":"Creating…","در ربات /start بزن و قوانین را بپذیر، بعد برگرد.":"Send /start in the bot and accept the rules, then come back.","درآمد تو از همسفرها":"Your earnings from fellow travellers","دستگاهت را انتخاب کن":"Choose your device","دستی کپی کن":"Copy it by hand","دعوت شده":"Invited","دعوت کن، از هر خرید سهم بگیر":"Invite, earn from every purchase","دعوت کن، با هم عبور کنید":"Invite friends, travel together","دلیل":"Reason","دیدن پلنها":"See plans","راهنما هنوز تنظیم نشده":"The guide isn't set up yet","راهنمای اتصال":"Connection guide","رد شده":"Rejected","رسید انتخاب شد · برای عوض کردن بزن":"Receipt selected · tap to change","رفتن به ربات":"Go to the bot","رو به اتمام":"Running low","روز":"days","روز · تا":"days · until","روز · همه کشورها":"days · all countries","روز با عبور":"days with Obour","روز بخیر":"Good afternoon","روزانه":"Daily","روزانه، هفتگی یا ماهانه":"Daily, weekly or monthly","روی همه دستگاههات کار میکنه، بدون محدودیت تعداد دستگاه":"Works on all your devices, with no device limit","ریال":"rial","زبان":"Language","ساخته شد":"created","سرورها و لوکیشنها":"Servers & locations","سرویس":"Service","سرویس خوانده نشد":"Couldn't load the service","سرویس فعال":"active services","سرویسها خوانده نشد":"Couldn't load services","سرویسهای من":"My services","سفارش در ربات":"Order in the bot","سفارشهای من":"My orders","سه قدم تا اتصال":"Three steps to connect","سوابق خوانده نشد":"Couldn't load history","شارژ":"Top up","شارژ فعلا ممکن نیست":"Top-up isn't possible right now","شارژ و سوابق":"Top-up and history","شارژ کیف پول":"Top up wallet","شب بخیر":"Good evening","شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.":"The card number isn't set up yet. Contact support.","صبح بخیر":"Good morning","عبور · نسخه":"Obour · version","عصر بخیر":"Good evening","عضو از":"Member since","عکس رسید":"Receipt photo","عکس رسید را انتخاب کن":"Choose the receipt photo","عکس رسید را بفرست":"Send the receipt photo","فروشگاه":"Shop","فعال":"Active","فعلا محصولی برای نمایش نیست":"No products to show right now","فعلا پلنی برای فروش نیست":"No plans on sale right now","قدم 1 از 2 · مبلغ":"Step 1 of 2 · amount","قدم 2 از 2 · پرداخت و رسید":"Step 2 of 2 · payment and receipt","قدم به قدم، برای دستگاه خودت":"Step by step, for your device","قوانین":"Rules","قوانین و حریم خصوصی":"Rules and privacy","قوانین پذیرفته شد":"Rules accepted","قیمت":"Price","قیمت هر گیگ به پلن بستگی داره؛ هرچی حجم بیشتر، هر گیگ ارزونتر":"The price per GB depends on the plan; the more data, the cheaper each GB","لینک دعوت تو":"Your invite link","لینک را برای دوستانت بفرست.":"Send the link to your friends.","لینک ربات در دسترس نیست":"The bot link isn't available","ماهانه":"Monthly","مبلغ به تومان":"Amount in toman","مبلغ تازه":"New amount","مبلغ دقیق واریز":"Exact amount to pay","مبلغ را دقیقا کپی کن":"Copy the exact amount","مبلغ شارژ":"Top-up amount","متن قوانین هنوز تنظیم نشده است.":"The rules haven't been written yet.","مثل یک اپ جدا باز شود":"Opens like a separate app","محصولات خوانده نشد":"Couldn't load products","مرورگر اجازه کپی خودکار نداد. روی متن نگه دار و کپی کن:":"The browser didn't allow automatic copying. Press and hold the text to copy it:","مشکلت را بنویس؛ مثلا کدام سرویس، روی چه دستگاهی، و چه پیغامی میبینی.":"Describe the problem: which service, on what device, and what message you see.","مصرف":"Usage","مصرف شده":"Used","معمولا چند دقیقه طول میکشد. بعد از تایید، مبلغ به کیف پولت اضافه میشود و در ربات خبر میگیری.":"It usually takes a few minutes. Once approved, the amount is added to your wallet and you're notified in the bot.","منقضی":"Expired","منقضی شده":"Expired","مهلت تمام شد. اگر واریز کردهای رسید را بفرست، وگرنه مبلغ تازه بگیر.":"Time's up. If you've paid, send the receipt; otherwise get a new amount.","مهلت پرداخت":"Time to pay","موجودی بعد از خرید":"Balance after purchase","موجودی فعلی":"Current balance","موجودی کیف پول":"Wallet balance","مگ":"MB","مگ مانده":"MB left","گیگ مانده":"GB left","میانگین روزانه":"Daily average","نامحدود":"Unlimited","ناموجود":"Out of stock","ناموفق":"Failed","ناوبری":"Navigation","هر کس با این لینک بیاید، همسفر توست":"Anyone who joins with this link is your fellow traveller","هر گیگ":"per GB","هفتگی":"Weekly","همه":"All","همه توی یک لینک؛ هر کدوم رو خواستی توی اپ انتخاب کن":"All in one link; pick any of them in the app","همه کشورها":"All countries","همسفرها":"Fellow travellers","هنوز تراکنشی نیست":"No transactions yet","هنوز سرویسی نداری":"No services yet","هنوز پاداشی نگرفتهای":"No rewards yet","هنوز پذیرفته نشده":"Not accepted yet","هوش مصنوعی":"AI","وصل شو":"Connect","وضعیت":"Status","وقتی موجود شد در ربات خبر بگیر":"Get notified in the bot when it's back in stock","پاداش":"Reward","پاداش همسفر":"Referral reward","پاسخ":"replies","پاسخ داده شده":"Answered","پاسخ پشتیبانی هم اینجا و هم در ربات میرسد":"Support's reply arrives both here and in the bot","پاسخت را بنویس…":"Write your reply…","پذیرفته شده":"Accepted","پذیرفته شده ·":"Accepted ·","پرداخت از کیف پول":"Pay from wallet","پرداخت از کیف پول، تحویل فوری":"Pay from your wallet, instant delivery","پشتیبانی":"Support","پشتیبانی و راهنما":"Support and guide","پلن":"Plan","پلن را انتخاب کن":"Choose a plan","پلنها خوانده نشد":"Couldn't load plans","پنل جواب نداد؛ عدد از آخرین آمار روزانه است":"The server didn't respond; the figure is from the last daily snapshot","پیام":"Message","پیامت را بنویس":"Write your message","پیش از خرید، یک بار بخوان و بپذیر":"Read and accept once before buying","پیشنهادی":"Recommended","چطور شارژ میشود؟":"How does the top-up work?","چه چیزی لازم داری؟":"What do you need?","کارت به کارت کن":"Pay card to card","کارت به کارت، تایید سریع":"Card to card, quick approval","کارت عبور بلافاصله ساخته میشود":"Your pass is created instantly","کارت عبورت آماده شد":"Your pass is ready","کارت مقصد":"Destination card","کارها":"Actions","کانفیگ":"configs","کانفیگ در":"configs in","کانفیگ پرسرعت، همه کشورها":"Fast configs, every country","کشور":"countries","کد پیگیری":"Tracking code","کم":"short","کپی":"Copy","کپی شد":"Copied","کپی شماره کارت":"Copy card number","کپی لینک":"Copy link","کپی مبلغ (ریال)":"Copy amount (rial)","کیف پول":"Wallet","کیف پول را شارژ کن":"Top up your wallet","کیف پولت خالی است":"Your wallet is empty","کیفت شارژ میشود":"Your wallet is topped up","گفتگو":"Conversation","گفتگو با پشتیبانی":"Chat with support","گیگ":"GB","گیگ ·":"GB ·","یا لینک را دستی اضافه کن":"Or add the link manually","یک پاسخ تازه":"One new reply","یک پاسخ تازه از پشتیبانی":"A new reply from support","یک پلن انتخاب کن؛ چند ثانیه بعد کارتت اینجا با لینک اتصال آماده است.":"Pick a plan; a few seconds later your pass is here with its connection link.","دقیقا همین مبلغ را واریز کن":"Pay exactly this amount","سه رقم آخر شناسه توست؛ با آن رسیدت شناخته میشود.":"The last three digits identify you; that's how your receipt is recognised.","رسیدت رسید":"Receipt received","برگشت به کیف پول":"Back to wallet","خواندم و میپذیرم":"I've read and accept","دیدن پلن ها":"See plans","تیکت جدید ·":"New ticket · ","پیامت را بنویس.":"Write your message.","سرویسها":"Services","سرویسهای من ·":"My services ·","{n} فعال":"{n} active","{n} سرویس فعال":"{n} active services","{n} پاسخ":"{n} replies","{n} پیام":"{n} messages","{n} تومان کم داری · شارژ":"{n} toman short · top up","{n} گیگ":"{n} GB","{n} روز":"{n} days","کپی مبلغ":"Copy amount","باز ·":"Open ·","بسته ·":"Closed ·","پاسخ داده شده ·":"Answered ·","اولین خرید":"First purchase","ماهانه {n} گیگ":"Monthly {n} GB","هفتگی {n} گیگ":"Weekly {n} GB","روزانه {n} گیگ":"Daily {n} GB","ماهانه نامحدود":"Monthly unlimited","{n} ماهه {n} گیگ":"{n}-month {n} GB","{n} روزه {n} گیگ":"{n}-day {n} GB","{n} ماهه":"{n} months","{n} روزه":"{n} days","{n} گیگ {n} روزه":"{n} GB {n} days","{n} گیگ {n} ماهه":"{n} GB {n} months","سرویس اصلی":"Main service","یک ماه":"one month","· یک ماه":"· one month","کارت به کارت":"Card to card","کارت بانکی ایران":"Iranian bank card","کیف پول کریپتو":"Crypto wallet","کریپتو · TON / USDT":"Crypto · TON / USDT","حالت تست (testnet)":"Test mode (testnet)","تومان · تایید خودکار، بدون رسید":"toman · automatic approval, no receipt","با چه ارزی؟":"Which currency?","Tether · شبکه TON":"Tether · TON network","کیف پول وصل است":"Wallet connected","کیف پولی وصل نیست":"No wallet connected","Tonkeeper، Telegram Wallet، MyTonWallet و…":"Tonkeeper, Telegram Wallet, MyTonWallet…","قطع":"Disconnect","پرداخت":"Pay","پرداخت {n} TON":"Pay {n} TON","پرداخت {n} USDT":"Pay {n} USDT","در حال ساخت فاکتور…":"Creating the invoice…","TON Connect بار نشد":"TON Connect didn't load","اتصال کیف پول نشد":"Couldn't connect the wallet","پرداخت کریپتو":"Crypto payment","فاکتور":"Invoice","مبلغ دقیق":"Exact amount","تومان · testnet":"toman · testnet","منتظر پرداختت هستیم. بعد از پرداخت، کیف پولت خودکار شارژ میشود.":"Waiting for your payment. Once you pay, your wallet is topped up automatically.","پرداخت دستی":"Pay manually","آدرس":"Address","مبلغ":"Amount","کامنت":"Comment","کپی آدرس":"Copy address","کپی کامنت":"Copy comment","فقط روی شبکه TON بفرست و کامنت را حتما بنویس؛ بدون کامنت یا با مبلغ کمتر، شارژ خودکار انجام نمیشود.":"Send only on the TON network and always include the comment; without it, or with a lower amount, the top-up won't be automatic.","برای کارمزد شبکه حدود {n} TON هم در کیف پولت لازم است.":"You'll also need about {n} TON in your wallet for the network fee.","پرداخت با کیف پول":"Pay with wallet","باز کردن در Tonkeeper":"Open in Tonkeeper","انصراف و مبلغ تازه":"Cancel and start over","تراکنش فرستاده شد. منتظر تایید شبکهایم؛ معمولا کمتر از یک دقیقه.":"Transaction sent. Waiting for network confirmation; usually under a minute.","پرداخت را در کیف پول رد کردی":"You declined the payment in your wallet","پرداخت انجام نشد":"The payment didn't go through","کیف پولت شارژ شد":"Your wallet is topped up","موجودی:":"Balance:","مبلغ کمتر از فاکتور بود":"The amount was lower than the invoice","رسیده:":"Received:","لازم:":"Required:","کیف پولت خودکار شارژ نشد؛ پشتیبانی بررسی میکند.":"Your wallet wasn't topped up automatically; support will review it.","پرداخت کریپتو فعلا فعال نیست":"Crypto payment isn't available right now","از کارت به کارت استفاده کن یا بعدا سر بزن.":"Use a card transfer or check back later.","نرخ ارزها هنوز تنظیم نشده":"Exchange rates aren't set yet","کمی بعد دوباره امتحان کن یا از کارت به کارت استفاده کن.":"Try again a bit later or use a card transfer.","مهلت تمام شد. اگر پرداخت کردهای صبر کن، خودکار شناخته میشود؛ وگرنه فاکتور تازه بگیر.":"Time's up. If you've paid, just wait, it's recognised automatically; otherwise get a new invoice.","فاکتور تازه":"New invoice","TON / USDT یا Telegram Stars":"TON / USDT or Telegram Stars","ستاره تلگرام":"Telegram stars","روش پرداختی تنظیم نشده. با پشتیبانی تماس بگیر.":"No payment method is set up. Contact support.","پرداخت با Stars فعلا فعال نیست":"Paying with Stars isn't available right now","کمی بعد دوباره امتحان کن.":"Try again a bit later.","تومان · هر ستاره":"toman · 1 star =","پرداخت در خود تلگرام":"Pay inside Telegram","صفحه پرداخت تلگرام باز میشود؛ اگر ستاره نداری، همانجا میتوانی بخری.":"Telegram's payment screen opens; if you don't have stars, you can buy them right there.","شارژ فوری":"Instant top-up","بلافاصله بعد از پرداخت، مبلغ به کیف پولت اضافه میشود.":"The amount is added to your wallet right after you pay.","در حال شارژ کیف پول…":"Topping up your wallet…","پرداختت رسید":"Your payment arrived","شارژ کیف پول چند لحظه دیگر انجام میشود و در ربات خبرت میکنیم.":"Your wallet will be topped up in a moment and we'll let you know in the bot.","+{n} تومان ·":"+{n} toman ·","بساز به سلیقه خودت":"Build your own","حجم و مدت دلخواه؛ قیمت همان لحظه":"Your own data and duration; instant price","حجم و مدت را خودت انتخاب کن":"Choose the data and duration yourself","سرویس تو":"Your service","تومان همه کشورها · بدون محدودیت دستگاه":"toman All countries · no device limit","همه کشورها · بدون محدودیت دستگاه":"All countries · no device limit","حجم":"Data","مدت":"Duration","هرچی حجم بیشتر، هر گیگ ارزونتر · قیمت مدتهای طولانی کمی بیشتره":"The more data, the cheaper each GB · longer durations cost a little more","سرویس دلخواه":"Custom service","{n} کم · شارژ":"{n} short · top up","کم · شارژ":"short · top up","سرویس {n}":"Service {n}","فعال و آماده استفاده":"Active and ready to use","همه چیز روبهراه است. هر وقت خواستی وصل شوی، برنامه را باز کن و Connect را بزن.":"Everything's fine. Whenever you want to connect, open the app and tap Connect.","سرویس آماده است؛ هنوز وصل نشدی":"Your service is ready; you haven't connected yet","سه قدم ساده پایین همین صفحه را انجام بده؛ کمتر از یک دقیقه طول میکشد.":"Follow the three simple steps below; it takes less than a minute.","سرویس رو به اتمام است":"Your service is running out","فقط {n} روز مانده. قبل از تمام شدن تمدید کن تا اتصالت قطع نشود.":"Only {n} days left. Renew before it ends so you don't get cut off.","حجم کمی مانده. قبل از تمام شدن تمدید کن تا اتصالت قطع نشود.":"Only a little data left. Renew before it runs out so you don't get cut off.","سرویس منقضی شده":"Your service has expired","اتصال قطع است. با تمدید، همین لینک دوباره کار میکند و لازم نیست چیزی را از نو تنظیم کنی.":"You're disconnected. Renew and this same link works again; nothing to set up from scratch.","حجم سرویس تمام شده":"Your data has run out","اتصال قطع است. با تمدید، حجم تازه روی همین لینک اضافه میشود.":"You're disconnected. Renew and fresh data is added to this same link.","تمدید همین سرویس ·":"Renew ·","تمدید همین سرویس":"Renew this service","خرید سرویس تازه":"Buy a new service","راهاندازی اتصال":"Set up the connection","پنل جواب نداد؛ عددها از آخرین آمار روزانه است":"The server didn't respond; figures are from the last daily snapshot","حجم باقیمانده":"Data left","روز باقیمانده":"Days left","از":"from","تا":"until","میانگین مصرف روزانه":"Daily average use","با این مصرف، حجمت تا آخر مدت کافی است.":"At this rate, your data will last until the end.","با این مصرف، حجمت حدود {n} روز دیگر تمام میشود.":"At this rate, your data runs out in about {n} days.","اتصال در ۳ قدم":"Connect in 3 steps","یک برنامه نصب کن":"Install an app","پیشنهاد ما برای":"Our pick for","اگر از قبل یکی از اینها را داری، همان کافی است.":"If you already have one of these, that's enough.","اشتراک را اضافه کن":"Add the subscription","دکمه زیر برنامه را باز میکند و اشتراکت خودکار اضافه میشود.":"The button below opens the app and adds your subscription automatically.","افزودن به":"Add to","کار نکرد؟ لینک را کپی کن و در برنامه «افزودن از کلیپبورد» (Import from clipboard) را بزن.":"Didn't work? Copy the link and choose Import from clipboard in the app.","کپی لینک اشتراک":"Copy subscription link","QR برای دستگاه دیگر":"QR for another device","در برنامه دکمه اتصال (Connect) را بزن. اگر کشوری کند بود یا وصل نشد، از فهرست کشور دیگری را انتخاب کن؛ همه در همین اشتراک هستند.":"Tap Connect in the app. If a country is slow or won't connect, pick another from the list; they're all in this subscription.","بعد از تمدید، حجم تازه روی همین لینک مینشیند؛ لازم نیست چیزی را دوباره تنظیم کنی.":"After renewing, fresh data lands on this same link; nothing to set up again.","مدت سرویس بعد از تمدید: {n} روز":"Duration after renewing: {n} days","({n} روز باقیمانده فعلی هم حساب میشود)":"(your remaining {n} days are included)","تمدید با کیف پول":"Renew from wallet","پلن این سرویس دیگر فروخته نمیشود. برای ادامه، یک پلن تازه از فروشگاه بخر.":"This service's plan isn't sold anymore. To continue, buy a new plan from the shop.","این سرویس دلخواه یا آزمایشی است و تمدید مستقیم ندارد. برای ادامه، یک پلن تازه بخر.":"This is a custom or trial service and can't be renewed directly. To continue, buy a new plan.","مشخصات سرویس":"Service details","نام سرویس":"Service name","نام کاربری":"Username","تاریخ خرید":"Purchased","تاریخ انقضا":"Expires","کشورها":"Countries","تعداد دستگاه":"Devices","بدون محدودیت":"Unlimited","کمک":"Help","راهنمای کامل اتصال":"Full connection guide","تصویری و قدم به قدم برای هر دستگاه":"Step by step for every device","وصل نمیشوم":"I can't connect","به پشتیبانی بگو؛ همینجا جواب میگیری":"Tell support; you'll get the answer right here","لینک اشتراک مخصوص توست؛ آن را با کسی به اشتراک نگذار.":"Your subscription link is personal; don't share it with anyone.","{n} کانفیگ در {n} کشور":"{n} configs in {n} countries","{n} گیگ · {n} روز":"{n} GB · {n} days","موجودی بعد از تمدید":"Balance after renewing","تمدید و پرداخت":"Renew and pay","در حال تمدید…":"Renewing…","تمدید شد؛ همین لینک دوباره کار میکند":"Renewed; this same link works again","تمدید نشد":"Couldn't renew","{n} تومان کم داری؛ اول کیف پول را شارژ کن":"You're {n} toman short; top up your wallet first","مدیریت":"Admin","پنل مدیریت":"Admin panel","رسیدها، کاربران، پلنها و تنظیمات":"Receipts, users, plans and settings","تحویل فوری نام کاربری و رمز":"Instant username and password","فعالسازی روی ایمیل خودت":"Activated on your own email","ارتقای اکانت خودت":"Upgrade of your own account","موجود":"In stock","در انتظار فروشنده":"Waiting for the seller","در حال بررسی":"Under review"}};
 /* مینی اپ فقط فارسی و انگلیسی دارد؛ ربات چهار زبان. کاربری که در ربات
    روسی یا چینی است، اینجا انگلیسی می بیند. */
 const LANG_NAMES = { fa:['🇮🇷','فارسی'], en:['🇬🇧','English'] };
@@ -670,11 +913,21 @@ const ICON = {
   phone:'<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/>',
   shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
   bolt:'<path d="M13 3L4 14h7l-1 7 9-11h-7z"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+  key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>',
+  eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   warn:'<path d="M12 4 3 19h18z"/><path d="M12 10v4M12 17h.01"/>',
   image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
   list:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
   cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   refresh:'<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>',
+  sliders:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+  star:'<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+  ton:'<path d="M5.5 5h13l-6.5 14z"/><path d="M12 5v14"/>',
+  usdt:'<path d="M7 6h10M12 6v12"/><ellipse cx="12" cy="11" rx="6" ry="2"/>',
+  card:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>',
+  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
 };
 const ic = (k, sw) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.8}" stroke-linecap="round" stroke-linejoin="round">${ICON[k]||''}</svg>`;
 const N = v => `<span class="n">${esc(v)}</span>`;
@@ -802,6 +1055,9 @@ const App = {
     $('splash').classList.add('off');
     if (err) return this.fatal(err);
     this.tab('home');
+    /* دکمه «پرداخت با TON Connect» ربات مینی اپ را با #crypto باز می کند */
+    if (location.hash === '#crypto' && this.boot.crypto) { Topup.method = 'crypto'; this.go('topup'); }
+    else if (location.hash === '#stars' && payMethods().includes('stars')) { Topup.method = 'stars'; this.go('topup'); }
   },
 
   syncHeight(){
@@ -1256,7 +1512,7 @@ async home(p){
         <div class="empty-s">یک پلن انتخاب کن؛ چند ثانیه بعد کارتت اینجا با لینک اتصال آماده است.</div>
         <button class="btn btn-p" style="height:44px;margin-top:4px" onclick="App.tab('store')">دیدن پلن‌ها</button></div>`;
       $('home-more').innerHTML = Sec('سه قدم تا اتصال') + Group(
-        [['1','کیف پول را شارژ کن','کارت به کارت، تایید سریع'],
+        [['1','کیف پول را شارژ کن', (App.boot.pay_methods || []).includes('card') ? 'کارت به کارت، تایید سریع' : 'TON / USDT یا Telegram Stars'],
          ['2','پلن را انتخاب کن','روزانه، هفتگی یا ماهانه'],
          ['3','وصل شو','برنامه‌ات را انتخاب کن، بقیه خودکار']].map(([n, t, s]) =>
           `<div class="row"><span class="ic"><span class="n">${n}</span></span><span class="row-m"><span class="row-t">${t}</span><span class="row-s">${s}</span></span></div>`).join(''));
@@ -1321,6 +1577,7 @@ async account(p){
         ${days ? `<span>${ic('globe')}${N(fa(days))} روز با عبور</span>` : ''}
       </div>
     </div>
+    ${b.is_admin ? Sec('مدیریت') + Group(Row({ kind:'ai', icon:'shield', title:'پنل مدیریت', sub:'رسیدها، کاربران، پلن‌ها و تنظیمات', fn:"App.go('admin')" })) : ''}
     ${Sec('کارها')}
     ${Group(
       Row({ kind:'cash', icon:'wallet', title:'کیف پول', sub:'شارژ و سوابق', fn:"App.tab('wallet')",
@@ -1377,6 +1634,14 @@ const Store = {
     try {
       const d = await api('plans'); this.data = d;
       if (d.disabled || !d.categories.length) return void ($('store-box').innerHTML = emptyBox('فعلا پلنی برای فروش نیست'));
+      /* بار اول فروشگاه روی ماهانه باز می شود، نه روزانه: پرفروش ترین و
+         به صرفه ترین دسته است. بعد از آن، انتخاب خود کاربر می ماند. */
+      if (!this._picked) {
+        this._picked = true;
+        let i = d.categories.findIndex(c => /ماهانه|ماهیانه|month/i.test(c.title));
+        if (i < 0) i = d.categories.findIndex(c => c.plans.some(x => x.duration_days >= 28 && x.duration_days <= 31));
+        this.cat = i >= 0 ? i : 0;
+      }
       this.cat = Math.min(this.cat, d.categories.length - 1);
       $('store-box').innerHTML = (d.locations ? this.locCard(d.locations) : '')
         + Tabs('cat-tabs', d.categories.map(c => ({ t:c.title, s: fa(c.plans.length) + ' پلن' })), this.cat, 'Store.pick')
@@ -1413,7 +1678,9 @@ const Store = {
     const per = plans.map(x => x.data_gb ? x.price / x.data_gb : Infinity);
     const bi = plans.length > 1 && isFinite(Math.min(...per)) ? per.indexOf(Math.min(...per)) : -1;
     const order = bi >= 0 ? [plans[bi], ...plans.filter((_, i) => i !== bi)] : plans;
-    $('plans').innerHTML = `<div class="tickets">${order.map(x => this.ticket(x, bal, x === plans[bi])).join('')}</div>`;
+    $('plans').innerHTML = `<div class="tickets">${order.map(x => this.ticket(x, bal, x === plans[bi])).join('')}</div>`
+      + (App.boot.features.shop_custom ? `<button class="cst-card" onclick="App.go('custom')">${TUNNEL}<span class="ic">${ic('sliders',2)}</span>
+          <span style="flex-grow:1;min-width:0"><b>بساز به سلیقه خودت</b><span class="s">حجم و مدت دلخواه؛ قیمت همان لحظه</span></span><span class="chev">${ic('chev',2)}</span></button>` : '');
   },
 
   /* دکمه خرید توپر و به رنگ دسته اینترنت است. کمبود موجودی کهربایی
@@ -1424,7 +1691,7 @@ const Store = {
               : x.badge ? `<span class="tk-tag plain">${esc(x.badge)}</span>` : '';
     const btn = bal < x.price
       ? `<button class="tk-buy low" onclick="App.go('topup')">${ic('wallet')}<span>${N(money(x.price - bal))} کم</span></button>`
-      : `<button class="tk-buy" onclick="Buy.confirm(${x.id})" aria-label="خرید ${esc(x.title)}">${ic('store',2)}خرید</button>`;
+      : `<button class="tk-buy" onclick="Buy.confirm(${x.id})" aria-label="${esc(I18N.t('خرید') + ' ' + I18N.t(x.title))}">${ic('store',2)}خرید</button>`;
     return `<div class="tk${best ? ' best' : ''}">${tag}
       <div class="tk-top">
         <span class="tk-vol">${x.data_gb ? `${N(x.data_gb)}<small>گیگ</small>` : `${N('∞')}<small>نامحدود</small>`}</span>
@@ -1438,29 +1705,19 @@ const Store = {
 
   async loadAi(){
     try {
-      const d = await api('ai');
+      const d = await api('ai'); AI.d = d;
       if (!d.enabled) return void ($('store-box').innerHTML = emptyBox('این بخش فعلا خاموش است'));
-      $('store-box').innerHTML = (d.banner ? `<div class="banner"><img src="${STATIC}ai-banner.jpg" alt="" onerror="this.parentNode.remove()"></div><div class="gap" style="height:14px"></div>` : '')
-        + (d.items.length ? d.items.map(AiCard).join('<div class="gap"></div>') : emptyBox('فعلا محصولی برای نمایش نیست'))
-        + (d.orders.length ? Sec('سفارش‌های من') + Group(d.orders.map(o => {
-            const st = { pending:['warn','در انتظار'], done:['ok','تحویل شد'], delivered:['ok','تحویل شد'], failed:['bad','ناموفق'] }[o.status] || ['', o.status];
-            return Row({ kind:'ai', icon:'spark', title:o.title, sub:`${o.code} · ${jdate(o.created_at)}`, end: Badge(st[0], st[1]) });
-          }).join('')) : '');
+      if (d.balance != null) App.setBalance(d.balance);
+      const items = d.items.filter(x => x.stock !== 0).concat(d.items.filter(x => x.stock === 0));
+      $('store-box').innerHTML = AI.hero()
+        + (d.banner ? `<div class="gap" style="height:14px"></div><div class="banner"><img src="${STATIC}ai-banner.jpg" alt="" onerror="this.parentNode.remove()"></div>` : '')
+        + Sec('محصولات', esc(fa(items.length) + ' محصول'))
+        + (items.length ? `<div class="ai-list">${items.map(x => AI.card(x)).join('')}</div>` : emptyBox('فعلا محصولی برای نمایش نیست', 'کمی بعد دوباره سر بزن.'))
+        + (d.orders.length ? Sec('سفارش‌های من', d.orders.length > 3 ? `<button class="sec-a" onclick="App.go('ai_orders')">همه</button>` : '')
+            + Group(d.orders.slice(0, 3).map(o => AI.orderRow(o)).join('')) : '');
     } catch (err) { $('store-box').innerHTML = emptyBox('محصولات خوانده نشد', err.message); }
   }
 };
-
-function AiCard(x){
-  const out = x.stock === 0;
-  return `<div class="card plan mx" style="gap:12px">
-    <div style="display:flex;align-items:flex-start;gap:12px"><span class="ic lg ai">${ic('spark')}</span>
-      <div style="flex-grow:1;min-width:0"><div class="plan-name">${esc(x.title)}</div>
-        <div style="margin-top:6px">${x.stock != null ? (out ? Badge('bad', 'ناموجود') : Badge('ok', 'موجود: ' + fa(x.stock))) : ''}</div></div>
-      <div><div class="n" style="font-size:17px">${fa(x.price)}</div><div class="lbl" style="text-align:left">تومان</div></div></div>
-    ${out ? `<div class="short">وقتی موجود شد در ربات خبر بگیر</div>`
-          : `<button class="btn btn-block" style="background:var(--ai-t);color:var(--ai-i);height:46px" onclick="App.openBot('ai')">سفارش در ربات</button>`}
-  </div>`;
-}
 
 /* ═════════ کیف پول ═════════ */
 const Wallet = {
@@ -1538,7 +1795,7 @@ const Buy = {
     $('sheet').innerHTML = `<div class="grip"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span class="ic" style="width:28px;height:28px;border-radius:14px;background:var(--ok);color:#fff">${ic('check',2.6)}</span><div class="sheet-t">کارت عبورت آماده شد</div></div>
       ${Pass(fake, 'navy', `<span class="pass-meta">${N(r.plan.duration_days)} روز</span>`).replace(/onclick="App.go\('detail',\d+\)"/, '')}
-      <button class="btn btn-p btn-block" style="margin-top:16px;height:54px;font-size:16px" onclick="App.closeSheet();App.go('detail',${r.service_id})">${ic('bolt',2)}وصل شوم</button>
+      <button class="btn btn-p btn-block" style="margin-top:16px;height:54px;font-size:16px" onclick="App.closeSheet();App.go('detail',${r.service_id})">${ic('bolt',2)}وصل شو</button>
       <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px">
         <button class="btn btn-s" style="height:46px" onclick="App.copy(${esc(JSON.stringify(r.sub_url))})">${ic('copy')}کپی لینک</button>
         <button class="btn btn-s" style="height:46px" onclick="App.closeSheet();App.tab('home')">خانه</button></div>`;
@@ -1549,28 +1806,12 @@ const Buy = {
 const SubPages = {
 
 async detail(p, id){
-  p.innerHTML = Top('سرویس') + skel(1, 214) + skel(1, 200);
+  p.innerHTML = Top('سرویس') + skel(1, 190) + skel(1, 110) + skel(1, 240);
   try {
     const s = await api('service?id=' + id);
-    Sheets.last = s;
-    const days = s.daily.slice(-7), sum = days.reduce((a, x) => a + x.bytes, 0);
-    const i = Math.max(0, Home.services.findIndex(x => x.id === s.id));
-    p.innerHTML = Top(s.title, `اینترنت آزاد · <span class="n" style="font-weight:600">${esc(s.panel_username)}</span>`)
-      + `<div class="mx" style="margin-top:8px">${Pass(s, PASS_COLORS[i % 4], (s.expired || s.status === 'finished')
-          ? `<button class="pass-btn" onclick="event.stopPropagation();App.tab('store')">تمدید</button>`
-          : `<button class="pass-btn" onclick="event.stopPropagation();App.tab('store')">تمدید</button>`).replace(/ onclick="App.go\('detail',\d+\)" role="button"/, '')}</div>`
-      + (s.fresh ? '' : `<div class="stale">${ic('warn',2)}پنل جواب نداد؛ عدد از آخرین آمار روزانه است</div>`)
-      + `<div style="display:flex;gap:10px;margin:16px var(--pad) 0">
-          <button class="btn btn-p" style="flex-grow:1" onclick="Sheets.connect()">${ic('bolt',2)}وصل شوم</button>
-          <button class="btn btn-s btn-sq" onclick="App.copy(${esc(JSON.stringify(s.sub_url))})" aria-label="کپی لینک">${ic('copy')}</button>
-          <button class="btn btn-s btn-sq" onclick="Sheets.qr(${s.id})" aria-label="QR">${ic('qr')}</button></div>`
-      + (days.length ? Sec('مصرف') + `<div class="card chart mx"><div class="chart-h">
-          <div><div class="lbl">مصرف ${N(days.length)} روز اخیر</div><div class="n" style="font-size:22px">${esc(gbShort(sum))}</div></div>
-          <div style="text-align:left"><div class="lbl">میانگین روزانه</div><div class="n">${esc(gbShort(sum / days.length))}</div></div></div>${UsageChart(days)}</div>` : '')
-      + (s.import_links.length ? Sec('اتصال سریع', 'برنامه‌ات را بزن') + Group(s.import_links.map((a, k) =>
-          `<a class="row" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="ic net">${ic('phone')}</span><span class="row-m"><span class="row-t">${esc(a.label)}</span><span class="row-s">افزودن خودکار اشتراک</span></span>${k === 0 ? Badge('ok', 'پیشنهادی') : ''}<span class="chev">${ic('chev',2)}</span></a>`).join('')) : '')
-      + Sec('جزئیات') + KV([['حجم کل', s.limit_bytes ? `${N(gbShort(s.limit_bytes))}` : 'نامحدود'], ['مصرف شده', N(gbShort(s.used_bytes))],
-          ['تاریخ ساخت', N(jdate(s.created_at))], ['انقضا', N(jdate(s.expire_at))]]);
+    Sheets.last = s; Svc.s = s;
+    if (!Svc.plat) Svc.plat = Svc.guessPlatform(s);
+    p.innerHTML = Svc.page(s);
   } catch (err) { p.innerHTML = Top('سرویس') + emptyBox('سرویس خوانده نشد', err.message); }
 },
 
@@ -1594,7 +1835,7 @@ async referral(p){
           <button class="invite-copy" onclick="App.copy(${esc(JSON.stringify(d.link))})" aria-label="کپی لینک">${ic('copy')}<span>کپی</span></button></div>
         <button class="invite-share" onclick="App.share(${esc(JSON.stringify(d.link))},'با عبور، اینترنت آزاد')">${ic('share',2)}اشتراک با دوستان در تلگرام</button>
       </div>` : ''}
-      ${d.log.length ? Sec('آخرین پاداش‌ها') + Group(d.log.map(r => Row({ kind:'cash', icon:'gift', title:r.name, sub:`${jdate(r.created_at)} · ${r.kind || 'خرید'}`,
+      ${d.log.length ? Sec('آخرین پاداش‌ها') + Group(d.log.map(r => Row({ kind:'cash', icon:'gift', title:r.name, sub:`${jdate(r.created_at)} · ${I18N.t(r.kind === 'first' ? 'اولین خرید' : 'خرید سرویس')}`,
           end:`<span class="n" style="color:var(--ok)">+${fa(r.reward)}</span>` })).join('')) : emptyBox('هنوز پاداشی نگرفته‌ای', 'لینک را برای دوستانت بفرست.')}`;
   } catch (err) { p.innerHTML = Top('هم‌سفرها') + emptyBox('خوانده نشد', err.message); }
 },
@@ -1636,10 +1877,16 @@ async thread(p, id){
    (سه رقم آخر شناسه کاربر است) و درخواست باز قبلی دوباره نشان داده
    می شود، نه اینکه مبلغ تازه ای رزرو شود. */
 SubPages.topup = async function(p){
+  const methods = payMethods();
+  if (!methods.length) return void (p.innerHTML = Top('شارژ کیف پول') + emptyBox('شارژ فعلا ممکن نیست', 'روش پرداختی تنظیم نشده. با پشتیبانی تماس بگیر.'));
+  if (!methods.includes(Topup.method)) Topup.method = methods[0];
+  if (Topup.method === 'crypto') return Crypto.load(p);
+  if (Topup.method === 'stars') return Stars.load(p);
   p.innerHTML = Top('شارژ کیف پول') + skel(1, 220);
   try {
     const d = await api('topup');
     Topup.info = d;
+    if (!d.enabled && methods.length > 1) { Topup.method = methods.find(m => m !== 'card'); return SubPages.topup(p); }
     if (!d.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + emptyBox('شارژ فعلا ممکن نیست', 'شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.'));
     if (d.open) { Topup.req = { txn_id:d.open.txn_id, amount:d.open.amount, card:d.card, expires_at:d.open.expires_at, ttl_minutes:d.ttl_minutes }; return Topup.step2(p); }
     Topup.step1(p);
@@ -1647,13 +1894,43 @@ SubPages.topup = async function(p){
 };
 SubPages.topup.noNav = true;
 
+/* دو راه شارژ کنار هم: کارت بانکی ایران، یا کریپتو برای کسی که بیرون از
+   ایران است. فقط وقتی کریپتو روشن است دیده می شود. */
+/* روش های شارژ از سرور می آید: کارت به کارت فقط برای فارسی (کارت ایران)،
+   کریپتو و Stars برای همه. یک روش تنها = بدون انتخابگر. */
+const PAY_TILES = {
+  card:['card','cash','کارت به کارت','کارت بانکی ایران'],
+  crypto:['ton','net','TON / USDT','کیف پول کریپتو'],
+  stars:['star','ai','Stars','ستاره تلگرام'],
+};
+function payMethods(){ return (App.boot && App.boot.pay_methods) || []; }
+function PayMethods(active){
+  const m = payMethods();
+  if (m.length < 2) return '';
+  return `<div class="kinds${m.length > 2 ? ' k3' : ''}">${m.map(key => { const [icon, tone, t, sub] = PAY_TILES[key];
+    return `<button class="kind${key === active ? ' on' : ''}" onclick="Topup.to('${key}')">
+    <span class="kind-ok">${ic('check',2.6)}</span><span class="ic ${tone}">${ic(icon)}</span>
+    <span><span class="kind-t">${t}</span><span class="kind-s">${sub}</span></span></button>`; }).join('')}</div>`;
+}
+
 const Topup = {
-  info:null, req:null, amount:0, img:null, busy:false,
+  info:null, req:null, amount:0, img:null, busy:false, method:'card',
+  to(m){
+    if (m === this.method) return;
+    this.method = m; App.haptic();
+    const p = $('sub').querySelector('.page');
+    clearInterval(this._clock); clearInterval(Crypto._poll);
+    if (m === 'crypto') return Crypto.load(p);
+    if (m === 'stars') return Stars.load(p);
+    if (!this.info) return SubPages.topup(p);
+    if (!this.info.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + PayMethods('card') + emptyBox('شارژ فعلا ممکن نیست', 'شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.'));
+    this.req ? this.step2(p) : this.step1(p);
+  },
   step1(p){
     p = p || $('sub').querySelector('.page');
     const d = this.info, pick = this.amount || d.presets[1] || d.presets[0];
     this.amount = pick;
-    p.innerHTML = Top('شارژ کیف پول', 'قدم 1 از 2 · مبلغ') + `
+    p.innerHTML = Top('شارژ کیف پول', 'قدم 1 از 2 · مبلغ') + PayMethods('card') + `
       <div class="hero mx" style="margin-top:8px">
         <div class="lbl">مبلغ شارژ</div>
         <div class="amt-in"><input id="amt" inputmode="numeric" dir="ltr" value="${fa(pick)}" oninput="Topup.typed(this)" aria-label="مبلغ به تومان"><span>تومان</span></div>
@@ -1746,7 +2023,10 @@ const Topup = {
       $('clock-t').textContent = left > 0 ? String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0') : 'تمام شد';
       if (left <= 0) {
         clearInterval(this._clock);
-        $('expired').innerHTML = `<div class="expired">${ic('warn',2)}<span>مهلت تمام شد. اگر واریز کرده‌ای رسید را بفرست، وگرنه مبلغ تازه بگیر.</span>
+        $('expired').innerHTML = this.method === 'crypto'
+          ? `<div class="expired">${ic('warn',2)}<span>مهلت تمام شد. اگر پرداخت کرده‌ای صبر کن، خودکار شناخته می‌شود؛ وگرنه فاکتور تازه بگیر.</span>
+          <button onclick="Crypto.cancel()">فاکتور تازه</button></div>`
+          : `<div class="expired">${ic('warn',2)}<span>مهلت تمام شد. اگر واریز کرده‌ای رسید را بفرست، وگرنه مبلغ تازه بگیر.</span>
           <button onclick="Topup.req=null;Topup.step1()">مبلغ تازه</button></div>`;
       }
     };
@@ -1794,6 +2074,1253 @@ const Topup = {
     } catch (err) { App.toast(err.message, true); if (b) { b.disabled = false; b.textContent = 'ارسال رسید'; } }
     finally { this.busy = false; }
   }
+};
+
+/* ═════════ شارژ با کریپتو (TON Connect) ═════════
+   مبلغ به تومان → ارز (TON یا USDT) → کیف پول با TON Connect وصل می شود و
+   تراکنش را امضا می کند. کد فاکتور در کامنت تراکنش است و سرور تراکنش را
+   روی زنجیره می بیند و خودش کیف پول را شارژ می کند؛ این صفحه فقط هر چند
+   ثانیه وضعیت را می پرسد. جواب sendTransaction هیچ وقت مبنای شارژ نیست.
+   اسکریپت TON Connect فقط وقتی کاربر به این صفحه می آید بار می شود. */
+const Crypto = {
+  info:null, inv:null, asset:'', amount:0, ui:null, busy:false, pendingPay:false, _poll:null,
+  NAMES:{ TON:['TON','Toncoin'], USDT:['USDT','Tether · شبکه TON'] },
+
+  async load(p){
+    p = p || $('sub').querySelector('.page');
+    p.innerHTML = Top('شارژ کیف پول', 'کریپتو · TON / USDT') + PayMethods('crypto') + skel(2, 120);
+    try {
+      const d = await api('crypto');
+      this.info = d;
+      if (!d.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + PayMethods('crypto') + emptyBox('پرداخت کریپتو فعلا فعال نیست', 'کمی بعد دوباره امتحان کن.'));
+      const assets = Object.keys(d.rates || {});
+      if (!assets.length) return void (p.innerHTML = Top('شارژ کیف پول') + PayMethods('crypto') + emptyBox('نرخ ارزها هنوز تنظیم نشده', 'کمی بعد دوباره امتحان کن.'));
+      if (!assets.includes(this.asset)) this.asset = assets[0];
+      if (d.open && d.open.status === 'pending') { this.inv = d.open; return this.invoice(p); }
+      this.step1(p);
+      this.ensureUI().catch(() => {});
+    } catch (err) { p.innerHTML = Top('شارژ کیف پول') + PayMethods('crypto') + emptyBox('خوانده نشد', err.message); }
+  },
+
+  /* همان گرد کردن سرور: رو به بالا به ۰٫۰۱. فقط برای نمایش؛ مبلغ نهایی
+     از فاکتور سرور می آید. */
+  quote(toman, asset){
+    const d = this.info, rate = d.rates[asset];
+    if (!rate || !toman) return '';
+    const v = Math.ceil((toman * (1 + (d.fee || 0) / 100) / rate) * 100 - 1e-9) / 100;
+    return v.toFixed(2).replace(/\.?0+$/, '');
+  },
+
+  step1(p){
+    p = p || $('sub').querySelector('.page');
+    const d = this.info, pick = this.amount || Topup.amount || d.presets[1] || d.presets[0];
+    this.amount = pick;
+    p.innerHTML = Top('شارژ کیف پول', 'کریپتو · TON / USDT') + PayMethods('crypto')
+      + (d.testnet ? `<div class="cx-net">${ic('warn',2)}<span>حالت تست (testnet)</span></div>` : '') + `
+      <div class="hero mx" style="margin-top:8px">
+        <div class="lbl">مبلغ شارژ</div>
+        <div class="amt-in"><input id="amt" inputmode="numeric" dir="ltr" value="${fa(pick)}" oninput="Crypto.typed(this)" aria-label="مبلغ به تومان"><span>تومان</span></div>
+        <div class="presets">${d.presets.map(v => `<button class="preset${v === pick ? ' on' : ''}" onclick="Crypto.set(${v})"><span class="n">${fa(v)}</span></button>`).join('')}</div>
+        <div class="short" style="text-align:right;margin-top:10px">حداقل ${N(fa(d.min))} تومان · تایید خودکار، بدون رسید</div>
+      </div>
+      ${Sec('با چه ارزی؟')}
+      <div class="cx-assets">${Object.keys(d.rates).map(a => `<button class="cx-a${a === this.asset ? ' on' : ''}" data-a="${a}" onclick="Crypto.pick('${a}')">
+        <span class="cx-i ${a.toLowerCase()}">${ic(a.toLowerCase(), 2)}</span>
+        <span class="cx-n"><b>${this.NAMES[a][0]}</b><span>${this.NAMES[a][1]}</span></span>
+        <span class="cx-v"><span id="cx-v-${a}">${this.quote(pick, a)}</span><small>${a}</small></span></button>`).join('')}</div>
+      ${Sec('کیف پول')}
+      <div id="cx-w">${this.walletRow()}</div>
+      <div class="foot"><button class="btn btn-p btn-block" id="cx-go" onclick="Crypto.start()">${this.goLabel()}</button></div>`;
+  },
+  goLabel(){ const q = this.quote(this.amount, this.asset); return q ? `پرداخت <bdi dir="ltr">${q}<span class="cx-u">${this.asset}</span></bdi>` : 'پرداخت'; },
+  refresh(){
+    Object.keys(this.info.rates).forEach(a => { const e = $('cx-v-' + a); if (e) e.textContent = this.quote(this.amount, a); });
+    const b = $('cx-go'); if (b && !this.busy) b.innerHTML = this.goLabel();
+  },
+  set(v){
+    this.amount = v; App.haptic();
+    const i = $('amt'); if (i) i.value = fa(v);
+    document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.textContent.replace(/,/g,'') == String(v)));
+    this.refresh();
+  },
+  typed(el){
+    const v = parseInt(String(el.value).replace(/[^\d]/g, '').replace(/^0+/, '') || '0', 10);
+    this.amount = v; el.value = v ? fa(v) : '';
+    document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.textContent.replace(/,/g,'') == String(v)));
+    this.refresh();
+  },
+  pick(a){
+    this.asset = a; App.haptic();
+    document.querySelectorAll('.cx-a').forEach(b => b.classList.toggle('on', b.getAttribute('data-a') === a));
+    this.refresh();
+  },
+
+  /* ---------- TON Connect ---------- */
+  address(){ return this.ui && this.ui.account ? this.ui.account.address : ''; },
+  short(raw){
+    let a = raw;
+    try { a = TON_CONNECT_UI.toUserFriendlyAddress(raw, !!(this.info && this.info.testnet)); } catch(e){}
+    return a.length > 14 ? a.slice(0, 6) + '…' + a.slice(-6) : a;
+  },
+  walletRow(){
+    const a = this.address();
+    return a
+      ? `<div class="cx-w on"><span class="dot"></span><span class="row-m"><b>کیف پول وصل است</b><span class="n">${esc(this.short(a))}</span></span>
+          <button class="btn btn-sm btn-s" onclick="Crypto.disconnect()">قطع</button></div>`
+      : `<div class="cx-w"><span class="dot"></span><span class="row-m"><b>کیف پولی وصل نیست</b><span>Tonkeeper، Telegram Wallet، MyTonWallet و…</span></span>
+          <button class="btn btn-sm btn-p" onclick="Crypto.connect()">اتصال</button></div>`;
+  },
+  _loading:null,
+  loadScript(){
+    if (window.TON_CONNECT_UI) return Promise.resolve();
+    if (this._loading) return this._loading;
+    this._loading = new Promise((ok, bad) => {
+      const sc = document.createElement('script');
+      sc.src = STATIC + 'tonconnect-ui.min.js?v=3.0.2';
+      sc.onload = ok; sc.onerror = () => { this._loading = null; bad(new Error('TON Connect بار نشد')); };
+      document.head.appendChild(sc);
+    });
+    return this._loading;
+  },
+  async ensureUI(){
+    if (this.ui) return this.ui;
+    await this.loadScript();
+    const ui = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: new URL('__BASE__tonconnect-manifest.json', location.href).href,
+      analytics: { mode: 'off' },
+    });
+    const opts = { language: 'en' };
+    if (this.info && this.info.return_url) opts.actionsConfiguration = { twaReturnUrl: this.info.return_url };
+    ui.uiOptions = opts;
+    try { ui.setConnectionNetwork && ui.setConnectionNetwork(this.info && this.info.network); } catch(e){}
+    ui.onStatusChange(w => {
+      const box = $('cx-w'); if (box) box.innerHTML = this.walletRow();
+      if (w && this.pendingPay) { this.pendingPay = false; this.pay(); }
+    }, () => {});
+    this.ui = ui;
+    try { await ui.connectionRestored; } catch(e){}
+    const box = $('cx-w'); if (box) box.innerHTML = this.walletRow();
+    return ui;
+  },
+  async connect(){
+    try { const ui = await this.ensureUI(); if (!ui.connected) await ui.openModal(); }
+    catch (err) { App.toast(err.message || 'اتصال کیف پول نشد', true); }
+  },
+  async disconnect(){
+    try { await this.ui.disconnect(); } catch(e){}
+    const box = $('cx-w'); if (box) box.innerHTML = this.walletRow();
+  },
+
+  /* ---------- فاکتور ---------- */
+  async start(){
+    if (this.busy) return;
+    if (this.amount < this.info.min) return App.toast('حداقل شارژ ' + fa(this.info.min) + ' تومان است', true);
+    this.busy = true; const b = $('cx-go'); if (b) { b.disabled = true; b.textContent = 'در حال ساخت فاکتور…'; }
+    try {
+      this.inv = await api('crypto/start', { toman:this.amount, asset:this.asset });
+      App.haptic('medium');
+      this.invoice();
+      this.busy = false;
+      this.pay();
+    } catch (err) { App.toast(err.message, true); if (b) { b.disabled = false; b.innerHTML = this.goLabel(); } }
+    finally { this.busy = false; }
+  },
+
+  invoice(p){
+    p = p || $('sub').querySelector('.page');
+    const v = this.inv, testnet = this.info && this.info.testnet;
+    p.innerHTML = Top('پرداخت کریپتو', I18N.t('فاکتور') + ' ' + v.code) + `
+      <div class="card pay mx" id="cx-inv" style="margin-top:8px">
+        <div class="pay-m">
+          <span class="lbl">مبلغ دقیق</span>
+          <span class="pay-v n" dir="ltr" style="text-align:start">${esc(v.amount)}<small class="cx-u" style="font-size:15px;color:var(--ink-3)">${v.asset}</small></span>
+          <span class="pay-r">شارژ ${N(fa(v.toman))} تومان${testnet ? ' · testnet' : ''}</span>
+        </div>
+        <div class="clock" id="clock" role="timer" aria-label="مهلت پرداخت">
+          <svg viewBox="0 0 78 78"><circle class="trk" cx="39" cy="39" r="34"/><circle class="arc" id="clock-arc" cx="39" cy="39" r="34" stroke-dasharray="213.6" stroke-dashoffset="0"/></svg>
+          <div class="clock-in"><b class="n" id="clock-t">--:--</b><span>مهلت پرداخت</span></div></div>
+      </div>
+      <div id="cx-st" class="cx-st"><span class="cx-spin"></span><span>منتظر پرداختت هستیم. بعد از پرداخت، کیف پولت خودکار شارژ می‌شود.</span></div>
+      <div id="expired"></div>
+      ${Sec('پرداخت دستی')}
+      <div class="card mx cx-kv">
+        <div><span class="k">آدرس</span><span class="v addr">${esc(v.address)}</span><button onclick="App.copy('${esc(v.address)}')" aria-label="کپی آدرس">${ic('copy')}</button></div>
+        <div><span class="k">مبلغ</span><span class="v">${esc(v.amount)}<span class="cx-u">${v.asset}</span></span><button onclick="App.copy('${esc(v.amount)}')" aria-label="کپی مبلغ">${ic('copy')}</button></div>
+        <div><span class="k">کامنت</span><span class="v">${esc(v.code)}</span><button onclick="App.copy('${esc(v.code)}')" aria-label="کپی کامنت">${ic('copy')}</button></div>
+      </div>
+      <div class="card mx" style="margin-top:10px"><div class="steps-warn" style="margin:14px">${ic('warn',2)}<span><span>فقط روی شبکه TON بفرست و کامنت را حتما بنویس؛ بدون کامنت یا با مبلغ کمتر، شارژ خودکار انجام نمی‌شود.</span>${v.asset === 'USDT' ? ' <span>برای کارمزد شبکه حدود 0.1 TON هم در کیف پولت لازم است.</span>' : ''}</span></div></div>
+      <div class="foot"><button class="btn btn-p btn-block" id="cx-pay" onclick="Crypto.pay()">${ic('wallet',2)}پرداخت با کیف پول</button>
+        <button class="cx-alt" onclick="Crypto.openLink()">${ic('link',2)} باز کردن در Tonkeeper</button>
+        <button class="cx-alt" style="color:var(--ink-3);margin-top:6px" onclick="Crypto.cancel()">انصراف و مبلغ تازه</button></div>`;
+    Topup.req = { expires_at:v.expires_at, ttl_minutes:v.ttl_minutes || 20 };
+    Topup.tick();
+    this.watch();
+  },
+  openLink(){ try { tg ? tg.openLink(this.inv.link) : window.open(this.inv.link, '_blank'); } catch(e){ window.open(this.inv.link, '_blank'); } },
+
+  async pay(){
+    if (this.busy || !this.inv) return;
+    let ui;
+    try { ui = await this.ensureUI(); } catch (err) { return App.toast(err.message, true); }
+    if (!ui.connected) { this.pendingPay = true; return this.connect(); }
+    this.busy = true; const b = $('cx-pay'); if (b) b.disabled = true;
+    try {
+      const r = await api('crypto/pay', { id:this.inv.id, wallet:this.address() });
+      await ui.sendTransaction({ validUntil:r.valid_until, network:r.network, messages:r.messages });
+      App.notify('success');
+      const st = $('cx-st');
+      if (st) { st.classList.add('sent'); st.innerHTML = '<span class="cx-spin"></span><span>تراکنش فرستاده شد. منتظر تایید شبکه‌ایم؛ معمولا کمتر از یک دقیقه.</span>'; }
+      this.check();
+    } catch (err) {
+      const m = String((err && (err.name + ' ' + err.message)) || '');
+      App.toast(/reject|declin|cancel/i.test(m) ? 'پرداخت را در کیف پول رد کردی' : (err.message || 'پرداخت انجام نشد'), true);
+    } finally { this.busy = false; if (b) b.disabled = false; }
+  },
+
+  watch(){
+    clearInterval(this._poll);
+    this._poll = setInterval(() => this.check(), 5000);
+  },
+  async check(){
+    if (!$('cx-inv') || !this.inv) return clearInterval(this._poll);
+    try {
+      const s = await api('crypto/status?id=' + this.inv.id);
+      if (s.status === 'paid') this.done(s);
+      else if (s.status === 'underpaid') this.under(s);
+    } catch(e){}
+  },
+  done(s){
+    clearInterval(this._poll); clearInterval(Topup._clock);
+    App.notify('success');
+    if (App.boot && App.boot.user) App.boot.user.balance = s.balance;
+    this.inv = null; Topup.req = null;
+    $('sub').querySelector('.page').innerHTML = Top('شارژ کیف پول') + `<div class="empty" style="padding-top:40px">
+      <span class="ic lg" style="background:var(--ok);color:#fff;border-radius:23px">${ic('check',2.6)}</span>
+      <div class="empty-t" style="font-size:19px">کیف پولت شارژ شد</div>
+      <div class="empty-s">+${N(fa(s.toman))} تومان · ${N(s.paid_amount || s.amount)} ${s.asset}</div>
+      <div class="empty-s">موجودی: ${N(fa(s.balance))} تومان</div>
+      <div class="badge" style="margin-top:6px">${N(s.code)}</div>
+    </div><div class="foot"><button class="btn btn-p btn-block" onclick="App.tab('wallet')">برگشت به کیف پول</button></div>`;
+  },
+  under(s){
+    clearInterval(this._poll); clearInterval(Topup._clock);
+    this.inv = null; Topup.req = null;
+    $('sub').querySelector('.page').innerHTML = Top('شارژ کیف پول') + `<div class="empty" style="padding-top:40px">
+      <span class="ic lg" style="background:var(--help-t);color:var(--help-i);border-radius:23px">${ic('warn',2.2)}</span>
+      <div class="empty-t" style="font-size:19px">مبلغ کمتر از فاکتور بود</div>
+      <div class="empty-s">رسیده: ${N(s.paid_amount)} ${s.asset}</div><div class="empty-s">لازم: ${N(s.amount)} ${s.asset}</div>
+      <div class="empty-s">کیف پولت خودکار شارژ نشد؛ پشتیبانی بررسی می‌کند.</div>
+    </div><div class="foot"><button class="btn btn-p btn-block" onclick="App.go('compose')">گفتگو با پشتیبانی</button></div>`;
+  },
+  async cancel(){
+    clearInterval(this._poll);
+    const id = this.inv && this.inv.id;
+    this.inv = null; Topup.req = null;
+    if (id) try { await api('crypto/cancel', { id }); } catch(e){}
+    this.step1();
+  },
+};
+
+/* ═════════ صفحه سرویس ═════════
+   کاربر باید در یک نگاه بفهمد سرویسش در چه حالی است و قدم بعدی چیست.
+   پس بالای صفحه وضعیت با زبان ساده و یک دکمه اصلی متناسب با همان وضعیت
+   است (وصل نشده → راه اندازی، فعال → وصل شو، رو به اتمام/تمام → تمدید)؛
+   بعد عددهای باقی مانده، راه اندازی سه قدمی برای دستگاه خود کاربر،
+   تمدید همین سرویس با قیمت روشن، و مشخصات کامل. */
+const Svc = {
+  s:null, plat:null, busy:false,
+  guessPlatform(s){
+    const t = (tg && tg.platform) || '';
+    const m = { android:'android', ios:'ios', macos:'mac', tdesktop:'windows' }[t] || (/iphone|ipad/i.test(navigator.userAgent) ? 'ios' : /mac/i.test(navigator.userAgent) ? 'mac' : /windows/i.test(navigator.userAgent) ? 'windows' : 'android');
+    return (s.platforms || []).some(x => x.key === m) ? m : ((s.platforms || [])[0] || {}).key;
+  },
+  /* حالت سرویس برای کاربر: کلید، رنگ، عنوان، توضیح */
+  state(s){
+    const dead = s.expired || s.status === 'finished';
+    if (s.expired) return ['expired', 'bad', 'سرویس منقضی شده', 'اتصال قطع است. با تمدید، همین لینک دوباره کار می‌کند و لازم نیست چیزی را از نو تنظیم کنی.'];
+    if (s.status === 'finished') return ['finished', 'bad', 'حجم سرویس تمام شده', 'اتصال قطع است. با تمدید، حجم تازه روی همین لینک اضافه می‌شود.'];
+    if (s.status === 'warn') return ['warn', 'warn', 'سرویس رو به اتمام است', s.days_left <= 3 && s.days_left < 99
+      ? `فقط ${fa(s.days_left)} روز مانده. قبل از تمام شدن تمدید کن تا اتصالت قطع نشود.`
+      : 'حجم کمی مانده. قبل از تمام شدن تمدید کن تا اتصالت قطع نشود.'];
+    /* «هنوز وصل نشدی» فقط برای سرویس تازه؛ بعد از تمدید هم مصرف صفر می شود */
+    const fresh = s.created_at && (Date.now() - new Date(s.created_at).getTime()) < 3 * 864e5;
+    if (!s.used_bytes && !dead && fresh && !(s.daily || []).some(x => x.bytes)) return ['new', 'new', 'سرویس آماده است؛ هنوز وصل نشدی', 'سه قدم ساده پایین همین صفحه را انجام بده؛ کمتر از یک دقیقه طول می‌کشد.'];
+    return ['ok', 'ok', 'فعال و آماده استفاده', 'همه چیز روبه‌راه است. هر وقت خواستی وصل شوی، برنامه را باز کن و Connect را بزن.'];
+  },
+  left(s){ return s.limit_bytes ? Math.max(0, s.limit_bytes - s.used_bytes) : null; },
+  /* با میانگین مصرف هفت روز اخیر، حجم تا کی کافی است */
+  forecast(s){
+    const days = (s.daily || []).slice(-7), sum = days.reduce((a, x) => a + x.bytes, 0);
+    const left = this.left(s);
+    if (!days.length || !sum || left == null || s.expired) return '';
+    const avg = sum / days.length, n = Math.floor(left / avg);
+    const rate = `<span>میانگین مصرف روزانه</span> <b class="n">${esc(gbShort(avg))}</b>`;
+    if (n >= s.days_left) return `${rate} · <span>با این مصرف، حجمت تا آخر مدت کافی است.</span>`;
+    return `${rate} · <span>${esc(`با این مصرف، حجمت حدود ${fa(Math.max(0, n))} روز دیگر تمام می‌شود.`)}</span>`;
+  },
+  cta(s, st){
+    const r = s.renew || {};
+    if (st === 'expired' || st === 'finished' || st === 'warn')
+      return r.available ? `<button class="btn btn-p btn-block" onclick="Svc.renewSheet()">${ic('refresh',2)}تمدید همین سرویس · ${N(fa(r.price))} تومان</button>`
+                         : `<button class="btn btn-p btn-block" onclick="App.tab('store')">${ic('store',2)}خرید سرویس تازه</button>`;
+    if (st === 'new') return `<button class="btn btn-p btn-block" onclick="document.getElementById('sv-setup').scrollIntoView({behavior:'smooth'})">${ic('bolt',2)}راه‌اندازی اتصال</button>`;
+    return `<button class="btn btn-p btn-block" onclick="Sheets.connect()">${ic('bolt',2)}وصل شو</button>`;
+  },
+  page(s){
+    const [st, tone, title, hint] = this.state(s);
+    const left = this.left(s), used = s.used_bytes, lim = s.limit_bytes;
+    const pct = lim ? Math.min(100, Math.round(used / lim * 100)) : 0;
+    const fc = this.forecast(s);
+    const plan = s.plan ? s.plan.title : (s.data_gb ? `${fa(s.data_gb)} گیگ · ${fa(s.duration_days)} روز` : '');
+    return Top(s.title, esc(I18N.t('اینترنت آزاد')) + (plan ? ' · ' + esc(I18N.t(plan)) : ''))
+      + `<div class="sv-hero ${tone}">
+          <div class="sv-st"><span class="sv-dot"></span>${esc(title)}</div>
+          <p class="sv-hint">${esc(hint)}</p>
+          ${this.cta(s, st)}
+        </div>`
+      + (s.fresh ? '' : `<div class="stale">${ic('warn',2)}پنل جواب نداد؛ عددها از آخرین آمار روزانه است</div>`)
+      + `<div class="sv-tiles">
+          <div class="sv-tile"><span class="lbl">حجم باقی‌مانده</span><b class="n">${left == null ? '∞' : esc(gbShort(left))}</b><small>${lim ? `<span>از</span> <span class="n">${esc(gbShort(lim))}</span>` : 'نامحدود'}</small></div>
+          <div class="sv-tile"><span class="lbl">روز باقی‌مانده</span><b class="n">${s.expired ? '0' : fa(s.days_left)}</b><small><span>تا</span> ${N(jdate(s.expire_at))}</small></div>
+        </div>
+        ${lim ? `<div class="sv-bar mx"><div class="sv-bar-h"><span><span>مصرف شده</span> ${N(gbShort(used))}</span><span class="n">${fa(pct)}%</span></div>
+          <div class="sv-track"><i style="width:${pct}%"></i></div>${fc ? `<div class="sv-fc">${fc}</div>` : ''}</div>` : ''}`
+      + this.setup(s)
+      + this.chart(s)
+      + this.renewCard(s, st)
+      + Sec('مشخصات سرویس') + KV([
+          ['نام سرویس', esc(s.title)], ['نام کاربری', `<span class="n">${esc(s.panel_username)}</span>`],
+          ...(plan ? [['پلن', esc(plan)]] : []),
+          ['حجم کل', lim ? N(gbShort(lim)) : 'نامحدود'], ['مصرف شده', N(gbShort(used))],
+          ['تاریخ خرید', N(jdate(s.created_at))], ['تاریخ انقضا', N(jdate(s.expire_at))],
+          ['کشورها', s.locations ? `${N(fa(s.locations.configs))} کانفیگ در ${N(fa(s.locations.countries))} کشور` : 'همه کشورها'],
+          ['تعداد دستگاه', 'بدون محدودیت'],
+        ])
+      + Sec('کمک') + Group(
+          Row({ kind:'net', icon:'book', title:'راهنمای کامل اتصال', sub:'تصویری و قدم به قدم برای هر دستگاه', fn:"App.go('guide')" })
+          + Row({ kind:'help', icon:'chat', title:'وصل نمی‌شوم', sub:'به پشتیبانی بگو؛ همین‌جا جواب می‌گیری', fn:"App.go('compose')" }))
+      + `<div class="adm-note" style="text-align:center">${ic('shield',2)} لینک اشتراک مخصوص توست؛ آن را با کسی به اشتراک نگذار.</div>`;
+  },
+
+  /* راه اندازی سه قدمی برای دستگاه خود کاربر */
+  setup(s){
+    const plats = s.platforms || [];
+    if (!plats.length) return '';
+    const on = Math.max(0, plats.findIndex(x => x.key === this.plat));
+    const P = plats[on], best = P.apps[0] || {};
+    return `<div id="sv-setup"></div>` + Sec('اتصال در ۳ قدم')
+      + Tabs('sv-plat', plats.map(x => ({ t:x.title })), on, 'Svc.pick')
+      + `<div class="card mx" style="margin-top:10px"><ol class="steps">
+          <li><span class="d n">1</span><div><b>یک برنامه نصب کن</b><p><span>پیشنهاد ما برای</span> ${esc(P.title)}: <b style="display:inline">${esc(best.name || '')}</b>. <span>اگر از قبل یکی از این‌ها را داری، همان کافی است.</span></p>
+            <div class="sv-apps">${P.apps.map((a, k) => `<a class="sv-app${k ? '' : ' best'}" href="${esc(a.install)}" target="_blank" rel="noopener">${esc(a.name)}${k ? '' : '<small>پیشنهادی</small>'}</a>`).join('')}</div></div></li>
+          <li><span class="d n">2</span><div><b>اشتراک را اضافه کن</b><p>دکمه زیر برنامه را باز می‌کند و اشتراکت خودکار اضافه می‌شود.</p>
+            <div class="sv-apps">${P.apps.filter(a => a.import).map((a, k) => `<a class="sv-app${k ? '' : ' best'}" href="${esc(a.import)}" target="_blank" rel="noopener"><span>افزودن به</span> ${esc(a.name)}</a>`).join('')}</div>
+            <p style="margin-top:8px">کار نکرد؟ لینک را کپی کن و در برنامه «افزودن از کلیپ‌بورد» (Import from clipboard) را بزن.</p>
+            <div class="sv-apps"><button class="sv-app" onclick="App.copy(${esc(JSON.stringify(s.sub_url))})">${ic('copy')}کپی لینک اشتراک</button>
+              <button class="sv-app" onclick="Sheets.qr(${s.id})">${ic('qr')}QR برای دستگاه دیگر</button></div></div></li>
+          <li><span class="d">${ic('check',2.6)}</span><div><b>وصل شو</b><p>در برنامه دکمه اتصال (Connect) را بزن. اگر کشوری کند بود یا وصل نشد، از فهرست کشور دیگری را انتخاب کن؛ همه در همین اشتراک هستند.</p></div></li>
+        </ol></div>`;
+  },
+  pick(i){
+    const P = (this.s.platforms || [])[i]; if (!P || P.key === this.plat) return;
+    this.plat = P.key; App.haptic();
+    const p = $('sub').querySelector('.page'), sc = p.parentNode, y = sc.scrollTop;
+    p.innerHTML = this.page(this.s); sc.scrollTop = y;
+  },
+  chart(s){
+    const days = (s.daily || []).slice(-7), sum = days.reduce((a, x) => a + x.bytes, 0);
+    if (!days.length) return '';
+    return Sec('مصرف') + `<div class="card chart mx"><div class="chart-h">
+      <div><div class="lbl">مصرف ${N(days.length)} روز اخیر</div><div class="n" style="font-size:22px">${esc(gbShort(sum))}</div></div>
+      <div style="text-align:left"><div class="lbl">میانگین روزانه</div><div class="n">${esc(gbShort(sum / days.length))}</div></div></div>${UsageChart(days)}</div>`;
+  },
+  renewCard(s, st){
+    const r = s.renew || {};
+    if (!r.available) return Sec('تمدید') + `<div class="card mx sv-rn"><p>${r.reason === 'plan_gone'
+        ? 'پلن این سرویس دیگر فروخته نمی‌شود. برای ادامه، یک پلن تازه از فروشگاه بخر.'
+        : 'این سرویس دلخواه یا آزمایشی است و تمدید مستقیم ندارد. برای ادامه، یک پلن تازه بخر.'}</p>
+        <button class="btn btn-s btn-block" onclick="App.tab('store')">${ic('store',2)}دیدن پلن‌ها</button></div>`;
+    const extra = r.days - r.plan_days;
+    return Sec('تمدید همین سرویس') + `<div class="card mx sv-rn">
+      <div class="sv-rn-h"><div><b class="n">${fa(r.price)}</b> تومان</div><span>${N(fa(r.data_gb))} گیگ · ${N(fa(r.plan_days))} روز</span></div>
+      <p><span>بعد از تمدید، حجم تازه روی همین لینک می‌نشیند؛ لازم نیست چیزی را دوباره تنظیم کنی.</span>
+        <span>${esc(`مدت سرویس بعد از تمدید: ${fa(r.days)} روز`)}</span>${extra > 0 ? ` <span>${esc(`(${fa(extra)} روز باقی‌مانده فعلی هم حساب می‌شود)`)}</span>` : ''}</p>
+      <button class="btn ${st === 'ok' || st === 'new' ? 'btn-s' : 'btn-p'} btn-block" onclick="Svc.renewSheet()">${ic('refresh',2)}تمدید با کیف پول</button></div>`;
+  },
+  renewSheet(){
+    const s = this.s, r = s.renew, bal = App.boot.user.balance;
+    if (bal < r.price) { App.toast(I18N.t(`${fa(r.price - bal)} تومان کم داری؛ اول کیف پول را شارژ کن`), true); return App.go('topup'); }
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span class="ic lg navy">${ic('refresh',2)}</span>
+        <div><div class="sheet-t">${esc(I18N.t('تمدید'))} ${esc(s.title)}</div><div class="topbar-s">${N(fa(r.data_gb))} گیگ · ${N(fa(r.days))} روز</div></div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV([['قیمت', `${N(fa(r.price))} تومان`], ['موجودی فعلی', `${N(fa(bal))} تومان`],
+        ['موجودی بعد از تمدید', `${N(fa(bal - r.price))} تومان`]]).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      <button class="btn btn-p btn-block" id="rn-go" style="margin-top:16px;height:54px;font-size:16px" onclick="Svc.renew()">تمدید و پرداخت</button>`);
+  },
+  async renew(){
+    if (this.busy) return;
+    this.busy = true;
+    const b = $('rn-go'); if (b) { b.disabled = true; b.textContent = 'در حال تمدید…'; }
+    App.haptic('medium');
+    try {
+      const r = await api('service/renew', { id:this.s.id, nonce:Buy.nonce() });
+      App.setBalance(r.balance); App.notify('success'); App.closeSheet();
+      App.toast('تمدید شد؛ همین لینک دوباره کار می‌کند');
+      const p = $('sub').querySelector('.page'); if (p) SubPages.detail(p, this.s.id);
+    } catch (err) {
+      App.notify('error');
+      if (err.code === 'insufficient') { App.closeSheet(); App.toast(err.message, true); App.go('topup'); }
+      else { if (b) { b.disabled = false; b.textContent = 'تلاش دوباره'; } App.toast(err.message || 'تمدید نشد', true); }
+    } finally { this.busy = false; }
+  },
+};
+
+/* ═════════ بساز به سلیقه خودت ═════════
+   دو لغزنده روی همان پله های ربات (حجم و مدت). جدول قیمت یک بار از سرور
+   می آید و قیمت با هر حرکت بی درنگ عوض می شود؛ موقع خرید، سرور قیمت را
+   دوباره خودش حساب می کند. */
+const Custom = {
+  d:null, gi:1, di:4, busy:false,
+  price(){ return this.d.prices[this.gi][this.di]; },
+  ticks(arr, on, unit){ return `<div class="cst-ticks">${arr.map((v, i) => `<span class="${i === on ? 'on' : ''}">${fa(v)}</span>`).join('')}</div>`; },
+  pct(i, n){ return (i / (n - 1) * 100).toFixed(1) + '%'; },
+  render(){
+    const d = this.d, gb = d.gb[this.gi], days = d.days[this.di], price = this.price();
+    const bal = App.boot.user.balance, low = bal < price;
+    $('cst-gb').textContent = fa(gb); $('cst-days').textContent = fa(days);
+    $('cst-p').textContent = fa(price); $('cst-per').textContent = fa(Math.round(price / gb));
+    $('cst-gbv').innerHTML = `${fa(gb)}<span class="u-gap">${I18N.t('گیگ')}</span>`; $('cst-dyv').innerHTML = `${fa(days)}<span class="u-gap">${I18N.t('روز')}</span>`;
+    const g = $('cst-rg'), y = $('cst-rd');
+    g.style.setProperty('--p', this.pct(this.gi, d.gb.length)); y.style.setProperty('--p', this.pct(this.di, d.days.length));
+    $('cst-tg').outerHTML = this.ticks(d.gb, this.gi).replace('class="cst-ticks"', 'class="cst-ticks" id="cst-tg"');
+    $('cst-td').outerHTML = this.ticks(d.days, this.di).replace('class="cst-ticks"', 'class="cst-ticks" id="cst-td"');
+    const b = $('cst-go');
+    if (b && !this.busy) b.innerHTML = low ? `${ic('wallet')}<span>${N(money(price - bal))} کم · شارژ</span>` : `${ic('store',2)}خرید`;
+    if (b) b.classList.toggle('btn-d', low);
+  },
+  slide(which, el){
+    const v = +el.value;
+    if (which === 'g' ? v === this.gi : v === this.di) return;
+    if (which === 'g') this.gi = v; else this.di = v;
+    App.haptic(); this.render();
+  },
+  go(){
+    const price = this.price();
+    if (App.boot.user.balance < price) return App.go('topup');
+    const gb = this.d.gb[this.gi], days = this.d.days[this.di], bal = App.boot.user.balance;
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span class="ic lg navy">${ic('sliders',2)}</span>
+        <div><div class="sheet-t">سرویس دلخواه</div><div class="topbar-s">اینترنت آزاد</div></div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV([['حجم و مدت', `${N(gb)} گیگ · ${N(days)} روز`], ['قیمت', `${N(fa(price))} تومان`],
+        ['موجودی فعلی', `${N(fa(bal))} تومان`], ['موجودی بعد از خرید', `${N(fa(bal - price))} تومان`]]).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      <button class="btn btn-p btn-block" id="buy-go" style="margin-top:16px;height:54px;font-size:16px" onclick="Custom.buy()">پرداخت از کیف پول</button>
+      <div class="short" style="margin-top:10px">کارت عبور بلافاصله ساخته می‌شود</div>`);
+  },
+  async buy(){
+    if (this.busy) return;
+    this.busy = true;
+    const btn = $('buy-go'); if (btn) { btn.disabled = true; btn.textContent = 'در حال ساخت…'; }
+    App.haptic('medium');
+    try {
+      const r = await api('custom/buy', { gb:this.d.gb[this.gi], days:this.d.days[this.di], nonce:Buy.nonce() });
+      App.setBalance(r.balance); App.notify('success');
+      Buy.done(r);
+    } catch (err) {
+      App.notify('error');
+      if (err.code === 'rules') { App.closeSheet(); App.toast('اول قوانین را بخوان و بپذیر', true); App.go('rules'); }
+      else if (err.code === 'insufficient') { App.closeSheet(); App.toast(err.message, true); App.go('topup'); }
+      else { if (btn) { btn.disabled = false; btn.textContent = 'تلاش دوباره'; } App.toast(err.message || 'خرید انجام نشد', true); }
+    } finally { this.busy = false; }
+  },
+};
+
+SubPages.custom = async function(p){
+  p.innerHTML = Top('بساز به سلیقه خودت') + skel(1, 170) + skel(1, 200);
+  try {
+    const d = await api('custom');
+    if (!d.enabled) return void (p.innerHTML = Top('بساز به سلیقه خودت') + emptyBox('این بخش فعلا خاموش است'));
+    Custom.d = d;
+    Custom.gi = Math.min(Custom.gi, d.gb.length - 1); Custom.di = Math.min(Custom.di, d.days.length - 1);
+    p.innerHTML = Top('بساز به سلیقه خودت', 'حجم و مدت را خودت انتخاب کن') + `
+      <div class="cst-hero">${TUNNEL}
+        <div class="lbl" style="color:var(--on-pass-2)">سرویس تو</div>
+        <div class="cst-sum"><b class="n" id="cst-gb"></b><span>گیگ</span><b class="n" style="font-size:26px;opacity:.5">·</b><b class="n" id="cst-days"></b><span>روز</span></div>
+        <div class="cst-price"><div><b class="n" id="cst-p"></b><small>تومان</small></div>
+          <div class="per">هر گیگ <span class="n" id="cst-per"></span> تومان<br>همه کشورها · بدون محدودیت دستگاه</div></div>
+      </div>
+      <div class="card mx" style="margin-top:12px">
+        <div class="cst-sl"><div class="cst-h"><b>حجم</b><span class="n" id="cst-gbv"></span></div>
+          <input class="rng" id="cst-rg" type="range" min="0" max="${d.gb.length - 1}" step="1" value="${Custom.gi}" oninput="Custom.slide('g', this)" aria-label="حجم">
+          <div class="cst-ticks" id="cst-tg"></div></div>
+        <div class="cst-sl"><div class="cst-h"><b>مدت</b><span class="n" id="cst-dyv"></span></div>
+          <input class="rng" id="cst-rd" type="range" min="0" max="${d.days.length - 1}" step="1" value="${Custom.di}" oninput="Custom.slide('d', this)" aria-label="مدت">
+          <div class="cst-ticks" id="cst-td"></div></div>
+      </div>
+      <div class="adm-note" style="text-align:center">هرچی حجم بیشتر، هر گیگ ارزون‌تر · قیمت مدت‌های طولانی کمی بیشتره</div>
+      <div class="foot"><button class="btn btn-p btn-block" id="cst-go" onclick="Custom.go()"></button></div>`;
+    Custom.render();
+  } catch (err) { p.innerHTML = Top('بساز به سلیقه خودت') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.custom.noNav = true;
+SubPages.detail.noNav = true;
+
+/* ═════════ هوش مصنوعی: فروشگاه، خرید و تحویل ═════════
+   مثل خرید کانفیگ: پرداخت از کیف پول و تحویل همین جا. منطق خرید همان
+   ai_shop.buy ربات است؛ سرور محصول و قیمت را موقع خرید دوباره و بدون کش
+   از فروشنده می گیرد، پس قیمتی که اینجا دیده می شود فقط برای نمایش است.
+   اطلاعات ورود فقط در صفحه خود سفارش خوانده می شود، نه در فهرست ها. */
+const AI_HOW = { account:['bolt','تحویل فوری نام کاربری و رمز'], slot:['mail','فعال‌سازی روی ایمیل خودت'], upgrade_account:['up','ارتقای اکانت خودت'] };
+const AI_STEPS = {
+  account: [['wallet','پرداخت از کیف پول','مبلغ از موجودی کیف پولت کم می‌شود.'],
+            ['bolt','تحویل همین‌جا','نام کاربری و رمز چند ثانیه بعد روی همین صفحه می‌آید.'],
+            ['shield','همیشه در دسترس','اطلاعات ورود در «سفارش‌های من» می‌ماند.']],
+  slot:    [['mail','ایمیلت را بنویس','اشتراک روی همین ایمیل فعال می‌شود.'],
+            ['wallet','پرداخت از کیف پول','سفارش همان لحظه برای فروشنده ثبت می‌شود.'],
+            ['clock','فعال‌سازی روی ایمیلت','فروشنده فعالش می‌کند و ممکن است کمی طول بکشد. ایمیلت را چک کن.']],
+  upgrade_account: [['mail','ایمیل اکانتت را بنویس','همان اکانتی که می‌خواهی ارتقا پیدا کند.'],
+            ['wallet','پرداخت از کیف پول','سفارش همان لحظه برای فروشنده ثبت می‌شود.'],
+            ['up','ارتقای اکانت','ارتقا روی همان اکانت انجام می‌شود؛ وضعیتش در «سفارش‌های من» است.']],
+};
+const AI_ST = {
+  delivered: ['ok','check','تحویل شد','اطلاعات ورود همین پایین است و همیشه در «سفارش‌های من» می‌ماند.'],
+  processing:['warn','clock','در انتظار فروشنده','سفارشت ثبت شد و فروشنده انجامش می‌دهد. معمولا کمی طول می‌کشد و لازم نیست کاری بکنی.'],
+  unknown:   ['warn','refresh','در حال بررسی','جواب فروشنده به‌موقع نرسید. نگران نباش: یا سفارش انجام می‌شود یا مبلغ کامل به کیف پولت برمی‌گردد.'],
+  failed:    ['bad','warn','ناموفق','فروشنده سفارش را انجام نداد و مبلغ به کیف پولت برگشت.'],
+};
+AI_ST.done = AI_ST.delivered; AI_ST.pending = AI_ST.unknown;
+/* رنگ برند و حرف اول؛ لوگوی واقعی نه */
+const AI_BRANDS = [
+  [/chat\s*gpt|openai|\bgpt/i, '#10A37F', 'GPT'], [/claude|anthropic/i, '#C15F3C', 'C'], [/gemini|google/i, '#2F6BEA', 'G'],
+  [/midjourney/i, '#1E2230', 'MJ'], [/perplexity/i, '#1F7A8C', 'P'], [/grok|x\.ai/i, '#16181D', 'X'], [/cursor/i, '#26262B', 'Cu'],
+  [/copilot|github/i, '#24292F', 'Co'], [/canva/i, '#7D2AE8', 'Ca'], [/capcut/i, '#18181B', 'CC'], [/suno/i, '#2E2E36', 'S'],
+  [/eleven/i, '#26262B', '11'], [/netflix/i, '#B20710', 'N'], [/spotify/i, '#1A8F45', 'S'], [/youtube/i, '#CC2A2A', 'YT'],
+];
+const AI_EMAIL = /^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/;
+function AiMono(name, size){
+  let c = 'var(--indigo)', t = '';
+  for (const [re, col, tx] of AI_BRANDS) if (re.test(name || '')) { c = col; t = tx; break; }
+  if (!t) { const w = String(name || '').replace(/[^A-Za-z0-9]/g, ''); t = w ? w[0].toUpperCase() : ''; }
+  return `<span class="ai-mono${size ? ' ' + size : ''}" style="--b:${c}" aria-hidden="true">${t ? esc(t) : ic('spark', 2)}</span>`;
+}
+
+const AI = {
+  d:null, x:null, m:null, email:'', o:null, busy:false,
+
+  hero(){
+    return `<div class="ai-hero">${TUNNEL}
+      <div class="ai-hero-t">هوش مصنوعی، بی‌مرز</div>
+      <div class="ai-hero-s">اشتراک ابزارهای هوش مصنوعی؛ از کیف پولت بخر و همین‌جا تحویل بگیر.</div>
+      <div class="ai-chips"><span>${ic('bolt',2)}تحویل در همین صفحه</span><span>${ic('wallet',2)}پرداخت از کیف پول</span><span>${ic('shield',2)}پیگیری و پشتیبانی</span></div>
+      <div class="pass-foot"><span class="pass-meta"><span>موجودی کیف پول</span> <b class="n" data-bal>${fa(App.boot.user.balance)}</b> <span>تومان</span></span>
+        <button class="pass-btn" onclick="App.go('topup')">شارژ</button></div>
+    </div>`;
+  },
+
+  card(x){
+    const out = x.stock === 0, how = AI_HOW[x.type] || AI_HOW.account;
+    return `<button class="ai-p${out ? ' out' : ''}" onclick="App.go('ai_product', ${esc(JSON.stringify(x.id))})">
+      ${AiMono(x.title)}
+      <span class="ai-p-m"><span class="ai-p-t ai-lat">${esc(x.title)}</span>
+        <span class="ai-how">${ic(how[0], 2)}<span>${how[1]}</span></span>
+        <span class="ai-p-st${out ? ' bad' : ''}">${out ? 'ناموجود' : x.stock != null ? `<span>موجود:</span> ${N(fa(x.stock))}` : 'موجود'}</span></span>
+      <span class="ai-p-e">${x.from_price ? '<span class="lbl">از</span>' : ''}<span class="n">${fa(x.price)}</span><span class="lbl">تومان</span></span>
+      <span class="chev">${ic('chev',2)}</span></button>`;
+  },
+
+  orderRow(o){
+    const st = AI_ST[o.status] || ['', 'list', o.status];
+    return `<button class="row" onclick="App.go('ai_order', ${o.id})">${AiMono(o.title, 'sm')}
+      <span class="row-m"><span class="row-t ai-lat">${esc(o.title)}</span><span class="row-s"><span class="n">${esc(o.code)}</span> · ${esc(jdate(o.created_at))}</span></span>
+      <span class="row-e">${Badge(st[0], st[2])}</span><span class="chev">${ic('chev',2)}</span></button>`;
+  },
+
+  /* ── صفحه محصول ── */
+  price(){
+    const x = this.x;
+    if (x.months.length) { const m = x.months.find(k => k.months === this.m) || x.months[0]; return m.price; }
+    return x.price;
+  },
+  productPage(x){
+    const out = x.stock === 0, how = AI_HOW[x.type] || AI_HOW.account;
+    const steps = (AI_STEPS[x.type] || AI_STEPS.account).filter(s => x.needs_email || s[0] !== 'mail');
+    const long = (x.description || '').length > 240;
+    return Top('هوش مصنوعی', `<span class="ai-lat">${esc(x.title)}</span>`) + `
+      <div class="pass ai-pass mx">${TUNNEL}
+        <div class="ai-pass-h">${AiMono(x.title, 'lg')}
+          <div style="flex-grow:1;min-width:0"><div class="ai-pass-t ai-lat">${esc(x.title)}</div><div class="ai-pass-s">${how[1]}</div></div></div>
+        <div class="ai-price"><span class="n" id="ai-price"></span><small>تومان</small></div>
+        <div class="pass-foot"><span class="pass-meta" id="ai-meta"></span>
+          <span class="pass-st${out ? ' bad' : ''}"><i></i>${out ? 'ناموجود' : x.stock != null ? `<span>موجود:</span> ${N(fa(x.stock))}` : 'موجود'}</span></div>
+      </div>
+      ${x.months.length ? Sec('مدت اشتراک') + `<div class="ai-months" id="ai-months" style="--c:${x.months.length <= 4 ? x.months.length : x.months.length % 4 === 0 ? 4 : 3}">${x.months.map(m =>
+          `<button class="ai-m" data-m="${m.months}" onclick="AI.pick(${m.months})"><b>${N(m.months)} <span>ماه</span></b><span>${N(fa(m.price))}</span></button>`).join('')}</div>` : ''}
+      ${x.needs_email ? Sec(x.type === 'upgrade_account' ? 'ایمیل اکانتت' : 'ایمیل برای فعال‌سازی') + `<div class="card mx ai-box">
+          <input class="ai-in" id="ai-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" dir="ltr"
+            placeholder="name@gmail.com" maxlength="120" value="${esc(this.email)}" oninput="AI.render()" aria-label="ایمیل">
+          <div class="ai-hint">اشتراک روی همین ایمیل فعال می‌شود و بعد از خرید قابل تغییر نیست.</div></div>` : ''}
+      ${Sec('چطور تحویل می‌گیری')}<div class="card mx ai-steps">${steps.map(s =>
+          `<div class="ai-step"><i>${ic(s[0], 2)}</i><div><b>${s[1]}</b><span>${s[2]}</span></div></div>`).join('')}</div>
+      ${x.description ? Sec('درباره محصول') + `<div class="card mx"><div class="ai-desc${long ? ' clip' : ''}" id="ai-desc" dir="auto">${esc(x.description)}</div>
+          ${long ? `<button class="ai-more" style="margin-bottom:12px" onclick="AI.more(this)">بیشتر</button>` : ''}</div>` : ''}
+      <div class="ai-warn">${ic('warn', 2)}<span>تحویل برگشت‌پذیر نیست؛ قبل از پرداخت مطمئن شو همین محصول را می‌خواهی.</span></div>
+      <div class="foot"><button class="btn btn-block" id="ai-go" onclick="AI.go()"></button></div>`;
+  },
+  more(b){ const d = $('ai-desc'); if (d) d.classList.remove('clip'); b.remove(); },
+  pick(m){ if (m === this.m) return; this.m = m; App.haptic(); this.render(); },
+  render(){
+    const x = this.x; if (!x) return;
+    const price = this.price(), bal = App.boot.user.balance, out = x.stock === 0;
+    const pe = $('ai-price'); if (pe) pe.textContent = fa(price);
+    const meta = $('ai-meta');
+    if (meta) meta.innerHTML = bal >= price ? `<span>موجودی کیف پول</span> <b class="n" data-bal>${fa(bal)}</b> <span>تومان</span>`
+                                            : `${N(money(price - bal))} <span>تومان کم داری</span>`;
+    const box = $('ai-months');
+    if (box && box.querySelectorAll) box.querySelectorAll('.ai-m').forEach(e => e.classList.toggle('on', +e.getAttribute('data-m') === this.m));
+    const inp = $('ai-email');
+    if (inp) { this.email = inp.value.trim(); inp.classList.toggle('ok', AI_EMAIL.test(this.email)); if (AI_EMAIL.test(this.email)) inp.classList.remove('bad'); }
+    const b = $('ai-go'); if (!b || this.busy) return;
+    b.className = 'btn btn-block ' + (out ? 'btn-s' : bal < price ? 'btn-d' : 'btn-ai');
+    b.innerHTML = out ? `${ic('clock', 2)}<span>وقتی موجود شد خبرم کن</span>`
+      : bal < price ? `${ic('wallet')}<span>${N(money(price - bal))} کم · شارژ</span>`
+      : `${ic('spark', 2)}<span>پرداخت</span> ${N(fa(price))} <span>تومان</span>`;
+  },
+  go(){
+    const x = this.x, price = this.price(), bal = App.boot.user.balance;
+    if (x.stock === 0) return this.notify();
+    if (bal < price) return App.go('topup');
+    const inp = $('ai-email');
+    if (x.needs_email && !AI_EMAIL.test(this.email)) {
+      if (inp) { inp.classList.add('bad'); inp.focus(); }
+      App.notify('error'); return App.toast('ایمیل را درست بنویس؛ مثل name@gmail.com', true);
+    }
+    const how = AI_HOW[x.type] || AI_HOW.account;
+    const rows = [['محصول', `<span class="ai-lat">${esc(x.title)}</span>`]];
+    if (x.months.length) rows.push(['مدت', `${N(this.m)} <span>ماه</span>`]);
+    if (x.needs_email) rows.push(['ایمیل', `<span dir="ltr" style="overflow-wrap:anywhere">${esc(this.email)}</span>`]);
+    rows.push(['قیمت', `${N(fa(price))} <span>تومان</span>`], ['موجودی بعد از خرید', `${N(fa(bal - price))} <span>تومان</span>`]);
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${AiMono(x.title)}
+        <div><div class="sheet-t">تایید خرید</div><div class="topbar-s">${how[1]}</div></div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV(rows).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      ${x.needs_email ? `<div class="ai-warn" style="margin:12px 0 0">${ic('warn', 2)}<span>ایمیل را یک بار دیگر چک کن؛ بعد از خرید قابل تغییر نیست.</span></div>` : ''}
+      <button class="btn btn-ai btn-block" id="ai-buy" style="margin-top:16px;height:54px;font-size:16px" onclick="AI.buy()">${ic('spark', 2)}پرداخت و دریافت</button>
+      <div class="short" style="margin-top:10px">تحویل برگشت‌پذیر نیست</div>`);
+  },
+  async buy(){
+    if (this.busy) return;
+    this.busy = true;
+    const x = this.x;
+    $('sheet').innerHTML = `<div class="grip"></div><div class="ai-wait"><div class="ai-orb">${ic('spark', 2)}</div>
+      <div class="sheet-t">در حال گرفتن سفارش از فروشنده…</div>
+      <div class="short" style="margin-top:6px">ممکن است تا یک دقیقه طول بکشد؛ این صفحه را نبند.</div></div>`;
+    App.haptic('medium');
+    try {
+      const r = await api('ai/buy', { product_id:x.id, months:x.months.length ? this.m : null, email:x.needs_email ? this.email : '', nonce:Buy.nonce() });
+      App.setBalance(r.balance); App.notify(r.status === 'delivered' ? 'success' : 'warning');
+      App.closeSheet(); this.d = null;
+      App.stack.pop(); App.go('ai_order', { id:r.order.id, order:r.order, fresh:true });
+    } catch (err) {
+      App.notify('error'); App.closeSheet();
+      if (err.code === 'rules') { App.toast('اول قوانین را بخوان و بپذیر', true); App.go('rules'); }
+      else if (err.code === 'insufficient') { App.toast(err.message, true); App.go('topup'); }
+      else if (!err.status || err.code === 'server' || err.status === 504) {
+        /* جواب نرسید؛ خرید ممکن است انجام شده باشد. نتیجه در سفارش ها */
+        this.d = null; App.toast('جواب دیر رسید؛ نتیجه را در «سفارش‌های من» ببین', true);
+        App.stack.pop(); App.go('ai_orders');
+      } else {
+        App.toast(err.message || 'خرید انجام نشد', true);
+        if (err.code === 'unavailable') { this.d = null; const p = $('sub').querySelector('.page'); if (p) SubPages.ai_product(p, x.id); }
+      }
+    } finally { this.busy = false; this.render(); }
+  },
+  async notify(){
+    try {
+      const r = await api('ai/notify', {});
+      App.notify('success'); App.toast(r.added ? 'باشه؛ وقتی موجود شد در ربات خبرت می‌کنیم' : 'قبلا ثبت شده؛ خبرت می‌کنیم');
+    } catch (err) { App.toast(err.message, true); }
+  },
+
+  /* ── صفحه سفارش ── */
+  field(label, icon, value, i, key, opt){
+    opt = opt || {};
+    const shown = opt.secret ? '••••••••' : esc(value);
+    return `<div class="ai-f"><span class="ai-f-m"><span class="ai-f-k">${ic(icon, 2)}<span>${label}</span></span>
+        <span class="ai-f-v${opt.text ? ' txt' : ''}" id="aif-${i}-${key}" dir="${opt.text ? 'auto' : 'ltr'}">${shown}</span></span>
+      ${opt.secret ? `<button class="ai-f-b" onclick="AI.reveal(${i})" aria-label="نمایش رمز">${ic('eye')}</button>` : ''}
+      ${opt.text ? '' : `<button class="ai-f-b" onclick="App.copy(${esc(JSON.stringify(value))})" aria-label="کپی">${ic('copy')}</button>`}</div>`;
+  },
+  cred(o, a, i){
+    const n = o.delivery.length;
+    return `<div class="pass ai-cred mx">${TUNNEL}
+      <div class="pass-head"><span class="pass-name">${n > 1 ? `<span>اکانت</span> ${N(i + 1)}` : 'اطلاعات ورود'}</span>
+        <span class="pass-st ai-lat"><i></i>${esc(o.title)}</span></div>
+      ${a.user ? this.field('نام کاربری', 'user', a.user, i, 'u') : ''}
+      ${a.password ? this.field('رمز', 'key', a.password, i, 'p', { secret:true }) : ''}
+      ${a.verifyEmail ? this.field('ایمیل بازیابی', 'mail', a.verifyEmail, i, 'v') : ''}
+      ${a.expiryText ? this.field('انقضا', 'cal', a.expiryText, i, 'e', { text:true }) : ''}
+      ${a.otherInfo ? this.field('توضیحات', 'book', a.otherInfo, i, 'o', { text:true }) : ''}
+      <button class="invite-share" onclick="AI.copyAll(${i})">${ic('copy', 2)}کپی همه</button>
+    </div>`;
+  },
+  reveal(i){
+    const a = this.o && this.o.delivery[i], el = $('aif-' + i + '-p'); if (!a || !el) return;
+    el.textContent = el.textContent === a.password ? '••••••••' : a.password; App.haptic();
+  },
+  copyAll(i){
+    const a = this.o && this.o.delivery[i]; if (!a) return;
+    const L = [[I18N.t('نام کاربری'), a.user], [I18N.t('رمز'), a.password], [I18N.t('ایمیل بازیابی'), a.verifyEmail], [I18N.t('انقضا'), a.expiryText], ['', a.otherInfo]];
+    App.copy(L.filter(r => r[1]).map(r => r[0] ? r[0] + ': ' + r[1] : r[1]).join('\n'));
+  },
+  orderPage(o, fresh){
+    const st = AI_ST[o.status] || ['', 'list', o.status, ''];
+    const wait = o.status === 'unknown' || o.status === 'pending';
+    const rows = [['محصول', `<span class="ai-lat">${esc(o.title)}</span>`], ['کد پیگیری', `<span class="n">${esc(o.code)}</span>`]];
+    if (o.provider_code) rows.push(['کد فروشنده', `<span class="n">${esc(o.provider_code)}</span>`]);
+    if (o.email) rows.push(['ایمیل', `<span dir="ltr" style="overflow-wrap:anywhere">${esc(o.email)}</span>`]);
+    if (o.months) rows.push(['مدت', `${N(o.months)} <span>ماه</span>`]);
+    rows.push(['مبلغ', `${N(fa(o.price))} <span>تومان</span>`], ['تاریخ', N(jfull(o.created_at))]);
+    return Top('سفارش', `<span class="n">${esc(o.code)}</span>`) + `
+      <div class="ai-st ${st[0]}">
+        <div class="ai-st-h"><span class="ai-st-i">${ic(st[1], 2.4)}</span>
+          <div style="min-width:0"><div class="ai-st-t">${fresh && st[0] === 'ok' ? 'تحویل شد؛ مبارکت باشه' : st[2]}</div><div class="ai-st-c ai-lat">${esc(o.title)}</div></div></div>
+        <div class="ai-st-s">${st[3]}</div>
+        ${o.status === 'processing' && o.email ? `<div class="ai-st-e">${ic('mail', 2)}<span>${esc(o.email)}</span></div>` : ''}
+        ${wait ? `<button class="btn btn-s btn-block" id="ai-chk" onclick="AI.check(${o.id})">${ic('refresh', 2)}بررسی دوباره</button>` : ''}
+      </div>
+      ${o.delivery && o.delivery.length ? '<div class="gap" style="height:14px"></div>' + o.delivery.map((a, i) => this.cred(o, a, i)).join('') : ''}
+      ${o.links && o.links.length ? Sec('تحویل') + Group(o.links.map(l => `<div class="kv"><span class="kv-v" dir="ltr" style="overflow-wrap:anywhere;text-align:left">${esc(l)}</span>
+          <button class="ai-f-b" style="background:var(--sunk);color:var(--ink)" onclick="App.copy(${esc(JSON.stringify(l))})" aria-label="کپی">${ic('copy')}</button></div>`).join('')) : ''}
+      ${Sec('جزئیات سفارش')}${KV(rows)}
+      ${Sec('کارها')}${Group(
+        Row({ kind:'help', icon:'chat', title:'مشکلی داری؟', sub:'به پشتیبانی بگو؛ کد سفارش خودکار نوشته می‌شود', fn:`AI.support(${esc(JSON.stringify(o.code))})` })
+        + (o.product_id ? Row({ kind:'ai', icon:'refresh', title:'خرید دوباره', sub:o.title, fn:`App.go('ai_product', ${esc(JSON.stringify(o.product_id))})` }) : ''))}
+      ${o.delivery && o.delivery.length ? `<div class="short" style="margin:14px var(--pad) 0">این اطلاعات را با کسی به اشتراک نگذار؛ اگر رمز را عوض کنی، پشتیبانی دیگر نمی‌تواند کمکت کند.</div>` : ''}`;
+  },
+  support(code){
+    App.go('compose');
+    const t = $('tk-body');
+    if (t) { t.value = I18N.t('سفارش هوش مصنوعی') + ' ' + code + '\n'; try { Compose.count(t); } catch(e){} t.focus(); }
+  },
+  async check(id){
+    if (this.busy) return;
+    this.busy = true;
+    const b = $('ai-chk'); if (b) { b.disabled = true; b.textContent = I18N.t('در حال بررسی…'); }
+    try {
+      const r = await api('ai/check', { id });
+      if (r.balance != null) App.setBalance(r.balance);
+      this.o = r.order; this.d = null;
+      const top = App.stack[App.stack.length - 1]; if (top && top[0] === 'ai_order') top[1] = { id, order:r.order };
+      const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(r.order);
+      App.notify(r.status === 'delivered' ? 'success' : 'warning');
+      App.toast(r.status === 'delivered' ? 'تحویل شد' : r.status === 'failed' ? 'مبلغ به کیف پولت برگشت'
+              : r.status === 'processing' ? 'سفارش ثبت شد؛ در انتظار فروشنده' : 'هنوز جوابی نیامده؛ کمی بعد دوباره امتحان کن');
+    } catch (err) {
+      App.toast(err.message, true);
+      if (b) { b.disabled = false; b.innerHTML = `${ic('refresh', 2)}${esc(I18N.t('بررسی دوباره'))}`; }
+    } finally { this.busy = false; }
+  },
+};
+
+SubPages.ai_product = async function(p, id){
+  p.innerHTML = Top('هوش مصنوعی') + skel(1, 210) + skel(2, 120);
+  try {
+    if (!AI.d || !AI.d.items.some(i => i.id === id)) AI.d = await api('ai');
+    const x = AI.d.items.find(i => i.id === id);
+    if (!AI.d.enabled || !x) return void (p.innerHTML = Top('هوش مصنوعی') + emptyBox('این محصول دیگر در فروشگاه نیست', 'فهرست تازه را در فروشگاه ببین.'));
+    if (!AI.x || AI.x.id !== x.id) AI.m = x.months.length ? x.months[0].months : null;
+    AI.x = x;
+    p.innerHTML = AI.productPage(x);
+    AI.render();
+  } catch (err) { p.innerHTML = Top('هوش مصنوعی') + emptyBox('محصول خوانده نشد', err.message); }
+};
+SubPages.ai_order = async function(p, a){
+  const id = a && typeof a === 'object' ? a.id : a;
+  p.innerHTML = Top('سفارش') + skel(1, 150) + skel(1, 230);
+  try {
+    const o = (a && a.order) || await api('ai/order?id=' + id);
+    AI.o = o;
+    p.innerHTML = AI.orderPage(o, a && a.fresh);
+    if (a && a.fresh) a.fresh = false;
+  } catch (err) { p.innerHTML = Top('سفارش') + emptyBox('سفارش خوانده نشد', err.message); }
+};
+SubPages.ai_orders = async function(p){
+  p.innerHTML = Top('سفارش‌های هوش مصنوعی') + skel(4, 64);
+  try {
+    const d = AI.d = await api('ai');
+    p.innerHTML = Top('سفارش‌های هوش مصنوعی', 'اطلاعات تحویل همیشه اینجا می‌ماند') + '<div class="gap" style="height:8px"></div>'
+      + (d.orders.length ? Group(d.orders.map(o => AI.orderRow(o)).join('')) : emptyBox('هنوز سفارشی نداری', 'از فروشگاه یک محصول انتخاب کن.'));
+  } catch (err) { p.innerHTML = Top('سفارش‌های هوش مصنوعی') + emptyBox('سفارش‌ها خوانده نشد', err.message); }
+};
+['ai_product', 'ai_order'].forEach(k => SubPages[k].noNav = true);
+/* ترجمه صفحه های هوش مصنوعی؛ کلیدها مثل بقیه کاتالوگ بی نیم فاصله می شوند */
+Object.entries({
+  'هوش مصنوعی، بی‌مرز':'AI, without borders',
+  'اشتراک ابزارهای هوش مصنوعی؛ از کیف پولت بخر و همین‌جا تحویل بگیر.':'Subscriptions to AI tools; pay from your wallet and get them right here.',
+  'تحویل در همین صفحه':'Delivered on this page', 'پیگیری و پشتیبانی':'Tracking and support',
+  'محصولات':'Products', 'محصول':'Product', '{n} محصول':'{n} products', 'کمی بعد دوباره سر بزن.':'Check back a little later.',
+  'ارتقای اکانت':'Account upgrade', 'ارتقا روی همان اکانت انجام می‌شود؛ وضعیتش در «سفارش‌های من» است.':'The upgrade is applied to that same account; track it in “My orders”.',
+  'از فروشگاه یک محصول انتخاب کن.':'Pick a product from the shop.',
+  'اشتراک روی همین ایمیل فعال می‌شود و بعد از خرید قابل تغییر نیست.':'The subscription is activated on this email and can’t be changed after purchase.',
+  'اشتراک روی همین ایمیل فعال می‌شود.':'The subscription is activated on this email.',
+  'اطلاعات ورود':'Login details', 'اطلاعات ورود در «سفارش‌های من» می‌ماند.':'Your login details stay in “My orders”.',
+  'اطلاعات ورود همین پایین است و همیشه در «سفارش‌های من» می‌ماند.':'Your login details are right below and always stay in “My orders”.',
+  'اکانت':'Account', 'ایمیل':'Email', 'ایمیل اکانتت':'Your account email', 'ایمیل اکانتت را بنویس':'Enter your account email',
+  'ایمیل بازیابی':'Recovery email', 'ایمیل برای فعال‌سازی':'Email for activation',
+  'ایمیل را درست بنویس؛ مثل name@gmail.com':'Enter a valid email, like name@gmail.com', 'ایمیلت را بنویس':'Enter your email',
+  'این اطلاعات را با کسی به اشتراک نگذار؛ اگر رمز را عوض کنی، پشتیبانی دیگر نمی‌تواند کمکت کند.':'Don’t share these details with anyone. If you change the password, support can no longer help you with it.',
+  'باشه؛ وقتی موجود شد در ربات خبرت می‌کنیم':'Got it; we’ll message you in the bot when it’s back',
+  'بررسی دوباره':'Check again', 'به پشتیبانی بگو؛ کد سفارش خودکار نوشته می‌شود':'Tell support; the order code is filled in for you',
+  'تایید خرید':'Confirm purchase', 'تحویل':'Delivery', 'تحویل برگشت‌پذیر نیست':'Delivery can’t be reversed',
+  'تحویل برگشت‌پذیر نیست؛ قبل از پرداخت مطمئن شو همین محصول را می‌خواهی.':'Delivery can’t be reversed; make sure this is the product you want before paying.',
+  'تحویل شد؛ مبارکت باشه':'Delivered — enjoy!', 'تحویل همین‌جا':'Delivered right here', 'توضیحات':'Notes',
+  'تومان کم داری':'toman short', 'جزئیات سفارش':'Order details',
+  'جواب دیر رسید؛ نتیجه را در «سفارش‌های من» ببین':'The reply was late; check the result in “My orders”',
+  'جواب فروشنده به‌موقع نرسید. نگران نباش: یا سفارش انجام می‌شود یا مبلغ کامل به کیف پولت برمی‌گردد.':'The seller didn’t reply in time. Don’t worry: either the order goes through or the full amount returns to your wallet.',
+  'خرید دوباره':'Buy again', 'در حال بررسی…':'Checking…', 'در حال گرفتن سفارش از فروشنده…':'Getting your order from the seller…',
+  'درباره محصول':'About this product', 'رمز':'Password', 'سفارش':'Order',
+  'سفارش ثبت شد؛ در انتظار فروشنده':'Order placed; waiting for the seller',
+  'سفارش همان لحظه برای فروشنده ثبت می‌شود.':'Your order goes to the seller right away.', 'سفارش هوش مصنوعی':'AI order',
+  'سفارشت ثبت شد و فروشنده انجامش می‌دهد. معمولا کمی طول می‌کشد و لازم نیست کاری بکنی.':'Your order is placed and the seller is completing it. It usually takes a little while; you don’t need to do anything.',
+  'سفارش‌ها خوانده نشد':'Couldn’t load orders', 'سفارش‌های هوش مصنوعی':'AI orders',
+  'فروشنده سفارش را انجام نداد و مبلغ به کیف پولت برگشت.':'The seller didn’t complete the order and the amount went back to your wallet.',
+  'فروشنده فعالش می‌کند و ممکن است کمی طول بکشد. ایمیلت را چک کن.':'The seller activates it, which can take a little while. Keep an eye on your inbox.',
+  'فعال‌سازی روی ایمیلت':'Activated on your email', 'فقط برای توست':'Only for you',
+  'قبلا ثبت شده؛ خبرت می‌کنیم':'Already on the list; we’ll let you know', 'ماه':'mo',
+  'مبلغ از موجودی کیف پولت کم می‌شود.':'The amount is taken from your wallet balance.', 'مبلغ به کیف پولت برگشت':'The amount went back to your wallet',
+  'مدت اشتراک':'Subscription length', 'مشکلی داری؟':'Something wrong?',
+  'ممکن است تا یک دقیقه طول بکشد؛ این صفحه را نبند.':'This can take up to a minute; keep this page open.',
+  'نام کاربری و رمز چند ثانیه بعد روی همین صفحه می‌آید.':'The username and password appear on this page a few seconds later.',
+  'همان اکانتی که می‌خواهی ارتقا پیدا کند.':'The account you want upgraded.', 'همیشه در دسترس':'Always available',
+  'هنوز جوابی نیامده؛ کمی بعد دوباره امتحان کن':'No answer yet; try again in a little while', 'هنوز سفارشی نداری':'No orders yet',
+  'وقتی موجود شد خبرم کن':'Notify me when it’s back', 'چطور تحویل می‌گیری':'How you get it', 'کد فروشنده':'Seller code',
+  'ایمیل را یک بار دیگر چک کن؛ بعد از خرید قابل تغییر نیست.':'Check the email once more; it can’t be changed after purchase.',
+  'این محصول دیگر در فروشگاه نیست':'This product is no longer in the shop', 'فهرست تازه را در فروشگاه ببین.':'See the latest list in the shop.',
+  'محصول خوانده نشد':'Couldn’t load the product', 'سفارش خوانده نشد':'Couldn’t load the order',
+  'اطلاعات تحویل همیشه اینجا می‌ماند':'Delivery details always stay here', 'نمایش رمز':'Show password', 'کپی همه':'Copy all',
+  'پرداخت و دریافت':'Pay and receive', 'فعال‌سازی روی ایمیل خودت':'Activated on your own email',
+  "محصولات هوش مصنوعی":"AI products",
+  "نمایش محصولات و موجودی کیف پول canboso":"Product visibility and canboso wallet stock",
+  "کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها":"Card, rates, payment methods and sections",
+  "ارسال همگانی، نظرسنجی، دسته‌ها، ایموجی‌ها و نرخ و سود هوش مصنوعی از پنل ربات (/admin) انجام می‌شود.":"Broadcasts, polls, categories, emojis and AI rates and margins are managed in the bot panel (/admin).",
+  "روش‌های پرداخت":"Payment methods",
+  "کاربر می‌تواند با این روش شارژ کند":"Users can top up with this method",
+  "خاموش؛ به کاربر نشان داده نمی‌شود":"Off; hidden from users",
+  "کریپتو (TON Connect)":"Crypto (TON Connect)",
+  "کارت به کارت همیشه فقط برای کاربرهای فارسی‌زبان است. خاموش کردن، فقط پرداخت تازه را می‌بندد؛ پرداختی که انجام شده همچنان به کیف پول می‌رسد.":"Card to card is only ever offered to Persian-language users. Turning a method off only blocks new payments; payments already made still reach the wallet.",
+  "کیف پول:":"Wallet:",
+  "نمایش:":"Shown:",
+  "ماه:":"Months:",
+  "نمایش داده می‌شود":"Now shown",
+  "پنهان شد":"Hidden",
+  "همه روشن":"All on",
+  "همه خاموش":"All off",
+  "همه روشن شد":"All on",
+  "همه خاموش شد":"All off",
+  "همه محصولات نمایش داده شوند؟":"Show all products?",
+  "همه محصولات پنهان شوند؟":"Hide all products?",
+  "کلید API تنظیم نشده":"API key not set",
+  "CANBOSO_API_KEY را در فایل .env بگذار.":"Put CANBOSO_API_KEY in the .env file.",
+  "خواندن از canboso نشد":"Couldn’t read from canboso",
+  "کیف پول شما نزد canboso":"Your canboso wallet",
+  "موجودی که کاربر می‌بیند کمترینِ موجودی API و تعدادی است که با همین کیف پول خریدنی است؛ اگر هر کدام صفر باشد، «ناموجود».":"Users see the lower of the API stock and how many this wallet can buy; if either is zero, it shows “Out of stock”.",
+  "محصولی نیامد":"No products returned",
+  "محصول تازه canboso تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.":"New canboso products stay hidden until you turn them on (unless you haven’t turned any product off yet). Prices use the rates and margins from the bot panel.",
+}).forEach(([k, v]) => { L10N.en[I18N.norm(k)] = v; });
+
+/* ═════════ پنل مدیریت (فقط ادمین) ═════════
+   ردیفش فقط وقتی bootstrap می گوید ادمینی دیده می شود، ولی امنیت اینجا
+   نیست: سرور هر درخواست /api/admin را با آیدی امضا شده تلگرام می سنجد و
+   برای غیر ادمین «پیدا نشد» می دهد. کارهای پیچیده (ارسال همگانی،
+   نظرسنجی، ایموجی، افکت، هوش مصنوعی، دسته ها) در پنل ربات می مانند. */
+const Admin = {
+  charges:[], reasons:{}, user:null,
+  money(v){ return `${N(fa(v))} تومان`; },
+  /* تایید بومی تلگرام؛ window.confirm در وب ویو همه نسخه ها کار نمی کند */
+  ask(msg){
+    return new Promise(ok => {
+      try { if (tg && tg.showConfirm) return tg.showConfirm(msg, r => ok(!!r)); } catch(e){}
+      ok(window.confirm(msg));
+    });
+  },
+  /* span نه button: داخل ردیف (که خودش button است) دکمه تو در تو مجاز نیست */
+  sw(on, fn){ return `<span class="sw${on ? ' on' : ''}" role="switch" aria-checked="${on}" tabindex="0" onclick="event.stopPropagation();${fn}"></span>`; },
+  async act(path, body, okMsg){
+    try {
+      const r = await api(path, body);
+      App.notify('success');
+      App.toast(r && r.notify_err ? okMsg + ' · پیام به کاربر نرسید' : okMsg, !!(r && r.notify_err));
+      return r;
+    } catch (err) { App.toast(err.message, true); return null; }
+  },
+};
+
+SubPages.admin = async function(p){
+  p.innerHTML = Top('پنل مدیریت') + skel(2, 90);
+  try {
+    const d = await api('admin');
+    p.innerHTML = Top('پنل مدیریت', 'فقط تو این بخش را می‌بینی') + `
+      <div class="adm-stats">
+        <div class="adm-stat${d.pending ? ' hot' : ''}"><b class="n">${fa(d.pending)}</b><span>رسید در انتظار</span></div>
+        <div class="adm-stat"><b class="n">${fa(d.users)}</b><span>کاربر</span></div>
+        <div class="adm-stat"><b class="n">${fa(d.active_services)}</b><span>سرویس فعال</span></div>
+        <div class="adm-stat"><b class="n">${fa(d.today_sales)}</b><span>فروش امروز (تومان)</span></div>
+      </div>
+      ${Sec('مدیریت')}
+      ${Group(
+        Row({ kind:'cash', icon:'image', title:'رسیدهای شارژ', sub: d.pending ? `${fa(d.pending)} رسید منتظر بررسی` : 'رسیدی در انتظار نیست',
+              subColor: d.pending ? 'var(--help-i)' : '', fn:"App.go('adm_charges')" })
+        + Row({ kind:'net', icon:'user', title:'کاربران', sub:'جستجو، موجودی و مسدودی', fn:"App.go('adm_users')" })
+        + Row({ kind:'ai', icon:'list', title:'پلن‌ها', sub:'قیمت، حجم، مدت و روشن/خاموش', fn:"App.go('adm_plans')" })
+        + Row({ kind:'ai', icon:'spark', title:'محصولات هوش مصنوعی', sub:'نمایش محصولات و موجودی کیف پول canboso', fn:"App.go('adm_ai')" })
+        + Row({ kind:'help', icon:'bolt', title:'تنظیمات', sub:'کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها', fn:"App.go('adm_settings')" }))}
+      <div class="adm-note">ارسال همگانی، نظرسنجی، دسته‌ها، ایموجی‌ها و نرخ و سود هوش مصنوعی از پنل ربات (/admin) انجام می‌شود.</div>`;
+  } catch (err) { p.innerHTML = Top('پنل مدیریت') + emptyBox('خوانده نشد', err.message); }
+};
+
+/* ---------- رسیدها ---------- */
+SubPages.adm_charges = async function(p){
+  p.innerHTML = Top('رسیدهای شارژ') + skel(3, 80);
+  try {
+    const d = await api('admin/charges');
+    Admin.charges = d.items; Admin.reasons = d.reasons || {};
+    p.innerHTML = Top('رسیدهای شارژ', d.items.length ? `${fa(d.items.length)} رسید منتظر بررسی` : '')
+      + (d.items.length ? Group(d.items.map(t => Row({ kind:'cash', icon:'image', title:t.user.name,
+          sub:`${t.code} · ${jdate(t.created_at)}`, end:`<span class="n" style="font-weight:800">${fa(t.amount)}</span>`,
+          fn:`App.go('adm_charge',${t.id})` })).join(''))
+        : emptyBox('رسیدی در انتظار نیست', 'رسیدهای تازه اینجا و در ربات می‌آیند.'));
+  } catch (err) { p.innerHTML = Top('رسیدهای شارژ') + emptyBox('خوانده نشد', err.message); }
+};
+
+SubPages.adm_charge = function(p, id){
+  const t = Admin.charges.find(x => x.id === id);
+  if (!t) return void (p.innerHTML = Top('رسید') + emptyBox('این رسید دیگر در انتظار نیست', ''));
+  p.innerHTML = Top('رسید ' + t.code) + `
+    <img class="adm-rc" id="adm-rc" alt="رسید">
+    <div class="gap" style="height:12px"></div>
+    ${KV([['مبلغ', `<b class="n">${fa(t.amount)}</b> تومان`], ['کاربر', esc(t.user.name) + (t.user.username ? ` · <span class="n">@${esc(t.user.username)}</span>` : '')],
+          ['آیدی', `<span class="n">${t.user.telegram_id}</span>`], ['موجودی فعلی', Admin.money(t.user.balance)],
+          ['کد پیگیری', `<span class="n">${esc(t.code)}</span>`], ['زمان', N(jdate(t.created_at))]])}
+    <div class="foot"><div class="adm-acts">
+      <button class="btn btn-ok" onclick="AdminCharge.approve(${id})">${ic('check',2.4)}تایید و شارژ</button>
+      <button class="btn btn-no" onclick="AdminCharge.rejectSheet(${id})">رد</button>
+    </div></div>`;
+  AdminCharge.loadImage(id);
+};
+SubPages.adm_charge.noNav = true;
+
+const AdminCharge = {
+  async loadImage(id){
+    try {
+      const res = await fetch(BASE + 'admin/receipt?id=' + id, { headers:{ 'X-Init-Data': INIT } });
+      if (!res.ok) throw new Error();
+      const url = URL.createObjectURL(await res.blob());
+      const img = $('adm-rc'); if (img) img.src = url;
+    } catch(e) { const img = $('adm-rc'); if (img) img.alt = 'عکس رسید خوانده نشد'; }
+  },
+  async done(id, r){
+    if (!r) return;
+    Admin.charges = Admin.charges.filter(x => x.id !== id);
+    App.back();
+    const p = $('sub').querySelector('.page'); if (p) SubPages.adm_charges(p);
+  },
+  async approve(id){
+    const t = Admin.charges.find(x => x.id === id);
+    if (!await Admin.ask(`شارژ ${fa(t ? t.amount : 0)} تومان تایید شود؟`)) return;
+    this.done(id, await Admin.act('admin/charge', { id, action:'approve' }, 'تایید شد و کیف پول شارژ شد'));
+  },
+  rejectSheet(id){
+    App.sheet(`<div class="sheet-t">دلیل رد</div><div class="reasons">
+      ${Object.entries(Admin.reasons).map(([k, v]) => `<button onclick="AdminCharge.reject(${id},'${k === 'duplicate' ? 'dup' : k}')">${esc(v)}</button>`).join('')}</div>
+      <input class="adm-in" id="rj-t" placeholder="یا دلیل دیگری بنویس…" maxlength="200">
+      <button class="btn btn-p btn-block" style="margin-top:10px" onclick="AdminCharge.reject(${id},'custom')">رد با این دلیل</button>`);
+  },
+  async reject(id, code){
+    let body = { id, action:'reject', reason:code };
+    if (code === 'dup') body = { id, action:'dup' };
+    if (code === 'custom') { const v = ($('rj-t').value || '').trim(); if (!v) return App.toast('دلیل را بنویس', true); body.reason = v; }
+    App.closeSheet();
+    this.done(id, await Admin.act('admin/charge', body, 'رد شد و به کاربر خبر داده شد'));
+  },
+};
+
+/* ---------- کاربران ---------- */
+SubPages.adm_users = async function(p){
+  p.innerHTML = Top('کاربران') + `<div class="adm-search"><input class="adm-in" id="adm-q" dir="auto" placeholder="آیدی عددی، یوزرنیم یا مبلغ رسید"
+      onkeydown="if(event.key==='Enter')AdminUsers.search()"><button class="btn btn-p btn-sq" onclick="AdminUsers.search()" aria-label="جستجو">${ic('list',2)}</button></div>
+    <div id="adm-ul">${skel(4, 60)}</div>`;
+  AdminUsers.load('');
+};
+const AdminUsers = {
+  search(){ this.load(($('adm-q').value || '').trim()); },
+  async load(q){
+    const box = $('adm-ul'); if (!box) return;
+    box.innerHTML = skel(3, 60);
+    try {
+      const d = await api('admin/users?q=' + encodeURIComponent(q));
+      box.innerHTML = (d.note ? `<div class="adm-note" style="margin-top:0;margin-bottom:8px">${esc(d.note)}</div>` : '')
+        + (q ? '' : Sec(`آخرین کاربران · ${fa(d.total)} نفر`))
+        + (d.items.length ? Group(d.items.map(u => Row({ kind: u.blocked ? '' : 'net', icon:'user', title:u.name + (u.blocked ? ' 🚫' : '') + (u.is_admin ? ' ⭐' : ''),
+            sub:(u.username ? '@' + u.username + ' · ' : '') + u.telegram_id, end:`<span class="n">${fa(u.balance)}</span>`,
+            fn:`App.go('adm_user',${u.telegram_id})` })).join('')) : emptyBox('کاربری پیدا نشد', 'آیدی عددی یا یوزرنیم را دقیق بنویس.'));
+    } catch (err) { box.innerHTML = emptyBox('خوانده نشد', err.message); }
+  },
+};
+
+SubPages.adm_user = async function(p, tgId){
+  p.innerHTML = Top('کاربر') + skel(2, 140);
+  try {
+    const u = await api('admin/user?id=' + tgId);
+    Admin.user = u;
+    p.innerHTML = Top(u.name, u.username ? '@' + u.username : String(u.telegram_id)) + `
+      <div class="adm-stats">
+        <div class="adm-stat"><b class="n" data-adm-bal>${fa(u.balance)}</b><span>موجودی (تومان)</span></div>
+        <div class="adm-stat"><b class="n">${fa(u.services)}</b><span>سرویس</span></div>
+        <div class="adm-stat"><b class="n">${fa(u.spent)}</b><span>خرید کل (تومان)</span></div>
+        <div class="adm-stat"><b class="n">${fa(u.charged)}</b><span>شارژ کل (تومان)</span></div>
+      </div>
+      ${KV([['آیدی', `<span class="n">${u.telegram_id}</span>`], ['زبان', esc(u.lang || '—')], ['دعوت‌شده‌ها', N(fa(u.referrals))],
+            ['عضو از', N(jdate(u.created_at))], ['وضعیت', u.blocked ? Badge('bad', 'مسدود') : Badge('ok', 'عادی')]])}
+      ${Sec('کارها')}
+      ${Group(
+        Row({ kind:'cash', icon:'plus', title:'افزایش موجودی', sub:'به کاربر خبر داده می‌شود', fn:'AdminUser.balance(true)' })
+        + Row({ kind:'cash', icon:'wallet', title:'کسر از موجودی', sub:'حداکثر تا موجودی فعلی', fn:'AdminUser.balance(false)' })
+        + (u.is_admin ? '' : Row({ kind: u.blocked ? 'net' : '', icon:'shield', title: u.blocked ? 'رفع مسدودی' : 'مسدود کردن',
+            sub: u.blocked ? 'کاربر دوباره به ربات دسترسی پیدا می‌کند' : 'کاربر دیگر به ربات دسترسی ندارد', fn:'AdminUser.block()' })))}
+      ${u.services_list.length ? Sec('سرویس‌ها') + Group(u.services_list.map(s => Row({ kind: s.expired ? '' : 'net', icon:'globe', title:s.title,
+          sub: (s.expired ? 'منقضی · ' : 'تا ') + jdate(s.expire_at) })).join('')) : ''}`;
+  } catch (err) { p.innerHTML = Top('کاربر') + emptyBox('خوانده نشد', err.message); }
+};
+const AdminUser = {
+  balance(add){
+    App.sheet(`<div class="sheet-t">${add ? 'افزایش موجودی' : 'کسر از موجودی'}</div>
+      <input class="adm-in" id="ab-a" inputmode="numeric" dir="ltr" placeholder="مبلغ به تومان">
+      <button class="btn ${add ? 'btn-p' : 'btn-d'} btn-block" style="margin-top:12px" onclick="AdminUser.doBalance(${add})">${add ? 'افزودن' : 'کسر'}</button>`);
+    setTimeout(() => { const i = $('ab-a'); if (i) i.focus(); }, 250);
+  },
+  async doBalance(add){
+    const amount = parseInt(String($('ab-a').value).replace(/[^\d]/g, '') || '0', 10);
+    if (!amount) return App.toast('مبلغ را بنویس', true);
+    if (!await Admin.ask(`${fa(amount)} تومان ${add ? 'اضافه' : 'کسر'} شود؟`)) return;
+    App.closeSheet();
+    const r = await Admin.act('admin/balance', { id:Admin.user.telegram_id, amount, add }, add ? 'اضافه شد' : 'کسر شد');
+    if (r) document.querySelectorAll('[data-adm-bal]').forEach(e => e.textContent = fa(r.balance));
+  },
+  async block(){
+    const u = Admin.user, to = !u.blocked;
+    if (!await Admin.ask(to ? 'این کاربر مسدود شود؟' : 'مسدودی برداشته شود؟')) return;
+    const r = await Admin.act('admin/block', { id:u.telegram_id, blocked:to }, to ? 'مسدود شد' : 'آزاد شد');
+    if (r) SubPages.adm_user($('sub').querySelector('.page'), u.telegram_id);
+  },
+};
+
+/* ---------- پلن ها ---------- */
+SubPages.adm_plans = async function(p){
+  p.innerHTML = Top('پلن‌ها') + skel(4, 60);
+  try {
+    const d = await api('admin/plans');
+    AdminPlans.data = d.categories;
+    p.innerHTML = Top('پلن‌ها', 'برای ویرایش روی پلن بزن') + d.categories.map(c => Sec((c.emoji ? c.emoji + ' ' : '') + c.title + (c.active ? '' : ' (خاموش)'))
+      + (c.plans.length ? Group(c.plans.map(x => Row({ kind: x.active ? 'net' : '', icon:'globe', title:x.title,
+          sub:`${fa(x.price)} تومان · ${fa(x.data_gb)} گیگ · ${fa(x.duration_days)} روز`,
+          end: Admin.sw(x.active, `AdminPlans.toggle(${x.id})`), fn:`AdminPlans.edit(${x.id})` })).join('')) : emptyBox('پلنی در این دسته نیست', ''))).join('')
+      + `<div class="adm-note">ساخت پلن و دسته‌ی تازه از پنل ربات انجام می‌شود.</div>`;
+  } catch (err) { p.innerHTML = Top('پلن‌ها') + emptyBox('خوانده نشد', err.message); }
+};
+const AdminPlans = {
+  data:[],
+  find(id){ for (const c of this.data) { const x = c.plans.find(y => y.id === id); if (x) return x; } return null; },
+  async toggle(id){
+    const x = this.find(id); if (!x) return;
+    const r = await Admin.act('admin/plan', { id, fields:{ is_active: !x.active } }, x.active ? 'پلن خاموش شد' : 'پلن روشن شد');
+    if (r) SubPages.adm_plans($('sub').querySelector('.page'));
+  },
+  edit(id){
+    const x = this.find(id); if (!x) return;
+    const f = (k, l, v) => `<div class="adm-f" style="padding:8px 0"><label>${l}</label><input class="adm-in" id="pl-${k}" inputmode="numeric" dir="ltr" value="${v}"></div>`;
+    App.sheet(`<div class="sheet-t">${esc(x.title)}</div>${f('price', 'قیمت (تومان)', x.price)}${f('data_gb', 'حجم (گیگ)', x.data_gb)}${f('duration_days', 'مدت (روز)', x.duration_days)}
+      <button class="btn btn-p btn-block" style="margin-top:12px" onclick="AdminPlans.save(${id})">ذخیره</button>`);
+  },
+  async save(id){
+    const fields = {};
+    ['price', 'data_gb', 'duration_days'].forEach(k => fields[k] = String($('pl-' + k).value).replace(/[^\d]/g, ''));
+    App.closeSheet();
+    const r = await Admin.act('admin/plan', { id, fields }, 'ذخیره شد');
+    if (r) SubPages.adm_plans($('sub').querySelector('.page'));
+  },
+};
+
+/* ---------- تنظیمات ---------- */
+const ADM_FIELDS = [
+  ['پرداخت کارت به کارت', [['card_number', 'شماره کارت', 'numeric', ''], ['card_holder', 'نام صاحب کارت', 'text', ''], ['bank_name', 'نام بانک', 'text', ''],
+    ['min_charge', 'حداقل شارژ (تومان)', 'numeric', 'برای همه روش‌ها']]],
+  ['نرخ‌ها', [['stars_rate', 'هر ستاره تلگرام (تومان)', 'numeric', '۰ یعنی Stars خاموش. تلگرام هنگام برداشت هر ستاره را حدود ۰٫۰۱۳ دلار حساب می‌کند.'],
+    ['crypto_usdt_rate', 'هر ۱ تتر (تومان)', 'numeric', '۰ یعنی کریپتو خاموش'], ['crypto_ton_rate', 'هر ۱ TON (تومان)', 'numeric', '۰ یعنی خودکار: قیمت دلاری TON × نرخ تتر'],
+    ['crypto_fee_percent', 'درصد اضافه کریپتو', 'decimal', '۰ تا ۵۰']]],
+];
+SubPages.adm_settings = async function(p){
+  p.innerHTML = Top('تنظیمات') + skel(3, 120);
+  try {
+    const d = await api('admin/settings');
+    const v = d.values;
+    p.innerHTML = Top('تنظیمات') + ADM_FIELDS.map(([title, fields]) => Sec(title) + `<div class="group">${fields.map(([k, l, mode, hint]) => `
+        <div class="adm-f"><label for="st-${k}">${l}</label><div class="row2">
+          <input class="adm-in" id="st-${k}" inputmode="${mode}" dir="${mode === 'text' ? 'auto' : 'ltr'}" value="${esc(v[k] || '')}">
+          <button class="btn btn-sm btn-s" style="height:48px" onclick="AdminSettings.save('${k}')">ذخیره</button></div>
+          ${hint ? `<small>${hint}</small>` : ''}</div>`).join('')}</div>`).join('')
+      + Sec('کریپتو (از فایل .env)') + KV([['وضعیت', d.crypto.enabled ? Badge('ok', d.crypto.testnet ? 'روشن · testnet' : 'روشن') : Badge('bad', 'خاموش')],
+          ['USDT', d.crypto.usdt ? Badge('ok', 'روشن') : Badge('', 'خاموش')]].concat(d.crypto.address ? [['آدرس', `<span class="n" style="font-size:11px;word-break:break-all">${esc(d.crypto.address)}</span>`]] : []))
+      + Sec('روش‌های پرداخت') + Group(d.pay.map(m => `<div class="row"><span class="row-m"><span class="row-t">${esc(m.title)}</span>
+          <span class="row-s">${m.on ? 'کاربر می‌تواند با این روش شارژ کند' : 'خاموش؛ به کاربر نشان داده نمی‌شود'}</span></span>
+          <span class="row-e">${Admin.sw(m.on, `AdminSettings.pay('${m.key}', ${!m.on})`)}</span></div>`).join(''))
+      + `<div class="adm-note">کارت به کارت همیشه فقط برای کاربرهای فارسی‌زبان است. خاموش کردن، فقط پرداخت تازه را می‌بندد؛ پرداختی که انجام شده همچنان به کیف پول می‌رسد.</div>`
+      + Sec('بخش‌های ربات') + Group(d.features.map(f => `<div class="row"><span class="row-m"><span class="row-t">${esc(f.title)}</span><span class="row-s">${esc(f.desc)}</span></span>
+          <span class="row-e">${Admin.sw(f.on, `AdminSettings.feature('${f.key}', ${!f.on})`)}</span></div>`).join(''));
+  } catch (err) { p.innerHTML = Top('تنظیمات') + emptyBox('خوانده نشد', err.message); }
+};
+const AdminSettings = {
+  async save(k){
+    const r = await Admin.act('admin/setting', { field:k, value:$('st-' + k).value }, 'ذخیره شد');
+    if (r) { $('st-' + k).value = r.value; if (['stars_rate', 'crypto_usdt_rate', 'crypto_ton_rate', 'card_number'].includes(k)) Admin.refreshBoot(); }
+  },
+  async feature(k, on){
+    const r = await Admin.act('admin/feature', { key:k, on }, on ? 'روشن شد' : 'خاموش شد');
+    if (r) { SubPages.adm_settings($('sub').querySelector('.page')); Admin.refreshBoot(); }
+  },
+  async pay(k, on){
+    const r = await Admin.act('admin/pay', { key:k, on }, on ? 'روشن شد' : 'خاموش شد');
+    if (r) { SubPages.adm_settings($('sub').querySelector('.page')); Admin.refreshBoot(); }
+  },
+};
+
+/* ---------- محصولات هوش مصنوعی ----------
+   موجودی نمایشی = کمترینِ موجودی خود canboso و تعدادی که کیف پول ما
+   می خرد؛ هر سه عدد اینجا کنار هم دیده می شوند. */
+const AdminAi = {
+  st(v){ return v == null ? '∞' : fa(v); },
+  row(x){
+    const sub = `<span>API:</span> ${N(this.st(x.api_stock))} · <span>کیف پول:</span> ${N(this.st(x.wallet_stock))} → `
+      + (x.available ? `<span>نمایش:</span> ${N(this.st(x.stock))}` : '<span style="color:var(--bad)">ناموجود</span>');
+    const price = x.priced ? `${N(fa(x.price))} <span>تومان</span>` : `<span style="color:var(--warn)">نرخ ${esc(x.currency)} تنظیم نشده</span>`;
+    return `<div class="row">${AiMono(x.name, 'sm')}<span class="row-m"><span class="row-t ai-lat">${esc(x.name)}</span>
+        <span class="row-s" style="white-space:normal">${sub}</span><span class="row-s">${N(String(x.cost))} ${esc(x.currency)} → ${price}${x.months.length ? ` · <span>ماه:</span> ${N(x.months.join(','))}` : ''}</span></span>
+      <span class="row-e">${Admin.sw(x.visible, `AdminAi.set(${esc(JSON.stringify(x.id))}, ${!x.visible})`)}</span></div>`;
+  },
+  async set(id, on){ const r = await Admin.act('admin/ai/product', { id, on }, on ? 'نمایش داده می‌شود' : 'پنهان شد'); if (r) this.reload(); },
+  async all(on){ if (!await Admin.ask(I18N.t(on ? 'همه محصولات نمایش داده شوند؟' : 'همه محصولات پنهان شوند؟'))) return;
+    const r = await Admin.act('admin/ai/product', { all:true, on }, on ? 'همه روشن شد' : 'همه خاموش شد'); if (r) this.reload(); },
+  reload(){ const p = $('sub').querySelector('.page'); if (p) SubPages.adm_ai(p); },
+};
+SubPages.adm_ai = async function(p){
+  p.innerHTML = Top('محصولات هوش مصنوعی') + skel(1, 120) + skel(4, 70);
+  try {
+    const d = await api('admin/ai');
+    if (!d.configured) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('کلید API تنظیم نشده', 'CANBOSO_API_KEY را در فایل .env بگذار.'));
+    if (d.error) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خواندن از canboso نشد', d.error));
+    const on = d.items.filter(x => x.visible).length;
+    p.innerHTML = Top('محصولات هوش مصنوعی', `${fa(on)} / ${fa(d.items.length)}`) + `
+      <div class="ai-hero">${TUNNEL}
+        <div class="lbl" style="color:#DAD4FF">کیف پول شما نزد canboso</div>
+        <div class="ai-hero-t n" style="font-size:28px;margin-top:4px">${esc(d.wallet ? d.wallet.text : '—')}</div>
+        <div class="ai-hero-s">موجودی که کاربر می‌بیند کمترینِ موجودی API و تعدادی است که با همین کیف پول خریدنی است؛ اگر هر کدام صفر باشد، «ناموجود».</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px var(--pad) 0">
+        <button class="btn btn-s" onclick="AdminAi.all(true)">${ic('check',2)}همه روشن</button>
+        <button class="btn btn-s" onclick="AdminAi.all(false)">همه خاموش</button></div>
+      ${Sec('محصولات')}${d.items.length ? Group(d.items.map(x => AdminAi.row(x)).join('')) : emptyBox('محصولی نیامد')}
+      <div class="adm-note">محصول تازه canboso تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.</div>`;
+  } catch (err) { p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.adm_ai.noNav = true;
+['admin', 'adm_charges', 'adm_users', 'adm_user', 'adm_plans', 'adm_settings'].forEach(k => SubPages[k].noNav = true);
+/* روش های پرداخت و بخش ها در bootstrap هستند؛ بعد از تغییر تازه می شوند */
+Admin.refreshBoot = async function(){ try { App.boot = await api('bootstrap'); } catch(e){} };
+
+/* ═════════ شارژ با Telegram Stars ═════════
+   مبلغ به تومان → تعداد ستاره (نرخ ادمین) → صفحه پرداخت خود تلگرام با
+   openInvoice. شارژ را ربات با پیام successful_payment انجام می دهد؛ این
+   صفحه فقط منتظر می ماند تا فاکتور «پرداخت شده» شود. */
+const Stars = {
+  info:null, amount:0, busy:false,
+  async load(p){
+    p = p || $('sub').querySelector('.page');
+    p.innerHTML = Top('شارژ کیف پول', 'Telegram Stars') + PayMethods('stars') + skel(2, 120);
+    try {
+      const d = await api('stars');
+      this.info = d;
+      if (!d.enabled) return void (p.innerHTML = Top('شارژ کیف پول') + PayMethods('stars') + emptyBox('پرداخت با Stars فعلا فعال نیست', 'کمی بعد دوباره امتحان کن.'));
+      this.step1(p);
+    } catch (err) { p.innerHTML = Top('شارژ کیف پول') + PayMethods('stars') + emptyBox('خوانده نشد', err.message); }
+  },
+  count(toman){ return toman > 0 ? Math.max(1, Math.ceil(toman / this.info.rate)) : 0; },
+  step1(p){
+    p = p || $('sub').querySelector('.page');
+    const d = this.info, pick = this.amount || Topup.amount || d.presets[1] || d.presets[0];
+    this.amount = pick;
+    p.innerHTML = Top('شارژ کیف پول', 'Telegram Stars') + PayMethods('stars') + `
+      <div class="hero mx" style="margin-top:8px">
+        <div class="lbl">مبلغ شارژ</div>
+        <div class="amt-in"><input id="amt" inputmode="numeric" dir="ltr" value="${fa(pick)}" oninput="Stars.typed(this)" aria-label="مبلغ به تومان"><span>تومان</span></div>
+        <div class="presets">${d.presets.map(v => `<button class="preset${v === pick ? ' on' : ''}" onclick="Stars.set(${v})"><span class="n">${fa(v)}</span></button>`).join('')}</div>
+        <div class="short" style="text-align:right;margin-top:10px">حداقل ${N(fa(d.min))} تومان · هر ستاره ${N(fa(d.rate))} تومان</div>
+      </div>
+      <div class="st-big">${ic('star',1.4)}<b id="st-n">${fa(this.count(pick))}</b><span>Stars</span></div>
+      <div class="card mx" style="margin-top:12px"><ol class="steps">
+        <li><span class="d n">1</span><div><b>پرداخت در خود تلگرام</b><p>صفحه پرداخت تلگرام باز می‌شود؛ اگر ستاره نداری، همان‌جا می‌توانی بخری.</p></div></li>
+        <li><span class="d">${ic('check',2.6)}</span><div><b>شارژ فوری</b><p>بلافاصله بعد از پرداخت، مبلغ به کیف پولت اضافه می‌شود.</p></div></li>
+      </ol></div>
+      <div class="foot"><button class="btn btn-p btn-block" id="st-go" onclick="Stars.start()">${this.goLabel()}</button></div>`;
+  },
+  goLabel(){ return `پرداخت <bdi dir="ltr">${fa(this.count(this.amount))}<span class="cx-u">⭐</span></bdi>`; },
+  refresh(){
+    const n = $('st-n'); if (n) n.textContent = fa(this.count(this.amount));
+    const b = $('st-go'); if (b && !this.busy) b.innerHTML = this.goLabel();
+  },
+  set(v){
+    this.amount = v; App.haptic();
+    const i = $('amt'); if (i) i.value = fa(v);
+    document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.textContent.replace(/,/g,'') == String(v)));
+    this.refresh();
+  },
+  typed(el){
+    const v = parseInt(String(el.value).replace(/[^\d]/g, '').replace(/^0+/, '') || '0', 10);
+    this.amount = v; el.value = v ? fa(v) : '';
+    document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.textContent.replace(/,/g,'') == String(v)));
+    this.refresh();
+  },
+  async start(){
+    if (this.busy) return;
+    if (this.amount < this.info.min) return App.toast('حداقل شارژ ' + fa(this.info.min) + ' تومان است', true);
+    this.busy = true; const b = $('st-go'); if (b) { b.disabled = true; b.textContent = 'در حال ساخت فاکتور…'; }
+    const reset = () => { this.busy = false; if (b) { b.disabled = false; b.innerHTML = this.goLabel(); } };
+    try {
+      const inv = await api('stars/start', { toman:this.amount });
+      if (!tg || !tg.openInvoice) { reset(); return App.toast('این نسخه تلگرام پشتیبانی نمی‌کند', true); }
+      tg.openInvoice(inv.link, status => {
+        reset();
+        if (status === 'paid') this.wait(inv);
+        else if (status === 'failed') App.toast('پرداخت انجام نشد', true);
+      });
+    } catch (err) { reset(); App.toast(err.message, true); }
+  },
+  /* پرداخت انجام شد؛ شارژ را ربات با successful_payment ثبت می کند که
+     ممکن است یکی دو ثانیه بعد برسد. */
+  async wait(inv){
+    const p = $('sub').querySelector('.page');
+    p.innerHTML = Top('شارژ کیف پول') + `<div class="empty" style="padding-top:60px"><span class="cx-spin" style="width:34px;height:34px;border-width:3.5px;color:var(--brand)"></span>
+      <div class="empty-t">در حال شارژ کیف پول…</div></div>`;
+    for (let i = 0; i < 20; i++) {
+      try { const s = await api('stars/status?id=' + inv.id); if (s.status === 'paid') return this.done(s); } catch(e){}
+      await new Promise(r => setTimeout(r, 1500));
+    }
+    p.innerHTML = Top('شارژ کیف پول') + emptyBox('پرداختت رسید', 'شارژ کیف پول چند لحظه دیگر انجام می‌شود و در ربات خبرت می‌کنیم.');
+  },
+  done(s){
+    App.notify('success');
+    if (App.boot && App.boot.user) App.boot.user.balance = s.balance;
+    $('sub').querySelector('.page').innerHTML = Top('شارژ کیف پول') + `<div class="empty" style="padding-top:40px">
+      <span class="ic lg" style="background:var(--ok);color:#fff;border-radius:23px">${ic('check',2.6)}</span>
+      <div class="empty-t" style="font-size:19px">کیف پولت شارژ شد</div>
+      <div class="empty-s">+${N(fa(s.toman))} تومان · ${N(fa(s.stars))} ⭐</div>
+      <div class="empty-s">موجودی: ${N(fa(s.balance))} تومان</div>
+    </div><div class="foot"><button class="btn btn-p btn-block" onclick="App.tab('wallet')">برگشت به کیف پول</button></div>`;
+  },
 };
 
 /* ═════════ قوانین ═════════ */
@@ -1933,7 +3460,7 @@ const Sheets = {
   },
   connect(){
     const s = this.last; if (!s) return;
-    App.sheet(`<div class="sheet-t" style="margin-bottom:4px">وصل شوم</div><div class="topbar-s" style="margin-bottom:14px">برنامه‌ات را بزن؛ اشتراک خودکار اضافه می‌شود.</div>
+    App.sheet(`<div class="sheet-t" style="margin-bottom:4px">وصل شو</div><div class="topbar-s" style="margin-bottom:14px">برنامه‌ات را بزن؛ اشتراک خودکار اضافه می‌شود.</div>
       ${s.import_links.length ? `<div style="margin:0 calc(-1 * var(--pad))">${Group(s.import_links.map((a, k) =>
           `<a class="row" href="${esc(a.url)}" target="_blank" rel="noopener"><span class="ic net">${ic('phone')}</span><span class="row-m"><span class="row-t">${esc(a.label)}</span></span>${k === 0 ? Badge('ok', 'پیشنهادی') : ''}<span class="chev">${ic('chev',2)}</span></a>`).join('')).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>` : ''}
       <div class="lbl" style="margin:16px 0 8px">یا لینک را دستی اضافه کن</div><div class="linkbox">${esc(s.sub_url)}</div>

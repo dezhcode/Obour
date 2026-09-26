@@ -13,6 +13,11 @@ class Buy(StatesGroup):
     waiting_discount = State()
 
 
+class AiShop(StatesGroup):
+    # ایمیلی که اشتراک (slot) روی آن فعال می شود
+    waiting_email = State()
+
+
 class Track(StatesGroup):
     waiting_code = State()
 
@@ -24,6 +29,8 @@ class Support(StatesGroup):
 class Wallet(StatesGroup):
     waiting_amount = State()
     waiting_receipt = State()
+    crypto_amount = State()
+    stars_amount = State()
 
 
 class Service(StatesGroup):

@@ -537,3 +537,127 @@ PHRASES = {
     "سرویسش رو تمدید کرد": "a renewal",
     "یک سرویس دلخواه ساخت": "a custom service purchase",
 }
+
+
+# ---------- Crypto top-up (TON / USDT on the TON network) ----------
+TEXTS.update({
+    "CRYPTO_WALLET": "╭── 💎 Top up with crypto\n│   TON · USDT on the TON network\n\n💳 Current balance\n{balance} toman\n\nChoose a top-up amount in toman, or send the number.\n╰─ Minimum top-up {min_charge} toman",
+    "CRYPTO_PICK": "╭── 💎 Top up {amount} toman\n│   Choose a currency\n\n{lines}\n\nWhich currency will you pay with?\n╰─ The amount stays fixed until the invoice expires",
+    "CRYPTO_INVOICE": (
+        "╭── 💎 Invoice {code}\n│   Top-up of {toman} toman\n\n"
+        "💰 Exact amount\n<code>{crypto}</code> {asset}\n\n"
+        "📬 Wallet address (TON network)\n<code>{address}</code>\n\n"
+        "📝 Comment (Memo)\n<code>{code}</code>\n"
+        "╰─ ⏱ Time to pay: {minutes} minutes\n\n"
+        "<blockquote>⚠️ Always include the comment; without it your payment can't be recognised automatically. "
+        "An amount lower than the invoice isn't credited automatically either.</blockquote>\n"
+        "Tap «Pay with Tonkeeper» and everything is filled in for you. "
+        "A few seconds after you pay, your wallet is topped up automatically and I'll let you know here."
+    ),
+    "CRYPTO_USDT_NOTE": "\n\n💡 You'll also need about 0.1 TON in your wallet for the network fee (most of it comes back).",
+    "CRYPTO_TESTNET_NOTE": "\n\n🧪 <b>Test mode (testnet)</b>: pay only with a testnet wallet.",
+    "CRYPTO_PAID": "╭── ✅ Your payment arrived\n│   {crypto} {asset} · {code}\n\n{amount} toman was added to your wallet.\n\n💰 Balance\n╰─ {balance} toman",
+    "CRYPTO_UNDERPAID": "╭── ⚠️ The amount was lower than the invoice\n│   Invoice {code}\n\nReceived: <b>{paid} {asset}</b>\nRequired: <b>{need} {asset}</b>\n\nYour wallet wasn't topped up automatically. Support will review it and get back to you.",
+})
+
+PHRASES.update({
+    "پرداخت با TON / USDT": "Pay with TON / USDT",
+    "پرداخت با Tonkeeper": "Pay with Tonkeeper",
+    "پرداخت با TON Connect": "Pay with TON Connect",
+    "کپی آدرس": "Copy address",
+    "کپی مبلغ": "Copy amount",
+    "کپی کامنت": "Copy comment",
+    "بررسی پرداخت": "Check payment",
+    "پرداخت کریپتو فعلا فعال نیست.": "Crypto payment isn't available right now.",
+    "مبلغ رو به تومان بفرست.": "Send the amount in toman.",
+    "نرخ ارزها هنوز تنظیم نشده. کمی بعد دوباره امتحان کن یا از کارت به کارت استفاده کن.": "Exchange rates aren't set yet. Try again a bit later or use a card transfer.",
+    "نرخ این ارز الان در دسترس نیست. ارز دیگه رو امتحان کن.": "This currency's rate isn't available right now. Try the other one.",
+    "شارژ شد ✅": "Topped up ✅",
+    "مبلغ رسیده کمتر از فاکتور بود؛ پشتیبانی بررسی می کنه.": "The amount received was lower than the invoice; support will review it.",
+    "هنوز پرداختی با این کامنت نرسیده. اگه پرداخت کردی، چند ثانیه دیگه دوباره بزن.": "No payment with this comment has arrived yet. If you've paid, tap again in a few seconds.",
+    # API (mini app)
+    "پرداخت کریپتو فعلا فعال نیست": "Crypto payment isn't available right now",
+    "نرخ این ارز الان در دسترس نیست": "This currency's rate isn't available right now",
+    "ارز نامعتبر": "Invalid currency",
+    "فاکتور پیدا نشد": "Invoice not found",
+    "این فاکتور دیگر باز نیست": "This invoice is no longer open",
+    "آدرس کیف پول نامعتبر است": "The wallet address is invalid",
+    "ارتباط با شبکه TON برقرار نشد، دوباره امتحان کن": "Couldn't reach the TON network, try again",
+})
+
+
+# ---------- Telegram Stars and payment methods outside Iran ----------
+TEXTS.update({
+    "WALLET_INTL": "╭── 💰 Wallet\n│   Top up\n\n💳 Current balance\n{balance} toman\n\nHow would you like to top up?\n╰─ Minimum top-up {min_charge} toman",
+    "STARS_WALLET": "╭── ⭐ Top up with Telegram Stars\n│   1 star = {rate} toman\n\n💳 Current balance\n{balance} toman\n\nChoose a top-up amount in toman, or send the number. The number of stars is on each button.\n╰─ Minimum top-up {min_charge} toman",
+    "STARS_PAID": "╭── ✅ Your payment arrived\n│   ⭐ {stars} stars\n\n{amount} toman was added to your wallet.\n\n💰 Balance\n╰─ {balance} toman",
+})
+
+PHRASES.update({
+    "نرخ ارزها هنوز تنظیم نشده. کمی بعد دوباره امتحان کن.": "Exchange rates aren't set yet. Try again a bit later.",
+    "پرداخت با Stars": "Pay with Stars",
+    "کارت به کارت فقط برای کاربرهای ایران است. از TON / USDT یا Stars استفاده کن.": "Card transfer is only for users in Iran. Please use TON / USDT or Stars.",
+    "پرداخت با Stars فعلا فعال نیست.": "Paying with Stars isn't available right now.",
+    "سقف هر پرداخت با Stars {amount} تومانه.": "The maximum for one Stars payment is {amount} toman.",
+    "{amount} تومان به کیف پول عبور اضافه می شود.": "{amount} toman will be added to your Obour wallet.",
+    "این فاکتور معتبر نیست. از کیف پول دوباره شروع کن.": "This invoice isn't valid. Start again from your wallet.",
+    "این فاکتور قبلا پرداخت شده.": "This invoice has already been paid.",
+    # API (mini app)
+    "پرداخت با Stars فعلا فعال نیست": "Paying with Stars isn't available right now",
+    "کارت به کارت فقط برای کاربرهای ایران است": "Card transfer is only for users in Iran",
+    "فاکتور ستاره ساخته نشد، دوباره امتحان کن": "Couldn't create the Stars invoice, try again",
+})
+
+
+# ---------- Renew from the mini app ----------
+PHRASES.update({
+    "این سرویس قابل تمدید نیست": "This service can't be renewed",
+    "پلن این سرویس دیگر فعال نیست؛ یک پلن تازه بخر": "This service's plan is no longer active; buy a new plan",
+    "این تمدید در حال پردازشه": "This renewal is already being processed",
+    "این سرویس روی سرور پیدا نشد؛ به پشتیبانی خبر بده": "This service wasn't found on the server; tell support",
+    "تمدید نشد، پولی کم نشده": "Couldn't renew; nothing was charged",
+})
+
+
+# ---------- AI shop (canboso catalog) ----------
+TEXTS.update({
+    "AI_SHOP": "╭── 🤖 AI services\n│   {count} products\n\nPick the product you want. Each price is on its button.\n\n💰 Balance\n╰─ {balance} toman",
+    "AI_PRODUCT": "╭── 🤖 {name}\n│   {stock}\n\n{description}{how}\n\n<blockquote>⚠️ Delivery can't be reversed; make sure this is what you want before buying.</blockquote>\n\n💰 Price: <b>{price}</b> toman\n╰─ Your balance: {balance} toman",
+    "AI_HOW": {
+        "account": "📦 After paying, you get the username and password right here.",
+        "slot": "📧 Activated on your own email. After paying, the seller completes it, which can take a little while.",
+        "upgrade_account": "⬆️ Your own account is upgraded; we'll ask for your account email.",
+    },
+    "AI_STOCK": "In stock: {n}",
+    "AI_STOCK_OPEN": "Available",
+    "AI_ASK_EMAIL": "╭── 📧 Email\n│   {name}\n\nSend the email the subscription should be activated on.\n╰─ Double-check it; it can't be changed after purchase.",
+    "AI_BAD_EMAIL": "That email doesn't look right. Send it again, e.g. name@gmail.com",
+    "AI_PICK_MONTHS": "╭── 🗓 Subscription length\n│   {name}\n\nHow many months? Each option's price is on its button.\n╰─ Your balance: {balance} toman",
+    "AI_CONFIRM": "╭── ✅ Confirm purchase\n│   {name}\n\n{details}💰 Price: <b>{price}</b> toman\n╰─ Your balance: {balance} toman",
+    "AI_DELIVERED": "╭── ✅ Delivered\n│   {name}\n\n{delivery}\n\n<blockquote>Save these details somewhere safe right now. If anything's wrong, give the tracking code to support.</blockquote>\n\n🔎 Our tracking code\n├ <code>{code}</code>\nProvider order code\n╰─ <code>{provider_code}</code>",
+    "AI_ACCEPTED": "╭── ⏳ Order placed\n│   {name}\n\nYour order was accepted and the seller will activate it on <code>{email}</code>. It usually takes a little while; you don't need to do anything.\n\n🔎 Our tracking code\n├ <code>{code}</code>\nProvider order code\n╰─ <code>{provider_code}</code>",
+    "AI_PENDING_REVIEW": "╭── ⏳ Under review\n│   {code}\n\nThe provider didn't answer in time, so your order's status is unclear. Support has just been notified and will check it.\n\n<blockquote>If the order went through, its details will be sent to you. If not, the full amount comes back.</blockquote>\n╰─ Keep the code above.",
+    "AI_ORDERS": "╭── 🤖 AI orders\n│   {count} orders\n\n{rows}\n\n╰─ Delivery details are always available here.",
+    "AI_STATUS": {"pending": "⏳ In progress", "processing": "⏳ Waiting for the seller", "delivered": "✅ Delivered", "failed": "❌ Failed", "unknown": "🔎 Under review"},
+    "AI_TEMP_UNAVAILABLE": "╭── 🤖 Out of stock\n│   AI services\n\nThis product has just run out. We'll let you know once it's back — no need to keep checking.\n\n╰─ Tap the button below to get a message as soon as it's back.",
+    "AI_RESTOCKED": "🔔 Good news! <b>AI services</b> products are back in stock.\nSee them in the shop → AI services.",
+    "AI_SHOP_SOON": "╭── 🤖 AI services\n│   Coming soon\n\nThis section is being set up. Soon you'll be able to buy AI tool subscriptions right here.\n\n💰 Balance\n╰─ {balance} toman",
+})
+PHRASES.update({
+    "ناموجود": "Out of stock", "ادامه و وارد کردن ایمیل": "Continue and enter email", "مدت": "Duration",
+    "ایمیل": "Email", "نام کاربری": "Username", "رمز": "Password", "ایمیل بازیابی": "Recovery email",
+    "انقضا": "Expires", "فعال سازی روی ایمیل": "Activation on email",
+})
+
+# ---------- Mini app AI purchase ----------
+PHRASES.update({
+    "اطلاعات خرید کامل نیست؛ ایمیل و مدت را چک کن": "Purchase details are incomplete; check the email and duration",
+    "همین الان بررسی شد؛ کمی بعد دوباره امتحان کن": "Just checked; try again in a moment",
+    "فروش این بخش فعلا در دسترس نیست": "This section isn't selling right now",
+    "ارتباط با فروشنده برقرار نشد؛ پولی کم نشد": "Couldn't reach the seller; nothing was charged",
+    "یه خرید دیگه همین حالا در جریانه": "Another purchase is in progress right now",
+    "سفارش پیدا نشد": "Order not found",
+    "فروشنده سفارش را انجام نداد؛ پولت به کیف پول برگشت": "The seller didn't complete the order; your money is back in your wallet",
+    "این محصول همین الان موجود نیست؛ پولی کم نشد": "This product just went out of stock; nothing was charged",
+    "ایمیل درست نیست": "That email isn't valid",
+})

@@ -9,3 +9,4 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+canboso_dump.json
