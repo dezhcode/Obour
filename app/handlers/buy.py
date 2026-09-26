@@ -49,18 +49,26 @@ async def cb_shop_hub(
 
     if vpn and not ai:
         return await cb_buy(call, db, state, user)
-    if ai and not vpn:
-        return await cb_ai_shop(call, db, user)
     if not vpn and not ai:
         await edit_or_send(call.message, texts.SHOP_CLOSED, keyboards.back_menu())
         return await call.answer()
 
+    from app.handlers.ai import category_counts
+
+    cats = await category_counts(db) if await _ai_ready(db) else []
     await edit_or_send(
         call.message,
         texts.SHOP_HUB.format(balance=f"{user['balance']:,}"),
-        keyboards.shop_hub_kb(),
+        keyboards.shop_hub_kb(cats),
     )
     await call.answer()
+
+
+async def _ai_ready(db: Database) -> bool:
+    from app.services import ai_shop
+
+    cfg = await pricing.load(db)
+    return bool(await ai_shop.api_key(db)) and (pricing.is_configured(cfg, "USD") or pricing.is_configured(cfg, "VND"))
 
 
 @router.callback_query(F.data == "buy:ai")
@@ -68,10 +76,7 @@ async def cb_ai_shop(call: CallbackQuery, db: Database, user: dict) -> None:
     """بخش خدمات هوش مصنوعی: کاتالوگ canboso با قیمت تومانی."""
     if not features.is_on("shop_ai"):
         return await call.answer(texts.SECTION_OFF, show_alert=True)
-    from app.services import ai_shop
-
-    cfg = await pricing.load(db)
-    if not await ai_shop.api_key(db) or not (pricing.is_configured(cfg, "USD") or pricing.is_configured(cfg, "VND")):
+    if not await _ai_ready(db):
         # هنوز تنظیم نشده: به جای خطای مبهم، همان صفحه «به زودی»
         await edit_or_send(
             call.message,
@@ -99,10 +104,15 @@ async def cb_buy(call: CallbackQuery, db: Database, state: FSMContext, user: dic
             keyboards.back_menu(),
         )
         return await call.answer()
+    vpn_ready = 0
+    if features.is_on("shop_ai") and await _ai_ready(db):
+        from app.handlers.ai import category_counts
+
+        vpn_ready = next((c["count"] for c in (await category_counts(db) or []) if c["key"] == "vpn"), 0)
     await edit_or_send(
         call.message,
         texts.SHOP.format(balance=f"{user['balance']:,}"),
-        keyboards.plan_categories_kb(cats),
+        keyboards.plan_categories_kb(cats, vpn_ready=vpn_ready),
     )
     await call.answer()
 

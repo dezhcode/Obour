@@ -23,6 +23,7 @@ from app.utils import (
     track_code,
     usage_percent,
 )
+from app.services import ai_shop as ai_shop_mod
 from app.services import charge as charge_svc
 from app.services import crypto as crypto_svc
 from app.services import payments as payments_svc
@@ -556,6 +557,9 @@ async def ai_catalog(
                 "stock": x["stock"] if x["available"] else 0,
                 "type": x["kind"],
                 "brand": x["brand"],
+                "category": x["category"],
+                "image": ai_shop.image_url(x["image"]),
+                "guide": x["guide"][:2500],
             })
     except Exception:  # noqa: BLE001
         # نبود کاتالوگ نباید صفحه را بشکند؛ ویترین خالی بهتر از خطاست.
@@ -568,6 +572,7 @@ async def ai_catalog(
         "items": items,
         "balance": int(user["balance"]),
         "orders": [_ai_order_out(o) for o in orders],
+        "categories": [{"key": k, "title": t} for k, (t, _e) in ai_shop_mod.CATEGORIES.items()],
         "bot_link": f"https://t.me/{bot_username}" if bot_username else "",
     }
 
@@ -594,6 +599,7 @@ def _ai_order_out(o: dict, full: bool = False) -> dict:
             "email": d.get("email") or "",
             "months": d.get("months") or None,
             "links": [str(x) for x in (d.get("links") or [])][:20],
+            "guide": str(d.get("guide") or "")[:2500],
             "delivery": [
                 {k: str(a.get(k) or "")[:500] for k in ("user", "password", "verifyEmail", "expiryText", "otherInfo")}
                 for a in (d.get("accounts") or [])[:20]
@@ -646,6 +652,11 @@ async def ai_buy(
 
     r = await ai_shop.buy(db, bot, user, str(product_id), months=months, email=email)
     status = r["status"]
+    if bot is not None and status in (ai_shop.DELIVERED, ai_shop.PROCESSING):
+        # همان اطلاعات (و آموزش فعال سازی) در چت ربات هم فرستاده می شود
+        from app.handlers.ai import notify_buyer
+
+        await notify_buyer(bot, db, r)
     fresh = await db.get_user(user["id"])
     balance = int((fresh or user)["balance"])
     if status in (ai_shop.DELIVERED, ai_shop.PROCESSING, ai_shop.UNKNOWN):
@@ -679,9 +690,13 @@ async def ai_check(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, 
     if not await db.acquire_lock(lock, ttl_seconds=120):
         raise ApiError("یه خرید دیگه همین حالا در جریانه", 409, "locked")
     try:
-        await ai_shop.resolve(db, bot, o)
+        r = await ai_shop.resolve(db, bot, o)
     finally:
         await db.release_lock(lock)
+    if bot is not None and r.get("status") in (ai_shop.DELIVERED, ai_shop.PROCESSING, ai_shop.FAILED, ai_shop.NO_FUNDS):
+        from app.handlers.ai import notify_buyer
+
+        await notify_buyer(bot, db, r)
     o = await db.get_ai_order(o["id"])
     fresh = await db.get_user(user["id"])
     return {"ok": True, "status": o["status"], "balance": int((fresh or user)["balance"]),

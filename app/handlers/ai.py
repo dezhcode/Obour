@@ -43,18 +43,32 @@ async def _items(db: Database) -> list[dict] | None:
         return None
 
 
-async def show_catalog(message: Message, db: Database, user: dict) -> None:
-    """صفحه خدمات هوش مصنوعی (از فروشگاه ربات صدا زده می شود)."""
+async def category_counts(db: Database) -> list[dict] | None:
+    """دسته ها با تعداد محصولات قابل نمایش؛ None اگر کاتالوگ خوانده نشد."""
+    items = await _items(db)
+    if items is None:
+        return None
+    return [{"key": k, "title": t, "emoji": e, "count": sum(1 for x in items if x["category"] == k)}
+            for k, (t, e) in ai_shop.CATEGORIES.items()]
+
+
+async def show_catalog(message: Message, db: Database, user: dict, cat: str = "ai") -> None:
+    """محصولات یک دسته (هوش مصنوعی، ابزار کاری، سرگرمی، ابزار، اینترنت آزاد)."""
     items = await _items(db)
     if items is None:
         return await edit_or_send(message, texts.AI_PROVIDER_DOWN, keyboards.back_to_shop_kb())
+    cat = cat if cat in ai_shop.CATEGORIES else "ai"
+    items = [x for x in items if x["category"] == cat]
+    # موجودها اول
+    items.sort(key=lambda x: not x["available"])
     if not items:
         return await edit_or_send(message, texts.AI_SHOP_SOON.format(balance=f"{user['balance']:,}"),
                                   keyboards.back_to_shop_kb())
+    title, emoji = ai_shop.CATEGORIES[cat]
     await edit_or_send(
         message,
-        texts.AI_SHOP.format(count=len(items), balance=f"{user['balance']:,}"),
-        keyboards.ai_shop_kb(items),
+        texts.AI_SHOP.format(emoji=emoji, title=_t(title), count=len(items), balance=f"{user['balance']:,}"),
+        keyboards.ai_shop_kb(items, back="buy:vpn" if cat == "vpn" else "buy"),
     )
 
 
@@ -64,6 +78,24 @@ async def cb_ai_catalog(call: CallbackQuery, db: Database, user: dict) -> None:
         return await call.answer(texts.SECTION_OFF, show_alert=True)
     await show_catalog(call.message, db, user)
     await call.answer()
+
+
+@router.callback_query(F.data.startswith("ai:c:"))
+async def cb_ai_category(call: CallbackQuery, db: Database, user: dict) -> None:
+    if not features.is_on("shop_ai"):
+        return await call.answer(texts.SECTION_OFF, show_alert=True)
+    await show_catalog(call.message, db, user, call.data[len("ai:c:"):])
+    await call.answer()
+
+
+def _preview(item: dict) -> dict:
+    """تصویر محصول (اگر ادمین گذاشته) به صورت پیش نمایش بزرگ بالای متن."""
+    url = ai_shop.image_url(item.get("image"), absolute=True)
+    if not url:
+        return {}
+    from aiogram.types import LinkPreviewOptions
+
+    return {"link_preview_options": LinkPreviewOptions(url=url, prefer_large_media=True, show_above_text=True)}
 
 
 async def _item(db: Database, pid: str) -> dict | None:
@@ -97,7 +129,8 @@ async def cb_ai_product(call: CallbackQuery, db: Database, state: FSMContext, us
         return await call.answer()
     await state.clear()
     await state.update_data(ai_pid=pid)
-    await edit_or_send(call.message, _card(item, int(user["balance"])), keyboards.ai_product_kb(item, int(user["balance"])))
+    await edit_or_send(call.message, _card(item, int(user["balance"])), keyboards.ai_product_kb(item, int(user["balance"])),
+                       **_preview(item))
     await call.answer()
 
 
@@ -110,7 +143,8 @@ async def product_from_start(message: Message, db: Database, state: FSMContext, 
         await message.answer(texts.AI_TEMP_UNAVAILABLE, reply_markup=keyboards.ai_notify_kb())
         return True
     await state.update_data(ai_pid=pid)
-    await message.answer(_card(item, int(user["balance"])), reply_markup=keyboards.ai_product_kb(item, int(user["balance"])))
+    await message.answer(_card(item, int(user["balance"])), reply_markup=keyboards.ai_product_kb(item, int(user["balance"])),
+                         **_preview(item))
     return True
 
 
@@ -226,6 +260,7 @@ async def show_result(message: Message, r: dict, edit: bool = True) -> None:
     if status == ai_shop.DELIVERED:
         body = texts.AI_DELIVERED.format(name=esc(order["title"]), delivery=ai_shop.delivery_html(order) or "—",
                                          code=order["code"], provider_code=order.get("provider_order_id") or "-")
+        body += ai_shop.guide_html(order)
         kb = keyboards.ai_delivered_kb()
     elif status == ai_shop.PROCESSING:
         email = ai_shop.delivery_of(order).get("email") or "-"
@@ -285,7 +320,11 @@ async def cb_ai_orders(call: CallbackQuery, db: Database, user: dict) -> None:
 
 
 async def notify_buyer(bot, db: Database, r: dict) -> None:  # noqa: ANN001
-    """بعد از «بررسی دوباره» ادمین، نتیجه به خود خریدار (به زبان او) می رسد."""
+    """نتیجه سفارش در چت ربات، به زبان خود خریدار.
+
+    بعد از «بررسی دوباره» ادمین، و بعد از هر خرید از مینی اپ: اطلاعات
+    ورود یا لینک فعال سازی، همراه آموزش، در چت هم می ماند.
+    """
     order = r.get("order") or {}
     user = await db.get_user(order.get("user_id")) if order else None
     if not user or r["status"] not in (ai_shop.DELIVERED, ai_shop.PROCESSING, ai_shop.FAILED, ai_shop.NO_FUNDS):
@@ -294,13 +333,15 @@ async def notify_buyer(bot, db: Database, r: dict) -> None:  # noqa: ANN001
         if r["status"] == ai_shop.DELIVERED:
             body = texts.AI_DELIVERED.format(name=esc(order["title"]), delivery=ai_shop.delivery_html(order) or "—",
                                              code=order["code"], provider_code=order.get("provider_order_id") or "-")
+            body += ai_shop.guide_html(order)
         elif r["status"] == ai_shop.PROCESSING:
             body = texts.AI_ACCEPTED.format(name=esc(order["title"]), email=esc(ai_shop.delivery_of(order).get("email") or "-"),
                                             code=order["code"], provider_code=order.get("provider_order_id") or "-")
         else:
             body = texts.AI_FAILED_REFUNDED.format(price=f"{order['price']:,}")
     try:
-        await bot.send_message(int(user["telegram_id"]), body)
+        await bot.send_message(int(user["telegram_id"]), body,
+                               reply_markup=keyboards.ai_delivered_kb() if r["status"] != ai_shop.FAILED else None)
     except Exception:  # noqa: BLE001
         log.warning("نتیجه سفارش %s به خریدار نرسید", order.get("code"))
 

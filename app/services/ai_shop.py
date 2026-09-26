@@ -21,6 +21,7 @@ import json
 import logging
 import re
 import uuid
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from app import i18n, pricing, texts
@@ -116,6 +117,106 @@ def currency_of(p: dict, wallet: str) -> str:
     return str((p.get("price") or {}).get("currency") or wallet or "USD").upper()
 
 
+# ═══════════════════ دسته، تصویر و آموزش ═══════════════════
+
+# ترتیب همین است که کاربر می بیند. «اینترنت آزاد» کنار کانفیگ های خود
+# عبور نمایش داده می شود (VPN های آماده canboso).
+CATEGORIES: dict[str, tuple[str, str]] = {
+    "ai": ("هوش مصنوعی", "🤖"),
+    "work": ("ابزار کاری", "💼"),
+    "fun": ("سرگرمی", "🎬"),
+    "tools": ("ابزار", "🧰"),
+    "vpn": ("اینترنت آزاد", "🌐"),
+}
+_CAT_RULES: list[tuple[str, set[str], str]] = [
+    # (دسته، کلیدهای emoji خود canboso، الگوی نام)
+    ("tools", set(), r"outlook|gmail|hotmail|\bmail\b"),
+    ("vpn", {"surfshark", "nordvpn", "expressvpn", "protonvpn"}, r"vpn|surfshark|nord|express ?vpn"),
+    ("ai", {"chatgpt", "google_one", "gemini", "grok", "elevenlabs", "lovable", "wispr_flow", "claude",
+            "midjourney", "perplexity", "cursor", "copilot", "suno", "runway", "kling"},
+     r"gpt|gemini|grok|claude|eleven|lovable|midjourney|perplexity|cursor|copilot|wispr|suno|runway|\bai\b"),
+    ("fun", {"youtube", "spotify", "netflix", "disney", "apple_music", "prime_video", "crunchyroll"},
+     r"youtube|spotify|netflix|disney|prime video|crunchyroll|hbo|apple music"),
+    ("work", {"notion", "canva", "figma", "microsoft_office_365", "capcut", "adobe", "zoom", "grammarly"},
+     r"notion|canva|figma|microsoft|office|capcut|adobe|zoom|grammarly"),
+]
+
+
+def auto_category(p: dict) -> str:
+    """دسته خودکار از روی کلید emoji و نام محصول؛ ادمین می تواند عوضش کند."""
+    name = str(p.get("name") or "")
+    emoji = str(p.get("emoji") or "")
+    for cat, keys, pattern in _CAT_RULES:
+        if emoji in keys or re.search(pattern, name, re.I):
+            return cat
+    return "tools"
+
+
+def image_dir() -> Path:
+    d = Path(config.db_path).resolve().parent / "product_images"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+IMAGE_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,80}\.(jpg|png|webp)$")
+_IMAGE_TYPES = {b"\xff\xd8\xff": "jpg", b"\x89PNG": "png", b"RIFF": "webp"}
+MAX_IMAGE = 3 * 1024 * 1024
+
+
+def image_ext(data: bytes) -> str | None:
+    for magic, ext in _IMAGE_TYPES.items():
+        if data.startswith(magic) and (ext != "webp" or data[8:12] == b"WEBP"):
+            return ext
+    return None
+
+
+async def save_image(db: "Database", pid: str, data: bytes) -> str:
+    """ذخیره تصویر محصول؛ نام فایل (با هش برای شکستن کش) برمی گردد."""
+    import hashlib
+
+    ext = image_ext(data)
+    if not ext or len(data) > MAX_IMAGE:
+        raise ValueError("bad image")
+    safe = re.sub(r"[^A-Za-z0-9_-]", "", pid)[:40] or "p"
+    name = f"{safe}-{hashlib.sha1(data).hexdigest()[:10]}.{ext}"
+    (image_dir() / name).write_bytes(data)
+    old = (await db.product_meta(pid)).get("image")
+    await db.set_product_meta(pid, image=name)
+    if old and old != name and IMAGE_NAME_RE.match(old):
+        try:
+            (image_dir() / old).unlink()
+        except OSError:
+            pass
+    return name
+
+
+async def remove_image(db: "Database", pid: str) -> None:
+    old = (await db.product_meta(pid)).get("image")
+    await db.set_product_meta(pid, image=None)
+    if old and IMAGE_NAME_RE.match(old):
+        try:
+            (image_dir() / old).unlink()
+        except OSError:
+            pass
+
+
+def image_url(name: str | None, absolute: bool = False) -> str:
+    """آدرس تصویر: نسبی برای مینی اپ، کامل برای پیش نمایش لینک در ربات."""
+    if not name:
+        return ""
+    if not absolute:
+        return f"pimg/{name}"
+    from app.webapp import WEBAPP_PATH
+
+    base = (config.webhook_base_url or "").rstrip("/")
+    return f"{base}{WEBAPP_PATH}/pimg/{name}" if base else ""
+
+
+def guide_of(p: dict, meta: dict | None) -> str:
+    """آموزش فعال سازی: متن ادمین، وگرنه توضیح خود سرویس دهنده."""
+    return ((meta or {}).get("guide") or str(p.get("description") or "")).strip()
+
+
 # ═══════════════════ نمایش و موجودی ═══════════════════
 
 VISIBLE_KEY = "ai_products_on"
@@ -183,6 +284,7 @@ async def catalog(db: "Database", force: bool = False, admin: bool = False) -> d
     finally:
         await cb.close()
     ids = await enabled_ids(db)
+    metas = await db.product_meta_all()
     items = []
     for p in data["products"]:
         pid = str(p["productId"])
@@ -212,6 +314,12 @@ async def catalog(db: "Database", force: bool = False, admin: bool = False) -> d
             "type": str(p.get("productType") or "account"),
             "kind": delivery_kind(p),
             "brand": str(p.get("emoji") or ""),
+            "category": (metas.get(pid) or {}).get("category") or auto_category(p),
+            "auto_category": auto_category(p),
+            "category_set": bool((metas.get(pid) or {}).get("category")),
+            "image": (metas.get(pid) or {}).get("image") or "",
+            "guide": (metas.get(pid) or {}).get("guide") or "",
+            "provider_image": str(p.get("image") or ""),
             "stock": stock,
             "api_stock": api_stock,
             "wallet_stock": wallet,
@@ -282,7 +390,8 @@ async def buy(
             quantity=1, usd_cost=cost, price=b.final, txn_id=txn_id,
         )
         request = {"product_id": str(product_id), "months": months if req["months"] else None,
-                   "email": email if req["email"] else None, "expected_cost": cost}
+                   "email": email if req["email"] else None, "expected_cost": cost,
+                   "guide": guide_of(p, await db.product_meta(str(product_id)))[:2500]}
         idem = f"obour-{order['code']}-{uuid.uuid4().hex[:16]}"
         await db.set_ai_request(order["id"], idem, json.dumps(request, ensure_ascii=False), currency)
         order = await db.get_ai_order(order["id"])
@@ -337,6 +446,7 @@ async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, fi
         "months": o.get("slotMonths") or req.get("months"),
         "payment": result.get("payment") or {},
         "fulfillment": o.get("fulfillmentStatus") or o.get("status"),
+        "guide": req.get("guide") or "",
     }
     await db.finish_ai_order(order["id"], status, provider_order_id=str(o.get("orderCode") or ""),
                              products=json.dumps(delivery, ensure_ascii=False))
@@ -416,3 +526,13 @@ def delivery_html(order: dict) -> str:
     if not lines and d.get("email"):
         lines.append("📧 " + i18n.t("فعال سازی روی ایمیل") + f": <code>{esc(d['email'])}</code>")
     return "\n".join(lines).strip()
+
+
+def guide_html(order: dict, limit: int = 1500) -> str:
+    """بلوک «آموزش فعال سازی» برای پیام ربات (بسته شونده)."""
+    g = (delivery_of(order).get("guide") or "").strip()
+    if not g:
+        return ""
+    if len(g) > limit:
+        g = g[:limit].rsplit("\n", 1)[0] + "\n…"
+    return "\n\n📘 <b>" + i18n.t("آموزش فعال سازی") + "</b>\n<blockquote expandable>" + esc(g) + "</blockquote>"

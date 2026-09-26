@@ -239,6 +239,17 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .kind-ok svg{width:12px;height:12px}
 .kind.on .kind-ok{display:flex}
 
+/* دسته های فروشگاه: ردیف افقی قابل ورق زدن (پنج دسته در یک صفحه جا نمی شود) */
+.kinds.row{display:flex;overflow-x:auto;gap:8px;margin:8px 0 14px;padding:2px var(--pad);scroll-padding-inline:var(--pad);scrollbar-width:none;scroll-snap-type:x proximity}
+.kinds.row .kind{flex:0 0 118px;scroll-snap-align:start;gap:8px;padding:12px}
+.kinds.row .kind.on{padding:11px}
+.kinds.row .kind .ic{width:36px;height:36px}
+.kinds.row .kind-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kinds.row .kind > span:last-child{min-width:0}
+.kinds.row .kind-ok{top:9px;left:9px;width:18px;height:18px}
+html[dir=ltr] .kinds.row .kind-ok{left:auto;right:9px}
+.ic.work{background:#DDE8FF;color:#1D4FB8} .ic.fun{background:var(--help-t);color:var(--help-i)} .ic.tools{background:var(--cash-t);color:var(--cash-i)}
+
 /* ═══ پلن ═══ */
 .plan{padding:16px;display:flex;flex-direction:column;gap:14px}
 .plan-name{font-size:16px;font-weight:800}
@@ -488,6 +499,24 @@ html[dir=ltr] .kinds.k3 .kind-ok{left:auto;right:9px}
 .ai-mono svg{width:22px;height:22px}
 .ai-mono.lg{width:58px;height:58px;border-radius:17px;font-size:18px;box-shadow:0 0 0 3px rgba(255,255,255,.16)}
 .ai-mono.sm{width:40px;height:40px;border-radius:var(--r-md);font-size:13px}
+.ai-mono.img{background:var(--surface);overflow:hidden;padding:0}
+.ai-mono.img img{width:100%;height:100%;object-fit:cover;display:block}
+.ai-hero.work{background:radial-gradient(120% 90% at 100% 0%,#3B7BFF 0%,#1D4FB8 52%,var(--deep) 100%);box-shadow:0 18px 34px -18px rgba(29,79,184,.6)}
+.ai-hero.fun{background:radial-gradient(120% 90% at 100% 0%,#E0573E 0%,var(--ember) 55%,#4A1E0B 100%);box-shadow:0 18px 34px -18px rgba(140,58,23,.6)}
+.ai-hero.tools{background:radial-gradient(120% 90% at 100% 0%,#1497B3 0%,var(--ocean) 55%,#063645 100%);box-shadow:0 18px 34px -18px rgba(11,95,116,.6)}
+.ai-guide{padding:14px 16px;font-size:13px;line-height:2;color:var(--ink-2);white-space:pre-line;overflow-wrap:anywhere;word-spacing:.15em}
+.ai-guide.clip{max-height:12em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
+.ai-sent{display:flex;align-items:center;gap:8px;margin:10px var(--pad) 0;padding:10px 14px;border-radius:var(--r-md);background:var(--net-t);color:var(--net-i);font-size:12.5px;font-weight:700}
+.ai-sent svg{width:16px;height:16px;flex-shrink:0}
+.adm-img{display:flex;align-items:center;gap:14px;padding:16px}
+.adm-img .ai-mono{width:88px;height:88px;border-radius:22px;font-size:26px}
+.adm-img-b{display:flex;flex-direction:column;gap:8px;flex-grow:1;min-width:0}
+.adm-img-b .btn{height:40px;font-size:13px}
+.cat-chips{display:flex;flex-wrap:wrap;gap:8px;padding:14px 16px}
+.cat-chip{height:36px;padding:0 14px;border-radius:18px;border:1.5px solid var(--line);background:var(--surface);font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+.cat-chip.on{border-color:var(--ai);background:var(--ai-t);color:var(--ai-i)}
+.adm-ta{width:100%;min-height:150px;border-radius:var(--r-md);border:1.5px solid var(--line);background:var(--ground);padding:12px 14px;font:inherit;font-size:14px;line-height:1.9;color:var(--ink);resize:vertical;outline:none}
+.adm-ta:focus{border-color:var(--ai)}
 .ai-list{display:flex;flex-direction:column;gap:10px;padding:0 var(--pad)}
 .ai-p{display:flex;align-items:center;gap:12px;padding:14px 12px 14px 14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);
   width:100%;text-align:start;transition:transform .15s var(--ease)}
@@ -559,12 +588,16 @@ html[lang=fa] .ai-lat{word-spacing:.28em}
 .ai-st .btn{margin-top:14px}
 .ai-cred{height:auto;gap:12px;cursor:default;background:radial-gradient(120% 90% at 100% 0%,#6A55E0 0%,var(--indigo) 52%,#241A6E 100%)}
 .ai-cred + .ai-cred{margin-top:12px}
+.ai-cred .pass-name{flex-shrink:0}
+.ai-cred .pass-st{flex-shrink:1;min-width:0;max-width:60%;display:block;line-height:26px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ai-cred .pass-st i{display:inline-block;vertical-align:middle;margin-inline-end:6px}
 .ai-f{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.22);border-radius:var(--r-md);padding:8px;padding-inline-start:12px}
 .ai-f-m{flex-grow:1;min-width:0}
 .ai-f-k{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--p2)}
 .ai-f-k svg{width:12px;height:12px}
 .ai-f-v{display:block;font-size:15px;font-weight:700;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.2px;margin-top:1px}
+.ai-f-v.wrap{white-space:normal;word-break:break-all;font-size:13px;line-height:1.6}
 .ai-f-v.txt{font-family:inherit;white-space:normal;text-align:start;word-spacing:.2em;font-size:13px;font-weight:600;line-height:1.8;letter-spacing:0}
 .ai-f-b{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.12);color:var(--on-pass);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ai-f-b svg{width:17px;height:17px}
@@ -914,6 +947,10 @@ const ICON = {
   shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
   bolt:'<path d="M13 3L4 14h7l-1 7 9-11h-7z"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>',
+  play:'<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z"/>',
+  tool:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
   mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
   key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>',
   eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
@@ -1324,11 +1361,25 @@ function WalletStrip(bal){
       <div><span class="n wallet-a" data-bal>${fa(bal)}</span> <span class="wallet-l">تومان</span></div></div>
     <button class="btn btn-sm ${empty ? 'btn-p' : 'btn-d'}" onclick="App.go('topup')">شارژ</button></div>`;
 }
-function Kinds(active){
-  const k = (key, icon, t, s) => `<button class="kind${key === active ? ' on' : ''}" data-kind="${key}" onclick="Store.to('${key}')">
-    <span class="kind-ok">${ic('check',2.6)}</span><span class="ic ${key === 'vpn' ? 'net' : 'ai'}">${ic(icon)}</span>
-    <span><span class="kind-t">${t}</span><span class="kind-s">${s}</span></span></button>`;
-  return `<div class="kinds" id="kinds">${k('vpn','globe','اینترنت آزاد','کانفیگ پرسرعت، همه کشورها')}${k('ai','spark','هوش مصنوعی','اشتراک سرویس‌های AI')}</div>`;
+/* دسته های فروشگاه. «اینترنت آزاد» کانفیگ های خود عبور است (و VPN های
+   آماده canboso زیرش)؛ بقیه دسته های محصولات آماده اند. دسته بی محصول
+   نشان داده نمی شود. */
+const SHOP_CATS = {
+  vpn:  ['globe', 'net',   'اینترنت آزاد', 'کانفیگ پرسرعت'],
+  ai:   ['spark', 'ai',    'هوش مصنوعی',  'اشتراک سرویس‌های AI'],
+  work: ['brief', 'work',  'ابزار کاری',   'طراحی، تیم و بهره‌وری'],
+  fun:  ['play',  'fun',   'سرگرمی',      'فیلم، موسیقی و ویدیو'],
+  tools:['tool',  'tools', 'ابزار',        'آموزش، ایمیل و بیشتر'],
+};
+function Kinds(active, counts){
+  const vpnOn = App.boot.features.shop_vpn !== false, aiOn = App.boot.features.shop_ai;
+  const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : aiOn && (!counts || counts[k]));
+  const k = key => { const [icon, tone, t, sub] = SHOP_CATS[key];
+    const n = counts && key !== 'vpn' ? counts[key] : null;
+    return `<button class="kind${key === active ? ' on' : ''}" data-kind="${key}" onclick="Store.to('${key}')">
+    <span class="kind-ok">${ic('check',2.6)}</span><span class="ic ${tone}">${ic(icon)}</span>
+    <span><span class="kind-t">${t}</span><span class="kind-s">${n != null ? esc(fa(n) + ' محصول') : sub}</span></span></button>`; };
+  return `<div class="kinds row" id="kinds">${keys.map(k).join('')}</div>`;
 }
 /* ═════════ CHART ═════════
    نمودار خطی مصرف. SVG خالص، بدون کتابخانه.
@@ -1538,9 +1589,12 @@ async home(p){
 async store(p){
   const ai = App.boot.features.shop_ai;
   if (!ai) Store.kind = 'vpn';
+  if (App.boot.features.shop_vpn === false && Store.kind === 'vpn') Store.kind = 'ai';
   p.innerHTML = TabTop('فروشگاه', 'پرداخت از کیف پول، تحویل فوری')
-    + (ai ? Kinds(Store.kind) : '') + `<div id="store-box">${skel(2, 200)}</div>`;
-  return Store.kind === 'ai' ? Store.loadAi() : Store.loadVpn();
+    + (ai ? `<div id="kinds-box">${Kinds(Store.kind)}</div>` : '') + `<div id="store-box">${skel(2, 200)}</div>`;
+  const first = Store.kind === 'vpn' ? Store.loadVpn() : Store.loadAi();
+  if (ai) Store.catalog();
+  return first;
 },
 
 async wallet(p){
@@ -1625,7 +1679,23 @@ const Store = {
     const box = $('kinds');
     if (box && box.querySelectorAll) box.querySelectorAll('.kind').forEach(e => e.classList.toggle('on', e.getAttribute('data-kind') === k));
     $('store-box').innerHTML = skel(2, 200);
-    return k === 'ai' ? this.loadAi() : this.loadVpn();
+    return k === 'vpn' ? this.loadVpn() : this.loadAi();
+  },
+
+  /* کاتالوگ محصولات آماده یک بار خوانده می شود؛ شمارش دسته ها از همان */
+  async catalog(force){
+    if (!AI.d || force) { try { AI.d = await api('ai'); } catch(e){ return null; } }
+    const counts = {};
+    for (const x of AI.d.items || []) counts[x.category] = (counts[x.category] || 0) + 1;
+    const box = $('kinds-box'); if (box) box.innerHTML = Kinds(this.kind, counts);
+    if (this.kind === 'vpn') this.vpnExtra();
+    return AI.d;
+  },
+  /* VPN های آماده canboso زیر کانفیگ های خود عبور */
+  vpnExtra(){
+    const items = ((AI.d && AI.d.items) || []).filter(x => x.category === 'vpn');
+    const box = $('store-box'); if (!box || !items.length || $('vpn-extra')) return;
+    box.insertAdjacentHTML('beforeend', `<div id="vpn-extra">${Sec('اشتراک VPN آماده', esc(fa(items.length) + ' محصول'))}<div class="ai-list">${items.map(x => AI.card(x)).join('')}</div></div>`);
   },
 
   plan(id){ for (const c of (this.data ? this.data.categories : [])) for (const x of c.plans) if (x.id === id) return x; return null; },
@@ -1647,6 +1717,7 @@ const Store = {
         + Tabs('cat-tabs', d.categories.map(c => ({ t:c.title, s: fa(c.plans.length) + ' پلن' })), this.cat, 'Store.pick')
         + `<div id="plans"></div>`;
       this.renderPlans();
+      if (AI.d) this.vpnExtra();
     } catch (err) { $('store-box').innerHTML = emptyBox('پلن‌ها خوانده نشد', err.message); }
   },
 
@@ -1705,11 +1776,13 @@ const Store = {
 
   async loadAi(){
     try {
+      const cat = this.kind in SHOP_CATS && this.kind !== 'vpn' ? this.kind : 'ai';
       const d = await api('ai'); AI.d = d;
       if (!d.enabled) return void ($('store-box').innerHTML = emptyBox('این بخش فعلا خاموش است'));
       if (d.balance != null) App.setBalance(d.balance);
-      const items = d.items.filter(x => x.stock !== 0).concat(d.items.filter(x => x.stock === 0));
-      $('store-box').innerHTML = AI.hero()
+      const all = d.items.filter(x => (x.category || 'ai') === cat);
+      const items = all.filter(x => x.stock !== 0).concat(all.filter(x => x.stock === 0));
+      $('store-box').innerHTML = AI.hero(cat)
         + (d.banner ? `<div class="gap" style="height:14px"></div><div class="banner"><img src="${STATIC}ai-banner.jpg" alt="" onerror="this.parentNode.remove()"></div>` : '')
         + Sec('محصولات', esc(fa(items.length) + ' محصول'))
         + (items.length ? `<div class="ai-list">${items.map(x => AI.card(x)).join('')}</div>` : emptyBox('فعلا محصولی برای نمایش نیست', 'کمی بعد دوباره سر بزن.'))
@@ -2614,13 +2687,29 @@ function AiMono(name, size, brand){
   return `<span class="ai-mono${size ? ' ' + size : ''}" style="--b:${c}" aria-hidden="true">${t ? esc(t) : ic('spark', 2)}</span>`;
 }
 
+/* تصویری که ادمین گذاشته، وگرنه کاشی رنگ برند */
+const ROOT = STATIC.replace(/static\/$/, '');
+function AiThumb(x, size){
+  if (x && x.image) return `<span class="ai-mono img${size ? ' ' + size : ''}" aria-hidden="true"><img src="${esc(/^(https?:|data:)/.test(x.image) ? x.image : ROOT + x.image)}" alt="" loading="lazy" onerror="this.remove()"></span>`;
+  return AiMono(x ? (x.title || x.name) : '', size, x && x.brand);
+}
+const AI_HERO = {
+  ai:    ['هوش مصنوعی، بی‌مرز', 'اشتراک ابزارهای هوش مصنوعی؛ از کیف پولت بخر و همین‌جا تحویل بگیر.'],
+  work:  ['ابزار کاری', 'ابزارهای طراحی، تیمی و بهره‌وری؛ از کیف پولت بخر و همین‌جا تحویل بگیر.'],
+  fun:   ['سرگرمی', 'فیلم، موسیقی و ویدیو بدون مرز؛ از کیف پولت بخر و همین‌جا تحویل بگیر.'],
+  tools: ['ابزار', 'آموزش، ایمیل و ابزارهای روزمره؛ از کیف پولت بخر و همین‌جا تحویل بگیر.'],
+};
+
 const AI = {
   d:null, x:null, m:null, email:'', o:null, busy:false,
 
-  hero(){
-    return `<div class="ai-hero">${TUNNEL}
-      <div class="ai-hero-t">هوش مصنوعی، بی‌مرز</div>
-      <div class="ai-hero-s">اشتراک ابزارهای هوش مصنوعی؛ از کیف پولت بخر و همین‌جا تحویل بگیر.</div>
+  item(id){ return ((this.d && this.d.items) || []).find(i => i.id === id); },
+
+  hero(cat){
+    const h = AI_HERO[cat] || AI_HERO.ai;
+    return `<div class="ai-hero ${cat && cat !== 'ai' ? cat : ''}">${TUNNEL}
+      <div class="ai-hero-t">${h[0]}</div>
+      <div class="ai-hero-s">${h[1]}</div>
       <div class="ai-chips"><span>${ic('bolt',2)}تحویل در همین صفحه</span><span>${ic('wallet',2)}پرداخت از کیف پول</span><span>${ic('shield',2)}پیگیری و پشتیبانی</span></div>
       <div class="pass-foot"><span class="pass-meta"><span>موجودی کیف پول</span> <b class="n" data-bal>${fa(App.boot.user.balance)}</b> <span>تومان</span></span>
         <button class="pass-btn" onclick="App.go('topup')">شارژ</button></div>
@@ -2630,7 +2719,7 @@ const AI = {
   card(x){
     const out = x.stock === 0, how = AI_HOW[x.type] || AI_HOW.account;
     return `<button class="ai-p${out ? ' out' : ''}" onclick="App.go('ai_product', ${esc(JSON.stringify(x.id))})">
-      ${AiMono(x.title, '', x.brand)}
+      ${AiThumb(x)}
       <span class="ai-p-m"><span class="ai-p-t ai-lat">${esc(x.title)}</span>
         <span class="ai-how">${ic(how[0], 2)}<span>${how[1]}</span></span>
         <span class="ai-p-st${out ? ' bad' : ''}">${out ? 'ناموجود' : x.stock != null ? `<span>موجود:</span> ${N(fa(x.stock))}` : 'موجود'}</span></span>
@@ -2640,7 +2729,8 @@ const AI = {
 
   orderRow(o){
     const st = AI_ST[o.status] || ['', 'list', o.status];
-    return `<button class="row" onclick="App.go('ai_order', ${o.id})">${AiMono(o.title, 'sm')}
+    const it = this.item(o.product_id);
+    return `<button class="row" onclick="App.go('ai_order', ${o.id})">${it ? AiThumb(it, 'sm') : AiMono(o.title, 'sm')}
       <span class="row-m"><span class="row-t ai-lat">${esc(o.title)}</span><span class="row-s"><span class="n">${esc(o.code)}</span> · ${esc(jdate(o.created_at))}</span></span>
       <span class="row-e">${Badge(st[0], st[2])}</span><span class="chev">${ic('chev',2)}</span></button>`;
   },
@@ -2657,7 +2747,7 @@ const AI = {
     const long = (x.description || '').length > 240;
     return Top('هوش مصنوعی', `<span class="ai-lat">${esc(x.title)}</span>`) + `
       <div class="pass ai-pass mx">${TUNNEL}
-        <div class="ai-pass-h">${AiMono(x.title, 'lg', x.brand)}
+        <div class="ai-pass-h">${AiThumb(x, 'lg')}
           <div style="flex-grow:1;min-width:0"><div class="ai-pass-t ai-lat">${esc(x.title)}</div><div class="ai-pass-s">${how[1]}</div></div></div>
         <div class="ai-price"><span class="n" id="ai-price"></span><small>تومان</small></div>
         <div class="pass-foot"><span class="pass-meta" id="ai-meta"></span>
@@ -2671,6 +2761,7 @@ const AI = {
           <div class="ai-hint">اشتراک روی همین ایمیل فعال می‌شود و بعد از خرید قابل تغییر نیست.</div></div>` : ''}
       ${Sec('چطور تحویل می‌گیری')}<div class="card mx ai-steps">${steps.map(s =>
           `<div class="ai-step"><i>${ic(s[0], 2)}</i><div><b>${s[1]}</b><span>${s[2]}</span></div></div>`).join('')}</div>
+      ${x.guide ? Sec('آموزش فعال‌سازی') + `<div class="card mx"><div class="ai-guide" dir="auto">${esc(x.guide)}</div></div>` : ''}
       ${x.description ? Sec('درباره محصول') + `<div class="card mx"><div class="ai-desc${long ? ' clip' : ''}" id="ai-desc" dir="auto">${esc(x.description)}</div>
           ${long ? `<button class="ai-more" style="margin-bottom:12px" onclick="AI.more(this)">بیشتر</button>` : ''}</div>` : ''}
       <div class="ai-warn">${ic('warn', 2)}<span>تحویل برگشت‌پذیر نیست؛ قبل از پرداخت مطمئن شو همین محصول را می‌خواهی.</span></div>
@@ -2709,7 +2800,7 @@ const AI = {
     if (x.months.length) rows.push(['مدت', `${N(this.m)} <span>ماه</span>`]);
     if (x.needs_email) rows.push(['ایمیل', `<span dir="ltr" style="overflow-wrap:anywhere">${esc(this.email)}</span>`]);
     rows.push(['قیمت', `${N(fa(price))} <span>تومان</span>`], ['موجودی بعد از خرید', `${N(fa(bal - price))} <span>تومان</span>`]);
-    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${AiMono(x.title, '', x.brand)}
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${AiThumb(x)}
         <div><div class="sheet-t">تایید خرید</div><div class="topbar-s">${how[1]}</div></div></div>
       <div style="margin:0 calc(-1 * var(--pad))">${KV(rows).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
       ${x.needs_email ? `<div class="ai-warn" style="margin:12px 0 0">${ic('warn', 2)}<span>ایمیل را یک بار دیگر چک کن؛ بعد از خرید قابل تغییر نیست.</span></div>` : ''}
@@ -2755,7 +2846,8 @@ const AI = {
     opt = opt || {};
     const shown = opt.secret ? '••••••••' : esc(value);
     return `<div class="ai-f"><span class="ai-f-m"><span class="ai-f-k">${ic(icon, 2)}<span>${label}</span></span>
-        <span class="ai-f-v${opt.text ? ' txt' : ''}" id="aif-${i}-${key}" dir="${opt.text ? 'auto' : 'ltr'}">${shown}</span></span>
+        <span class="ai-f-v${opt.text ? ' txt' : ''}${opt.link ? ' wrap' : ''}" id="aif-${i}-${key}" dir="${opt.text ? 'auto' : 'ltr'}">${shown}</span></span>
+      ${opt.link ? `<button class="ai-f-b" onclick="AI.open(${esc(JSON.stringify(value))})" aria-label="باز کردن لینک">${ic('share')}</button>` : ''}
       ${opt.secret ? `<button class="ai-f-b" onclick="AI.reveal(${i})" aria-label="نمایش رمز">${ic('eye')}</button>` : ''}
       ${opt.text ? '' : `<button class="ai-f-b" onclick="App.copy(${esc(JSON.stringify(value))})" aria-label="کپی">${ic('copy')}</button>`}</div>`;
   },
@@ -2764,7 +2856,7 @@ const AI = {
     return `<div class="pass ai-cred mx">${TUNNEL}
       <div class="pass-head"><span class="pass-name">${n > 1 ? `<span>اکانت</span> ${N(i + 1)}` : 'اطلاعات ورود'}</span>
         <span class="pass-st ai-lat"><i></i>${esc(o.title)}</span></div>
-      ${a.user ? (/^https?:\/\//.test(a.user) && !a.password ? this.field('لینک فعال‌سازی', 'link', a.user, i, 'u') : this.field('نام کاربری', 'user', a.user, i, 'u')) : ''}
+      ${a.user ? (/^https?:\/\//.test(a.user) && !a.password ? this.field('لینک فعال‌سازی', 'link', a.user, i, 'u', { link:true }) : this.field('نام کاربری', 'user', a.user, i, 'u')) : ''}
       ${a.password ? this.field('رمز', 'key', a.password, i, 'p', { secret:true }) : ''}
       ${a.verifyEmail ? this.field('ایمیل بازیابی', 'mail', a.verifyEmail, i, 'v') : ''}
       ${a.expiryText ? this.field('انقضا', 'cal', a.expiryText, i, 'e', { text:true }) : ''}
@@ -2772,6 +2864,7 @@ const AI = {
       <button class="invite-share" onclick="AI.copyAll(${i})">${ic('copy', 2)}کپی همه</button>
     </div>`;
   },
+  open(url){ App.haptic(); try { if (tg && tg.openLink) return tg.openLink(url); } catch(e){} window.open(url, '_blank', 'noopener'); },
   reveal(i){
     const a = this.o && this.o.delivery[i], el = $('aif-' + i + '-p'); if (!a || !el) return;
     el.textContent = el.textContent === a.password ? '••••••••' : a.password; App.haptic();
@@ -2797,9 +2890,12 @@ const AI = {
         ${o.status === 'processing' && o.email ? `<div class="ai-st-e">${ic('mail', 2)}<span>${esc(o.email)}</span></div>` : ''}
         ${wait ? `<button class="btn btn-s btn-block" id="ai-chk" onclick="AI.check(${o.id})">${ic('refresh', 2)}بررسی دوباره</button>` : ''}
       </div>
+      ${fresh ? `<div class="ai-sent">${ic('chat', 2)}<span>یک نسخه در چت ربات هم برایت فرستاده شد.</span></div>` : ''}
       ${o.delivery && o.delivery.length ? '<div class="gap" style="height:14px"></div>' + o.delivery.map((a, i) => this.cred(o, a, i)).join('') : ''}
       ${o.links && o.links.length ? Sec('تحویل') + Group(o.links.map(l => `<div class="kv"><span class="kv-v" dir="ltr" style="overflow-wrap:anywhere;text-align:left">${esc(l)}</span>
           <button class="ai-f-b" style="background:var(--sunk);color:var(--ink)" onclick="App.copy(${esc(JSON.stringify(l))})" aria-label="کپی">${ic('copy')}</button></div>`).join('')) : ''}
+      ${o.guide && (o.delivery && o.delivery.length || (o.links && o.links.length)) ? Sec('آموزش فعال‌سازی') + `<div class="card mx"><div class="ai-guide${o.guide.length > 300 ? ' clip' : ''}" id="ai-og" dir="auto">${esc(o.guide)}</div>
+          ${o.guide.length > 300 ? `<button class="ai-more" style="margin-bottom:12px" onclick="$('ai-og').classList.remove('clip');this.remove()">بیشتر</button>` : ''}</div>` : ''}
       ${Sec('جزئیات سفارش')}${KV(rows)}
       ${Sec('کارها')}${Group(
         Row({ kind:'help', icon:'chat', title:'مشکلی داری؟', sub:'به پشتیبانی بگو؛ کد سفارش خودکار نوشته می‌شود', fn:`AI.support(${esc(JSON.stringify(o.code))})` })
@@ -2908,6 +3004,42 @@ Object.entries({
   'محصول خوانده نشد':'Couldn’t load the product', 'سفارش خوانده نشد':'Couldn’t load the order',
   'اطلاعات تحویل همیشه اینجا می‌ماند':'Delivery details always stay here', 'نمایش رمز':'Show password', 'کپی همه':'Copy all',
   'پرداخت و دریافت':'Pay and receive', 'فعال‌سازی روی ایمیل خودت':'Activated on your own email',
+  "کانفیگ پرسرعت":"Fast configs",
+  "باز کردن لینک":"Open link",
+  "ابزار کاری":"Work tools",
+  "طراحی، تیم و بهره‌وری":"Design, teams and productivity",
+  "سرگرمی":"Entertainment",
+  "فیلم، موسیقی و ویدیو":"Movies, music and video",
+  "ابزار":"Tools",
+  "آموزش، ایمیل و بیشتر":"Learning, email and more",
+  "اشتراک VPN آماده":"Ready-made VPN subscriptions",
+  "ابزارهای طراحی، تیمی و بهره‌وری؛ از کیف پولت بخر و همین‌جا تحویل بگیر.":"Design, team and productivity tools; pay from your wallet and get them right here.",
+  "فیلم، موسیقی و ویدیو بدون مرز؛ از کیف پولت بخر و همین‌جا تحویل بگیر.":"Movies, music and video without borders; pay from your wallet and get them right here.",
+  "آموزش، ایمیل و ابزارهای روزمره؛ از کیف پولت بخر و همین‌جا تحویل بگیر.":"Learning, email and everyday tools; pay from your wallet and get them right here.",
+  "آموزش فعال‌سازی":"Activation guide",
+  "یک نسخه در چت ربات هم برایت فرستاده شد.":"A copy was also sent to you in the bot chat.",
+  "آموزش دارد":"has a guide",
+  "تنظیمات محصول":"Product settings",
+  "تصویر":"Image",
+  "انتخاب عکس":"Choose a photo",
+  "تصویر خود canboso":"Use canboso’s image",
+  "حذف تصویر":"Remove image",
+  "عکس مربعی بهتر است؛ خودکار کوچک و فشرده می‌شود. در ربات، بالای کارت محصول نمایش داده می‌شود.":"Square photos work best; they are resized and compressed automatically. In the bot, it shows above the product card.",
+  "دسته":"Category",
+  "خودکار":"Automatic",
+  "خالی بماند تا توضیح خود canboso نمایش داده شود.":"Leave empty to use canboso’s own description.",
+  "بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود canboso.":"After purchase it is sent to the buyer with the link or login details, in the bot and the mini app. Empty = canboso’s English description.",
+  "ذخیره آموزش":"Save guide",
+  "توضیح canboso":"canboso description",
+  "نمایش":"Visibility",
+  "به کاربر نمایش داده می‌شود":"Shown to users",
+  "پنهان":"Hidden",
+  "در حال دریافت از canboso…":"Fetching from canboso…",
+  "تصویر گذاشته شد":"Image set",
+  "تصویر حذف شود؟":"Remove the image?",
+  "حذف شد":"Removed",
+  "عکس خوانده نشد":"Couldn’t read the photo",
+  "ذخیره شد":"Saved",
   "تحویل فوری لینک یا کد فعال‌سازی":"Instant activation link or code",
   "تحویل دستی توسط فروشنده":"Delivered manually by the seller",
   "لینک یا کد همین‌جا":"Link or code right here",
@@ -3222,19 +3354,82 @@ const AdminAi = {
     const sub = `<span>API:</span> ${N(this.st(x.api_stock))} · <span>کیف پول:</span> ${N(this.st(x.wallet_stock))} → `
       + (x.available ? `<span>نمایش:</span> ${N(this.st(x.stock))}` : '<span style="color:var(--bad)">ناموجود</span>');
     const price = x.priced ? `${N(fa(x.price))} <span>تومان</span>` : `<span style="color:var(--warn)">نرخ ${esc(x.currency)} تنظیم نشده</span>`;
-    return `<div class="row">${AiMono(x.name, 'sm')}<span class="row-m"><span class="row-t ai-lat">${esc(x.name)}</span>
+    const cat = SHOP_CATS[x.category] || SHOP_CATS.tools;
+    return `<button class="row" onclick="App.go('adm_ai_p', ${esc(JSON.stringify(x.id))})">${AiThumb(x, 'sm')}<span class="row-m"><span class="row-t ai-lat">${esc(x.name)}</span>
+        <span class="row-s">${cat[2]}${x.guide ? ' · <span>آموزش دارد</span>' : ''}</span>
         <span class="row-s" style="white-space:normal">${sub}</span><span class="row-s">${N(String(x.cost))} ${esc(x.currency)} → ${price}${x.months.length ? ` · <span>ماه:</span> ${N(x.months.join(','))}` : ''}</span></span>
-      <span class="row-e">${Admin.sw(x.visible, `AdminAi.set(${esc(JSON.stringify(x.id))}, ${!x.visible})`)}</span></div>`;
+      <span class="row-e">${Admin.sw(x.visible, `AdminAi.set(${esc(JSON.stringify(x.id))}, ${!x.visible})`)}</span></button>`;
   },
   async set(id, on){ const r = await Admin.act('admin/ai/product', { id, on }, on ? 'نمایش داده می‌شود' : 'پنهان شد'); if (r) this.reload(); },
   async all(on){ if (!await Admin.ask(I18N.t(on ? 'همه محصولات نمایش داده شوند؟' : 'همه محصولات پنهان شوند؟'))) return;
     const r = await Admin.act('admin/ai/product', { all:true, on }, on ? 'همه روشن شد' : 'همه خاموش شد'); if (r) this.reload(); },
   reload(){ const p = $('sub').querySelector('.page'); if (p) SubPages.adm_ai(p); },
+
+  /* ── تنظیمات یک محصول: تصویر، دسته، آموزش ── */
+  d:null,
+  find(id){ return ((this.d && this.d.items) || []).find(x => x.id === id); },
+  page(x){
+    const cat = x.category, auto = x.auto_category;
+    return Top('تنظیمات محصول', `<span class="ai-lat">${esc(x.name)}</span>`) + `
+      ${Sec('تصویر')}<div class="card mx adm-img">${AiThumb(x)}
+        <div class="adm-img-b">
+          <label class="btn btn-s" style="cursor:pointer">${ic('image', 2)}<span>انتخاب عکس</span>
+            <input type="file" accept="image/*" style="display:none" onchange="AdminAi.upload(${esc(JSON.stringify(x.id))}, this)"></label>
+          ${x.provider_image ? `<button class="btn btn-s" onclick="AdminAi.fetchImg(${esc(JSON.stringify(x.id))})">${ic('down', 2)}تصویر خود canboso</button>` : ''}
+          ${x.image ? `<button class="btn btn-s" style="color:var(--bad)" onclick="AdminAi.dropImg(${esc(JSON.stringify(x.id))})">${ic('trash', 2)}حذف تصویر</button>` : ''}
+        </div></div>
+      <div class="adm-note">عکس مربعی بهتر است؛ خودکار کوچک و فشرده می‌شود. در ربات، بالای کارت محصول نمایش داده می‌شود.</div>
+      ${Sec('دسته')}<div class="card mx"><div class="cat-chips">
+        <button class="cat-chip${x.category_set ? '' : ' on'}" onclick="AdminAi.meta(${esc(JSON.stringify(x.id))}, { category:'' })">${ic('refresh', 2)}<span>خودکار</span> (${SHOP_CATS[auto][2]})</button>
+        ${Object.keys(SHOP_CATS).map(k => `<button class="cat-chip${x.category_set && k === cat ? ' on' : ''}" onclick="AdminAi.meta(${esc(JSON.stringify(x.id))}, { category:'${k}' })">${ic(SHOP_CATS[k][0], 2)}${SHOP_CATS[k][2]}</button>`).join('')}
+      </div></div>
+      ${Sec('آموزش فعال‌سازی')}<div class="card mx ai-box">
+        <textarea class="adm-ta" id="adm-guide" dir="auto" maxlength="3000" placeholder="${esc(I18N.t('خالی بماند تا توضیح خود canboso نمایش داده شود.'))}">${esc(x.guide || '')}</textarea>
+        <div class="ai-hint">بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود canboso.</div>
+        <button class="btn btn-p btn-block" style="margin-top:10px" onclick="AdminAi.saveGuide(${esc(JSON.stringify(x.id))})">ذخیره آموزش</button></div>
+      ${x.description ? Sec('توضیح canboso') + `<div class="card mx"><div class="ai-guide clip" dir="auto">${esc(x.description)}</div></div>` : ''}
+      ${Sec('نمایش')}${Group(`<div class="row"><span class="row-m"><span class="row-t">${x.visible ? 'به کاربر نمایش داده می‌شود' : 'پنهان'}</span></span>
+        <span class="row-e">${Admin.sw(x.visible, `AdminAi.setHere(${esc(JSON.stringify(x.id))}, ${!x.visible})`)}</span></div>`)}`;
+  },
+  async refreshPage(id){
+    try { this.d = await api('admin/ai'); } catch(e){ return; }
+    const x = this.find(id), p = $('sub').querySelector('.page');
+    if (x && p) p.innerHTML = this.page(x);
+    AI.d = null;
+  },
+  async meta(id, body){ const r = await Admin.act('admin/ai/meta', Object.assign({ id }, body), 'ذخیره شد'); if (r) this.refreshPage(id); },
+  saveGuide(id){ return this.meta(id, { guide:$('adm-guide').value }); },
+  async setHere(id, on){ const r = await Admin.act('admin/ai/product', { id, on }, on ? 'نمایش داده می‌شود' : 'پنهان شد'); if (r) this.refreshPage(id); },
+  async fetchImg(id){ App.toast(I18N.t('در حال دریافت از canboso…')); const r = await Admin.act('admin/ai/image', { id, fetch:true }, 'تصویر گذاشته شد'); if (r) this.refreshPage(id); },
+  async dropImg(id){ if (!await Admin.ask(I18N.t('تصویر حذف شود؟'))) return; const r = await Admin.act('admin/ai/image', { id, remove:true }, 'حذف شد'); if (r) this.refreshPage(id); },
+  /* عکس در خود گوشی کوچک و JPEG می شود (حداکثر ۶۴۰ پیکسل) تا آپلود سبک باشد */
+  upload(id, input){
+    const f = input.files && input.files[0]; if (!f) return;
+    if (!/^image\//.test(f.type)) return App.toast('این فایل عکس نیست', true);
+    const rd = new FileReader();
+    rd.onload = () => { const img = new Image(); img.onload = async () => {
+      const k = Math.min(1, 640 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const r = await Admin.act('admin/ai/image', { id, image:c.toDataURL('image/jpeg', 0.86) }, 'تصویر گذاشته شد');
+      if (r) this.refreshPage(id);
+    }; img.onerror = () => App.toast('عکس خوانده نشد', true); img.src = rd.result; };
+    rd.readAsDataURL(f);
+  },
 };
+SubPages.adm_ai_p = async function(p, id){
+  p.innerHTML = Top('تنظیمات محصول') + skel(1, 120) + skel(2, 110);
+  try {
+    if (!AdminAi.find(id)) AdminAi.d = await api('admin/ai');
+    const x = AdminAi.find(id);
+    p.innerHTML = x ? AdminAi.page(x) : Top('تنظیمات محصول') + emptyBox('این محصول دیگر در canboso نیست');
+  } catch (err) { p.innerHTML = Top('تنظیمات محصول') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.adm_ai_p.noNav = true;
 SubPages.adm_ai = async function(p){
   p.innerHTML = Top('محصولات هوش مصنوعی') + skel(1, 120) + skel(4, 70);
   try {
-    const d = await api('admin/ai');
+    const d = AdminAi.d = await api('admin/ai');
     if (!d.configured) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('کلید API تنظیم نشده', 'CANBOSO_API_KEY را در فایل .env بگذار.'));
     if (d.error) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خواندن از canboso نشد', d.error));
     const on = d.items.filter(x => x.visible).length;
