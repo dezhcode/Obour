@@ -315,6 +315,17 @@ CREATE INDEX IF NOT EXISTS idx_ai_status ON ai_orders(status, id);
 -- کاربرهایی که خواستند وقتی موجودی برگشت خبردار شوند. خالی شدن
 -- موجودی سرویس دهنده یا موجودی خودمان، دیگر باعث خاموش شدن کل بخش
 -- نمی شود (که کاربر را گیج می کرد)؛ به جایش این فهرست است.
+-- تنظیمات ادمین برای هر محصول canboso: دسته (خالی = خودکار)، تصویر
+-- (نام فایل در پوشه product_images) و آموزش فعال سازی (خالی = توضیح
+-- خود سرویس دهنده).
+CREATE TABLE IF NOT EXISTS shop_product_meta (
+  product_id TEXT PRIMARY KEY,
+  category TEXT,
+  image TEXT,
+  guide TEXT,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS ai_waitlist (
   user_id INTEGER PRIMARY KEY REFERENCES users(id),
   created_at TEXT NOT NULL
@@ -2073,6 +2084,30 @@ class Database:
                FROM ai_orders"""
         )
         return dict(row) if row else {}
+
+    # ---------- تنظیمات هر محصول فروشگاه ----------
+    async def product_meta_all(self) -> dict[str, dict]:
+        rows = await self.fetchall("SELECT * FROM shop_product_meta")
+        return {r["product_id"]: dict(r) for r in rows}
+
+    async def product_meta(self, product_id: str) -> dict:
+        row = await self.fetchone("SELECT * FROM shop_product_meta WHERE product_id = ?", (product_id,))
+        return dict(row) if row else {}
+
+    async def set_product_meta(self, product_id: str, **fields) -> None:
+        """فقط category، image و guide؛ None یعنی برگشت به پیش فرض."""
+        allowed = {k: v for k, v in fields.items() if k in ("category", "image", "guide")}
+        if not allowed:
+            return
+        await self.execute(
+            "INSERT OR IGNORE INTO shop_product_meta(product_id, updated_at) VALUES (?, ?)",
+            (product_id, now_str()),
+        )
+        sets = ", ".join(f"{k} = ?" for k in allowed)
+        await self.execute(
+            f"UPDATE shop_product_meta SET {sets}, updated_at = ? WHERE product_id = ?",
+            (*allowed.values(), now_str(), product_id),
+        )
 
     # ---------- فهرست انتظار هوش مصنوعی ----------
     async def ai_waitlist_add(self, user_id: int) -> bool:

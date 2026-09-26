@@ -273,9 +273,79 @@ async def ai_products(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
         "configured": True,
         "wallet": ({"text": bal["text"] or f"{bal['balance']:g} {bal['currency']}", "amount": bal["balance"],
                     "currency": bal["currency"]} if bal else None),
-        "items": [{k: x[k] for k in ("id", "name", "type", "visible", "priced", "available", "stock", "api_stock",
-                                     "wallet_stock", "currency", "cost", "price", "months")} for x in cat["items"]],
+        "items": [dict({k: x[k] for k in ("id", "name", "type", "kind", "brand", "visible", "priced", "available", "stock",
+                                          "api_stock", "wallet_stock", "currency", "cost", "price", "months", "category",
+                                          "auto_category", "category_set", "guide", "provider_image")},
+                       image=ai_shop.image_url(x["image"]), description=x["description"][:1500]) for x in cat["items"]],
+        "categories": [{"key": k, "title": t} for k, (t, _e) in ai_shop.CATEGORIES.items()],
     }
+
+
+async def ai_meta_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, pid: str,
+                      category=None, guide=None) -> dict:  # noqa: ANN001
+    """دسته ("" = خودکار) و آموزش فعال سازی ("" = توضیح سرویس دهنده)."""
+    from app.services import ai_shop
+
+    _require_admin(wuser)
+    if not pid:
+        raise ApiError("محصول مشخص نیست", 400, "bad_request")
+    fields = {}
+    if category is not None:
+        category = str(category)
+        if category and category not in ai_shop.CATEGORIES:
+            raise ApiError("این دسته وجود ندارد", 400, "bad_request")
+        fields["category"] = category or None
+    if guide is not None:
+        fields["guide"] = str(guide).strip()[:3000] or None
+    await db.set_product_meta(pid, **fields)
+    log.info("ادمین %s تنظیمات محصول %s را عوض کرد: %s", wuser.id, pid, list(fields))
+    return {"ok": True}
+
+
+async def ai_image_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, pid: str,
+                       image: str = "", fetch: bool = False, remove: bool = False) -> dict:
+    """تصویر محصول: آپلود (data URL)، برداشتن تصویر خود canboso، یا حذف."""
+    import base64
+    import binascii
+
+    from app.services import ai_shop
+
+    _require_admin(wuser)
+    if not pid:
+        raise ApiError("محصول مشخص نیست", 400, "bad_request")
+    if remove:
+        await ai_shop.remove_image(db, pid)
+        return {"ok": True, "image": ""}
+    if fetch:
+        try:
+            cat = await ai_shop.catalog(db, admin=True)
+        except Exception as exc:  # noqa: BLE001
+            raise ApiError("خواندن محصولات نشد", 502, "provider") from exc
+        item = next((x for x in cat["items"] if x["id"] == pid), None)
+        path = (item or {}).get("provider_image") or ""
+        if not path:
+            raise ApiError("canboso برای این محصول تصویری ندارد", 404, "no_image")
+        import httpx
+
+        url = path if path.startswith("http") else "https://canboso.com" + ("" if path.startswith("/") else "/") + path
+        try:
+            async with httpx.AsyncClient(timeout=20, follow_redirects=True) as http:
+                r = await http.get(url)
+            data = r.content if r.status_code == 200 else b""
+        except Exception as exc:  # noqa: BLE001
+            raise ApiError("دریافت تصویر از canboso نشد", 502, "fetch") from exc
+    else:
+        raw = image.split(",", 1)[1] if image.startswith("data:") else image
+        try:
+            data = base64.b64decode(raw, validate=True)
+        except (ValueError, binascii.Error):
+            data = b""
+    try:
+        name = await ai_shop.save_image(db, pid, data)
+    except ValueError as exc:
+        raise ApiError("فقط عکس JPG، PNG یا WEBP تا ۳ مگابایت", 400, "bad_image") from exc
+    log.info("ادمین %s تصویر محصول %s را گذاشت", wuser.id, pid)
+    return {"ok": True, "image": ai_shop.image_url(name)}
 
 
 async def ai_product_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, pid: str, on: bool, all_: bool = False) -> dict:

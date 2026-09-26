@@ -264,7 +264,7 @@ def lang_kb(current: str | None = None) -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def shop_hub_kb() -> InlineKeyboardMarkup:
+def shop_hub_kb(cats: list[dict] | None = None) -> InlineKeyboardMarkup:
     """صفحه اول فروشگاه: انتخاب بین کانفیگ و خدمات هوش مصنوعی.
 
     این لایه عمدا اضافه شد تا منوی اصلی با اضافه شدن محصول های تازه
@@ -281,11 +281,18 @@ def shop_hub_kb() -> InlineKeyboardMarkup:
     if features.is_on("shop_vpn"):
         _btn(kb, "shop", "کانفیگ و اینترنت آزاد", style=PRIMARY, callback_data="buy:vpn")
         main += 1
-    if features.is_on("shop_ai"):
-        _btn(kb, "ai", "خدمات هوش مصنوعی", style=SUCCESS, callback_data="buy:ai")
-        main += 1
     if main:
         rows.append(main)
+    # دسته های اشتراک آماده (canboso)، دوتا دوتا؛ فقط دسته هایی که محصول دارند
+    if features.is_on("shop_ai"):
+        shown = [c for c in (cats or []) if c["key"] != "vpn" and c["count"]]
+        for c in shown:
+            _add(kb, f"{c['emoji']} {_t(c['title'])} · {c['count']}", style=SUCCESS if c["key"] == "ai" else None,
+                 callback_data=f"ai:c:{c['key']}")
+        rows += [2] * (len(shown) // 2) + ([1] if len(shown) % 2 else [])
+        if cats is None:   # کاتالوگ خوانده نشد: همان دکمه قدیمی
+            _btn(kb, "ai", "خدمات هوش مصنوعی", style=SUCCESS, callback_data="ai:c:ai")
+            rows.append(1)
 
     if features.is_on("shop_wallet"):
         _btn(kb, "wallet", "شارژ کیف پول", callback_data="wal")
@@ -296,7 +303,7 @@ def shop_hub_kb() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def ai_shop_kb(items: list[dict] | None = None) -> InlineKeyboardMarkup:
+def ai_shop_kb(items: list[dict] | None = None, back: str = "buy") -> InlineKeyboardMarkup:
     """کاتالوگ خدمات هوش مصنوعی: یک دکمه برای هر محصول با قیمتش."""
     kb = InlineKeyboardBuilder()
     rows = []
@@ -306,7 +313,7 @@ def ai_shop_kb(items: list[dict] | None = None) -> InlineKeyboardMarkup:
         kb.button(text=label[:60], callback_data=f"ai:p:{x['id']}"[:64])
         rows.append(1)
     _btn(kb, "history", "سفارش های من", callback_data="ai:mine")
-    _btn(kb, "back", "فروشگاه", callback_data="buy")
+    _btn(kb, "back", "برگشت", callback_data=back)
     kb.adjust(*rows, 2)
     return kb.as_markup()
 
@@ -351,7 +358,7 @@ def ai_product_kb(item: dict, balance: int) -> InlineKeyboardMarkup:
     else:
         _btn(kb, "ok", "تایید و خرید", style=SUCCESS, callback_data=f"ai:ok:{pid}"[:64])
         rows.append(1)
-    _btn(kb, "back", "برگشت", callback_data="buy:ai")
+    _btn(kb, "back", "برگشت", callback_data=f"ai:c:{item.get('category') or 'ai'}")
     rows.append(1)
     kb.adjust(*rows)
     return kb.as_markup()
@@ -426,7 +433,7 @@ def _fmt_days(days: int) -> str:
     return f"{days} {_t('روز')}"
 
 
-def plan_categories_kb(cats: list[dict]) -> InlineKeyboardMarkup:
+def plan_categories_kb(cats: list[dict], vpn_ready: int = 0) -> InlineKeyboardMarkup:
     """صفحه اول فروشگاه: دکمه هر دسته + ساخت دلخواه زیرش."""
     kb = InlineKeyboardBuilder()
     for c in cats:
@@ -441,6 +448,9 @@ def plan_categories_kb(cats: list[dict]) -> InlineKeyboardMarkup:
     rows: list[int] = [min(len(cats), 3) or 1]
     if features.is_on("shop_custom"):
         _btn(kb, "custom", "بساز به سلیقه خودت", style=SUCCESS, callback_data="cst")
+        rows.append(1)
+    if vpn_ready:
+        _add(kb, f"🌐 {_t('اشتراک VPN آماده')} · {vpn_ready}", callback_data="ai:c:vpn")
         rows.append(1)
     side: list[str] = []
     if features.is_on("shop_locations"):

@@ -259,7 +259,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                    "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
                    "/api/admin/plan", "/api/admin/setting", "/api/admin/feature",
-                   "/api/admin/pay", "/api/admin/ai/product")
+                   "/api/admin/pay", "/api/admin/ai/product", "/api/admin/ai/meta", "/api/admin/ai/image")
     if method == "POST":
         if path not in WRITE_PATHS:
             return _json(
@@ -317,6 +317,26 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
 
     if path.startswith("/static/"):
         return _serve_static(start_response, path[len("/static/"):])
+
+    # تصویر محصولات فروشگاه (ادمین از مینی اپ می گذارد). عمومی است چون
+    # تگ img هدر initData ندارد و تلگرام هم برای پیش نمایش لینک در ربات
+    # همین آدرس را بدون احراز هویت می خواند. نام فایل هش دارد و الگویش
+    # سخت گیرانه است، پس راهی به بیرون پوشه نیست.
+    if path.startswith("/pimg/"):
+        from app.services import ai_shop
+
+        name = path[len("/pimg/"):]
+        fpath = ai_shop.image_dir() / name
+        if not ai_shop.IMAGE_NAME_RE.match(name) or not fpath.is_file():
+            return _json(start_response, {"error": "not found"}, "404 Not Found")
+        data = fpath.read_bytes()
+        start_response("200 OK", [
+            ("Content-Type", {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp"}[name.rsplit(".", 1)[1]]),
+            ("Content-Length", str(len(data))),
+            ("Cache-Control", "public, max-age=31536000, immutable"),
+            ("X-Content-Type-Options", "nosniff"),
+        ])
+        return [data]
 
     # manifest برای TON Connect. کیف پول ها (Tonkeeper و ...) آن را بدون
     # احراز هویت می خوانند تا نام و آیکن اپ را به کاربر نشان دهند.
@@ -652,7 +672,15 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                 return _json(start_response, {"error": "not found", "code": "not_found"}, "404 Not Found")
             if not _admin_rate_ok(wuser.id):
                 return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
-            body = _body(environ, limit=2048)
+            body = _body(environ, limit=5 * 1024 * 1024 if name == "admin/ai/image" else 8192)
+            if name == "admin/ai/meta":
+                return _json(start_response, runtime.run(admin_api.ai_meta_set(
+                    db, panel, wuser, pid=str(body.get("id") or "")[:80], category=body.get("category"),
+                    guide=body.get("guide")), timeout=30))
+            if name == "admin/ai/image":
+                return _json(start_response, runtime.run(admin_api.ai_image_set(
+                    db, panel, wuser, pid=str(body.get("id") or "")[:80], image=str(body.get("image") or ""),
+                    fetch=bool(body.get("fetch")), remove=bool(body.get("remove"))), timeout=40))
             if name == "admin/charge":
                 return _json(start_response, runtime.run(admin_api.charge_action(
                     db, panel, wuser, txn_id=int(body.get("id") or 0), action=str(body.get("action") or ""),

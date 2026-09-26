@@ -1,7 +1,7 @@
 """English. Keys are texts.py constant names; placeholders are unchanged."""
 
 TEXTS = {
-    "SHOP_HUB": "╭── 🛒 Obour Shop\n│   What do you need?\n\n🌐 <b>Configs & free internet</b>\n23 configs in 11 countries, all in one link\n\n🤖 <b>AI services</b>\nSubscriptions to AI tools\n\n💰 Balance\n╰─ {balance} toman",
+    "SHOP_HUB": "╭── 🛒 Obour Shop\n│   What do you need?\n\n🌐 <b>Configs & free internet</b>\n23 configs in 11 countries, all in one link\n\n🛍 <b>Ready-made subscriptions</b>\nAI, work tools, entertainment and tools; delivered right here\n\n💰 Balance\n╰─ {balance} toman",
     "SHOP_CLOSED": "╭── 🛒 Shop\n│   Temporarily closed\n\nSales are paused right now. If you have an active service, it keeps working.\n╰─ Check back later or ask support.",
     "SECTION_OFF": "This section is turned off right now. Please try again later.",
     "AI_SHOP": "╭── 🤖 AI services\n│   Subscriptions to AI tools\n\nSubscriptions are delivered as an <b>activation link</b>; you open it with your own Google account.\n\n💰 Balance\n╰─ {balance} toman",
@@ -621,12 +621,14 @@ PHRASES.update({
 
 # ---------- AI shop (canboso catalog) ----------
 TEXTS.update({
-    "AI_SHOP": "╭── 🤖 AI services\n│   {count} products\n\nPick the product you want. Each price is on its button.\n\n💰 Balance\n╰─ {balance} toman",
+    "AI_SHOP": "╭── {emoji} {title}\n│   {count} products\n\nPick the product you want. Each price is on its button.\n\n💰 Balance\n╰─ {balance} toman",
     "AI_PRODUCT": "╭── 🤖 {name}\n│   {stock}\n\n{description}{how}\n\n<blockquote>⚠️ Delivery can't be reversed; make sure this is what you want before buying.</blockquote>\n\n💰 Price: <b>{price}</b> toman\n╰─ Your balance: {balance} toman",
     "AI_HOW": {
         "account": "📦 After paying, you get the username and password right here.",
         "slot": "📧 Activated on your own email. After paying, the seller completes it, which can take a little while.",
         "upgrade_account": "⬆️ Your own account is upgraded; we'll ask for your account email.",
+        "link": "🔗 After paying, you get the activation link or code right here. Activate it as soon as you can.",
+        "manual": "⏳ Manual delivery: after paying, the seller prepares your order, which can take a little while.",
     },
     "AI_STOCK": "In stock: {n}",
     "AI_STOCK_OPEN": "Available",
@@ -647,6 +649,8 @@ PHRASES.update({
     "ناموجود": "Out of stock", "ادامه و وارد کردن ایمیل": "Continue and enter email", "مدت": "Duration",
     "ایمیل": "Email", "نام کاربری": "Username", "رمز": "Password", "ایمیل بازیابی": "Recovery email",
     "انقضا": "Expires", "فعال سازی روی ایمیل": "Activation on email",
+    "لینک فعال سازی": "Activation link",
+    "آموزش فعال سازی": "Activation guide",
 })
 
 # ---------- Mini app AI purchase ----------
@@ -660,4 +664,24 @@ PHRASES.update({
     "فروشنده سفارش را انجام نداد؛ پولت به کیف پول برگشت": "The seller didn't complete the order; your money is back in your wallet",
     "این محصول همین الان موجود نیست؛ پولی کم نشد": "This product just went out of stock; nothing was charged",
     "ایمیل درست نیست": "That email isn't valid",
+})
+
+# ---------- دسته های فروشگاه ----------
+PHRASES.update({
+    "هوش مصنوعی": "AI",
+    "ابزار کاری": "Work tools",
+    "سرگرمی": "Entertainment",
+    "ابزار": "Tools",
+    "اینترنت آزاد": "Free internet",
+    "اشتراک VPN آماده": "Ready-made VPN subscriptions",
+})
+
+# ---------- Mini app admin: product settings ----------
+PHRASES.update({
+    "محصول مشخص نیست": "No product specified",
+    "این دسته وجود ندارد": "That category doesn't exist",
+    "canboso برای این محصول تصویری ندارد": "canboso has no image for this product",
+    "دریافت تصویر از canboso نشد": "Couldn't fetch the image from canboso",
+    "فقط عکس JPG، PNG یا WEBP تا ۳ مگابایت": "Only JPG, PNG or WEBP images up to 3 MB",
+    "خواندن محصولات نشد": "Couldn't read the products",
 })

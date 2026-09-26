@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 
@@ -23,6 +24,7 @@ from app.utils import (
     track_code,
     usage_percent,
 )
+from app.services import ai_shop as ai_shop_mod
 from app.services import charge as charge_svc
 from app.services import crypto as crypto_svc
 from app.services import payments as payments_svc
@@ -554,28 +556,42 @@ async def ai_catalog(
                 "months": months,
                 "needs_email": bool(x["needs_email"]),
                 "stock": x["stock"] if x["available"] else 0,
-                "type": x["type"],
+                "type": x["kind"],
+                "brand": x["brand"],
+                "category": x["category"],
+                "image": ai_shop.image_url(x["image"]),
+                "guide": x["guide"][:2500],
             })
     except Exception:  # noqa: BLE001
         # نبود کاتالوگ نباید صفحه را بشکند؛ ویترین خالی بهتر از خطاست.
         log.warning("کاتالوگ هوش مصنوعی خوانده نشد", exc_info=True)
 
     orders = await db.user_ai_orders(user["id"], limit=20)
+    metas = await db.product_meta_all()
     return {
         "enabled": True,
         "banner": has_banner,
         "items": items,
         "balance": int(user["balance"]),
-        "orders": [_ai_order_out(o) for o in orders],
+        "orders": [_ai_order_out(o, meta=metas.get(o.get("service_id") or "")) for o in orders],
+        "categories": [{"key": k, "title": t} for k, (t, _e) in ai_shop_mod.CATEGORIES.items()],
         "bot_link": f"https://t.me/{bot_username}" if bot_username else "",
     }
 
 
-def _ai_order_out(o: dict, full: bool = False) -> dict:
-    """سفارش برای مینی اپ. اطلاعات ورود فقط در حالت full (صفحه خود سفارش)."""
+def _ai_order_out(o: dict, full: bool = False, meta: dict | None = None) -> dict:
+    """سفارش برای مینی اپ. اطلاعات ورود فقط در حالت full (صفحه خود سفارش).
+
+    دسته، تصویر و برند: تنظیم ادمین روی محصول، وگرنه آنچه لحظه خرید ثبت شد.
+    """
     from app.services import ai_shop
 
     d = ai_shop.delivery_of(o)
+    try:
+        req = json.loads(o.get("request") or "{}")
+    except (TypeError, ValueError):
+        req = {}
+    meta = meta or {}
     out = {
         "id": o["id"],
         "title": o.get("title") or i18n.t("سفارش"),
@@ -586,6 +602,10 @@ def _ai_order_out(o: dict, full: bool = False) -> dict:
         "delivered_at": o.get("delivered_at"),
         "product_id": o.get("service_id") or "",
         "accounts": len(d.get("accounts") or []),
+        "category": meta.get("category") or req.get("category") or "ai",
+        "brand": req.get("brand") or "",
+        "kind": req.get("kind") or "",
+        "image": ai_shop.image_url(meta.get("image")),
     }
     if full:
         out.update({
@@ -593,6 +613,7 @@ def _ai_order_out(o: dict, full: bool = False) -> dict:
             "email": d.get("email") or "",
             "months": d.get("months") or None,
             "links": [str(x) for x in (d.get("links") or [])][:20],
+            "guide": str(d.get("guide") or "")[:2500],
             "delivery": [
                 {k: str(a.get(k) or "")[:500] for k in ("user", "password", "verifyEmail", "expiryText", "otherInfo")}
                 for a in (d.get("accounts") or [])[:20]
@@ -601,13 +622,21 @@ def _ai_order_out(o: dict, full: bool = False) -> dict:
     return out
 
 
+async def ai_orders(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """خریدهای آماده کاربر برای صفحه خانه؛ بدون تماس با سرویس دهنده."""
+    user = await _require_user(db, wuser)
+    metas = await db.product_meta_all()
+    orders = await db.user_ai_orders(user["id"], limit=20)
+    return {"items": [_ai_order_out(o, meta=metas.get(o.get("service_id") or "")) for o in orders]}
+
+
 async def ai_order(db: "Database", panel: "Panel | None", wuser: WebAppUser, order_id: int) -> dict:
     """یک سفارش هوش مصنوعی با اطلاعات تحویل؛ فقط برای صاحب همان سفارش."""
     user = await _require_user(db, wuser)
     o = await db.get_ai_order(int(order_id))
     if not o or o["user_id"] != user["id"]:
         raise ApiError("سفارش پیدا نشد", 404, "not_found")
-    return _ai_order_out(o, full=True)
+    return _ai_order_out(o, full=True, meta=await db.product_meta(o.get("service_id") or ""))
 
 
 # وضعیت خرید -> (کد HTTP، پیام) برای وقت هایی که خریدی انجام نشده
@@ -645,6 +674,11 @@ async def ai_buy(
 
     r = await ai_shop.buy(db, bot, user, str(product_id), months=months, email=email)
     status = r["status"]
+    if bot is not None and status in (ai_shop.DELIVERED, ai_shop.PROCESSING):
+        # همان اطلاعات (و آموزش فعال سازی) در چت ربات هم فرستاده می شود
+        from app.handlers.ai import notify_buyer
+
+        await notify_buyer(bot, db, r)
     fresh = await db.get_user(user["id"])
     balance = int((fresh or user)["balance"])
     if status in (ai_shop.DELIVERED, ai_shop.PROCESSING, ai_shop.UNKNOWN):
@@ -678,9 +712,13 @@ async def ai_check(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, 
     if not await db.acquire_lock(lock, ttl_seconds=120):
         raise ApiError("یه خرید دیگه همین حالا در جریانه", 409, "locked")
     try:
-        await ai_shop.resolve(db, bot, o)
+        r = await ai_shop.resolve(db, bot, o)
     finally:
         await db.release_lock(lock)
+    if bot is not None and r.get("status") in (ai_shop.DELIVERED, ai_shop.PROCESSING, ai_shop.FAILED, ai_shop.NO_FUNDS):
+        from app.handlers.ai import notify_buyer
+
+        await notify_buyer(bot, db, r)
     o = await db.get_ai_order(o["id"])
     fresh = await db.get_user(user["id"])
     return {"ok": True, "status": o["status"], "balance": int((fresh or user)["balance"]),
@@ -1089,6 +1127,7 @@ ROUTES = {
     "referral": referral,
     "tickets": tickets,
     "ai": ai_catalog,
+    "ai/orders": ai_orders,
     "topup": topup_info,
     "crypto": crypto_info,
     "stars": stars_info,
