@@ -175,7 +175,8 @@ def self_check() -> list[tuple[str, bool, str]]:
         add("قوانین و راهنما در مینی اپ", "SubPages.rules" in body and "SubPages.guide" in body)
         add("اسلایدر کارت ها", "const SliderFx" in body and "scroll-snap-type" in body)
         add("تور ایمنی SVG", "svg:not([width])" in body)
-        add("کارت پلن: حجم هم وزن قیمت، دکمه خرید توپر", "stat-vol" in body and "btn-buy" in body)
+        # طراحی پلن ها از کارت آماری به بلیت عوض شد (tk-vol / tk-buy)
+        add("کارت پلن: حجم هم وزن قیمت، دکمه خرید توپر", "tk-vol" in body and "tk-buy" in body)
         refs = re.findall(r"App\.openBot\('?(\w*)'?\)", body)
         add("ارجاع به ربات فقط ثبت نام و AI", len(refs) <= 2, ", ".join(r or "start" for r in refs))
     except Exception as exc:  # noqa: BLE001
