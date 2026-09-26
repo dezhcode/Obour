@@ -44,6 +44,8 @@ MAX_WAIT = 15.0           # بیشتر از این برای Retry-After صبر �
 _last_call = 0.0
 _rate_lock = asyncio.Lock()
 _products_cache: tuple[float, dict] | None = None
+_balance_cache: tuple[float, dict] | None = None
+BALANCE_TTL = 30.0        # موجودی کیف پول ما؛ سقف ۳۰ در دقیقه
 
 
 async def _pace() -> None:
@@ -141,19 +143,45 @@ class Canboso:
                 return p
         return None
 
-    async def balance(self) -> dict | None:
-        """{"balance": عدد به ارز کیف پول، "currency": ...} یا None."""
+    async def balance(self, force: bool = True) -> dict | None:
+        """{"balance": عدد به ارز کیف پول، "currency": ...} یا None.
+
+        force=False کش ۳۰ ثانیه ای را می پذیرد (برای نمایش موجودی محصولات)؛
+        پیش فرض تازه است چون بررسی قبل از خرید باید عدد واقعی را ببیند.
+        """
+        global _balance_cache
+        if not force and _balance_cache and time.monotonic() - _balance_cache[0] < BALANCE_TTL:
+            return _balance_cache[1]
         try:
             data = await self._get("/balance")
         except CanbosoError as exc:
             log.warning("خواندن موجودی canboso نشد: %s", exc)
             return None
         try:
-            return {"balance": float(data.get("balance") or 0),
-                    "currency": str(data.get("walletCurrency") or "").upper(),
-                    "text": data.get("balanceText") or ""}
+            out = {"balance": float(data.get("balance") or 0),
+                   "currency": str(data.get("walletCurrency") or "").upper(),
+                   "text": data.get("balanceText") or ""}
         except (TypeError, ValueError):
             return None
+        _balance_cache = (time.monotonic(), out)
+        return out
+
+    async def debug(self) -> dict:
+        """پاسخ خام /products و /balance برای مقایسه در پنل ادمین (بدون کش)."""
+        out: dict[str, Any] = {}
+        for path in ("/products", "/balance"):
+            await _pace()
+            started = time.monotonic()
+            try:
+                r = await self._http.get(path, params={"key": self._key})
+                try:
+                    body: Any = r.json()
+                except Exception:  # noqa: BLE001
+                    body = r.text[:2000]
+                out[path] = {"status": r.status_code, "ms": int((time.monotonic() - started) * 1000), "body": body}
+            except Exception as exc:  # noqa: BLE001
+                out[path] = {"status": 0, "error": f"{type(exc).__name__}: {exc}"}
+        return out
 
     # ---------- خرید ----------
     async def purchase(
@@ -258,7 +286,14 @@ class Canboso:
             raise CanbosoError(str(data.get("message") or data)[:200])
         if not isinstance(data.get("order"), dict):
             raise CanbosoUnknown("پاسخ موفق بدون اطلاعات سفارش")
+        forget_balance()
         return data
+
+
+def forget_balance() -> None:
+    """بعد از خرید، موجودی کش شده دیگر درست نیست."""
+    global _balance_cache
+    _balance_cache = None
 
 
 def accounts_of(result: dict) -> list[dict]:

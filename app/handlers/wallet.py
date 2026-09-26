@@ -48,11 +48,13 @@ async def cb_wallet(call: CallbackQuery, db: Database, user: dict) -> None:
     await call.answer()
 
 
-async def _card_blocked(call_or_msg) -> bool:  # noqa: ANN001
-    """کارت به کارت برای کاربر غیر فارسی بسته است، حتی با callback دستی."""
-    if payments.card_allowed():
+async def _card_blocked(call_or_msg, db: Database) -> bool:  # noqa: ANN001
+    """کارت به کارت برای کاربر غیر فارسی بسته است، حتی با callback دستی؛
+    و وقتی ادمین خاموشش کرده، برای همه."""
+    if await payments.card_ok(db):
         return False
-    text = _t("کارت به کارت فقط برای کاربرهای ایران است. از TON / USDT یا Stars استفاده کن.")
+    text = (_t("کارت به کارت فقط برای کاربرهای ایران است. از TON / USDT یا Stars استفاده کن.")
+            if not payments.card_allowed() else _t("کارت به کارت فعلا غیرفعال است. از روش دیگری شارژ کن."))
     if isinstance(call_or_msg, CallbackQuery):
         await call_or_msg.answer(text, show_alert=True)
     else:
@@ -138,7 +140,7 @@ async def _send_card(
 
 async def _start_charge(call: CallbackQuery, db: Database, state: FSMContext, amount: int) -> None:
     """مرحله اول: نمایش مبلغ اختصاصی برای تایید."""
-    if await _card_blocked(call):
+    if await _card_blocked(call, db):
         return
     user = await db.get_user_by_tg(call.from_user.id)
     if not user:
@@ -158,7 +160,7 @@ async def cb_amount_confirmed(call: CallbackQuery, db: Database, state: FSMConte
     مبلغ با آنچه در state رزرو شده تطبیق داده می شود تا کسی نتواند با
     دستکاری callback مبلغ دلخواه بسازد.
     """
-    if await _card_blocked(call):
+    if await _card_blocked(call, db):
         return
     try:
         exact = int(call.data.split(":")[2])
@@ -200,7 +202,7 @@ async def cb_charge_preset(call: CallbackQuery, db: Database, state: FSMContext)
 
 @router.callback_query(F.data == "wal:custom")
 async def cb_charge_custom(call: CallbackQuery, db: Database, state: FSMContext) -> None:
-    if await _card_blocked(call):
+    if await _card_blocked(call, db):
         return
     min_charge = int(await db.get_setting("min_charge", "50000"))
     await state.set_state(Wallet.waiting_amount)
@@ -224,7 +226,7 @@ async def txt_custom_amount(message: Message, db: Database, state: FSMContext) -
     پیام کاربر پاک می شود و همان پیامی که مبلغ را پرسیده بود ویرایش
     می شود، تا چت تمیز بماند و مبلغ تایپ شده باقی نماند.
     """
-    if await _card_blocked(message):
+    if await _card_blocked(message, db):
         return await state.clear()
     min_charge = int(await db.get_setting("min_charge", "50000"))
     raw = message.text.strip().replace(",", "").replace("،", "")
@@ -344,7 +346,7 @@ async def _crypto_home(message: Message, db: Database, user: dict, edit: bool = 
 
 @router.callback_query(F.data == "cw")
 async def cb_crypto(call: CallbackQuery, db: Database, state: FSMContext, user: dict) -> None:
-    if not crypto_svc.allowed_for(user["telegram_id"]):
+    if not crypto_svc.allowed_for(user["telegram_id"]) or not await payments.is_on(db, payments.CRYPTO):
         return await call.answer(_t("پرداخت کریپتو فعلا فعال نیست."), show_alert=True)
     await state.clear()
     await _crypto_home(call.message, db, user)
@@ -506,7 +508,7 @@ async def _stars_home(message: Message, db: Database, user: dict, edit: bool = T
 
 @router.callback_query(F.data == "sw")
 async def cb_stars(call: CallbackQuery, db: Database, state: FSMContext, user: dict) -> None:
-    if not await stars_svc.enabled(db):
+    if not await stars_svc.enabled(db) or not await payments.is_on(db, payments.STARS):
         return await call.answer(_t("پرداخت با Stars فعلا فعال نیست."), show_alert=True)
     await state.clear()
     await _stars_home(call.message, db, user)

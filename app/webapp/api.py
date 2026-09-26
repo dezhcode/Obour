@@ -707,7 +707,7 @@ async def _amount_expiry(db: "Database", amount: int) -> str | None:
 async def topup_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     """اطلاعات صفحه شارژ: حداقل، مبلغ های آماده، و درخواست باز قبلی."""
     user = await _require_user(db, wuser)
-    if not payments_svc.card_allowed():
+    if not await payments_svc.card_ok(db):
         return {"enabled": False, "card_blocked": True}
     card = await charge_svc.card(db)
     prev = await charge_svc.open_request(db, user)
@@ -743,8 +743,9 @@ def _charge_error(r: dict) -> None:
 
 async def topup_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, amount: int) -> dict:
     user = await _require_user(db, wuser)
-    if not payments_svc.card_allowed():
-        raise ApiError("کارت به کارت فقط برای کاربرهای ایران است", 403, "card_blocked")
+    if not await payments_svc.card_ok(db):
+        raise ApiError("کارت به کارت فقط برای کاربرهای ایران است" if not payments_svc.card_allowed()
+                       else "کارت به کارت فعلا غیرفعال است", 403, "card_blocked")
     r = await charge_svc.start(db, user, amount)
     if not r["ok"]:
         _charge_error(r)
@@ -767,7 +768,7 @@ async def topup_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser
 async def stars_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     await _require_user(db, wuser)
     rate = await stars_svc.rate(db)
-    return {"enabled": rate > 0, "rate": rate, "min": await charge_svc.min_charge(db),
+    return {"enabled": rate > 0 and await payments_svc.is_on(db, payments_svc.STARS), "rate": rate, "min": await charge_svc.min_charge(db),
             "presets": list(charge_svc.PRESETS), "max_stars": stars_svc.MAX_STARS}
 
 
@@ -809,7 +810,7 @@ async def crypto_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
     کردن ساخته می شود ولی فقط برای نمایش است.
     """
     user = await _require_user(db, wuser)
-    if not crypto_svc.allowed_for(wuser.id):
+    if not crypto_svc.allowed_for(wuser.id) or not await payments_svc.is_on(db, payments_svc.CRYPTO):
         return {"enabled": False}
     r = await crypto_svc.rates(db)
     prev = await db.open_crypto_invoice(user["id"])

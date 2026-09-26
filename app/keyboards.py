@@ -1126,8 +1126,9 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _btn(kb, "toggle", "بخش های ربات", callback_data="adm:feat")
     _btn(kb, "ai", "خدمات هوش مصنوعی", callback_data="adm:ai")
     _add(kb, "🎬 افکت پیام", callback_data="adm:fx")
+    _add(kb, "💳 روش های پرداخت", style=PRIMARY, callback_data="adm:pay")
     _add(kb, "🔙 داشبورد", callback_data="adm")
-    kb.adjust(2, 2, 2, 2, 2, 2, 2, 1)
+    kb.adjust(2, 2, 2, 2, 2, 2, 2, 1, 1)
     return kb.as_markup()
 
 
@@ -1821,13 +1822,59 @@ def admin_ai_kb(has_key: bool) -> InlineKeyboardMarkup:
     _add(kb, "🛡 حاشیه نوسان", callback_data="adm:ai:f:ai_buffer_percent")
     _add(kb, "⬇️ حداقل سود", callback_data="adm:ai:f:ai_min_profit")
     _add(kb, "🔢 رند کردن", callback_data="adm:ai:f:ai_round_to")
+    _add(kb, "💱 نرخ دونگ (VND)", callback_data="adm:ai:f:ai_vnd_rate")
     if has_key:
-        _add(kb, "🧮 پیش نمایش قیمت", style=SUCCESS, callback_data="adm:ai:preview")
+        _add(kb, "🗂 محصولات و موجودی", style=SUCCESS, callback_data="adm:ai:pl:0")
+        _add(kb, "🧮 پیش نمایش قیمت", callback_data="adm:ai:preview")
+        _add(kb, "🧪 خروجی خام API", callback_data="adm:ai:raw")
         _add(kb, "💼 موجودی من", callback_data="adm:ai:balance")
         _btn(kb, "bell", "موجود شد، خبردار کن", style=SUCCESS, callback_data="adm:ai:restock")
     _add(kb, "🔎 سفارش های مبهم", callback_data="adm:ai:unknown")
     _add(kb, "🔙 تنظیمات", callback_data="adm:set")
-    kb.adjust(1, 1, 1, 2, 2, 2, 2, 1, 2) if has_key else kb.adjust(1, 1, 1, 2, 2, 2, 1, 1)
+    kb.adjust(1, 2, 1, 2, 2, 2, 1, 2, 2, 1, 2) if has_key else kb.adjust(1, 2, 1, 2, 2, 2, 1, 2)
+    return kb.as_markup()
+
+
+AI_PAGE = 10
+
+
+def admin_ai_products_kb(items: list[dict], page: int) -> InlineKeyboardMarkup:
+    """روشن/خاموش کردن نمایش هر محصول؛ سبز یعنی به کاربر نشان داده می شود."""
+    kb = InlineKeyboardBuilder()
+    rows: list[int] = []
+    chunk = items[page * AI_PAGE:(page + 1) * AI_PAGE]
+    for x in chunk:
+        data = f"adm:ai:pv:{page}:{x['id']}"
+        if len(data.encode()) > 64:   # سقف callback_data تلگرام
+            continue
+        mark = "🟢" if x["visible"] else "🔴"
+        stock = "∞" if x["stock"] is None else x["stock"]
+        _add(kb, f"{mark} {x['name'][:34]} · {stock}", style=SUCCESS if x["visible"] else DANGER, callback_data=data)
+        rows.append(1)
+    nav = 0
+    if page > 0:
+        _add(kb, "◀️ قبلی", callback_data=f"adm:ai:pl:{page - 1}"); nav += 1
+    if (page + 1) * AI_PAGE < len(items):
+        _add(kb, "بعدی ▶️", callback_data=f"adm:ai:pl:{page + 1}"); nav += 1
+    if nav:
+        rows.append(nav)
+    _add(kb, "🟢 همه روشن", callback_data=f"adm:ai:pa:1:{page}")
+    _add(kb, "🔴 همه خاموش", callback_data=f"adm:ai:pa:0:{page}")
+    _add(kb, "🔄 تازه کردن", callback_data=f"adm:ai:pl:{page}")
+    _add(kb, "🔙 هوش مصنوعی", callback_data="adm:ai")
+    rows += [2, 2]
+    kb.adjust(*rows)
+    return kb.as_markup()
+
+
+def admin_pay_kb(items: list[dict]) -> InlineKeyboardMarkup:
+    """روشن/خاموش کردن روش های شارژ کیف پول."""
+    kb = InlineKeyboardBuilder()
+    for x in items:
+        _add(kb, f"{'🟢' if x['on'] else '🔴'} {x['title']}", style=SUCCESS if x["on"] else DANGER,
+             callback_data=f"adm:pay:{x['key']}")
+    _add(kb, "🔙 تنظیمات", callback_data="adm:set")
+    kb.adjust(1)
     return kb.as_markup()
 
 

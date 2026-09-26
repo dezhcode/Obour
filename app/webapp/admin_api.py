@@ -15,6 +15,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from app import features, i18n, texts
+from app.services import payments as payments_svc
 from app.services import admin_ops
 from app.services import crypto as crypto_svc
 from app.services import stars as stars_svc
@@ -222,6 +223,7 @@ async def settings(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> 
         "crypto": {"enabled": crypto_svc.enabled(), "testnet": crypto_svc.testnet(),
                    "address": crypto_svc.pay_address(), "usdt": bool(crypto_svc.usdt_master())},
         "stars": await stars_svc.enabled(db),
+        "pay": await payments_svc.switches(db),
     }
 
 
@@ -242,4 +244,59 @@ async def feature_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
     return {"ok": True, "on": features.is_on(key)}
 
 
-READ = {"admin": home, "admin/charges": charges, "admin/plans": plans, "admin/settings": settings}
+async def pay_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, key: str, on: bool) -> dict:
+    """روشن/خاموش کردن یک روش شارژ کیف پول."""
+    from app.services import payments
+
+    _require_admin(wuser)
+    if key not in payments.METHODS:
+        raise ApiError("این روش پیدا نشد", 404, "not_found")
+    await payments.set_on(db, key, bool(on))
+    log.info("ادمین %s روش پرداخت %s را %s کرد", wuser.id, key, "روشن" if on else "خاموش")
+    return {"ok": True, "on": await payments.is_on(db, key)}
+
+
+async def ai_products(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """محصولات canboso برای ادمین: نمایش، قیمت و سه عدد موجودی."""
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    _require_admin(wuser)
+    if not await ai_shop.api_key(db):
+        return {"configured": False, "items": [], "wallet": None}
+    try:
+        cat = await ai_shop.catalog(db, force=True, admin=True)
+    except CanbosoError as exc:
+        return {"configured": True, "error": str(exc), "items": [], "wallet": None}
+    bal = cat["balance"]
+    return {
+        "configured": True,
+        "wallet": ({"text": bal["text"] or f"{bal['balance']:g} {bal['currency']}", "amount": bal["balance"],
+                    "currency": bal["currency"]} if bal else None),
+        "items": [{k: x[k] for k in ("id", "name", "type", "visible", "priced", "available", "stock", "api_stock",
+                                     "wallet_stock", "currency", "cost", "price", "months")} for x in cat["items"]],
+    }
+
+
+async def ai_product_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, pid: str, on: bool, all_: bool = False) -> dict:
+    """نمایش یک محصول (یا همه) را روشن/خاموش می کند."""
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    _require_admin(wuser)
+    try:
+        cat = await ai_shop.catalog(db, admin=True)
+    except CanbosoError as exc:
+        raise ApiError(f"خواندن محصولات نشد: {exc}", 502, "provider") from exc
+    ids = [x["id"] for x in cat["items"]]
+    if all_:
+        await ai_shop.set_all_visible(db, ids if on else [])
+    else:
+        if pid not in ids:
+            raise ApiError("این محصول دیگر در canboso نیست", 404, "not_found")
+        await ai_shop.set_visible(db, pid, bool(on), ids)
+    return {"ok": True}
+
+
+READ = {"admin": home, "admin/charges": charges, "admin/plans": plans, "admin/settings": settings,
+        "admin/ai": ai_products}

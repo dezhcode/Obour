@@ -94,9 +94,61 @@ def currency_of(p: dict, wallet: str) -> str:
     return str((p.get("price") or {}).get("currency") or wallet or "USD").upper()
 
 
-async def catalog(db: "Database", force: bool = False) -> dict:
-    """محصولات با قیمت تومانی. {"currency", "items": [...]}.
+# ═══════════════════ نمایش و موجودی ═══════════════════
 
+VISIBLE_KEY = "ai_products_on"
+
+
+async def enabled_ids(db: "Database") -> set[str] | None:
+    """محصولاتی که ادمین روشن کرده. None یعنی هنوز انتخابی نشده: همه روشن.
+
+    وقتی ادمین اولین بار چیزی را خاموش کند، فهرست صریح می شود و از آن به
+    بعد محصول تازه سرویس دهنده تا ادمین روشنش نکند دیده نمی شود.
+    """
+    raw = await db.get_setting(VISIBLE_KEY, "")
+    if not raw:
+        return None
+    try:
+        return {str(x) for x in json.loads(raw)}
+    except (TypeError, ValueError):
+        return None
+
+
+async def set_visible(db: "Database", pid: str, on: bool, all_ids: list[str]) -> None:
+    ids = await enabled_ids(db)
+    ids = set(all_ids) if ids is None else ids
+    (ids.add if on else ids.discard)(str(pid))
+    await db.set_setting(VISIBLE_KEY, json.dumps(sorted(ids)))
+
+
+async def set_all_visible(db: "Database", ids: list[str]) -> None:
+    await db.set_setting(VISIBLE_KEY, json.dumps(sorted(str(x) for x in ids)))
+
+
+def wallet_units(bal: dict | None, cost: float, currency: str) -> int | None:
+    """با موجودی کیف پول ما نزد سرویس دهنده چند عدد از این هزینه خریدنی است.
+
+    None یعنی نمی دانیم (موجودی خوانده نشد یا ارزش فرق دارد)؛ آن وقت سقفی
+    نمی گذاریم و بررسی تازه قبل از خرید، جلوی خرید بی پول را می گیرد.
+    """
+    if bal is None or cost <= 0 or (bal.get("currency") and bal["currency"] != currency):
+        return None
+    return max(0, int(bal["balance"] // cost))
+
+
+def effective_stock(api_stock: int | None, wallet: int | None) -> int | None:
+    """موجودی نمایشی = کمترینِ موجودی خود سرویس دهنده و تعدادی که پولمان
+    می رسد. اگر API بگوید ۵ و پول ۱۰ تا برسد، ۵؛ اگر API ناموجود بگوید،
+    هر قدر هم پول باشد ناموجود؛ و برعکس."""
+    known = [x for x in (api_stock, wallet) if x is not None]
+    return min(known) if known else None
+
+
+async def catalog(db: "Database", force: bool = False, admin: bool = False) -> dict:
+    """محصولات با قیمت تومانی و موجودی واقعی. {"currency", "balance", "items"}.
+
+    admin=True محصولات خاموش و بی نرخ را هم برمی گرداند (با visible و
+    priced)، به همراه پاسخ خام هر محصول برای مقایسه.
     کلید، نرخ و... اگر تنظیم نباشد CanbosoError بالا می رود.
     """
     cfg = await pricing.load(db)
@@ -105,30 +157,54 @@ async def catalog(db: "Database", force: bool = False) -> dict:
         if not cb.configured:
             raise CanbosoError("کلید API تنظیم نشده")
         data = await cb.catalog(force=force)
+        bal = await cb.balance(force=force)
     finally:
         await cb.close()
+    ids = await enabled_ids(db)
     items = []
     for p in data["products"]:
+        pid = str(p["productId"])
+        visible = ids is None or pid in ids
         cur = currency_of(p, data["currency"])
-        if not pricing.is_configured(cfg, cur):
+        priced = pricing.is_configured(cfg, cur)
+        if not admin and (not visible or not priced):
             continue
         req = requirements(p)
-        first_months = req["months"][0] if req["months"] else None
-        items.append({
-            "id": str(p["productId"]),
+        api_stock = stock_of(p)
+        has_price = (p.get("price") or {}).get("amount") not in (None, "")
+        # ماه هایی که پول ما برایشان می رسد (برای کاربر فقط همین ها)
+        def fits(m: int) -> bool:
+            w = wallet_units(bal, cost_of(p, m), cur)
+            return w is None or w > 0
+        months = [m for m in req["months"] if fits(m)]
+        first = (months or req["months"] or [None])[0]
+        wallet = wallet_units(bal, cost_of(p, first), cur)
+        stock = effective_stock(api_stock, wallet)
+        if req["months"] and not months:
+            stock = 0
+        price_of = (lambda c: pricing.compute(c, cfg, cur).final) if priced else (lambda c: 0)
+        item = {
+            "id": pid,
             "name": str(p.get("name") or ""),
             "description": str(p.get("description") or ""),
             "type": str(p.get("productType") or "account"),
-            "stock": stock_of(p),
-            "available": available(p),
+            "stock": stock,
+            "api_stock": api_stock,
+            "wallet_stock": wallet,
+            "available": has_price and (stock is None or stock > 0),
+            "visible": visible,
+            "priced": priced,
             "currency": cur,
-            "cost": cost_of(p, first_months),
-            "price": pricing.compute(cost_of(p, first_months), cfg, cur).final,
-            "months": req["months"],
-            "month_prices": {m: pricing.compute(cost_of(p, m), cfg, cur).final for m in req["months"]},
+            "cost": cost_of(p, first),
+            "price": price_of(cost_of(p, first)),
+            "months": req["months"] if admin else months,
+            "month_prices": {m: price_of(cost_of(p, m)) for m in (req["months"] if admin else months)},
             "needs_email": req["email"],
-        })
-    return {"currency": data["currency"], "items": items}
+        }
+        if admin:
+            item["raw"] = p
+        items.append(item)
+    return {"currency": data["currency"], "balance": bal, "items": items}
 
 
 # ═══════════════════ خرید ═══════════════════
@@ -153,7 +229,8 @@ async def buy(
             log.warning("خواندن محصولات canboso نشد: %s", exc)
             return {"status": FAILED, "error": str(exc)}
         p = next((x for x in cat["products"] if str(x.get("productId")) == str(product_id)), None)
-        if p is None or not available(p):
+        ids = await enabled_ids(db)
+        if p is None or not available(p) or (ids is not None and str(product_id) not in ids):
             return {"status": UNAVAILABLE, "name": (p or {}).get("name") or ""}
         req = requirements(p)
         if req["months"] and months not in req["months"]:

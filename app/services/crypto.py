@@ -338,7 +338,9 @@ def _new_code() -> str:
 
 async def create_invoice(db: "Database", user: dict, toman: int, asset: str, source: str) -> dict:
     """{ok, invoice} یا {ok: False, error}."""
-    if not allowed_for(user.get("telegram_id")):
+    from app.services import payments
+
+    if not allowed_for(user.get("telegram_id")) or not await payments.is_on(db, payments.CRYPTO):
         return {"ok": False, "error": OFF}
     asset = (asset or "").upper()
     if asset not in ASSETS:

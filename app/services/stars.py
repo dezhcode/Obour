@@ -61,8 +61,10 @@ def payload_of(inv: dict) -> str:
 
 
 async def create(db: "Database", user: dict, toman: int, source: str) -> dict:
+    from app.services import payments
+
     r = await rate(db)
-    if not r:
+    if not r or not await payments.is_on(db, payments.STARS):
         return {"ok": False, "error": OFF}
     min_c = await charge_svc.min_charge(db)
     if toman < min_c:

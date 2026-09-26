@@ -258,7 +258,8 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                    "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
                    "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
-                   "/api/admin/plan", "/api/admin/setting", "/api/admin/feature")
+                   "/api/admin/plan", "/api/admin/setting", "/api/admin/feature",
+                   "/api/admin/pay", "/api/admin/ai/product")
     if method == "POST":
         if path not in WRITE_PATHS:
             return _json(
@@ -673,6 +674,13 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             if name == "admin/feature":
                 return _json(start_response, runtime.run(admin_api.feature_set(
                     db, panel, wuser, key=str(body.get("key") or ""), on=bool(body.get("on"))), timeout=20))
+            if name == "admin/pay":
+                return _json(start_response, runtime.run(admin_api.pay_set(
+                    db, panel, wuser, key=str(body.get("key") or ""), on=bool(body.get("on"))), timeout=20))
+            if name == "admin/ai/product":
+                return _json(start_response, runtime.run(admin_api.ai_product_set(
+                    db, panel, wuser, pid=str(body.get("id") or "")[:80], on=bool(body.get("on")),
+                    all_=bool(body.get("all"))), timeout=40))
             return _json(start_response, {"error": "not found", "code": "not_found"}, "404 Not Found")
 
         # ---------- Telegram Stars ----------

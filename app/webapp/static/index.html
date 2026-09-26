@@ -2895,6 +2895,33 @@ Object.entries({
   'محصول خوانده نشد':'Couldn’t load the product', 'سفارش خوانده نشد':'Couldn’t load the order',
   'اطلاعات تحویل همیشه اینجا می‌ماند':'Delivery details always stay here', 'نمایش رمز':'Show password', 'کپی همه':'Copy all',
   'پرداخت و دریافت':'Pay and receive', 'فعال‌سازی روی ایمیل خودت':'Activated on your own email',
+  "محصولات هوش مصنوعی":"AI products",
+  "نمایش محصولات و موجودی کیف پول canboso":"Product visibility and canboso wallet stock",
+  "کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها":"Card, rates, payment methods and sections",
+  "ارسال همگانی، نظرسنجی، دسته‌ها، ایموجی‌ها و نرخ و سود هوش مصنوعی از پنل ربات (/admin) انجام می‌شود.":"Broadcasts, polls, categories, emojis and AI rates and margins are managed in the bot panel (/admin).",
+  "روش‌های پرداخت":"Payment methods",
+  "کاربر می‌تواند با این روش شارژ کند":"Users can top up with this method",
+  "خاموش؛ به کاربر نشان داده نمی‌شود":"Off; hidden from users",
+  "کریپتو (TON Connect)":"Crypto (TON Connect)",
+  "کارت به کارت همیشه فقط برای کاربرهای فارسی‌زبان است. خاموش کردن، فقط پرداخت تازه را می‌بندد؛ پرداختی که انجام شده همچنان به کیف پول می‌رسد.":"Card to card is only ever offered to Persian-language users. Turning a method off only blocks new payments; payments already made still reach the wallet.",
+  "کیف پول:":"Wallet:",
+  "نمایش:":"Shown:",
+  "ماه:":"Months:",
+  "نمایش داده می‌شود":"Now shown",
+  "پنهان شد":"Hidden",
+  "همه روشن":"All on",
+  "همه خاموش":"All off",
+  "همه روشن شد":"All on",
+  "همه خاموش شد":"All off",
+  "همه محصولات نمایش داده شوند؟":"Show all products?",
+  "همه محصولات پنهان شوند؟":"Hide all products?",
+  "کلید API تنظیم نشده":"API key not set",
+  "CANBOSO_API_KEY را در فایل .env بگذار.":"Put CANBOSO_API_KEY in the .env file.",
+  "خواندن از canboso نشد":"Couldn’t read from canboso",
+  "کیف پول شما نزد canboso":"Your canboso wallet",
+  "موجودی که کاربر می‌بیند کمترینِ موجودی API و تعدادی است که با همین کیف پول خریدنی است؛ اگر هر کدام صفر باشد، «ناموجود».":"Users see the lower of the API stock and how many this wallet can buy; if either is zero, it shows “Out of stock”.",
+  "محصولی نیامد":"No products returned",
+  "محصول تازه canboso تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.":"New canboso products stay hidden until you turn them on (unless you haven’t turned any product off yet). Prices use the rates and margins from the bot panel.",
 }).forEach(([k, v]) => { L10N.en[I18N.norm(k)] = v; });
 
 /* ═════════ پنل مدیریت (فقط ادمین) ═════════
@@ -2941,8 +2968,9 @@ SubPages.admin = async function(p){
               subColor: d.pending ? 'var(--help-i)' : '', fn:"App.go('adm_charges')" })
         + Row({ kind:'net', icon:'user', title:'کاربران', sub:'جستجو، موجودی و مسدودی', fn:"App.go('adm_users')" })
         + Row({ kind:'ai', icon:'list', title:'پلن‌ها', sub:'قیمت، حجم، مدت و روشن/خاموش', fn:"App.go('adm_plans')" })
-        + Row({ kind:'help', icon:'bolt', title:'تنظیمات', sub:'کارت، نرخ‌ها و بخش‌های ربات', fn:"App.go('adm_settings')" }))}
-      <div class="adm-note">ارسال همگانی، نظرسنجی، دسته‌ها، ایموجی‌ها و هوش مصنوعی از پنل ربات (/admin) انجام می‌شود.</div>`;
+        + Row({ kind:'ai', icon:'spark', title:'محصولات هوش مصنوعی', sub:'نمایش محصولات و موجودی کیف پول canboso', fn:"App.go('adm_ai')" })
+        + Row({ kind:'help', icon:'bolt', title:'تنظیمات', sub:'کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها', fn:"App.go('adm_settings')" }))}
+      <div class="adm-note">ارسال همگانی، نظرسنجی، دسته‌ها، ایموجی‌ها و نرخ و سود هوش مصنوعی از پنل ربات (/admin) انجام می‌شود.</div>`;
   } catch (err) { p.innerHTML = Top('پنل مدیریت') + emptyBox('خوانده نشد', err.message); }
 };
 
@@ -3138,6 +3166,10 @@ SubPages.adm_settings = async function(p){
           ${hint ? `<small>${hint}</small>` : ''}</div>`).join('')}</div>`).join('')
       + Sec('کریپتو (از فایل .env)') + KV([['وضعیت', d.crypto.enabled ? Badge('ok', d.crypto.testnet ? 'روشن · testnet' : 'روشن') : Badge('bad', 'خاموش')],
           ['USDT', d.crypto.usdt ? Badge('ok', 'روشن') : Badge('', 'خاموش')]].concat(d.crypto.address ? [['آدرس', `<span class="n" style="font-size:11px;word-break:break-all">${esc(d.crypto.address)}</span>`]] : []))
+      + Sec('روش‌های پرداخت') + Group(d.pay.map(m => `<div class="row"><span class="row-m"><span class="row-t">${esc(m.title)}</span>
+          <span class="row-s">${m.on ? 'کاربر می‌تواند با این روش شارژ کند' : 'خاموش؛ به کاربر نشان داده نمی‌شود'}</span></span>
+          <span class="row-e">${Admin.sw(m.on, `AdminSettings.pay('${m.key}', ${!m.on})`)}</span></div>`).join(''))
+      + `<div class="adm-note">کارت به کارت همیشه فقط برای کاربرهای فارسی‌زبان است. خاموش کردن، فقط پرداخت تازه را می‌بندد؛ پرداختی که انجام شده همچنان به کیف پول می‌رسد.</div>`
       + Sec('بخش‌های ربات') + Group(d.features.map(f => `<div class="row"><span class="row-m"><span class="row-t">${esc(f.title)}</span><span class="row-s">${esc(f.desc)}</span></span>
           <span class="row-e">${Admin.sw(f.on, `AdminSettings.feature('${f.key}', ${!f.on})`)}</span></div>`).join(''));
   } catch (err) { p.innerHTML = Top('تنظیمات') + emptyBox('خوانده نشد', err.message); }
@@ -3151,7 +3183,51 @@ const AdminSettings = {
     const r = await Admin.act('admin/feature', { key:k, on }, on ? 'روشن شد' : 'خاموش شد');
     if (r) { SubPages.adm_settings($('sub').querySelector('.page')); Admin.refreshBoot(); }
   },
+  async pay(k, on){
+    const r = await Admin.act('admin/pay', { key:k, on }, on ? 'روشن شد' : 'خاموش شد');
+    if (r) { SubPages.adm_settings($('sub').querySelector('.page')); Admin.refreshBoot(); }
+  },
 };
+
+/* ---------- محصولات هوش مصنوعی ----------
+   موجودی نمایشی = کمترینِ موجودی خود canboso و تعدادی که کیف پول ما
+   می خرد؛ هر سه عدد اینجا کنار هم دیده می شوند. */
+const AdminAi = {
+  st(v){ return v == null ? '∞' : fa(v); },
+  row(x){
+    const sub = `<span>API:</span> ${N(this.st(x.api_stock))} · <span>کیف پول:</span> ${N(this.st(x.wallet_stock))} → `
+      + (x.available ? `<span>نمایش:</span> ${N(this.st(x.stock))}` : '<span style="color:var(--bad)">ناموجود</span>');
+    const price = x.priced ? `${N(fa(x.price))} <span>تومان</span>` : `<span style="color:var(--warn)">نرخ ${esc(x.currency)} تنظیم نشده</span>`;
+    return `<div class="row">${AiMono(x.name, 'sm')}<span class="row-m"><span class="row-t ai-lat">${esc(x.name)}</span>
+        <span class="row-s" style="white-space:normal">${sub}</span><span class="row-s">${N(String(x.cost))} ${esc(x.currency)} → ${price}${x.months.length ? ` · <span>ماه:</span> ${N(x.months.join(','))}` : ''}</span></span>
+      <span class="row-e">${Admin.sw(x.visible, `AdminAi.set(${esc(JSON.stringify(x.id))}, ${!x.visible})`)}</span></div>`;
+  },
+  async set(id, on){ const r = await Admin.act('admin/ai/product', { id, on }, on ? 'نمایش داده می‌شود' : 'پنهان شد'); if (r) this.reload(); },
+  async all(on){ if (!await Admin.ask(I18N.t(on ? 'همه محصولات نمایش داده شوند؟' : 'همه محصولات پنهان شوند؟'))) return;
+    const r = await Admin.act('admin/ai/product', { all:true, on }, on ? 'همه روشن شد' : 'همه خاموش شد'); if (r) this.reload(); },
+  reload(){ const p = $('sub').querySelector('.page'); if (p) SubPages.adm_ai(p); },
+};
+SubPages.adm_ai = async function(p){
+  p.innerHTML = Top('محصولات هوش مصنوعی') + skel(1, 120) + skel(4, 70);
+  try {
+    const d = await api('admin/ai');
+    if (!d.configured) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('کلید API تنظیم نشده', 'CANBOSO_API_KEY را در فایل .env بگذار.'));
+    if (d.error) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خواندن از canboso نشد', d.error));
+    const on = d.items.filter(x => x.visible).length;
+    p.innerHTML = Top('محصولات هوش مصنوعی', `${fa(on)} / ${fa(d.items.length)}`) + `
+      <div class="ai-hero">${TUNNEL}
+        <div class="lbl" style="color:#DAD4FF">کیف پول شما نزد canboso</div>
+        <div class="ai-hero-t n" style="font-size:28px;margin-top:4px">${esc(d.wallet ? d.wallet.text : '—')}</div>
+        <div class="ai-hero-s">موجودی که کاربر می‌بیند کمترینِ موجودی API و تعدادی است که با همین کیف پول خریدنی است؛ اگر هر کدام صفر باشد، «ناموجود».</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px var(--pad) 0">
+        <button class="btn btn-s" onclick="AdminAi.all(true)">${ic('check',2)}همه روشن</button>
+        <button class="btn btn-s" onclick="AdminAi.all(false)">همه خاموش</button></div>
+      ${Sec('محصولات')}${d.items.length ? Group(d.items.map(x => AdminAi.row(x)).join('')) : emptyBox('محصولی نیامد')}
+      <div class="adm-note">محصول تازه canboso تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.</div>`;
+  } catch (err) { p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.adm_ai.noNav = true;
 ['admin', 'adm_charges', 'adm_users', 'adm_user', 'adm_plans', 'adm_settings'].forEach(k => SubPages[k].noNav = true);
 /* روش های پرداخت و بخش ها در bootstrap هستند؛ بعد از تغییر تازه می شوند */
 Admin.refreshBoot = async function(){ try { App.boot = await api('bootstrap'); } catch(e){} };

@@ -1323,9 +1323,10 @@ async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
     from app.services import ai_shop
 
     try:
-        cat = await ai_shop.catalog(db, force=True)
+        cat = await ai_shop.catalog(db, force=True, admin=True)
     except CanbosoError as exc:
         return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
+    cat["items"] = [x for x in cat["items"] if x["priced"]]
     if not cat["items"]:
         return await call.answer("محصولی نیامد؛ نرخ ارز کیف پول (دلار یا دونگ) را تنظیم کرده ای؟", show_alert=True)
     cfg = await pricing.load(db)
@@ -1333,7 +1334,7 @@ async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
     for x in cat["items"][:25]:
         b = pricing.compute(x["cost"], cfg, x["currency"])
         stock = "∞" if x["stock"] is None else x["stock"]
-        rows.append(f"• <b>{esc(x['name'])}</b> ({stock})\n   {x['cost']:g} {x['currency']} → {b.final:,} تومان"
+        rows.append(f"{'•' if x['visible'] else '🔴'} <b>{esc(x['name'])}</b> ({stock})\n   {x['cost']:g} {x['currency']} → {b.final:,} تومان"
                     + (f" · سود {b.net_profit:,}" if b.net_profit else ""))
     first = pricing.compute(cat["items"][0]["cost"], cfg, cat["items"][0]["currency"])
     await call.message.answer("🧮 <b>قیمت محصولات برای کاربر</b>\n\n" + "\n".join(rows) + "\n\n" + pricing.explain(first))
@@ -1430,6 +1431,170 @@ async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
     }.get(r["status"], r["status"])
     await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
     await cb_ai_unknown(call, db)
+
+
+# ---------- محصولات هوش مصنوعی: نمایش و موجودی ----------
+def _stock_txt(v) -> str:  # noqa: ANN001
+    return "∞" if v is None else str(v)
+
+
+async def _ai_products(message: Message, db: Database, page: int) -> None:
+    """همه محصولات canboso با روشن/خاموش نمایش و سه عدد موجودی:
+    موجودی API، تعدادی که پول کیف پول ما می رسد، و کمترینِ این دو که به
+    کاربر نشان داده می شود."""
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    try:
+        cat = await ai_shop.catalog(db, force=True, admin=True)
+    except CanbosoError as exc:
+        return await edit_or_send(message, f"❌ خواندن محصولات نشد: {esc(str(exc))}", keyboards.admin_ai_kb(True))
+    items = cat["items"]
+    bal = cat["balance"]
+    wallet = (bal["text"] or f"{bal['balance']:g} {bal['currency']}") if bal else "خوانده نشد"
+    page = max(0, min(page, (len(items) - 1) // keyboards.AI_PAGE if items else 0))
+    rows = []
+    for x in items[page * keyboards.AI_PAGE:(page + 1) * keyboards.AI_PAGE]:
+        mark = "🟢" if x["visible"] else "🔴"
+        state = "ناموجود" if not x["available"] else f"نمایش: {_stock_txt(x['stock'])}"
+        price = f"{x['price']:,} تومان" if x["priced"] else f"⚠️ نرخ {x['currency']} تنظیم نشده"
+        months = f" · ماه ها: {', '.join(map(str, x['months']))}" if x["months"] else ""
+        rows.append(
+            f"{mark} <b>{esc(x['name'])}</b>\n"
+            f"   <code>{esc(x['id'])}</code> · {esc(x['type'])}{months}\n"
+            f"   {x['cost']:g} {x['currency']} → {price}\n"
+            f"   موجودی API: {_stock_txt(x['api_stock'])} · با کیف پول: {_stock_txt(x['wallet_stock'])} → {state}"
+        )
+    on = sum(1 for x in items if x["visible"])
+    body = (
+        "╮── 🗂 محصولات canboso\n"
+        f"│   {on} از {len(items)} محصول روشن\n\n"
+        f"💼 کیف پول شما نزد canboso: <b>{esc(wallet)}</b>\n\n"
+        + ("\n\n".join(rows) or "محصولی نیامد.")
+        + "\n\n<blockquote>موجودی که کاربر می بیند کمترینِ «موجودی API» و «تعدادی که با کیف پول شما خریدنی است» است. "
+          "🟢 یعنی در ربات و مینی اپ نمایش داده می شود؛ برای عوض کردن روی محصول بزن. "
+          "محصول تازه سرویس دهنده تا روشنش نکنی نمایش داده نمی شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی).</blockquote>"
+    )
+    await edit_or_send(message, body, keyboards.admin_ai_products_kb(items, page))
+
+
+@router.callback_query(F.data.startswith("adm:ai:pl:"))
+async def cb_ai_products(call: CallbackQuery, db: Database) -> None:
+    await call.answer("در حال خواندن از canboso…")
+    await _ai_products(call.message, db, int(call.data.split(":")[3] or 0))
+
+
+@router.callback_query(F.data.startswith("adm:ai:pv:"))
+async def cb_ai_product_toggle(call: CallbackQuery, db: Database) -> None:
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    _, _, _, page, pid = call.data.split(":", 4)
+    try:
+        cat = await ai_shop.catalog(db, admin=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
+    item = next((x for x in cat["items"] if x["id"] == pid), None)
+    if not item:
+        return await call.answer("این محصول دیگر در canboso نیست.", show_alert=True)
+    await ai_shop.set_visible(db, pid, not item["visible"], [x["id"] for x in cat["items"]])
+    await call.answer("روشن شد ✅" if not item["visible"] else "خاموش شد")
+    await _ai_products(call.message, db, int(page or 0))
+
+
+@router.callback_query(F.data.startswith("adm:ai:pa:"))
+async def cb_ai_products_all(call: CallbackQuery, db: Database) -> None:
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    _, _, _, on, page = call.data.split(":")
+    try:
+        cat = await ai_shop.catalog(db, admin=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
+    await ai_shop.set_all_visible(db, [x["id"] for x in cat["items"]] if on == "1" else [])
+    await call.answer("همه روشن شد ✅" if on == "1" else "همه خاموش شد")
+    await _ai_products(call.message, db, int(page or 0))
+
+
+@router.callback_query(F.data == "adm:ai:raw")
+async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
+    """پاسخ خام canboso و برداشت ربات از آن، کنار هم، در یک فایل JSON.
+
+    برای مقایسه درخواست ها و دریافتی ها با آنچه ربات نشان می دهد. کلید API
+    در فایل نیست (فقط در query string درخواست می رود).
+    """
+    import json as _json
+
+    from aiogram.types import BufferedInputFile
+
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    await call.answer("در حال گرفتن خروجی…")
+    cb = await ai_shop.client(db)
+    try:
+        raw = await cb.debug()
+    finally:
+        await cb.close()
+    try:
+        parsed = await ai_shop.catalog(db, force=True, admin=True)
+        for x in parsed["items"]:
+            x.pop("raw", None)
+    except CanbosoError as exc:
+        parsed = {"error": str(exc)}
+    key = await ai_shop.api_key(db)
+    doc = {
+        "requests": {
+            "products": "GET https://canboso.com/api/v2/telegram-buyer/products?key=***",
+            "balance": "GET https://canboso.com/api/v2/telegram-buyer/balance?key=***",
+        },
+        "responses": raw,
+        "bot_view": parsed,
+    }
+    data = _json.dumps(doc, ensure_ascii=False, indent=2, default=str)
+    if key:
+        data = data.replace(key, "***")
+    prod = raw.get("/products", {})
+    bal = raw.get("/balance", {})
+    n = len(((prod.get("body") or {}) if isinstance(prod.get("body"), dict) else {}).get("products") or [])
+    await call.message.answer_document(
+        BufferedInputFile(data.encode("utf-8"), filename="canboso_check.json"),
+        caption=(f"🧪 خروجی خام canboso\n"
+                 f"/products → HTTP {prod.get('status')} · {prod.get('ms', '-')}ms · {n} محصول\n"
+                 f"/balance → HTTP {bal.get('status')} · {bal.get('ms', '-')}ms\n"
+                 "responses = پاسخ خام · bot_view = برداشت ربات (قیمت تومانی و موجودی)"),
+    )
+
+
+# ---------- روش های پرداخت ----------
+@router.callback_query(F.data == "adm:pay")
+async def cb_pay_methods(call: CallbackQuery, db: Database) -> None:
+    from app.services import payments
+
+    await edit_or_send(
+        call.message,
+        "╮── 💳 روش های پرداخت\n│   شارژ کیف پول\n\n"
+        "🟢 روشن · 🔴 خاموش؛ با یک کلیک عوض می شود.\n\n"
+        "<blockquote>کارت به کارت همیشه فقط برای کاربرهای فارسی زبان است. خاموش کردن هر روش فقط "
+        "شروع پرداخت تازه را می بندد؛ پرداخت کریپتو یا Stars که قبلا انجام شده، همچنان به کیف پول می رسد.</blockquote>",
+        keyboards.admin_pay_kb(await payments.switches(db)),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("adm:pay:"))
+async def cb_pay_toggle(call: CallbackQuery, db: Database) -> None:
+    from app.services import payments
+
+    key = call.data.split(":")[2]
+    if key not in payments.METHODS:
+        return await call.answer("پیدا نشد.", show_alert=True)
+    on = not await payments.is_on(db, key)
+    await payments.set_on(db, key, on)
+    log.info("ادمین %s روش پرداخت %s را %s کرد", call.from_user.id, key, "روشن" if on else "خاموش")
+    await call.answer(f"{payments.TITLES[key]} {'روشن' if on else 'خاموش'} شد")
+    await edit_or_send(call.message, call.message.html_text, keyboards.admin_pay_kb(await payments.switches(db)))
 
 
 # ---------- بخش های ربات ----------
