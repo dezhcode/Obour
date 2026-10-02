@@ -541,10 +541,10 @@ PHRASES = {
 
 # ---------- 加密货币充值（TON 网络上的 TON / USDT） ----------
 TEXTS.update({
-    "CRYPTO_WALLET": "╭── 💎 加密货币充值\n│   TON 网络上的 TON · USDT\n\n💳 当前余额\n{balance} 托曼\n\n选择充值金额（托曼），或直接发送数字。\n╰─ 最低充值 {min_charge} 托曼",
-    "CRYPTO_PICK": "╭── 💎 充值 {amount} 托曼\n│   选择币种\n\n{lines}\n\n你要用哪种币支付？\n╰─ 账单到期前金额保持不变",
+    "CRYPTO_WALLET": "╭── 🔷 加密货币充值\n│   TON 网络上的 TON · USDT\n\n💳 当前余额\n{balance} 托曼\n\n选择充值金额（托曼），或直接发送数字。\n╰─ 最低充值 {min_charge} 托曼",
+    "CRYPTO_PICK": "╭── 🔷 充值 {amount} 托曼\n│   选择币种\n\n{lines}\n\n你要用哪种币支付？\n╰─ 账单到期前金额保持不变",
     "CRYPTO_INVOICE": (
-        "╭── 💎 账单 {code}\n│   充值 {toman} 托曼\n\n"
+        "╭── 🔷 账单 {code}\n│   充值 {toman} 托曼\n\n"
         "💰 准确金额\n<code>{crypto}</code> {asset}\n\n"
         "📬 钱包地址（TON 网络）\n<code>{address}</code>\n\n"
         "📝 备注（Comment / Memo）\n<code>{code}</code>\n"

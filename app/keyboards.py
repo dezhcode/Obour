@@ -554,7 +554,7 @@ def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000), crypto
     rows = [3, 2]
     other = []
     if crypto:
-        _add(kb, "💎 پرداخت با TON / USDT", callback_data="cw")
+        _add(kb, "🔷 پرداخت با TON / USDT", callback_data="cw")
         other.append(1)
     if stars:
         _add(kb, "⭐ شارژ با Stars", callback_data="sw")
@@ -571,7 +571,7 @@ def wallet_methods(crypto: bool, stars: bool) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     rows = []
     if crypto:
-        _add(kb, "💎 پرداخت با TON / USDT", style=PRIMARY, callback_data="cw")
+        _add(kb, "🔷 پرداخت با TON / USDT", style=PRIMARY, callback_data="cw")
         rows.append(1)
     if stars:
         _add(kb, "⭐ شارژ با Stars", style=PRIMARY, callback_data="sw")
@@ -616,19 +616,20 @@ def crypto_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000)) -> Inl
 def crypto_assets(amount: int, quotes: dict) -> InlineKeyboardMarkup:
     """یک دکمه برای هر ارزی که نرخ دارد، با مبلغش روی خود دکمه."""
     kb = InlineKeyboardBuilder()
-    icons = {"TON": "💎", "USDT": "💵"}
+    keys = {"TON": "coin_ton", "USDT": "coin_usdt"}
     for asset, q in quotes.items():
-        _add(kb, f"{icons.get(asset, '•')} {q['amount']} {asset}", style=PRIMARY,
+        _btn(kb, keys.get(asset, "coin_ton"), f"{q['amount']} {asset}", style=PRIMARY,
              callback_data=f"cw:p:{amount}:{asset}")
     _add(kb, "🔙 برگشت", callback_data="cw")
-    kb.adjust(*([1] * (len(quotes) + 1)))
+    # تون و تتر کنار هم، برگشت زیرشان
+    kb.adjust(len(quotes) or 1, 1)
     return kb.as_markup()
 
 
 def crypto_invoice_kb(inv: dict, link: str, address: str, amount: str, webapp_url: str = "") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     rows = []
-    _add(kb, "💎 پرداخت با Tonkeeper", style=SUCCESS, url=link)
+    _add(kb, "🔷 پرداخت با Tonkeeper", style=SUCCESS, url=link)
     rows.append(1)
     if webapp_url:
         from aiogram.types import WebAppInfo
@@ -1145,7 +1146,7 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _add(kb, "🔢 حداقل شارژ", callback_data="adm:set:min_charge")
     _add(kb, "⭐ نرخ ستاره", callback_data="adm:set:stars_rate")
     _add(kb, "💵 نرخ تتر", callback_data="adm:set:crypto_usdt_rate")
-    _add(kb, "💎 نرخ TON", callback_data="adm:set:crypto_ton_rate")
+    _add(kb, "🔷 نرخ TON", callback_data="adm:set:crypto_ton_rate")
     _add(kb, "➗ کارمزد کریپتو", callback_data="adm:set:crypto_fee_percent")
     _add(kb, "📈 نرخ بازار (tgju)", callback_data="adm:mkt")
     _add(kb, "🌐 گروه های پنل", callback_data="adm:groups")
