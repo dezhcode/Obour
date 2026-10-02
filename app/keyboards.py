@@ -586,8 +586,11 @@ def stars_amounts(rate: int, presets: tuple[int, ...] = (50_000, 100_000, 200_00
     import math
 
     kb = InlineKeyboardBuilder()
-    for amount in presets:
-        kb.button(text=f"{amount:,} · ⭐{max(1, math.ceil(amount / rate)):,}", callback_data=f"sw:a:{amount}")
+    # هر دکمه مبلغ کلید ایموجی خودش را دارد (stars_1..3) تا ادمین برای
+    # هرکدام یک ایموجی پریمیوم جدا بگذارد؛ مبلغ های بیشتر از سه تا، کلید آخر را می گیرند.
+    for i, amount in enumerate(presets):
+        key = f"stars_{min(i + 1, 3)}"
+        _btn(kb, key, f"{amount:,} · ⭐{max(1, math.ceil(amount / rate)):,}", callback_data=f"sw:a:{amount}")
     _add(kb, "✍️ مبلغ دلخواه", style=PRIMARY, callback_data="sw:custom")
     _add(kb, "🔙 برگشت", callback_data="wal")
     kb.adjust(1, 1, 1, 1, 1)
