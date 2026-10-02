@@ -660,6 +660,41 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             if name == "admin/user":
                 return _json(start_response, runtime.run(admin_api.user_detail(
                     db, panel, wuser, telegram_id=int(query.get("id") or 0)), timeout=20))
+            def _qi(k: str) -> int:
+                try:
+                    return max(0, int(query.get(k) or 0))
+                except (TypeError, ValueError):
+                    return 0
+
+            def _qs(k: str, allowed: tuple[str, ...], default: str) -> str:
+                v = str(query.get(k) or "")
+                return v if v in allowed else default
+
+            if name == "admin/users_all":
+                return _json(start_response, runtime.run(admin_api.users_all(
+                    db, panel, wuser, q=str(query.get("q") or "")[:64], page=_qi("page"),
+                    flt=_qs("f", ("all", "active", "nosvc", "blocked"), "all"),
+                    sort=_qs("sort", ("recent", "balance", "spent", "services"), "recent")), timeout=20))
+            if name == "admin/user_full":
+                return _json(start_response, runtime.run(admin_api.user_full(
+                    db, panel, wuser, telegram_id=_qi("id")), timeout=20))
+            if name == "admin/services":
+                return _json(start_response, runtime.run(admin_api.services_list(
+                    db, panel, wuser, q=str(query.get("q") or "")[:64], page=_qi("page"),
+                    flt=_qs("f", ("active", "expiring", "expired", "all"), "active")), timeout=20))
+            if name == "admin/service":
+                return _json(start_response, runtime.run(admin_api.service_full(
+                    db, panel, wuser, service_id=_qi("id")), timeout=30))
+            if name == "admin/ai_orders":
+                return _json(start_response, runtime.run(admin_api.ai_orders_list(
+                    db, panel, wuser, page=_qi("page"),
+                    status=_qs("s", ("", "open", "delivered", "failed", "processing", "unknown", "pending"), "")), timeout=20))
+            if name == "admin/ai_order":
+                return _json(start_response, runtime.run(admin_api.ai_order_full(
+                    db, panel, wuser, order_id=_qi("id")), timeout=20))
+            if name == "admin/purchases":
+                return _json(start_response, runtime.run(admin_api.purchases(
+                    db, panel, wuser, page=_qi("page"), kind=_qs("k", ("all", "service", "ai"), "all")), timeout=20))
             if name == "admin/receipt":
                 data, ctype = runtime.run(admin_api.receipt(
                     db, panel, wuser, txn_id=int(query.get("id") or 0), bot=runtime.bot), timeout=40)

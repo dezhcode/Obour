@@ -19,7 +19,7 @@ from app.services import payments as payments_svc
 from app.services import admin_ops
 from app.services import crypto as crypto_svc
 from app.services import stars as stars_svc
-from app.utils import is_expired, now_str
+from app.utils import days_left, is_expired, now_str, service_status
 from app.webapp.api import ApiError
 from app.webapp.auth import WebAppUser
 
@@ -368,5 +368,155 @@ async def ai_product_set(db: "Database", panel: "Panel | None", wuser: WebAppUse
     return {"ok": True}
 
 
+# ═══════════════════ مانیتورینگ ═══════════════════
+# فهرست کامل کاربران، سرویس ها با جزئیات، سفارش های هوش مصنوعی و خریدها.
+# همه فقط خواندنی اند؛ کارهای روی کاربر همان های بالا هستند.
+
+PER_PAGE = 30
+
+
+def _who(r: dict) -> dict:
+    return {"telegram_id": r.get("telegram_id"), "name": r.get("first_name") or "-", "username": r.get("username") or ""}
+
+
+def _svc_row(s: dict) -> dict:
+    """سرویس برای فهرست؛ مصرف از آخرین عکس روزانه (بدون تماس با پنل)."""
+    limit = s.get("snap_limit")
+    if limit is None and s.get("data_gb"):
+        limit = int(s["data_gb"]) * 1024**3
+    used = int(s.get("snap_used") or 0)
+    exp = s.get("expire_at")
+    return {
+        "id": s["id"], "title": s.get("label") or s.get("panel_username") or f"#{s['id']}",
+        "panel_username": s.get("panel_username") or "", "plan": s.get("plan_title") or "",
+        "used": used, "limit": limit, "expire_at": exp, "created_at": s.get("created_at"),
+        "days_left": max(0, days_left(exp)) if exp else 0, "expired": is_expired(exp),
+        "status": service_status(exp, used, limit, s.get("duration_days")),
+        "user": _who(s),
+    }
+
+
+async def monitor(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    _require_admin(wuser)
+    st = await db.admin_monitor_stats()
+    return {k: int(v or 0) for k, v in st.items()}
+
+
+async def users_all(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+                    q: str = "", page: int = 0, flt: str = "all", sort: str = "recent") -> dict:
+    _require_admin(wuser)
+    rows, total = await db.admin_users(page=max(0, page), per_page=PER_PAGE, flt=flt, sort=sort, q=q.strip())
+    return {
+        "items": [_user_card(u, {"services": int(u.get("svc") or 0), "services_on": int(u.get("svc_on") or 0),
+                                 "ai": int(u.get("ai_n") or 0), "spent": int(u.get("spent") or 0)}) for u in rows],
+        "total": total, "page": page, "more": (page + 1) * PER_PAGE < total,
+    }
+
+
+async def user_full(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, telegram_id: int) -> dict:
+    """کاربر با همه سرویس ها، سفارش های هوش مصنوعی و تراکنش های اخیر."""
+    from app.webapp.api import _ai_order_out
+
+    _require_admin(wuser)
+    u = await db.get_user_by_tg(telegram_id)
+    if not u:
+        raise ApiError("کاربر پیدا نشد", 404, "not_found")
+    summary = await db.user_summary(u["id"])
+    svcs, _ = await db.admin_services(per_page=50, flt="all", user_id=u["id"])
+    ai, _ = await db.admin_ai_orders(per_page=20, user_id=u["id"])
+    txns = await db.user_transactions(u["id"], limit=20)
+    return _user_card(u, {
+        **{k: int(v or 0) for k, v in summary.items()},
+        "services_list": [_svc_row(s) for s in svcs],
+        "ai_orders": [_ai_order_out(o) for o in ai],
+        "transactions": [{"id": t["id"], "type": t["type"], "amount": int(t["amount"]), "status": t["status"],
+                          "code": t.get("code") or "", "created_at": t["created_at"]} for t in txns],
+    })
+
+
+async def services_list(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+                        q: str = "", page: int = 0, flt: str = "active") -> dict:
+    _require_admin(wuser)
+    rows, total = await db.admin_services(page=max(0, page), per_page=PER_PAGE, flt=flt, q=q.strip())
+    return {"items": [_svc_row(s) for s in rows], "total": total, "page": page,
+            "more": (page + 1) * PER_PAGE < total}
+
+
+async def service_full(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, service_id: int) -> dict:
+    """جزئیات کامل سرویس با آمار زنده پنل (اگر در دسترس باشد)."""
+    _require_admin(wuser)
+    s = await db.fetchone(
+        """SELECT s.*, u.telegram_id, u.first_name, u.username, p.title AS plan_title, p.price AS plan_price
+           FROM services s JOIN users u ON u.id = s.user_id LEFT JOIN plans p ON p.id = s.plan_id
+           WHERE s.id = ?""", (service_id,))
+    if not s:
+        raise ApiError("سرویس پیدا نشد", 404, "not_found")
+    s = dict(s)
+    out = _svc_row(s)
+    live = {"source": "none"}
+    if panel is not None:
+        try:
+            pu = await panel.get_user(s["panel_username"])
+            if pu is not None:
+                st = getattr(pu.status, "value", pu.status)
+                live = {
+                    "source": "panel", "status": str(st or ""), "used": int(pu.used_traffic or 0),
+                    "limit": pu.data_limit, "lifetime": int(getattr(pu, "lifetime_used_traffic", 0) or 0),
+                    "online_at": str(pu.online_at) if getattr(pu, "online_at", None) else "",
+                    "hwid_limit": getattr(pu, "hwid_limit", None),
+                }
+                out.update(used=live["used"], limit=live["limit"],
+                           status=service_status(s["expire_at"], live["used"], live["limit"], s.get("duration_days")))
+        except Exception:  # noqa: BLE001
+            log.warning("آمار زنده سرویس %s از پنل خوانده نشد", service_id, exc_info=True)
+            live = {"source": "error"}
+    hist = await db.usage_history(service_id, days=15)
+    daily, prev = [], None
+    for row in hist:
+        cur = int(row["used_bytes"] or 0)
+        daily.append({"day": row["day"], "bytes": max(0, cur - prev) if prev is not None else 0})
+        prev = cur
+    out.update({
+        "sub_url": s.get("sub_url") or "", "data_gb": s.get("data_gb"), "duration_days": s.get("duration_days"),
+        "plan_price": int(s.get("plan_price") or 0), "live": live, "daily": daily[1:],
+        "warn_data_at": s.get("warn_data_at"), "warn_expire_at": s.get("warn_expire_at"),
+    })
+    return out
+
+
+async def ai_orders_list(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+                         status: str = "", page: int = 0) -> dict:
+    from app.webapp.api import _ai_order_out
+
+    _require_admin(wuser)
+    rows, total = await db.admin_ai_orders(page=max(0, page), per_page=PER_PAGE, status=status)
+    return {"items": [{**_ai_order_out(o), "user": _who(o)} for o in rows], "total": total, "page": page,
+            "more": (page + 1) * PER_PAGE < total}
+
+
+async def ai_order_full(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, order_id: int) -> dict:
+    from app.webapp.api import _ai_order_out
+
+    _require_admin(wuser)
+    o = await db.get_ai_order(order_id)
+    if not o:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    u = await db.get_user(o["user_id"]) or {}
+    return {**_ai_order_out(o, full=True), "user": _who(u), "error": o.get("error") or "",
+            "cost": o.get("usd_cost"), "cost_currency": o.get("cost_currency") or "USD"}
+
+
+async def purchases(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+                    kind: str = "all", page: int = 0) -> dict:
+    _require_admin(wuser)
+    rows, total = await db.admin_purchases(page=max(0, page), per_page=PER_PAGE, kind=kind)
+    return {"items": [{
+        "id": t["id"], "amount": -int(t["amount"]), "code": t.get("code") or "", "created_at": t["created_at"],
+        "kind": "ai" if t["type"] == "ai_purchase" else "service",
+        "title": t.get("ai_title") or "", "ai_id": t.get("ai_id"), "ai_status": t.get("ai_status") or "",
+        "user": _who(t),
+    } for t in rows], "total": total, "page": page, "more": (page + 1) * PER_PAGE < total}
+
+
 READ = {"admin": home, "admin/charges": charges, "admin/plans": plans, "admin/settings": settings,
-        "admin/ai": ai_products}
+        "admin/ai": ai_products, "admin/monitor": monitor}

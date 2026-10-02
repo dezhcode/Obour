@@ -969,6 +969,8 @@ html[dir=ltr] .rng::-webkit-slider-runnable-track{background:linear-gradient(to 
 .sw.on{background:var(--ok)} .sw.on::after{transform:translateX(-18px)}
 html[dir=ltr] .sw.on::after{transform:translateX(18px)}
 .adm-search{display:flex;gap:8px;margin:8px var(--pad) 10px}
+.adm-chips{padding:0 var(--pad) 6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.adm-chips .cat-chip{flex-shrink:0}
 .adm-search .adm-in{flex-grow:1}
 .reasons{display:flex;flex-direction:column;gap:8px;margin:6px 0 12px}
 .reasons button{height:46px;border-radius:12px;background:var(--sunk);font-size:14px;font-weight:600;text-align:start;padding:0 14px}
@@ -3567,19 +3569,30 @@ const Admin = {
 SubPages.admin = async function(p){
   p.innerHTML = Top('پنل مدیریت') + skel(2, 90);
   try {
-    const d = await api('admin');
+    const [d, m] = await Promise.all([api('admin'), api('admin/monitor').catch(() => ({}))]);
     p.innerHTML = Top('پنل مدیریت', 'فقط تو این بخش را می‌بینی') + `
       <div class="adm-stats">
         <div class="adm-stat${d.pending ? ' hot' : ''}"><b class="n">${fa(d.pending)}</b><span>رسید در انتظار</span></div>
         <div class="adm-stat"><b class="n">${fa(d.users)}</b><span>کاربر</span></div>
         <div class="adm-stat"><b class="n">${fa(d.active_services)}</b><span>سرویس فعال</span></div>
         <div class="adm-stat"><b class="n">${fa(d.today_sales)}</b><span>فروش امروز (تومان)</span></div>
+        <div class="adm-stat${m.ai_open ? ' hot' : ''}"><b class="n">${fa(m.ai_open || 0)}</b><span>سفارش AI باز</span></div>
+        <div class="adm-stat${m.expiring ? ' hot' : ''}"><b class="n">${fa(m.expiring || 0)}</b><span>سرویس رو به اتمام (۳ روز)</span></div>
+        <div class="adm-stat"><b class="n">${fa(m.buys_today || 0)}</b><span>خرید امروز</span></div>
+        <div class="adm-stat"><b class="n">${fa(m.users_today || 0)}</b><span>کاربر تازه امروز</span></div>
       </div>
+      ${Sec('مانیتورینگ')}
+      ${Group(
+        Row({ kind:'net', icon:'user', title:'همه کاربران', sub:'فهرست کامل، فیلتر، جستجو و جزئیات', fn:"App.go('adm_users')" })
+        + Row({ kind:'net', icon:'globe', title:'سرویس‌ها', sub: m.expiring ? `${fa(m.expiring)} سرویس تا ۳ روز دیگر تمام می‌شود` : 'فعال، رو به اتمام و منقضی با جزئیات',
+              subColor: m.expiring ? 'var(--help-i)' : '', fn:"App.go('adm_svcs')" })
+        + Row({ kind:'ai', icon:'spark', title:'سفارش‌های هوش مصنوعی', sub: m.ai_open ? `${fa(m.ai_open)} سفارش باز` : `امروز ${fa(m.ai_today || 0)} سفارش`,
+              subColor: m.ai_open ? 'var(--help-i)' : '', fn:"App.go('adm_ai_orders')" })
+        + Row({ kind:'cash', icon:'store', title:'خریدها', sub:`امروز ${fa(m.buys_today || 0)} خرید · هوش مصنوعی ${fa(m.ai_sales_today || 0)} تومان`, fn:"App.go('adm_buys')" }))}
       ${Sec('مدیریت')}
       ${Group(
         Row({ kind:'cash', icon:'image', title:'رسیدهای شارژ', sub: d.pending ? `${fa(d.pending)} رسید منتظر بررسی` : 'رسیدی در انتظار نیست',
               subColor: d.pending ? 'var(--help-i)' : '', fn:"App.go('adm_charges')" })
-        + Row({ kind:'net', icon:'user', title:'کاربران', sub:'جستجو، موجودی و مسدودی', fn:"App.go('adm_users')" })
         + Row({ kind:'ai', icon:'list', title:'پلن‌ها', sub:'قیمت، حجم، مدت و روشن/خاموش', fn:"App.go('adm_plans')" })
         + Row({ kind:'ai', icon:'spark', title:'محصولات هوش مصنوعی', sub:'نمایش محصولات و موجودی کیف پول canboso', fn:"App.go('adm_ai')" })
         + Row({ kind:'help', icon:'bolt', title:'تنظیمات', sub:'کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها', fn:"App.go('adm_settings')" }))}
@@ -3653,34 +3666,75 @@ const AdminCharge = {
   },
 };
 
-/* ---------- کاربران ---------- */
-SubPages.adm_users = async function(p){
-  p.innerHTML = Top('کاربران') + `<div class="adm-search"><input class="adm-in" id="adm-q" dir="auto" placeholder="آیدی عددی، یوزرنیم یا مبلغ رسید"
-      onkeydown="if(event.key==='Enter')AdminUsers.search()"><button class="btn btn-p btn-sq" onclick="AdminUsers.search()" aria-label="جستجو">${ic('list',2)}</button></div>
-    <div id="adm-ul">${skel(4, 60)}</div>`;
-  AdminUsers.load('');
-};
-const AdminUsers = {
-  search(){ this.load(($('adm-q').value || '').trim()); },
-  async load(q){
-    const box = $('adm-ul'); if (!box) return;
-    box.innerHTML = skel(3, 60);
+/* ---------- مانیتورینگ: فهرست های صفحه به صفحه ----------
+   هر فهرست (کاربران، سرویس ها، سفارش های AI، خریدها) فیلتر چیپی، جستجو
+   و دکمه «بیشتر» دارد. وضعیت هر فهرست در AdminList.s[key] است. */
+const AdminList = {
+  s:{},
+  open(key, p, cfg){
+    const st = this.s[key] = Object.assign({ f:cfg.filters[0][0], q:'', page:0, items:[], more:false }, this.s[key] && this.s[key].keep ? this.s[key] : {}, { cfg });
+    p.innerHTML = Top(cfg.title, cfg.sub || '')
+      + (cfg.search ? `<div class="adm-search"><input class="adm-in" id="al-q-${key}" dir="auto" placeholder="${esc(cfg.search)}" value="${esc(st.q)}"
+          onkeydown="if(event.key==='Enter')AdminList.search('${key}')"><button class="btn btn-p btn-sq" onclick="AdminList.search('${key}')" aria-label="جستجو">${ic('list',2)}</button></div>` : '')
+      + `<div class="cat-chips adm-chips" id="al-f-${key}">${cfg.filters.map(([v, t]) => `<button class="cat-chip${v === st.f ? ' on' : ''}" onclick="AdminList.filter('${key}','${v}')">${esc(t)}</button>`).join('')}</div>
+      <div id="al-b-${key}">${skel(4, 60)}</div>`;
+    this.load(key, true);
+  },
+  filter(key, f){ const st = this.s[key]; if (st.f === f) return; st.f = f; App.haptic();
+    document.querySelectorAll(`#al-f-${key} .cat-chip`).forEach(b => b.classList.toggle('on', b.getAttribute('onclick').includes(`'${f}'`)));
+    this.load(key, true); },
+  search(key){ const i = $('al-q-' + key); this.s[key].q = i ? i.value.trim() : ''; this.load(key, true); },
+  async load(key, reset){
+    const st = this.s[key], box = $('al-b-' + key); if (!box) return;
+    if (reset) { st.page = 0; st.items = []; box.innerHTML = skel(4, 60); }
     try {
-      const d = await api('admin/users?q=' + encodeURIComponent(q));
-      box.innerHTML = (d.note ? `<div class="adm-note" style="margin-top:0;margin-bottom:8px">${esc(d.note)}</div>` : '')
-        + (q ? '' : Sec(`آخرین کاربران · ${fa(d.total)} نفر`))
-        + (d.items.length ? Group(d.items.map(u => Row({ kind: u.blocked ? '' : 'net', icon:'user', title:u.name + (u.blocked ? ' 🚫' : '') + (u.is_admin ? ' ⭐' : ''),
-            sub:(u.username ? '@' + u.username + ' · ' : '') + u.telegram_id, end:`<span class="n">${fa(u.balance)}</span>`,
-            fn:`App.go('adm_user',${u.telegram_id})` })).join('')) : emptyBox('کاربری پیدا نشد', 'آیدی عددی یا یوزرنیم را دقیق بنویس.'));
+      const d = await api(st.cfg.url(st));
+      st.items = st.items.concat(d.items); st.more = !!d.more; st.total = d.total;
+      box.innerHTML = (st.items.length
+          ? Sec(st.cfg.count(st.total)) + Group(st.items.map(st.cfg.row).join(''))
+          : emptyBox(st.cfg.empty || 'چیزی پیدا نشد', ''))
+        + (st.more ? `<div class="mx" style="margin-top:12px"><button class="btn btn-s btn-block" id="al-m-${key}" onclick="AdminList.next('${key}')">بیشتر</button></div>` : '');
     } catch (err) { box.innerHTML = emptyBox('خوانده نشد', err.message); }
   },
+  next(key){ const b = $('al-m-' + key); if (b) { b.disabled = true; b.textContent = '…'; } this.s[key].page++; this.load(key, false); },
+};
+const qs = o => Object.entries(o).filter(([, v]) => v !== '' && v != null).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+/* مصرف کوتاه برای فهرست: «۴ از ۵۰ گیگ» */
+function admUse(s){ return s.limit ? `${gbShort(s.used)} / ${gbShort(s.limit)}` : `${gbShort(s.used)} · نامحدود`; }
+const SV_ST = { active:['ok','فعال'], warn:['warn','رو به اتمام'], finished:['bad','حجم تمام'], expired:['bad','منقضی'] };
+function admSvcRow(s, withUser){
+  const st = SV_ST[s.status] || SV_ST.active;
+  return Row({ kind: s.expired ? '' : 'net', icon:'globe', title:s.title,
+    subHtml:true, sub:`${withUser ? esc(s.user.name) + ' · ' : ''}<span class="n">${esc(admUse(s))}</span> · ${s.expired ? 'منقضی ' + N(jdate(s.expire_at)) : `<span class="n">${fa(s.days_left)}</span> روز`}`,
+    end: Badge(st[0], st[1]), fn:`App.go('adm_svc',${s.id})` });
+}
+function admAiRow(o, withUser){
+  const st = AI_ST[o.status] || ['', '', o.status];
+  return Row({ kind:'ai', icon:'spark', title:o.title, subHtml:true,
+    sub:`${withUser && o.user ? esc(o.user.name) + ' · ' : ''}<span class="n">${esc(o.code)}</span> · ${N(fa(o.price))} تومان`,
+    end: Badge(st[0], st[2]), fn:`App.go('adm_ai_order',${o.id})` });
+}
+
+/* ---------- کاربران ---------- */
+SubPages.adm_users = function(p){
+  AdminList.open('users', p, {
+    title:'کاربران', search:'نام، یوزرنیم یا آیدی عددی',
+    filters:[['all','همه'], ['active','سرویس فعال'], ['nosvc','بدون سرویس'], ['blocked','مسدود']],
+    url: st => 'admin/users_all?' + qs({ q:st.q, f:st.f, page:st.page }),
+    count: n => `${fa(n)} کاربر`, empty:'کاربری پیدا نشد',
+    row: u => Row({ kind: u.blocked ? '' : 'net', icon:'user', title:u.name + (u.blocked ? ' 🚫' : '') + (u.is_admin ? ' ⭐' : ''), subHtml:true,
+      sub:`${u.username ? '@' + esc(u.username) + ' · ' : ''}<span class="n">${u.telegram_id}</span> · ${fa(u.services_on)}/${fa(u.services)} سرویس${u.ai ? ' · ' + fa(u.ai) + ' AI' : ''}`,
+      end:`<span class="n">${fa(u.balance)}</span>`, fn:`App.go('adm_user',${u.telegram_id})` }),
+  });
 };
 
 SubPages.adm_user = async function(p, tgId){
   p.innerHTML = Top('کاربر') + skel(2, 140);
   try {
-    const u = await api('admin/user?id=' + tgId);
+    const u = await api('admin/user_full?id=' + tgId);
     Admin.user = u;
+    const TX = { charge:'شارژ', purchase:'خرید سرویس', ai_purchase:'خرید هوش مصنوعی', referral:'پاداش دعوت', refund:'برگشت وجه', admin_adjust:'تغییر دستی' };
+    const TXS = { approved:['ok','انجام شد'], pending:['warn','در انتظار'], rejected:['bad','رد شد'], cancelled:['', 'لغو'] };
     p.innerHTML = Top(u.name, u.username ? '@' + u.username : String(u.telegram_id)) + `
       <div class="adm-stats">
         <div class="adm-stat"><b class="n" data-adm-bal>${fa(u.balance)}</b><span>موجودی (تومان)</span></div>
@@ -3696,10 +3750,111 @@ SubPages.adm_user = async function(p, tgId){
         + Row({ kind:'cash', icon:'wallet', title:'کسر از موجودی', sub:'حداکثر تا موجودی فعلی', fn:'AdminUser.balance(false)' })
         + (u.is_admin ? '' : Row({ kind: u.blocked ? 'net' : '', icon:'shield', title: u.blocked ? 'رفع مسدودی' : 'مسدود کردن',
             sub: u.blocked ? 'کاربر دوباره به ربات دسترسی پیدا می‌کند' : 'کاربر دیگر به ربات دسترسی ندارد', fn:'AdminUser.block()' })))}
-      ${u.services_list.length ? Sec('سرویس‌ها') + Group(u.services_list.map(s => Row({ kind: s.expired ? '' : 'net', icon:'globe', title:s.title,
-          sub: (s.expired ? 'منقضی · ' : 'تا ') + jdate(s.expire_at) })).join('')) : ''}`;
+      ${Sec('سرویس‌ها', fa(u.services_list.length))}
+      ${u.services_list.length ? Group(u.services_list.map(s => admSvcRow(s, false)).join('')) : emptyBox('سرویسی ندارد', '')}
+      ${u.ai_orders.length ? Sec('سفارش‌های هوش مصنوعی', fa(u.ai_orders.length)) + Group(u.ai_orders.map(o => admAiRow(o, false)).join('')) : ''}
+      ${u.transactions.length ? Sec('تراکنش‌های اخیر') + Group(u.transactions.map(t => {
+          const s = TXS[t.status] || ['', t.status];
+          return Row({ kind: t.amount >= 0 ? 'cash' : 'net', icon: t.amount >= 0 ? 'wallet' : 'store', title: TX[t.type] || t.type, subHtml:true,
+            sub:`${t.code ? `<span class="n">${esc(t.code)}</span> · ` : ''}${N(jdate(t.created_at))} · ${Badge(s[0], s[1])}`,
+            end:`<span class="n" style="font-weight:800;color:${t.amount >= 0 ? 'var(--ok)' : 'var(--ink)'}">${t.amount >= 0 ? '+' : '−'}${fa(Math.abs(t.amount))}</span>` });
+        }).join('')) : ''}`;
   } catch (err) { p.innerHTML = Top('کاربر') + emptyBox('خوانده نشد', err.message); }
 };
+
+/* ---------- سرویس ها ---------- */
+SubPages.adm_svcs = function(p){
+  AdminList.open('svcs', p, {
+    title:'سرویس‌ها', search:'نام سرویس، نام کاربری پنل یا کاربر',
+    filters:[['active','فعال'], ['expiring','رو به اتمام'], ['expired','منقضی'], ['all','همه']],
+    url: st => 'admin/services?' + qs({ q:st.q, f:st.f, page:st.page }),
+    count: n => `${fa(n)} سرویس`, empty:'سرویسی پیدا نشد',
+    row: s => admSvcRow(s, true),
+  });
+};
+
+SubPages.adm_svc = async function(p, id){
+  p.innerHTML = Top('سرویس') + skel(2, 150);
+  try {
+    const s = await api('admin/service?id=' + id);
+    const st = SV_ST[s.status] || SV_ST.active, pct = s.limit ? Math.min(100, Math.round(s.used / s.limit * 100)) : 0;
+    const live = s.live || {}, src = { panel:'زنده از پنل', none:'از آخرین آمار روزانه', error:'پنل جواب نداد؛ از آخرین آمار روزانه' }[live.source] || '';
+    p.innerHTML = Top(s.title, s.plan || s.panel_username) + `
+      <div class="adm-stats">
+        <div class="adm-stat"><b class="n">${esc(s.limit ? gbShort(Math.max(0, s.limit - s.used)) : '∞')}</b><span>حجم باقی‌مانده</span></div>
+        <div class="adm-stat"><b class="n">${s.expired ? '0' : fa(s.days_left)}</b><span>روز باقی‌مانده</span></div>
+      </div>
+      ${s.limit ? `<div class="sv-bar mx"><div class="sv-bar-h"><span><span>مصرف شده</span> <span class="n">${esc(admUse(s))}</span></span><span class="n">${fa(pct)}%</span></div>
+        <div class="sv-track"><i style="width:${pct}%"></i></div><div class="sv-fc">${esc(src)}</div></div>` : ''}
+      ${KV([['وضعیت', Badge(st[0], st[1]) + (live.status ? ` <span class="n" style="font-size:11px;color:var(--ink-3)">${esc(live.status)}</span>` : '')],
+            ['صاحب', `<a onclick="App.go('adm_user',${s.user.telegram_id})" style="color:var(--brand);font-weight:800;cursor:pointer">${esc(s.user.name)}</a>${s.user.username ? ` · <span class="n">@${esc(s.user.username)}</span>` : ''}`],
+            ['آیدی صاحب', `<span class="n">${s.user.telegram_id}</span>`],
+            ['نام کاربری پنل', `<span class="n">${esc(s.panel_username)}</span>`],
+            ...(s.plan ? [['پلن', esc(s.plan) + (s.plan_price ? ` · ${N(fa(s.plan_price))} تومان` : '')]] : []),
+            ['حجم کل', s.limit ? N(gbShort(s.limit)) : 'نامحدود'],
+            ...(live.lifetime ? [['مصرف کل عمر', N(gbShort(live.lifetime))]] : []),
+            ['آخرین اتصال', live.online_at ? N(jfull(live.online_at)) : '—'],
+            ...(live.hwid_limit ? [['سقف دستگاه', N(fa(live.hwid_limit))]] : []),
+            ['تاریخ خرید', N(jfull(s.created_at))], ['تاریخ انقضا', N(jfull(s.expire_at))],
+            ['هشدار حجم', s.warn_data_at ? N(jdate(s.warn_data_at)) : 'نرفته'], ['هشدار انقضا', s.warn_expire_at ? N(jdate(s.warn_expire_at)) : 'نرفته']])}
+      ${s.daily && s.daily.length ? Sec('مصرف روزانه') + `<div class="card chart mx">${UsageChart(s.daily)}</div>` : ''}
+      ${Sec('لینک اشتراک')}
+      <div class="card mx" style="padding:12px 14px"><div class="linkbox" dir="ltr" style="word-break:break-all;font-size:12px">${esc(s.sub_url)}</div>
+        <button class="btn btn-s btn-block" style="margin-top:10px" onclick="App.copy(${esc(JSON.stringify(s.sub_url))})">${ic('copy')}کپی لینک</button></div>`;
+  } catch (err) { p.innerHTML = Top('سرویس') + emptyBox('خوانده نشد', err.message); }
+};
+
+/* ---------- سفارش های هوش مصنوعی ---------- */
+SubPages.adm_ai_orders = function(p){
+  AdminList.open('aio', p, {
+    title:'سفارش‌های هوش مصنوعی',
+    filters:[['', 'همه'], ['open','باز'], ['delivered','تحویل‌شده'], ['failed','ناموفق']],
+    url: st => 'admin/ai_orders?' + qs({ s:st.f, page:st.page }),
+    count: n => `${fa(n)} سفارش`, empty:'سفارشی نیست',
+    row: o => admAiRow(o, true),
+  });
+};
+
+SubPages.adm_ai_order = async function(p, id){
+  p.innerHTML = Top('سفارش') + skel(2, 150);
+  try {
+    const o = await api('admin/ai_order?id=' + id);
+    const st = AI_ST[o.status] || ['', '', o.status];
+    const acc = (o.delivery || []).map((a, i) => KV([['اکانت', N(fa(i + 1))], ...['user', 'password', 'verifyEmail', 'expiryText', 'otherInfo']
+      .filter(k => a[k]).map(k => [{ user:'نام کاربری', password:'رمز', verifyEmail:'ایمیل تایید', expiryText:'انقضا', otherInfo:'توضیح' }[k], `<span class="n" style="direction:ltr;unicode-bidi:plaintext">${esc(a[k])}</span>`])])).join('');
+    p.innerHTML = Top(o.title, o.code) + KV([
+        ['وضعیت', Badge(st[0], st[2])],
+        ['خریدار', `<a onclick="App.go('adm_user',${o.user.telegram_id})" style="color:var(--brand);font-weight:800;cursor:pointer">${esc(o.user.name)}</a> · <span class="n">${o.user.telegram_id}</span>`],
+        ['مبلغ', `<span class="n">${fa(o.price)}</span> تومان`],
+        ...(o.cost != null ? [['هزینه فروشنده', `<span class="n">${esc(String(o.cost))} ${esc(o.cost_currency)}</span>`]] : []),
+        ['کد فروشنده', o.provider_code ? `<span class="n">${esc(o.provider_code)}</span>` : '—'],
+        ...(o.email ? [['ایمیل', `<span class="n">${esc(o.email)}</span>`]] : []),
+        ...(o.months ? [['مدت', `${N(fa(o.months))} ماه`]] : []),
+        ['ثبت', N(jfull(o.created_at))], ['تحویل', o.delivered_at ? N(jfull(o.delivered_at)) : '—'],
+        ['محصول', `<span class="n" style="font-size:11px">${esc(o.product_id)}</span>`]])
+      + (o.error ? `<div class="adm-note" style="color:var(--bad)">${ic('warn',2)} ${esc(o.error)}</div>` : '')
+      + (o.links && o.links.length ? Sec('لینک‌ها') + o.links.map(l => `<div class="card mx" style="padding:12px 14px;margin-bottom:8px"><div class="linkbox" dir="ltr" style="word-break:break-all;font-size:12px">${esc(l)}</div>
+          <button class="btn btn-s btn-block" style="margin-top:8px" onclick="App.copy(${esc(JSON.stringify(l))})">${ic('copy')}کپی</button></div>`).join('') : '')
+      + (acc ? Sec('اطلاعات تحویل') + acc : '')
+      + `<div class="adm-note">برای حل سفارش باز یا برگشت وجه، از پنل ربات (/admin) بخش هوش مصنوعی استفاده کن.</div>`;
+  } catch (err) { p.innerHTML = Top('سفارش') + emptyBox('خوانده نشد', err.message); }
+};
+
+/* ---------- خریدها ---------- */
+SubPages.adm_buys = function(p){
+  AdminList.open('buys', p, {
+    title:'خریدها', sub:'سرویس و هوش مصنوعی، تازه‌ترین اول',
+    filters:[['all','همه'], ['service','سرویس'], ['ai','هوش مصنوعی']],
+    url: st => 'admin/purchases?' + qs({ k:st.f, page:st.page }),
+    count: n => `${fa(n)} خرید`, empty:'خریدی ثبت نشده',
+    row: t => Row({ kind: t.kind === 'ai' ? 'ai' : 'net', icon: t.kind === 'ai' ? 'spark' : 'globe',
+      title: t.kind === 'ai' ? (t.title || 'هوش مصنوعی') : 'خرید / تمدید سرویس', subHtml:true,
+      sub:`${esc(t.user.name)} · ${t.code ? `<span class="n">${esc(t.code)}</span> · ` : ''}${N(jfull(t.created_at))}`,
+      end:`<span class="n" style="font-weight:800">${fa(t.amount)}</span>`,
+      fn: t.ai_id ? `App.go('adm_ai_order',${t.ai_id})` : `App.go('adm_user',${t.user.telegram_id})` }),
+  });
+};
+
 const AdminUser = {
   balance(add){
     App.sheet(`<div class="sheet-t">${add ? 'افزایش موجودی' : 'کسر از موجودی'}</div>
