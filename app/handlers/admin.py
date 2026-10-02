@@ -3251,7 +3251,9 @@ async def _market_text(db: Database, q: dict | None = None) -> str:
         f"│   نرخ خودکار: {status}\n\n"
         f"💵 دلار: {val('usd')} · {used('usd')}\n"
         f"🪙 تتر: {val('usdt')} · {used('usdt')}\n"
-        f"💎 تون کوین: {val('ton')} · {used('ton')}\n\n"
+        f"🔷 تون کوین: {val('ton')} · {used('ton')}\n"
+        + (f"   ↳ 1 TON = {float(q.get('ton_usdt')):g} USDT × {'تتر' if q.get('ton_base') == 'usdt' else 'دلار'}\n" if q.get("ton_usdt") else "")
+        + "\n"
         f"🕒 آخرین به روزرسانی: {when}{' (کهنه)' if q.get('stale') else ''}{err}\n\n"
         "هر نرخی که در تنظیمات صفر باشد از همین جا خوانده می شود:\n"
         "• نرخ دلار هوش مصنوعی ← دلار\n• نرخ تتر و TON کریپتو ← تتر و تون\n"

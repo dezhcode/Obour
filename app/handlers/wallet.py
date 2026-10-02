@@ -359,6 +359,21 @@ async def cb_crypto_custom(call: CallbackQuery, state: FSMContext) -> None:
     await call.answer(_t("مبلغ رو به تومان بفرست."), show_alert=True)
 
 
+async def _rate_line(db: Database, quotes: dict) -> str:
+    """نرخ هایی که مبلغ با آن حساب شد: تون به تتر و تتر به تومان."""
+    from app.services import market
+
+    q = await market.last(db)
+    parts = []
+    if q.get("ton_usdt") and "TON" in quotes and not int(float((await db.get_setting("crypto_ton_rate", "0") or "0") or 0)):
+        parts.append(f"1 TON = {float(q['ton_usdt']):g} USDT")
+    if "USDT" in quotes:
+        parts.append(f"1 USDT = {quotes['USDT']['rate']:,} " + _t("تومان"))
+    elif "TON" in quotes:
+        parts.append(f"1 TON = {quotes['TON']['rate']:,} " + _t("تومان"))
+    return ("\n\n<i>" + " · ".join(parts) + "</i>") if parts else ""
+
+
 async def _crypto_pick(message: Message, db: Database, amount: int, edit: bool) -> None:
     """نمایش مبلغ هر ارز برای این مبلغ تومانی."""
     min_charge = int(await db.get_setting("min_charge", "50000"))
@@ -371,6 +386,7 @@ async def _crypto_pick(message: Message, db: Database, amount: int, edit: bool) 
         return await (edit_or_send(message, text, keyboards.crypto_amounts()) if edit else message.answer(text))
     icons = {"TON": "🔷", "USDT": "💵"}   # کلیدهای coin_ton / coin_usdt در پنل ایموجی
     lines = "\n".join(f"{icons[a]} <b>{q['amount']} {a}</b>" for a, q in quotes.items())
+    lines += await _rate_line(db, quotes)
     body = texts.CRYPTO_PICK.format(amount=f"{amount:,}", lines=lines)
     kb = keyboards.crypto_assets(amount, quotes)
     if edit:

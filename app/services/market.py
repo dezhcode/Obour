@@ -36,6 +36,7 @@ SETTING_LAST = "market_last"
 
 USD_KEYS = ("price_dollar_rl", "price_dollar")
 USDT_PAT = re.compile(r"tether|usdt", re.I)
+TON_KEYS = ("crypto-toncoin", "crypto-the-open-network", "crypto-ton")
 TON_PAT = re.compile(r"toncoin|open[-_]?network|(^|[-_])ton([-_]|$)", re.I)
 
 _cache: dict[str, Any] = {"at": 0.0, "data": None}
@@ -131,18 +132,30 @@ def parse(doc: dict, keys: dict[str, str] | None = None) -> dict:
     if best and (not out["usd"] or best[1] <= 0.4):
         out["usdt"], out["keys"]["usdt"] = best[2], best[3]
 
-    # تون: ریالی مستقیم؛ دلاری × نرخ تتر (یا دلار اگر تتر نبود)
+    # تون: اول قیمت تون به تتر (دلاری) از tgju (crypto-toncoin)، بعد × نرخ تتر
+    # بازار ایران. قیمت ریالی آماده تون استفاده نمی شود چون با نرخ تتر
+    # بازار هم خوانی ندارد و قیمت را اشتباه می کرد.
+    out["ton_usdt"] = 0.0
     k_n = keys.get("ton")
-    hit = (k_n, _price(cur[k_n])) if k_n and k_n in cur else _pick(cur, TON_PAT)
-    if hit:
-        if _is_rial(hit[0]):
-            out["ton"] = int(round(hit[1] / 10))
-        elif hit[1] < 10_000:
-            base = out["usdt"] or out["usd"]
-            out["ton"] = int(round(hit[1] * base)) if base else 0
-        if out["ton"]:
-            out["keys"]["ton"] = hit[0]
-    return sane(out)
+    names = [k_n] if k_n and k_n in cur else (
+        [k for k in TON_KEYS if k in cur]
+        + sorted((k for k in cur if TON_PAT.search(k) and not _is_rial(k) and k not in TON_KEYS), key=len))
+    for k in names:
+        p = _price(cur[k])
+        if 0.01 <= p <= 1000:
+            out["ton_usdt"], out["keys"]["ton"] = p, k
+            break
+    # اول دلار و تتر سنجیده می شوند تا تتر نادرست در قیمت تون ضرب نشود
+    return sane(ton_price(sane(out)))
+
+
+def ton_price(q: dict) -> dict:
+    """تومان هر تون = قیمت تتری تون × نرخ تتر (اگر تتر نبود، نرخ دلار)."""
+    base = q.get("usdt") or q.get("usd") or 0
+    t = float(q.get("ton_usdt") or 0)
+    q["ton"] = int(round(t * base)) if t and base else 0
+    q["ton_base"] = ("usdt" if q.get("usdt") else "usd") if q["ton"] else ""
+    return q
 
 
 def sane(q: dict) -> dict:
@@ -221,6 +234,14 @@ async def quote(db: "Database", force: bool = False) -> dict:
         return _cache["data"]
     try:
         q = parse(await _download(), await _keys(db))
+        if not q.get("ton_usdt"):
+            # tgju قیمت تون نداشت: قیمت دلاری از tonapi.io × نرخ تتر
+            from app.services.crypto import _ton_usd
+
+            q["ton_usdt"] = float(await _ton_usd() or 0)
+            if q["ton_usdt"]:
+                q["keys"]["ton"] = "tonapi.io"
+            sane(ton_price(q))
         if not (q["usd"] or q["usdt"] or q["ton"]):
             raise RuntimeError("هیچ نرخی در پاسخ tgju پیدا نشد")
         q.update(at=int(now), ok=True, stale=False, error="")
@@ -283,6 +304,7 @@ def public(q: dict) -> dict:
     return {
         "source": "tgju.org",
         "usd": int(q.get("usd") or 0), "usdt": int(q.get("usdt") or 0), "ton": int(q.get("ton") or 0),
+        "ton_usdt": float(q.get("ton_usdt") or 0), "ton_base": q.get("ton_base") or "",
         "unit": "toman", "updated_at": int(q.get("at") or 0), "tgju_time": q.get("time") or "",
         "ok": bool(q.get("ok")), "stale": bool(q.get("stale")), "keys": q.get("keys") or {},
     }
