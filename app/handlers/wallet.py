@@ -509,7 +509,7 @@ async def _stars_home(message: Message, db: Database, user: dict, edit: bool = T
 @router.callback_query(F.data == "sw")
 async def cb_stars(call: CallbackQuery, db: Database, state: FSMContext, user: dict) -> None:
     if not await stars_svc.enabled(db) or not await payments.is_on(db, payments.STARS):
-        return await call.answer(_t("پرداخت با Stars فعلا فعال نیست."), show_alert=True)
+        return await call.answer(_t("شارژ با Stars فعلا فعال نیست."), show_alert=True)
     await state.clear()
     await _stars_home(call.message, db, user)
     await call.answer()
@@ -528,8 +528,8 @@ async def _stars_invoice(message: Message, db: Database, user: dict, amount: int
         if r["error"] == stars_svc.TOO_SMALL:
             return _t("حداقل شارژ {amount} تومانه.", amount=f"{r['min']:,}")
         if r["error"] == stars_svc.TOO_LARGE:
-            return _t("سقف هر پرداخت با Stars {amount} تومانه.", amount=f"{r.get('max', 0):,}")
-        return _t("پرداخت با Stars فعلا فعال نیست.")
+            return _t("سقف هر شارژ با Stars {amount} تومانه.", amount=f"{r.get('max', 0):,}")
+        return _t("شارژ با Stars فعلا فعال نیست.")
     await stars_svc.send_invoice(message.bot, message.chat.id, r["invoice"])
     return None
 

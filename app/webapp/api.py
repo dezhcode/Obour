@@ -820,8 +820,8 @@ async def stars_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
         if r["error"] == stars_svc.TOO_SMALL:
             raise ApiError(i18n.t("حداقل شارژ {amount} تومانه.", amount=f"{r['min']:,}"), 400, r["error"])
         if r["error"] == stars_svc.TOO_LARGE:
-            raise ApiError(i18n.t("سقف هر پرداخت با Stars {amount} تومانه.", amount=f"{r.get('max', 0):,}"), 400, r["error"])
-        raise ApiError("پرداخت با Stars فعلا فعال نیست", 503, r["error"])
+            raise ApiError(i18n.t("سقف هر شارژ با Stars {amount} تومانه.", amount=f"{r.get('max', 0):,}"), 400, r["error"])
+        raise ApiError("شارژ با Stars فعلا فعال نیست", 503, r["error"])
     inv = r["invoice"]
     try:
         link = await stars_svc.invoice_link(bot, inv)
