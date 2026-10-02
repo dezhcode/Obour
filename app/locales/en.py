@@ -541,10 +541,10 @@ PHRASES = {
 
 # ---------- Crypto top-up (TON / USDT on the TON network) ----------
 TEXTS.update({
-    "CRYPTO_WALLET": "╭── 💎 Top up with crypto\n│   TON · USDT on the TON network\n\n💳 Current balance\n{balance} toman\n\nChoose a top-up amount in toman, or send the number.\n╰─ Minimum top-up {min_charge} toman",
-    "CRYPTO_PICK": "╭── 💎 Top up {amount} toman\n│   Choose a currency\n\n{lines}\n\nWhich currency will you pay with?\n╰─ The amount stays fixed until the invoice expires",
+    "CRYPTO_WALLET": "╭── 🔷 Top up with crypto\n│   TON · USDT on the TON network\n\n💳 Current balance\n{balance} toman\n\nChoose a top-up amount in toman, or send the number.\n╰─ Minimum top-up {min_charge} toman",
+    "CRYPTO_PICK": "╭── 🔷 Top up {amount} toman\n│   Choose a currency\n\n{lines}\n\nWhich currency will you pay with?\n╰─ The amount stays fixed until the invoice expires",
     "CRYPTO_INVOICE": (
-        "╭── 💎 Invoice {code}\n│   Top-up of {toman} toman\n\n"
+        "╭── 🔷 Invoice {code}\n│   Top-up of {toman} toman\n\n"
         "💰 Exact amount\n<code>{crypto}</code> {asset}\n\n"
         "📬 Wallet address (TON network)\n<code>{address}</code>\n\n"
         "📝 Comment (Memo)\n<code>{code}</code>\n"

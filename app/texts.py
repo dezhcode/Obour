@@ -460,7 +460,7 @@ CHARGE_APPROVED = (
 
 # ---------- شارژ با کریپتو (TON / USDT روی شبکه TON) ----------
 CRYPTO_WALLET = (
-    "╮── 💎 شارژ با کریپتو\n"
+    "╮── 🔷 شارژ با کریپتو\n"
     "│   TON · USDT روی شبکه TON\n\n"
     "💳 موجودی فعلی\n"
     "\u2068{balance}\u2069 تومان\n\n"
@@ -469,7 +469,7 @@ CRYPTO_WALLET = (
 )
 
 CRYPTO_PICK = (
-    "╮── 💎 شارژ \u2068{amount}\u2069 تومان\n"
+    "╮── 🔷 شارژ \u2068{amount}\u2069 تومان\n"
     "│   انتخاب ارز\n\n"
     "{lines}\n\n"
     "با کدوم ارز پرداخت می کنی؟\n"
@@ -477,7 +477,7 @@ CRYPTO_PICK = (
 )
 
 CRYPTO_INVOICE = (
-    "╮── 💎 فاکتور {code}\n"
+    "╮── 🔷 فاکتور {code}\n"
     "│   شارژ \u2068{toman}\u2069 تومان\n\n"
     "💰 مبلغ دقیق\n"
     "<code>{crypto}</code> {asset}\n\n"
@@ -513,7 +513,7 @@ CRYPTO_UNDERPAID = (
 )
 
 ADMIN_CRYPTO_IN = (
-    "💎 پرداخت کریپتو · {state}\n\n"
+    "🔷 پرداخت کریپتو · {state}\n\n"
     "👤 {name} (<code>{telegram_id}</code>)\n"
     "💰 رسیده: {crypto} {asset} · فاکتور: {need} {asset}\n"
     "🧾 {amount} تومان · <code>{code}</code>\n"
@@ -1095,7 +1095,7 @@ ADMIN_SETTINGS = (
     "\u2068{min_charge}\u2069 تومان\n\n"
     "⭐ Telegram Stars\n"
     "{stars_line}\n\n"
-    "💎 پرداخت کریپتو (TON / USDT)\n"
+    "🔷 پرداخت کریپتو (TON / USDT)\n"
     "{crypto_state}\n"
     "╯─ {crypto_rates}\n\n"
     "برای تغییر، دکمه مربوطه را بزن."

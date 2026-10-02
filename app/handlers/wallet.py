@@ -369,7 +369,7 @@ async def _crypto_pick(message: Message, db: Database, amount: int, edit: bool) 
     if not quotes:
         text = _t("نرخ ارزها هنوز تنظیم نشده. کمی بعد دوباره امتحان کن.")
         return await (edit_or_send(message, text, keyboards.crypto_amounts()) if edit else message.answer(text))
-    icons = {"TON": "💎", "USDT": "💵"}
+    icons = {"TON": "🔷", "USDT": "💵"}   # کلیدهای coin_ton / coin_usdt در پنل ایموجی
     lines = "\n".join(f"{icons[a]} <b>{q['amount']} {a}</b>" for a, q in quotes.items())
     body = texts.CRYPTO_PICK.format(amount=f"{amount:,}", lines=lines)
     kb = keyboards.crypto_assets(amount, quotes)
