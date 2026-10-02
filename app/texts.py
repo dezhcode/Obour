@@ -1975,6 +1975,8 @@ TXN_KIND = {
     "purchase": "خرید یا تمدید سرویس",
     "referral": "پاداش معرفی",
     "admin_adjust": "تغییر دستی ادمین",
+    "ai_purchase": "خرید هوش مصنوعی",
+    "refund": "برگشت وجه",
 }
 
 TXN_STATUS = {

@@ -78,6 +78,22 @@ def _timeline(txn: dict) -> str:
     return "\n".join(lines)
 
 
+async def _pay_lines(db: Database, txn: dict) -> str:
+    """روش پرداخت و جزئیاتش (کارت، TON/USDT، Stars، موجودی کیف پول)."""
+    from app.services import txinfo
+
+    full = await db.transaction_full(txn["id"]) or txn
+    p = txinfo.info(full)
+    if not p["label"]:
+        return ""
+    out = f"💳 {_t('روش پرداخت')}: \u2068{esc(_t(p['label']))}\u2069\n"
+    for k, v in p["details"]:
+        out += f"├ {_t(k)}: \u2068{esc(v)}\u2069\n"
+    if p["tx_url"]:
+        out += f'├ <a href="{esc(p["tx_url"])}">{_t("مشاهده در tonviewer")}</a>\n'
+    return out + "\n"
+
+
 async def _show_txn(message: Message, db: Database, txn: dict) -> None:
     note = ""
     if txn["type"] == "charge" and txn["status"] == "pending" and txn.get("receipt_file_id"):
@@ -85,6 +101,7 @@ async def _show_txn(message: Message, db: Database, txn: dict) -> None:
         note = texts.TRACK_QUEUE.format(pos=pos)
     if txn["status"] in ("rejected", "failed") and txn.get("reject_reason"):
         note += texts.TRACK_REJECT.format(reason=esc(txn["reject_reason"]))
+    note += await _pay_lines(db, txn)
     await edit_or_send(
         message,
         texts.TRACK_TXN.format(
@@ -237,6 +254,8 @@ async def txt_track_code(
 async def _history(
     message: Message, db: Database, user: dict, kind: str, page: int
 ) -> None:
+    from app.services import txinfo
+
     real_kind = None if kind == "all" else kind
     total = await db.count_transactions(user["id"], real_kind)
     items = await db.user_transactions(
@@ -256,11 +275,12 @@ async def _history(
     # همان قالب متنی قبلی برمی گردیم - کاربر چیزی از دست نمی دهد.
     try:
         rich = richtable.table(
-            headers=[_t("نوع"), _t("مبلغ"), _t("کد"), _t("تاریخ"), _t("وضعیت")],
+            headers=[_t("نوع"), _t("مبلغ"), _t("روش"), _t("کد"), _t("تاریخ"), _t("وضعیت")],
             rows=[
                 [
                     texts.TXN_KIND.get(t["type"], t["type"]),
                     _amount(t),
+                    _t(txinfo.info(t)["label"]) or "—",
                     str(t.get("code") or t["id"]),
                     fmt_dt(t["created_at"]),
                     texts.TXN_STATUS.get(t["status"], t["status"]),
@@ -281,7 +301,8 @@ async def _history(
             amount=_amount(t),
             code=t.get("code") or t["id"],
             when=fmt_dt(t["created_at"]),
-            status=texts.TXN_STATUS.get(t["status"], t["status"]),
+            status=texts.TXN_STATUS.get(t["status"], t["status"])
+            + (f" · {_t(txinfo.info(t)['label'])}" if txinfo.info(t)["label"] else ""),
         )
         for t in items
     ]

@@ -554,7 +554,7 @@ def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000), crypto
     rows = [3, 2]
     other = []
     if crypto:
-        _add(kb, "🔷 پرداخت با TON / USDT", callback_data="cw")
+        _crypto_btn(kb)
         other.append(1)
     if stars:
         _add(kb, "⭐ شارژ با Stars", callback_data="sw")
@@ -566,12 +566,27 @@ def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000), crypto
     return kb.as_markup()
 
 
+def _crypto_btn(kb: InlineKeyboardBuilder, style: str | None = None) -> None:
+    """شارژ با TON / USDT فقط از مینی اپ: کیف پول با TON Connect همان جا وصل
+    می شود و فاکتور با نرخ لحظه ای ساخته می شود. اگر مینی اپ خاموش باشد
+    (آدرس https ندارد)، همان مسیر قدیمی داخل ربات می ماند."""
+    from app import webapp as _webapp
+
+    url = _webapp.url()
+    if url:
+        from aiogram.types import WebAppInfo
+
+        _add(kb, "🔷 شارژ با TON / USDT", style=style, web_app=WebAppInfo(url=f"{url}#crypto"))
+    else:
+        _add(kb, "🔷 شارژ با TON / USDT", style=style, callback_data="cw")
+
+
 def wallet_methods(crypto: bool, stars: bool) -> InlineKeyboardMarkup:
     """کیف پول کاربر غیر فارسی: کارت به کارت ندارد، فقط کریپتو و Stars."""
     kb = InlineKeyboardBuilder()
     rows = []
     if crypto:
-        _add(kb, "🔷 پرداخت با TON / USDT", style=PRIMARY, callback_data="cw")
+        _crypto_btn(kb, PRIMARY)
         rows.append(1)
     if stars:
         _add(kb, "⭐ شارژ با Stars", style=PRIMARY, callback_data="sw")
@@ -629,17 +644,19 @@ def crypto_assets(amount: int, quotes: dict) -> InlineKeyboardMarkup:
 def crypto_invoice_kb(inv: dict, link: str, address: str, amount: str, webapp_url: str = "") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     rows = []
-    _add(kb, "🔷 پرداخت با Tonkeeper", style=SUCCESS, url=link)
-    rows.append(1)
     if webapp_url:
+        # پرداخت فقط از مینی اپ: Tonkeeper و بقیه کیف پول ها با TON Connect
+        # همان جا وصل می شوند و مبلغ و کامنت خودکار پر می شود.
         from aiogram.types import WebAppInfo
 
-        _add(kb, "📱 پرداخت با TON Connect", web_app=WebAppInfo(url=webapp_url))
+        _add(kb, "🔷 پرداخت با Tonkeeper", style=SUCCESS, web_app=WebAppInfo(url=webapp_url))
         rows.append(1)
-    _add(kb, "کپی آدرس", copy_text=CopyTextButton(text=address))
-    _add(kb, "کپی مبلغ", copy_text=CopyTextButton(text=amount))
-    _add(kb, "کپی کامنت", copy_text=CopyTextButton(text=inv["code"]))
-    rows.append(3)
+    else:
+        _add(kb, "🔷 پرداخت با Tonkeeper", style=SUCCESS, url=link)
+        _add(kb, "کپی آدرس", copy_text=CopyTextButton(text=address))
+        _add(kb, "کپی مبلغ", copy_text=CopyTextButton(text=amount))
+        _add(kb, "کپی کامنت", copy_text=CopyTextButton(text=inv["code"]))
+        rows += [1, 3]
     _add(kb, "🔄 بررسی پرداخت", callback_data=f"cw:chk:{inv['id']}")
     _add(kb, "❌ انصراف", style=DANGER, callback_data=f"cw:x:{inv['id']}")
     rows.append(2)

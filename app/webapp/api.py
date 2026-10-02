@@ -312,6 +312,8 @@ async def wallet(
     user = await _require_user(db, wuser)
     limit = 12
     offset = max(0, min(offset, 5000))
+    from app.services import txinfo
+
     rows = await db.user_transactions(user["id"], limit=limit, offset=offset, kind=kind)
     total = await db.count_transactions(user["id"], kind=kind)
 
@@ -325,6 +327,7 @@ async def wallet(
             "code": row.get("code") or track_code("OB", row["id"]),
             "created_at": row["created_at"],
             "reject_reason": row.get("reject_reason") or "",
+            "pay": txinfo.info(row),
         })
     return {
         "balance": int(user["balance"]),
@@ -852,9 +855,14 @@ async def crypto_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
     user = await _require_user(db, wuser)
     if not crypto_svc.allowed_for(wuser.id) or not await payments_svc.is_on(db, payments_svc.CRYPTO):
         return {"enabled": False}
+    from app.services import market
+
+    mq = await market.fresh(db, max_age=60)
     r = await crypto_svc.rates(db)
     prev = await db.open_crypto_invoice(user["id"])
     bot_username = await db.get_setting("bot_username", "")
+    manual = {a: bool(int(float((await db.get_setting(k, "0") or "0").replace(",", "") or 0)))
+              for a, k in ((crypto_svc.TON, "crypto_ton_rate"), (crypto_svc.USDT, "crypto_usdt_rate"))}
     return {
         "enabled": True,
         "rates": {a: v for a, v in r.items() if v},
@@ -867,6 +875,9 @@ async def crypto_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
         "address": crypto_svc.pay_address(),
         "return_url": f"https://t.me/{bot_username}" if bot_username else "",
         "open": crypto_svc.public(prev) if prev else None,
+        # منبع نرخ هر ارز برای نمایش به کاربر پیش از ساخت فاکتور
+        "rate_src": {a: ("manual" if manual.get(a) else "market") for a in r},
+        "rate_at": int(mq.get("at") or 0) if mq else 0,
     }
 
 

@@ -252,6 +252,20 @@ async def has_rate(db: "Database", asset: str) -> bool:
     return bool(q.get(asset)) and not q.get("stale")
 
 
+async def fresh(db: "Database", max_age: int = 60) -> dict:
+    """قیمت بازار تازه تر از max_age ثانیه؛ پیش از ساخت فاکتور و نمایش نرخ.
+
+    اگر نرخ خودکار خاموش باشد کاری نمی کند. خطای tgju هم مانع نمی شود:
+    همان آخرین قیمت سالم (تا MAX_AGE) برمی گردد.
+    """
+    if not await auto_on(db):
+        return {}
+    q = _cache["data"]
+    if q and q.get("ok") and time.time() - float(_cache["at"]) < max_age:
+        return q
+    return await quote(db, force=True)
+
+
 async def auto_rate(db: "Database", asset: str) -> int:
     """نرخ خودکار یک ارز (usd | usdt | ton) به تومان؛ ۰ یعنی خودکار خاموش یا نامعلوم."""
     if not await auto_on(db):
