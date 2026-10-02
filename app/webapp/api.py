@@ -879,6 +879,8 @@ async def crypto_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
         # منبع نرخ هر ارز برای نمایش به کاربر پیش از ساخت فاکتور
         "rate_src": {a: ("manual" if manual.get(a) else "market") for a in r},
         "rate_at": int(mq.get("at") or 0) if mq else 0,
+        # قیمت تون به تتر؛ نرخ تومانی تون = این عدد × نرخ تتر بازار
+        "ton_usdt": float(mq.get("ton_usdt") or 0) if mq and not manual.get(crypto_svc.TON) else 0,
     }
 
 
