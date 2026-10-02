@@ -846,21 +846,49 @@ class Database:
         offset: int = 0,
         kind: str | None = None,
     ) -> list[dict]:
-        """سوابق مالی کاربر. kind: charge | purchase | referral | None (همه)."""
-        sql = "SELECT * FROM transactions WHERE user_id = ?"
+        """سوابق مالی کاربر. kind: charge | purchase | referral | None (همه).
+
+        خرید هوش مصنوعی هم جزو purchase حساب می شود. اطلاعات روش پرداخت
+        (فاکتور کریپتو، Stars و سفارش هوش مصنوعی مربوط) کنار هر ردیف می آید.
+        """
+        sql = """SELECT t.*, ci.asset AS cx_asset, ci.units AS cx_units, ci.paid_units AS cx_paid,
+                        ci.payer AS cx_payer, ci.tx_hash AS cx_hash, ci.code AS cx_code,
+                        si.stars AS st_stars, ao.title AS ai_title, ao.code AS ai_code
+                 FROM transactions t
+                 LEFT JOIN crypto_invoices ci ON ci.txn_id = t.id
+                 LEFT JOIN stars_invoices si ON si.txn_id = t.id
+                 LEFT JOIN ai_orders ao ON ao.txn_id = t.id
+                 WHERE t.user_id = ?"""
         params: list = [user_id]
-        if kind:
-            sql += " AND type = ?"
+        if kind == "purchase":
+            sql += " AND t.type IN ('purchase', 'ai_purchase')"
+        elif kind:
+            sql += " AND t.type = ?"
             params.append(kind)
-        sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+        sql += " ORDER BY t.id DESC LIMIT ? OFFSET ?"
         params += [limit, offset]
         rows = await self.fetchall(sql, tuple(params))
         return [dict(r) for r in rows]
 
+    async def transaction_full(self, txn_id: int) -> dict | None:
+        """یک تراکنش با اطلاعات روش پرداخت (همان ستون های user_transactions)."""
+        row = await self.fetchone(
+            """SELECT t.*, ci.asset AS cx_asset, ci.units AS cx_units, ci.paid_units AS cx_paid,
+                      ci.payer AS cx_payer, ci.tx_hash AS cx_hash, ci.code AS cx_code,
+                      si.stars AS st_stars, ao.title AS ai_title, ao.code AS ai_code
+               FROM transactions t
+               LEFT JOIN crypto_invoices ci ON ci.txn_id = t.id
+               LEFT JOIN stars_invoices si ON si.txn_id = t.id
+               LEFT JOIN ai_orders ao ON ao.txn_id = t.id
+               WHERE t.id = ?""", (txn_id,))
+        return dict(row) if row else None
+
     async def count_transactions(self, user_id: int, kind: str | None = None) -> int:
         sql = "SELECT COUNT(*) AS n FROM transactions WHERE user_id = ?"
         params: list = [user_id]
-        if kind:
+        if kind == "purchase":
+            sql += " AND type IN ('purchase', 'ai_purchase')"
+        elif kind:
             sql += " AND type = ?"
             params.append(kind)
         row = await self.fetchone(sql, tuple(params))

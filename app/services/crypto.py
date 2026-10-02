@@ -355,6 +355,10 @@ async def create_invoice(db: "Database", user: dict, toman: int, asset: str, sou
         return {"ok": False, "error": TOO_SMALL, "min": min_c}
     if toman > charge_svc.MAX_CHARGE:
         return {"ok": False, "error": TOO_LARGE}
+    # پیش از قفل کردن نرخ روی فاکتور، قیمت بازار (tgju) تازه خوانده می شود
+    from app.services import market
+
+    await market.fresh(db, max_age=60)
     r = await rates(db)
     if not r.get(asset):
         return {"ok": False, "error": NO_RATE}
