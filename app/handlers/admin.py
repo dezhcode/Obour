@@ -3219,3 +3219,53 @@ async def cmd_webapp_banner(
 
     await db.set_setting("webapp_ai_banner", "1")
     await message.answer(f"✅ بنر نشست ({note}). بخش هوش مصنوعی مینی اپ را ببین.")
+
+
+# ═══════════════════ نرخ بازار (tgju.org) ═══════════════════
+
+
+async def _market_text(db: Database, q: dict | None = None) -> str:
+    from datetime import datetime as _dt
+
+    from app.services import market
+    from app.utils import TZ
+
+    auto = await market.auto_on(db)
+    q = q if q is not None else await market.last(db)
+
+    def val(k: str) -> str:
+        return f"{int(q.get(k) or 0):,} تومان" if q.get(k) else "نامعلوم"
+
+    at = int(q.get("at") or 0)
+    when = _dt.fromtimestamp(at, TZ).strftime("%H:%M") if at else "هنوز خوانده نشده"
+    manual = {k: int(float((await db.get_setting(f, "0") or "0").replace(",", "") or 0))
+              for k, f in (("usd", "ai_usd_rate"), ("usdt", "crypto_usdt_rate"), ("ton", "crypto_ton_rate"))}
+    used = lambda k: "دستی" if manual[k] else ("خودکار" if auto else "خاموش")  # noqa: E731
+    status = "🟢 روشن" if auto else "⚪️ خاموش"
+    err = f"\n⚠️ آخرین تلاش: {q.get('error')}" if q.get("error") else ""
+    return (
+        "╮── 📈 نرخ بازار آزاد (tgju.org)\n"
+        f"│   نرخ خودکار: {status}\n\n"
+        f"💵 دلار: {val('usd')} · {used('usd')}\n"
+        f"🪙 تتر: {val('usdt')} · {used('usdt')}\n"
+        f"💎 تون کوین: {val('ton')} · {used('ton')}\n\n"
+        f"🕒 آخرین به روزرسانی: {when}{' (کهنه)' if q.get('stale') else ''}{err}\n\n"
+        "هر نرخی که در تنظیمات صفر باشد از همین جا خوانده می شود:\n"
+        "• نرخ دلار هوش مصنوعی ← دلار\n• نرخ تتر و TON کریپتو ← تتر و تون\n"
+        "╰─ نرخ دستی (غیر صفر) همیشه اولویت دارد."
+    )
+
+
+@router.callback_query(F.data.in_({"adm:mkt", "adm:mkt:r", "adm:mkt:t"}))
+async def cb_market(call: CallbackQuery, db: Database) -> None:
+    from app.services import market
+
+    q = None
+    if call.data == "adm:mkt:t":
+        await market.set_auto(db, not await market.auto_on(db))
+    if call.data == "adm:mkt:r":
+        await call.answer("در حال خواندن از tgju…")
+        q = await market.quote(db, force=True)
+    await edit_or_send(call.message, await _market_text(db, q), keyboards.admin_market_kb(await market.auto_on(db)))
+    if call.data != "adm:mkt:r":
+        await call.answer()

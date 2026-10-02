@@ -1128,6 +1128,15 @@ def admin_broadcast_plan_pick_kb(plans: list[dict]) -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
+def admin_market_kb(auto: bool) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    _add(kb, "🔄 به روزرسانی همین حالا", style=PRIMARY, callback_data="adm:mkt:r")
+    _add(kb, ("🟢 نرخ خودکار: روشن" if auto else "⚪️ نرخ خودکار: خاموش"), callback_data="adm:mkt:t")
+    _add(kb, "🔙 تنظیمات", callback_data="adm:set")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
 def admin_setting_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     _add(kb, "💳 شماره کارت", callback_data="adm:set:card_number")
@@ -1138,6 +1147,7 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _add(kb, "💵 نرخ تتر", callback_data="adm:set:crypto_usdt_rate")
     _add(kb, "💎 نرخ TON", callback_data="adm:set:crypto_ton_rate")
     _add(kb, "➗ کارمزد کریپتو", callback_data="adm:set:crypto_fee_percent")
+    _add(kb, "📈 نرخ بازار (tgju)", callback_data="adm:mkt")
     _add(kb, "🌐 گروه های پنل", callback_data="adm:groups")
     _add(kb, "🎨 ایموجی ها", callback_data="adm:emo")
     _add(kb, "♨️ قوانین", callback_data="adm:rules")

@@ -256,8 +256,8 @@ async def _ton_usd() -> float:
 async def rates(db: "Database") -> dict[str, int]:
     """تومان برای هر ۱ واحد از هر ارز. ۰ یعنی این ارز فعلا قابل پرداخت نیست.
 
-    نرخ تتر را ادمین تعیین می کند (بازار ایران API قابل اعتماد ندارد).
-    نرخ TON اگر دستی تعیین نشده باشد از قیمت دلاری TON × نرخ تتر ساخته
+    نرخ دستی ادمین اول؛ اگر صفر باشد نرخ خودکار tgju.org (app/services/market).
+    نرخ TON اگر نه دستی بود نه در tgju، از قیمت دلاری TON × نرخ تتر ساخته
     می شود.
     """
     def _int(v: str) -> int:
@@ -266,8 +266,11 @@ async def rates(db: "Database") -> dict[str, int]:
         except ValueError:
             return 0
 
-    usdt = _int(await db.get_setting("crypto_usdt_rate", "0"))
-    ton = _int(await db.get_setting("crypto_ton_rate", "0"))
+    from app.services import market
+
+    # نرخ دستی ادمین اولویت دارد؛ ۰ یعنی خودکار از tgju (اگر روشن باشد)
+    usdt = _int(await db.get_setting("crypto_usdt_rate", "0")) or await market.auto_rate(db, "usdt")
+    ton = _int(await db.get_setting("crypto_ton_rate", "0")) or await market.auto_rate(db, "ton")
     if not ton and usdt:
         ton = int(round(await _ton_usd() * usdt))
     return {TON: ton, USDT: usdt if usdt_master() else 0}
@@ -299,14 +302,16 @@ def allowed_for(telegram_id: int | None) -> bool:
 
 
 async def configured(db: "Database") -> bool:
-    """آدرس هست و دست کم یک نرخ تعیین شده (بدون خواندن قیمت از اینترنت)."""
+    """دست کم یک نرخ دستی، یا نرخ خودکار tgju معلوم است (بدون خواندن از اینترنت)."""
     for key in ("crypto_usdt_rate", "crypto_ton_rate"):
         try:
             if float((await db.get_setting(key, "0") or "0").replace(",", "")) > 0:
                 return True
         except ValueError:
             pass
-    return False
+    from app.services import market
+
+    return await market.has_rate(db, "usdt") or await market.has_rate(db, "ton")
 
 
 def to_units(toman: int, rate: int, asset: str, fee: float = 0.0) -> int:

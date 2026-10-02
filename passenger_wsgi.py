@@ -13,6 +13,7 @@
   GET   /app/api/<n>              داده مینی اپ (فقط خواندنی، فاز یک)
   GET   /cron?key=..              اجرای کارهای دوره ای (هشدارها، پاکسازی)
   GET   /img/<name>               تصویرهای داخل ربات (app/assets)
+  GET   /rates                    نرخ دلار، تتر و تون از tgju.org (JSON، تومان)
   GET   /status?key=SECRET        وضعیت کامل
   GET   /setwebhook?key=SECRET    ثبت وبهوک روی تلگرام + فهرست دستورها
   GET   /setcommands?key=SECRET   ثبت فقط فهرست دستورها
@@ -289,6 +290,20 @@ def application(environ, start_response):  # noqa: ANN001, ANN201
 
             logging.getLogger("obour.wsgi").warning("گرم کردن ناموفق", exc_info=True)
         return _respond(start_response, "200 OK", f"obour: ok ({warm})")
+
+    if path == "/rates" and method == "GET":
+        # API نرخ بازار آزاد از tgju.org: دلار، تتر و تون به تومان.
+        # عمومی و فقط خواندنی؛ پنج دقیقه کش می شود تا tgju را بمباران نکنیم.
+        try:
+            runtime.ensure_started()
+            from app.services import market
+
+            q = runtime.run(market.quote(runtime.db), timeout=30)
+            return _respond(start_response, "200 OK", json.dumps(market.public(q), ensure_ascii=False),
+                            "application/json; charset=utf-8")
+        except Exception as exc:  # noqa: BLE001
+            return _respond(start_response, "503 Service Unavailable",
+                            json.dumps({"error": str(exc)[:200]}, ensure_ascii=False), "application/json; charset=utf-8")
 
     if path == "/status":
         if not _authorized(environ):
