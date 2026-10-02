@@ -2085,6 +2085,127 @@ class Database:
         )
         return dict(row) if row else {}
 
+    # ---------- مانیتورینگ پنل ادمین مینی اپ ----------
+    async def admin_users(
+        self, page: int = 0, per_page: int = 30, flt: str = "all", sort: str = "recent", q: str = ""
+    ) -> tuple[list[dict], int]:
+        """همه کاربران با فیلتر و مرتب سازی. flt: all | active | nosvc | blocked."""
+        where, params = [], []
+        if flt == "active":
+            where.append("EXISTS (SELECT 1 FROM services s WHERE s.user_id = u.id AND s.is_active = 1 AND s.expire_at > ?)")
+            params.append(now_str())
+        elif flt == "nosvc":
+            where.append("NOT EXISTS (SELECT 1 FROM services s WHERE s.user_id = u.id)")
+        elif flt == "blocked":
+            where.append("u.is_blocked = 1")
+        if q:
+            where.append("(u.first_name LIKE ? OR u.username LIKE ? OR CAST(u.telegram_id AS TEXT) LIKE ?)")
+            params += [f"%{q}%", f"%{q.lstrip('@')}%", f"{q}%"]
+        cond = (" WHERE " + " AND ".join(where)) if where else ""
+        orders = {"recent": "u.id DESC", "balance": "u.balance DESC", "spent": "spent DESC", "services": "svc DESC"}
+        rows = await self.fetchall(
+            f"""SELECT u.*,
+                   (SELECT COUNT(*) FROM services s WHERE s.user_id = u.id) AS svc,
+                   (SELECT COUNT(*) FROM services s WHERE s.user_id = u.id AND s.is_active = 1 AND s.expire_at > ?) AS svc_on,
+                   (SELECT COUNT(*) FROM ai_orders a WHERE a.user_id = u.id) AS ai_n,
+                   (SELECT COALESCE(SUM(-amount), 0) FROM transactions t
+                     WHERE t.user_id = u.id AND t.type IN ('purchase', 'ai_purchase') AND t.status = 'approved') AS spent
+                FROM users u{cond}
+                ORDER BY {orders.get(sort, orders['recent'])}
+                LIMIT ? OFFSET ?""",
+            (now_str(), *params, per_page, page * per_page),
+        )
+        total = await self.fetchone(f"SELECT COUNT(*) AS n FROM users u{cond}", tuple(params))
+        return [dict(r) for r in rows], (total["n"] or 0)
+
+    async def admin_services(
+        self, page: int = 0, per_page: int = 30, flt: str = "active", q: str = "", user_id: int | None = None
+    ) -> tuple[list[dict], int]:
+        """سرویس ها با صاحب و آخرین عکس مصرف. flt: active | expiring | expired | all."""
+        now = now_str()
+        where, params = ["s.is_active = 1"], []
+        if flt == "active":
+            where.append("s.expire_at > ?"); params.append(now)
+        elif flt == "expiring":
+            from datetime import timedelta
+            soon = (datetime.now(TZ) + timedelta(days=3)).isoformat(timespec="seconds")
+            where.append("s.expire_at > ? AND s.expire_at <= ?"); params += [now, soon]
+        elif flt == "expired":
+            where.append("s.expire_at <= ?"); params.append(now)
+        if user_id:
+            where.append("s.user_id = ?"); params.append(user_id)
+        if q:
+            where.append("(s.label LIKE ? OR s.panel_username LIKE ? OR u.first_name LIKE ? OR u.username LIKE ? OR CAST(u.telegram_id AS TEXT) LIKE ?)")
+            params += [f"%{q}%", f"%{q}%", f"%{q}%", f"%{q.lstrip('@')}%", f"{q}%"]
+        cond = " WHERE " + " AND ".join(where)
+        order = "s.expire_at ASC" if flt in ("expiring", "active") else "s.id DESC"
+        rows = await self.fetchall(
+            f"""SELECT s.*, u.telegram_id, u.first_name, u.username, p.title AS plan_title, p.price AS plan_price,
+                   (SELECT used_bytes FROM usage_daily d WHERE d.service_id = s.id ORDER BY day DESC LIMIT 1) AS snap_used,
+                   (SELECT data_limit FROM usage_daily d WHERE d.service_id = s.id ORDER BY day DESC LIMIT 1) AS snap_limit
+                FROM services s JOIN users u ON u.id = s.user_id
+                LEFT JOIN plans p ON p.id = s.plan_id{cond}
+                ORDER BY {order} LIMIT ? OFFSET ?""",
+            (*params, per_page, page * per_page),
+        )
+        total = await self.fetchone(
+            f"SELECT COUNT(*) AS n FROM services s JOIN users u ON u.id = s.user_id{cond}", tuple(params))
+        return [dict(r) for r in rows], (total["n"] or 0)
+
+    async def admin_ai_orders(
+        self, page: int = 0, per_page: int = 30, status: str = "", user_id: int | None = None
+    ) -> tuple[list[dict], int]:
+        where, params = [], []
+        if status == "open":
+            where.append("a.status IN ('pending', 'processing', 'unknown')")
+        elif status:
+            where.append("a.status = ?"); params.append(status)
+        if user_id:
+            where.append("a.user_id = ?"); params.append(user_id)
+        cond = (" WHERE " + " AND ".join(where)) if where else ""
+        rows = await self.fetchall(
+            f"""SELECT a.*, u.telegram_id, u.first_name, u.username FROM ai_orders a
+                JOIN users u ON u.id = a.user_id{cond} ORDER BY a.id DESC LIMIT ? OFFSET ?""",
+            (*params, per_page, page * per_page),
+        )
+        total = await self.fetchone(f"SELECT COUNT(*) AS n FROM ai_orders a{cond}", tuple(params))
+        return [dict(r) for r in rows], (total["n"] or 0)
+
+    async def admin_purchases(self, page: int = 0, per_page: int = 30, kind: str = "all") -> tuple[list[dict], int]:
+        """خریدهای موفق (سرویس و هوش مصنوعی) با خریدار، تازه ترین اول."""
+        types = {"service": "('purchase')", "ai": "('ai_purchase')"}.get(kind, "('purchase', 'ai_purchase')")
+        cond = f" WHERE t.type IN {types} AND t.status = 'approved'"
+        rows = await self.fetchall(
+            f"""SELECT t.*, u.telegram_id, u.first_name, u.username,
+                   a.id AS ai_id, a.title AS ai_title, a.code AS ai_code, a.status AS ai_status
+                FROM transactions t JOIN users u ON u.id = t.user_id
+                LEFT JOIN ai_orders a ON a.txn_id = t.id{cond}
+                ORDER BY t.id DESC LIMIT ? OFFSET ?""",
+            (per_page, page * per_page),
+        )
+        total = await self.fetchone(f"SELECT COUNT(*) AS n FROM transactions t{cond}")
+        return [dict(r) for r in rows], (total["n"] or 0)
+
+    async def admin_monitor_stats(self) -> dict:
+        """عددهای داشبورد مانیتورینگ."""
+        from datetime import timedelta
+        now = now_str()
+        today = datetime.now(TZ).date().isoformat()
+        soon = (datetime.now(TZ) + timedelta(days=3)).isoformat(timespec="seconds")
+        row = await self.fetchone(
+            """SELECT
+                 (SELECT COUNT(*) FROM services WHERE is_active = 1 AND expire_at > ? AND expire_at <= ?) AS expiring,
+                 (SELECT COUNT(*) FROM ai_orders WHERE status IN ('pending', 'processing', 'unknown')) AS ai_open,
+                 (SELECT COUNT(*) FROM ai_orders WHERE substr(created_at, 1, 10) = ?) AS ai_today,
+                 (SELECT COALESCE(SUM(-amount), 0) FROM transactions
+                   WHERE type = 'ai_purchase' AND status = 'approved' AND substr(created_at, 1, 10) = ?) AS ai_sales_today,
+                 (SELECT COUNT(*) FROM transactions
+                   WHERE type IN ('purchase', 'ai_purchase') AND status = 'approved' AND substr(created_at, 1, 10) = ?) AS buys_today,
+                 (SELECT COUNT(*) FROM users WHERE substr(created_at, 1, 10) = ?) AS users_today""",
+            (now, soon, today, today, today, today),
+        )
+        return dict(row) if row else {}
+
     async def ai_sales(self) -> dict[str, int]:
         """تعداد فروش موفق هر محصول فروشگاه؛ برای انتخاب ویترین هر دسته."""
         rows = await self.fetchall(
