@@ -37,7 +37,7 @@ from app.db import Database
 
 # کلید تنظیمات -> (عنوان فارسی، پیش فرض، توضیح)
 FIELDS: dict[str, tuple[str, str, str]] = {
-    "ai_usd_rate": ("نرخ دلار (تومان)", "0", "قیمت هر دلار به تومان"),
+    "ai_usd_rate": ("نرخ دلار (تومان)", "0", "قیمت هر دلار به تومان؛ ۰ یعنی خودکار از tgju.org"),
     "ai_vnd_rate": ("نرخ دونگ ویتنام (تومان)", "0",
                     "تومان به ازای هر ۱ دونگ، اگر کیف پول canboso دونگی است (مثلا 4.1)"),
     "ai_markup_toman": ("سود ثابت (تومان)", "0",
@@ -78,6 +78,11 @@ async def load(db: Database) -> dict[str, float]:
             out[key] = float(str(raw).replace(",", "") or default)
         except (TypeError, ValueError):
             out[key] = float(default)
+    # نرخ دلار صفر یعنی خودکار از tgju.org (اگر روشن باشد)
+    if not out.get("ai_usd_rate"):
+        from app.services import market
+
+        out["ai_usd_rate"] = float(await market.auto_rate(db, "usd"))
     return out
 
 

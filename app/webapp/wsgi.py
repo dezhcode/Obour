@@ -259,7 +259,8 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                    "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
                    "/api/admin/plan", "/api/admin/setting", "/api/admin/feature",
-                   "/api/admin/pay", "/api/admin/ai/product", "/api/admin/ai/meta", "/api/admin/ai/image")
+                   "/api/admin/pay", "/api/admin/ai/product", "/api/admin/ai/meta", "/api/admin/ai/image",
+                   "/api/admin/market")
     if method == "POST":
         if path not in WRITE_PATHS:
             return _json(
@@ -737,6 +738,9 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             if name == "admin/feature":
                 return _json(start_response, runtime.run(admin_api.feature_set(
                     db, panel, wuser, key=str(body.get("key") or ""), on=bool(body.get("on"))), timeout=20))
+            if name == "admin/market":
+                return _json(start_response, runtime.run(admin_api.market_set(
+                    db, panel, wuser, action=str(body.get("action") or ""), on=bool(body.get("on"))), timeout=40))
             if name == "admin/pay":
                 return _json(start_response, runtime.run(admin_api.pay_set(
                     db, panel, wuser, key=str(body.get("key") or ""), on=bool(body.get("on"))), timeout=20))

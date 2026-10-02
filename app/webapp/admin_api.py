@@ -224,7 +224,37 @@ async def settings(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> 
                    "address": crypto_svc.pay_address(), "usdt": bool(crypto_svc.usdt_master())},
         "stars": await stars_svc.enabled(db),
         "pay": await payments_svc.switches(db),
+        "market": await _market_out(db),
     }
+
+
+async def _market_out(db: "Database", q: dict | None = None) -> dict:
+    from app.services import market
+
+    q = q if q is not None else await market.last(db)
+    manual = {}
+    for k, f in (("usd", "ai_usd_rate"), ("usdt", "crypto_usdt_rate"), ("ton", "crypto_ton_rate")):
+        try:
+            manual[k] = int(float((await db.get_setting(f, "0") or "0").replace(",", "") or 0))
+        except ValueError:
+            manual[k] = 0
+    return {**market.public(q), "auto": await market.auto_on(db), "manual": manual, "error": q.get("error") or ""}
+
+
+async def market_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, action: str, on: bool = True) -> dict:
+    """نرخ بازار: روشن/خاموش کردن نرخ خودکار یا خواندن دوباره از tgju."""
+    from app.services import market
+
+    _require_admin(wuser)
+    q = None
+    if action == "toggle":
+        await market.set_auto(db, bool(on))
+        log.info("ادمین %s نرخ خودکار tgju را %s کرد", wuser.id, "روشن" if on else "خاموش")
+    elif action == "refresh":
+        q = await market.quote(db, force=True)
+    else:
+        raise ApiError("کار نامعتبر", 400, "bad_request")
+    return await _market_out(db, q)
 
 
 async def setting_save(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, field: str, value: str) -> dict:
