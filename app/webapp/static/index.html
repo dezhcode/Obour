@@ -3946,7 +3946,7 @@ SubPages.adm_settings = async function(p){
 const AdminSettings = {
   /* نرخ بازار آزاد از tgju.org؛ هر نرخی که در تنظیمات صفر باشد از این جا می آید */
   marketHtml(m){
-    const used = k => m.manual[k] ? 'دستی' : (m.auto ? 'خودکار' : 'خاموش');
+    const used = k => m.manual[k] ? `در حال استفاده: دستی ${fa(m.manual[k])}` : (m.auto ? (m[k] ? 'در حال استفاده' : 'خودکار') : 'خاموش');
     const v = k => m[k] ? `<b class="n">${fa(m[k])}</b> <span>تومان</span> · <span style="color:var(--ink-3)">${used(k)}</span>` : `<span style="color:var(--ink-3)">نامعلوم · ${used(k)}</span>`;
     const when = m.updated_at ? N(jfull(new Date(m.updated_at * 1000).toISOString())) + (m.stale ? ' (کهنه)' : '') : 'هنوز خوانده نشده';
     return Sec('نرخ بازار (tgju.org)') + Group(`<div class="row"><span class="row-m"><span class="row-t">نرخ خودکار</span>
