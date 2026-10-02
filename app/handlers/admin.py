@@ -3240,7 +3240,10 @@ async def _market_text(db: Database, q: dict | None = None) -> str:
     when = _dt.fromtimestamp(at, TZ).strftime("%H:%M") if at else "هنوز خوانده نشده"
     manual = {k: int(float((await db.get_setting(f, "0") or "0").replace(",", "") or 0))
               for k, f in (("usd", "ai_usd_rate"), ("usdt", "crypto_usdt_rate"), ("ton", "crypto_ton_rate"))}
-    used = lambda k: "دستی" if manual[k] else ("خودکار" if auto else "خاموش")  # noqa: E731
+    def used(k: str) -> str:
+        if manual[k]:
+            return f"در حال استفاده: دستی {manual[k]:,}"
+        return "در حال استفاده" if auto and q.get(k) else ("خودکار" if auto else "خاموش")
     status = "🟢 روشن" if auto else "⚪️ خاموش"
     err = f"\n⚠️ آخرین تلاش: {q.get('error')}" if q.get("error") else ""
     return (
@@ -3252,7 +3255,7 @@ async def _market_text(db: Database, q: dict | None = None) -> str:
         f"🕒 آخرین به روزرسانی: {when}{' (کهنه)' if q.get('stale') else ''}{err}\n\n"
         "هر نرخی که در تنظیمات صفر باشد از همین جا خوانده می شود:\n"
         "• نرخ دلار هوش مصنوعی ← دلار\n• نرخ تتر و TON کریپتو ← تتر و تون\n"
-        "╰─ نرخ دستی (غیر صفر) همیشه اولویت دارد."
+        "╰─ نرخ دستی (غیر صفر) همیشه اولویت دارد؛ برای استفاده از tgju آن را ۰ کن."
     )
 
 

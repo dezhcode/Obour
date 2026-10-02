@@ -103,13 +103,33 @@ def parse(doc: dict, keys: dict[str, str] | None = None) -> dict:
             if isinstance(item, dict):
                 out["time"] = str(item.get("t") or item.get("ts") or "")
             break
+    if not 5_000 <= out["usd"] <= 20_000_000:
+        out["usd"] = 0                              # عدد بی معنی پایه تتر و تون نشود
 
-    # تتر: ریالی ترجیح دارد؛ قیمت دلاری (حدود ۱) به کار نمی آید
+    # تتر: هر کلیدی که به تتر می خورد بررسی می شود و واحدش از روی عدد
+    # حدس زده می شود (ریال، تومان یا دلار). قیمت بازار ایران (ریالی یا
+    # تومانی) بر قیمت دلاری × نرخ دلار ترجیح دارد؛ نزدیک ترین به نرخ دلار
+    # برنده است. قیمت دلاری تتر حدود ۱ است و فقط وقتی کلید ایرانی نیست
+    # استفاده می شود.
     k_t = keys.get("usdt")
-    hit = (k_t, _price(cur[k_t])) if k_t and k_t in cur else _pick(cur, USDT_PAT)
-    if hit and _is_rial(hit[0]):
-        out["usdt"] = int(round(hit[1] / 10))
-        out["keys"]["usdt"] = hit[0]
+    cands = [(k_t, _price(cur[k_t]))] if k_t and k_t in cur else \
+        [(k, _price(v)) for k, v in cur.items() if USDT_PAT.search(k) and _price(v) > 0]
+    best: tuple[int, float, int, str] | None = None     # (اولویت، فاصله، تومان، کلید)
+    for k, raw in cands:
+        options: list[tuple[int, float]] = []          # (اولویت، تومان)
+        if _is_rial(k):
+            options.append((0, raw / 10))
+        elif raw >= 1000:
+            options += [(0, raw / 10), (0, raw)]        # ریال یا تومان؛ نزدیک تر به دلار
+        elif raw < 100 and out["usd"]:
+            options.append((1, raw * out["usd"]))       # دلاری × نرخ دلار
+        for prio, tm in options:
+            dist = abs(tm / out["usd"] - 1) if out["usd"] else (0 if _is_rial(k) else 1)
+            cand = (prio, dist, int(round(tm)), k)
+            if best is None or cand[:2] < best[:2]:
+                best = cand
+    if best and (not out["usd"] or best[1] <= 0.4):
+        out["usdt"], out["keys"]["usdt"] = best[2], best[3]
 
     # تون: ریالی مستقیم؛ دلاری × نرخ تتر (یا دلار اگر تتر نبود)
     k_n = keys.get("ton")
