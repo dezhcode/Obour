@@ -868,6 +868,7 @@ async def crypto_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
         "rates": {a: v for a, v in r.items() if v},
         "fee": await crypto_svc.fee_percent(db),
         "decimals": {a: crypto_svc.decimals(a) for a in crypto_svc.ASSETS},
+        "round": {a: crypto_svc.ROUND_DECIMALS.get(a, 4) for a in crypto_svc.ASSETS},
         "min": await charge_svc.min_charge(db),
         "presets": list(charge_svc.PRESETS),
         "network": crypto_svc.network_id(),

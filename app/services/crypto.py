@@ -52,8 +52,11 @@ ASSETS = (TON, USDT)
 USDT_MAINNET = "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"
 # TON همراه انتقال جتون برای کارمزد شبکه؛ اضافه اش به کیف پول کاربر برمی گردد
 JETTON_ATTACH = 80_000_000
-# مبلغ فاکتور به این دقت گرد (رو به بالا) می شود: ۰٫۰۱ از هر ارز
-_ROUND_DECIMALS = 2
+# مبلغ فاکتور تا چند رقم اعشار گرد می شود (رو به بالا). قبلا ۲ رقم بود:
+# یعنی ۰٫۰۱ TON (حدود ۵ تا ۶ هزار تومان) روی هر فاکتور اضافه می شد و
+# قیمت دقیق نبود. با ۴ رقم خطا زیر ۶۰ تومان است؛ تطبیق پرداخت با کامنت
+# فاکتور است نه مبلغ، پس رقم های بیشتر مشکلی نمی سازد.
+ROUND_DECIMALS = {"TON": 4, "USDT": 4}
 
 # کد خطاها (API و ربات هر کدام متن خودشان را دارند)
 OFF = "off"
@@ -315,15 +318,19 @@ async def configured(db: "Database") -> bool:
 
 
 def to_units(toman: int, rate: int, asset: str, fee: float = 0.0) -> int:
-    """تومان -> کوچک ترین واحد ارز، گرد شده رو به بالا به ۰٫۰۱."""
+    """تومان -> کوچک ترین واحد ارز. قیمت = مبلغ × (۱ + کارمزد) ÷ نرخ، فقط کمی
+    رو به بالا گرد می شود (ROUND_DECIMALS)."""
     d = decimals(asset)
-    step = 10 ** max(0, d - _ROUND_DECIMALS)
+    step = 10 ** max(0, d - ROUND_DECIMALS.get(asset, 4))
     raw = toman * (1 + fee / 100) / rate * (10 ** d)
     return int(math.ceil(raw / step - 1e-9) * step)
 
 
 async def quote(db: "Database", toman: int) -> dict:
     """مبلغ هر ارز برای یک مبلغ تومانی، برای نمایش پیش از انتخاب."""
+    from app.services import market
+
+    await market.fresh(db, max_age=60)
     r = await rates(db)
     fee = await fee_percent(db)
     out = {}

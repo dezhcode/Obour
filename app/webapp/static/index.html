@@ -2606,8 +2606,9 @@ const Crypto = {
   quote(toman, asset){
     const d = this.info, rate = d.rates[asset];
     if (!rate || !toman) return '';
-    const v = Math.ceil((toman * (1 + (d.fee || 0) / 100) / rate) * 100 - 1e-9) / 100;
-    return v.toFixed(2).replace(/\.?0+$/, '');
+    const r = (d.round && d.round[asset]) || 4, k = 10 ** r;
+    const v = Math.ceil((toman * (1 + (d.fee || 0) / 100) / rate) * k - 1e-9) / k;
+    return v.toFixed(r).replace(/\.?0+$/, '');
   },
 
   step1(p){
