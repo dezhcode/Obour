@@ -261,7 +261,8 @@ async def fresh(db: "Database", max_age: int = 60) -> dict:
     if not await auto_on(db):
         return {}
     q = _cache["data"]
-    if q and q.get("ok") and time.time() - float(_cache["at"]) < max_age:
+    # تلاش ناموفق هم تا max_age تکرار نمی شود، وگرنه هر صفحه منتظر tgju می ماند
+    if q and time.time() - float(_cache["at"]) < max_age:
         return q
     return await quote(db, force=True)
 
