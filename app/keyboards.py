@@ -557,7 +557,7 @@ def wallet_amounts(presets: tuple[int, ...] = (50_000, 100_000, 200_000), crypto
         _add(kb, "💎 پرداخت با TON / USDT", callback_data="cw")
         other.append(1)
     if stars:
-        _add(kb, "⭐ پرداخت با Stars", callback_data="sw")
+        _add(kb, "⭐ شارژ با Stars", callback_data="sw")
         other.append(1)
     if len(other) == 2:
         other = [2]
@@ -574,7 +574,7 @@ def wallet_methods(crypto: bool, stars: bool) -> InlineKeyboardMarkup:
         _add(kb, "💎 پرداخت با TON / USDT", style=PRIMARY, callback_data="cw")
         rows.append(1)
     if stars:
-        _add(kb, "⭐ پرداخت با Stars", style=PRIMARY, callback_data="sw")
+        _add(kb, "⭐ شارژ با Stars", style=PRIMARY, callback_data="sw")
         rows.append(1)
     _btn(kb, "history", "سوابق من", callback_data="hist")
     _add(kb, "🔙 منوی اصلی", callback_data="menu")

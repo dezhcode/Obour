@@ -595,15 +595,11 @@ TEXTS.update({
 
 PHRASES.update({
     "نرخ ارزها هنوز تنظیم نشده. کمی بعد دوباره امتحان کن.": "Exchange rates aren't set yet. Try again a bit later.",
-    "پرداخت با Stars": "Pay with Stars",
     "کارت به کارت فقط برای کاربرهای ایران است. از TON / USDT یا Stars استفاده کن.": "Card transfer is only for users in Iran. Please use TON / USDT or Stars.",
-    "پرداخت با Stars فعلا فعال نیست.": "Paying with Stars isn't available right now.",
-    "سقف هر پرداخت با Stars {amount} تومانه.": "The maximum for one Stars payment is {amount} toman.",
     "{amount} تومان به کیف پول عبور اضافه می شود.": "{amount} toman will be added to your Obour wallet.",
     "این فاکتور معتبر نیست. از کیف پول دوباره شروع کن.": "This invoice isn't valid. Start again from your wallet.",
     "این فاکتور قبلا پرداخت شده.": "This invoice has already been paid.",
     # API (mini app)
-    "پرداخت با Stars فعلا فعال نیست": "Paying with Stars isn't available right now",
     "کارت به کارت فقط برای کاربرهای ایران است": "Card transfer is only for users in Iran",
     "فاکتور ستاره ساخته نشد، دوباره امتحان کن": "Couldn't create the Stars invoice, try again",
 })
@@ -684,4 +680,8 @@ PHRASES.update({
     "دریافت تصویر از canboso نشد": "Couldn't fetch the image from canboso",
     "فقط عکس JPG، PNG یا WEBP تا ۳ مگابایت": "Only JPG, PNG or WEBP images up to 3 MB",
     "خواندن محصولات نشد": "Couldn't read the products",
+    "شارژ با Stars": "Top up with Stars",
+    "شارژ با Stars فعلا فعال نیست.": "Topping up with Stars isn't available right now.",
+    "سقف هر شارژ با Stars {amount} تومانه.": "The maximum for one Stars top-up is {amount} toman.",
+    "شارژ با Stars فعلا فعال نیست": "Topping up with Stars isn't available right now",
 })
