@@ -3706,6 +3706,8 @@ SubPages.admin = async function(p){
               subColor: d.pending ? 'var(--help-i)' : '', fn:"App.go('adm_charges')" })
         + Row({ kind:'ai', icon:'list', title:'پلن‌ها', sub:'قیمت، حجم، مدت و روشن/خاموش', fn:"App.go('adm_plans')" })
         + Row({ kind:'ai', icon:'spark', title:'محصولات هوش مصنوعی', sub:'نمایش محصولات و موجودی کیف پول canboso', fn:"App.go('adm_ai')" })
+        + Row({ kind:'ai', icon:'spark', title:'دستیار هوشمند', sub: aiOn('admin') ? 'روشن · تست اتصال، گزارش و سقف روزانه' : 'خاموش: AI_API_KEY در فایل .env هاست تنظیم نشده',
+              subColor: aiOn('admin') ? '' : 'var(--help-i)', fn:"App.go('adm_settings'); setTimeout(() => { const b = $('adm-assist'); b && b.scrollIntoView({ behavior:'smooth' }); }, 900)" })
         + Row({ kind:'help', icon:'bolt', title:'تنظیمات', sub:'کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها', fn:"App.go('adm_settings')" }))}
       <div class="adm-note">ارسال همگانی، نظرسنجی، دسته‌ها، ایموجی‌ها و نرخ و سود هوش مصنوعی از پنل ربات (/admin) انجام می‌شود.</div>`;
   } catch (err) { p.innerHTML = Top('پنل مدیریت') + emptyBox('خوانده نشد', err.message); }
