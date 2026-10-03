@@ -2089,7 +2089,7 @@ async account(p){
 }
 };
 
-const APP_VERSION = '6.2.1';
+const APP_VERSION = '6.3.0';
 const Account = {
   /* زبان با ربات یکی است: همان ستون users.lang، پس انتخاب اینجا زبان
      ربات را هم عوض می کند. عوض کردنش صفحه را از نو می سازد. */
@@ -2392,7 +2392,7 @@ game(p){
   /* تم تیره هم رنگ بازی؛ برگشت با دکمه تلگرام یا دکمه بستن داخل بازی */
   try { tg.setHeaderColor('#06080E'); tg.setBackgroundColor('#06080E'); } catch(e){}
   /* مستقیم در #sub، نه داخل .page: انیمیشن ورود صفحه transform دارد و iframe ثابت را صفر ارتفاع می کرد */
-  $('sub').innerHTML = `<iframe class="game-frame" src="__BASE__game" title="عبور ریسر" allow="fullscreen"></iframe>`;
+  $('sub').innerHTML = `<iframe class="game-frame" src="__BASE__game" title="عبور ریسر" allow="fullscreen; autoplay"></iframe>`;
 },
 
 async detail(p, id){
