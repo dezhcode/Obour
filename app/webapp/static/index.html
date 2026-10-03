@@ -996,26 +996,37 @@ html[dir=ltr] .sw.on::after{transform:translateX(18px)}
 .reply-go svg{width:20px;height:20px}
 .reply-go[disabled]{opacity:.5}
 
-/* ═══ ناوبری شناور ═══ */
-#nav{position:absolute;z-index:40;left:var(--pad);right:var(--pad);bottom:calc(18px + var(--safe-b));height:var(--nav-h);
-  border-radius:var(--r-xl);background:var(--nav-bg);box-shadow:var(--shadow-pass);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0 6px;transition:transform .3s var(--ease)}
+/* ═══ ناوبری شناور: شفق هولوگرام + دنباله دار ═══
+   زمینه سرمه ای با لبه رنگین کمانی (هم خانواده کارت های اسلایدر). زیر تب
+   فعال یک خط نور مثل شهاب حرکت می کند: سر سفید زودتر می رسد و دم
+   صورتی فیروزه ای با تاخیر دنبالش کشیده می شود. */
+#nav{position:absolute;z-index:40;left:var(--pad);right:var(--pad);bottom:calc(18px + var(--safe-b));height:var(--nav-h);isolation:isolate;
+  border-radius:26px;background:radial-gradient(120% 140% at 100% 0%,#1B3A9E,#0B1A4F 55%,#050B24);box-shadow:0 20px 34px -18px rgba(5,11,36,.85);
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:0 6px;transition:transform .3s var(--ease)}
+#nav::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.2px;pointer-events:none;z-index:2;opacity:.85;
+  background:linear-gradient(135deg,#7FF3FF,#8A6CFF 40%,rgba(255,255,255,.08) 60%,#FF8AD8);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 #app.no-nav #nav{transform:translateY(140%)}
-.nav-i{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;color:var(--nav-icon)}
-.nav-i svg{width:22px;height:22px}
+.nav-i{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(230,238,255,.55);transition:color .35s}
+.nav-i svg{width:22px;height:22px;transition:transform .45s var(--spring),filter .35s}
 .nav-i:active svg{transform:scale(.88)}
-.nav-pill{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:16px;color:var(--ink);font-size:12px;font-weight:800}
-.nav-pill svg{width:18px;height:18px}
-.nav-l{animation:navIn .3s var(--ease) .06s both}
-@keyframes navIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
-/* قرص روشن تب فعال یک عنصر ثابت است که زیر تب ها سر می خورد؛ دکمه ها
-   هر بار از نو ساخته می شوند ولی این نه، تا جای قبلی اش را یادش بماند.
-   جا و پهنایش را App.placeNav از روی قرص تب فعال اندازه می گیرد. */
-.nav-ind{position:absolute;z-index:0;top:calc((var(--nav-h) - 40px) / 2);height:40px;left:0;width:0;border-radius:16px;background:var(--nav-on);
-  pointer-events:none;transition:left .45s var(--spring),width .45s var(--spring)}
-.nav-ind.still{transition:none}
-html.perf-low .nav-ind{transition:left .2s var(--ease),width .2s var(--ease)}
-html.perf-low .nav-l{animation:none}
-@media (prefers-reduced-motion:reduce){.nav-ind{transition:none}.nav-l{animation:none}}
+.nav-t{font-size:10.5px;font-weight:800;opacity:.8;transition:opacity .3s}
+.nav-i.on{color:#fff}
+.nav-i.on svg{transform:translateY(-3px);filter:drop-shadow(0 0 6px rgba(255,138,216,.8))}
+.nav-i.on .nav-t{opacity:1}
+/* شهاب: یک عنصر ثابت (هر بار از نو ساخته نمی شود) تا از جای قبلی حرکت کند.
+   App.placeNav مرکز تب فعال را در --x می گذارد. */
+.nav-comet{position:absolute;z-index:1;left:0;right:0;bottom:7px;height:3px;pointer-events:none}
+.nav-comet i{position:absolute;bottom:0;height:3px;border-radius:3px}
+.nav-comet .head{width:22px;left:calc(var(--x, -40px) - 11px);background:#fff;box-shadow:0 0 12px #7FF3FF,0 0 24px #7FF3FF;
+  transition:left .38s cubic-bezier(.2,.8,.2,1)}
+.nav-comet .tail{width:40px;left:calc(var(--x, -40px) - 20px);background:linear-gradient(90deg,#FF8AD8,#7FF3FF);opacity:.7;filter:blur(1px);
+  transition:left .75s cubic-bezier(.2,.8,.2,1)}
+.nav-comet.still i{transition:none}
+html.perf-low .nav-comet .head{transition:left .2s var(--ease)}
+html.perf-low .nav-comet .tail{transition:left .3s var(--ease);filter:none}
+html.perf-low .nav-i.on svg{filter:none}
+@media (prefers-reduced-motion:reduce){.nav-comet i,.nav-i svg{transition:none}}
 
 /* ═══ شیت ═══ */
 #scrim{position:absolute;inset:0;z-index:50;background:rgba(10,22,51,.42);opacity:0;pointer-events:none;transition:opacity .25s}
@@ -1372,24 +1383,20 @@ const App = {
   renderNav(){
     const nav = $('nav');
     let ind = $('nav-ind');
-    if (!ind) { nav.innerHTML = '<span class="nav-ind still" id="nav-ind" aria-hidden="true"></span>'; ind = $('nav-ind'); }
+    if (!ind) { nav.innerHTML = '<span class="nav-comet still" id="nav-ind" aria-hidden="true"><i class="tail"></i><i class="head"></i></span>'; ind = $('nav-ind'); }
     nav.querySelectorAll('.nav-i').forEach(b => b.remove());
-    nav.insertAdjacentHTML('beforeend', this.TABS.map(([k, l]) => k === this.tabName
-      ? `<button class="nav-i" onclick="App.tab('${k}')" aria-current="page"><span class="nav-pill">${ic(this.NAV_ICON[k],2)}<span class="nav-l">${l}</span></span></button>`
-      : `<button class="nav-i" onclick="App.tab('${k}')" aria-label="${l}">${ic(this.NAV_ICON[k])}</button>`).join(''));
+    nav.insertAdjacentHTML('beforeend', this.TABS.map(([k, l]) => `<button class="nav-i${k === this.tabName ? ' on' : ''}" onclick="App.tab('${k}')"${k === this.tabName ? ' aria-current="page"' : ''}>${ic(this.NAV_ICON[k], k === this.tabName ? 2.2 : 1.8)}<span class="nav-t">${l}</span></button>`).join(''));
     this.placeNav();
   },
 
-  /* قرص را زیر تب فعال می برد. بار اول (کلاس still) بی انیمیشن می نشیند.
-     پهنای قرص به طول نام تب بستگی دارد، پس بعد از رسیدن فونت هم دوباره
-     اندازه گرفته می شود. */
+  /* شهاب را زیر تب فعال می برد (مرکز دکمه -> --x). بار اول (کلاس still)
+     بی انیمیشن می نشیند. */
   placeNav(){
-    const nav = $('nav'), ind = $('nav-ind'), pill = nav && nav.querySelector('.nav-pill');
-    if (!ind || !pill || !pill.getBoundingClientRect) return;
-    const n = nav.getBoundingClientRect(), r = pill.getBoundingClientRect();
+    const nav = $('nav'), ind = $('nav-ind'), on = nav && nav.querySelector('.nav-i.on');
+    if (!ind || !on || !on.getBoundingClientRect) return;
+    const n = nav.getBoundingClientRect(), r = on.getBoundingClientRect();
     if (!r.width) return;
-    ind.style.left = (r.left - n.left) + 'px';
-    ind.style.width = r.width + 'px';
+    ind.style.setProperty('--x', (r.left - n.left + r.width / 2) + 'px');
     if (ind.classList.contains('still')) requestAnimationFrame(() => requestAnimationFrame(() => ind.classList.remove('still')));
   },
 
