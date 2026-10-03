@@ -312,6 +312,9 @@ def ai_shop_kb(items: list[dict] | None = None, back: str = "buy") -> InlineKeyb
         label = f"{x['name']} · {price}" if x["available"] else f"{x['name']} · " + _t("ناموجود")
         kb.button(text=label[:60], callback_data=f"ai:p:{x['id']}"[:64])
         rows.append(1)
+    if _ai_ready("ai_shop_help") and items:
+        _add(kb, "🔎 کمکم کن انتخاب کنم", style=PRIMARY, callback_data="ais")
+        rows.append(1)
     _btn(kb, "history", "سفارش های من", callback_data="ai:mine")
     _btn(kb, "back", "برگشت", callback_data=back)
     kb.adjust(*rows, 2)
@@ -773,6 +776,9 @@ def service_detail_kb(
 
     _btn(kb, "relink", "آپدیت و لینک جدید", callback_data=f"svc:relink:{service_id}")
     rows.append(1)
+    if _ai_ready("ai_recommend"):
+        _add(kb, "✨ پلن مناسب من چیه؟", callback_data="aip")
+        rows.append(1)
     if deletable:
         _btn(kb, "trash", "حذف سرویس", style=DANGER, callback_data=f"svc:del:{service_id}")
         rows.append(1)
@@ -956,6 +962,9 @@ def admin_charge_kb(txn_id: int, from_panel: bool = False) -> InlineKeyboardMark
     _add(kb, "❌ رد", style=DANGER, callback_data=f"chg:no:{txn_id}")
     _add(kb, "🔁 رسید تکراری", callback_data=f"chg:dup:{txn_id}")
     rows = [2, 1]
+    if _ai_ready():
+        _add(kb, "🔍 بررسی هوشمند رسید", callback_data=f"aircp:{txn_id}")
+        rows.append(1)
     if from_panel:
         _add(kb, "🔙 فهرست در انتظار", callback_data="adm:chg")
         rows.append(1)
@@ -1172,10 +1181,11 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _btn(kb, "winback", "پیام برگشت", callback_data="adm:wb")
     _btn(kb, "toggle", "بخش های ربات", callback_data="adm:feat")
     _btn(kb, "ai", "خدمات هوش مصنوعی", callback_data="adm:ai")
+    _add(kb, "🧠 دستیار هوشمند", style=SUCCESS, callback_data="aia")
     _add(kb, "🎬 افکت پیام", callback_data="adm:fx")
     _add(kb, "💳 روش های پرداخت", style=PRIMARY, callback_data="adm:pay")
     _add(kb, "🔙 داشبورد", callback_data="adm")
-    kb.adjust(2, 2, 2, 2, 2, 2, 2, 1, 1)
+    kb.adjust(2, 2, 2, 2, 2, 2, 2, 1, 1, 1)
     return kb.as_markup()
 
 
@@ -1674,6 +1684,11 @@ def support_kb(has_tickets: bool) -> InlineKeyboardMarkup:
     _btn(kb, "chat", "ارسال تیکت", style=PRIMARY, callback_data="sup:new")
     rows.append(1)
 
+    if _ai_ready("ai_support"):
+        _add(kb, "🤖 دستیار هوشمند", style=SUCCESS, callback_data="aih")
+        _add(kb, "🔧 مشکل اتصال دارم", callback_data="aih:fix")
+        rows.append(2)
+
     if has_tickets:
         _btn(kb, "ticket", "تیکت های من", style=SUCCESS, callback_data="sup:tk")
         _add(kb, "📋 تاریخچه گفتگو", callback_data="sup:list")
@@ -2054,3 +2069,69 @@ def emoji_edit_kb(key: str, has_custom: bool) -> InlineKeyboardMarkup:
 def is_admin(telegram_id: int) -> bool:
     return telegram_id in config.admin_ids
 
+
+# ═══════════════════ دستیار هوش مصنوعی ═══════════════════
+
+def _ai_ready(feature: str | None = None) -> bool:
+    from app.services import assistant
+
+    return assistant.ready(feature)
+
+
+def assist_chat_kb() -> InlineKeyboardMarkup:
+    """زیر هر جواب دستیار: ارجاع به انسان یا پایان."""
+    kb = InlineKeyboardBuilder()
+    _add(kb, "🎫 ارسال به پشتیبانی", style=PRIMARY, callback_data="aih:esc")
+    _add(kb, "✖️ پایان گفتگو", callback_data="sup")
+    kb.adjust(2)
+    return kb.as_markup()
+
+
+def assist_recommend_kb(plan: dict | None) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    if plan:
+        _add(kb, f"🛒 خرید {plan['title']}"[:60], style=SUCCESS, callback_data=f"buy:p:{plan['id']}")
+    _add(kb, "🔄 دوباره بسنج", callback_data="aip:new")
+    _add(kb, "🔙 سرویس های من", callback_data="svc")
+    kb.adjust(1, 2)
+    return kb.as_markup()
+
+
+def assist_shop_kb(items: list[dict]) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for x in items:
+        kb.button(text=f"{x['name']} · {x['price']:,}"[:60], callback_data=f"ai:p:{x['id']}"[:64])
+    _add(kb, "🔎 یه چیز دیگه", callback_data="ais")
+    _btn(kb, "back", "برگشت", callback_data="buy")
+    kb.adjust(*([1] * len(items)), 2)
+    return kb.as_markup()
+
+
+def ticket_admin_kb(user_tg: int) -> InlineKeyboardMarkup | None:
+    """زیر سربرگ تیکت برای ادمین: پیش نویس جواب با هوش مصنوعی."""
+    if not _ai_ready():
+        return None
+    kb = InlineKeyboardBuilder()
+    _add(kb, "✨ پیش نویس جواب", callback_data=f"aid:{user_tg}")
+    return kb.as_markup()
+
+
+def ticket_draft_kb(user_tg: int) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    _add(kb, "📤 ارسال همین", style=SUCCESS, callback_data=f"aids:{user_tg}")
+    _add(kb, "🔄 پیش نویس دیگر", callback_data=f"aid:{user_tg}")
+    kb.adjust(2)
+    return kb.as_markup()
+
+
+def admin_assist_kb(configured: bool) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    if configured:
+        _add(kb, "🧪 تست اتصال", style=PRIMARY, callback_data="aia:test")
+        _add(kb, "📊 گزارش همین حالا", callback_data="aia:rep")
+        _add(kb, "👤 حدس نام ها", callback_data="aia:names")
+    _add(kb, "🔢 سقف روزانه هر کاربر", callback_data="adm:set:ai_daily_limit")
+    _btn(kb, "toggle", "بخش های ربات", callback_data="adm:feat")
+    _add(kb, "🔙 تنظیمات", callback_data="adm:set")
+    kb.adjust(1, 2, 1, 1, 1) if configured else kb.adjust(1)
+    return kb.as_markup()

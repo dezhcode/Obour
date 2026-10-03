@@ -173,6 +173,7 @@ _FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٫", "0123456789.")
 SETTING_FIELDS = (
     "card_number", "card_holder", "bank_name", "min_charge",
     "stars_rate", "crypto_usdt_rate", "crypto_ton_rate", "crypto_fee_percent",
+    "ai_daily_limit",
 )
 
 
@@ -188,6 +189,11 @@ def clean_setting(field: str, value: str) -> tuple[bool, str]:
         clean = value.replace(",", "").replace("،", "").translate(_FA_DIGITS)
         if not clean.isdigit():
             return False, "لطفا یه عدد (تومان) بفرست."
+        return True, str(int(clean))
+    if field == "ai_daily_limit":
+        clean = value.translate(_FA_DIGITS).strip()
+        if not clean.isdigit() or int(clean) > 1000:
+            return False, "لطفا یه عدد بین ۰ تا ۱۰۰۰ بفرست (۰ یعنی بدون سقف)."
         return True, str(int(clean))
     if field == "crypto_fee_percent":
         clean = value.replace("٪", "").replace("%", "").translate(_FA_DIGITS)

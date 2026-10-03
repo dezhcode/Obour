@@ -20,6 +20,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile, CallbackQuery, LinkPreviewOptions, Message
 
+from app.services.assistant import display_name
 from app import referral, effects, keyboards, texts, ui
 from app.config import config
 from app.db import Database
@@ -401,7 +402,7 @@ async def _do_renew(
     """تمدید؛ منطق در app/services/renew.py است (مینی اپ هم همان را صدا می زند)."""
     from app.services import renew as renew_svc
 
-    await ui.working(call.message, texts.building(name=esc(user.get("first_name") or "")))
+    await ui.working(call.message, texts.building(name=esc(display_name(user))))
     r = await renew_svc.run(db, panel, user, service, plan, idem=f"rnw:{call.id}")
     if not r.ok:
         if r.error == renew_svc.DUPLICATE:

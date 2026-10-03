@@ -31,6 +31,8 @@ from app.services import payments as payments_svc
 from app.services import stars as stars_svc
 from app.services import purchase as purchase_svc
 from app.services import support as support_svc
+from app.services import assistant
+from app.services.assistant import display_name
 from app.webapp.auth import WebAppUser
 
 if TYPE_CHECKING:  # فقط برای type hint؛ در زمان اجرا وارد نمی شود
@@ -145,7 +147,7 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
     return {
         "user": {
             "telegram_id": user["telegram_id"],
-            "name": user.get("first_name") or wuser.first_name or i18n.t("کاربر"),
+            "name": display_name(user),
             "username": user.get("username") or wuser.username or "",
             "balance": int(user["balance"]),
             "joined_at": user["created_at"],
@@ -162,6 +164,14 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
             key: features.is_on(key)
             for key in ("shop_vpn", "shop_ai", "shop_custom", "shop_trial",
                         "shop_wallet", "shop_referral", "shop_locations")
+        },
+        # بخش های هوشمند (هر کدام فقط وقتی کلید هست و ادمین روشنش گذاشته)
+        "ai": {
+            "support": assistant.ready("ai_support"),
+            "recommend": assistant.ready("ai_recommend"),
+            "shop": assistant.ready("ai_shop_help"),
+            # ابزارهای ادمین (بررسی رسید، پیش نویس محصول)
+            "admin": wuser.id in config.admin_ids and assistant.configured(),
         },
         "bot": {
             "username": bot_username,

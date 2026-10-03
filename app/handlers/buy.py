@@ -21,6 +21,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, LinkPreviewOptions, Message
 
+from app.services.assistant import display_name
 from app import referral, effects, features, keyboards, pricing, richtable, texts, ui
 from app.config import config
 from app.db import Database
@@ -434,7 +435,7 @@ async def _start_purchase(
     working: Message | None = None
     if plan and plan["is_active"] and panel is not None:
         working = await ui.working(
-            message, texts.building(name=esc(user.get("first_name") or ""))
+            message, texts.building(name=esc(display_name(user)))
         )
 
     result = await purchase_svc.purchase(

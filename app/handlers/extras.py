@@ -7,6 +7,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, LinkPreviewOptions, Message
 
+from app.services.assistant import display_name
 from app import features, effects, join, keyboards, referral, texts, ui
 from app.config import config
 from app.db import Database
@@ -117,7 +118,7 @@ async def _make_trial(
         await edit_or_send(call.message, texts.TRIAL_USED, keyboards.back_menu())
         return await call.answer()
 
-    await ui.working(call.message, texts.building(name=esc(user.get("first_name") or "")))
+    await ui.working(call.message, texts.building(name=esc(display_name(user))))
 
     try:
         panel_username = await db.free_panel_username(user["telegram_id"], user["id"])
@@ -180,7 +181,7 @@ async def _make_trial(
     # هدایت به خرید بعد از تست (بخش ۱۳ سند)
     try:
         await call.message.answer(
-            texts.TRIAL_AFTER.format(name=user.get("first_name") or _t("دوست من")),
+            texts.TRIAL_AFTER.format(name=esc(display_name(user))),
             reply_markup=keyboards.trial_after_kb(),
         )
     except Exception:  # noqa: BLE001
@@ -342,7 +343,7 @@ async def _make_custom(
         return await message.answer(_t("این خرید در حال پردازشه."))
 
     working = await ui.working(
-        message, texts.building(name=esc(user.get("first_name") or ""))
+        message, texts.building(name=esc(display_name(user)))
     )
 
     try:

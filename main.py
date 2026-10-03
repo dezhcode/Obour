@@ -54,6 +54,7 @@ async def main() -> None:
                 if n:
                     log.info("purged %s expired reserved amounts", n)
                 await autocron.maybe_run(bot, db)
+                await autocron.ai_round(bot, db)
             except Exception:  # noqa: BLE001
                 log.warning("cleanup failed", exc_info=True)
             await asyncio.sleep(120)

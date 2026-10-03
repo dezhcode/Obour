@@ -385,6 +385,25 @@ CREATE INDEX IF NOT EXISTS idx_stars_user ON stars_invoices(user_id, id);
 CREATE INDEX IF NOT EXISTS idx_crypto_status ON crypto_invoices(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_crypto_user ON crypto_invoices(user_id, id);
 
+-- هر درخواست به وب سرویس هوش مصنوعی: برای سقف روزانه هر کاربر و
+-- گزارش روزانه ادمین. متن پرسش ذخیره نمی شود، فقط نوع و نتیجه.
+CREATE TABLE IF NOT EXISTS ai_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL,
+  user_id INTEGER,
+  ok INTEGER NOT NULL DEFAULT 1,
+  ms INTEGER,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_log_user ON ai_log(user_id, created_at);
+
+-- جواب های کش شده (پیشنهاد پلن روزانه، پیش نویس ها و...)
+CREATE TABLE IF NOT EXISTS ai_cache (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_ref_earn ON referral_earnings(referrer_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_ref_invitee ON referral_earnings(invitee_id);
 CREATE INDEX IF NOT EXISTS idx_txn_user ON transactions(user_id, created_at);
@@ -550,6 +569,12 @@ class Database:
             ("tickets", "thread_id", "ALTER TABLE tickets ADD COLUMN thread_id INTEGER"),
             # زبان انتخابی کاربر؛ NULL یعنی هنوز انتخاب نکرده (حدس از تلگرام)
             ("users", "lang", "ALTER TABLE users ADD COLUMN lang TEXT"),
+            # نام خانوادگی تلگرام و نامی که هوش مصنوعی حدس زده. ai_name:
+            # NULL = هنوز حدس زده نشده، '' = نفهمید (یعنی «کاربر عبور»)
+            ("users", "last_name", "ALTER TABLE users ADD COLUMN last_name TEXT"),
+            ("users", "ai_name", "ALTER TABLE users ADD COLUMN ai_name TEXT"),
+            # توضیح فارسی محصول که ادمین از پیش نویس هوش مصنوعی تایید کرده
+            ("shop_product_meta", "desc_fa", "ALTER TABLE shop_product_meta ADD COLUMN desc_fa TEXT"),
         ]
         for table, column, sql in migrations:
             cur = await self._conn.execute(f"PRAGMA table_info({table})")
@@ -652,6 +677,7 @@ class Database:
         username: str | None = None,
         first_name: str | None = None,
         referred_by: int | None = None,
+        last_name: str | None = None,
     ) -> dict:
         await self.execute(
             """INSERT OR IGNORE INTO users(telegram_id, username, first_name, referred_by, created_at)
@@ -659,14 +685,18 @@ class Database:
             (telegram_id, username, first_name, referred_by, now_str()),
         )
         row = await self.fetchone("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
+        keys = row.keys() if row is not None else []
         changed = row is not None and (
             (row["username"] or None) != (username or None)
             or (row["first_name"] or None) != (first_name or None)
+            or ("last_name" in keys and (row["last_name"] or None) != (last_name or None))
         )
         if changed:
+            # اسم عوض شد: حدس قبلی هوش مصنوعی دیگر معتبر نیست
             await self.execute(
-                "UPDATE users SET username = ?, first_name = ? WHERE telegram_id = ?",
-                (username, first_name, telegram_id),
+                "UPDATE users SET username = ?, first_name = ?, last_name = ?, ai_name = NULL "
+                "WHERE telegram_id = ?",
+                (username, first_name, last_name, telegram_id),
             )
             row = await self.fetchone("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
         return dict(row)
@@ -2252,7 +2282,7 @@ class Database:
 
     async def set_product_meta(self, product_id: str, **fields) -> None:
         """فقط category، image و guide؛ None یعنی برگشت به پیش فرض."""
-        allowed = {k: v for k, v in fields.items() if k in ("category", "image", "guide")}
+        allowed = {k: v for k, v in fields.items() if k in ("category", "image", "guide", "desc_fa")}
         if not allowed:
             return
         await self.execute(
@@ -2604,3 +2634,114 @@ class Database:
             (label, service_id, user_id),
         )
         return rows > 0
+
+    # ---------- هوش مصنوعی ----------
+    async def ai_log_add(self, kind: str, user_id: int | None, ok: bool, ms: int) -> None:
+        await self.execute(
+            "INSERT INTO ai_log(kind, user_id, ok, ms, created_at) VALUES (?, ?, ?, ?, ?)",
+            (kind, user_id, 1 if ok else 0, ms, now_str()),
+        )
+
+    async def ai_user_count_today(self, user_id: int) -> int:
+        today = datetime.now(TZ).date().isoformat()
+        row = await self.fetchone(
+            "SELECT COUNT(*) AS c FROM ai_log WHERE user_id = ? AND substr(created_at, 1, 10) = ?",
+            (user_id, today),
+        )
+        return int(row["c"]) if row else 0
+
+    async def ai_usage(self, day: str) -> dict:
+        """درخواست های یک روز به تفکیک نوع: {kind: (تعداد، ناموفق)}."""
+        rows = await self.fetchall(
+            "SELECT kind, COUNT(*) AS n, SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS bad, "
+            "CAST(AVG(ms) AS INTEGER) AS ms FROM ai_log WHERE substr(created_at, 1, 10) = ? GROUP BY kind",
+            (day,),
+        )
+        return {r["kind"]: {"n": r["n"], "bad": r["bad"] or 0, "ms": r["ms"] or 0} for r in rows}
+
+    async def ai_cache_get(self, key: str, max_age: int) -> str | None:
+        row = await self.fetchone("SELECT value, created_at FROM ai_cache WHERE key = ?", (key,))
+        if not row:
+            return None
+        try:
+            age = (datetime.now(TZ) - datetime.fromisoformat(row["created_at"])).total_seconds()
+        except (TypeError, ValueError):
+            return None
+        return row["value"] if age <= max_age else None
+
+    async def ai_cache_set(self, key: str, value: str) -> None:
+        await self.execute(
+            "INSERT INTO ai_cache(key, value, created_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value, created_at = excluded.created_at",
+            (key, value, now_str()),
+        )
+
+    async def ai_cache_del(self, key: str) -> None:
+        await self.execute("DELETE FROM ai_cache WHERE key = ?", (key,))
+
+    async def ai_cache_purge(self, days: int = 7) -> int:
+        cutoff = (datetime.now(TZ) - timedelta(days=days)).isoformat(timespec="seconds")
+        n = await self.execute("DELETE FROM ai_cache WHERE created_at < ?", (cutoff,))
+        n += await self.execute("DELETE FROM ai_log WHERE created_at < ?",
+                                ((datetime.now(TZ) - timedelta(days=60)).isoformat(timespec="seconds"),))
+        return n
+
+    async def users_needing_name(self, limit: int = 20) -> list[dict]:
+        """کاربرانی که هنوز نامشان حدس زده نشده، تازه ترها اول."""
+        rows = await self.fetchall(
+            "SELECT id, telegram_id, username, first_name, last_name, lang FROM users "
+            "WHERE ai_name IS NULL ORDER BY id DESC LIMIT ?",
+            (limit,),
+        )
+        return [dict(r) for r in rows]
+
+    async def set_ai_name(self, user_id: int, name: str) -> None:
+        await self.execute("UPDATE users SET ai_name = ? WHERE id = ?", (name, user_id))
+
+    async def daily_report_stats(self, day: str) -> dict:
+        """عددهای یک روز برای گزارش روزانه ادمین."""
+        row = await self.fetchone(
+            """SELECT
+                 (SELECT COUNT(*) FROM users WHERE substr(created_at, 1, 10) = :d) AS new_users,
+                 (SELECT COUNT(*) FROM users) AS total_users,
+                 (SELECT COUNT(*) FROM transactions WHERE type = 'purchase' AND status = 'approved'
+                    AND substr(created_at, 1, 10) = :d) AS vpn_buys,
+                 (SELECT COALESCE(SUM(-amount), 0) FROM transactions WHERE type = 'purchase'
+                    AND status = 'approved' AND substr(created_at, 1, 10) = :d) AS vpn_sales,
+                 (SELECT COUNT(*) FROM transactions WHERE type = 'ai_purchase' AND status = 'approved'
+                    AND substr(created_at, 1, 10) = :d) AS ai_buys,
+                 (SELECT COALESCE(SUM(-amount), 0) FROM transactions WHERE type = 'ai_purchase'
+                    AND status = 'approved' AND substr(created_at, 1, 10) = :d) AS ai_sales,
+                 (SELECT COUNT(*) FROM transactions WHERE type = 'charge' AND status = 'approved'
+                    AND substr(created_at, 1, 10) = :d) AS charges,
+                 (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'charge'
+                    AND status = 'approved' AND substr(created_at, 1, 10) = :d) AS charge_sum,
+                 (SELECT COUNT(*) FROM transactions WHERE type = 'charge' AND status = 'rejected'
+                    AND substr(created_at, 1, 10) = :d) AS charges_rejected,
+                 (SELECT COUNT(*) FROM transactions WHERE type = 'charge' AND status = 'pending'
+                    AND receipt_file_id IS NOT NULL) AS charges_pending,
+                 (SELECT COUNT(*) FROM tickets WHERE direction = 'in'
+                    AND substr(created_at, 1, 10) = :d) AS ticket_msgs,
+                 (SELECT COUNT(*) FROM tickets WHERE direction = 'in' AND id = thread_id
+                    AND COALESCE(status, 'open') = 'open') AS tickets_open,
+                 (SELECT COUNT(*) FROM services WHERE is_active = 1 AND expire_at > :now) AS active_services,
+                 (SELECT COUNT(*) FROM services WHERE substr(expire_at, 1, 10) = :d) AS expired_today,
+                 (SELECT COUNT(*) FROM ai_orders WHERE status IN ('failed', 'refunded')
+                    AND substr(created_at, 1, 10) = :d) AS ai_failed""",
+            {"d": day, "now": now_str()},
+        )
+        out = dict(row) if row else {}
+        tops = await self.fetchall(
+            """SELECT COALESCE(p.title, 'دلخواه') AS title, COUNT(*) AS n FROM services s
+               LEFT JOIN plans p ON p.id = s.plan_id
+               WHERE substr(s.created_at, 1, 10) = ? GROUP BY s.plan_id ORDER BY n DESC LIMIT 3""",
+            (day,),
+        )
+        out["top_plans"] = [f"{r['title']} ×{r['n']}" for r in tops]
+        msgs = await self.fetchall(
+            """SELECT body FROM tickets WHERE direction = 'in' AND body IS NOT NULL
+               AND substr(created_at, 1, 10) = ? ORDER BY id DESC LIMIT 25""",
+            (day,),
+        )
+        out["ticket_samples"] = [str(r["body"])[:160] for r in msgs]
+        return out

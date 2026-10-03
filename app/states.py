@@ -58,3 +58,8 @@ class Admin(StatesGroup):
     waiting_channel_post = State()
     waiting_winback = State()
     waiting_ai_field = State()
+
+
+class Assist(StatesGroup):
+    chatting = State()      # گفتگو با دستیار هوشمند
+    shop_query = State()    # توصیف نیاز برای دستیار فروشگاه

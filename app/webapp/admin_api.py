@@ -306,14 +306,15 @@ async def ai_products(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
         "items": [dict({k: x[k] for k in ("id", "name", "type", "kind", "brand", "visible", "priced", "available", "stock",
                                           "api_stock", "wallet_stock", "currency", "cost", "price", "months", "category",
                                           "auto_category", "category_set", "guide", "provider_image")},
-                       image=ai_shop.image_url(x["image"]), description=x["description"][:1500]) for x in cat["items"]],
+                       image=ai_shop.image_url(x["image"]), description=x["provider_description"][:1500],
+                       desc_fa=x["desc_fa"]) for x in cat["items"]],
         "categories": [{"key": k, "title": t} for k, (t, _e) in ai_shop.CATEGORIES.items()],
     }
 
 
 async def ai_meta_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, pid: str,
-                      category=None, guide=None) -> dict:  # noqa: ANN001
-    """دسته ("" = خودکار) و آموزش فعال سازی ("" = توضیح سرویس دهنده)."""
+                      category=None, guide=None, desc_fa=None) -> dict:  # noqa: ANN001
+    """دسته ("" = خودکار)، آموزش فعال سازی و توضیح فارسی ("" = متن سرویس دهنده)."""
     from app.services import ai_shop
 
     _require_admin(wuser)
@@ -327,6 +328,8 @@ async def ai_meta_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
         fields["category"] = category or None
     if guide is not None:
         fields["guide"] = str(guide).strip()[:3000] or None
+    if desc_fa is not None:
+        fields["desc_fa"] = str(desc_fa).strip()[:1500] or None
     await db.set_product_meta(pid, **fields)
     log.info("ادمین %s تنظیمات محصول %s را عوض کرد: %s", wuser.id, pid, list(fields))
     return {"ok": True}
@@ -548,5 +551,88 @@ async def purchases(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
     } for t in rows], "total": total, "page": page, "more": (page + 1) * PER_PAGE < total}
 
 
+# ═══════════════════ دستیار هوش مصنوعی (ادمین) ═══════════════════
+
+async def ai_assist_status(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    from datetime import datetime
+
+    from app.config import config
+    from app.services import assistant
+    from app.utils import TZ
+
+    _require_admin(wuser)
+    usage = await db.ai_usage(datetime.now(TZ).date().isoformat())
+    return {
+        "configured": assistant.configured(),
+        "base_url": config.ai_base_url,
+        "limit": int(await db.get_setting(assistant.DAILY_LIMIT_KEY, str(assistant.DAILY_LIMIT_DEFAULT)) or 0),
+        "today": sum(v["n"] for v in usage.values()),
+        "failed": sum(v["bad"] for v in usage.values()),
+        "usage": usage,
+        "features": [{"key": k, "title": features.FEATURES[k][0], "on": features.is_on(k)}
+                     for k in ("ai_support", "ai_recommend", "ai_shop_help", "ai_names", "ai_report")],
+    }
+
+
+async def ai_assist_run(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, action: str) -> dict:
+    """تست اتصال، گزارش همین حالا، حدس نام ها."""
+    import re
+
+    from app.services import assistant
+    from app.services.assistant import AIError
+
+    _require_admin(wuser)
+    try:
+        if action == "test":
+            out = await assistant.ask("Reply with exactly: OK", kind="test", db=db, timeout=30)
+            return {"ok": True, "text": out[:200]}
+        if action == "report":
+            body = await assistant.daily_report(db)
+            return {"ok": True, "text": re.sub(r"<[^>]+>", "", body)}
+        if action == "names":
+            n = await assistant.guess_names(db, limit=25)
+            return {"ok": True, "text": f"نام {n} کاربر حدس زده شد"}
+    except AIError as exc:
+        raise ApiError(f"هوش مصنوعی: {exc}", 502, exc.code) from exc
+    raise ApiError("کار نامعتبر", 400, "bad_request")
+
+
+async def ai_product_draft(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, pid: str, kind: str) -> dict:
+    """پیش نویس توضیح فارسی یا آموزش فعال سازی؛ ذخیره با admin/ai/meta بعد از تایید ادمین."""
+    from app.services import ai_shop, assistant
+    from app.services.assistant import AIError
+
+    _require_admin(wuser)
+    cat = await ai_shop.catalog(db, admin=True)
+    item = next((x for x in cat["items"] if x["id"] == pid), None)
+    if not item:
+        raise ApiError("محصول پیدا نشد", 404, "not_found")
+    item = dict(item, description=item["provider_description"])
+    try:
+        text = await (assistant.product_guide(db, item) if kind == "guide" else assistant.product_desc(db, item))
+    except AIError as exc:
+        raise ApiError(f"هوش مصنوعی: {exc}", 502, exc.code) from exc
+    return {"ok": True, "text": text}
+
+
+async def ai_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, txn_id: int, bot=None) -> dict:  # noqa: ANN001
+    """بررسی هوشمند رسید؛ فقط کمک، تصمیم با ادمین."""
+    from app.services import assistant
+    from app.services.assistant import AIError
+
+    _require_admin(wuser)
+    txn = await db.get_transaction(txn_id)
+    if not txn or not txn.get("receipt_file_id") or bot is None:
+        raise ApiError("رسید پیدا نشد", 404, "not_found")
+    image, _ctype = await receipt(db, panel, wuser, txn_id=txn_id, bot=bot)
+    try:
+        r = await assistant.receipt_check(db, txn, image)
+    except AIError as exc:
+        raise ApiError(f"هوش مصنوعی: {exc}", 502, exc.code) from exc
+    import re
+
+    return {"ok": r["ok"], "lines": [re.sub(r"<[^>]+>", "", x) for x in r["lines"]]}
+
+
 READ = {"admin": home, "admin/charges": charges, "admin/plans": plans, "admin/settings": settings,
-        "admin/ai": ai_products, "admin/monitor": monitor}
+        "admin/ai": ai_products, "admin/monitor": monitor, "admin/assist": ai_assist_status}
