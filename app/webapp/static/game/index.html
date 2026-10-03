@@ -1133,7 +1133,54 @@ function buildTheme(key){
   if (key === 'neon') {
     for (let i = 0; i < 24; i += 2) for (const sx of [-1, 1]) { const p = neonPole(sx < 0 ? 0x3BF0CF : 0xB36BFF); p.position.x = sx * (HALF_ROAD + 3.4); p.scale.x = sx; addTo(list, p, -i * 15, SPAN); }
     for (let i = 0; i < 18; i++) for (const sx of [-1, 1]) { const b = building(.45, 18, 60); b.position.x = sx * rnd(26, 46); addTo(list, b, -i * 20 - rnd(0, 10), SPAN); }
+    const sg = new T.BufferGeometry(), sp = [];
+    for (let i = 0; i < 1200; i++) { const a = Math.random() * Math.PI * 2, e = Math.random() * .5 + .05; sp.push(Math.cos(a) * 500 * Math.cos(e), Math.sin(e) * 500, Math.sin(a) * 500 * Math.cos(e)); }
+    sg.setAttribute('position', new T.Float32BufferAttribute(sp, 3));
+    th.stars = new T.Points(sg, new T.PointsMaterial({ color:0xBFD0FF, size:1.4, sizeAttenuation:false, fog:false }));
+    th.fog = new T.FogExp2(0x0A0820, .0095);
+  } else if (key === 'desert') {
+    for (let i = 0; i < 22; i++) for (const sx of [-1, 1]) {
+      const p = palm(); p.position.x = sx * rnd(HALF_ROAD + 5, HALF_ROAD + 16); p.rotation.y = rnd(0, 6); addTo(list, p, -i * 16 - rnd(0, 8), SPAN);
+      if (Math.random() < .6) { const r = rock(); r.position.x = sx * rnd(HALF_ROAD + 4, HALF_ROAD + 22); addTo(list, r, -i * 16 - rnd(0, 14), SPAN); }
+    }
+    for (let i = 0; i < 6; i++) { const m = new T.Mesh(new T.ConeGeometry(rnd(40, 90), rnd(18, 40), 6), SH.dune); m.position.set(rnd(-260, 260), 8, 0); addTo(list, m, -rnd(250, 340), 1e9); }
+    th.fog = new T.Fog(0xD9C9A0, 110, 380);
+  } else {
+    for (let i = 0; i < 20; i++) for (const sx of [-1, 1]) {
+      const b = building(.55, 14, 42); b.position.x = sx * rnd(HALF_ROAD + 12, HALF_ROAD + 20); addTo(list, b, -i * 18 - rnd(0, 6), SPAN);
+      if (i % 2 === 0) { const l = streetLamp(); l.position.x = sx * (HALF_ROAD + 3.2); l.scale.x = sx; addTo(list, l, -i * 18, SPAN); }
+    }
+    const rg = new T.BufferGeometry(), rp = new Float32Array(900 * 6);
+    for (let i = 0; i < 900; i++) { const x = rnd(-20, 20), y = rnd(0, 18), z = rnd(-60, 8); rp.set([x, y, z, x + .05, y - .9, z + .3], i * 6); }
+    rg.setAttribute('position', new T.BufferAttribute(rp, 3));
+    th.rain = new T.LineSegments(rg, new T.LineBasicMaterial({ color:0x9FB8E8, transparent:true, opacity:.35 }));
+    th.fog = new T.FogExp2(0x152033, .016);
+  }
+  for (const o of [th.stars, th.rain]) if (o) { o.visible = false; world.add(o); }
+  const rt = roadTex(key); rt.repeat.set(1, ROAD_LEN / 12); ROADTEX[key] = rt;
+  return (SC[key] = th);
+}
+function setTheme(key){
+  for (const k in SC) { for (const o of SC[k].list) o.obj.visible = false; for (const o of [SC[k].stars, SC[k].rain]) if (o) o.visible = false; }
+  const th = buildTheme(key);
+  scenery = th.list; for (const o of scenery) { o.obj.visible = true; o.obj.position.z = o.z0; }
+  stars = th.stars; rain = th.rain; if (stars) stars.visible = true; if (rain) rain.visible = true;
+  world.fog = th.fog;
+  const u = sky.material.uniforms;
+  if (roadMat.map !== ROADTEX[key]) { roadMat.map = ROADTEX[key]; roadMat.needsUpdate = true; }
+  edges.forEach(e => e.visible = key !== 'desert');
+  world.environment = env(key);
+  setEnvK(key === 'desert' ? .6 : 1.1);
+  if (key === 'neon') {
+    u.top.value.set(0x02030A); u.mid.value.set(0x1A0F3A); u.bot.value.set(0x05060F);
+    hemi.color.set(0x6E7BFF); hemi.groundColor.set(0x05050A); hemi.intensity = .35;
+    sun.color.set(0x9BB0FF); sun.intensity = .55; sun.position.set(-8, 30, 12);
+    renderer.toneMappingExposure = 1.15;
+    roadMat.roughness = .45; roadMat.metalness = .1; roadMat.envMapIntensity = .35;
+    groundMat.map = groundNight; groundNight.repeat.set(40, 40); groundMat.color.set(0x8090B0); groundMat.needsUpdate = true;
+    shoulderMat.color.set(0x141826);
     if (bloomPass) { bloomPass.strength = .95; bloomPass.threshold = .72; bloomPass.radius = .5; }
+
   } else if (key === 'desert') {
     u.top.value.set(0x1E63C4); u.mid.value.set(0x9FCDEE); u.bot.value.set(0xD9C9A0);
     hemi.color.set(0xCFE6FF); hemi.groundColor.set(0x8A6E40); hemi.intensity = .45;
@@ -1143,6 +1190,7 @@ function buildTheme(key){
     sandTex.repeat.set(60, 40); groundMat.map = sandTex; groundMat.color.set(0xffffff); groundMat.needsUpdate = true;
     shoulderMat.color.set(0x8E7B57);
     if (bloomPass) { bloomPass.strength = .18; bloomPass.threshold = .95; }
+
   } else {
     u.top.value.set(0x0A121F); u.mid.value.set(0x1E2C44); u.bot.value.set(0x0B111C);
     hemi.color.set(0x8FA8D6); hemi.groundColor.set(0x0A0E16); hemi.intensity = .45;
