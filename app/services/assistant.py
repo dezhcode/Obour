@@ -470,12 +470,45 @@ def _yes(v: Any) -> bool | None:
     return None
 
 
+# قواعد خواندن مبلغ، مشترک هر دو بررسی. مدل ها روی رسید ایرانی سه جا
+# اشتباه می کنند: «,» یا «٬» را اعشار می گیرند، ریال و تومان را قاطی
+# می کنند، و ارقام فارسی را جابه جا می خوانند.
+AMOUNT_RULES = (
+    "HOW TO READ IRANIAN AMOUNTS (very important):\n"
+    "- Separators between groups of 3 digits — ',' '٬' '،' '.' or a space — are THOUSANDS separators, NEVER decimals. "
+    "Iranian Rial and Toman amounts never have decimals. '104,710' = one hundred four thousand seven hundred ten (104710), "
+    "'1,047,100' = 1047100, '1.047.100' = 1047100.\n"
+    "- Persian/Arabic digits: ۰=0 ۱=1 ۲=2 ۳=3 ۴=4 ۵=5 ۶=6 ۷=7 ۸=8 ۹=9 (also ٤=4 ٥=5 ٦=6). Right-to-left text does NOT reverse "
+    "the digits of a number: read the number left-to-right as printed.\n"
+    "- Unit: ریال / Rial / IRR / Rls = rial; تومان / Toman = toman. 1 toman = 10 rial, so the rial number always has ONE extra "
+    "zero: 104,710 toman = 1,047,100 rial. Bank receipts almost always print RIAL. Take the unit printed next to the amount "
+    "(or in the amount's label, e.g. «مبلغ (ریال)»); if no unit is printed anywhere, say unknown — do not guess.\n"
+    "- If the amount is also written in words (به حروف), use it to double-check the digits.\n"
+    "- Never round, never drop or add zeros.\n"
+)
+
+
+def parse_amount(text: Any) -> int | None:
+    """عدد مبلغ از متن رسید: ارقام فارسی، جداکننده هزارگان (, ٬ ، . فاصله).
+
+    ریال و تومان اعشار ندارند؛ فقط «.00» یا «٫0» پایانی (اگر صفر باشد)
+    اعشار حساب و حذف می شود. هر جداکننده دیگری هزارگان است.
+    """
+    t = str(text or "").translate(_FA_DIGITS).strip()
+    t = re.sub(r"[.٫/]0{1,2}$", "", t)
+    d = re.sub(r"\D", "", t)
+    return int(d) if d else None
+
+
 async def _rcpt_blind(db: "Database", image: bytes, timeout: float) -> dict:
     prompt = (
         "You are a strict bank-receipt reader. The image should be an Iranian bank card-to-card transfer receipt "
-        "(کارت به کارت). Transcribe EXACTLY what is printed; never guess, never fill missing values. "
+        "(کارت به کارت). Transcribe EXACTLY what is printed; never guess, never fill missing values.\n" + AMOUNT_RULES +
         "Return ONLY JSON: {\"is_receipt\": bool, \"status\": \"success|failed|unknown\", "
-        "\"amount_text\": \"amount digits exactly as printed, or null\", \"unit\": \"rial|toman|unknown\" (as printed next to the amount), "
+        "\"amount_text\": \"the transfer amount exactly as printed incl. separators, or null\", "
+        "\"amount_digits\": \"the same amount as plain western digits with no separators, e.g. 1047100, or null\", "
+        "\"unit\": \"rial|toman|unknown\" (as printed next to/for the amount), "
+        "\"amount_words\": \"amount in words if printed, else null\", "
         "\"date_printed\": \"date exactly as printed or null\", \"date\": \"same date converted to Gregorian YYYY-MM-DD or null\", "
         "\"time\": \"HH:MM or null\", \"dest_card\": \"destination card number exactly as printed incl. * masks, or null\", "
         "\"dest_name\": \"destination owner name or null\", "
@@ -493,11 +526,14 @@ async def _rcpt_verify(db: "Database", image: bytes, *, rial: int, ref: str, car
     prompt = (
         "You are a strict auditor checking an Iranian card-to-card bank receipt against an invoice. Be skeptical: "
         "answer true ONLY if you can clearly read the value on the receipt and it is exactly equal. If unreadable, answer null.\n"
-        f"Invoice amount: {rial:,} RIAL (= {rial // 10:,} toman). Receipts usually print Rial (ریال).\n"
+        + AMOUNT_RULES +
+        f"Invoice amount: {rial:,} RIAL (digits {rial}) = {rial // 10:,} TOMAN (digits {rial // 10}). "
+        f"So the receipt must show {rial:,} if printed in rial, or {rial // 10:,} if printed in toman.\n"
         f"Tracking/reference code the customer typed: {ref or '(none given)'}\n"
         f"Our destination card: {card or '(unknown)'}" + (f" — owner: {holder}" if holder else "") + "\n"
         "Return ONLY JSON: {\"is_receipt\": bool, \"status_success\": true|false|null, "
-        "\"amount_matches\": true|false|null, \"amount_seen_rial\": <integer rial you read, or null>, "
+        "\"amount_matches\": true|false|null, \"amount_seen\": \"amount exactly as printed\", "
+        "\"amount_seen_unit\": \"rial|toman|unknown\", \"amount_seen_rial\": <that amount converted to rial as an integer, or null>, "
         "\"card_matches\": true|false|null, \"ref_matches\": true|false|null, "
         "\"looks_genuine\": true|false|null, \"confidence\": \"high|medium|low\", \"notes\": \"short Persian note\"}"
     )
@@ -570,21 +606,38 @@ async def receipt_verdict(db: "Database", txn: dict, image: bytes, *, ref: str =
         unknown("وضعیت تراکنش روی رسید خوانده نشد")
 
     # ── مبلغ (به ریال)
-    amt = _int(b.get("amount_text"))
+    # دو خوانش از «کور»: متن با جداکننده و رقم خالص؛ اگر با هم نخوانند، مدل
+    # جداکننده را اعشار گرفته یا صفری انداخته و به آن اعتماد نمی شود.
     unit = str(b.get("unit") or "unknown").lower()
-    vam = _yes(v.get("amount_matches"))
-    if amt:
-        as_rial = {amt * 10} if unit == "toman" else {amt} if unit == "rial" else {amt, amt * 10}
-        shown = f"{amt:,} {'تومان' if unit == 'toman' else 'ریال' if unit == 'rial' else ''}".strip()
-        if rial in as_rial and unit in ("rial", "toman") and vam is True:
-            good(f"مبلغ: {rial:,} ریال ({toman:,} تومان) دقیقا مطابق")
-        elif rial in as_rial:
-            unknown(f"مبلغ {shown} احتمالا مطابق است ولی قطعی نیست (واحد یا تطبیق دوم)")
-        elif vam is False:
-            reject = reject or "amount"
-            bad(f"مبلغ رسید {shown} است؛ فاکتور {rial:,} ریال ({toman:,} تومان)")
+    unit = unit if unit in ("rial", "toman") else "unknown"
+    amt_t, amt_d = parse_amount(b.get("amount_text")), parse_amount(b.get("amount_digits"))
+    amt = amt_t if amt_t is not None else amt_d
+    consistent = amt_t is None or amt_d is None or amt_t == amt_d
+    # تطبیق دوم: ریالی که خوانده؛ اگر نداد، تصمیم بله/نه خودش
+    v_seen = parse_amount(v.get("amount_seen_rial"))
+    vam = (v_seen == rial) if v_seen is not None else _yes(v.get("amount_matches"))
+    if amt and consistent:
+        # واحد نامعلوم: اگر عدد برابر ریال فاکتور است، بدترین حالت این است که
+        # تومان بوده (یعنی ده برابر واریز کرده) که ضرری ندارد؛ ولی عدد برابر
+        # تومان فاکتور با واحد نامعلوم ممکن است ریال باشد (یک دهم) پس قطعی نیست.
+        if unit == "rial":
+            as_rial, sure = amt, True
+        elif unit == "toman":
+            as_rial, sure = amt * 10, True
         else:
-            bad(f"مبلغ رسید {shown} با فاکتور {rial:,} ریال نمی خواند")
+            as_rial, sure = amt, amt == rial
+        shown = f"{amt:,} {'ریال' if unit == 'rial' else 'تومان' if unit == 'toman' else '(واحد نامعلوم)'}"
+        if as_rial == rial and sure and vam is True:
+            good(f"مبلغ: {shown} = {rial:,} ریال ({toman:,} تومان) دقیقا مطابق")
+        elif as_rial == rial or (unit == "unknown" and amt * 10 == rial):
+            unknown(f"مبلغ {shown} احتمالا مطابق است ولی قطعی نیست (واحد یا تطبیق دوم)")
+        elif vam is False and unit != "unknown":
+            reject = reject or "amount"
+            bad(f"مبلغ رسید {shown} = {as_rial:,} ریال است؛ فاکتور {rial:,} ریال ({toman:,} تومان)")
+        else:
+            bad(f"مبلغ رسید {shown} با فاکتور {rial:,} ریال ({toman:,} تومان) نمی خواند")
+    elif amt and not consistent:
+        unknown(f"مبلغ دو جور خوانده شد ({amt_t:,} و {amt_d:,})؛ فاکتور {rial:,} ریال")
     else:
         unknown(f"مبلغ رسید خوانده نشد (فاکتور {rial:,} ریال)")
 
