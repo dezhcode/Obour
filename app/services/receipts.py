@@ -87,12 +87,16 @@ async def process(bot, db: "Database", txn_id: int, *, image: bytes | None = Non
         decision = "duplicate"
     elif auto and image:
         try:
-            verdict = await assistant.receipt_verdict(db, txn, image, ref=ref)
+            verdict = await assistant.receipt_verdict(db, txn, image, ref=ref, need_ref=source != "mini")
             # کدی که هوش مصنوعی روی رسید دیده، روی شارژ دیگری هست؟
             for r in {assistant.clean_ref(x) for x in (verdict["data"].get("ref_codes") or [])} - {"", ref}:
                 o = await db.charge_with_ref(r, txn_id)
                 if o:
                     dup_lines.append(f"⚠️ کد پیگیری روی رسید (<code>{r}</code>) متعلق به شارژ {html.escape(o.get('code') or '#' + str(o['id']))} است")
+            read = sorted({assistant.clean_ref(x) for x in (verdict["data"].get("ref_codes") or [])} - {""})
+            if not ref and read:
+                # کد خوانده شده ثبت می شود تا رسیدهای بعدی با آن سنجیده شوند
+                await db.set_receipt_meta(txn_id, ref_code=read[0])
             if dup_lines:
                 decision = "duplicate"
             elif verdict["decision"] == "approve":
