@@ -773,13 +773,14 @@ function wheel(P){
   if (!geoCache[k]) {
     const tire = new T.CylinderGeometry(P.wheel, P.wheel, .26, 22); tire.rotateZ(Math.PI / 2);
     const rim = new T.CylinderGeometry(P.wheel * .62, P.wheel * .62, .27, 14); rim.rotateZ(Math.PI / 2);
-    const spoke = new T.BoxGeometry(.28, P.wheel * 1.1, .07);
-    geoCache[k] = { tire, rim, spoke };
+    // پره ها با رینگ در یک هندسه (هر چرخ ترافیک ۲ فراخوانی رسم به جای ۵)
+    const parts = [rim.toNonIndexed()];
+    for (let i = 0; i < 3; i++) { const sp = new T.BoxGeometry(.28, P.wheel * 1.1, .07).toNonIndexed(); sp.rotateX(i * Math.PI / 3); parts.push(sp); }
+    geoCache[k] = { tire, rim:T.BufferGeometryUtils.mergeBufferGeometries(parts) };
   }
   const g = geoCache[k], w = new T.Group();
   const t = new T.Mesh(g.tire, M.tire); t.castShadow = true; w.add(t);
   w.add(new T.Mesh(g.rim, M.rim));
-  for (let i = 0; i < 3; i++) { const sp = new T.Mesh(g.spoke, M.dark); sp.rotation.x = i * Math.PI / 3; w.add(sp); }
   return w;
 }
 function aoPlane(w, l){
@@ -835,7 +836,8 @@ function makeTruck(color, bus){
     const cab = new T.Mesh(new T.BoxGeometry(W, 2.3, 2.2), paint(color)); cab.position.set(0, 1.55, -L / 2 + 1.1); cab.castShadow = true; body.add(cab);
     const ws = new T.Mesh(new T.BoxGeometry(W * .9, .8, .05), M.glass); ws.position.set(0, 2.1, -L / 2 - .01); body.add(ws);
     const box = new T.Mesh(new T.BoxGeometry(W + .05, 3, L - 2.5), M.container); box.position.set(0, 2.05, 1.2); box.castShadow = true; body.add(box);
-    for (let i = -3; i <= 3; i++) { const r = new T.Mesh(new T.BoxGeometry(W + .08, 2.8, .06), M.dark); r.position.set(0, 2.05, 1.2 + i * (L - 2.6) / 7); body.add(r); }
+    const ribs = []; for (let i = -3; i <= 3; i++) { const r = new T.BoxGeometry(W + .08, 2.8, .06).toNonIndexed(); r.translate(0, 2.05, 1.2 + i * (L - 2.6) / 7); ribs.push(r); }
+    body.add(new T.Mesh(T.BufferGeometryUtils.mergeBufferGeometries(ribs), M.dark));
   }
   const back = L / 2 + .02, tails = [];
   for (const sx of [-1, 1]) { const tl = new T.Mesh(new T.BoxGeometry(.3, .18, .06), M.tail); tl.position.set(sx * (W / 2 - .25), .8, back); body.add(tl); tails.push(tl);
