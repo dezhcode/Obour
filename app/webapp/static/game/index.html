@@ -14,6 +14,8 @@
   color-scheme:dark;
 }
 [hidden]{display:none!important}
+/* --top/--bot: فاصله امن تلگرام (دکمه های بستن و منو در حالت تمام صفحه) یا خود گوشی */
+:root{--top:env(safe-area-inset-top,0px);--bot:env(safe-area-inset-bottom,0px)}
 html,body{height:100%}
 body{margin:0;background:var(--ink);color:var(--fg);font-family:var(--ui);overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
 #app{position:relative;height:100%;max-width:560px;margin:0 auto;overflow:hidden;background:#000}
@@ -24,7 +26,7 @@ button:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
 .num{font-variant-numeric:tabular-nums}
 
 /* ── HUD ── */
-#hud{position:absolute;inset:0;pointer-events:none;padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column}
+#hud{position:absolute;inset:0;pointer-events:none;padding:calc(12px + var(--top)) 12px calc(14px + var(--bot));display:flex;flex-direction:column}
 .hud-top{display:grid;grid-template-columns:44px 1fr auto;align-items:start;gap:10px}
 .ibtn{pointer-events:auto;width:44px;height:44px;border-radius:15px;display:grid;place-items:center;color:var(--fg);border:1px solid var(--stroke);background:var(--glass)}
 .ibtn svg{width:17px;height:17px}
@@ -80,7 +82,7 @@ button:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
 
 /* ── گاراژ: شوروم شب؛ ماشین بالای صفحه، پلاک مشخصات، زبانه ها، دکمه مسابقه ── */
 .dist .v,.combo .ring b,.pop b,#count,.res h2,.res .big b{font-weight:800}
-.sheet{position:absolute;inset:0;display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));pointer-events:none}
+.sheet{position:absolute;inset:0;display:flex;flex-direction:column;padding:calc(14px + var(--top)) 14px calc(14px + var(--bot));pointer-events:none}
 .sheet > *{pointer-events:auto}
 .cut{clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)}
 .g-top{display:flex;align-items:center;gap:8px}
@@ -274,6 +276,32 @@ const fmt = n => FA(Math.round(n).toLocaleString('en-US'));
 const store = { get(k, d){ try { const v = localStorage.getItem('obour3d_' + k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
                 set(k, v){ try { localStorage.setItem('obour3d_' + k, JSON.stringify(v)); } catch(e){} } };
 const rnd = (a, b) => a + Math.random() * (b - a);
+// تلگرام: داخل مینی اپ، بازی در iframe هم دامنه است و از WebApp صفحه مادر استفاده می کند
+const TG = (() => { try { if (window.parent !== window && window.parent.Telegram && window.parent.Telegram.WebApp) return window.parent.Telegram.WebApp; } catch(e){}
+  return (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) ? window.Telegram.WebApp : null; })();
+function applyInsets(){
+  if (!TG) return;
+  const sa = TG.safeAreaInset || {}, ca = TG.contentSafeAreaInset || {}, n = v => Number(v) > 0 ? Number(v) : 0;
+  const r = document.documentElement.style;
+  r.setProperty('--top', `max(env(safe-area-inset-top,0px), ${n(sa.top) + n(ca.top)}px)`);
+  r.setProperty('--bot', `max(env(safe-area-inset-bottom,0px), ${n(sa.bottom) + n(ca.bottom)}px)`);
+}
+applyInsets();
+if (TG && TG.onEvent) {
+  const evs = ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged'];
+  for (const ev of evs) try { TG.onEvent(ev, applyInsets); } catch(e){}
+  window.addEventListener('pagehide', () => { for (const ev of evs) try { TG.offEvent(ev, applyInsets); } catch(e){} });
+}
+// لرزش: بازخورد لمسی تلگرام؛ بیرون تلگرام navigator.vibrate. چند لرزش پشت سرهم با فاصله کم یکی می شوند
+const Haptic = (() => {
+  const H = TG && TG.HapticFeedback, V = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch(e){} };
+  let last = 0; const gate = gap => { const t = performance.now(); if (t - last < gap) return false; last = t; return true; };
+  return {
+    tap(k = 'light', gap = 40){ if (!gate(gap)) return; try { if (H) H.impactOccurred(k); else V({ light:8, soft:6, medium:16, rigid:12, heavy:28 }[k] || 10); } catch(e){} },
+    note(k = 'success'){ last = performance.now(); try { if (H) H.notificationOccurred(k); else V(k === 'error' ? [40, 50, 70] : k === 'warning' ? [20, 40, 20] : [12, 30, 12]); } catch(e){} },
+    sel(){ if (!gate(30)) return; try { if (H) H.selectionChanged(); else V(5); } catch(e){} },
+  };
+})();
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -655,12 +683,74 @@ const garageScene = new T.Scene();
 })();
 let showroomCar = null, carProto = null;
 const WHEEL_R = .276;
+/* لاستیک: لاستیک خود مدل خیلی کم چندضلعی بود (۱۲ وجه) و کج و شکسته دیده می شد.
+   این یکی از دوران یک مقطع واقعی ساخته می شود: ۹۶ قطعه، دیواره کمی برآمده، شانه گرد،
+   آج صاف. محور در x، مرکز روی توپی، مثل چرخ اصلی؛ رینگ خود مدل سر جایش می ماند.
+   v=۰ دیواره بیرونی (+x)، وسط آج، v=۱ دیواره داخلی. */
+const TIRE = (() => {
+  const R = WHEEL_R, W = .1, RIN = .19;
+  const pts = [], side = [];
+  // دیواره: از لبه رینگ تا شانه، با برآمدگی ملایم (سینوسی)
+  for (let i = 0; i <= 8; i++) { const t = i / 8, r = RIN + (R - .018 - RIN) * t; side.push([r, W * (.74 + .26 * Math.sin(t * Math.PI * .92))]); }
+  const shoulder = [[R - .009, W * .93], [R - .003, W * .86], [R, W * .76]];
+  const tread = []; for (let i = 1; i <= 7; i++) tread.push([R, W * .76 * (1 - 2 * i / 8)]);
+  const half = side.concat(shoulder);
+  for (const [r, x] of half) pts.push([r, x]);
+  for (const [r, x] of tread) pts.push([r, x]);
+  for (let i = half.length - 1; i >= 0; i--) pts.push([half[i][0], -half[i][1]]);
+  // Lathe دور محور y می چرخاند: y = عرض (x نهایی)، شعاع در xz؛ بعد محور را به x می بریم
+  const g = new T.LatheGeometry(pts.map(([r, x]) => new T.Vector2(r, -x)), 96);
+  g.rotateZ(Math.PI / 2);
+  g.computeVertexNormals();
+  const vT0 = half.length / (pts.length - 1), vT1 = (half.length + tread.length - 1) / (pts.length - 1);
+  const tex = canvasTex(2048, 256, (c, w, h) => {
+    const y = v => (1 - v) * h;   // flipY: v=0 پایین بوم
+    c.fillStyle = '#1A1B1E'; c.fillRect(0, 0, w, h);
+    // آج: بلوک های مورب با شیار وسط
+    const top = y(vT1), bot = y(vT0);
+    c.fillStyle = '#121315'; c.fillRect(0, top, w, bot - top);
+    c.strokeStyle = '#050506'; c.lineWidth = 7;
+    for (let i = 0; i < 72; i++) { const x = i * w / 72; c.beginPath(); c.moveTo(x, top); c.lineTo(x + 14, (top + bot) / 2 - 6); c.moveTo(x + 14, (top + bot) / 2 + 6); c.lineTo(x, bot); c.stroke(); }
+    c.fillStyle = '#050506'; c.fillRect(0, (top + bot) / 2 - 3, w, 6);
+    for (let i = 0; i < 9000; i++) { const g2 = Math.random() * 40; c.fillStyle = `rgba(${g2},${g2},${g2},.18)`; c.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
+    // نوشته دیواره بیرونی (دو بار دور چرخ)
+    c.save(); c.fillStyle = 'rgba(205,208,214,.82)'; c.font = '700 30px Arial, sans-serif'; c.textBaseline = 'middle';
+    const ty = y(vT0 * .5);
+    for (let k = 0; k < 2; k++) c.fillText('OBOUR RALLY   195/60 R14   M+S', k * w / 2 + 160, ty);
+    c.restore();
+    // لبه رینگ و شانه کمی روشن تر
+    c.fillStyle = 'rgba(255,255,255,.05)'; c.fillRect(0, y(.02), w, 4); c.fillRect(0, y(.98), w, 4);
+  });
+  tex.wrapS = T.RepeatWrapping;
+  const mat = new T.MeshStandardMaterial({ map:tex, roughness:.88, metalness:0, envMapIntensity:.4, side:T.DoubleSide });
+  // پشت رینگ (توپی و ترمز): از سوراخ های رینگ نباید داخل لاستیک دیده شود
+  const back = new T.CircleGeometry(RIN, 48); back.rotateY(Math.PI / 2); back.translate(-W * .72, 0, 0);
+  const backMat = new T.MeshStandardMaterial({ color:0x0B0C0E, roughness:.7, metalness:.3, side:T.DoubleSide });
+  // آستر داخل لاستیک: لاستیک واقعی توخالی دیده نمی شود
+  const liner = new T.CylinderGeometry(RIN + .004, RIN + .004, W * 1.5, 48, 1, true); liner.rotateZ(Math.PI / 2);
+  const linerMat = new T.MeshStandardMaterial({ color:0x070708, roughness:1, metalness:0, envMapIntensity:0, side:T.DoubleSide });
+  return { g, mat, back, backMat, liner, linerMat };
+})();
 // مدل اصلی (obour405.json): بدنه با رنگ، شیشه ها، چراغ ها با بافت خود مدل؛ چرخ ها جدا با محور در مرکز توپی
 function prepCar(scene){
   const wg = scene.getObjectByName('wheels');
   if (wg) {
     // فایل چرخ ها برای عقب دو دست چرخ با رینگ دیگری دارد؛ عقب ها برداشته می شوند و همان چرخ جلو
     // در محور عقب (همان فاصله از وسط، مثل ۴۰۵ که عرض محور جلو و عقبش تقریبا یکی است) گذاشته می شود
+    // لاستیک کم چندضلعی مدل با لاستیک صاف و گرد عوض می شود؛ چرخ چپ ۱۸۰ درجه چرخیده تا نوشته بیرون باشد
+    for (const w of wg.children) {
+      const old = w.children.find(c => c.name === 'tire'); if (old) w.remove(old);
+      const t = new T.Mesh(TIRE.g, TIRE.mat); t.name = 'tire'; t.castShadow = true;
+      t.add(new T.Mesh(TIRE.back, TIRE.backMat), new T.Mesh(TIRE.liner, TIRE.linerMat));
+      if (w.position.x < 0) t.rotation.y = Math.PI;
+      w.add(t);
+    }
+    // رینگ سمت راست فایل مدل از پشت دیده می شد (رو و پشتش برعکس بود)؛ همان رینگ سالم چپ،
+    // ۱۸۰ درجه چرخیده (نه آینه)، برای هر چهار چرخ استفاده می شود
+    const leftRim = wg.children.filter(w => w.position.x < 0).map(w => w.children.find(c => c.name === 'rim')).find(Boolean);
+    if (leftRim) for (const w of wg.children) if (w.position.x > 0) {
+      const r = w.children.find(c => c.name === 'rim'); if (r) { r.geometry = leftRim.geometry; r.material = leftRim.material; r.rotation.y = Math.PI; }
+    }
     const rearZ = Math.max(...wg.children.map(w => w.position.z));
     for (const w of wg.children.slice()) if (w.position.z > 0) wg.remove(w);
     for (const w of wg.children.slice()) { const c = w.clone(); c.position.z = rearZ; c.name = w.name + 'r'; wg.add(c); }
@@ -921,7 +1011,7 @@ function newRun(){
   player = cloneCar();
   world.add(player);
   Object.assign(G, {
-    t:0, x:LANES[1], vx:0, tx:LANES[1], v:22, brake:0, brakeHeld:false, ax:0, vroad:22, vPrev:22, rollV:0, pitchV:0, acc:0, dist:0, near:0, combo:0, maxCombo:0, comboT:0,
+    t:0, x:LANES[1], vx:0, tx:LANES[1], v:22, gear:0, abs:0, brake:0, brakeHeld:false, ax:0, vroad:22, vPrev:22, rollV:0, pitchV:0, acc:0, dist:0, near:0, combo:0, maxCombo:0, comboT:0,
     coins:0, frags:0, gold:0, nitro:0, boost:0, shake:0, nextSpawn:40, yaw:0, roll:0, pitch:0,
     top:52 + lv.engine * 2.6, accel:4.5 + lv.engine * .55,
     odds:odds(rd.item), nitroGain:.8 + lv.nitro * .08, boostLen:2.8 + lv.nitro * .25,
@@ -954,9 +1044,9 @@ window.addEventListener('keydown', e => {
   if (S.mode === 'garage' && e.key === 'Enter') startRun();
 });
 window.addEventListener('keyup', e => { keys[e.key] = false; });
-function fireNitro(){ if (G.nitro >= 1 && !G.boost && !G.crashed) { G.boost = G.boostLen; G.nitro = 0; G.shake = .35; } }
+function fireNitro(){ if (G.nitro >= 1 && !G.boost && !G.crashed) { G.boost = G.boostLen; G.nitro = 0; G.shake = .35; Haptic.tap('heavy', 0); } }
 $('nitroBtn').addEventListener('click', fireNitro);
-{ const bb = $('brakeBtn'), on = v => e => { G.brakeHeld = v; bb.classList.toggle('on', v); if (v) { try { bb.setPointerCapture(e.pointerId); } catch(_){} } e.preventDefault(); };
+{ const bb = $('brakeBtn'), on = v => e => { if (v && !G.brakeHeld) Haptic.tap('medium', 0); G.brakeHeld = v; bb.classList.toggle('on', v); if (v) { try { bb.setPointerCapture(e.pointerId); } catch(_){} } e.preventDefault(); };
   bb.addEventListener('pointerdown', on(true)); for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) bb.addEventListener(ev, on(false));
   bb.addEventListener('contextmenu', e => e.preventDefault()); }
 
@@ -970,7 +1060,9 @@ function nearMiss(gap){
   const hot = gap < .45;
   const pts = (hot ? 60 : 30) * G.combo;
   G.dist += pts / 10;
+  const was = G.nitro;
   G.nitro = Math.min(1, G.nitro + (hot ? .3 : .16) * G.nitroGain);
+  if (was < 1 && G.nitro >= 1) Haptic.note('success'); else Haptic.tap(hot ? 'medium' : G.combo >= 3 ? 'rigid' : 'light', 0);
   G.shake = Math.max(G.shake, hot ? .25 : .12); G.fov += hot ? 4 : 2;
   if (hot && Math.random() < G.odds.chip * .5) { const m = makeItem('chip'); m.position.set(G.x, 1.1, -60); world.add(m); items.push({ m, kind:'chip', x:G.x }); }
   popup(hot ? 'خیلی نزدیک!' : 'لایی!', '+' + FA(pts) + (G.combo > 1 ? '  ×' + FA(G.combo) : ''), hot);
@@ -978,15 +1070,17 @@ function nearMiss(gap){
 function collect(it){
   burst(it.m.position, itemMat[it.kind].color, 16, 6);
   world.remove(it.m); it.got = true;
-  if (it.kind === 'coin') G.coins += 1 + Math.floor(G.combo / 3);
-  else if (it.kind === 'chip') { G.frags++; popup('قطعه اینترنت', '+۱', false); }
+  if (it.kind === 'coin') { G.coins += 1 + Math.floor(G.combo / 3); Haptic.sel(); }
+  else if (it.kind === 'chip') { G.frags++; popup('قطعه اینترنت', '+۱', false); Haptic.note('success'); }
   else { const r = Math.random();
-    if (r < G.odds.gold) { G.gold++; popup('قطعه طلایی!', 'هوش مصنوعی', true); }
+    Haptic.tap('medium', 0);
+    if (r < G.odds.gold) { G.gold++; popup('قطعه طلایی!', 'هوش مصنوعی', true); setTimeout(() => Haptic.note('success'), 120); }
     else if (r < .5) { G.nitro = 1; popup('نیترو پر شد', '', false); }
     else { G.coins += 15; popup('+۱۵ سکه', '', false); } }
 }
 function crash(t){
   G.crashed = true; G.crashT = 0; G.slow = .32;
+  Haptic.tap('heavy', 0); setTimeout(() => Haptic.note('error'), 140);
   const side = Math.sign(G.x - t.m.position.x) || 1;
   const rel = Math.max(6, G.v - t.v);
   // ضربه: سرعت جانبی و رو به بالا، چرخش حول سه محور؛ ماشین مقابل هم هل داده می شود
@@ -1008,7 +1102,9 @@ function step(dt){
     const pedal = keys.ArrowDown || keys.s || G.brakeHeld ? 1 : 0;
     G.brake += clamp(pedal - G.brake, -8 * dt, 5 * dt);
     G.ax = -G.brake * .9 * G.mu * 9.81;
-    if (G.brake > .02) { G.v = Math.max(0, G.v + G.ax * dt); G.boost = 0; }
+    if (G.brake > .02) { G.v = Math.max(0, G.v + G.ax * dt); G.boost = 0;
+      // ضربان ABS زیر انگشت تا وقتی ماشین هنوز حرکت دارد
+      if (G.brake > .6 && G.v > 6) { G.abs = (G.abs || 0) - dt; if (G.abs <= 0) { G.abs = .16; Haptic.tap('soft', 0); } } }
     else G.v += (top - G.v) * (G.accel / 60) * dt * (G.boost ? 4 : 1);
     if (G.boost) G.boost = Math.max(0, G.boost - dt);
     if (keys.ArrowLeft || keys.a) G.tx = Math.max(-HALF_ROAD + 1.1, G.tx - 9 * dt);
@@ -1022,7 +1118,7 @@ function step(dt){
         const sd = Math.sign(G.x);
         G.x = sd * lim; G.tx = clamp(G.tx, -lim + .6, lim - .6);
         if (G.vx * sd > 0) {   // برخورد با لبه: سرعت جانبی برمی گردد، دماغه از گاردریل دور می شود
-          G.psi *= -.25; G.vy *= -.3; G.r *= .3; G.v *= .96; G.shake = .4; G.combo = 0;
+          G.psi *= -.25; G.vy *= -.3; G.r *= .3; G.v *= .96; G.shake = .4; G.combo = 0; Haptic.tap('rigid', 0);
           burst(new T.Vector3(G.x + sd * .9, .5, 0), 0xFFD38A, 6, 5);
         }
       }
@@ -1101,10 +1197,10 @@ function placePlayer(dt){
     u.body.position.y = Math.sin(G.t * 23) * .004 * (G.v / 40);
     for (const [m, k] of carTails) m.emissiveIntensity = k * (1 + G.brake * 2.6);   // چراغ ترمز
     for (const w of u.wheels) { w.rotation.order = 'YXZ'; w.rotation.x -= G.v * dt / u.P.wheel; }
-    // چرخ های جلو با زاویه واقعی فرمان و هندسه آکرمن (چرخ داخل پیچ تندتر)؛
-    // در سرعت بالا زاویه واقعی چند درجه است، برای دیده شدن با ضریب سرعت بزرگ نمایی می شود
+    // چرخ های جلو دقیقا با زاویه واقعی فرمان و هندسه آکرمن (چرخ داخل پیچ کمی تندتر)؛
+    // در سرعت بالا مثل ماشین واقعی فقط چند درجه است و در مسیر مستقیم صاف
     if (u.front) {
-      const dv = clamp(G.delta * clamp(G.v / 14, 1, 3.2), -.5, .5);
+      const dv = clamp(G.delta, -.55, .55);
       for (const w of u.front) {
         const sx = Math.sign(w.position.x) || 1;
         let ang = dv;
@@ -1141,7 +1237,10 @@ function hud(now){
   const kmh = G.v * 3.6;
   $('dist').textContent = fmt(G.dist);
   $('spd').textContent = FA(Math.round(kmh));
-  $('gear').textContent = G.brake > .3 ? 'ترمز' : G.boost ? 'نیترو' : 'دنده ' + FA(Math.min(6, 1 + Math.floor(kmh / 45)));
+  const gear = Math.min(6, 1 + Math.floor(kmh / 45));
+  if (G.gear && gear > G.gear && !G.brake) Haptic.tap('soft');   // تعویض دنده
+  G.gear = gear;
+  $('gear').textContent = G.brake > .3 ? 'ترمز' : G.boost ? 'نیترو' : 'دنده ' + FA(gear);
   $('gArc').setAttribute('stroke-dasharray', `${Math.min(100, kmh / 330 * 100).toFixed(1)} 100`);
   $('coins').textContent = FA(G.coins); $('frags').textContent = FA(G.frags);
   $('recBar').style.width = (best ? Math.min(100, G.dist / best * 100) : 100) + '%';
@@ -1200,16 +1299,17 @@ function renderGarage(){
   for (const b of document.querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.tab === tab);
   for (const k of ['upg', 'paint', 'road']) $('pane-' + k).hidden = k !== tab;
 }
-document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; renderGarage(); });
-$('roads').addEventListener('click', e => { const b = e.target.closest('[data-road]'); if (!b) return; roadKey = b.dataset.road; store.set('road', roadKey); renderGarage(); });
+document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; Haptic.sel(); renderGarage(); });
+$('roads').addEventListener('click', e => { const b = e.target.closest('[data-road]'); if (!b) return; roadKey = b.dataset.road; store.set('road', roadKey); Haptic.sel(); renderGarage(); });
 $('upg').addEventListener('click', e => {
   const b = e.target.closest('[data-up]'); if (!b) return;
   const k = b.dataset.up, c = cost(lv[k] + 1);
-  if (bank < c || lv[k] >= MAXLV) return;
+  if (bank < c || lv[k] >= MAXLV) return Haptic.note('warning');
+  Haptic.note('success');
   bank -= c; lv[k]++; store.set('bank', bank); store.set('lv', lv);
   garageSpin += .6; renderGarage();
 });
-$('colors').addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (!b) return; colorIdx = +b.dataset.color; store.set('paint', colorIdx); setShowroomCar(); renderGarage(); });
+$('colors').addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (!b) return; colorIdx = +b.dataset.color; store.set('paint', colorIdx); Haptic.sel(); setShowroomCar(); renderGarage(); });
 
 /* ── چرخه حالت ها ── */
 let ranked = true;
@@ -1219,12 +1319,12 @@ function startRun(){
   setTheme(roadKey); newRun();
   $('garage').hidden = true; $('result').hidden = true; $('paused').hidden = true; $('hud').hidden = false;
   camera.clearViewOffset(); G.fov = camera.aspect < .7 ? 70 : 58;
-  S.mode = 'count'; S.countT = 3.2; S.paused = false; $('count').hidden = false;
+  S.mode = 'count'; S.countT = 3.2; S.lastN = null; S.paused = false; Haptic.tap('medium', 0); $('count').hidden = false;
 }
 function endRun(){
   S.mode = 'result';
   const d = Math.round(G.dist), isBest = d > best;
-  if (isBest) { best = d; store.set('best', best); }
+  if (isBest) { best = d; store.set('best', best); setTimeout(() => Haptic.note('success'), 600); }
   if (ranked) { frags += G.frags; store.set('frags', frags); }
   bank += G.coins; store.set('bank', bank);
   $('rBadge').hidden = !isBest;
@@ -1243,7 +1343,7 @@ function togglePause(){ if (S.mode !== 'play') return; S.paused = !S.paused; $('
 $('startBtn').addEventListener('click', startRun);
 $('again').addEventListener('click', startRun);
 $('toGarage').addEventListener('click', toGarage);
-$('pauseBtn').addEventListener('click', togglePause);
+$('pauseBtn').addEventListener('click', () => { Haptic.tap('light', 0); togglePause(); });
 $('resume').addEventListener('click', togglePause);
 $('quit').addEventListener('click', toGarage);
 document.addEventListener('visibilitychange', () => { if (document.hidden && S.mode === 'play' && !S.paused) togglePause(); });
@@ -1276,6 +1376,7 @@ function frame(){
   if (S.mode === 'count') {
     S.countT -= raw;
     const n = Math.ceil(S.countT - .2);
+    if (n !== S.lastN) { S.lastN = n; Haptic.tap(n > 0 ? 'light' : 'heavy', 0); }
     $('count').innerHTML = (n > 0 ? FA(n) : 'برو!') + '<small>انگشت را چپ و راست بکش · ترمز را نگه دار · لایی نزدیک = نیترو</small>';
     if (S.countT <= 0) { $('count').hidden = true; S.mode = 'play'; }
     placePlayer(0); placeCamera(raw); return render(world);
@@ -1295,6 +1396,6 @@ loadCar();
 if (window.parent !== window) { $('closeBtn').hidden = false; $('closeBtn').addEventListener('click', () => { try { window.parent.postMessage({ obour:'game-close' }, location.origin); } catch(e){} }); }
 resize(); setTheme(roadKey); setEnvK(.8); garageBloom(); setShowroomCar(); renderGarage(); updatePosts();
 frame();
-window.__obour = { start:startRun, G, S, keys, setRoad(k){ roadKey = k; renderGarage(); }, spin(v){ garageSpin = v; }, freeze(v){ window.__obourFreeze = v; } };
+window.__obour = { start:startRun, G, S, keys, setRoad(k){ roadKey = k; renderGarage(); }, spin(v){ garageSpin = v; }, car(){ return showroomCar; }, player(){ return player; }, freeze(v){ window.__obourFreeze = v; } };
 })();
 </script>

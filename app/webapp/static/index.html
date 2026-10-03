@@ -1069,7 +1069,8 @@ html[dir=ltr] .sw.on::after{transform:translateX(18px)}
 #nav::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.2px;pointer-events:none;z-index:2;opacity:.85;
   background:linear-gradient(135deg,#7FF3FF,#8A6CFF 40%,rgba(255,255,255,.08) 60%,#FF8AD8);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
-#app.no-nav #nav{transform:translateY(140%)}
+/* کامل بیرون: ۱۴۰٪ ارتفاع خود نوار با فاصله امن بزرگ پایین (آیفون تمام صفحه) کافی نبود و لبه اش می ماند */
+#app.no-nav #nav{transform:translateY(calc(100% + 24px + var(--safe-b)))}
 .nav-i{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(230,238,255,.55);transition:color .35s}
 .nav-i svg{width:22px;height:22px;transition:transform .45s var(--spring),filter .35s}
 .nav-i:active svg{transform:scale(.88)}
@@ -2088,7 +2089,7 @@ async account(p){
 }
 };
 
-const APP_VERSION = '6.2.0';
+const APP_VERSION = '6.2.1';
 const Account = {
   /* زبان با ربات یکی است: همان ستون users.lang، پس انتخاب اینجا زبان
      ربات را هم عوض می کند. عوض کردنش صفحه را از نو می سازد. */
