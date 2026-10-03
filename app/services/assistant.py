@@ -508,7 +508,7 @@ async def _rcpt_verify(db: "Database", image: bytes, *, rial: int, ref: str, car
 
 
 async def receipt_verdict(db: "Database", txn: dict, image: bytes, *, ref: str = "",
-                          timeout: float | None = None) -> dict:
+                          need_ref: bool = True, timeout: float | None = None) -> dict:
     """بررسی سخت گیرانه رسید.
 
     خروجی: {"decision": "approve" | "reject" | "manual", "reason": کلید REJECT_REASONS یا "",
@@ -616,7 +616,14 @@ async def receipt_verdict(db: "Database", txn: dict, image: bytes, *, ref: str =
     # ── کد پیگیری کاربر باید روی رسید باشد
     seen_refs = {clean_ref(x) for x in (b.get("ref_codes") or []) if clean_ref(x)}
     vrm = _yes(v.get("ref_matches"))
-    if not ref:
+    if not ref and not need_ref:
+        # مینی اپ کد نمی پرسد: کدی که روی رسید خوانده شد مبنای تکراری است
+        # (صدا زننده آن را با دیتابیس می سنجد)؛ بدون کد خوانا تایید نمی شود.
+        if seen_refs:
+            good(f"کد پیگیری روی رسید: <code>{', '.join(sorted(seen_refs))[:60]}</code>")
+        else:
+            unknown("کد پیگیری روی رسید خوانده نشد")
+    elif not ref:
         unknown("کاربر کد پیگیری نفرستاده")
     elif ref in seen_refs and vrm is not False:
         good(f"کد پیگیری <code>{ref}</code> روی رسید هست")

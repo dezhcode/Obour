@@ -2551,15 +2551,11 @@ const Topup = {
         <span class="upload-t" id="up-t">عکس رسید را انتخاب کن</span>
         <span class="short">اسکرین‌شات یا عکس رسید بانکی</span>
       </label>
-      ${Sec('کد پیگیری رسید')}
-      <div class="mx"><input class="adm-in" id="rc-ref" inputmode="numeric" dir="ltr" maxlength="30" autocomplete="off"
-        placeholder="${esc(I18N.t('کد پیگیری یا شماره مرجع (فقط عدد)'))}" oninput="Topup.refTyped(this)" style="width:100%"></div>
-      <div class="short" style="margin:6px var(--pad) 0;text-align:right">روی رسید بانکت نوشته شده؛ رسیدت با همین کد بررسی می‌شود.</div>
       <div class="gap" style="height:6px"></div>${Sec('چطور شارژ می‌شود؟')}
       <div class="card mx"><ol class="steps">
         <li><span class="d n">1</span><div><b>مبلغ را دقیقا کپی کن</b><p>سه رقم آخر (${N(amt.slice(cut))}) شناسه توست و رسیدت با آن شناخته می‌شود. رندش نکن.</p></div></li>
         <li><span class="d n">2</span><div><b>کارت به کارت کن</b><p>از اپ بانکت همین مبلغ را به کارت بالا بزن${r.ttl_minutes ? `، ظرف ${N(r.ttl_minutes)} دقیقه` : ''}.</p></div></li>
-        <li><span class="d n">3</span><div><b>عکس و کد پیگیری رسید را بفرست</b><p>اسکرین‌شات رسید بانکی را انتخاب کن، کد پیگیری‌اش را بنویس و «ارسال رسید» را بزن.</p></div></li>
+        <li><span class="d n">3</span><div><b>عکس رسید را بفرست</b><p>اسکرین‌شات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.</p></div></li>
         <li><span class="d">${ic('check',2.6)}</span><div><b>کیفت شارژ می‌شود</b><p>معمولا چند دقیقه طول می‌کشد. بعد از تایید، مبلغ به کیف پولت اضافه می‌شود و در ربات خبر می‌گیری.</p></div></li>
       </ol><div class="steps-warn">${ic('warn',2)}<span>اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمی‌شود و تاییدش طول می‌کشد.</span></div></div>
       <div class="foot"><button class="btn btn-p btn-block" id="rc-go" disabled onclick="Topup.send()">ارسال رسید</button></div>`;
@@ -2611,7 +2607,7 @@ const Topup = {
         const up = $('up');
         up.classList.add('has'); up.style.backgroundImage = `url(${this.img})`;
         $('up-t').textContent = 'رسید انتخاب شد · برای عوض کردن بزن';
-        const b = $('rc-go'); if (b) b.disabled = !this.refOk();
+        const b = $('rc-go'); if (b) b.disabled = false;
         App.haptic();
       };
       img.onerror = () => App.toast('این فایل عکس نیست', true);
@@ -2619,15 +2615,11 @@ const Topup = {
     };
     reader.readAsDataURL(f);
   },
-  refVal(){ const el = $('rc-ref'); return el ? el.value.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g, '') : ''; },
-  refOk(){ const v = this.refVal(); return v.length >= 4 && v.length <= 30; },
-  refTyped(){ const b = $('rc-go'); if (b) b.disabled = !(this.img && this.refOk()); },
   async send(){
     if (this.busy || !this.img) return;
-    if (!this.refOk()) return App.toast('کد پیگیری رسید را بنویس (فقط عدد)', true);
     this.busy = true; const b = $('rc-go'); if (b) { b.disabled = true; b.textContent = 'در حال ارسال و بررسی…'; }
     try {
-      const r = await api('topup/receipt', { txn_id:this.req.txn_id, image:this.img, ref:this.refVal() });
+      const r = await api('topup/receipt', { txn_id:this.req.txn_id, image:this.img });
       App.notify(r.decision === 'rejected' || r.decision === 'duplicate' ? 'error' : 'success');
       if (r.balance != null) App.setBalance(r.balance);
       const res = { approved:['ok', 'check', 'کیف پولت شارژ شد', `شارژ ${N(fa(r.amount))} تومان تایید شد و به کیف پولت اضافه شد.`],

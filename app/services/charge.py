@@ -132,13 +132,14 @@ async def attach_receipt(bot, db: "Database", user: dict, txn_id: int, image: by
         return {"ok": False, "error": ALREADY_SENT}
     if not image or len(image) > MAX_RECEIPT or not _image_kind(image):
         return {"ok": False, "error": BAD_IMAGE}
+    # مینی اپ کد پیگیری نمی پرسد؛ اگر داده شد ذخیره می شود. تکراری بودن
+    # با هش عکس و کدهای روی رسید (بررسی هوشمند) سنجیده می شود.
     ref = clean_ref(ref)
-    if not ref:
-        return {"ok": False, "error": BAD_REF}
     if not config.admin_ids:
         return {"ok": False, "error": NO_ADMIN}
 
-    await db.set_receipt_meta(txn_id, ref_code=ref)
+    if ref:
+        await db.set_receipt_meta(txn_id, ref_code=ref)
     r = await receipts.process(bot, db, txn_id, image=image, source="mini")
     if r.get("decision") == "manual" and not r.get("sent"):
         return {"ok": False, "error": NO_ADMIN}
