@@ -784,6 +784,7 @@ _CHARGE_ERR = {
     charge_svc.BAD_IMAGE: (400, "فقط عکس رسید (JPG یا PNG) تا ۳ مگابایت"),
     charge_svc.NO_ADMIN: (503, "رسید به پشتیبانی نرسید؛ دوباره امتحان کن"),
     charge_svc.ALREADY_SENT: (409, "رسید این شارژ قبلا فرستاده شده و در حال بررسی است"),
+    charge_svc.BAD_REF: (400, "کد پیگیری رسید را درست بنویس (فقط عدد، ۴ تا ۳۰ رقم)"),
 }
 
 
@@ -807,12 +808,15 @@ async def topup_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
             "ttl_minutes": config.charge_ttl_minutes}
 
 
-async def topup_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, txn_id: int, image: bytes, bot=None) -> dict:  # noqa: ANN001
+async def topup_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, txn_id: int, image: bytes,  # noqa: ANN001
+                        ref: str = "", bot=None) -> dict:
     user = await _require_user(db, wuser)
-    r = await charge_svc.attach_receipt(bot, db, user, txn_id, image)
+    r = await charge_svc.attach_receipt(bot, db, user, txn_id, image, ref=ref)
     if not r["ok"]:
         _charge_error(r)
-    return {"ok": True, "code": r.get("code"), "amount": r["amount"]}
+    fresh = await db.get_user(user["id"]) or user
+    return {"ok": True, "code": r.get("code"), "amount": r["amount"], "decision": r.get("decision") or "manual",
+            "balance": int(fresh["balance"])}
 
 
 # ═══════════════════ Telegram Stars ═══════════════════

@@ -421,10 +421,20 @@ async def ticket_draft(db: "Database", user: dict, *, timeout: float | None = No
 
 
 # ═══════════════════ ۷: بررسی رسید کارت به کارت ═══════════════════
+#
+# سیستم مالی است، پس دو درخواست موازی و مستقل:
+#   «کور»: بدون دانستن مبلغ و کد، هر چه روی رسید هست عینا خوانده می شود
+#   «تطبیق»: مبلغ ریالی فاکتور، کد پیگیری کاربر و کارت مقصد داده می شود
+#            و برای هر کدام «می خواند / نمی خواند / ناخوانا» پرسیده می شود
+# تایید خودکار فقط وقتی است که هر دو، همه موارد را درست بدانند. رد خودکار
+# فقط وقتی است که هر دو روی یک ایراد قطعی هم نظر باشند. بقیه می ماند برای
+# ادمین. تکراری بودن با دیتابیس سنجیده می شود، نه با هوش مصنوعی.
+
+_FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
 
 def _digits(s: Any) -> str:
-    fa = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
-    return re.sub(r"\D", "", str(s or "").translate(fa))
+    return re.sub(r"\D", "", str(s or "").translate(_FA_DIGITS))
 
 
 def _int(s: Any) -> int | None:
@@ -432,68 +442,170 @@ def _int(s: Any) -> int | None:
     return int(d) if d else None
 
 
-async def receipt_check(db: "Database", txn: dict, image: bytes, *, timeout: float | None = None) -> dict:
-    """خواندن رسید و مقایسه با فاکتور. فقط هشدار؛ تصمیم با ادمین.
+def clean_ref(s: Any) -> str:
+    """کد پیگیری / شماره مرجع: فقط رقم، ۴ تا ۳۰ رقم؛ وگرنه خالی."""
+    d = _digits(s)
+    return d if 4 <= len(d) <= 30 else ""
 
-    خروجی: {"lines": [...], "ok": bool, "data": {...}}
-    """
+
+def _card_parts(text: Any) -> tuple[str, str]:
+    """(رقم های اول قابل دیدن، چهار رقم آخر) از شماره کارت چاپ شده یا ماسک شده."""
+    t = re.sub(r"[^\d*xX•]", "", str(text or "").translate(_FA_DIGITS))
+    head = re.match(r"\d*", t).group(0)
+    tail_m = re.search(r"\d+$", t)
+    tail = tail_m.group(0) if tail_m else ""
+    if head == t:  # بدون ماسک
+        return (t[:6], t[-4:]) if len(t) >= 16 else ("", t[-4:] if len(t) >= 4 else "")
+    return head[:6], tail[-4:] if len(tail) >= 4 else ""
+
+
+def _yes(v: Any) -> bool | None:
+    if isinstance(v, bool):
+        return v
+    s = str(v or "").strip().lower()
+    if s in ("true", "yes", "match", "matches", "success", "1"):
+        return True
+    if s in ("false", "no", "mismatch", "failed", "0"):
+        return False
+    return None
+
+
+async def _rcpt_blind(db: "Database", image: bytes, timeout: float) -> dict:
     prompt = (
-        "This image should be an Iranian bank card-to-card transfer receipt (کارت به کارت). Extract fields. "
-        "Return ONLY JSON: {\"is_receipt\": bool, \"status\": \"success|failed|unknown\", \"amount\": <number as printed>, "
-        "\"unit\": \"rial|toman|unknown\", \"date\": \"YYYY-MM-DD gregorian (convert from Jalali if needed) or null\", "
-        "\"time\": \"HH:MM or null\", \"dest_card\": \"destination card digits as printed (may be masked with *)\", "
-        "\"dest_name\": \"destination owner name or null\", \"tracking\": \"reference/tracking number or null\", "
-        "\"edited_signs\": \"any sign of editing or a fake, or null\"}"
+        "You are a strict bank-receipt reader. The image should be an Iranian bank card-to-card transfer receipt "
+        "(کارت به کارت). Transcribe EXACTLY what is printed; never guess, never fill missing values. "
+        "Return ONLY JSON: {\"is_receipt\": bool, \"status\": \"success|failed|unknown\", "
+        "\"amount_text\": \"amount digits exactly as printed, or null\", \"unit\": \"rial|toman|unknown\" (as printed next to the amount), "
+        "\"date_printed\": \"date exactly as printed or null\", \"date\": \"same date converted to Gregorian YYYY-MM-DD or null\", "
+        "\"time\": \"HH:MM or null\", \"dest_card\": \"destination card number exactly as printed incl. * masks, or null\", "
+        "\"dest_name\": \"destination owner name or null\", "
+        "\"ref_codes\": [\"every reference / tracking / trace number printed (شماره پیگیری، شماره مرجع، کد رهگیری)\"], "
+        "\"edited_signs\": \"visible signs of editing, cropping of key fields, or a fake template; null if none\", "
+        "\"confidence\": \"high|medium|low (how clearly every field above was readable)\"}"
     )
-    data = parse_json(await ask(prompt, image=image, kind="receipt", db=db, timeout=timeout or 60))
+    data = parse_json(await ask(prompt, image=image, kind="receipt", db=db, timeout=timeout))
     if not isinstance(data, dict):
         raise AIError("جواب نامعتبر", "bad_json")
+    return data
 
-    expected = int(txn.get("amount") or 0)
-    lines: list[str] = []
-    good = True
 
-    if data.get("is_receipt") is False:
-        return {"ok": False, "data": data, "lines": ["⛔️ این عکس شبیه رسید بانکی نیست."]}
+async def _rcpt_verify(db: "Database", image: bytes, *, rial: int, ref: str, card: str, holder: str, timeout: float) -> dict:
+    prompt = (
+        "You are a strict auditor checking an Iranian card-to-card bank receipt against an invoice. Be skeptical: "
+        "answer true ONLY if you can clearly read the value on the receipt and it is exactly equal. If unreadable, answer null.\n"
+        f"Invoice amount: {rial:,} RIAL (= {rial // 10:,} toman). Receipts usually print Rial (ریال).\n"
+        f"Tracking/reference code the customer typed: {ref or '(none given)'}\n"
+        f"Our destination card: {card or '(unknown)'}" + (f" — owner: {holder}" if holder else "") + "\n"
+        "Return ONLY JSON: {\"is_receipt\": bool, \"status_success\": true|false|null, "
+        "\"amount_matches\": true|false|null, \"amount_seen_rial\": <integer rial you read, or null>, "
+        "\"card_matches\": true|false|null, \"ref_matches\": true|false|null, "
+        "\"looks_genuine\": true|false|null, \"confidence\": \"high|medium|low\", \"notes\": \"short Persian note\"}"
+    )
+    data = parse_json(await ask(prompt, image=image, kind="receipt", db=db, timeout=timeout))
+    if not isinstance(data, dict):
+        raise AIError("جواب نامعتبر", "bad_json")
+    return data
 
-    status = str(data.get("status") or "unknown").lower()
-    if status == "failed":
-        good = False
-        lines.append("⛔️ رسید «ناموفق» است.")
-    elif status == "success":
-        lines.append("✅ وضعیت: موفق")
-    else:
-        lines.append("❔ وضعیت تراکنش مشخص نیست")
 
-    amount = _int(data.get("amount"))
-    unit = str(data.get("unit") or "unknown").lower()
-    if amount:
-        toman = amount // 10 if unit == "rial" else amount
-        matches = {amount // 10, amount} if unit == "unknown" else {toman}
-        if expected in matches:
-            lines.append(f"✅ مبلغ: {expected:,} تومان (مطابق)")
-        else:
-            good = False
-            shown = f"{amount:,} {'ریال' if unit == 'rial' else 'تومان' if unit == 'toman' else ''}".strip()
-            lines.append(f"⚠️ مبلغ رسید {shown} است ولی فاکتور {expected:,} تومان")
-    else:
-        lines.append("❔ مبلغ خوانده نشد")
+async def receipt_verdict(db: "Database", txn: dict, image: bytes, *, ref: str = "",
+                          timeout: float | None = None) -> dict:
+    """بررسی سخت گیرانه رسید.
 
+    خروجی: {"decision": "approve" | "reject" | "manual", "reason": کلید REJECT_REASONS یا "",
+            "ok": bool, "lines": [...], "data": {...}, "verify": {...}}
+    """
+    timeout = timeout or config.ai_timeout
+    toman = int(txn.get("amount") or 0)
+    rial = toman * 10
+    ref = clean_ref(ref or txn.get("ref_code"))
     card = _digits(await db.get_setting("card_number", ""))
-    dest = str(data.get("dest_card") or "")
-    dest_digits = _digits(dest)
-    if card and dest_digits:
-        tail = dest_digits[-4:]
-        if len(tail) == 4 and card.endswith(tail):
-            lines.append(f"✅ کارت مقصد: ****{tail}")
-        else:
-            good = False
-            lines.append(f"⚠️ کارت مقصد ({html.escape(dest[:30])}) با کارت شما (****{card[-4:]}) نمی خواند")
-    elif card:
-        lines.append("❔ کارت مقصد خوانده نشد")
-
     holder = (await db.get_setting("card_holder", "")).strip()
-    name = str(data.get("dest_name") or "").strip()
+
+    blind, verify = await asyncio.gather(
+        _rcpt_blind(db, image, timeout),
+        _rcpt_verify(db, image, rial=rial, ref=ref, card=card, holder=holder, timeout=timeout),
+        return_exceptions=True,
+    )
+    if isinstance(blind, BaseException) and isinstance(verify, BaseException):
+        raise blind if isinstance(blind, AIError) else AIError(str(blind))
+    b = blind if isinstance(blind, dict) else {}
+    v = verify if isinstance(verify, dict) else {}
+    both = bool(b) and bool(v)
+
+    lines: list[str] = []
+    ok_all = both  # تایید خودکار فقط با هر دو جواب
+    reject: str = ""
+
+    def good(line: str) -> None:
+        lines.append("✅ " + line)
+
+    def bad(line: str) -> None:
+        nonlocal ok_all
+        ok_all = False
+        lines.append("⚠️ " + line)
+
+    def unknown(line: str) -> None:
+        nonlocal ok_all
+        ok_all = False
+        lines.append("❔ " + line)
+
+    # ── رسید هست؟
+    if b.get("is_receipt") is False and v.get("is_receipt") is False:
+        return {"decision": "reject", "reason": "invalid", "ok": False, "data": b, "verify": v,
+                "lines": ["⛔️ این عکس رسید بانکی نیست (هر دو بررسی)."]}
+    if b.get("is_receipt") is False or v.get("is_receipt") is False:
+        unknown("معلوم نیست این عکس رسید بانکی باشد")
+
+    # ── وضعیت
+    st = str(b.get("status") or "unknown").lower()
+    vs = _yes(v.get("status_success"))
+    if st == "success" and vs is not False:
+        good("وضعیت: موفق")
+    elif st == "failed" and vs is False:
+        reject = reject or "invalid"
+        bad("تراکنش «ناموفق» است")
+    elif st == "failed" or vs is False:
+        bad("وضعیت تراکنش ناموفق یا مشکوک است")
+    else:
+        unknown("وضعیت تراکنش روی رسید خوانده نشد")
+
+    # ── مبلغ (به ریال)
+    amt = _int(b.get("amount_text"))
+    unit = str(b.get("unit") or "unknown").lower()
+    vam = _yes(v.get("amount_matches"))
+    if amt:
+        as_rial = {amt * 10} if unit == "toman" else {amt} if unit == "rial" else {amt, amt * 10}
+        shown = f"{amt:,} {'تومان' if unit == 'toman' else 'ریال' if unit == 'rial' else ''}".strip()
+        if rial in as_rial and unit in ("rial", "toman") and vam is True:
+            good(f"مبلغ: {rial:,} ریال ({toman:,} تومان) دقیقا مطابق")
+        elif rial in as_rial:
+            unknown(f"مبلغ {shown} احتمالا مطابق است ولی قطعی نیست (واحد یا تطبیق دوم)")
+        elif vam is False:
+            reject = reject or "amount"
+            bad(f"مبلغ رسید {shown} است؛ فاکتور {rial:,} ریال ({toman:,} تومان)")
+        else:
+            bad(f"مبلغ رسید {shown} با فاکتور {rial:,} ریال نمی خواند")
+    else:
+        unknown(f"مبلغ رسید خوانده نشد (فاکتور {rial:,} ریال)")
+
+    # ── کارت مقصد
+    head, tail = _card_parts(b.get("dest_card"))
+    vcm = _yes(v.get("card_matches"))
+    if not card:
+        unknown("شماره کارت در تنظیمات نیست؛ کارت مقصد سنجیده نشد")
+    elif tail:
+        head_ok = not head or card.startswith(head)
+        if card.endswith(tail) and head_ok and vcm is not False:
+            good(f"کارت مقصد: ****{tail}")
+        elif (not card.endswith(tail) or not head_ok) and vcm is False:
+            reject = reject or "invalid"
+            bad(f"واریز به کارت دیگری بوده ({html.escape(str(b.get('dest_card'))[:30])})")
+        else:
+            bad(f"کارت مقصد ({html.escape(str(b.get('dest_card'))[:30])}) قطعی مطابق نیست")
+    else:
+        unknown("کارت مقصد روی رسید خوانده نشد")
+
+    name = str(b.get("dest_name") or "").strip()
     if holder and name:
         h_words = {w for w in re.split(r"\s+", holder) if len(w) > 1}
         if h_words & {w for w in re.split(r"\s+", name) if len(w) > 1}:
@@ -501,42 +613,62 @@ async def receipt_check(db: "Database", txn: dict, image: bytes, *, timeout: flo
         else:
             lines.append(f"❔ نام مقصد «{html.escape(name[:40])}» با «{html.escape(holder[:40])}» فرق دارد")
 
-    when = str(data.get("date") or "")
+    # ── کد پیگیری کاربر باید روی رسید باشد
+    seen_refs = {clean_ref(x) for x in (b.get("ref_codes") or []) if clean_ref(x)}
+    vrm = _yes(v.get("ref_matches"))
+    if not ref:
+        unknown("کاربر کد پیگیری نفرستاده")
+    elif ref in seen_refs and vrm is not False:
+        good(f"کد پیگیری <code>{ref}</code> روی رسید هست")
+    elif seen_refs:
+        bad(f"کد پیگیری کاربر <code>{ref}</code> روی رسید نیست (روی رسید: {', '.join(sorted(seen_refs))[:60]})")
+    else:
+        unknown(f"کد پیگیری روی رسید خوانده نشد (کاربر: <code>{ref}</code>)")
+
+    # ── تاریخ: از روز ساخت فاکتور تا امروز
     try:
-        rd = datetime.fromisoformat(when[:10]).date()
+        rd = datetime.fromisoformat(str(b.get("date") or "")[:10]).date()
         td = datetime.fromisoformat(str(txn.get("created_at"))[:10]).date()
-        gap = (rd - td).days
-        if -1 <= gap <= 2:
-            lines.append(f"✅ تاریخ: {rd.isoformat()}")
+        today = datetime.now(TZ).date()
+        if td - timedelta(days=1) <= rd <= today + timedelta(days=1):
+            good(f"تاریخ: {html.escape(str(b.get('date_printed') or rd.isoformat()))}")
         else:
-            good = False
-            lines.append(f"⚠️ تاریخ رسید {rd.isoformat()} با زمان فاکتور ({td.isoformat()}) نمی خواند")
+            bad(f"تاریخ رسید {rd.isoformat()} با زمان فاکتور ({td.isoformat()}) نمی خواند")
     except (TypeError, ValueError):
-        lines.append("❔ تاریخ خوانده نشد")
+        unknown("تاریخ رسید خوانده نشد")
 
-    tracking = _digits(data.get("tracking"))
-    if len(tracking) >= 6:
-        key = f"rcpt:{tracking}"
-        seen = await db.ai_cache_get(key, 365 * 86400)
-        if seen and seen != str(txn["id"]):
-            good = False
-            lines.append(f"⚠️ این کد پیگیری قبلا در رسید فاکتور #{html.escape(seen)} دیده شده")
-        else:
-            await db.ai_cache_set(key, str(txn["id"]))
-            lines.append(f"🔖 پیگیری: <code>{tracking}</code>")
+    # ── اصالت و اطمینان
+    if b.get("edited_signs"):
+        bad(f"نشانه دستکاری: {html.escape(str(b['edited_signs'])[:120])}")
+    if _yes(v.get("looks_genuine")) is False:
+        bad("بررسی دوم رسید را جعلی یا مشکوک می داند")
+    for who, d in (("خواندن", b), ("تطبیق", v)):
+        if d and str(d.get("confidence") or "").lower() != "high":
+            unknown(f"اطمینان {who}: {html.escape(str(d.get('confidence') or '؟'))}")
+    if not both:
+        unknown("یکی از دو بررسی جواب نداد")
+    if v.get("notes"):
+        lines.append(f"📝 {html.escape(str(v['notes'])[:200])}")
 
-    if data.get("edited_signs"):
-        good = False
-        lines.append(f"⚠️ نشانه دستکاری: {html.escape(str(data['edited_signs'])[:120])}")
+    if ok_all:
+        decision = "approve"
+    elif reject and both:
+        decision = "reject"
+    else:
+        decision, reject = "manual", ""
+    return {"decision": decision, "reason": reject, "ok": ok_all, "data": b, "verify": v, "lines": lines}
 
-    return {"ok": good, "data": data, "lines": lines}
+
+async def receipt_check(db: "Database", txn: dict, image: bytes, *, timeout: float | None = None) -> dict:
+    """همان بررسی، برای دکمه «بررسی هوشمند» ادمین (فقط گزارش)."""
+    return await receipt_verdict(db, txn, image, timeout=timeout or 60)
 
 
 def receipt_html(r: dict) -> str:
-    head = "🟢 <b>به نظر درست است</b>" if r.get("ok") else "🟠 <b>نیاز به دقت</b>"
+    head = {"approve": "🟢 <b>همه موارد دقیقا مطابق است</b>",
+            "reject": "🔴 <b>رسید مشکل قطعی دارد</b>"}.get(r.get("decision"), "🟠 <b>نیاز به بررسی ادمین</b>")
     return (
         f"🔍 <b>بررسی هوشمند رسید</b>\n{head}\n\n" + "\n".join(r.get("lines") or [])
-        + "\n\n<i>این فقط کمک است؛ تصمیم نهایی با شماست.</i>"
     )
 
 

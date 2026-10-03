@@ -575,6 +575,12 @@ class Database:
             ("users", "ai_name", "ALTER TABLE users ADD COLUMN ai_name TEXT"),
             # توضیح فارسی محصول که ادمین از پیش نویس هوش مصنوعی تایید کرده
             ("shop_product_meta", "desc_fa", "ALTER TABLE shop_product_meta ADD COLUMN desc_fa TEXT"),
+            # رسید کارت به کارت: کد پیگیری که کاربر در ربات/مینی اپ نوشته،
+            # هش عکس (رسید تکراری)، زمان رسیدن عکس و زمان بررسی
+            ("transactions", "ref_code", "ALTER TABLE transactions ADD COLUMN ref_code TEXT"),
+            ("transactions", "receipt_hash", "ALTER TABLE transactions ADD COLUMN receipt_hash TEXT"),
+            ("transactions", "receipt_at", "ALTER TABLE transactions ADD COLUMN receipt_at TEXT"),
+            ("transactions", "review_at", "ALTER TABLE transactions ADD COLUMN review_at TEXT"),
         ]
         for table, column, sql in migrations:
             cur = await self._conn.execute(f"PRAGMA table_info({table})")
@@ -856,8 +862,53 @@ class Database:
 
     async def set_receipt(self, txn_id: int, file_id: str) -> None:
         await self.execute(
-            "UPDATE transactions SET receipt_file_id = ? WHERE id = ?", (file_id, txn_id)
+            "UPDATE transactions SET receipt_file_id = ?, receipt_at = COALESCE(receipt_at, ?) WHERE id = ?",
+            (file_id, now_str(), txn_id),
         )
+
+    async def set_receipt_meta(self, txn_id: int, *, ref_code: str | None = None, receipt_hash: str | None = None) -> None:
+        if ref_code is not None:
+            await self.execute("UPDATE transactions SET ref_code = ? WHERE id = ?", (ref_code or None, txn_id))
+        if receipt_hash is not None:
+            await self.execute("UPDATE transactions SET receipt_hash = ? WHERE id = ?", (receipt_hash or None, txn_id))
+
+    async def claim_review(self, txn_id: int) -> bool:
+        """فقط یک بار بررسی و اعلام به ادمین (ضد اجرای همزمان)."""
+        return await self.execute(
+            "UPDATE transactions SET review_at = ? WHERE id = ? AND review_at IS NULL", (now_str(), txn_id)
+        ) == 1
+
+    async def charge_with_ref(self, ref: str, exclude_id: int) -> dict | None:
+        """شارژ دیگری (در انتظار یا تایید شده) با همین کد پیگیری."""
+        if not ref:
+            return None
+        row = await self.fetchone(
+            "SELECT * FROM transactions WHERE type = 'charge' AND ref_code = ? AND id != ? "
+            "AND status IN ('pending', 'approved') ORDER BY id LIMIT 1",
+            (ref, exclude_id),
+        )
+        return dict(row) if row else None
+
+    async def charge_with_hash(self, h: str, exclude_id: int) -> dict | None:
+        if not h:
+            return None
+        row = await self.fetchone(
+            "SELECT * FROM transactions WHERE type = 'charge' AND receipt_hash = ? AND id != ? "
+            "AND status IN ('pending', 'approved') ORDER BY id LIMIT 1",
+            (h, exclude_id),
+        )
+        return dict(row) if row else None
+
+    async def receipts_unreviewed(self, older_than_minutes: int = 10, limit: int = 5) -> list[dict]:
+        """رسیدهایی که عکسشان رسیده ولی کاربر کد پیگیری را نفرستاد و رها کرد."""
+        cutoff = (datetime.now(TZ) - timedelta(minutes=older_than_minutes)).isoformat(timespec="seconds")
+        rows = await self.fetchall(
+            "SELECT * FROM transactions WHERE type = 'charge' AND status = 'pending' "
+            "AND receipt_file_id IS NOT NULL AND review_at IS NULL AND receipt_at IS NOT NULL "
+            "AND receipt_at < ? ORDER BY id LIMIT ?",
+            (cutoff, limit),
+        )
+        return [dict(r) for r in rows]
 
     async def pending_charges(self, limit: int = 20) -> list[dict]:
         rows = await self.fetchall(

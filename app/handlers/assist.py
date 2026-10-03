@@ -283,7 +283,7 @@ async def _admin_text(db: Database) -> str:
 
     feats = "\n".join(
         f"{'🟢' if features.is_on(k) else '⚪️'} {features.FEATURES[k][0]}"
-        for k in ("ai_support", "ai_recommend", "ai_shop_help", "ai_names", "ai_report")
+        for k in ("ai_support", "ai_recommend", "ai_shop_help", "ai_names", "ai_report", "ai_receipt_auto")
     )
     return (
         "🧠 <b>دستیار هوشمند</b>\n\n"
@@ -292,7 +292,8 @@ async def _admin_text(db: Database) -> str:
         f"🔢 سقف روزانه هر کاربر: {limit}\n"
         f"📈 درخواست های امروز: {total}" + (f" (ناموفق {bad})" if bad else "") + "\n\n"
         + feats
-        + "\n\n<i>بررسی رسید و پیش نویس تیکت برای ادمین ها همیشه روشن است.</i>"
+        + "\n\n<i>«بررسی خودکار رسید» فقط وقتی تایید می کند که مبلغ ریالی، کارت مقصد، کد پیگیری کاربر، "
+          "وضعیت و تاریخ در دو بررسی مستقل دقیقا درست باشند؛ هر شکی برای شما می ماند.</i>"
     )
 
 
@@ -302,6 +303,18 @@ async def cb_admin_assist(call: CallbackQuery, db: Database) -> None:
         return await call.answer()
     await edit_or_send(call.message, await _admin_text(db), keyboards.admin_assist_kb(assistant.configured()))
     await call.answer()
+
+
+@router.callback_query(F.data == "aia:auto")
+async def cb_admin_receipt_auto(call: CallbackQuery, db: Database) -> None:
+    """روشن/خاموش بررسی خودکار رسید (در دیتابیس می ماند تا دوباره عوض شود)."""
+    from app import features
+
+    if not is_admin(call.from_user.id):
+        return await call.answer()
+    on = await features.toggle(db, "ai_receipt_auto")
+    await call.answer("بررسی خودکار رسید روشن شد" if on else "بررسی خودکار رسید خاموش شد", show_alert=True)
+    await edit_or_send(call.message, await _admin_text(db), keyboards.admin_assist_kb(assistant.configured()))
 
 
 @router.callback_query(F.data.in_({"aia:test", "aia:rep", "aia:names"}))
