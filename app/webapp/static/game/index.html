@@ -318,13 +318,17 @@ body.playing .glass{background:rgba(10,16,38,.8)}
   <div id="err" hidden>این دستگاه WebGL را پشتیبانی نمی‌کند یا کتابخانه سه‌بعدی بار نشد.</div>
 </div>
 
+<script>
+// اگر اسکریپت بازی خطا داد، صفحه بارگذاری گیر نکند: پیام خطا نشان داده می شود
+window.addEventListener('error', e => { const t = document.getElementById('spT'); if (t && !document.getElementById('splash').hidden) { t.textContent = 'بازی بار نشد: ' + (e.message || 'خطا') + ' · صفحه را دوباره باز کن'; t.style.color = '#FF8FA3'; } });
+</script>
 <script src="static/game/three.min.js?v=7a7802bf"></script>
 <script src="static/game/three-ext.js?v=18dc84fd"></script>
 <script>
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
-if (!window.THREE) { $('err').hidden = false; $('garage').hidden = true; return; }
+if (!window.THREE) { $('err').hidden = false; $('garage').hidden = true; $('splash').hidden = true; return; }
 const T = THREE;
 const FA = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 const fmt = n => FA(Math.round(n).toLocaleString('en-US'));
@@ -580,7 +584,7 @@ let fuel = store.get('fuelDay', '') === today ? store.get('fuel', 3) : 3;
 const canvas = $('gl');
 let renderer;
 try { renderer = new T.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' }); }
-catch(e) { $('err').hidden = false; $('garage').hidden = true; return; }
+catch(e) { $('err').hidden = false; $('garage').hidden = true; $('splash').hidden = true; return; }
 /* کیفیت: سه سطح؛ «خودکار» سطح را با سنجش همان گوشی در صفحه بارگذاری انتخاب می کند و
    وسط بازی فقط وضوح را بالا و پایین می برد (بدون کامپایل دوباره شیدر و پرش فریم) */
 const QUAL = {
@@ -1072,8 +1076,8 @@ const SH = (() => {
       g.computeVertexNormals();
       g.applyMatrix4(m4.compose(new T.Vector3(lean * 3, h, 0), q.setFromEuler(e.set(-.9 + rnd(-.15, .15), i / 8 * Math.PI * 2, 0, 'YXZ')), one)); lg.push(g);
     }
-    const merge = T.BufferGeometryUtils.mergeBufferGeometries;
-    return { trunk:merge(tg), leaves:merge(lg) };
+    const U = T.BufferGeometryUtils;   // باید روی خود شیء صدا زده شود (this داخلش لازم است)
+    return { trunk:U.mergeBufferGeometries(tg), leaves:U.mergeBufferGeometries(lg) };
   });
   const rocks = [0, 1, 2].map(i => new T.DodecahedronGeometry(.5 + i * .45, 0));
   const rockMats = [0x9C8462, 0x8A7556, 0xA8916B].map(c => new T.MeshStandardMaterial({ color:c, roughness:1, flatShading:true }));
