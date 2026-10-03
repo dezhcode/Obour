@@ -153,6 +153,14 @@ async def _run_round(bot, db: Database) -> None:  # noqa: ANN001
     await step("عکس مصرف", lambda: tasks.snapshot_usage(db))
 
     await step("پاکسازی کش هوش مصنوعی", lambda: db.ai_cache_purge())
+
+    # رسیدهایی که کاربر بعد از عکس، کد پیگیری را نفرستاد: بعد از ۱۰ دقیقه
+    # بدون آن برای ادمین می روند. اگر بررسی خودکار روشن است، ai_round
+    # (از /health) آن ها را با هوش مصنوعی بررسی می کند.
+    from app.services import receipts
+
+    if not receipts.auto_on():
+        await step("رسیدهای بی کد", lambda: receipts.process_late(bot, db, use_ai=False))
     await step("پاکسازی مبالغ", lambda: db.purge_expired_amounts())
     await step("پاکسازی قفل ها", lambda: db.purge_expired_locks())
 
@@ -186,7 +194,10 @@ async def ai_round(bot, db: Database) -> str:  # noqa: ANN001
     done: list[str] = []
     try:
         await db.set_setting("last_ai_round_at", now_str())
+        from app.services import receipts
+
         for name, factory in (
+            ("رسیدهای بی کد", lambda: receipts.process_late(bot, db, use_ai=True)),
             ("گزارش روزانه", lambda: assistant.send_daily_report(db, bot)),
             ("حدس نام", lambda: assistant.guess_names(db, limit=20)),
         ):

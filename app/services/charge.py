@@ -33,6 +33,7 @@ NOT_OPEN = "not_open"
 BAD_IMAGE = "bad_image"
 NO_ADMIN = "no_admin"
 ALREADY_SENT = "already_sent"
+BAD_REF = "bad_ref"
 
 
 async def card(db: "Database") -> dict:
@@ -114,13 +115,11 @@ def _image_kind(data: bytes) -> str | None:
     return None
 
 
-async def attach_receipt(bot, db: "Database", user: dict, txn_id: int, image: bytes) -> dict:  # noqa: ANN001
-    """رسید را به تراکنش می چسباند و برای ادمین ها می فرستد."""
-    from aiogram.types import BufferedInputFile
-
-    from app import keyboards, texts
+async def attach_receipt(bot, db: "Database", user: dict, txn_id: int, image: bytes, ref: str = "") -> dict:  # noqa: ANN001
+    """رسید و کد پیگیری را به تراکنش می چسباند، بررسی می کند و برای ادمین ها می فرستد."""
     from app.config import config
-    from app.utils import esc
+    from app.services import receipts
+    from app.services.assistant import clean_ref
 
     txn = await db.get_transaction(txn_id)
     # تراکنش باید مال همین کاربر و هنوز باز باشد - همان بررسی ربات
@@ -129,35 +128,19 @@ async def attach_receipt(bot, db: "Database", user: dict, txn_id: int, image: by
     # رسید دوم روی همان تراکنش دوباره برای ادمین ها نمی رود. ربات این را
     # با پاک کردن وضعیت گفتگو بعد از رسید اول می بندد؛ مینی اپ وضعیت
     # گفتگو ندارد، پس صریح بسته می شود.
-    if txn.get("receipt_file_id"):
+    if txn.get("receipt_file_id") or txn.get("review_at"):
         return {"ok": False, "error": ALREADY_SENT}
     if not image or len(image) > MAX_RECEIPT or not _image_kind(image):
         return {"ok": False, "error": BAD_IMAGE}
+    ref = clean_ref(ref)
+    if not ref:
+        return {"ok": False, "error": BAD_REF}
     if not config.admin_ids:
         return {"ok": False, "error": NO_ADMIN}
 
-    fresh = await db.get_user(user["id"]) or user
-    caption = texts.ADMIN_CHARGE_REQ.format(
-        name=esc(fresh.get("first_name") or "-"), username=esc(fresh.get("username") or "-"),
-        telegram_id=fresh["telegram_id"], amount=f"{txn['amount']:,}", balance=f"{fresh['balance']:,}",
-    ) + "\n\n📱 <i>از مینی اپ</i>"
-
-    # عکس یک بار آپلود می شود؛ برای ادمین های بعدی file_id همان پیام
-    file_id: str | None = None
-    sent_any = False
-    for admin_id in config.admin_ids:
-        try:
-            photo = file_id or BufferedInputFile(image, filename=f"receipt.{_image_kind(image)}")
-            msg = await bot.send_photo(admin_id, photo=photo, caption=caption,
-                                       reply_markup=keyboards.admin_charge_kb(txn_id))
-            sent_any = True
-            if not file_id and msg.photo:
-                file_id = msg.photo[-1].file_id
-        except Exception:  # noqa: BLE001
-            log.warning("رسید به ادمین %s نرسید", admin_id, exc_info=True)
-    if not sent_any or not file_id:
+    await db.set_receipt_meta(txn_id, ref_code=ref)
+    r = await receipts.process(bot, db, txn_id, image=image, source="mini")
+    if r.get("decision") == "manual" and not r.get("sent"):
         return {"ok": False, "error": NO_ADMIN}
-
-    await db.set_receipt(txn_id, file_id)
     code = (await db.get_transaction(txn_id) or {}).get("code")
-    return {"ok": True, "code": code, "amount": int(txn["amount"])}
+    return {"ok": True, "code": code, "amount": int(txn["amount"]), "decision": r.get("decision")}

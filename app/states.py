@@ -29,6 +29,7 @@ class Support(StatesGroup):
 class Wallet(StatesGroup):
     waiting_amount = State()
     waiting_receipt = State()
+    waiting_ref = State()      # کد پیگیری رسید، بعد از عکس
     crypto_amount = State()
     stars_amount = State()
 

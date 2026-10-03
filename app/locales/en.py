@@ -745,3 +745,14 @@ PHRASES.update({
     "بنویس دنبال چی هستی": "Write what you're looking for",
     "فروشگاه الان در دسترس نیست": "The shop isn't available right now",
 })
+
+# کد پیگیری رسید
+TEXTS.update({
+    'ASK_REF': "╮── 🔖 Tracking code\n│   One step left\n\nSend the tracking (reference) number of this receipt — digits only.\n\n╯─ It's printed on your bank receipt.",
+    'REF_BAD': "The tracking code must be digits only (4–30 digits). Send it again.",
+})
+
+PHRASES.update({
+    "کد پیگیری ندارم": "I don't have a tracking code",
+    "کد پیگیری رسید را درست بنویس (فقط عدد، ۴ تا ۳۰ رقم)": "Enter the receipt's tracking code correctly (digits only, 4–30)",
+})
