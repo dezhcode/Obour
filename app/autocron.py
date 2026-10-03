@@ -151,6 +151,8 @@ async def _run_round(bot, db: Database) -> None:  # noqa: ANN001
 
     await step("پرداخت کریپتو", lambda: crypto.scan(db, bot, force=True))
     await step("عکس مصرف", lambda: tasks.snapshot_usage(db))
+
+    await step("پاکسازی کش هوش مصنوعی", lambda: db.ai_cache_purge())
     await step("پاکسازی مبالغ", lambda: db.purge_expired_amounts())
     await step("پاکسازی قفل ها", lambda: db.purge_expired_locks())
 
@@ -158,3 +160,44 @@ async def _run_round(bot, db: Database) -> None:  # noqa: ANN001
     # وگرنه دور بعدی بلافاصله دوباره شروع می شود و ربات کند می ماند.
     await db.set_setting("last_cron_at", now_str())
     log.info("کارهای دوره ای خودکار اجرا شد: %s", ", ".join(done) or "بدون تغییر")
+
+
+async def ai_round(bot, db: Database) -> str:  # noqa: ANN001
+    """کارهای کند هوش مصنوعی: گزارش روزانه ادمین و حدس نام کاربران تازه.
+
+    جدا از دور اصلی است چون هر درخواست هوش مصنوعی تا ده ها ثانیه طول
+    می کشد. فقط از مسیر /health (پینگ کران) و حلقه polling صدا زده
+    می شود، نه از وبهوک، تا هیچ کاربری منتظرش نماند.
+    """
+    from datetime import datetime
+
+    from app.services import assistant
+
+    if not assistant.configured():
+        return ""
+    last = await db.get_setting("last_ai_round_at", "")
+    try:
+        if last and (now() - datetime.fromisoformat(last)).total_seconds() < 600:
+            return ""
+    except (TypeError, ValueError):
+        pass
+    if not await db.acquire_lock("ai_round", ttl_seconds=240):
+        return ""
+    done: list[str] = []
+    try:
+        await db.set_setting("last_ai_round_at", now_str())
+        for name, factory in (
+            ("گزارش روزانه", lambda: assistant.send_daily_report(db, bot)),
+            ("حدس نام", lambda: assistant.guess_names(db, limit=20)),
+        ):
+            try:
+                r = await factory()
+                if r:
+                    done.append(f"{name}={r}")
+            except Exception:  # noqa: BLE001
+                log.warning("کار هوش مصنوعی «%s» شکست خورد", name, exc_info=True)
+    finally:
+        await db.release_lock("ai_round")
+    if done:
+        log.info("کارهای هوش مصنوعی: %s", ", ".join(done))
+    return ", ".join(done)

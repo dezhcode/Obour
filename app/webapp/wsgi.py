@@ -260,7 +260,8 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
                    "/api/admin/plan", "/api/admin/setting", "/api/admin/feature",
                    "/api/admin/pay", "/api/admin/ai/product", "/api/admin/ai/meta", "/api/admin/ai/image",
-                   "/api/admin/market")
+                   "/api/admin/market", "/api/assist/chat", "/api/assist/escalate", "/api/assist/recommend",
+                   "/api/assist/shop", "/api/admin/ai/draft", "/api/admin/ai/receipt", "/api/admin/assist/run")
     if method == "POST":
         if path not in WRITE_PATHS:
             return _json(
@@ -630,6 +631,30 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                 db, panel, wuser, product_id=pid, months=months, email=str(body.get("email") or ""),
                 nonce=nonce, bot=runtime.bot), timeout=170))
 
+        # ---------- دستیار هوش مصنوعی ----------
+        if name.startswith("assist/"):
+            from app.webapp import assist_api
+
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=12 * 1024 * 1024 if name == "assist/chat" else 65536)
+            if name == "assist/chat":
+                return _json(start_response, runtime.run(assist_api.chat(
+                    db, panel, wuser, messages=body.get("messages"), text=str(body.get("text") or ""),
+                    image=str(body.get("image") or ""), mode=str(body.get("mode") or "chat")), timeout=100))
+            if name == "assist/escalate":
+                return _json(start_response, runtime.run(assist_api.escalate(
+                    db, panel, wuser, messages=body.get("messages"), bot=runtime.bot), timeout=60))
+            if name == "assist/recommend":
+                return _json(start_response, runtime.run(assist_api.recommend(
+                    db, panel, wuser, force=bool(body.get("force"))), timeout=100))
+            if name == "assist/shop":
+                return _json(start_response, runtime.run(assist_api.shop(
+                    db, panel, wuser, q=str(body.get("q") or "")), timeout=100))
+            return _json(start_response, {"error": "not found"}, "404 Not Found")
+
         # ---------- خرید دلخواه ----------
         if name == "custom/buy":
             if method != "POST":
@@ -712,7 +737,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             if name == "admin/ai/meta":
                 return _json(start_response, runtime.run(admin_api.ai_meta_set(
                     db, panel, wuser, pid=str(body.get("id") or "")[:80], category=body.get("category"),
-                    guide=body.get("guide")), timeout=30))
+                    guide=body.get("guide"), desc_fa=body.get("desc_fa")), timeout=30))
             if name == "admin/ai/image":
                 return _json(start_response, runtime.run(admin_api.ai_image_set(
                     db, panel, wuser, pid=str(body.get("id") or "")[:80], image=str(body.get("image") or ""),
@@ -738,6 +763,16 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             if name == "admin/feature":
                 return _json(start_response, runtime.run(admin_api.feature_set(
                     db, panel, wuser, key=str(body.get("key") or ""), on=bool(body.get("on"))), timeout=20))
+            if name == "admin/ai/draft":
+                return _json(start_response, runtime.run(admin_api.ai_product_draft(
+                    db, panel, wuser, pid=str(body.get("id") or "")[:80],
+                    kind="guide" if body.get("kind") == "guide" else "desc"), timeout=100))
+            if name == "admin/ai/receipt":
+                return _json(start_response, runtime.run(admin_api.ai_receipt(
+                    db, panel, wuser, txn_id=int(body.get("id") or 0), bot=runtime.bot), timeout=100))
+            if name == "admin/assist/run":
+                return _json(start_response, runtime.run(admin_api.ai_assist_run(
+                    db, panel, wuser, action=str(body.get("action") or "")), timeout=130))
             if name == "admin/market":
                 return _json(start_response, runtime.run(admin_api.market_set(
                     db, panel, wuser, action=str(body.get("action") or ""), on=bool(body.get("on"))), timeout=40))

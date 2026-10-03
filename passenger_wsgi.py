@@ -285,6 +285,9 @@ def application(environ, start_response):  # noqa: ANN001, ANN201
                 autocron.maybe_run(runtime.bot, runtime.db),
                 timeout=config.autocron_budget + 20,
             )
+            # کارهای کند هوش مصنوعی (گزارش روزانه، حدس نام) فقط اینجا؛
+            # پینگ کران منتظر جواب نیست ولی کاربر وبهوک هست.
+            runtime.run(autocron.ai_round(runtime.bot, runtime.db), timeout=120)
         except Exception:  # noqa: BLE001
             import logging
 

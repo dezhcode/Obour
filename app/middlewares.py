@@ -7,6 +7,7 @@ from typing import Any, Awaitable, Callable
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, Message, TelegramObject
 
+from app.services.assistant import display_name
 from . import i18n
 from .keyboards import is_admin
 
@@ -18,7 +19,7 @@ async def rules_body(db: Any, user: dict) -> str:  # noqa: ANN401
 
     rules = await db.get_setting("rules_text", "")
     return texts.RULES_INTRO.format(
-        name=esc(user.get("first_name") or i18n.t("دوست من"))
+        name=esc(display_name(user))
     ) + "\n\n" + rules
 
 
@@ -53,6 +54,7 @@ class UserMiddleware(BaseMiddleware):
             username=tg_user.username,
             first_name=tg_user.first_name,
             referred_by=referred_by,
+            last_name=tg_user.last_name,
         )
         data["user"] = user
         # زبان همین آپدیت؛ همه texts.X و دکمه ها از اینجا به بعد به این زبان اند

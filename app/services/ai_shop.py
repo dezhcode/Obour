@@ -310,7 +310,10 @@ async def catalog(db: "Database", force: bool = False, admin: bool = False) -> d
         item = {
             "id": pid,
             "name": str(p.get("name") or ""),
-            "description": str(p.get("description") or ""),
+            # توضیح فارسی تایید شده ادمین (پیش نویس هوش مصنوعی)، وگرنه متن سرویس دهنده
+            "description": (metas.get(pid) or {}).get("desc_fa") or str(p.get("description") or ""),
+            "provider_description": str(p.get("description") or ""),
+            "desc_fa": (metas.get(pid) or {}).get("desc_fa") or "",
             "type": str(p.get("productType") or "account"),
             "kind": delivery_kind(p),
             "brand": str(p.get("emoji") or ""),

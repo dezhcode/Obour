@@ -172,6 +172,17 @@ class Config:
     # ادمین در پنل گذاشته استفاده می شود.
     canboso_api_key: str = os.getenv("CANBOSO_API_KEY", "").strip()
 
+    # ===== دستیار هوش مصنوعی (وب سرویس dezhcode) =====
+    # کلید فقط در .env می ماند. بدون کلید همه بخش های هوشمند خاموش اند و
+    # ربات مثل قبل کار می کند.
+    ai_api_key: str = os.getenv("AI_API_KEY", "").strip()
+    ai_base_url: str = (os.getenv("AI_BASE_URL", "").strip().rstrip("/") or "https://dezhcode.pyho.ir")
+    # سقف انتظار برای جواب در ربات (ثانیه). وبهوک ۵۰ ثانیه وقت دارد،
+    # پس بیشتر از ۴۰ نگذار.
+    ai_timeout: float = float(os.getenv("AI_TIMEOUT", "38") or 38)
+    # اگر هاست به وب سرویس دسترسی مستقیم ندارد: http://host:port
+    ai_proxy: str = os.getenv("AI_PROXY", "").strip()
+
     # ===== پرداخت کریپتو (TON و USDT روی شبکه TON) =====
     # بدون آدرس کیف پول، این بخش کلا خاموش است. کلید خصوصی هیچ وقت لازم
     # نیست: ربات فقط تراکنش های ورودی این آدرس را می خواند.

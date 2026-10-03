@@ -704,3 +704,44 @@ PHRASES.update({
     "مشاهده در tonviewer": "View on tonviewer",
     "روش": "Method",
 })
+
+# دستیار هوشمند
+TEXTS.update({
+    'ASSIST_INTRO': "╮── 🤖 Obour smart assistant\n│   Answers right now\n\nWrite your question; I can see your services and account and answer precisely.\n\n╯─ If it doesn't solve it, tap «Send to support» and our team will reply.",
+    'ASSIST_FIX_INTRO': "╮── 🔧 Connection troubleshooting\n│   Step by step\n\nTell me what happens. If the app shows an error, send a screenshot of that screen.\n\n╯─ Also tell me your device (Android, iPhone, Windows or Mac).",
+    'ASSIST_THINKING': "🤖 Checking...",
+    'ASSIST_DOWN': "The smart assistant isn't available right now. You can send your message to support.",
+    'ASSIST_LIMIT': "You've reached today's assistant limit. To continue, send your message to support.",
+    'ASSIST_ESCALATED': "🎫 The conversation was sent to support.\nTracking code: <code>{code}</code>\n\nYou'll get the answer right here soon.",
+    'ASSIST_REC': "╮── ✨ The right plan for you\n│   Based on your usage\n\n{body}",
+    'ASSIST_REC_NONE': "Not enough data for a suggestion yet. Try again after a few days of use.",
+    'ASSIST_SHOP_ASK': "╮── 🔎 Shop assistant\n│   Tell me what you need\n\ne.g. «a cheap AI for writing» or «a music subscription»\n\n╯─ I'll bring a few picks with buy buttons.",
+    'ASSIST_SHOP_RESULT': "╮── 🔎 My picks\n\n{body}",
+    'ASSIST_SHOP_NONE': "I couldn't find an exact match. Describe it differently or browse the categories.",
+})
+
+PHRASES.update({
+    "دستیار هوشمند": "Smart assistant",
+    "مشکل اتصال دارم": "Connection problem",
+    "پلن مناسب من چیه؟": "Which plan suits me?",
+    "کمکم کن انتخاب کنم": "Help me choose",
+    "ارسال به پشتیبانی": "Send to support",
+    "پایان گفتگو": "End chat",
+    "دوباره بسنج": "Re-check",
+    "یه چیز دیگه": "Something else",
+    "در حال ارسال...": "Sending...",
+    "کاربر عبور": "Obour user",
+})
+
+# دستیار هوشمند (مینی اپ)
+PHRASES.update({
+    "دستیار هوشمند فعلا در دسترس نیست": "The smart assistant isn't available right now",
+    "امروز به سقف سوال از دستیار رسیدی": "You've reached today's assistant limit",
+    "پیام خالیه": "The message is empty",
+    "عکس خوانده نشد": "Couldn't read the image",
+    "عکس خیلی بزرگه": "The image is too large",
+    "دستیار الان جواب نداد، کمی بعد دوباره امتحان کن": "The assistant didn't answer; try again in a moment",
+    "گفتگویی برای ارسال نیست": "There's no conversation to send",
+    "بنویس دنبال چی هستی": "Write what you're looking for",
+    "فروشگاه الان در دسترس نیست": "The shop isn't available right now",
+})

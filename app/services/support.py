@@ -17,8 +17,10 @@ log = logging.getLogger("obour.support")
 MAX_BODY = 2000
 
 
-async def send(bot, db: "Database", user: dict, body: str) -> dict:  # noqa: ANN001
-    from app import texts
+async def send(bot, db: "Database", user: dict, body: str, *, via: str = "mini",  # noqa: ANN001
+               photo: str | None = None) -> dict:
+    """via: mini (مینی اپ) | ai (ارجاع از دستیار هوشمند). photo: file_id اسکرین شات."""
+    from app import keyboards, texts
     from app.config import config
     from app.utils import esc
 
@@ -31,7 +33,8 @@ async def send(bot, db: "Database", user: dict, body: str) -> dict:  # noqa: ANN
     code = await db.ticket_code(thread_id)
 
     title = "💬 <b>تیکت جدید</b>" if is_new else "↩️ <b>پیام تازه در تیکت باز</b>"
-    head = (f"{title} · 📱 <i>مینی اپ</i>\n\n"
+    source = "🤖 <i>دستیار هوشمند</i>" if via == "ai" else "📱 <i>مینی اپ</i>"
+    head = (f"{title} · {source}\n\n"
             f"👤 {esc(user.get('first_name') or '-')} (@{esc(user.get('username') or '-')})\n"
             f"🆔 <code>{user['telegram_id']}</code>"
             + (f"\n🎫 <code>{code}</code>" if code else "") + texts.ADMIN_REPLY_HINT)
@@ -39,8 +42,14 @@ async def send(bot, db: "Database", user: dict, body: str) -> dict:  # noqa: ANN
     delivered = 0
     for admin_id in config.admin_ids:
         try:
-            h = await bot.send_message(admin_id, head)
+            h = await bot.send_message(admin_id, head, reply_markup=keyboards.ticket_admin_kb(user["telegram_id"]))
             m = await bot.send_message(admin_id, esc(body), reply_to_message_id=h.message_id)
+            if photo:
+                try:
+                    p = await bot.send_photo(admin_id, photo, reply_to_message_id=h.message_id)
+                    await db.save_support_link(admin_id, p.message_id, user["telegram_id"])
+                except Exception:  # noqa: BLE001
+                    log.info("اسکرین شات دستیار به ادمین نرسید", exc_info=True)
             await db.save_support_link(admin_id, h.message_id, user["telegram_id"])
             await db.save_support_link(admin_id, m.message_id, user["telegram_id"])
             delivered += 1

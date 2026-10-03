@@ -7,6 +7,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from app.services.assistant import display_name
 from app import keyboards, polls, richtable, texts, ui
 from app.config import config
 from app.db import Database
@@ -29,7 +30,7 @@ async def show_menu(target: Message, user: dict, edit: bool = False) -> None:
     fn = texts.welcome if not user.get("balance") else texts.welcome_back
     trial_available = config.trial_enabled and not user.get("free_trial_used")
     text = fn(
-        name=esc(user.get("first_name") or _t("دوست من")),
+        name=esc(display_name(user)),
         balance=f"{user['balance']:,}",
     )
     markup = keyboards.main_menu(trial_available)
@@ -307,7 +308,9 @@ async def _forward_to_support(
                     header = await message.bot.send_rich_message(
                         chat_id=admin_id, rich_message=rich
                     )
-                    header = await message.bot.send_message(admin_id, head_text)
+                    header = await message.bot.send_message(
+                        admin_id, head_text, reply_markup=keyboards.ticket_admin_kb(user["telegram_id"])
+                    )
                 except Exception:  # noqa: BLE001
                     lines = "\n".join(
                         f"{'👤' if h['direction'] == 'in' else '🛡'} "
@@ -318,9 +321,12 @@ async def _forward_to_support(
                     header = await message.bot.send_message(
                         admin_id,
                         head_text + "\n\n📋 <b>گفتگوهای قبلی</b>\n" + lines,
+                        reply_markup=keyboards.ticket_admin_kb(user["telegram_id"]),
                     )
             if header is None:
-                header = await message.bot.send_message(admin_id, head_text)
+                header = await message.bot.send_message(
+                        admin_id, head_text, reply_markup=keyboards.ticket_admin_kb(user["telegram_id"])
+                    )
 
             copied = await message.copy_to(admin_id, reply_to_message_id=header.message_id)
             if db is not None:
