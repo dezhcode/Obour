@@ -172,11 +172,53 @@ button:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
 .row2{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
 .ghost{height:54px;border-radius:18px;border:1px solid var(--stroke);background:rgba(255,255,255,.06);color:var(--fg);font-weight:800;font-size:15px}
 #err{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--dim)}
-@media (prefers-reduced-motion: reduce){.pop{animation-duration:.01s}.combo{transition:none}}
+.tgl,.seg button{font-family:var(--ui)}
+/* حین بازی: بدون blur پشت شیشه ها؛ backdrop-filter روی بوم سه بعدی هر فریم دوباره محاسبه می شود */
+body.playing .glass,body.playing .brake{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+body.playing .glass{background:rgba(10,16,38,.8)}
+/* صفحه بارگذاری */
+#splash{position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
+  background:radial-gradient(120% 70% at 50% 28%,#16205A 0%,#070A1C 55%,#04060F 100%);transition:opacity .45s}
+#splash.off{opacity:0;pointer-events:none}
+.sp-road{position:absolute;left:50%;bottom:0;width:130%;height:60%;transform:translateX(-50%) perspective(240px) rotateX(58deg);transform-origin:50% 100%;
+  border-left:2px solid rgba(59,240,207,.6);border-right:2px solid rgba(179,107,255,.6);background:linear-gradient(180deg,rgba(4,6,15,1),rgba(22,30,64,.75))}
+.sp-road::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:7px;margin-left:-3.5px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.6) 0 34px,transparent 34px 80px);animation:spRoad .45s linear infinite}
+@keyframes spRoad{to{background-position:0 80px}}
+.sp-in{position:relative;z-index:1;width:min(300px,80%);text-align:center;margin-top:-14vh}
+.sp-in small{display:block;direction:ltr;letter-spacing:4px;color:var(--dim);font-size:11px;font-weight:700}
+.sp-in h1{margin:6px 0 4px;font-size:46px;font-weight:800;line-height:1.3;background:linear-gradient(100deg,#fff 25%,var(--aqua));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sp-in .beta{display:inline-block;margin-bottom:26px}
+.sp-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden}
+.sp-bar i{display:block;height:100%;width:0;border-radius:2px;background:linear-gradient(90deg,var(--aqua),#7FB2FF);box-shadow:0 0 12px var(--aqua);transition:width .25s}
+.sp-row{display:flex;justify-content:space-between;gap:10px;margin-top:10px;font-size:12px;color:var(--dim);font-weight:600}
+.sp-row b{color:var(--fg);font-weight:700}
+.sp-tip{position:absolute;z-index:1;bottom:calc(26px + var(--bot));left:50%;transform:translateX(-50%);max-width:calc(100% - 32px);text-align:center;margin:0;padding:7px 14px;border-radius:12px;font-size:12px;color:#C9D2EE;font-weight:600;background:rgba(4,6,15,.82);border:1px solid var(--stroke);white-space:nowrap}
+/* تنظیمات */
+.set{gap:14px;max-width:420px;width:100%;margin:auto}
+.set h3{margin:0;font-size:20px;font-weight:800;text-align:center}
+.set-r{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:700}
+.set-r.col{flex-direction:column;align-items:stretch;gap:8px}
+.set-r em{font-style:normal;color:var(--dim);font-size:12px;font-weight:600}
+.tgl{width:50px;height:30px;border-radius:15px;border:0;background:rgba(255,255,255,.16);position:relative;flex-shrink:0;transition:background .2s}
+.tgl::after{content:"";position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:transform .2s}
+.tgl.on{background:var(--aqua)}.tgl.on::after{transform:translateX(-20px)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;border-radius:12px;background:rgba(255,255,255,.06)}
+.seg button{height:34px;border-radius:9px;border:0;background:none;color:var(--dim);font-weight:700;font-size:12.5px}
+.seg button.on{background:rgba(59,240,207,.16);color:var(--fg);box-shadow:inset 0 0 0 1px rgba(59,240,207,.5)}
+@media (prefers-reduced-motion: reduce){.sp-road::after{animation:none}.pop{animation-duration:.01s}.combo{transition:none}}
 </style>
 
 <div id="app">
   <canvas id="gl"></canvas>
+  <div id="splash" aria-live="polite">
+    <div class="sp-road"></div>
+    <div class="sp-in">
+      <small>OBOUR RACER</small><h1>عبور ریسر</h1><span class="beta">آزمایشی</span>
+      <div class="sp-bar"><i id="spBar"></i></div>
+      <div class="sp-row"><span id="spT">آماده‌سازی…</span><b class="num" id="spP">۰٪</b></div>
+    </div>
+    <p class="sp-tip" id="spTip">لایی نزدیک = نیترو بیشتر</p>
+  </div>
   <div class="vig"></div>
   <div class="boostfx" id="boostfx"></div>
   <div class="flash" id="flash"></div>
@@ -213,6 +255,7 @@ button:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
 
   <div class="sheet" id="garage">
     <div class="g-top">
+      <button class="pill glass closeg" id="setBtn" aria-label="تنظیمات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
       <button class="pill glass closeg" id="closeBtn" aria-label="بستن" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <div class="g-title"><small>OBOUR GARAGE</small><b><i>عبور</i> · گاراژ <em class="beta">آزمایشی</em></b></div>
       <div class="pill glass num" aria-label="سکه"><svg viewBox="0 0 24 24" fill="none" stroke="#FFC542" stroke-width="2.2"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.5 10c0-1 1.1-1.6 2.5-1.6s2.5.6 2.5 1.6-1.1 1.4-2.5 1.6-2.5.7-2.5 1.7 1.1 1.6 2.5 1.6 2.5-.6 2.5-1.6"/></svg><span id="bank">۰</span></div>
@@ -258,13 +301,25 @@ button:focus-visible{outline:2px solid var(--aqua);outline-offset:2px}
   </div>
 
   <div class="sheet" id="paused" hidden style="justify-content:center">
-    <div class="res glass"><h2>مکث</h2><div class="row2"><button class="ghost" id="quit">پایان</button><button class="go" id="resume">ادامه</button></div></div>
+    <div class="res glass"><h2>مکث</h2><div class="set-r"><span>صدا</span><button class="tgl" data-set="sound" aria-label="صدا"></button></div><div class="row2"><button class="ghost" id="quit">پایان</button><button class="go" id="resume">ادامه</button></div></div>
+  </div>
+  <div class="sheet" id="settings" hidden style="justify-content:center">
+    <div class="res glass set">
+      <h3>تنظیمات</h3>
+      <div class="set-r"><span>صدا</span><button class="tgl" data-set="sound" aria-label="صدا"></button></div>
+      <div class="set-r"><span>لرزش</span><button class="tgl" data-set="haptic" aria-label="لرزش"></button></div>
+      <div class="set-r col"><span>گرافیک <em id="tierNow"></em></span>
+        <div class="seg" data-seg="quality"><button data-v="auto">خودکار</button><button data-v="high">بالا</button><button data-v="mid">متوسط</button><button data-v="low">کم</button></div></div>
+      <div class="set-r col"><span>حداکثر فریم <em>۳۰ = روان‌تر روی گوشی ضعیف، باتری کمتر</em></span>
+        <div class="seg" data-seg="fps"><button data-v="60">۶۰</button><button data-v="30">۳۰ · کم‌مصرف</button></div></div>
+      <button class="go" id="setDone">تمام</button>
+    </div>
   </div>
   <div id="err" hidden>این دستگاه WebGL را پشتیبانی نمی‌کند یا کتابخانه سه‌بعدی بار نشد.</div>
 </div>
 
 <script src="static/game/three.min.js?v=7a7802bf"></script>
-<script src="static/game/three-ext.js?v=f482a66d"></script>
+<script src="static/game/three-ext.js?v=18dc84fd"></script>
 <script>
 (() => {
 'use strict';
@@ -293,18 +348,140 @@ if (TG && TG.onEvent) {
   window.addEventListener('pagehide', () => { for (const ev of evs) try { TG.offEvent(ev, applyInsets); } catch(e){} });
 }
 // لرزش: بازخورد لمسی تلگرام؛ بیرون تلگرام navigator.vibrate. چند لرزش پشت سرهم با فاصله کم یکی می شوند
+let hapticOn = store.get('haptic', true);
 const Haptic = (() => {
   const H = TG && TG.HapticFeedback, V = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch(e){} };
-  let last = 0; const gate = gap => { const t = performance.now(); if (t - last < gap) return false; last = t; return true; };
+  let last = 0; const gate = gap => { if (!hapticOn) return false; const t = performance.now(); if (t - last < gap) return false; last = t; return true; };
   return {
     tap(k = 'light', gap = 40){ if (!gate(gap)) return; try { if (H) H.impactOccurred(k); else V({ light:8, soft:6, medium:16, rigid:12, heavy:28 }[k] || 10); } catch(e){} },
-    note(k = 'success'){ last = performance.now(); try { if (H) H.notificationOccurred(k); else V(k === 'error' ? [40, 50, 70] : k === 'warning' ? [20, 40, 20] : [12, 30, 12]); } catch(e){} },
+    note(k = 'success'){ if (!hapticOn) return; last = performance.now(); try { if (H) H.notificationOccurred(k); else V(k === 'error' ? [40, 50, 70] : k === 'warning' ? [20, 40, 20] : [12, 30, 12]); } catch(e){} },
     sel(){ if (!gate(30)) return; try { if (H) H.selectionChanged(); else V(5); } catch(e){} },
   };
 })();
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
+/* ═════════ صدا ═════════
+   همه صداها با Web Audio همین جا ساخته می شوند (بدون فایل): موتور ۴ سیلندر با دور واقعی،
+   باد و جاده، جیغ لاستیک، سوت توربو/نیترو، و افکت ها. صدا فقط بعد از اولین لمس کاربر
+   روشن می شود (قانون مرورگرها). */
+const Sound = (() => {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ctx = null, out = null, noise = null, eng = null, on = store.get('sound', true);
+  const t0 = () => ctx.currentTime;
+  function init(){
+    if (ctx) return true;
+    if (!AC) return false;
+    try { ctx = new AC({ latencyHint:'interactive' }); } catch(e) { try { ctx = new AC(); } catch(_) { return false; } }
+    out = ctx.createGain(); out.gain.value = on ? .9 : 0;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = .004; comp.release.value = .2;
+    out.connect(comp); comp.connect(ctx.destination);
+    const len = ctx.sampleRate * 2, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    noise = buf;
+    return true;
+  }
+  function unlock(){ if (init() && ctx.state === 'suspended' && !S.paused) ctx.resume().catch(() => {}); }
+  const gain = v => { const g = ctx.createGain(); g.gain.value = v; return g; };
+  const osc = (type, f = 100) => { const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; return o; };
+  const biquad = (type, f, q) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; };
+  const noiseSrc = () => { const s = ctx.createBufferSource(); s.buffer = noise; s.loop = true; return s; };
+  function route(node, g, pan){
+    node.connect(g);
+    if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); g.connect(p); p.connect(out); }
+    else g.connect(out);
+  }
+  // تک صدا: نوسان ساز با پوش حجم نمایی
+  function tone(type, f0, f1, dur, vol, o = {}){
+    if (!ctx || !on) return;
+    const t = t0() + (o.delay || 0), a = o.attack || .004;
+    const s = osc(type, f0); s.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) s.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = gain(.0001); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    route(s, g, o.pan); s.start(t); s.stop(t + dur + .05);
+  }
+  // تک صدا: نویز فیلترشده با فرکانس جاروب شونده (باد، هیس، برخورد)
+  function hiss(type, f0, f1, q, dur, vol, o = {}){
+    if (!ctx || !on) return;
+    const t = t0() + (o.delay || 0), a = o.attack || .01;
+    const s = noiseSrc(), f = biquad(type, f0, q);
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = gain(.0001); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f); route(f, g, o.pan); s.start(t, Math.random() * 1.5); s.stop(t + dur + .05);
+  }
+  function softClip(){ const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * 2.2) / Math.tanh(2.2); } return c; }
+
+  /* موتور: فرکانس احتراق ۴ سیلندر چهارزمانه = دور/۶۰×۲. سه نوسان ساز (اصلی، زیر یک اکتاو
+     برای غرش، بالای یک اکتاو)، اشباع نرم، فیلتر پایین گذر که با دور و گاز باز می شود، و
+     مدولاسیون دامنه با نیم فرکانس احتراق برای حالت «پت پت» موتور. */
+  function engineStart(){
+    if (!init() || eng) return;
+    const t = t0();
+    const o1 = osc('sawtooth'), o2 = osc('square'), o3 = osc('sawtooth'), lfo = osc('sine');
+    const mix = gain(1), g1 = gain(.5), g2 = gain(.32), g3 = gain(.14);
+    o1.connect(g1); o2.connect(g2); o3.connect(g3); g1.connect(mix); g2.connect(mix); g3.connect(mix);
+    const sh = ctx.createWaveShaper(); sh.curve = softClip(); sh.oversample = '2x';
+    const lp = biquad('lowpass', 400, 2.4);
+    const am = gain(.78), lfoG = gain(.22); lfo.connect(lfoG); lfoG.connect(am.gain);
+    const vol = gain(0);
+    mix.connect(sh); sh.connect(lp); lp.connect(am); am.connect(vol); vol.connect(out);
+    const n1 = noiseSrc(), bp = biquad('bandpass', 600, .9), nG = gain(0); n1.connect(bp); bp.connect(nG); nG.connect(out);        // مکش و اگزوز
+    const n2 = noiseSrc(), rlp = biquad('lowpass', 300, .6), rG = gain(0); n2.connect(rlp); rlp.connect(rG); rG.connect(out);        // باد و جاده
+    const n3 = noiseSrc(), sbp = biquad('bandpass', 2200, 9), sG = gain(0); n3.connect(sbp); sbp.connect(sG); sG.connect(out);      // جیغ لاستیک
+    const wo = osc('sine', 2600), wG = gain(0); wo.connect(wG); wG.connect(out);                                                   // سوت توربو
+    [o1, o2, o3, lfo, wo].forEach(o => o.start(t)); [n1, n2, n3].forEach(s => s.start(t, Math.random()));
+    eng = { o1, o2, o3, lfo, lp, vol, nG, bp, rG, rlp, sG, sbp, wo, wG, srcs:[o1, o2, o3, lfo, wo, n1, n2, n3] };
+  }
+  function engineStop(){
+    if (!eng) return;
+    const e = eng, t = t0(); eng = null;
+    for (const g of [e.vol, e.nG, e.rG, e.sG, e.wG]) g.gain.setTargetAtTime(0, t, .08);
+    setTimeout(() => { for (const s of e.srcs) try { s.stop(); } catch(_){} }, 600);
+  }
+  // st: { rpm, throttle 0..1, speed m/s, slide, brake, boost, live }
+  function engineUpdate(st){
+    if (!eng) return;
+    const t = t0(), k = .035, f = st.rpm / 30, rn = clamp((st.rpm - 800) / 6000, 0, 1), live = st.live ? 1 : 0;
+    eng.o1.frequency.setTargetAtTime(f, t, k); eng.o2.frequency.setTargetAtTime(f * .5, t, k);
+    eng.o3.frequency.setTargetAtTime(f * 2.01, t, k); eng.lfo.frequency.setTargetAtTime(f * .5, t, k);
+    eng.lp.frequency.setTargetAtTime(160 + rn * 1500 + st.throttle * 800, t, k);
+    eng.vol.gain.setTargetAtTime(live * (.09 + st.throttle * .11 + rn * .06), t, .06);
+    eng.nG.gain.setTargetAtTime(live * st.throttle * (.015 + rn * .045), t, .06); eng.bp.frequency.setTargetAtTime(380 + rn * 1700, t, k);
+    const sp = st.speed / 60;
+    eng.rG.gain.setTargetAtTime(live * Math.min(.2, sp * sp * .16 + sp * .03), t, .15); eng.rlp.frequency.setTargetAtTime(220 + st.speed * 12, t, .2);
+    const sq = clamp((st.slide - .92) * 6, 0, 1) * Math.min(1, st.speed / 15) + (st.brake > .6 && st.speed > 6 ? .45 : 0);
+    eng.sG.gain.setTargetAtTime(live * sq * .08, t, .04); eng.sbp.frequency.setTargetAtTime(1900 + clamp(st.slide, 0, 1.5) * 400, t, .1);
+    eng.wG.gain.setTargetAtTime(live * (st.boost ? .022 : 0), t, .1); eng.wo.frequency.setTargetAtTime(2300 + rn * 1600, t, .3);
+  }
+  function setOn(v){ on = v; store.set('sound', v); if (out) out.gain.setTargetAtTime(v ? .9 : 0, t0(), .05); }
+  function pause(p){ if (!ctx) return; if (p) ctx.suspend().catch(() => {}); else ctx.resume().catch(() => {}); }
+  return {
+    unlock, engineStart, engineStop, engineUpdate, setOn, pause, get on(){ return on; },
+    click(){ tone('triangle', 1300, 1100, .045, .05); },
+    select(){ tone('triangle', 880, 1180, .06, .06); },
+    buy(){ tone('triangle', 988, 988, .09, .11); tone('triangle', 1480, 1480, .16, .11, { delay:.08 }); },
+    deny(){ tone('square', 240, 170, .16, .06); },
+    beep(go){ go ? tone('square', 1320, 1320, .42, .12) : tone('square', 660, 660, .14, .11); },
+    coin(){ tone('square', 1568, 1568, .05, .05); tone('square', 2093, 2093, .13, .05, { delay:.05 }); },
+    chip(){ [880, 1109, 1319, 1760].forEach((f, i) => tone('triangle', f, f, .12, .08, { delay:i * .05 })); },
+    gold(){ [784, 988, 1175, 1568, 1976].forEach((f, i) => tone('triangle', f, f, .18, .09, { delay:i * .06 })); hiss('highpass', 6000, 9000, .7, .6, .05, { delay:.1 }); },
+    gift(){ tone('sine', 320, 880, .16, .14); hiss('bandpass', 2000, 4000, 1, .15, .05); },
+    nitro(){ hiss('bandpass', 300, 3400, 1.1, .7, .28); tone('sawtooth', 70, 160, .55, .08); },
+    nitroReady(){ tone('sine', 1200, 1900, .2, .07); },
+    shift(){ hiss('highpass', 3200, 1600, .7, .2, .05); },
+    nearMiss(side, hot){ hiss('bandpass', hot ? 2600 : 1700, 280, 2.2, hot ? .42 : .34, hot ? .34 : .24, { pan:side * .8 }); },
+    barrier(side){ hiss('bandpass', 1000, 500, 2.5, .32, .22, { pan:side }); tone('square', 150, 80, .12, .1, { pan:side }); },
+    crash(){
+      tone('sine', 130, 34, .65, .7);
+      hiss('lowpass', 2400, 180, .7, .9, .55);
+      for (let i = 0; i < 6; i++) { const f = rnd(280, 900); tone('square', f, f * .55, rnd(.12, .3), .06, { delay:rnd(0, .14) }); }
+      hiss('highpass', 4500, 7500, .8, .55, .2, { delay:.06 });
+    },
+    record(){ [523, 659, 784, 1047].forEach((f, i) => tone('triangle', f, f, .22, .1, { delay:i * .09 })); },
+  };
+})();
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => Sound.unlock(), { passive:true }));
 
 /* ═════════ داده ═════════ */
 // یک ماشین: پژو ۴۰۵ عبور؛ هر ارتقا یک ویژگی را بالا می برد
@@ -388,6 +565,9 @@ function vehStep(G, h){
   G.slide = Math.max(Math.abs(G.af) * Cf / Mf, Math.abs(G.ar) * Cr / Mr);
 }
 
+const GEARS = [0, 52, 90, 128, 170, 999];   // سقف سرعت هر دنده (کیلومتر)، گیربکس ۵ دنده
+function gearOf(kmh){ let g = 1; while (g < 5 && kmh > GEARS[g]) g++; return g; }
+function rpmOf(kmh, g){ const lo = g === 1 ? 0 : GEARS[g - 1] * .7, hi = g === 5 ? 245 : GEARS[g]; return clamp(950 + (kmh - lo) / (hi - lo) * 5400, 850, 6900); }
 const tireMu = L => .98 + L * .032;   // ضریب اصطکاک تایر روی آسفالت خشک
 const LANE_W = 3.6, LANES = [-1.5, -.5, .5, 1.5].map(l => l * LANE_W), HALF_ROAD = LANE_W * 2;
 let roadKey = store.get('road', 'neon'); if (!ROADS[roadKey]) roadKey = 'neon';
@@ -401,12 +581,22 @@ const canvas = $('gl');
 let renderer;
 try { renderer = new T.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' }); }
 catch(e) { $('err').hidden = false; $('garage').hidden = true; return; }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+/* کیفیت: سه سطح؛ «خودکار» سطح را با سنجش همان گوشی در صفحه بارگذاری انتخاب می کند و
+   وسط بازی فقط وضوح را بالا و پایین می برد (بدون کامپایل دوباره شیدر و پرش فریم) */
+const QUAL = {
+  high:{ dpr:1.6, min:1, bloom:true, shadow:2, name:'بالا' },
+  mid: { dpr:1.2, min:.85, bloom:true, shadow:1, name:'متوسط' },
+  low: { dpr:.9,  min:.7, bloom:false, shadow:0, name:'کم' },
+};
+let quality = store.get('quality', 'auto'); if (quality !== 'auto' && !QUAL[quality]) quality = 'auto';
+let fpsCap = store.get('fps', 60) === 30 ? 30 : 60;
+let tier = QUAL[quality] ? quality : 'mid', dpr = 1, useBloom = true;
+renderer.setPixelRatio(1);
 renderer.outputEncoding = T.sRGBEncoding;
 renderer.toneMapping = T.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = T.PCFSoftShadowMap;
+renderer.shadowMap.type = T.PCFShadowMap;
 const pmrem = new T.PMREMGenerator(renderer);
 // نقشه بازتاب از خود آسمان هر صحنه + چند سافت باکس؛ اتاق سفید پیش فرض ماشین ها را رنگ پریده می کرد
 function makeEnv(top, mid, bot, boxes){
@@ -459,9 +649,25 @@ if (T.EffectComposer && T.UnrealBloomPass && T.GammaCorrectionShader) {
 function resize(){
   const r = canvas.getBoundingClientRect();
   const w = Math.max(1, r.width), h = Math.max(1, r.height);
+  renderer.setPixelRatio(dpr);
   renderer.setSize(w, h, false);
-  if (composer) composer.setSize(w, h);
+  if (composer) { composer.setPixelRatio(dpr); composer.setSize(w, h); }
   camera.aspect = w / h; camera.updateProjectionMatrix();
+  gFrame = null;
+}
+let gFrame = null;   // قاب دوربین گاراژ؛ فقط با تغییر اندازه دوباره حساب می شود (خواندن DOM در هر فریم گران است)
+const lights = [];   // نورهای سایه دار
+function applyTier(t, recompile = true){
+  tier = t; const q = QUAL[t];
+  dpr = Math.min(q.dpr, Math.max(1, window.devicePixelRatio || 1));
+  useBloom = q.bloom && !!composer;
+  const sh = q.shadow > 0;
+  if (renderer.shadowMap.enabled !== sh || (sh && (renderer.shadowMap.type === T.PCFSoftShadowMap) !== (q.shadow > 1))) {
+    renderer.shadowMap.enabled = sh; renderer.shadowMap.type = q.shadow > 1 ? T.PCFSoftShadowMap : T.PCFShadowMap;
+    for (const l of lights) { l.castShadow = sh; if (l.shadow.map) { l.shadow.map.dispose(); l.shadow.map = null; } }
+    if (recompile) for (const sc of [world, garageScene]) sc.traverse(o => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });
+  }
+  resize();
 }
 window.addEventListener('resize', resize);
 
@@ -611,7 +817,8 @@ function makeCar(type, color, opts = {}){
     const w = wheel(P); w.position.set(sx * (P.W / 2 - .1), P.wheel, sz * P.wb); car.add(w); wheels.push(w);
   }
   car.add(aoPlane(P.W * 1.25, P.L * 1.1));
-  car.userData = { P, body, wheels, tails, blinkers, L:P.L, W:P.W };
+  car.userData = { P, body, wheels, tails, blinkers, L:P.L, W:P.W, paint:[] };
+  body.traverse(o => { if (o.isMesh && o.material === paint(color)) car.userData.paint.push(o); });
   return car;
 }
 function makeTruck(color, bus){
@@ -635,7 +842,8 @@ function makeTruck(color, bus){
     const w = wheel(wP); w.position.set(sx * (W / 2 - .15), .5, z); g.add(w); wheels.push(w);
   }
   g.add(aoPlane(W * 1.3, L * 1.08));
-  g.userData = { body, wheels, tails, blinkers, L, W, P:wP };
+  g.userData = { body, wheels, tails, blinkers, L, W, P:wP, paint:[] };
+  body.traverse(o => { if (o.isMesh && o.material === paint(color)) g.userData.paint.push(o); });
   return g;
 }
 
@@ -676,7 +884,7 @@ const garageScene = new T.Scene();
   const wall = new T.Mesh(new T.PlaneGeometry(40, 10), new T.MeshStandardMaterial({ color:0x0B0E15, roughness:.9 }));
   wall.position.set(0, 5, -9.6); garageScene.add(wall);
   garageScene.add(new T.HemisphereLight(0xC8D4F0, 0x0A0B10, .3));
-  const key = new T.SpotLight(0xFFFFFF, .9, 40, .5, .8, 1.1); key.position.set(-5, 10, 2); key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -.0005; garageScene.add(key);
+  const key = new T.SpotLight(0xFFFFFF, .9, 40, .5, .8, 1.1); key.position.set(-5, 10, 2); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); lights.push(key); key.shadow.bias = -.0005; garageScene.add(key);
   const rimL = new T.SpotLight(0xDCE6FF, 1.4, 30, .6, .7, 1); rimL.position.set(-7, 4, -5); garageScene.add(rimL);
   const rimR = new T.SpotLight(0xCFE0FF, 1.1, 30, .6, .7, 1); rimR.position.set(7, 3.5, -6); garageScene.add(rimR);
   const fill = new T.DirectionalLight(0xFFFFFF, .2); fill.position.set(0, 10, 0); garageScene.add(fill);
@@ -808,7 +1016,7 @@ const sky = new T.Mesh(new T.SphereGeometry(600, 32, 16), new T.ShaderMaterial({
 world.add(sky);
 const hemi = new T.HemisphereLight(0xffffff, 0x222222, .6); world.add(hemi);
 const sun = new T.DirectionalLight(0xffffff, 1);
-sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); lights.push(sun);
 Object.assign(sun.shadow.camera, { left:-18, right:18, top:40, bottom:-30, near:1, far:140 });
 sun.shadow.bias = -.0004; world.add(sun); world.add(sun.target); sun.target.position.set(0, 0, -12);
 
@@ -842,113 +1050,103 @@ function updatePosts(){
 }
 
 // ── منظره قابل بازیافت
-const scenery = [];
-function clearScenery(){ for (const s of scenery) world.remove(s.obj); scenery.length = 0; }
-function addScenery(obj, z, span){ obj.position.z = z; world.add(obj); scenery.push({ obj, span }); }
+/* منظره: هر جاده یک بار (موقع صفحه بارگذاری) ساخته و نگه داشته می شود؛ شروع مسابقه دیگر
+   چیزی نمی سازد. هندسه و متریال ها مشترک اند تا فراخوانی رسم و حافظه کم بماند. */
+let scenery = [];
+const SC = {};
+function addTo(list, obj, z, span){ obj.position.z = z; obj.visible = false; obj.matrixAutoUpdate = true; world.add(obj); list.push({ obj, span, z0:z }); }
+const SH = (() => {
+  const trunk = new T.MeshStandardMaterial({ color:0x7A5A35, roughness:1 });
+  const leaves = [0x3F7F2A, 0x4E8F30, 0x356F25].map(c => new T.MeshStandardMaterial({ color:c, roughness:.8, side:T.DoubleSide }));
+  // نخل: تنه و برگ ها در دو هندسه ادغام شده (۲ رسم به جای ۱۴)
+  const m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), one = new T.Vector3(1, 1, 1);
+  const palms = [0, 1, 2].map(() => {
+    const h = rnd(5.5, 8), lean = rnd(-.25, .25), segs = 6, tg = [], lg = [];
+    for (let i = 0; i < segs; i++) {
+      const g = new T.CylinderGeometry(.16 - i * .012, .2 - i * .012, h / segs + .05, 7);
+      g.applyMatrix4(m4.compose(new T.Vector3(lean * (i / segs) ** 2 * 3, h / segs * (i + .5), 0), q.setFromEuler(e.set(0, 0, -lean * i / segs)), one)); tg.push(g);
+    }
+    for (let i = 0; i < 8; i++) {
+      const g = new T.PlaneGeometry(.7, 3.2, 1, 6), pa = g.attributes.position;
+      for (let v = 0; v < pa.count; v++) { const y = pa.getY(v) + 1.6; pa.setZ(v, -(y * y) * .12); pa.setY(v, y); pa.setX(v, pa.getX(v) * (1 - y / 4)); }
+      g.computeVertexNormals();
+      g.applyMatrix4(m4.compose(new T.Vector3(lean * 3, h, 0), q.setFromEuler(e.set(-.9 + rnd(-.15, .15), i / 8 * Math.PI * 2, 0, 'YXZ')), one)); lg.push(g);
+    }
+    const merge = T.BufferGeometryUtils.mergeBufferGeometries;
+    return { trunk:merge(tg), leaves:merge(lg) };
+  });
+  const rocks = [0, 1, 2].map(i => new T.DodecahedronGeometry(.5 + i * .45, 0));
+  const rockMats = [0x9C8462, 0x8A7556, 0xA8916B].map(c => new T.MeshStandardMaterial({ color:c, roughness:1, flatShading:true }));
+  // ساختمان: سه بافت پنجره مشترک برای هر شدت نور؛ تکرار پنجره در UV خود هندسه است نه در بافت
+  const win = {};
+  const winMat = lit => (win[lit] = win[lit] || [0, 1, 2].map(() => { const t = windowsTex(lit); return new T.MeshStandardMaterial({ map:t, emissiveMap:t, emissive:0xffffff, emissiveIntensity:.9, roughness:.7, color:0x8090A8 }); }));
+  const pole = new T.MeshStandardMaterial({ color:0x20263A, metalness:.7, roughness:.4 });
+  const lampPole = new T.MeshStandardMaterial({ color:0x39404D, metalness:.6, roughness:.5 });
+  const lampMats = {}; const lampMat = c => (lampMats[c] = lampMats[c] || new T.MeshBasicMaterial({ color:c }));
+  const geo = {
+    poleN:new T.CylinderGeometry(.08, .1, 7, 8), armN:new T.BoxGeometry(2.4, .12, .12), lampN:new T.BoxGeometry(1.4, .12, .4),
+    poleS:new T.CylinderGeometry(.09, .12, 7.5, 8), armS:new T.BoxGeometry(2.6, .1, .1), lampS:new T.BoxGeometry(.8, .12, .35),
+  };
+  const dune = new T.MeshStandardMaterial({ color:0xC9A86E, roughness:1, flatShading:true });
+  return { trunk, leaves, palms, rocks, rockMats, winMat, pole, lampPole, lampMat, geo, dune };
+})();
 function palm(){
-  const g = new T.Group(), h = rnd(5.5, 8), lean = rnd(-.25, .25);
-  const trunkMat = new T.MeshStandardMaterial({ color:0x7A5A35, roughness:1 });
-  const segs = 6;
-  for (let i = 0; i < segs; i++) {
-    const s = new T.Mesh(new T.CylinderGeometry(.16 - i * .012, .2 - i * .012, h / segs + .05, 7), trunkMat);
-    s.position.set(lean * (i / segs) ** 2 * 3, h / segs * (i + .5), 0); s.rotation.z = -lean * i / segs; s.castShadow = true; g.add(s);
-  }
-  const leafMat = new T.MeshStandardMaterial({ color:pick([0x3F7F2A, 0x4E8F30, 0x356F25]), roughness:.8, side:T.DoubleSide });
-  const top = new T.Vector3(lean * 3, h, 0);
-  for (let i = 0; i < 8; i++) {
-    const lg = new T.PlaneGeometry(.7, 3.2, 1, 6);
-    const p = lg.attributes.position; for (let v = 0; v < p.count; v++) { const y = p.getY(v) + 1.6; p.setZ(v, -(y * y) * .12); p.setY(v, y); p.setX(v, p.getX(v) * (1 - y / 4)); }
-    lg.computeVertexNormals();
-    const leaf = new T.Mesh(lg, leafMat); leaf.position.copy(top);
-    leaf.rotation.set(-.9 + rnd(-.15, .15), i / 8 * Math.PI * 2, 0, 'YXZ'); leaf.castShadow = true; g.add(leaf);
-  }
-  return g;
+  const v = pick(SH.palms), g = new T.Group();
+  const t = new T.Mesh(v.trunk, SH.trunk), l = new T.Mesh(v.leaves, pick(SH.leaves));
+  t.castShadow = l.castShadow = true; g.add(t, l); return g;
 }
 function rock(){
-  const m = new T.Mesh(new T.DodecahedronGeometry(rnd(.5, 1.4), 0), new T.MeshStandardMaterial({ color:pick([0x9C8462, 0x8A7556, 0xA8916B]), roughness:1, flatShading:true }));
+  const m = new T.Mesh(pick(SH.rocks), pick(SH.rockMats));
   m.scale.y = rnd(.5, .8); m.castShadow = true; m.receiveShadow = true; return m;
 }
 function building(lit, hMin, hMax){
   const w = rnd(8, 14), h = rnd(hMin, hMax), d = rnd(8, 14);
-  const tex = windowsTex(lit); tex.repeat.set(Math.round(w / 3), Math.round(h / 5));
-  const m = new T.Mesh(new T.BoxGeometry(w, h, d), new T.MeshStandardMaterial({ map:tex, emissiveMap:tex, emissive:0xffffff, emissiveIntensity:.9, roughness:.7, color:0x8090A8 }));
+  const g = new T.BoxGeometry(w, h, d), uv = g.attributes.uv, ru = Math.round(Math.max(w, d) / 3), rv = Math.round(h / 5);
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * ru, uv.getY(i) * rv);
+  const m = new T.Mesh(g, pick(SH.winMat(lit)));
   m.position.y = h / 2; return m;
 }
 function neonPole(color){
   const g = new T.Group();
-  const mat = new T.MeshStandardMaterial({ color:0x20263A, metalness:.7, roughness:.4 });
-  const p = new T.Mesh(new T.CylinderGeometry(.08, .1, 7, 8), mat); p.position.y = 3.5; g.add(p);
-  const arm = new T.Mesh(new T.BoxGeometry(2.4, .12, .12), mat); arm.position.set(-1.2, 7, 0); g.add(arm);
-  const lamp = new T.Mesh(new T.BoxGeometry(1.4, .12, .4), new T.MeshBasicMaterial({ color })); lamp.position.set(-1.6, 6.92, 0); g.add(lamp);
+  const p = new T.Mesh(SH.geo.poleN, SH.pole); p.position.y = 3.5; g.add(p);
+  const arm = new T.Mesh(SH.geo.armN, SH.pole); arm.position.set(-1.2, 7, 0); g.add(arm);
+  const lamp = new T.Mesh(SH.geo.lampN, SH.lampMat(color)); lamp.position.set(-1.6, 6.92, 0); g.add(lamp);
   return g;
 }
 function streetLamp(){
   const g = new T.Group();
-  const mat = new T.MeshStandardMaterial({ color:0x39404D, metalness:.6, roughness:.5 });
-  const p = new T.Mesh(new T.CylinderGeometry(.09, .12, 7.5, 8), mat); p.position.y = 3.75; g.add(p);
-  const arm = new T.Mesh(new T.BoxGeometry(2.6, .1, .1), mat); arm.position.set(-1.3, 7.4, 0); g.add(arm);
-  const lamp = new T.Mesh(new T.BoxGeometry(.8, .12, .35), new T.MeshBasicMaterial({ color:0xFFD9A0 })); lamp.position.set(-2.1, 7.32, 0); g.add(lamp);
+  const p = new T.Mesh(SH.geo.poleS, SH.lampPole); p.position.y = 3.75; g.add(p);
+  const arm = new T.Mesh(SH.geo.armS, SH.lampPole); arm.position.set(-1.3, 7.4, 0); g.add(arm);
+  const lamp = new T.Mesh(SH.geo.lampS, SH.lampMat(0xFFD9A0)); lamp.position.set(-2.1, 7.32, 0); g.add(lamp);
   return g;
 }
 const SPAN = 360;
 let stars = null, rain = null;
-function setTheme(key){
-  clearScenery();
-  if (stars) { world.remove(stars); stars = null; }
-  if (rain) { world.remove(rain); rain = null; }
-  const u = sky.material.uniforms;
-  const rt = roadTex(key); rt.repeat.set(1, ROAD_LEN / 12); roadMat.map = rt; roadMat.needsUpdate = true;
-  edges.forEach(e => e.visible = key !== 'desert');
-  world.environment = env(key);
-  setEnvK(key === 'desert' ? .6 : 1.1);
+const ROADTEX = {};
+function buildTheme(key){
+  if (SC[key]) return SC[key];
+  const list = [], th = { list, stars:null, rain:null };
   if (key === 'neon') {
-    u.top.value.set(0x02030A); u.mid.value.set(0x1A0F3A); u.bot.value.set(0x05060F);
-    world.fog = new T.FogExp2(0x0A0820, .0095);
-    hemi.color.set(0x6E7BFF); hemi.groundColor.set(0x05050A); hemi.intensity = .35;
-    sun.color.set(0x9BB0FF); sun.intensity = .55; sun.position.set(-8, 30, 12);
-    renderer.toneMappingExposure = 1.15;
-    roadMat.roughness = .45; roadMat.metalness = .1; roadMat.envMapIntensity = .35;
-    groundMat.map = groundNight; groundNight.repeat.set(40, 40); groundMat.color.set(0x8090B0); groundMat.needsUpdate = true;
-    shoulderMat.color.set(0x141826);
-    for (let i = 0; i < 24; i += 2) for (const sx of [-1, 1]) { const p = neonPole(sx < 0 ? 0x3BF0CF : 0xB36BFF); p.position.x = sx * (HALF_ROAD + 3.4); p.scale.x = sx; addScenery(p, -i * 15, SPAN); }
-    for (let i = 0; i < 18; i++) for (const sx of [-1, 1]) { const b = building(.45, 18, 60); b.position.x = sx * rnd(26, 46); addScenery(b, -i * 20 - rnd(0, 10), SPAN); }
-    const sg = new T.BufferGeometry(), sp = [];
-    for (let i = 0; i < 1200; i++) { const a = Math.random() * Math.PI * 2, e = Math.random() * .5 + .05; sp.push(Math.cos(a) * 500 * Math.cos(e), Math.sin(e) * 500, Math.sin(a) * 500 * Math.cos(e)); }
-    sg.setAttribute('position', new T.Float32BufferAttribute(sp, 3));
-    stars = new T.Points(sg, new T.PointsMaterial({ color:0xBFD0FF, size:1.4, sizeAttenuation:false, fog:false })); world.add(stars);
+    for (let i = 0; i < 24; i += 2) for (const sx of [-1, 1]) { const p = neonPole(sx < 0 ? 0x3BF0CF : 0xB36BFF); p.position.x = sx * (HALF_ROAD + 3.4); p.scale.x = sx; addTo(list, p, -i * 15, SPAN); }
+    for (let i = 0; i < 18; i++) for (const sx of [-1, 1]) { const b = building(.45, 18, 60); b.position.x = sx * rnd(26, 46); addTo(list, b, -i * 20 - rnd(0, 10), SPAN); }
     if (bloomPass) { bloomPass.strength = .95; bloomPass.threshold = .72; bloomPass.radius = .5; }
   } else if (key === 'desert') {
     u.top.value.set(0x1E63C4); u.mid.value.set(0x9FCDEE); u.bot.value.set(0xD9C9A0);
-    world.fog = new T.Fog(0xD9C9A0, 110, 380);
     hemi.color.set(0xCFE6FF); hemi.groundColor.set(0x8A6E40); hemi.intensity = .45;
     sun.color.set(0xFFEBC8); sun.intensity = 2.1; sun.position.set(-14, 26, 8);
     renderer.toneMappingExposure = .82;
     roadMat.roughness = .82; roadMat.metalness = 0; roadMat.envMapIntensity = .2;
     sandTex.repeat.set(60, 40); groundMat.map = sandTex; groundMat.color.set(0xffffff); groundMat.needsUpdate = true;
     shoulderMat.color.set(0x8E7B57);
-    for (let i = 0; i < 22; i++) for (const sx of [-1, 1]) {
-      const p = palm(); p.position.x = sx * rnd(HALF_ROAD + 5, HALF_ROAD + 16); p.rotation.y = rnd(0, 6); addScenery(p, -i * 16 - rnd(0, 8), SPAN);
-      if (Math.random() < .6) { const r = rock(); r.position.x = sx * rnd(HALF_ROAD + 4, HALF_ROAD + 22); addScenery(r, -i * 16 - rnd(0, 14), SPAN); }
-    }
-    for (let i = 0; i < 6; i++) { const m = new T.Mesh(new T.ConeGeometry(rnd(40, 90), rnd(18, 40), 6), new T.MeshStandardMaterial({ color:0xC9A86E, roughness:1, flatShading:true })); m.position.set(rnd(-260, 260), 8, 0); addScenery(m, -rnd(250, 340), 1e9); }
     if (bloomPass) { bloomPass.strength = .18; bloomPass.threshold = .95; }
   } else {
     u.top.value.set(0x0A121F); u.mid.value.set(0x1E2C44); u.bot.value.set(0x0B111C);
-    world.fog = new T.FogExp2(0x152033, .016);
     hemi.color.set(0x8FA8D6); hemi.groundColor.set(0x0A0E16); hemi.intensity = .45;
     sun.color.set(0xB8C8E8); sun.intensity = .55; sun.position.set(8, 30, 10);
     renderer.toneMappingExposure = 1.1;
     roadMat.roughness = .14; roadMat.metalness = .35; roadMat.envMapIntensity = 1.2;
     groundMat.map = groundNight; groundNight.repeat.set(40, 40); groundMat.color.set(0x6070A0); groundMat.needsUpdate = true;
     shoulderMat.color.set(0x1A2232);
-    for (let i = 0; i < 20; i++) for (const sx of [-1, 1]) {
-      const b = building(.55, 14, 42); b.position.x = sx * rnd(HALF_ROAD + 12, HALF_ROAD + 20); addScenery(b, -i * 18 - rnd(0, 6), SPAN);
-      if (i % 2 === 0) { const l = streetLamp(); l.position.x = sx * (HALF_ROAD + 3.2); l.scale.x = sx; addScenery(l, -i * 18, SPAN); }
-    }
-    const rg = new T.BufferGeometry(), rp = new Float32Array(900 * 6);
-    for (let i = 0; i < 900; i++) { const x = rnd(-20, 20), y = rnd(0, 18), z = rnd(-60, 8); rp.set([x, y, z, x + .05, y - .9, z + .3], i * 6); }
-    rg.setAttribute('position', new T.BufferAttribute(rp, 3));
-    rain = new T.LineSegments(rg, new T.LineBasicMaterial({ color:0x9FB8E8, transparent:true, opacity:.35 })); world.add(rain);
     if (bloomPass) { bloomPass.strength = .7; bloomPass.threshold = .78; bloomPass.radius = .45; }
   }
 }
@@ -956,7 +1154,7 @@ function setTheme(key){
 /* ═════════ بازی ═════════ */
 const S = { mode:'garage', paused:false };
 let player = null;
-const traffic = [], items = [], sparks = [];
+const traffic = [], items = [];
 const G = {};
 const TRAFFIC_COLORS = [0xF2F4F8, 0x1C1E24, 0x8A93A6, 0x0E7C5E, 0xC7CCD6, 0x7D2AC2, 0xD8562A, 0x2A4F8F, 0xA51E2E];
 const itemGeo = { coin:new T.CylinderGeometry(.55, .55, .12, 28), chip:new T.CylinderGeometry(.62, .62, .2, 6), gift:new T.BoxGeometry(.95, .95, .95) };
@@ -965,15 +1163,51 @@ const itemMat = {
   chip:new T.MeshStandardMaterial({ color:0x3BF0CF, metalness:.4, roughness:.2, emissive:0x15C9A8, emissiveIntensity:1.6 }),
   gift:new T.MeshStandardMaterial({ color:0xFF6FCF, metalness:.2, roughness:.35, emissive:0xA0207F, emissiveIntensity:1.2 }),
 };
+const ITEM_SH = (() => {
+  const halo = new T.RingGeometry(.75, .95, 32), ribbon = new T.BoxGeometry(1, .16, 1), white = new T.MeshBasicMaterial({ color:0xFFFFFF });
+  const haloMat = {}; for (const k of ['coin', 'chip', 'gift']) haloMat[k] = new T.MeshBasicMaterial({ color:itemMat[k].color, transparent:true, opacity:.55, side:T.DoubleSide });
+  return { halo, ribbon, white, haloMat };
+})();
 function makeItem(kind){
   const g = new T.Group(), m = new T.Mesh(itemGeo[kind], itemMat[kind]);
   if (kind !== 'gift') m.rotation.x = Math.PI / 2;
   g.add(m);
-  if (kind === 'gift') { const rb = new T.Mesh(new T.BoxGeometry(1, .16, 1), new T.MeshBasicMaterial({ color:0xFFFFFF })); m.add(rb); const rb2 = rb.clone(); rb2.rotation.x = Math.PI / 2; m.add(rb2); }
-  const halo = new T.Mesh(new T.RingGeometry(.75, .95, 32), new T.MeshBasicMaterial({ color:itemMat[kind].color, transparent:true, opacity:.55, side:T.DoubleSide }));
+  if (kind === 'gift') { const rb = new T.Mesh(ITEM_SH.ribbon, ITEM_SH.white); m.add(rb); const rb2 = rb.clone(); rb2.rotation.x = Math.PI / 2; m.add(rb2); }
+  const halo = new T.Mesh(ITEM_SH.halo, ITEM_SH.haloMat[kind]);
   halo.rotation.x = -Math.PI / 2; halo.position.y = -1.05; g.add(halo);
   return g;
 }
+/* استخر اشیا: ماشین های ترافیک، آیتم ها و جرقه ها یک بار ساخته می شوند و دوباره استفاده می شوند؛
+   ساختن شیء وسط بازی (و جمع آوری زباله بعدش) دلیل اصلی لگ های لحظه ای بود */
+const POOL = { sedan:[], suv:[], van:[], bus:[], truck:[] }, POOL_N = { sedan:8, suv:6, van:4, bus:3, truck:4 };
+const IPOOL = { coin:[], chip:[], gift:[] };
+const SPARK_N = 240, sparkPool = [], sparkMats = new Map();
+const sparkMat = c => { if (!sparkMats.has(c)) sparkMats.set(c, new T.MeshBasicMaterial({ color:c })); return sparkMats.get(c); };
+function buildPools(){
+  if (POOL.sedan.length) return;
+  for (const [k, n] of Object.entries(POOL_N)) for (let i = 0; i < n; i++) {
+    const m = k === 'bus' ? makeTruck(0xE8B620, true) : k === 'truck' ? makeTruck(0x1F3B73, false) : makeCar(k, TRAFFIC_COLORS[i % TRAFFIC_COLORS.length]);
+    m.visible = false; m.userData.free = true; world.add(m); POOL[k].push(m);
+  }
+  for (const c of TRAFFIC_COLORS.concat([0xE8B620, 0x2E6FD8, 0xD9DEE6, 0x1F3B73, 0xB02A2A, 0xE6E8EC])) paint(c);
+  for (const k of Object.keys(IPOOL)) for (let i = 0; i < 8; i++) { const g = makeItem(k); g.visible = false; g.userData.free = true; world.add(g); IPOOL[k].push(g); }
+  for (const c of [0xFFC542, 0x3BF0CF, 0xFF6FCF, 0xFFB347, 0xFFFFFF, 0xFFD38A]) sparkMat(c);
+  for (let i = 0; i < SPARK_N; i++) { const m = new T.Mesh(sparkGeo, sparkMat(0xFFFFFF)); m.visible = false; world.add(m); sparkPool.push({ m, v:new T.Vector3(), life:0 }); }
+}
+function takeVehicle(kind, color){
+  const m = POOL[kind].find(v => v.userData.free); if (!m) return null;
+  m.userData.free = false; m.visible = true; m.rotation.set(0, 0, 0);
+  const pm = paint(color); for (const o of m.userData.paint) o.material = pm;
+  for (const b of m.userData.blinkers) b.material = M.blinkOff;
+  return m;
+}
+function freeVehicle(m){ m.visible = false; m.userData.free = true; }
+function takeItem(kind){
+  let g = IPOOL[kind].find(x => x.userData.free);
+  if (!g) { g = makeItem(kind); world.add(g); IPOOL[kind].push(g); }
+  g.userData.free = false; g.visible = true; return g;
+}
+function freeItem(g){ g.visible = false; g.userData.free = true; }
 function spawnTraffic(z){
   const free = LANES.slice();
   const dense = Math.min(.55, .25 + G.dist / 12000);
@@ -981,9 +1215,9 @@ function spawnTraffic(z){
   for (let i = 0; i < n; i++) {
     const lx = free.splice(Math.floor(Math.random() * free.length), 1)[0];
     const r = Math.random(), kind = r < .1 ? 'bus' : r < .24 ? 'truck' : r < .38 ? 'van' : r < .55 ? 'suv' : 'sedan';
-    const m = kind === 'bus' ? makeTruck(pick([0xE8B620, 0x2E6FD8, 0xD9DEE6]), true) : kind === 'truck' ? makeTruck(pick([0x1F3B73, 0xB02A2A, 0xE6E8EC]), false) : makeCar(kind, pick(TRAFFIC_COLORS));
+    const m = takeVehicle(kind, kind === 'bus' ? pick([0xE8B620, 0x2E6FD8, 0xD9DEE6]) : kind === 'truck' ? pick([0x1F3B73, 0xB02A2A, 0xE6E8EC]) : pick(TRAFFIC_COLORS));
+    if (!m) continue;
     m.position.set(lx, 0, z - rnd(0, 18));
-    world.add(m);
     const big = kind === 'bus' || kind === 'truck';
     traffic.push({ m, x:lx, lane:lx, v:big ? rnd(17, 22) : rnd(20, 30), L:m.userData.L, W:m.userData.W, passed:false, changing:0, blink:0, hit:false, vx:0, spin:0 });
   }
@@ -992,26 +1226,29 @@ function spawnTraffic(z){
   if (roll < G.odds.gift) kind = 'gift';
   else if (roll < G.odds.gift + G.odds.chip) kind = 'chip';
   else if (roll < .42) kind = 'coin';
-  if (kind) { const m = makeItem(kind); m.position.set(lx, 1.1, z - 30); world.add(m); items.push({ m, kind, x:lx }); }
+  if (kind) { const m = takeItem(kind); m.position.set(lx, 1.1, z - 30); items.push({ m, kind, x:lx }); }
 }
 const sparkGeo = new T.BoxGeometry(.07, .07, .4);
 function burst(pos, color, n, speed = 8){
-  const mat = new T.MeshBasicMaterial({ color });
-  for (let i = 0; i < n; i++) {
-    const s = new T.Mesh(sparkGeo, mat); s.position.copy(pos); world.add(s);
-    sparks.push({ m:s, v:new T.Vector3(rnd(-1, 1) * speed, rnd(.3, 1) * speed, rnd(-1, 1) * speed), life:rnd(.4, .9) });
+  const mat = sparkMat(color);
+  for (const s of sparkPool) {
+    if (n <= 0) break; if (s.life > 0) continue; n--;
+    s.m.material = mat; s.m.visible = true; s.m.position.copy(pos);
+    s.v.set(rnd(-1, 1) * speed, rnd(.3, 1) * speed, rnd(-1, 1) * speed); s.life = rnd(.4, .9);
   }
 }
 function newRun(){
-  for (const t of traffic) world.remove(t.m); traffic.length = 0;
-  for (const it of items) world.remove(it.m); items.length = 0;
-  for (const s of sparks) world.remove(s.m); sparks.length = 0;
-  if (player) world.remove(player);
+  buildPools();
+  for (const t of traffic) freeVehicle(t.m); traffic.length = 0;
+  for (const it of items) freeItem(it.m); items.length = 0;
+  for (const s of sparkPool) { s.life = 0; s.m.visible = false; }
   const rd = ROADS[roadKey];
-  player = cloneCar();
-  world.add(player);
+  if (!player || player.userData.paintIdx !== colorIdx || player.userData.proto !== !!carProto) {
+    if (player) world.remove(player);
+    player = cloneCar(); player.userData.paintIdx = colorIdx; player.userData.proto = !!carProto; world.add(player);
+  }
   Object.assign(G, {
-    t:0, x:LANES[1], vx:0, tx:LANES[1], v:22, gear:0, abs:0, brake:0, brakeHeld:false, ax:0, vroad:22, vPrev:22, rollV:0, pitchV:0, acc:0, dist:0, near:0, combo:0, maxCombo:0, comboT:0,
+    t:0, x:LANES[1], vx:0, tx:LANES[1], v:22, gear:0, rpm:0, thr:0, abs:0, brake:0, brakeHeld:false, ax:0, vroad:22, vPrev:22, rollV:0, pitchV:0, acc:0, dist:0, near:0, combo:0, maxCombo:0, comboT:0,
     coins:0, frags:0, gold:0, nitro:0, boost:0, shake:0, nextSpawn:40, yaw:0, roll:0, pitch:0,
     top:52 + lv.engine * 2.6, accel:4.5 + lv.engine * .55,
     odds:odds(rd.item), nitroGain:.8 + lv.nitro * .08, boostLen:2.8 + lv.nitro * .25,
@@ -1019,7 +1256,7 @@ function newRun(){
   });
   vehInit(G, tireMu(lv.tires) * rd.grip, lv.tires);
   for (let z = -70; z > -330; z -= 48) spawnTraffic(z);
-  for (const t of traffic) if (t.m.position.z > -110 && Math.abs(t.x - G.x) < 2) { world.remove(t.m); t.dead = true; }
+  for (const t of traffic) if (t.m.position.z > -110 && Math.abs(t.x - G.x) < 2) { freeVehicle(t.m); t.dead = true; }
   for (let i = traffic.length - 1; i >= 0; i--) if (traffic[i].dead) traffic.splice(i, 1);
   camera.clearViewOffset(); camera.position.set(G.x, 3.7, 9);
 }
@@ -1044,7 +1281,7 @@ window.addEventListener('keydown', e => {
   if (S.mode === 'garage' && e.key === 'Enter') startRun();
 });
 window.addEventListener('keyup', e => { keys[e.key] = false; });
-function fireNitro(){ if (G.nitro >= 1 && !G.boost && !G.crashed) { G.boost = G.boostLen; G.nitro = 0; G.shake = .35; Haptic.tap('heavy', 0); } }
+function fireNitro(){ if (G.nitro >= 1 && !G.boost && !G.crashed) { G.boost = G.boostLen; G.nitro = 0; G.shake = .35; Haptic.tap('heavy', 0); Sound.nitro(); } }
 $('nitroBtn').addEventListener('click', fireNitro);
 { const bb = $('brakeBtn'), on = v => e => { if (v && !G.brakeHeld) Haptic.tap('medium', 0); G.brakeHeld = v; bb.classList.toggle('on', v); if (v) { try { bb.setPointerCapture(e.pointerId); } catch(_){} } e.preventDefault(); };
   bb.addEventListener('pointerdown', on(true)); for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) bb.addEventListener(ev, on(false));
@@ -1055,32 +1292,33 @@ function popup(title, sub, hot){
   const el = document.createElement('div'); el.className = 'pop' + (hot ? ' hot' : '');
   el.innerHTML = `<b>${title}</b><span>${sub}</span>`; $('pops').appendChild(el); setTimeout(() => el.remove(), 1000);
 }
-function nearMiss(gap){
+function nearMiss(gap, side){
+  Sound.nearMiss(side || 1, gap < .45);
   G.near++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo); G.comboT = 2.6;
   const hot = gap < .45;
   const pts = (hot ? 60 : 30) * G.combo;
   G.dist += pts / 10;
   const was = G.nitro;
   G.nitro = Math.min(1, G.nitro + (hot ? .3 : .16) * G.nitroGain);
-  if (was < 1 && G.nitro >= 1) Haptic.note('success'); else Haptic.tap(hot ? 'medium' : G.combo >= 3 ? 'rigid' : 'light', 0);
+  if (was < 1 && G.nitro >= 1) { Haptic.note('success'); Sound.nitroReady(); } else Haptic.tap(hot ? 'medium' : G.combo >= 3 ? 'rigid' : 'light', 0);
   G.shake = Math.max(G.shake, hot ? .25 : .12); G.fov += hot ? 4 : 2;
-  if (hot && Math.random() < G.odds.chip * .5) { const m = makeItem('chip'); m.position.set(G.x, 1.1, -60); world.add(m); items.push({ m, kind:'chip', x:G.x }); }
+  if (hot && Math.random() < G.odds.chip * .5) { const m = takeItem('chip'); m.position.set(G.x, 1.1, -60); items.push({ m, kind:'chip', x:G.x }); }
   popup(hot ? 'خیلی نزدیک!' : 'لایی!', '+' + FA(pts) + (G.combo > 1 ? '  ×' + FA(G.combo) : ''), hot);
 }
 function collect(it){
   burst(it.m.position, itemMat[it.kind].color, 16, 6);
-  world.remove(it.m); it.got = true;
-  if (it.kind === 'coin') { G.coins += 1 + Math.floor(G.combo / 3); Haptic.sel(); }
-  else if (it.kind === 'chip') { G.frags++; popup('قطعه اینترنت', '+۱', false); Haptic.note('success'); }
+  freeItem(it.m); it.got = true;
+  if (it.kind === 'coin') { G.coins += 1 + Math.floor(G.combo / 3); Haptic.sel(); Sound.coin(); }
+  else if (it.kind === 'chip') { G.frags++; popup('قطعه اینترنت', '+۱', false); Haptic.note('success'); Sound.chip(); }
   else { const r = Math.random();
-    Haptic.tap('medium', 0);
-    if (r < G.odds.gold) { G.gold++; popup('قطعه طلایی!', 'هوش مصنوعی', true); setTimeout(() => Haptic.note('success'), 120); }
+    Haptic.tap('medium', 0); Sound.gift();
+    if (r < G.odds.gold) { G.gold++; popup('قطعه طلایی!', 'هوش مصنوعی', true); setTimeout(() => { Haptic.note('success'); Sound.gold(); }, 120); }
     else if (r < .5) { G.nitro = 1; popup('نیترو پر شد', '', false); }
     else { G.coins += 15; popup('+۱۵ سکه', '', false); } }
 }
 function crash(t){
   G.crashed = true; G.crashT = 0; G.slow = .32;
-  Haptic.tap('heavy', 0); setTimeout(() => Haptic.note('error'), 140);
+  Haptic.tap('heavy', 0); setTimeout(() => Haptic.note('error'), 140); Sound.crash();
   const side = Math.sign(G.x - t.m.position.x) || 1;
   const rel = Math.max(6, G.v - t.v);
   // ضربه: سرعت جانبی و رو به بالا، چرخش حول سه محور؛ ماشین مقابل هم هل داده می شود
@@ -1118,7 +1356,7 @@ function step(dt){
         const sd = Math.sign(G.x);
         G.x = sd * lim; G.tx = clamp(G.tx, -lim + .6, lim - .6);
         if (G.vx * sd > 0) {   // برخورد با لبه: سرعت جانبی برمی گردد، دماغه از گاردریل دور می شود
-          G.psi *= -.25; G.vy *= -.3; G.r *= .3; G.v *= .96; G.shake = .4; G.combo = 0; Haptic.tap('rigid', 0);
+          G.psi *= -.25; G.vy *= -.3; G.r *= .3; G.v *= .96; G.shake = .4; G.combo = 0; Haptic.tap('rigid', 0); Sound.barrier(sd);
           burst(new T.Vector3(G.x + sd * .9, .5, 0), 0xFFD38A, 6, 5);
         }
       }
@@ -1173,18 +1411,18 @@ function step(dt){
       const dz = t.m.position.z, dx = Math.abs(t.m.position.x - G.x);
       const gap = dx - (t.W + 1.86) / 2;
       if (Math.abs(dz) < (t.L + 4.5) / 2 - .25 && gap < -.08) crash(t);
-      else if (!t.passed && dz > (t.L + 4.5) / 2) { t.passed = true; if (gap < 1.1) nearMiss(gap); }
+      else if (!t.passed && dz > (t.L + 4.5) / 2) { t.passed = true; if (gap < 1.1) nearMiss(gap, Math.sign(t.m.position.x - G.x)); }
     }
   }
-  for (let i = traffic.length - 1; i >= 0; i--) if (traffic[i].m.position.z > 40) { world.remove(traffic[i].m); traffic.splice(i, 1); }
+  for (let i = traffic.length - 1; i >= 0; i--) if (traffic[i].m.position.z > 40) { freeVehicle(traffic[i].m); traffic.splice(i, 1); }
   for (const it of items) {
     it.m.position.z += sp * dt; it.m.rotation.y += dt * 3; it.m.children[0].position.y = Math.sin(G.t * 4 + it.x) * .15;
     if (!G.crashed && !it.got && Math.abs(it.m.position.z) < 2 && Math.abs(it.x - G.x) < 1.5) collect(it);
   }
-  for (let i = items.length - 1; i >= 0; i--) if (items[i].got || items[i].m.position.z > 20) { if (!items[i].got) world.remove(items[i].m); items.splice(i, 1); }
+  for (let i = items.length - 1; i >= 0; i--) if (items[i].got || items[i].m.position.z > 20) { if (!items[i].got) freeItem(items[i].m); items.splice(i, 1); }
   G.nextSpawn -= sp * dt;
   if (G.nextSpawn <= 0 && !G.crashed) { spawnTraffic(-330); G.nextSpawn = Math.max(22, 50 - G.dist / 300) + rnd(0, 16); }
-  for (let i = sparks.length - 1; i >= 0; i--) { const s = sparks[i]; s.v.y -= 18 * dt; s.m.position.addScaledVector(s.v, dt); s.m.position.z += sp * dt; s.life -= dt; if (s.life <= 0) { world.remove(s.m); sparks.splice(i, 1); } }
+  for (const s of sparkPool) { if (s.life <= 0) continue; s.v.y -= 18 * dt; s.m.position.addScaledVector(s.v, dt); s.m.position.z += sp * dt; s.life -= dt; if (s.life <= 0) s.m.visible = false; }
   if (rain) { const p = rain.geometry.attributes.position, a = p.array; for (let i = 0; i < a.length; i += 6) { a[i + 1] -= 28 * dt; a[i + 4] -= 28 * dt; a[i + 2] += sp * dt * .4; a[i + 5] += sp * dt * .4; if (a[i + 4] < 0 || a[i + 2] > 10) { const x = rnd(-20, 20), y = rnd(10, 18), z = rnd(-60, -10); a.set([x, y, z, x + .05, y - .9, z + .3], i); } } p.needsUpdate = true; rain.position.x = G.x * .5; }
   G.shake = Math.max(0, G.shake - dt * 1.6);
 }
@@ -1213,6 +1451,14 @@ function placePlayer(dt){
     player.rotation.copy(G.body.q);
   }
 }
+function engineSound(dt){
+  const kmh = G.v * 3.6, g = gearOf(kmh);
+  const target = G.crashed ? 900 : rpmOf(kmh, g);
+  G.rpm = lerp(G.rpm || target, target, Math.min(1, dt * 10));
+  const thr = G.crashed || G.brake > .05 ? 0 : G.boost ? 1 : G.v < G.top - 1.5 ? 1 : .35;
+  G.thr = lerp(G.thr || 0, thr, Math.min(1, dt * 8));
+  Sound.engineUpdate({ rpm:G.rpm, throttle:G.thr, speed:G.v, slide:G.slide || 0, brake:G.brake, boost:G.boost, live:!G.crashed || G.crashT < .1 });
+}
 function placeCamera(dt){
   const speedK = clamp((G.v - 20) / 45, 0, 1);
   const base = camera.aspect < .7 ? 70 : 58;
@@ -1237,8 +1483,8 @@ function hud(now){
   const kmh = G.v * 3.6;
   $('dist').textContent = fmt(G.dist);
   $('spd').textContent = FA(Math.round(kmh));
-  const gear = Math.min(6, 1 + Math.floor(kmh / 45));
-  if (G.gear && gear > G.gear && !G.brake) Haptic.tap('soft');   // تعویض دنده
+  const gear = gearOf(kmh);
+  if (G.gear && gear > G.gear && !G.brake) { Haptic.tap('soft'); Sound.shift(); }   // تعویض دنده
   G.gear = gear;
   $('gear').textContent = G.brake > .3 ? 'ترمز' : G.boost ? 'نیترو' : 'دنده ' + FA(gear);
   $('gArc').setAttribute('stroke-dasharray', `${Math.min(100, kmh / 330 * 100).toFixed(1)} 100`);
@@ -1299,17 +1545,17 @@ function renderGarage(){
   for (const b of document.querySelectorAll('.tab')) b.classList.toggle('on', b.dataset.tab === tab);
   for (const k of ['upg', 'paint', 'road']) $('pane-' + k).hidden = k !== tab;
 }
-document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; Haptic.sel(); renderGarage(); });
-$('roads').addEventListener('click', e => { const b = e.target.closest('[data-road]'); if (!b) return; roadKey = b.dataset.road; store.set('road', roadKey); Haptic.sel(); renderGarage(); });
+document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; tab = b.dataset.tab; Haptic.sel(); Sound.select(); renderGarage(); });
+$('roads').addEventListener('click', e => { const b = e.target.closest('[data-road]'); if (!b) return; roadKey = b.dataset.road; store.set('road', roadKey); Haptic.sel(); Sound.select(); renderGarage(); });
 $('upg').addEventListener('click', e => {
   const b = e.target.closest('[data-up]'); if (!b) return;
   const k = b.dataset.up, c = cost(lv[k] + 1);
-  if (bank < c || lv[k] >= MAXLV) return Haptic.note('warning');
-  Haptic.note('success');
+  if (bank < c || lv[k] >= MAXLV) { Sound.deny(); return Haptic.note('warning'); }
+  Haptic.note('success'); Sound.buy();
   bank -= c; lv[k]++; store.set('bank', bank); store.set('lv', lv);
   garageSpin += .6; renderGarage();
 });
-$('colors').addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (!b) return; colorIdx = +b.dataset.color; store.set('paint', colorIdx); Haptic.sel(); setShowroomCar(); renderGarage(); });
+$('colors').addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (!b) return; colorIdx = +b.dataset.color; store.set('paint', colorIdx); Haptic.sel(); Sound.select(); setShowroomCar(); renderGarage(); });
 
 /* ── چرخه حالت ها ── */
 let ranked = true;
@@ -1319,12 +1565,14 @@ function startRun(){
   setTheme(roadKey); newRun();
   $('garage').hidden = true; $('result').hidden = true; $('paused').hidden = true; $('hud').hidden = false;
   camera.clearViewOffset(); G.fov = camera.aspect < .7 ? 70 : 58;
-  S.mode = 'count'; S.countT = 3.2; S.lastN = null; S.paused = false; Haptic.tap('medium', 0); $('count').hidden = false;
+  S.mode = 'count'; S.countT = 3.2; S.lastN = null; S.paused = false; Haptic.tap('medium', 0);
+  Sound.unlock(); Sound.pause(false); Sound.engineStart(); document.body.classList.add('playing'); PERF.sum = PERF.n = 0; PERF.t = performance.now(); $('count').hidden = false;
 }
 function endRun(){
   S.mode = 'result';
   const d = Math.round(G.dist), isBest = d > best;
-  if (isBest) { best = d; store.set('best', best); setTimeout(() => Haptic.note('success'), 600); }
+  Sound.engineStop(); document.body.classList.remove('playing');
+  if (isBest) { best = d; store.set('best', best); setTimeout(() => { Haptic.note('success'); Sound.record(); }, 600); }
   if (ranked) { frags += G.frags; store.set('frags', frags); }
   bank += G.coins; store.set('bank', bank);
   $('rBadge').hidden = !isBest;
@@ -1334,34 +1582,55 @@ function endRun(){
   $('hud').hidden = true; $('result').hidden = false;
 }
 function toGarage(){
+  Sound.engineStop(); Sound.pause(false); document.body.classList.remove('playing'); gFrame = null;
   for (const [m, k] of carTails) m.emissiveIntensity = k; G.brakeHeld = false;
   S.mode = 'garage'; S.paused = false; setEnvK(.8); garageBloom();
   $('result').hidden = true; $('paused').hidden = true; $('hud').hidden = true; $('garage').hidden = false;
   renderGarage();
 }
-function togglePause(){ if (S.mode !== 'play') return; S.paused = !S.paused; $('paused').hidden = !S.paused; }
+function togglePause(){ if (S.mode !== 'play') return; S.paused = !S.paused; $('paused').hidden = !S.paused; Sound.pause(S.paused); lastT = 0; }
 $('startBtn').addEventListener('click', startRun);
 $('again').addEventListener('click', startRun);
 $('toGarage').addEventListener('click', toGarage);
-$('pauseBtn').addEventListener('click', () => { Haptic.tap('light', 0); togglePause(); });
+$('pauseBtn').addEventListener('click', () => { Haptic.tap('light', 0); Sound.click(); togglePause(); });
 $('resume').addEventListener('click', togglePause);
 $('quit').addEventListener('click', toGarage);
-document.addEventListener('visibilitychange', () => { if (document.hidden && S.mode === 'play' && !S.paused) togglePause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && S.mode === 'play' && !S.paused) togglePause(); else if (S.mode !== 'play') Sound.pause(document.hidden); lastT = 0; });
 
 /* ── حلقه اصلی ── */
 function render(scene){
-  if (composer) { renderPass.scene = scene; composer.render(); }
+  if (useBloom) { renderPass.scene = scene; composer.render(); }
   else renderer.render(scene, camera);
 }
-const clock = new T.Clock();
-function frame(){
+/* حلقه اصلی با سقف فریم: ۶۰ (یا ۳۰ در حالت کم مصرف)؛ گاراژ همیشه ۳۰. فریم ثابت پایین تر
+   از فریم بالای لرزان روان تر حس می شود و گوشی داغ نمی کند. */
+let lastT = 0;
+const PERF = { sum:0, n:0, t:0 };
+function adapt(ms, now){
+  // وضوح پویا: اگر میانگین زمان فریم از بودجه بیشتر شد وضوح کم می شود و برعکس
+  if (quality !== 'auto') return;
+  PERF.sum += ms; PERF.n++;
+  if (now - PERF.t < 1500) return;
+  const avg = PERF.sum / PERF.n, budget = 1000 / fpsCap, q = QUAL[tier];
+  PERF.sum = 0; PERF.n = 0; PERF.t = now;
+  if (avg > budget * 1.22 && dpr > q.min + .01) { dpr = Math.max(q.min, dpr - .15); resize(); }
+  else if (avg > budget * 1.22 && useBloom) { useBloom = false; }
+  else if (avg < budget * 1.06 && dpr < Math.min(q.dpr, Math.max(1, devicePixelRatio || 1)) - .01) { dpr = Math.min(q.dpr, dpr + .1); resize(); }
+}
+function frame(now){
   requestAnimationFrame(frame);
-  const raw = Math.min(window.__obourFast ? .25 : .05, clock.getDelta()), now = performance.now();
+  if (!S.ready) return;
+  const cap = S.mode === 'garage' ? 30 : fpsCap;
+  if (lastT && now - lastT < 1000 / cap - 2.5) return;
+  const ms = lastT ? now - lastT : 16; lastT = now;
+  const raw = Math.min(window.__obourFast ? .25 : .05, ms / 1000);
+  if (S.mode === 'play' && !S.paused) adapt(ms, now);
   if (S.mode === 'garage') {
     if (!window.__obourFreeze) garageSpin += raw * .35;
     if (showroomCar) showroomCar.rotation.y = garageSpin;
     // ماشین وسط ناحیه «صحنه» بین نوار بالا و پلاک قرار می گیرد؛ فاصله از هر دو بعد آن
-    const W = canvas.clientWidth, H = canvas.clientHeight, st = document.querySelector('.stage').getBoundingClientRect(), cr = canvas.getBoundingClientRect();
+    if (!gFrame) { const st = document.querySelector('.stage').getBoundingClientRect(), cr = canvas.getBoundingClientRect(); gFrame = { st, cr, W:canvas.clientWidth, H:canvas.clientHeight }; }
+    const { W, H, st, cr } = gFrame;
     const sh = Math.max(120, st.height - 40), cy = st.top - cr.top + sh / 2 + 6;
     const fov = 36, tv = Math.tan(fov * Math.PI / 360);
     const r = clamp(Math.max(2.5 / (tv * camera.aspect), 1.45 / (tv * sh / H)), 6, 22), a = .62 + Math.sin(now / 5000) * .06;
@@ -1376,26 +1645,137 @@ function frame(){
   if (S.mode === 'count') {
     S.countT -= raw;
     const n = Math.ceil(S.countT - .2);
-    if (n !== S.lastN) { S.lastN = n; Haptic.tap(n > 0 ? 'light' : 'heavy', 0); }
+    if (n !== S.lastN) { S.lastN = n; Haptic.tap(n > 0 ? 'light' : 'heavy', 0); Sound.beep(n <= 0); }
     $('count').innerHTML = (n > 0 ? FA(n) : 'برو!') + '<small>انگشت را چپ و راست بکش · ترمز را نگه دار · لایی نزدیک = نیترو</small>';
     if (S.countT <= 0) { $('count').hidden = true; S.mode = 'play'; }
+    // قبل از حرکت: دور آرام با گاز دادن روی هر عدد
+    const blip = Math.max(0, Math.sin((S.countT % 1) * Math.PI)) * (n > 0 ? 1 : .2);
+    Sound.engineUpdate({ rpm:900 + blip * 3200, throttle:blip, speed:0, slide:0, brake:0, boost:0, live:true });
     placePlayer(0); placeCamera(raw); return render(world);
   }
   if (S.mode === 'play' && !S.paused) {
     const dt = raw * (G.crashed ? G.slow : 1);
     if (G.crashed) G.slow = Math.min(1, G.slow + raw * .45);
     step(dt);
-    if (S.mode === 'play') { placePlayer(dt); placeCamera(raw); hud(now); }
+    if (S.mode === 'play') { placePlayer(dt); placeCamera(raw); hud(now); engineSound(dt); }
   }
   render(world);
 }
 
 function garageBloom(){ renderer.toneMappingExposure = .95; if (bloomPass) { bloomPass.strength = .45; bloomPass.threshold = .88; bloomPass.radius = .4; } }
-loadCar();
 // داخل مینی اپ (iframe) دکمه بستن پیدا می شود و پیام به صفحه مادر می رود
-if (window.parent !== window) { $('closeBtn').hidden = false; $('closeBtn').addEventListener('click', () => { try { window.parent.postMessage({ obour:'game-close' }, location.origin); } catch(e){} }); }
-resize(); setTheme(roadKey); setEnvK(.8); garageBloom(); setShowroomCar(); renderGarage(); updatePosts();
-frame();
-window.__obour = { start:startRun, G, S, keys, setRoad(k){ roadKey = k; renderGarage(); }, spin(v){ garageSpin = v; }, car(){ return showroomCar; }, player(){ return player; }, freeze(v){ window.__obourFreeze = v; } };
+if (window.parent !== window) { $('closeBtn').hidden = false; $('closeBtn').addEventListener('click', () => { Sound.click(); try { window.parent.postMessage({ obour:'game-close' }, location.origin); } catch(e){} }); }
+
+/* ── تنظیمات */
+function renderSettings(){
+  for (const b of document.querySelectorAll('[data-set]')) b.classList.toggle('on', b.dataset.set === 'sound' ? Sound.on : hapticOn);
+  for (const b of document.querySelectorAll('[data-seg=quality] button')) b.classList.toggle('on', b.dataset.v === quality);
+  for (const b of document.querySelectorAll('[data-seg=fps] button')) b.classList.toggle('on', +b.dataset.v === fpsCap);
+  $('tierNow').textContent = quality === 'auto' ? '· الان: ' + QUAL[tier].name : '';
+}
+$('setBtn').addEventListener('click', () => { Sound.click(); Haptic.sel(); renderSettings(); $('settings').hidden = false; });
+$('setDone').addEventListener('click', () => { Sound.click(); $('settings').hidden = true; });
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-set]');
+  if (t) { if (t.dataset.set === 'sound') Sound.setOn(!Sound.on); else { hapticOn = !hapticOn; store.set('haptic', hapticOn); } Sound.select(); Haptic.sel(); renderSettings(); return; }
+  const sb = e.target.closest('.seg button'); if (!sb) return;
+  const k = sb.parentElement.dataset.seg, v = sb.dataset.v;
+  Sound.select(); Haptic.sel();
+  if (k === 'fps') { fpsCap = +v; store.set('fps', fpsCap); }
+  else if (v !== quality) {
+    quality = v; store.set('quality', v);
+    $('tierNow').textContent = '· در حال اعمال…'; await nextFrame();
+    applyTier(v === 'auto' ? tier : v); await warmUp(false);
+  }
+  renderSettings();
+});
+
+/* ── بارگذاری: همه چیز قبل از اولین فریم بازی آماده می شود (مدل، جاده ها، ترافیک،
+   کامپایل شیدرها برای هر سه جاده) و کیفیت با سنجش واقعی همین گوشی انتخاب می شود */
+const nextFrame = () => new Promise(r => requestAnimationFrame(r));
+const TIPS = ['لایی نزدیک = نیترو بیشتر', 'ترمز را نگه دار؛ ABS نمی گذارد قفل کنی', 'هرچه لاستیک بهتر، پیچیدن سریع تر', 'در باران چسبندگی کم است، آرام تر بپیچ', 'شانس جایزه را در گاراژ ارتقا بده'];
+function splash(pct, text){
+  $('spBar').style.width = pct + '%'; $('spP').textContent = FA(Math.round(pct)) + '٪';
+  if (text) $('spT').textContent = text;
+}
+function loadCarP(onP){
+  return new Promise(res => {
+    if (!T.GLTFLoader) return res();
+    new T.GLTFLoader().load(window.OBOUR_MODEL || 'obour405.json', gltf => { carProto = prepCar(gltf.scene); res(); },
+      ev => { if (ev.total) onP(ev.loaded / ev.total); }, () => res());
+  });
+}
+function ensurePlayer(){
+  if (!player || player.userData.paintIdx !== colorIdx || player.userData.proto !== !!carProto) {
+    if (player) world.remove(player);
+    player = cloneCar(); player.userData.paintIdx = colorIdx; player.userData.proto = !!carProto; world.add(player);
+  }
+}
+function playCam(){ camera.clearViewOffset(); camera.fov = camera.aspect < .7 ? 70 : 58; camera.position.set(0, 3.7, 9); camera.lookAt(0, .7, -22); camera.updateProjectionMatrix(); }
+// همه اشیای استخر جلوی دوربین، تا شیدر و بافت هایشان همین حالا به کارت گرافیک برود
+function showAll(v){
+  let i = 0;
+  for (const k in POOL) for (const m of POOL[k]) { if (!m.userData.free) continue; m.visible = v; if (v) m.position.set(LANES[i % 4], 0, -16 - (i >> 2) * 13); i++; }
+  for (const k in IPOOL) for (const g of IPOOL[k]) { if (!g.userData.free) continue; g.visible = v; if (v) g.position.set(LANES[i % 4], 1.1, -8 - (i % 6) * 5); i++; }
+  for (const sp of sparkPool.slice(0, 8)) { sp.m.visible = v && sp.life <= 0 ? true : sp.life > 0; if (v) sp.m.position.set(rnd(-2, 2), 1, -6); }
+  if (player) { player.visible = true; player.position.set(LANES[1], 0, 0); player.rotation.set(0, 0, 0); }
+}
+async function warmUp(withSplash){
+  buildPools(); ensurePlayer(); playCam(); showAll(true);
+  const keys = ['desert', 'rain', 'neon'];
+  for (let i = 0; i < keys.length; i++) {
+    setTheme(keys[i]); renderer.compile(world, camera); render(world);
+    if (withSplash) splash(90 + i * 3, 'آماده‌سازی گرافیک…');
+    await nextFrame();
+  }
+  showAll(false);
+  setTheme(roadKey); setEnvK(.8); garageBloom();
+  renderer.compile(garageScene, camera);
+}
+async function measure(n){
+  const ts = [];
+  for (let i = 0; i < n; i++) { render(world); ts.push(await nextFrame()); }
+  const d = ts.slice(2).map((t, i) => t - ts[i + 1]).sort((a, b) => a - b);
+  return d[d.length >> 1] || 16;
+}
+function guessTier(){
+  const mem = navigator.deviceMemory || 4, cores = navigator.hardwareConcurrency || 4;
+  if (mem <= 2 || cores <= 2) return 'low';
+  if (mem >= 6 && cores >= 8) return 'high';
+  return 'mid';
+}
+async function pickTier(){
+  if (quality !== 'auto') { applyTier(quality, false); return; }
+  let t = guessTier(); applyTier(t, false);
+  buildPools(); ensurePlayer(); playCam(); setTheme('neon'); showAll(true);
+  renderer.compile(world, camera);
+  // بودجه ۶۰ فریم: اگر میانه زمان فریم بیشتر از ~۲۱ میلی ثانیه بود یک سطح پایین تر
+  let ms = await measure(18);
+  if (ms > 21 && t !== 'low') { t = t === 'high' ? 'mid' : 'low'; applyTier(t); renderer.compile(world, camera); ms = await measure(14);
+    if (ms > 21 && t === 'mid') { t = 'low'; applyTier(t); renderer.compile(world, camera); } }
+  else if (ms < 17.5 && t === 'mid' && (window.devicePixelRatio || 1) >= 2) { applyTier('high'); renderer.compile(world, camera); ms = await measure(14); if (ms > 19.5) applyTier('mid'); }
+  showAll(false);
+}
+async function boot(){
+  $('spTip').textContent = pick(TIPS);
+  resize(); renderGarage(); updatePosts();
+  splash(3, 'دریافت ماشین…');
+  await loadCarP(f => splash(3 + f * 57));
+  splash(62, 'آماده‌سازی ماشین…'); await nextFrame();
+  setShowroomCar(); ensurePlayer();
+  const keys = ['neon', 'desert', 'rain'];
+  for (let i = 0; i < keys.length; i++) { splash(66 + i * 5, 'ساختن جاده‌ها…'); await nextFrame(); buildTheme(keys[i]); }
+  splash(82, 'آماده‌سازی ترافیک…'); await nextFrame(); buildPools();
+  splash(86, 'تنظیم گرافیک برای گوشی تو…'); await nextFrame(); await pickTier();
+  await warmUp(true);
+  splash(100, 'آماده!');
+  $('loading').hidden = true;
+  S.ready = true; lastT = 0; gFrame = null;
+  requestAnimationFrame(() => $('splash').classList.add('off'));
+  setTimeout(() => { $('splash').hidden = true; }, 600);
+}
+requestAnimationFrame(frame);
+boot().catch(err => { console.error(err); setShowroomCar(); S.ready = true; $('splash').classList.add('off'); });
+window.__obour = { start:startRun, G, S, keys, renderer, tier:() => tier, dpr:() => dpr, setRoad(k){ roadKey = k; renderGarage(); }, spin(v){ garageSpin = v; }, car(){ return showroomCar; }, player(){ return player; }, freeze(v){ window.__obourFreeze = v; } };
 })();
 </script>
