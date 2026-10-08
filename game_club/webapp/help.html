@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
 <title>Game Club · راهنما</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -25,10 +26,13 @@
 </style>
 </head>
 <body>
+<header class="appbar">
+  <div class="appbar-cap"><span>راهنما</span></div>
+  <div class="appbar-in">
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>راهنما</h1></div>
+  </div>
+</header>
 <main class="page no-nav">
-  <header class="top">
-    <div class="top-l"><a class="icon-btn" href="index.html" aria-label="برگشت به خانه"><i data-ic="back"></i></a><h1 class="on-ground">راهنما</h1></div>
-  </header>
 
   <section aria-labelledby="hLudo">
     <div class="sec-head"><h2 id="hLudo" class="on-ground">منچ را چطور بازی کنم؟</h2></div>
@@ -56,7 +60,7 @@
     <div class="card">
       <ul class="club">
         <li><span class="ic-box" style="background:var(--grass-tint);color:var(--success)"><i data-ic="shield"></i></span><div><b>تاس روی سرور ریخته می‌شود</b><p>نه گوشی تو و نه گوشی حریف عدد تاس را تعیین نمی‌کند. هر حرکت روی سرور بررسی می‌شود.</p></div></li>
-        <li><span class="ic-box" style="background:var(--coin-tint);color:var(--coin-text)"><i data-ic="clock"></i></span><div><b>۲۰ ثانیه برای هر نوبت</b><p>اگر وقتت تمام شود، تاس خودکار ریخته و بهترین حرکت انجام می‌شود. سه نوبت پشت‌سرهم غیبت یعنی باخت.</p></div></li>
+        <li><span class="ic-box" style="background:var(--coin-tint);color:var(--coin-text)"><i data-ic="clock"></i></span><div><b>۲۰ ثانیه برای هر نوبت</b><p>اگر وقتت تمام شود، تاس خودکار ریخته و بهترین حرکت انجام می‌شود. در بازی امتیازی سه نوبت پشت‌سرهم غیبت یعنی باخت.</p></div></li>
         <li><span class="ic-box" style="background:var(--sky-tint);color:var(--sky-deep)"><i data-ic="users"></i></span><div><b>ناشناس می‌مانی</b><p>در بازی با ناشناس فقط اسم کوچک و آواتار دیده می‌شود، نه آیدی تلگرام.</p></div></li>
       </ul>
     </div>
@@ -65,9 +69,11 @@
   <a class="btn btn-gold btn-block" href="ludo-lobby.html"><i data-ic="dice"></i>شروع منچ</a>
 </main>
 <script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
 <script>
 (() => {
   const { LUDO, boardArt, pawn, pips } = GC;
+  GC.back(history.length > 1 ? () => history.back() : 'index.html');
   // مسیر زرد روی تصویر صفحه
   const s = LUDO.SEAT.yellow, pts = [];
   for (let p = 0; p <= 50; p++) { const [x, y] = LUDO.TRACK[(s.start + p) % 52]; pts.push([x + .5, y + .5]); }

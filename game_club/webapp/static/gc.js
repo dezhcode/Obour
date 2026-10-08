@@ -16,6 +16,119 @@ const S = Object.assign({
 const save = () => store.set('state', S);
 function ledger(t, a, k) { S.ledger.unshift({ t, a, k, at: Date.now() }); S.ledger = S.ledger.slice(0, 40); }
 
+/* ---------- SDK مینی اپ تلگرام ----------
+   داخل تلگرام: initData هست، همه چیز از سرور. بیرون (مرورگر، پیش نمایش):
+   حالت نمایشی با demo.js. قواعد تمام صفحه: محتوا زیر نوار وضعیت گوشی
+   (safeAreaInset) و دکمه های شناور تلگرام (contentSafeAreaInset) نمی رود. */
+const tg = (window.Telegram && window.Telegram.WebApp) || null;
+const live = !!(tg && tg.initData);
+const root = document.documentElement;
+root.classList.toggle('tg', live);
+const MOBILE = ['android', 'ios'];
+function applyInsets() {
+  if (!tg) return;
+  const sa = tg.safeAreaInset || {}, ca = tg.contentSafeAreaInset || {};
+  const px = v => (Number(v) > 0 ? Math.round(Number(v)) : 0) + 'px';
+  root.style.setProperty('--sa-t', px(sa.top)); root.style.setProperty('--sa-b', px(sa.bottom));
+  root.style.setProperty('--sa-l', px(sa.left)); root.style.setProperty('--sa-r', px(sa.right));
+  root.style.setProperty('--csa-t', px(ca.top)); root.style.setProperty('--csa-b', px(ca.bottom));
+  root.classList.toggle('is-fs', !!tg.isFullscreen);
+}
+const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
+if (live) {
+  try { tg.ready(); tg.expand(); } catch (e) {}
+  // رنگ ها با نوار بالای صفحه و زمین چمن یکی است تا درز دیده نشود
+  try { tg.setHeaderColor('#245F17'); tg.setBackgroundColor('#5BC236'); } catch (e) {}
+  try { ver('7.10') && tg.setBottomBarColor('#5BC236'); } catch (e) {}
+  // کشیدن عمودی (مثلا هنگام بازی) نباید مینی اپ را ببندد
+  try { ver('7.7') && tg.disableVerticalSwipes(); } catch (e) {}
+  ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged', 'fullscreenFailed']
+    .forEach(ev => { try { tg.onEvent(ev, applyInsets); } catch (e) {} });
+  applyInsets();
+  if (MOBILE.includes(tg.platform) && ver('8.0') && !tg.isFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
+}
+/* دکمه برگشت بومی تلگرام؛ دکمه برگشت داخل صفحه فقط بیرون از تلگرام دیده می شود */
+function back(href) {
+  if (!live || !ver('6.1')) return;
+  try {
+    if (!href) { tg.BackButton.hide(); return; }
+    tg.BackButton.show();
+    tg.BackButton.onClick(() => { typeof href === 'function' ? href() : (location.href = href); });
+  } catch (e) {}
+}
+function haptic(kind) {
+  if (!live || !ver('6.1')) return;
+  try {
+    const H = tg.HapticFeedback;
+    if (['success', 'error', 'warning'].includes(kind)) H.notificationOccurred(kind);
+    else if (kind === 'select') H.selectionChanged();
+    else H.impactOccurred(kind || 'light');
+  } catch (e) {}
+}
+function guardClose(on) { if (!live || !ver('6.2')) return; try { on ? tg.enableClosingConfirmation() : tg.disableClosingConfirmation(); } catch (e) {} }
+function portrait(on) { if (!live || !ver('8.0')) return; try { on ? tg.lockOrientation() : tg.unlockOrientation(); } catch (e) {} }
+function openLink(url) {
+  if (live && /^https:\/\/t\.me\//.test(url)) { try { tg.openTelegramLink(url); return; } catch (e) {} }
+  if (live) { try { tg.openLink(url); return; } catch (e) {} }
+  window.open(url, '_blank', 'noopener');
+}
+function startParam() { try { return (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || ''; } catch (e) { return ''; } }
+
+/* ---------- API سرور ---------- */
+const ERR = {
+  insufficient: 'امتیاز کافی نیست؛ اول کیف را شارژ کن', obour_insufficient: 'موجودی کیف پول عبور کافی نیست',
+  no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است',
+  bad_invite: 'این لینک دعوت معتبر نیست', started: 'این میز شروع شده', full: 'این میز پر است', in_match: 'تو الان سر یک میز دیگر هستی',
+  need_players: 'بازی امتیازی بدون حریف واقعی شروع نمی‌شود', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
+  plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
+  rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
+  not_your_turn: 'الان نوبت تو نیست', illegal_move: 'این مهره نمی‌تواند حرکت کند', not_found: 'این میز پیدا نشد', bad_pack: 'این بسته در دسترس نیست',
+};
+const errText = e => ERR[e && e.code] || ERR.server;
+async function api(name, { body, q } = {}) {
+  let r;
+  try {
+    r = await fetch('api/' + name + (q ? '?' + new URLSearchParams(q) : ''), {
+      method: body ? 'POST' : 'GET', cache: 'no-store',
+      headers: { 'X-Init-Data': tg ? tg.initData : '', 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (e) { const x = new Error('network'); x.code = 'network'; throw x; }
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) { const x = new Error(j.error || 'server'); x.code = j.error || 'server'; x.data = j; throw x; }
+  return j;
+}
+const idem = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+const liveData = {
+  me: () => api('me'),
+  charge: points => api('wallet/charge', { body: { points, idem: idem() } }),
+  notify: game => api('notify', { body: { game } }),
+  setFlag: (f, v) => api('settings', { body: { [f]: v ? 1 : 0 } }),
+  leaderboard: (kind, period) => api('leaderboard', { q: { kind, period } }),
+  shop: () => api('shop'),
+  buy: plan_id => api('shop/buy', { body: { plan_id, idem: idem() } }),
+  transfer: points => api('shop/transfer', { body: { points, idem: idem() } }),
+};
+const liveLudo = {
+  queueJoin: cfg => api('ludo/queue', { body: { cfg } }),
+  queueStatus: () => api('ludo/queue'),
+  queueLeave: () => api('ludo/queue/leave', { body: {} }),
+  invite: cfg => api('ludo/invite', { body: { cfg } }),
+  join: code => api('ludo/join', { body: { code } }),
+  start: match => api('ludo/start', { body: { match } }),
+  match: (id, since = 0) => api('ludo/match', { q: id ? { id, since } : { since } }),
+  roll: (match, since) => api('ludo/roll', { body: { match, since } }),
+  move: (match, k, since) => api('ludo/move', { body: { match, k, since } }),
+  leave: match => api('ludo/leave', { body: { match } }),
+};
+/* موجودی که سربرگ ها نشان می دهند */
+let points = null;
+async function refreshMe() {
+  const me = await GC.data.me();
+  points = me.player.points; mount();
+  return me;
+}
+
 /* ---------- آیکون ها (خطی، ۲۴×۲۴، currentColor) ---------- */
 const P = {
   home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -151,9 +264,9 @@ function nav(active) {
 function mount(root = document) {
   root.querySelectorAll('[data-ic]').forEach(el => { el.innerHTML = icon(el.dataset.ic); });
   root.querySelectorAll('[data-coin]').forEach(el => { el.innerHTML = COIN; el.classList.add('coin'); });
-  root.querySelectorAll('[data-bal]').forEach(el => { el.textContent = fa(S.bal); });
+  root.querySelectorAll('[data-bal]').forEach(el => { el.textContent = points == null ? (live ? '…' : fa(S.bal)) : fa(points); });
 }
-document.addEventListener('click', e => { if (e.target.closest('.btn,.chip,.seg button,.choice,.nav a,.icon-btn')) sfx.tap(); }, true);
+document.addEventListener('click', e => { if (e.target.closest('.btn,.chip,.seg button,.choice,.nav a,.icon-btn')) { sfx.tap(); haptic('select'); } }, true);
 
 /* ---------- داده نمونه (تا وقتی API Game Club ساخته شود) ---------- */
 const PEOPLE = [['کیان ر.', 3], ['مهسا ک.', 5], ['امیرعلی م.', 2], ['نگار س.', 9], ['رضا ت.', 12], ['پریا ن.', 13], ['سینا ح.', 6], ['هستی ا.', 17], ['آرش د.', 10], ['یاسمن ف.', 21]];
@@ -198,6 +311,9 @@ function boardArt() {
 const RATE = 100; // هر امتیاز چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
-window.GC = { PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount };
+window.GC = { tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
+  get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
+  get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();

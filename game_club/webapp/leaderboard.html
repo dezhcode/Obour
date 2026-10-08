@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
 <title>Game Club · رده‌بندی</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -26,12 +27,14 @@
 </style>
 </head>
 <body>
+<header class="appbar">
+  <div class="appbar-cap"><span>رده‌بندی</span></div>
+  <div class="appbar-in">
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>رده‌بندی</h1></div>
+    <span class="tag tag-sample" id="sampleTag" hidden>داده‌ها نمونه‌اند</span>
+  </div>
+</header>
 <main class="page">
-  <header class="top">
-    <h1 class="on-ground">رده‌بندی</h1>
-    <span class="tag tag-sample">داده‌ها نمونه‌اند</span>
-  </header>
-
   <section class="card filters" aria-label="فیلتر">
     <div class="seg" role="tablist" id="tab">
       <button role="tab" data-v="top">برترین بازیکن‌ها<small>بر اساس امتیاز برده</small></button>
@@ -43,43 +46,45 @@
       <button class="chip sm" data-v="all">همیشه</button>
     </div>
   </section>
-
-  <section class="card" aria-label="سه نفر اول"><div class="podium" id="podium"></div></section>
-
-  <section class="card" aria-label="بقیه"><ol class="list" id="rest" start="4"></ol></section>
-
+  <section class="card" aria-label="سه نفر اول" id="podiumCard"><div class="podium" id="podium"></div></section>
+  <section class="card" aria-label="بقیه" id="restCard"><ol class="list" id="rest" start="4"></ol></section>
   <section class="card optin" id="optin" hidden>
     <div><b>نمایش من در این فهرست</b><p>فهرست خرج فقط کسانی را نشان می‌دهد که خودشان اجازه داده‌اند.</p></div>
     <button class="switch" role="switch" id="sw" aria-label="نمایش من در فهرست بیشترین خرج"></button>
   </section>
-
   <div class="mine" id="mine"></div>
 </main>
 <script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
 <script>
 (() => {
-  const { S, save, fa, FD, avatarEl, amount, PEOPLE, LB } = GC;
+  const { fa, FD, avatarEl, amount, errText, toast } = GC;
   const $ = id => document.getElementById(id);
-  let tab = 'top', per = 'week';
-  const K = { week: 1, month: 3.8, all: 9.5 };
+  GC.back('index.html');
+  let tab = 'top', per = 'week', myAv = 7, showSpend = false;
   const CROWN = '<svg class="crown" viewBox="0 0 32 22" aria-hidden="true"><path d="M2 6l7.5 6L16 2l6.5 10L30 6l-3 14H5z" fill="#FFC43B" stroke="#B57B00" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-  function render() {
+  async function render() {
     $('tab').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === tab)));
     $('per').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === per)));
-    const rows = LB[tab].map(([p, w, v]) => ({ n: PEOPLE[p][0], av: PEOPLE[p][1], w: Math.round(w * K[per]), v: Math.round(v * K[per] / 50) * 50 }));
-    const sub = r => tab === 'top' ? fa(r.w) + ' برد' : 'خرج در Game Club';
-    $('podium').innerHTML = [1, 0, 2].map(i => { const r = rows[i];
-      return `<div class="pod p${i + 1}">${i === 0 ? CROWN : ''}${avatarEl(r.av, i === 0 ? 'var(--coin)' : 'var(--surface)')}<b>${r.n}</b>${amount(r.v)}<div class="step">${FD(i + 1)}</div></div>`; }).join('');
-    $('rest').innerHTML = rows.slice(3).map((r, i) => `<li class="row"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${FD(i + 4)}</span>${avatarEl(r.av)}</span><span class="name">${r.n}<span class="meta">${sub(r)}</span></span>${amount(r.v)}</li>`).join('');
-    const mineV = tab === 'top' ? S.won : S.spent, hidden = tab === 'spend' && !S.showSpend;
-    $('mine').innerHTML = `<div class="row me" style="background:var(--surface);box-shadow:var(--lift)"><span style="display:flex;align-items:center;gap:10px"><span class="rank">—</span>${avatarEl(7, 'var(--sky)')}</span><span class="name">جایگاه شما<span class="meta">${hidden ? 'در این فهرست نمایش داده نمی‌شوی' : tab === 'top' ? fa(S.wins) + ' برد از ' + fa(S.games) + ' بازی' : 'امتیاز خرج‌شده'}</span></span>${amount(mineV)}</div>`;
     $('optin').hidden = tab !== 'spend';
-    $('sw').setAttribute('aria-checked', String(!!S.showSpend));
+    let lb;
+    try { lb = await GC.data.leaderboard(tab, per); } catch (e) { toast(errText(e)); return; }
+    $('sampleTag').hidden = !lb.sample;
+    const rows = lb.rows, sub = r => tab === 'top' ? fa(r.wins) + ' برد' : 'خرج در Game Club';
+    $('podiumCard').hidden = !rows.length;
+    $('podium').innerHTML = [1, 0, 2].filter(i => rows[i]).map(i => { const r = rows[i];
+      return `<div class="pod p${i + 1}" style="order:${[1, 0, 2].indexOf(i)}">${i === 0 ? CROWN : ''}${avatarEl(r.av, i === 0 ? 'var(--coin)' : 'var(--surface)')}<b>${r.name}</b>${amount(r.value)}<div class="step">${FD(i + 1)}</div></div>`; }).join('');
+    $('rest').innerHTML = rows.length > 3 ? rows.slice(3).map((r, i) => `<li class="row${r.me ? ' me' : ''}"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${FD(i + 4)}</span>${avatarEl(r.av)}</span><span class="name">${r.name}<span class="meta">${sub(r)}</span></span>${amount(r.value)}</li>`).join('')
+      : `<li class="hint">${rows.length ? 'فعلا همین‌ها.' : tab === 'top' ? 'هنوز در این بازه کسی بازی امتیازی نبرده.' : 'هنوز کسی در این بازه خرجی نکرده یا اجازهٔ نمایش نداده.'}</li>`;
+    const m = lb.mine;
+    $('mine').innerHTML = `<div class="row me" style="background:var(--surface);box-shadow:var(--lift)"><span style="display:flex;align-items:center;gap:10px"><span class="rank">—</span>${avatarEl(myAv, 'var(--sky)')}</span><span class="name">جایگاه شما<span class="meta">${!m.visible ? 'در این فهرست نمایش داده نمی‌شوی' : tab === 'top' ? fa(m.wins) + ' برد از ' + fa(m.games) + ' بازی' : 'امتیاز خرج‌شده'}</span></span>${amount(m.value)}</div>`;
+    $('sw').setAttribute('aria-checked', String(!!showSpend));
   }
   $('tab').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { tab = b.dataset.v; render(); } };
   $('per').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { per = b.dataset.v; render(); } };
-  $('sw').onclick = () => { S.showSpend = !S.showSpend; save(); render(); };
-  render(); GC.nav('leaderboard');
+  $('sw').onclick = async () => { showSpend = !showSpend; try { await GC.data.setFlag('show_spend', showSpend); } catch (e) { showSpend = !showSpend; toast(errText(e)); } render(); };
+  (async () => { try { const me = await GC.refreshMe(); myAv = me.player.av; showSpend = !!me.player.show_spend; } catch (e) {} render(); })();
+  GC.nav('leaderboard'); GC.mount();
 })();
 </script>
 </body>
