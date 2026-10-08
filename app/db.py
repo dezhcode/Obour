@@ -421,6 +421,8 @@ CREATE INDEX IF NOT EXISTS idx_svc_expire ON services(expire_at);
 CREATE INDEX IF NOT EXISTS idx_users_ref ON users(referred_by);
 """
 
+from app import terms as _terms  # noqa: E402
+
 DEFAULT_SETTINGS = {
     "card_number": "",
     "card_holder": "",
@@ -429,15 +431,8 @@ DEFAULT_SETTINGS = {
     "base_gb_rate": "3500",
     "custom_builder_enabled": "0",
     "rules_enabled": "1",
-    "rules_text": (
-        "♨️ <b>قوانین استفاده از خدمات عبور</b>\n\n"
-        "۱. به اطلاعیه هایی که در کانال گذاشته می شود توجه کن.\n\n"
-        "۲. اگر قطعی پیش اومد و اطلاعیه ای در کانال نبود، به پشتیبانی پیام بده.\n\n"
-        "۳. لینک سرویست رو با پیامک برای کسی نفرست. اگر لازم شد، از ایمیل "
-        "یا خود تلگرام استفاده کن.\n\n"
-        "۴. سرویس برای استفاده شخصیه. اشتراک گذاری گسترده باعث کندی و "
-        "مسدود شدن سرویست می شه."
-    ),
+    # خلاصه قوانین (متن کامل بخش به بخش در app/terms.py و مینی اپ)
+    "rules_text": _terms.SUMMARY,
 }
 
 
@@ -471,6 +466,11 @@ class Database:
             await self._conn.execute(
                 "INSERT OR IGNORE INTO settings(key, value) VALUES (?, ?)", (key, value)
             )
+        # قوانین پیش فرض قدیمی (ادمین عوضش نکرده) -> خلاصه کامل تازه
+        await self._conn.execute(
+            "UPDATE settings SET value = ? WHERE key = 'rules_text' AND value = ?",
+            (_terms.SUMMARY, _terms.OLD_DEFAULT),
+        )
         await self._seed_categories()
         await self._seed_service_seq()
         await self._conn.commit()

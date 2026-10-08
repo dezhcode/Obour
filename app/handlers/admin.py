@@ -1709,6 +1709,16 @@ async def cb_rules_preview(call: CallbackQuery, db: Database) -> None:
     await call.answer()
 
 
+@router.callback_query(F.data == "adm:rules:default")
+async def cb_rules_default(call: CallbackQuery, db: Database) -> None:
+    """متن ادمین با خلاصه کامل پیش فرض (app/terms.py) عوض می شود؛ متن کامل بخش به بخش در مینی اپ است."""
+    from app import terms
+
+    await db.set_setting("rules_text", terms.SUMMARY)
+    await _rules_home(call.message, db)
+    await call.answer("متن پیش‌فرض کامل جایگزین شد ✅", show_alert=True)
+
+
 @router.callback_query(F.data == "adm:rules:edit")
 async def cb_rules_edit(call: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(Admin.waiting_rules)

@@ -778,3 +778,7 @@ PHRASES.update({
     "شماره مجازی": "Virtual numbers",
     "ویزا کارت": "Visa card",
 })
+
+PHRASES.update({
+    "متن کامل قوانین و مقررات": "Full terms and conditions",
+})

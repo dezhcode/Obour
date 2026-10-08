@@ -2007,6 +2007,8 @@ def rules_kb() -> InlineKeyboardMarkup:
     """تایید قوانین برای کاربر جدید."""
     kb = InlineKeyboardBuilder()
     _btn(kb, "ok", "خوندم و قبول دارم", style=SUCCESS, callback_data="rules:ok")
+    _webapp_btn(kb, "📜 متن کامل قوانین و مقررات", "rules")
+    kb.adjust(1)
     return kb.as_markup()
 
 
@@ -2122,8 +2124,9 @@ def admin_rules_kb(enabled: bool) -> InlineKeyboardMarkup:
     )
     _add(kb, "♻️ تاییدها را پاک کن", style=DANGER, callback_data="adm:rules:reset")
     _add(kb, "👁 پیش نمایش", callback_data="adm:rules:preview")
+    _add(kb, "📜 جایگزینی با متن پیش‌فرض کامل", callback_data="adm:rules:default")
     _add(kb, "🔙 تنظیمات", callback_data="adm:set")
-    kb.adjust(1, 1, 1, 1, 1)
+    kb.adjust(1, 1, 1, 1, 1, 1)
     return kb.as_markup()
 
 

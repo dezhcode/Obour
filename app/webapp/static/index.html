@@ -486,6 +486,16 @@ html.perf-low #store-box{will-change:auto}
 .vp-g b{display:block;font-size:13px;color:var(--ink)}
 .vc-works{display:flex;flex-wrap:wrap;gap:6px}
 .vc-works span{height:30px;display:inline-flex;align-items:center;padding:0 12px;border-radius:99px;background:var(--surface);border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--ink-2)}
+.rl-sum{position:relative;max-height:300px;overflow:hidden}
+.rl-sum.open{max-height:none}
+.rl-more{position:absolute;inset:auto 0 0 0;height:84px;display:flex;align-items:flex-end;justify-content:center;gap:6px;padding-bottom:14px;
+  background:linear-gradient(to bottom,transparent,var(--surface) 62%);font-size:13px;font-weight:800;color:var(--brand)}
+.rl-more svg{width:16px;height:16px}
+.tr-h{display:flex;align-items:center;gap:10px;min-width:0;text-align:start}
+.tr-h .ic{flex-shrink:0;flex-grow:0}
+.faq-i.on .tr-h svg{transform:none}
+.tr-ol{margin:0;padding-inline-start:18px;display:flex;flex-direction:column;gap:8px}
+.tr-ol li{line-height:1.95}
 .pv-banner{display:flex;gap:10px;align-items:flex-start;margin:0 var(--pad) 14px;padding:12px 14px;border-radius:var(--r-md);background:var(--ai-t);color:var(--ai-i);font-size:12.5px;line-height:1.9}
 .pv-banner svg{width:18px;height:18px;flex-shrink:0;margin-top:3px}
 /* کارت بازی: شب نئونی خود بازی، ماشین بیرون زده از لبه */
@@ -4598,7 +4608,14 @@ SubPages.rules = async function(p){
   try {
     const d = await api('rules');
     p.innerHTML = Top('قوانین و حریم خصوصی', d.accepted ? `پذیرفته شده · ${N(jdate(d.accepted_at))}` : 'پیش از خرید، یک بار بخوان و بپذیر')
-      + `<div class="card mx rules">${d.text ? esc(d.text) : 'متن قوانین هنوز تنظیم نشده است.'}</div>`
+      + ((d.sections || []).length && d.text
+          ? `<div class="card mx rules rl-sum" id="rl-sum">${esc(d.text)}<button class="rl-more" onclick="$('rl-sum').classList.add('open');this.remove();App.haptic()">${ic('down', 2)}ادامه خلاصه</button></div>`
+          : `<div class="card mx rules">${d.text ? esc(d.text) : 'متن قوانین هنوز تنظیم نشده است.'}</div>`)
+      + ((d.sections || []).length ? Sec('متن کامل قوانین و مقررات', d.updated ? `به‌روز شده ${N(jdate(d.updated))}` : '')
+          + Group(d.sections.map((x, i) => `<div class="faq-i tr-i"><button class="faq-q" onclick="this.parentElement.classList.toggle('on');App.haptic()">
+              <span class="tr-h"><span class="ic sm">${ic(x.icon)}</span><span>${N(fa(i + 1))}. ${esc(x.title)}</span></span>${ic('down', 2)}</button>
+              <div class="faq-a"><ol class="tr-ol">${x.items.map(t => `<li>${esc(t)}</li>`).join('')}</ol></div></div>`).join(''))
+          + '<div class="gap"></div>' : '')
       + (d.accepted ? '' : `<div class="foot"><button class="btn btn-p btn-block" id="rl-go" onclick="Rules.accept()">${ic('check',2.2)}خواندم و می‌پذیرم</button></div>`);
   } catch (err) { p.innerHTML = Top('قوانین') + emptyBox('خوانده نشد', err.message); }
 };

@@ -7,6 +7,8 @@
 """
 from __future__ import annotations
 
+import html
+
 import asyncio
 import json
 import logging
@@ -970,9 +972,17 @@ async def crypto_cancel(db: "Database", panel: "Panel | None", wuser: WebAppUser
 
 async def rules(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     user = await _require_user(db, wuser)
+    import re
+
+    from app import terms
+
+    raw = await db.get_setting("rules_text", "") or ""
+    # متن ربات HTML تلگرام است؛ مینی اپ متن ساده می خواهد
+    plain = html.unescape(re.sub(r"<[^>]+>", "", raw))
     return {
+        **terms.public(),
         "enabled": await db.get_setting("rules_enabled", "1") == "1",
-        "text": _latin(await db.get_setting("rules_text", "") or ""),
+        "text": _latin(plain),
         "accepted": bool(user.get("rules_accepted_at")),
         "accepted_at": user.get("rules_accepted_at"),
     }

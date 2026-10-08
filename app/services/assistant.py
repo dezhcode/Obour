@@ -286,9 +286,12 @@ async def _chunks(db: "Database", user: dict) -> list[tuple[int, str]]:
         for q, a in d["items"]:
             out.append((4 if d["key"] in ("vpn", "pay") else 7, f"FAQ [{d['title']}{pv}] {q} {a}"))
     out.append((8, preview.knowledge()))
+    from app import terms
+
     rules = _plain(await db.get_setting("rules_text", "") or "")
     for para in [x.strip() for x in re.split(r"\n\s*\n", rules) if x.strip()]:
         out.append((9, "Terms of service: " + para.replace("\n", " ")[:600]))
+    out += [(10, t[:1500]) for t in terms.knowledge()]
     return out
 
 
