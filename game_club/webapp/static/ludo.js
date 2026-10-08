@@ -253,7 +253,7 @@ function chatIn(list, quiet) {
 }
 function renderChat() {
   const log = chatSheet.querySelector('#chatLog');
-  log.innerHTML = chatLog.length ? chatLog.map(m => `<div class="msg${m.me ? ' mine' : ''}">${m.me ? '' : face(m, COL[m.color] ? COL[m.color].hex : 'var(--surface)')}<div class="bub"><b>${m.me ? 'تو' : esc(m.name)}</b><span>${esc(m.text)}</span></div></div>`).join('')
+  log.innerHTML = chatLog.length ? chatLog.map(m => `<div class="msg${m.me ? ' mine' : ''}">${m.me ? '' : face(m, COL[m.color] ? COL[m.color].hex : 'var(--surface)')}<div class="bub">${m.me ? '' : `<b>${esc(m.name)}</b>`}<span>${esc(m.text)}</span></div></div>`).join('')
     : '<p class="hint">هنوز کسی چیزی نگفته. سلام کن!</p>';
   log.scrollTop = log.scrollHeight;
 }
@@ -272,7 +272,7 @@ function openChat() {
   unread = 0; badge();
   const sh = sheet(`${sheetHead('گفتگوی میز')}<div class="chat-log" id="chatLog" aria-live="polite"></div>
     <div class="quick">${QUICK.map(q => `<button class="chip sm" data-q>${q}</button>`).join('')}</div>
-    <form class="chat-form" id="chatForm"><input id="chatTxt" maxlength="140" placeholder="یه چیزی بگو…" autocomplete="off" enterkeyhint="send" aria-label="پیام به میز"><button class="send" aria-label="فرستادن">${icon('send')}</button></form>`,
+    <form class="chat-form" id="chatForm"><button class="send" aria-label="فرستادن">${icon('up', 2.6)}</button><input id="chatTxt" maxlength="140" placeholder="یه چیزی بگو…" autocomplete="off" enterkeyhint="send" aria-label="پیام به میز"></form>`,
   { onClose: () => { chatSheet = null; } });
   chatSheet = sh; renderChat();
   sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => send(b.textContent); });
