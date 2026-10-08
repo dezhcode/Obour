@@ -37,10 +37,9 @@ function applyInsets() {
 const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
 if (live) {
   try { tg.ready(); tg.expand(); } catch (e) {}
-  // رنگ نوار تلگرام با زمینه صفحه یکی است تا درز دیده نشود؛ صفحه بازی منچ تیره است
-  const dark = document.body && document.body.classList.contains('game');
-  try { tg.setHeaderColor(dark ? '#3A3350' : '#F5F6FB'); tg.setBackgroundColor(dark ? '#3A3350' : '#F5F6FB'); } catch (e) {}
-  try { ver('7.10') && tg.setBottomBarColor(dark ? '#3A3350' : '#FFFFFF'); } catch (e) {}
+  // رنگ نوار تلگرام با زمینه صفحه یکی است تا درز دیده نشود؛ همه صفحه ها تیره اند
+  try { tg.setHeaderColor('#3A3350'); tg.setBackgroundColor('#3A3350'); } catch (e) {}
+  try { ver('7.10') && tg.setBottomBarColor('#2B2540'); } catch (e) {}
   // کشیدن عمودی (مثلا هنگام بازی) نباید مینی اپ را ببندد
   try { ver('7.7') && tg.disableVerticalSwipes(); } catch (e) {}
   ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged', 'fullscreenFailed']
@@ -156,6 +155,8 @@ const P = {
   bag: '<path d="M4.5 8h15l-1.3 11.2a2 2 0 0 1-2 1.8H7.8a2 2 0 0 1-2-1.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8M12 17h.01"/>',
   back: '<path d="M9 5l7 7-7 7"/>',
+  fwd: '<path d="M15 5l-7 7 7 7"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   soundOn: '<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>',
@@ -363,8 +364,8 @@ function boardArt() {
   let g = '<rect x="-.5" y="-.5" width="16" height="16" rx="1.4" fill="#2B2540"/>';
   for (const c of L.ORDER) {
     const [x, y] = L.SEAT[c].yard;
-    g += `<rect x="${x + .1}" y="${y + .1}" width="5.8" height="5.8" rx=".8" fill="${COL[c].hex}"/><rect x="${x + .95}" y="${y + .95}" width="4.1" height="4.1" rx=".8" fill="#F4F2FA"/>`;
-    for (const [sx, sy] of L.SOCKETS) g += `<circle cx="${x + sx}" cy="${y + sy}" r=".55" fill="${COL[c].hex}"/>`;
+    g += `<rect x="${x + .55}" y="${y + .55}" width="4.9" height="4.9" rx="1.2" fill="${COL[c].hex}"/>`;
+    for (const [sx, sy] of L.SOCKETS) g += `<circle cx="${x + sx}" cy="${y + sy}" r=".62" fill="rgba(0,0,0,.2)"/>`;
   }
   L.TRACK.forEach(([x, y], i) => { const c = startOf[i]; g += `<rect x="${x + .07}" y="${y + .07}" width=".86" height=".86" rx=".2" fill="${c ? COL[c].hex : '#F4F2FA'}"/>`; });
   for (const c of L.ORDER) for (const [x, y] of L.SEAT[c].lane) g += `<rect x="${x + .07}" y="${y + .07}" width=".86" height=".86" rx=".2" fill="${COL[c].hex}"/>`;
