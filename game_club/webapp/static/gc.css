@@ -212,7 +212,6 @@ h1,h2,h3,p{margin:0}
 .tile.lane,.tile.start{background:var(--c);box-shadow:inset 0 -2px 0 var(--e)}
 .tile.safe svg path{fill:var(--board-path-edge)}
 .yard{position:relative;margin:1px;border-radius:var(--radius-md);background:var(--c);box-shadow:inset 0 -5px 0 var(--e),inset 0 3px 0 rgba(255,255,255,.25)}
-.yard .panel{position:absolute;inset:14%;border-radius:22%;background:var(--board-path);box-shadow:inset 0 -3px 0 var(--board-path-edge)}
 .yard .sock{position:absolute;width:22%;height:22%;border-radius:50%;transform:translate(-50%,-50%);background:var(--c);opacity:.35}
 .yard.turn{animation:yard-pulse 1.1s ease-in-out infinite}
 .yard.off{filter:saturate(.25) brightness(1.1);opacity:.55}
@@ -275,12 +274,17 @@ body.game .prog i{background:rgba(255,255,255,.22)}
 body.game .prog i.done{background:var(--c)}
 body.game .die.ghost{--c:rgba(255,255,255,.14);--e:transparent}
 body.game .die.ghost i{background:var(--on-fill);opacity:.35}
-body.game .board-frame{background:var(--game-deep);padding:3px;border-radius:var(--radius-xl);box-shadow:0 22px 44px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.07)}
-body.game .board{background:var(--game-deep);--gap:1.5px;--pad:2px;border-radius:var(--radius-lg)}
+body.game .board-frame{background:var(--game-deep);padding:0;border-radius:var(--radius-xl);box-shadow:0 22px 44px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.07)}
+body.game .board{background:var(--game-deep);--gap:1px;--pad:3px;border-radius:var(--radius-lg)}
 body.game .tile{border-radius:30%;box-shadow:inset 0 -2px 0 var(--board-path-edge)}
 body.game .tile.lane,body.game .tile.start{box-shadow:inset 0 -2px 0 var(--e)}
-body.game .yard{border-radius:var(--radius-lg);box-shadow:inset 0 -4px 0 var(--e),inset 0 2px 0 rgba(255,255,255,.3)}
-body.game .yard .panel{border-radius:28%;box-shadow:inset 0 -3px 0 var(--board-path-edge)}
+/* خانه بازیکن در صفحه بازی: یک مربع تک رنگ کوچک تر وسط جای خودش؛ جاهای مهره سایه تیره همان رنگ */
+body.game .yard{background:none;box-shadow:none;border-radius:0}
+body.game .yard::before{content:"";position:absolute;inset:9%;border-radius:24%;background:var(--c);box-shadow:inset 0 -4px 0 var(--e),inset 0 2px 0 rgba(255,255,255,.3)}
+body.game .yard .sock{width:21%;height:21%;background:rgba(0,0,0,.16);box-shadow:inset 0 2px 0 rgba(0,0,0,.12);opacity:1}
+body.game .yard.turn{animation:none}
+body.game .yard.turn::before{animation:yard-ring 1.1s ease-in-out infinite}
+@keyframes yard-ring{50%{box-shadow:inset 0 -4px 0 var(--e),inset 0 2px 0 rgba(255,255,255,.3),0 0 0 3px rgba(255,255,255,.85)}}
 body.game .home{border-radius:8px}
 body.game .feed1{color:var(--on-fill)}
 body.game .feed1 span{background:var(--game-glass)}
