@@ -73,7 +73,7 @@
 <script src="static/demo.js"></script>
 <script>
 (() => {
-  const { S, save, fa, FD, store, amount, avatarEl, icon, sheet, sheetHead, toast, sfx, haptic, sleep, errText, mount } = GC;
+  const { S, save, fa, FD, store, amount, face, icon, sheet, sheetHead, toast, sfx, haptic, sleep, errText, mount } = GC;
   const $ = id => document.getElementById(id);
   GC.back('index.html');
   const cfg = Object.assign({ entry: 100, players: 2, pawns: 2 }, store.get('ludoCfg', {}));
@@ -100,7 +100,7 @@
   $('players').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { cfg.players = +b.dataset.v; render(); } };
   $('pawns').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { cfg.pawns = +b.dataset.v; render(); } };
 
-  const seatsHtml = list => `<div class="seatline">${list.map(p => p ? `<div class="seatw">${avatarEl(p.av || 1, GC.COL[p.color] ? GC.COL[p.color].hex : 'var(--sky)')}${p.name}</div>` : '<div class="seatw"><span class="wait">؟</span>…</div>').join('')}</div>`;
+  const seatsHtml = list => `<div class="seatline">${list.map(p => p ? `<div class="seatw">${face(p, GC.COL[p.color] ? GC.COL[p.color].hex : 'var(--sky)')}${p.name}</div>` : '<div class="seatw"><span class="wait">؟</span>…</div>').join('')}</div>`;
   const reqCfg = () => ({ mode: S.mode, entry: S.mode === 'stake' ? cfg.entry : 0, players: cfg.players, pawns: cfg.pawns });
   async function go(mid) {
     token = null; store.set('mid', mid);

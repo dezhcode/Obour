@@ -6,6 +6,7 @@
   *     /gc/api/<name>      API مینی اپ (initData در هدر X-Init-Data)
   POST  /gc/hook            وبهوک ربات Game Club (هدر secret token)
   GET   /gc/setwebhook?key= ثبت وبهوک، دستورها و دکمه منو (ADMIN_KEY عبور)
+  GET   /gc/pic/<key>       عکس پروفایل تلگرام بازیکن (از Bot API، نگه داشته روی دیسک)
 """
 from __future__ import annotations
 
@@ -172,6 +173,25 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
         except Exception:  # noqa: BLE001
             log.exception("API Game Club خطا داد: %s", name)
             return _json(start_response, "500 Internal Server Error", {"error": "server"})
+
+    # ---------- عکس پروفایل ----------
+    if sub.startswith("/pic/") and method == "GET":
+        from . import pics
+
+        key = sub[5:]
+        if not pics.KEY_RE.match(key):
+            return _send(start_response, "404 Not Found", b"not found", "text/plain")
+        state, data = pics.cached(key)
+        if state == "miss":
+            try:
+                data = runtime.run(pics.fetch(key), timeout=20)
+            except Exception:  # noqa: BLE001
+                log.exception("عکس پروفایل گرفته نشد")
+                data = None
+        if not data:
+            return _send(start_response, "404 Not Found", b"no photo", "text/plain",
+                         [("Cache-Control", "public, max-age=3600")])
+        return _send(start_response, "200 OK", data, "image/jpeg", [("Cache-Control", "public, max-age=86400")])
 
     # ---------- صفحه ها و فایل های ثابت ----------
     if method != "GET":

@@ -8,73 +8,75 @@
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
 <style>
-/* خانه: هیرو آسمانی با صفحه منچ، بعد حالت بازی، بازی ها، برترین ها و خدمات عبور */
-.hero{padding:0;overflow:hidden}
-.hero-sky{position:relative;height:178px;background:linear-gradient(180deg,#9ADBFF,var(--sky-tint));overflow:hidden}
-.hero-sky .hill{position:absolute;inset-inline:-10%;bottom:-60px;height:110px;border-radius:50%;background:var(--grass-ground)}
-.hero-sky .hero-board{position:absolute;left:50%;top:20px;width:150px;transform:translateX(-50%) rotate(-5deg);filter:drop-shadow(0 8px 0 rgba(28,42,22,.18))}
-.hero-sky .hero-board svg{display:block;width:100%}
-.me-name{color:var(--on-fill)!important;text-shadow:0 1px 0 var(--grass-ink)}
-.linked{color:var(--on-fill)!important;opacity:.95}
-.hero-sky .king{position:absolute;inset-inline-start:22px;bottom:8px;width:74px;z-index:1;animation:bob 2.6s ease-in-out infinite}
-.hero-sky .king svg{display:block;width:100%;overflow:visible}
-.hero-sky .cloud{position:absolute;height:22px;border-radius:22px;background:var(--surface);opacity:.9}
-.hero-sky .cloud::before{content:"";position:absolute;width:26px;height:26px;border-radius:50%;background:inherit;top:-12px;left:10px}
-@keyframes bob{50%{transform:translateY(-6px)}}
-.hero-body{padding:var(--space-4) var(--space-4) var(--space-5);display:grid;gap:var(--space-3);text-align:center}
-.wordmark{font-size:34px;line-height:40px;font-weight:900;color:var(--sky-deep);letter-spacing:.5px}
-.hero-body p{color:var(--ink-muted)}
-.hero-actions{display:grid;grid-template-columns:1fr auto;gap:var(--space-2)}
-.me-name{display:block;font-weight:900;font-size:16px;line-height:22px}
-.linked{display:inline-flex;align-items:center;gap:5px;font-size:12px;line-height:18px;font-weight:700;color:var(--ink)}
+/* خانه به سبک پلاتو: سلام و سکه، کارت بنفش منچ، کاشی های رنگی بازی ها، حالت بازی، برترین ها و خدمات عبور */
+.hello{display:flex;align-items:center;gap:var(--space-3);min-width:0}
+.hello .avatar{--size:48px;padding:0}
+.me-name{display:block;font-weight:900;font-size:17px;line-height:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.linked{display:inline-flex;align-items:center;gap:5px;font-size:12px;line-height:18px;font-weight:700;color:var(--ink-muted)}
 .linked i{width:8px;height:8px;border-radius:50%;background:var(--success)}
-.game{display:grid;grid-template-columns:104px minmax(0,1fr);gap:var(--space-4);align-items:center}
-.game .art{width:104px;height:104px;border-radius:var(--radius-lg);overflow:hidden}
-.game .art svg{display:block;width:100%;height:100%}
-.game h3{font-size:20px;line-height:28px;font-weight:900}
-.soon-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-2)}
-.soon{display:grid;gap:var(--space-2);align-content:start}
-.soon .art{height:76px;border-radius:var(--radius-md);display:grid;place-items:center;overflow:hidden}
-.soon .art svg{height:100%}
-.soon h3{font-size:16px;line-height:24px;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)}
-.example{font-size:12.5px;line-height:22px;color:var(--ink);background:rgba(255,255,255,.85);border-radius:var(--radius-md);padding:6px 12px;margin-top:var(--space-2)}
+.feature{position:relative;overflow:hidden;border-radius:var(--radius-xl);background:linear-gradient(150deg,#A493FF,var(--violet) 70%);color:var(--on-fill);padding:var(--space-5);display:grid;gap:var(--space-3);box-shadow:0 16px 30px -12px rgba(124,102,242,.6)}
+.feature::before{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.08);inset-inline-start:-70px;top:-90px}
+.feature .art{position:absolute;inset-inline-end:-14px;top:22px;width:150px;transform:perspective(600px) rotateX(30deg) rotateZ(-12deg);filter:drop-shadow(0 16px 16px rgba(40,20,120,.35))}
+.feature .art svg{display:block;width:100%;border-radius:14px}
+.feature .txt{position:relative;display:grid;gap:4px;max-width:58%}
+.feature h1{font-size:36px;line-height:42px;font-weight:900}
+.feature p{font-size:13px;line-height:20px;font-weight:700;opacity:.92}
+.feature .acts{position:relative;display:flex;gap:var(--space-2);margin-top:var(--space-2)}
+.feature .btn{min-height:46px}
+.feature .play{--bg:var(--surface);--fg:var(--violet);--edge:rgba(40,20,120,.5)}
+.feature .glass{--bg:rgba(255,255,255,.2);--fg:var(--on-fill);--edge:transparent;box-shadow:none}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
+.gtile{position:relative;aspect-ratio:1/1.12;border-radius:var(--radius-xl);overflow:hidden;color:var(--on-fill);padding:var(--space-3);display:flex;flex-direction:column;justify-content:flex-end;gap:2px}
+.gtile b{position:relative;font-size:15px;line-height:20px;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.gtile .art{position:absolute;top:12px;inset-inline-end:12px;width:58%}
+.gtile .art svg{display:block;width:100%}
+.gtile .tag{position:absolute;top:10px;inset-inline-start:10px}
+.gtile .notify{position:relative;align-self:flex-start;display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:900;background:rgba(255,255,255,.26);border-radius:var(--radius-pill);padding:2px 8px;color:var(--on-fill)}
+.gtile .notify svg{width:12px;height:12px}
+.t-violet{background:linear-gradient(150deg,#A493FF,var(--violet))}
+.t-orange{background:linear-gradient(150deg,#FFC27A,var(--tile-orange))}
+.t-coral{background:linear-gradient(150deg,#FF9AA2,var(--tile-coral))}
+.example{font-size:12.5px;line-height:22px;color:var(--ink-muted);margin-top:var(--space-2)}
 </style>
 </head>
 <body>
 <header class="appbar">
   <div class="appbar-cap"><span lang="en" dir="ltr">Game Club</span></div>
   <div class="appbar-in">
-    <div class="top-l">
+    <div class="hello">
       <span id="meAv"></span>
       <div style="min-width:0"><span class="me-name" id="meName">سلام!</span><span class="linked" id="linked"><i></i>متصل به حساب عبور</span></div>
     </div>
     <div class="top-l">
-      <a class="icon-btn" href="help.html" aria-label="راهنما"><i data-ic="help"></i></a>
       <a class="pill" href="wallet.html" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span><span class="plus"><i data-ic="plus"></i></span></a>
     </div>
   </div>
 </header>
 <main class="page">
-  <section class="card hero" aria-label="Game Club">
-    <div class="hero-sky">
-      <span class="cloud" style="width:58px;top:30px;right:24px"></span>
-      <span class="cloud" style="width:44px;top:64px;left:30px"></span>
-      <div class="hero-board" id="heroBoard"></div>
-      <span class="hill"></span>
-      <div class="king" id="heroKing"></div>
+  <section class="feature" aria-label="منچ">
+    <div class="art" id="heroBoard"></div>
+    <div class="txt">
+      <span id="resume" hidden><span class="tag tag-glass">یک بازی نیمه‌تمام داری</span></span>
+      <h1>منچ</h1>
+      <p>با دوستت یا یک حریف ناشناس؛ برنده امتیاز می‌برد و با آن از عبور خدمات می‌گیرد.</p>
     </div>
-    <div class="hero-body">
-      <div class="wordmark" lang="en" dir="ltr">Game Club</div>
-      <p>بازی کن، امتیاز بگیر و با امتیازت از عبور اینترنت و اشتراک بگیر.</p>
-      <div class="hero-actions">
-        <a class="btn btn-gold" href="ludo-lobby.html" id="playBtn"><i data-ic="dice"></i>شروع منچ</a>
-        <a class="btn btn-light" href="help.html">راهنما</a>
-      </div>
+    <div class="acts">
+      <a class="btn play" href="ludo-lobby.html" id="playBtn"><i data-ic="dice"></i>بازی کن</a>
+      <a class="btn glass" href="help.html">راهنما</a>
+    </div>
+  </section>
+
+  <section aria-labelledby="hGames">
+    <div class="sec-head"><h2 id="hGames">بازی‌ها</h2></div>
+    <div class="tiles">
+      <a class="gtile t-violet" href="ludo-lobby.html"><span class="art" id="ludoArt"></span><b>منچ</b></a>
+      <div class="gtile t-orange"><span class="art" id="esmArt"></span><span class="tag tag-glass">به‌زودی</span><b>اسم فامیل</b><button class="notify" data-notify="esm"></button></div>
+      <div class="gtile t-coral"><span class="art" id="hokmArt"></span><span class="tag tag-glass">به‌زودی</span><b>حکم</b><button class="notify" data-notify="hokm"></button></div>
     </div>
   </section>
 
   <section aria-labelledby="hMode">
-    <div class="sec-head"><h2 id="hMode" class="on-ground">با امتیاز یا آزاد؟</h2><span class="tag">آزمایشی</span></div>
+    <div class="sec-head"><h2 id="hMode">با امتیاز یا آزاد؟</h2><span class="tag">آزمایشی</span></div>
     <div class="choice-row" id="modes">
       <button class="choice" data-mode="free"><b>بازی آزاد</b><span>بدون امتیاز، برای سرگرمی و تمرین</span></button>
       <button class="choice" data-mode="stake"><b>بازی با امتیاز</b><span>همه ورودی یکسان می‌دهند، برنده همه را می‌برد</span></button>
@@ -82,37 +84,13 @@
     <p class="example" id="modeEx"></p>
   </section>
 
-  <section aria-labelledby="hGames">
-    <div class="sec-head"><h2 id="hGames" class="on-ground">بازی‌ها</h2></div>
-    <a class="card card-link game" href="ludo-lobby.html">
-      <div class="art" id="ludoArt"></div>
-      <div class="stack-sm">
-        <h3>منچ</h3>
-        <p class="muted">۲ یا ۴ نفره · سریع یا کلاسیک · با دوست یا ناشناس</p>
-        <span id="resume" hidden><span class="tag tag-live">یک بازی نیمه‌تمام داری</span></span>
-      </div>
-    </a>
-    <div class="soon-row">
-      <div class="card soon">
-        <div class="art" style="background:var(--coin-tint)" id="esmArt"></div>
-        <h3>اسم فامیل <span class="tag tag-soon">به‌زودی</span></h3>
-        <button class="btn btn-light btn-sm" data-notify="esm"></button>
-      </div>
-      <div class="card soon">
-        <div class="art" style="background:var(--sky-tint)" id="hokmArt"></div>
-        <h3>حکم <span class="tag tag-soon">به‌زودی</span></h3>
-        <button class="btn btn-light btn-sm" data-notify="hokm"></button>
-      </div>
-    </div>
-  </section>
-
   <section aria-labelledby="hTop">
-    <div class="sec-head"><h2 id="hTop" class="on-ground">برترین‌های این هفته</h2><a href="leaderboard.html">همه</a></div>
+    <div class="sec-head"><h2 id="hTop">برترین‌های این هفته</h2><a href="leaderboard.html">همه</a></div>
     <div class="card"><ol class="list" id="top3"><li class="hint">در حال بارگذاری…</li></ol></div>
   </section>
 
   <section aria-labelledby="hShop">
-    <div class="sec-head"><h2 id="hShop" class="on-ground">امتیازت را در عبور خرج کن</h2><a href="shop.html">همه</a></div>
+    <div class="sec-head"><h2 id="hShop">امتیازت را در عبور خرج کن</h2><a href="shop.html">همه</a></div>
     <div class="card stack">
       <div class="obour"><svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#151B42"/><path d="M10 22.5l7-11.5 7 11.5" fill="none" stroke="#3BF0CF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="22.5" r="2" fill="#B36BFF"/></svg>
         <span>سفارش مستقیم روی <b>حساب عبورت</b> ثبت می‌شود؛ خرید جدا لازم نیست.</span></div>
@@ -124,14 +102,13 @@
 <script src="static/demo.js"></script>
 <script>
 (() => {
-  const { S, save, fa, FD, toast, avatarEl, amount, icon, pawn, boardArt, errText } = GC;
+  const { S, save, fa, FD, toast, face, amount, icon, boardArt, errText } = GC;
   const $ = id => document.getElementById(id);
   GC.back(null);
   $('heroBoard').innerHTML = boardArt();
-  $('heroKing').innerHTML = pawn('red', true).replace('viewBox="0 0 40 50"', 'viewBox="0 -4 40 54"');
   $('ludoArt').innerHTML = boardArt();
-  $('esmArt').innerHTML = '<svg viewBox="0 0 150 76" aria-hidden="true"><rect x="26" y="10" width="62" height="56" rx="8" fill="#fff" stroke="#E7C66B" stroke-width="2"/><path d="M36 26h42M36 38h42M36 50h28" stroke="#C9D6E8" stroke-width="4" stroke-linecap="round"/><rect x="96" y="18" width="36" height="36" rx="9" fill="#EF4136"/><text x="114" y="44" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="22" fill="#fff">ب</text></svg>';
-  $('hokmArt').innerHTML = '<svg viewBox="0 0 150 76" aria-hidden="true"><g transform="rotate(-12 58 40)"><rect x="38" y="10" width="40" height="56" rx="7" fill="#fff" stroke="#C9D6E8" stroke-width="2"/><path d="M58 24c6 7 11 10 11 16a5.5 5.5 0 0 1-9 4l2 7h-8l2-7a5.5 5.5 0 0 1-9-4c0-6 5-9 11-16z" fill="#1C2A16"/></g><g transform="rotate(10 98 40)"><rect x="78" y="10" width="40" height="56" rx="7" fill="#fff" stroke="#C9D6E8" stroke-width="2"/><path d="M98 50c-9-7-13-11-13-15.5a6 6 0 0 1 13-2.7 6 6 0 0 1 13 2.7C111 39 107 43 98 50z" fill="#EF4136"/></g></svg>';
+  $('esmArt').innerHTML = '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>';
+  $('hokmArt').innerHTML = '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-14 22 36)"><rect x="6" y="10" width="30" height="42" rx="6" fill="#fff"/><path d="M21 20c4 5 8 7 8 11a4 4 0 0 1-6.5 3l1.5 5h-6l1.5-5a4 4 0 0 1-6.5-3c0-4 4-6 8-11z" fill="#1E2235"/></g><g transform="rotate(12 44 36)"><rect x="28" y="12" width="30" height="42" rx="6" fill="#fff"/><path d="M43 43c-7-5-10-8-10-11.5a4.5 4.5 0 0 1 10-2 4.5 4.5 0 0 1 10 2c0 3.5-3 6.5-10 11.5z" fill="#F25C6E"/></g></svg>';
 
   const modes = $('modes'), ex = $('modeEx');
   let stakeOn = true;
@@ -147,7 +124,7 @@
 
   let notify = [];
   document.querySelectorAll('[data-notify]').forEach(b => {
-    const sync = () => { b.innerHTML = notify.includes(b.dataset.notify) ? icon('check') + 'خبرت می‌کنیم' : icon('bell') + 'خبرم کن'; };
+    const sync = () => { b.innerHTML = notify.includes(b.dataset.notify) ? icon('check', 3) + 'خبرت می‌کنیم' : icon('bell', 2.6) + 'خبرم کن'; };
     b._sync = sync; sync();
     b.onclick = async () => {
       try { const r = await GC.data.notify(b.dataset.notify); notify = r.on ? [...notify, b.dataset.notify] : notify.filter(x => x !== b.dataset.notify); sync(); if (r.on) toast('وقتی آماده شد، ربات خبرت می‌کند'); }
@@ -158,16 +135,16 @@
   (async () => {
     try {
       const me = await GC.refreshMe();
-      $('meAv').innerHTML = avatarEl(me.player.av);
+      $('meAv').innerHTML = face(me.player);
       $('meName').textContent = 'سلام، ' + (me.player.name || 'بازیکن');
       if (!me.obour.linked) $('linked').innerHTML = '<i style="background:var(--danger)"></i>هنوز در ربات عبور نیستی';
       stakeOn = me.settings.stake; renderMode();
       notify = me.notify || []; document.querySelectorAll('[data-notify]').forEach(b => b._sync());
-      if (me.active_match) { $('resume').hidden = false; $('playBtn').href = 'ludo.html'; $('playBtn').lastChild.textContent = 'ادامهٔ بازی'; }
+      if (me.active_match) { $('resume').hidden = false; $('playBtn').href = 'ludo.html'; $('playBtn').lastChild.textContent = 'ادامهٔ بازی'; GC.mount(); }
     } catch (e) { toast(errText(e)); }
     try {
       const lb = await GC.data.leaderboard('top', 'week');
-      $('top3').innerHTML = lb.rows.length ? lb.rows.slice(0, 3).map((r, i) => `<li class="row"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${FD(i + 1)}</span>${avatarEl(r.av)}</span><span class="name">${r.name}<span class="meta">${fa(r.wins)} برد${lb.sample ? ' · نمونه' : ''}</span></span>${amount(r.value)}</li>`).join('')
+      $('top3').innerHTML = lb.rows.length ? lb.rows.slice(0, 3).map((r, i) => `<li class="row"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${FD(i + 1)}</span>${face(r)}</span><span class="name">${r.name}<span class="meta">${fa(r.wins)} برد${lb.sample ? ' · نمونه' : ''}</span></span>${amount(r.value)}</li>`).join('')
         : '<li class="hint">هنوز این هفته کسی بازی امتیازی نبرده. اولین نفر باش!</li>';
     } catch (e) { $('top3').innerHTML = `<li class="hint">${errText(e)}</li>`; }
     try {

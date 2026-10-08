@@ -224,6 +224,49 @@ def test_notify_and_admin_close():
     asyncio.run(run())
 
 
+def test_telegram_profile():
+    """نام کامل و عکس پروفایل از initData تلگرام؛ عکس به صندلی ها، صفحه بازی و رده بندی می رسد."""
+    import json as _json
+    import time as _t
+    from urllib.parse import urlencode
+
+    tmp = tempfile.mkdtemp()
+    os.environ["GAME_CLUB_DB_PATH"] = os.path.join(tmp, "gc.db")
+    from game_club import auth, service
+    from game_club.config import gc as gconf
+    from game_club.db import GCDatabase, pic_url
+
+    gconf.token = "123:test"
+    user = {"id": 77, "first_name": "علی", "last_name": "<b>رضایی</b>", "username": "ali",
+            "photo_url": "https://t.me/i/userpic/320/abc.jpg"}
+    fields = {"auth_date": str(int(_t.time())), "user": _json.dumps(user, ensure_ascii=False)}
+    u = auth.verify(urlencode({**fields, "hash": auth.sign(fields)}))
+    assert u.full_name == "علی <b>رضایی</b>" and u.photo_url.startswith("https://t.me/")
+    bad = dict(fields, user=_json.dumps({**user, "photo_url": "javascript:alert(1)"}))
+    assert auth.verify(urlencode({**bad, "hash": auth.sign(bad)})).photo_url == ""
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        p = await db.player(77, u.full_name, u.username, u.photo_url)
+        assert p["name"] == "علی bرضایی/b" and pic_url(p) == user["photo_url"]   # نویسه های HTML حذف می شوند
+        assert len(p["pic"]) >= 8 and await db.player_by_pic(p["pic"])
+        p2 = await db.player(78, "سارا", None, "")                                # عکس پنهان: آدرس /gc/pic
+        assert pic_url(p2) == "pic/" + p2["pic"]
+        assert pic_url(await db.player(78, "سارا", None, None)) == "pic/" + p2["pic"]   # پیام ربات عکس را پاک نمی کند
+        try:
+            r = await service.invite_create(db, 77, {"mode": "free", "entry": 0, "players": 2, "pawns": 2})
+            lobby = (await service.match_view(db, 77, r["match"]))["lobby"]["seats"]
+            assert [x["pic"] for x in lobby] == [user["photo_url"]]
+            await service.invite_join(db, 78, r["code"])                       # میز دو نفره پر شد و شروع می شود
+            game = (await service.match_view(db, 78, r["match"]))["game"]
+            assert {x["pic"] for x in game["players"].values()} == {user["photo_url"], "pic/" + p2["pic"]}
+        finally:
+            await db.close()
+
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

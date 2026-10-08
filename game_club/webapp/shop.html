@@ -58,7 +58,7 @@
       const short = bal < p.points;
       return `<article class="card item"><span class="ic-box">${icon('globe')}</span><div><h3>${p.title}</h3><p class="muted">${p.gb ? FD(p.gb) + ' گیگ' : ''}${p.days ? ' · ' + FD(p.days) + ' روز' : ''} · تحویل فوری در ربات عبور</p>
         <div class="item-foot"><div>${amount(p.points, 'lg')}<small>${fa(p.price)} تومان</small></div>
-        ${short ? `<span class="need">${fa(p.points - bal)} امتیاز کم داری</span>` : `<button class="btn btn-sm btn-success" data-buy="${p.id}">دریافت</button>`}</div></div></article>`;
+        ${short ? `<span class="need">${fa(p.points - bal)} امتیاز کم داری</span>` : `<button class="btn btn-sm" data-buy="${p.id}">دریافت</button>`}</div></div></article>`;
     }).join('') : '<p class="hint" style="color:var(--ink)">فعلا پلنی برای فروش نیست.</p>';
     mount();
   }
@@ -70,7 +70,7 @@
     const p = shop.plans.find(x => x.id === +b.dataset.buy);
     const sh = sheet(`${sheetHead('تأیید خرید')}
       <div class="receipt"><div><span>پلن</span><b>${p.title}</b></div><div><span>هزینه</span>${amount(p.points)}</div><div><span>موجودی بعد از خرید</span>${amount(GC.points - p.points, 'ink')}</div><div><span>تحویل</span><b>ربات عبور</b></div></div>
-      <button class="btn btn-success btn-block" id="ok">${icon('check')}پرداخت با امتیاز</button>
+      <button class="btn btn-block" id="ok">${icon('check')}پرداخت با امتیاز</button>
       <button class="btn btn-light btn-block" data-close>انصراف</button>`);
     sh.querySelector('#ok').onclick = async ev => {
       ev.target.disabled = true;

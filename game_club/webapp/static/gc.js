@@ -37,9 +37,10 @@ function applyInsets() {
 const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
 if (live) {
   try { tg.ready(); tg.expand(); } catch (e) {}
-  // رنگ ها با نوار بالای صفحه و زمین چمن یکی است تا درز دیده نشود
-  try { tg.setHeaderColor('#245F17'); tg.setBackgroundColor('#5BC236'); } catch (e) {}
-  try { ver('7.10') && tg.setBottomBarColor('#5BC236'); } catch (e) {}
+  // رنگ نوار تلگرام با زمینه صفحه یکی است تا درز دیده نشود؛ صفحه بازی منچ تیره است
+  const dark = document.body && document.body.classList.contains('game');
+  try { tg.setHeaderColor(dark ? '#3A3350' : '#F5F6FB'); tg.setBackgroundColor(dark ? '#3A3350' : '#F5F6FB'); } catch (e) {}
+  try { ver('7.10') && tg.setBottomBarColor(dark ? '#3A3350' : '#FFFFFF'); } catch (e) {}
   // کشیدن عمودی (مثلا هنگام بازی) نباید مینی اپ را ببندد
   try { ver('7.7') && tg.disableVerticalSwipes(); } catch (e) {}
   ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged', 'fullscreenFailed']
@@ -192,10 +193,26 @@ function avatar(seed) {
 }
 const avatarEl = (seed, ring, extra = '') => `<span class="avatar ${extra}" style="--ring:${ring || 'var(--surface)'}"><span>${avatar(seed)}</span></span>`;
 
+/* ---------- عکس پروفایل تلگرام ----------
+   p: {name, av, pic, bot}. pic آدرس عکس است (photo_url تلگرام یا pic/<key> که سرور
+   از ربات می گیرد). اگر عکس نبود یا باز نشد، حرف اول نام روی رنگ ثابت آن بازیکن. */
+const FACE_BG = ['#8E7CF8', '#4DA8FF', '#FF7A85', '#3DD08E', '#FFA552', '#3FC7D9', '#F07CC4'];
+const escAttr = v => String(v || '').replace(/[&"'<>]/g, ch => ({ '&': '&amp;', '"': '&quot;', "'": '&#39;', '<': '&lt;', '>': '&gt;' }[ch]));
+function initial(name) { const m = String(name || '').trim().match(/[\p{L}\p{N}]/u); return m ? m[0] : '؟'; }
+function face(p, ring, extra = '') {
+  p = p || {};
+  const seed = Math.abs(+p.av || 1);
+  const base = p.bot ? avatar(seed) : `<span class="ini" style="background:${FACE_BG[seed % FACE_BG.length]}">${escAttr(initial(p.name))}</span>`;
+  const img = p.pic && !p.bot ? `<img src="${escAttr(p.pic)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-face>` : '';
+  return `<span class="avatar ${extra}" style="--ring:${ring || 'var(--surface)'}"><span>${base}${img}</span></span>`;
+}
+// عکسی که باز نشد (پنهان، حذف شده، بدون اینترنت تلگرام) کنار می رود تا حرف اول دیده شود
+document.addEventListener('error', e => { const t = e.target; if (t && t.tagName === 'IMG' && t.hasAttribute('data-face')) t.remove(); }, true);
+
 /* ---------- مهره منچ ---------- */
 const COL = {
-  blue: { hex: '#2F7BF6', deep: '#1A4FB0', fa: 'آبی' }, red: { hex: '#EF4136', deep: '#A8241B', fa: 'قرمز' },
-  green: { hex: '#2FB24C', deep: '#1B7A33', fa: 'سبز' }, yellow: { hex: '#FFC226', deep: '#B57B00', fa: 'زرد' },
+  blue: { hex: '#4C8DFF', deep: '#2B62D6', fa: 'آبی' }, red: { hex: '#FF5A6A', deep: '#C93447', fa: 'قرمز' },
+  green: { hex: '#2FC584', deep: '#1E8A5E', fa: 'سبز' }, yellow: { hex: '#FFC531', deep: '#C98A00', fa: 'زرد' },
 };
 function pawn(c, crown) {
   const { hex, deep } = COL[c];
@@ -275,7 +292,7 @@ function setSound(on) { S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['wallet', 'wallet.html', 'کیف امتیاز', 'wallet'], ['shop', 'shop.html', 'خدمات عبور', 'bag']];
 function nav(active) {
   const n = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
-  n.innerHTML = `<div class="nav-in">${NAV.map(([id, href, label, ic]) => `<a href="${href}"${id === active ? ' aria-current="page"' : ''}>${icon(ic)}${label}</a>`).join('')}</div>`;
+  n.innerHTML = `<div class="nav-in">${NAV.map(([id, href, label, ic]) => `<a href="${href}" aria-label="${label}"${id === active ? ' aria-current="page"' : ''}>${icon(ic)}<span class="sr">${label}</span></a>`).join('')}</div>`;
   document.body.appendChild(n);
 }
 function mount(root = document) {
@@ -290,9 +307,9 @@ function coach(me = 'yellow') {
   return new Promise(res => {
     const body = s => s.replace(/^<svg[^>]*>|<\/svg>$/g, '');
     const SL = [
-      ['رنگ تو پایین چپ است', 'هر بازیکن صفحه را از سمت خودش می‌بیند. مهره‌هایت را دور صفحه ببر و به مرکز برسان.', `<svg viewBox="0 0 100 100"><rect x="6" y="6" width="88" height="88" rx="18" fill="${COL[me].hex}"/><rect x="22" y="22" width="56" height="56" rx="12" fill="#FFFDF6"/><g transform="translate(30 20)">${body(pawn(me))}</g></svg>`],
+      ['رنگ تو پایین چپ است', 'هر بازیکن صفحه را از سمت خودش می‌بیند. مهره‌هایت را دور صفحه ببر و به مرکز برسان.', `<svg viewBox="0 0 100 100"><rect x="6" y="6" width="88" height="88" rx="18" fill="${COL[me].hex}"/><rect x="22" y="22" width="56" height="56" rx="12" fill="#F4F2FA"/><g transform="translate(30 20)">${body(pawn(me))}</g></svg>`],
       ['روی تاس بزن', 'تاس پایین صفحه است. با ۶ یک مهره وارد بازی می‌شود و یک نوبت دیگر داری.', `<svg viewBox="0 0 100 100"><rect x="18" y="18" width="64" height="64" rx="16" fill="${COL[me].hex}"/><g fill="#fff"><circle cx="35" cy="35" r="6"/><circle cx="65" cy="35" r="6"/><circle cx="35" cy="50" r="6"/><circle cx="65" cy="50" r="6"/><circle cx="35" cy="65" r="6"/><circle cx="65" cy="65" r="6"/></g></svg>`],
-      ['مهره را انتخاب کن', 'مهره‌ای که بالا و پایین می‌پرد قابل حرکت است. دایرهٔ خط‌چین نشان می‌دهد کجا می‌رود.', `<svg viewBox="0 0 100 100"><rect x="8" y="58" width="24" height="24" rx="6" fill="#FFFDF6" stroke="#D6E2CB" stroke-width="2"/><rect x="38" y="58" width="24" height="24" rx="6" fill="#FFFDF6" stroke="#D6E2CB" stroke-width="2"/><rect x="68" y="58" width="24" height="24" rx="6" fill="#FFFDF6" stroke="#D6E2CB" stroke-width="2"/><circle cx="80" cy="70" r="9" fill="rgba(255,255,255,.8)" stroke="${COL[me].hex}" stroke-width="3" stroke-dasharray="4 3"/><g transform="translate(6 18) scale(.7)">${body(pawn(me))}</g><path d="M34 40c14-12 34-12 44 14" fill="none" stroke="#1C2A16" stroke-width="2.5" stroke-dasharray="4 4"/></svg>`],
+      ['مهره را انتخاب کن', 'مهره‌ای که بالا و پایین می‌پرد قابل حرکت است. دایرهٔ خط‌چین نشان می‌دهد کجا می‌رود.', `<svg viewBox="0 0 100 100"><rect x="8" y="58" width="24" height="24" rx="6" fill="#F4F2FA" stroke="#CFC9E3" stroke-width="2"/><rect x="38" y="58" width="24" height="24" rx="6" fill="#F4F2FA" stroke="#CFC9E3" stroke-width="2"/><rect x="68" y="58" width="24" height="24" rx="6" fill="#F4F2FA" stroke="#CFC9E3" stroke-width="2"/><circle cx="80" cy="70" r="9" fill="rgba(255,255,255,.8)" stroke="${COL[me].hex}" stroke-width="3" stroke-dasharray="4 3"/><g transform="translate(6 18) scale(.7)">${body(pawn(me))}</g><path d="M34 40c14-12 34-12 44 14" fill="none" stroke="#1E2235" stroke-width="2.5" stroke-dasharray="4 4"/></svg>`],
     ];
     let i = 0;
     const draw = () => {
@@ -337,15 +354,15 @@ const LUDO = {
 function boardArt() {
   const L = LUDO, startOf = {};
   for (const c of L.ORDER) startOf[L.SEAT[c].start] = c;
-  let g = '<rect x="-.5" y="-.5" width="16" height="16" rx="1.2" fill="#3F9E27"/><rect x="0" y="0" width="15" height="15" rx=".8" fill="#46BDEB"/>';
+  let g = '<rect x="-.5" y="-.5" width="16" height="16" rx="1.4" fill="#2B2540"/>';
   for (const c of L.ORDER) {
     const [x, y] = L.SEAT[c].yard;
-    g += `<rect x="${x + .1}" y="${y + .1}" width="5.8" height="5.8" rx=".8" fill="${COL[c].hex}"/><rect x="${x + .95}" y="${y + .95}" width="4.1" height="4.1" rx=".8" fill="#FFFDF6"/>`;
+    g += `<rect x="${x + .1}" y="${y + .1}" width="5.8" height="5.8" rx=".8" fill="${COL[c].hex}"/><rect x="${x + .95}" y="${y + .95}" width="4.1" height="4.1" rx=".8" fill="#F4F2FA"/>`;
     for (const [sx, sy] of L.SOCKETS) g += `<circle cx="${x + sx}" cy="${y + sy}" r=".55" fill="${COL[c].hex}"/>`;
   }
-  L.TRACK.forEach(([x, y], i) => { const c = startOf[i]; g += `<rect x="${x + .07}" y="${y + .07}" width=".86" height=".86" rx=".2" fill="${c ? COL[c].hex : '#FFFDF6'}"/>`; });
+  L.TRACK.forEach(([x, y], i) => { const c = startOf[i]; g += `<rect x="${x + .07}" y="${y + .07}" width=".86" height=".86" rx=".2" fill="${c ? COL[c].hex : '#F4F2FA'}"/>`; });
   for (const c of L.ORDER) for (const [x, y] of L.SEAT[c].lane) g += `<rect x="${x + .07}" y="${y + .07}" width=".86" height=".86" rx=".2" fill="${COL[c].hex}"/>`;
-  g += '<path d="M6 6L7.5 7.5L6 9z" fill="#2F7BF6"/><path d="M6 6L9 6L7.5 7.5z" fill="#EF4136"/><path d="M9 6L9 9L7.5 7.5z" fill="#2FB24C"/><path d="M6 9L9 9L7.5 7.5z" fill="#FFC226"/>';
+  g += '<path d="M6 6L7.5 7.5L6 9z" fill="#4C8DFF"/><path d="M6 6L9 6L7.5 7.5z" fill="#FF5A6A"/><path d="M9 6L9 9L7.5 7.5z" fill="#2FC584"/><path d="M6 9L9 9L7.5 7.5z" fill="#FFC531"/>';
   return `<svg viewBox="-.5 -.5 16 16" aria-hidden="true">${g}</svg>`;
 }
 const RATE = 100; // هر امتیاز چند تومان (نمونه)
@@ -354,6 +371,6 @@ document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 window.GC = { coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount };
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();

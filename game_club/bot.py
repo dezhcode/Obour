@@ -88,7 +88,9 @@ def open_kb(page: str = "", text: str = "ورود به Game Club") -> InlineKeyb
 
 def _name(message: Message) -> str:
     u = message.from_user
-    return (u.first_name or u.username or "بازیکن") if u else "بازیکن"
+    if not u:
+        return "بازیکن"
+    return " ".join(x for x in (u.first_name, u.last_name) if x).strip() or u.username or "بازیکن"
 
 
 @router.message(CommandStart())
