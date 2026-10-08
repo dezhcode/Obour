@@ -2388,6 +2388,26 @@ class Database:
         )
         return dict(row) if row else {}
 
+    async def ai_buyers(self) -> list[tuple[str, int]]:
+        """(محصول، کاربر) هر فروش موفق فروشگاه؛ برای شمردن فروش و خریدار هر محصول و هر دسته."""
+        rows = await self.fetchall(
+            "SELECT service_id, user_id FROM ai_orders WHERE status IN ('delivered', 'done')"
+        )
+        return [(str(r["service_id"]), int(r["user_id"])) for r in rows]
+
+    async def plan_sales(self) -> tuple[dict[int, dict], dict]:
+        """فروش هر پلن کانفیگ (هر سرویس ساخته شده یک فروش) و تعداد خریداران متفاوت؛
+        به علاوه جمع کل بخش اینترنت آزاد."""
+        rows = await self.fetchall(
+            """SELECT plan_id, COUNT(*) AS sold, COUNT(DISTINCT user_id) AS buyers
+               FROM services WHERE plan_id IS NOT NULL GROUP BY plan_id"""
+        )
+        total = await self.fetchone(
+            "SELECT COUNT(*) AS sold, COUNT(DISTINCT user_id) AS buyers FROM services WHERE plan_id IS NOT NULL"
+        )
+        per = {int(r["plan_id"]): {"sold": int(r["sold"]), "buyers": int(r["buyers"])} for r in rows}
+        return per, {"sold": int(total["sold"] or 0), "buyers": int(total["buyers"] or 0)} if total else {"sold": 0, "buyers": 0}
+
     async def ai_sales(self) -> dict[str, int]:
         """تعداد فروش موفق هر محصول فروشگاه؛ برای انتخاب ویترین هر دسته."""
         rows = await self.fetchall(
