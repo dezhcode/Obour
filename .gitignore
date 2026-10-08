@@ -11,3 +11,6 @@ __pycache__/
 venv/
 canboso_dump.json
 tgju_dump.json
+
+# گراف محلی graphify (هر جلسه با graphify update . ساخته می شود)
+graphify-out/
