@@ -1014,6 +1014,23 @@ async def faq(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     return {"domains": faq_mod.public(user.get("lang") or "fa")}
 
 
+async def soon(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """خدمات پیش نمایش (شماره مجازی و ویزا کارت): کشورها، کارت ها، قیمت تقریبی و «خبرم کن»."""
+    user = await _require_user(db, wuser)
+    from app import preview
+
+    return await preview.public(db, user["id"])
+
+
+async def soon_join(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, kind: str, on: bool = True) -> dict:
+    user = await _require_user(db, wuser)
+    from app import preview
+
+    if not await preview.join(db, user["id"], kind, on):
+        raise ApiError("خدمت نامعتبر", 400, "bad_request")
+    return {"ok": True, "waitlist": (await preview.waitlist(db, user["id"]))[kind]}
+
+
 async def ticket_send(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, body: str, bot=None,  # noqa: ANN001
                       thread_id: int | None = None, subject: str = "", category: str = "", priority: str = "",
                       related: str = "", image: bytes | None = None) -> dict:
@@ -1215,6 +1232,7 @@ ROUTES = {
     "rules": rules,
     "guide": guide,
     "faq": faq,
+    "soon": soon,
     "ticket/related": ticket_related,
 }
 

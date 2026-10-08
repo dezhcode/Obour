@@ -267,7 +267,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
     # فهرست سفید نوشتن. هر مسیر دیگری خواندنی می ماند، تا اگر روزی
     # اندپوینتی اضافه شد بی سروصدا قابل نوشتن نشود.
     WRITE_PATHS = ("/api/purchase", "/api/custom/buy", "/api/service/renew", "/api/topup/start", "/api/topup/receipt",
-                   "/api/rules/accept", "/api/ticket/send", "/api/ticket/close", "/api/ticket/rate", "/api/lang",
+                   "/api/rules/accept", "/api/ticket/send", "/api/ticket/close", "/api/ticket/rate", "/api/lang", "/api/soon/join",
                    "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
                    "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
@@ -532,7 +532,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             return _json(start_response, data)
 
         # ---------- نوشتن های دیگر: شارژ، قوانین، تیکت ----------
-        if name in ("topup/start", "topup/receipt", "rules/accept", "ticket/send", "ticket/close", "ticket/rate", "lang"):
+        if name in ("topup/start", "topup/receipt", "rules/accept", "ticket/send", "ticket/close", "ticket/rate", "lang", "soon/join"):
             if method != "POST":
                 return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
             if not _write_rate_ok(wuser.id):
@@ -564,6 +564,10 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                 body = _body(environ, limit=256)
                 return _json(start_response, runtime.run(
                     webapi.set_lang(db, panel, wuser, lang=str(body.get("lang") or "")), timeout=20))
+            if name == "soon/join":
+                body = _body(environ, limit=256)
+                return _json(start_response, runtime.run(webapi.soon_join(
+                    db, panel, wuser, kind=str(body.get("kind") or ""), on=body.get("on") is not False), timeout=20))
             if name == "rules/accept":
                 return _json(start_response, runtime.run(webapi.rules_accept(db, panel, wuser), timeout=20))
             if name == "ticket/send":

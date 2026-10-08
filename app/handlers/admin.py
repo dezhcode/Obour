@@ -3283,3 +3283,50 @@ async def cb_market(call: CallbackQuery, db: Database) -> None:
     await edit_or_send(call.message, await _market_text(db, q), keyboards.admin_market_kb(await market.auto_on(db)))
     if call.data != "adm:mkt:r":
         await call.answer()
+
+
+# ---------- خدمات پیش نمایش: فهرست «خبرم کن» ----------
+@router.message(Command("soon"))
+async def cmd_soon(message: Message, db: Database) -> None:
+    """/soon — تعداد منتظران شماره مجازی و ویزا کارت، و اعلام فعال شدن به آن ها."""
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    from app import preview
+
+    counts = await preview.counts(db)
+    kb = InlineKeyboardBuilder()
+    for kind, title in preview.TITLES.items():
+        if counts.get(kind):
+            kb.button(text=f"📣 اعلام فعال شدن {title} ({counts[kind]})", callback_data=f"adm:soon:ask:{kind}")
+    kb.adjust(1)
+    await message.answer(
+        "⏳ <b>فهرست انتظار خدمات پیش‌نمایش</b>\n\n"
+        + "\n".join(f"• {title}: {counts.get(kind, 0)} نفر" for kind, title in preview.TITLES.items())
+        + "\n\nبعد از باز کردن فروش، با دکمه زیر به همه منتظران در ربات خبر بده.",
+        reply_markup=kb.as_markup() if counts and any(counts.values()) else None,
+    )
+
+
+@router.callback_query(F.data.startswith("adm:soon:"))
+async def cb_soon(call: CallbackQuery, db: Database) -> None:
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    from app import preview
+
+    _, _, action, kind = (call.data.split(":") + [""])[:4]
+    if kind not in preview.TITLES:
+        return await call.answer()
+    if action == "ask":
+        kb = InlineKeyboardBuilder()
+        kb.button(text="✅ بله، خبر بده", callback_data=f"adm:soon:go:{kind}")
+        kb.button(text="انصراف", callback_data="adm:soon:no:" + kind)
+        await call.message.edit_text(
+            f"به همه منتظران «{preview.TITLES[kind]}» پیام «فعال شد» فرستاده و فهرست خالی شود؟",
+            reply_markup=kb.as_markup())
+        return await call.answer()
+    if action == "no":
+        await call.message.edit_text("لغو شد.")
+        return await call.answer()
+    sent = await preview.announce(call.bot, db, kind)
+    await call.message.edit_text(f"به {sent} نفر خبر داده شد ✅")
+    await call.answer()

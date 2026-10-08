@@ -82,6 +82,7 @@ TEXTS = {
     "SERVICES_HUB": "╭── 👤 My services\n│   Everything from Obour in one place\n\n🌐 Configs: {vpn} services ({vpn_active} active)\n🤖 AI subscriptions: {ai} orders\n📱 Virtual numbers: coming soon\n💳 Visa card: coming soon\n\n╰─ 🟢 Active · 🟠 Running low · 🔴 Ended",
     "SUPPORT_WEBAPP": "╭── 🆘 Obour support\n│   In the mini app\n\nTickets with subject and screenshots, status tracking, the smart assistant and the help center are all in the mini app. Support replies still arrive right here in the bot.\n╰─ Tap the button below.",
     "HELP_HUB": "╭── 📖 Help center\n│   Frequent questions by section\n\nPick the section your question is about: configs, AI, virtual numbers, Visa card or wallet.\n╰─ Step-by-step connection guides are at the bottom of this page.",
+    "SOON_LIVE": "╭── 🔔 Good news\n│   {title} is live\n\nYou asked us to tell you when {title} opened in Obour; you can use it in the mini app now.\n╰─ Tap the button below.",
     "SERVICES_LIST": "╭── 👤 Your services\n│   {count} services\n\nTap any of them to see its details.\n╰─ 🟢 Active · 🟠 Running low · 🔴 Ended",
     "SERVICE_DETAIL": "╭── 🌐 {name}\n│   {title}\n\n{status}\n\n📊 Usage\n├ {bar} {percent}%\n╰ {used} of {total}\n\n⏰ Validity\n╰─ {time_left} left\n\n🔗 Connection link\nYour service's personal link is ready.",
     "SERVICE_RELINK_ASK": "╭── 🔄 Revoke link\n│   {name}\n\nThe current link stops working for good and we make a fresh one.\nUse this when your link has leaked or been blocked.\n\n╰─ You'll need to add it to your app again.",
@@ -770,4 +771,10 @@ PHRASES.update({
     "سوال‌های این بخش": "Questions in this section",
     "سوال بعدی ▶️": "Next question ▶️",
     "◀️ سوال قبلی": "◀️ Previous question",
+})
+
+PHRASES.update({
+    "باز کردن در مینی اپ": "Open in the mini app",
+    "شماره مجازی": "Virtual numbers",
+    "ویزا کارت": "Visa card",
 })

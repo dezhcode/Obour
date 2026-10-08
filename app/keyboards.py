@@ -1786,6 +1786,14 @@ def winback_kb() -> InlineKeyboardMarkup:
 
 
 # ---------- پشتیبانی و تیکت ----------
+def soon_live_kb(kind: str) -> InlineKeyboardMarkup | None:
+    """پیام «فعال شد»: مستقیم صفحه همان خدمت در مینی اپ."""
+    kb = InlineKeyboardBuilder()
+    if not _webapp_btn(kb, "🚀 باز کردن در مینی اپ", "numbers" if kind == "number" else "visa", style=PRIMARY):
+        return None
+    return kb.as_markup()
+
+
 def support_webapp_kb(unread: int = 0) -> InlineKeyboardMarkup | None:
     """پشتیبانی در مینی اپ: مرکز پشتیبانی، تیکت تازه و تیکت ها. None یعنی مینی اپ خاموش است."""
     kb = InlineKeyboardBuilder()

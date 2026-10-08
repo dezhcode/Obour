@@ -331,6 +331,14 @@ CREATE TABLE IF NOT EXISTS ai_waitlist (
   created_at TEXT NOT NULL
 );
 
+-- «خبرم کن» خدمات پیش نمایش (شماره مجازی، ویزا کارت)
+CREATE TABLE IF NOT EXISTS soon_waitlist (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  kind TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, kind)
+);
+
 -- کانال هایی که ربات در آن ها ادمین است.
 -- Bot API هیچ متدی برای «کانال های من» ندارد، پس خودمان ثبت می کنیم:
 -- هر بار وضعیت عضویت ربات در یک چت عوض شود، تلگرام رویداد
@@ -2477,6 +2485,7 @@ class Database:
             ("pending_amounts", "user_id"),
             ("ai_orders", "user_id"),
             ("ai_waitlist", "user_id"),
+            ("soon_waitlist", "user_id"),
             ("transactions", "user_id"),
             ("discount_uses", "user_id"),
             ("tickets", "user_id"),

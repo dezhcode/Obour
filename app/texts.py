@@ -806,6 +806,13 @@ SUPPORT_WEBAPP = (
     "╯─ دکمه زیر را بزن."
 )
 
+SOON_LIVE = (
+    "╮── 🔔 خبر خوب\n"
+    "│   {title} فعال شد\n\n"
+    "خواسته بودی وقتی {title} در عبور باز شد خبرت کنیم؛ حالا می‌توانی از مینی اپ استفاده کنی.\n"
+    "╯─ دکمه زیر را بزن."
+)
+
 SUPPORT_REPLY_CODE = "\n\n🎫 <code>{code}</code>"
 
 ADMIN_REPLY_HINT = (
