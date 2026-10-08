@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Game Club</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<style>
+/* خانه: هیرو آسمانی با صفحه منچ، بعد حالت بازی، بازی ها، برترین ها و خدمات عبور */
+.hero{padding:0;overflow:hidden}
+.hero-sky{position:relative;height:178px;background:linear-gradient(180deg,#9ADBFF,var(--sky-tint));overflow:hidden}
+.hero-sky .hill{position:absolute;inset-inline:-10%;bottom:-60px;height:110px;border-radius:50%;background:var(--grass-ground)}
+.hero-sky .hero-board{position:absolute;left:50%;top:20px;width:150px;transform:translateX(-50%) rotate(-5deg);filter:drop-shadow(0 8px 0 rgba(28,42,22,.18))}
+.hero-sky .hero-board svg{display:block;width:100%}
+.hero-sky .king{position:absolute;inset-inline-start:22px;bottom:8px;width:74px;z-index:1;animation:bob 2.6s ease-in-out infinite}
+.hero-sky .king svg{display:block;width:100%;overflow:visible}
+.hero-sky .cloud{position:absolute;height:22px;border-radius:22px;background:var(--surface);opacity:.9}
+.hero-sky .cloud::before{content:"";position:absolute;width:26px;height:26px;border-radius:50%;background:inherit;top:-12px;left:10px}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.hero-body{padding:var(--space-4) var(--space-4) var(--space-5);display:grid;gap:var(--space-3);text-align:center}
+.wordmark{font-size:34px;line-height:40px;font-weight:900;color:var(--sky-deep);letter-spacing:.5px}
+.hero-body p{color:var(--ink-muted)}
+.hero-actions{display:grid;grid-template-columns:1fr auto;gap:var(--space-2)}
+.me-name{display:block;font-weight:900;font-size:16px;line-height:22px}
+.linked{display:inline-flex;align-items:center;gap:5px;font-size:12px;line-height:18px;font-weight:700;color:var(--ink)}
+.linked i{width:8px;height:8px;border-radius:50%;background:var(--success)}
+.game{display:grid;grid-template-columns:104px minmax(0,1fr);gap:var(--space-4);align-items:center}
+.game .art{width:104px;height:104px;border-radius:var(--radius-lg);overflow:hidden}
+.game .art svg{display:block;width:100%;height:100%}
+.game h3{font-size:20px;line-height:28px;font-weight:900}
+.soon-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-2)}
+.soon{display:grid;gap:var(--space-2);align-content:start}
+.soon .art{height:76px;border-radius:var(--radius-md);display:grid;place-items:center;overflow:hidden}
+.soon .art svg{height:100%}
+.soon h3{font-size:16px;line-height:24px;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)}
+.example{font-size:12.5px;line-height:22px;color:var(--ink);background:rgba(255,255,255,.85);border-radius:var(--radius-md);padding:6px 12px;margin-top:var(--space-2)}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div class="top-l">
+      <span id="meAv"></span>
+      <div><span class="me-name">سلام، بازیکن</span><span class="linked"><i></i>متصل به حساب عبور</span></div>
+    </div>
+    <div class="top-l">
+      <a class="icon-btn" href="help.html" aria-label="راهنما"><i data-ic="help"></i></a>
+      <a class="pill" href="wallet.html" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>۰</span><span class="plus"><i data-ic="plus"></i></span></a>
+    </div>
+  </header>
+
+  <section class="card hero" aria-label="Game Club">
+    <div class="hero-sky">
+      <span class="cloud" style="width:58px;top:30px;right:24px"></span>
+      <span class="cloud" style="width:44px;top:64px;left:30px"></span>
+      <div class="hero-board" id="heroBoard"></div>
+      <span class="hill"></span>
+      <div class="king" id="heroKing"></div>
+    </div>
+    <div class="hero-body">
+      <div class="wordmark" lang="en" dir="ltr">Game Club</div>
+      <p>بازی کن، امتیاز بگیر و با امتیازت از عبور اینترنت و اشتراک بگیر.</p>
+      <div class="hero-actions">
+        <a class="btn btn-gold" href="ludo-lobby.html"><i data-ic="dice"></i>شروع منچ</a>
+        <a class="btn btn-light" href="help.html">راهنما</a>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="hMode">
+    <div class="sec-head"><h2 id="hMode" class="on-ground">با امتیاز یا آزاد؟</h2><span class="tag">آزمایشی</span></div>
+    <div class="choice-row" id="modes">
+      <button class="choice" data-mode="free"><b>بازی آزاد</b><span>بدون امتیاز، برای سرگرمی و تمرین</span></button>
+      <button class="choice" data-mode="stake"><b>بازی با امتیاز</b><span>همه ورودی یکسان می‌دهند، برنده همه را می‌برد</span></button>
+    </div>
+    <p class="example" id="modeEx"></p>
+  </section>
+
+  <section aria-labelledby="hGames">
+    <div class="sec-head"><h2 id="hGames" class="on-ground">بازی‌ها</h2></div>
+    <a class="card card-link game" href="ludo-lobby.html">
+      <div class="art" id="ludoArt"></div>
+      <div class="stack-sm">
+        <h3>منچ</h3>
+        <p class="muted">۲ یا ۴ نفره · سریع یا کلاسیک · با دوست یا ناشناس</p>
+        <span><span class="tag tag-live"><span id="online">۳۴۲</span> نفر آنلاین</span> <span class="tag tag-sample">نمونه</span></span>
+      </div>
+    </a>
+    <div class="soon-row">
+      <div class="card soon">
+        <div class="art" style="background:var(--coin-tint)" id="esmArt"></div>
+        <h3>اسم فامیل <span class="tag tag-soon">به‌زودی</span></h3>
+        <button class="btn btn-light btn-sm" data-notify="esm"></button>
+      </div>
+      <div class="card soon">
+        <div class="art" style="background:var(--sky-tint)" id="hokmArt"></div>
+        <h3>حکم <span class="tag tag-soon">به‌زودی</span></h3>
+        <button class="btn btn-light btn-sm" data-notify="hokm"></button>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="hTop">
+    <div class="sec-head"><h2 id="hTop" class="on-ground">برترین‌های این هفته</h2><a href="leaderboard.html">همه</a></div>
+    <div class="card"><ol class="list" id="top3"></ol></div>
+  </section>
+
+  <section aria-labelledby="hShop">
+    <div class="sec-head"><h2 id="hShop" class="on-ground">امتیازت را در عبور خرج کن</h2><a href="shop.html">همه</a></div>
+    <div class="card stack">
+      <div class="obour"><svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#151B42"/><path d="M10 22.5l7-11.5 7 11.5" fill="none" stroke="#3BF0CF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="22.5" r="2" fill="#B36BFF"/></svg>
+        <span>سفارش مستقیم روی <b>حساب عبورت</b> ثبت می‌شود؛ خرید جدا لازم نیست.</span></div>
+      <ul class="list" id="shopTeaser"></ul>
+    </div>
+  </section>
+</main>
+<script src="static/gc.js"></script>
+<script>
+(() => {
+  const { S, save, fa, toast, avatarEl, amount, icon, pawn, boardArt, PEOPLE, LB, SHOP } = GC;
+  document.getElementById('meAv').innerHTML = avatarEl(7);
+  document.getElementById('heroBoard').innerHTML = boardArt();
+  document.getElementById('heroKing').innerHTML = pawn('red', true).replace('viewBox="0 0 40 50"', 'viewBox="0 -4 40 54"');
+  document.getElementById('ludoArt').innerHTML = boardArt();
+  document.getElementById('esmArt').innerHTML = '<svg viewBox="0 0 150 76" aria-hidden="true"><rect x="26" y="10" width="62" height="56" rx="8" fill="#fff" stroke="#E7C66B" stroke-width="2"/><path d="M36 26h42M36 38h42M36 50h28" stroke="#C9D6E8" stroke-width="4" stroke-linecap="round"/><rect x="96" y="18" width="36" height="36" rx="9" fill="#EF4136"/><text x="114" y="44" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="22" fill="#fff">ب</text></svg>';
+  document.getElementById('hokmArt').innerHTML = '<svg viewBox="0 0 150 76" aria-hidden="true"><g transform="rotate(-12 58 40)"><rect x="38" y="10" width="40" height="56" rx="7" fill="#fff" stroke="#C9D6E8" stroke-width="2"/><path d="M58 24c6 7 11 10 11 16a5.5 5.5 0 0 1-9 4l2 7h-8l2-7a5.5 5.5 0 0 1-9-4c0-6 5-9 11-16z" fill="#1C2A16"/></g><g transform="rotate(10 98 40)"><rect x="78" y="10" width="40" height="56" rx="7" fill="#fff" stroke="#C9D6E8" stroke-width="2"/><path d="M98 50c-9-7-13-11-13-15.5a6 6 0 0 1 13-2.7 6 6 0 0 1 13 2.7C111 39 107 43 98 50z" fill="#EF4136"/></g></svg>';
+
+  const modes = document.getElementById('modes'), ex = document.getElementById('modeEx');
+  function renderMode() {
+    modes.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === S.mode)));
+    ex.innerHTML = S.mode === 'stake'
+      ? `مثال: ۴ نفر هر کدام ${amount(100)} ورودی می‌دهند و برنده ${amount(400)} می‌برد.`
+      : 'در بازی آزاد امتیازی کم یا اضافه نمی‌شود. برای تمرین قبل از بازی امتیازی خوب است.';
+  }
+  modes.addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; S.mode = b.dataset.mode; save(); renderMode(); });
+  renderMode();
+
+  document.querySelectorAll('[data-notify]').forEach(b => {
+    const sync = () => { b.innerHTML = S.notify[b.dataset.notify] ? icon('check') + 'خبرت می‌کنیم' : icon('bell') + 'خبرم کن'; };
+    b.onclick = () => { S.notify[b.dataset.notify] = !S.notify[b.dataset.notify]; save(); sync(); if (S.notify[b.dataset.notify]) toast('وقتی آماده شد، ربات خبرت می‌کند'); };
+    sync();
+  });
+
+  document.getElementById('top3').innerHTML = LB.top.slice(0, 3).map(([p, w, v], i) => `<li class="row"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${GC.FD(i + 1)}</span>${avatarEl(PEOPLE[p][1])}</span><span class="name">${PEOPLE[p][0]}<span class="meta">${fa(w)} برد</span></span>${amount(v)}</li>`).join('');
+  document.getElementById('shopTeaser').innerHTML = SHOP.slice(0, 2).map(s => `<li><a class="row" href="shop.html"><span class="ic-box" style="background:var(--obour-night);color:var(--obour-aqua)">${icon(s.ic)}</span><span class="name">${s.t}<span class="meta">${s.s}</span></span>${amount(s.p)}</a></li>`).join('');
+  setInterval(() => { document.getElementById('online').textContent = fa(320 + GC.rand(60)); }, 4000);
+  GC.nav('home'); GC.mount();
+})();
+</script>
+</body>
+</html>
