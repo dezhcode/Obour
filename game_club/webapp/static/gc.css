@@ -1,10 +1,22 @@
 /* Game Club — components. همه رنگ ها و اندازه ها از tokens.css (ساخته شده از design/tokens.json) */
 
+/* ---------- تم تیره ----------
+   همه صفحه ها مثل میز منچ تیره اند: زمینه بنفش تیره، کارت های کمی روشن تر، متن روشن.
+   فقط رنگ ها اینجا عوض می شوند؛ اجزا همان توکن ها را می خوانند. */
+:root{color-scheme:dark;
+  --ground:#3A3350;--ground-deep:#2B2540;--surface:#4A4264;--surface-sunk:#3E3757;--line:rgba(255,255,255,.13);
+  --ink:#F5F2FF;--ink-muted:#B4ADCF;--night:#1D1930;
+  --sky:#3D7BFF;--sky-deep:#9BBBFF;--sky-tint:rgba(61,123,255,.18);--violet-tint:rgba(124,102,242,.2);
+  --coin-tint:rgba(255,201,60,.14);--coin-text:#FFD25E;
+  --success:#3DD68C;--success-tint:rgba(61,214,140,.16);--danger:#FF6B7A;
+  --depth-sm:0 4px 14px rgba(0,0,0,.18);--depth-md:0 10px 28px rgba(0,0,0,.22);--lift:0 18px 44px rgba(0,0,0,.45);
+  --scrim:rgba(14,11,26,.62)}
+
 /* ---------- پایه ---------- */
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%;direction:rtl}
-body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--font-peyda);font-size:14.5px;line-height:24px;font-weight:400;background:var(--ground)}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--font-peyda);font-size:14.5px;line-height:24px;font-weight:400;background:linear-gradient(180deg,var(--ground) 0,#332C48 60%,#2D2742) fixed var(--ground)}
 /* رخ فقط برای عنوان ها؛ بقیه متن ها با پیدا (فونت ربات عبور) */
 h1,h2,h3,.wordmark,.sheet-head h2,.t-display,.t-title,.t-heading,.t-subhead,.appbar-cap span,.me-name,.gtile b,.choice b{font-family:var(--font-rokh)}
 button,input{font:inherit;color:inherit}
@@ -46,7 +58,7 @@ h1,h2,h3,p{margin:0}
 .btn-success{--bg:var(--success);--edge:var(--success)}
 .btn-violet{--bg:var(--violet);--edge:var(--violet)}
 .btn-danger{--bg:var(--danger);--edge:var(--danger)}
-.btn-light{--bg:var(--surface);--fg:var(--ink);--edge:rgba(43,47,94,.35)}
+.btn-light{--bg:var(--surface);--fg:var(--ink);--edge:rgba(0,0,0,.35)}
 .btn-soft{--bg:var(--sky-tint);--fg:var(--sky-deep);--edge:transparent}
 .btn-sm{min-height:38px;padding-inline:var(--space-4);font-size:14px;box-shadow:var(--press-sm)}
 .btn-block{width:100%}
@@ -85,9 +97,9 @@ h1,h2,h3,p{margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .chip{display:inline-flex;align-items:center;gap:var(--space-1);min-height:40px;padding-inline:var(--space-3);border-radius:var(--radius-md);background:var(--surface-sunk);font-weight:900;border:2px solid transparent}
 .chip{border-radius:var(--radius-pill)}
-.chip[aria-pressed="true"]{background:var(--night);border-color:var(--night);color:var(--on-fill)}
+.chip[aria-pressed="true"]{background:var(--sky);border-color:var(--sky);color:var(--on-fill)}
 .chip.sm{min-height:30px;font-size:12.5px;font-weight:800;border-radius:var(--radius-pill);padding-inline:var(--space-3)}
-.chip.sm[aria-pressed="true"]{background:var(--ink);color:var(--on-fill);border-color:var(--ink)}
+.chip.sm[aria-pressed="true"]{background:var(--sky);color:var(--on-fill);border-color:var(--sky)}
 
 /* کارت انتخابی (حالت بازی) */
 .choice{display:grid;gap:2px;text-align:start;background:var(--surface-sunk);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4);border:2px solid transparent}
@@ -124,8 +136,8 @@ h1,h2,h3,p{margin:0}
 /* ---------- ناوبری پایین ---------- */
 /* مثل پلاتو: نوار سفید با گوشه گرد بالا، فقط آیکون؛ بخش فعلی داخل دایره آبی */
 .nav{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);display:flex;justify-content:center;pointer-events:none}
-.nav-in{pointer-events:auto;display:flex;justify-content:space-around;align-items:center;width:100%;max-width:480px;background:var(--surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px var(--space-5) calc(10px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));box-shadow:0 -8px 24px rgba(43,47,94,.07)}
-.nav a{position:relative;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#9AA0B4;transition:background .15s,color .15s}
+.nav-in{pointer-events:auto;display:flex;justify-content:space-around;align-items:center;width:100%;max-width:480px;background:rgba(43,37,64,.88);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:10px var(--space-5) calc(10px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));box-shadow:0 -10px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.07)}
+.nav a{position:relative;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:var(--ink-muted);transition:background .15s,color .15s}
 .nav a svg{width:24px;height:24px}
 .nav a:hover{color:var(--ink)}
 .nav a[aria-current="page"]{background:var(--sky);color:var(--on-fill);box-shadow:0 8px 16px rgba(43,110,242,.35)}
@@ -141,15 +153,15 @@ h1,h2,h3,p{margin:0}
 .dlg{display:grid;justify-items:center;text-align:center;gap:var(--space-2)}
 .dlg-ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;margin-bottom:var(--space-1);background:var(--sky-tint);color:var(--sky-deep)}
 .dlg-ic svg{width:30px;height:30px}
-.dlg-ic.warn{background:#FDECEE;color:var(--danger)}
+.dlg-ic.warn{background:rgba(255,107,122,.16);color:var(--danger)}
 .dlg h2{font-size:21px;line-height:30px;font-weight:900}
 .dlg p{font-size:14px;line-height:24px;color:var(--ink-muted);max-width:290px}
-.dlg-note{display:flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;background:var(--coin-tint);color:var(--coin-ink);border-radius:var(--radius-md);padding:10px 12px;font-size:13.5px;line-height:20px;font-weight:700;margin-top:var(--space-1)}
-.dlg-note .amount{color:var(--coin-ink)}
+.dlg-note{display:flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;background:var(--coin-tint);color:var(--coin-text);border-radius:var(--radius-md);padding:10px 12px;font-size:13.5px;line-height:20px;font-weight:700;margin-top:var(--space-1)}
+.dlg-note .amount{color:var(--coin-text)}
 .dlg-acts{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);width:100%;margin-top:var(--space-3)}
 .dlg-acts.one{grid-template-columns:1fr}
 .dlg-acts .btn{min-height:48px;font-size:15px;padding-inline:var(--space-3)}
-.btn-danger-soft{--bg:#FDECEE;--fg:var(--danger);--edge:transparent;box-shadow:none}
+.btn-danger-soft{--bg:rgba(255,107,122,.16);--fg:var(--danger);--edge:transparent;box-shadow:none}
 .sheet>*{min-width:0}
 .grab{width:44px;height:5px;border-radius:5px;background:var(--line);justify-self:center}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
@@ -166,7 +178,7 @@ h1,h2,h3,p{margin:0}
 @keyframes toast-in{from{transform:translate(-50%,14px);opacity:0}}
 
 /* ---------- نوار جایزه ---------- */
-.pot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);background:var(--coin-tint);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4);font-weight:800;color:var(--coin-ink)}
+.pot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);background:var(--coin-tint);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4);font-weight:800;color:var(--coin-text)}
 .pot .amount{font-size:18px}
 
 /* ---------- کارت Obour ---------- */
@@ -249,7 +261,7 @@ h1,h2,h3,p{margin:0}
 .dock-txt b{font-size:16px;line-height:24px;font-weight:900}
 .dock-txt span{font-size:12.5px;line-height:20px;color:var(--ink-muted)}
 .feed{display:grid;gap:4px;min-height:52px}
-.feed div{display:flex;align-items:center;gap:var(--space-2);font-size:12.5px;line-height:20px;font-weight:700;background:rgba(255,255,255,.82);border-radius:var(--radius-md);padding:2px 10px;animation:toast-in .2s ease-out}
+.feed div{display:flex;align-items:center;gap:var(--space-2);font-size:12.5px;line-height:20px;font-weight:700;background:var(--game-glass);border-radius:var(--radius-md);padding:2px 10px;animation:toast-in .2s ease-out}
 .feed i{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
 
 /* ===================================================================
@@ -343,7 +355,7 @@ body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-f
    بعد ردیف خود صفحه. در نوار تلگرام فقط یک عنوان کوچک وسط می نشیند،
    هیچ دکمه ای زیر دکمه های تلگرام نمی رود.
    =================================================================== */
-.appbar{position:sticky;top:0;z-index:var(--z-nav);color:var(--ink);background:var(--ground);padding-top:var(--sa-t,0px)}
+.appbar{position:sticky;top:0;z-index:var(--z-nav);color:var(--ink);background:rgba(58,51,80,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding-top:var(--sa-t,0px)}
 .appbar-cap{height:var(--csa-t,0px);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .appbar-cap span{font-size:13px;line-height:18px;font-weight:900;letter-spacing:.3px;opacity:.85;max-width:50%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .appbar-in{max-width:480px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
@@ -365,7 +377,7 @@ body.game .page{gap:var(--space-2);padding-block:var(--space-2) var(--space-2);p
 .board .who,.board .home-mark svg{transform:rotate(var(--counter,0deg))}
 .feed1{min-height:26px;display:flex;align-items:center;justify-content:center;gap:var(--space-2);font-size:12.5px;line-height:20px;font-weight:800;color:var(--ink);text-align:center}
 .feed1 i{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
-.feed1 span{background:rgba(255,255,255,.85);border-radius:var(--radius-pill);padding:2px 12px;animation:toast-in .2s ease-out}
+.feed1 span{background:var(--game-glass);border-radius:var(--radius-pill);padding:2px 12px;animation:toast-in .2s ease-out}
 .wait-line{display:flex;align-items:center;justify-content:center;gap:var(--space-2);font-weight:800}
 .spinner{width:18px;height:18px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--sky);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
