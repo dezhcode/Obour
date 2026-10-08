@@ -1357,21 +1357,80 @@ def custom_confirm_kb(gi: int, di: int) -> InlineKeyboardMarkup:
 
 
 # ---------- راهنما ----------
+def _webapp_btn(kb: InlineKeyboardBuilder, text: str, route: str, style: str | None = None) -> bool:
+    """دکمه باز کردن یک صفحه مشخص مینی اپ (#route). اگر مینی اپ خاموش باشد ساخته نمی شود."""
+    from app import webapp as _webapp
+
+    url = _webapp.url()
+    if not url:
+        return False
+    from aiogram.types import WebAppInfo
+
+    _add(kb, text, style=style, web_app=WebAppInfo(url=f"{url}#{route}"))
+    return True
+
+
+def help_hub_kb() -> InlineKeyboardMarkup:
+    """مرکز راهنما: هر حوزه یک صفحه سوالات پرتکرار."""
+    from app import faq
+
+    kb = InlineKeyboardBuilder()
+    rows: list[int] = []
+    for d in faq.DOMAINS:
+        _add(kb, f"{d['emoji']} {d['title']}" + (" · پیش‌نمایش" if d.get("preview") else ""), callback_data=f"hq:{d['key']}")
+        rows.append(1)
+    _add(kb, "📚 آموزش اتصال کانفیگ", callback_data="gd")
+    rows.append(1)
+    if _webapp_btn(kb, "📖 مرکز راهنما در مینی اپ", "help", style=PRIMARY):
+        rows.append(1)
+    _add(kb, "🔙 منوی اصلی", callback_data="menu")
+    rows.append(1)
+    kb.adjust(*rows)
+    return kb.as_markup()
+
+
+def help_domain_kb(key: str, count: int) -> InlineKeyboardMarkup:
+    """صفحه یک حوزه: یک دکمه برای هر سوال (شماره سوال)."""
+    kb = InlineKeyboardBuilder()
+    for i in range(count):
+        kb.button(text=f"{i + 1}", callback_data=f"hq:{key}:{i}")
+    rows = [5] * (count // 5) + ([count % 5] if count % 5 else [])
+    _add(kb, "🆘 پشتیبانی", callback_data="sup")
+    _add(kb, "🔙 مرکز راهنما", callback_data="guide")
+    kb.adjust(*rows, 2)
+    return kb.as_markup()
+
+
+def help_answer_kb(key: str, i: int, count: int) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    nav = 0
+    if i > 0:
+        _add(kb, "◀️ سوال قبلی", callback_data=f"hq:{key}:{i - 1}")
+        nav += 1
+    if i < count - 1:
+        _add(kb, "سوال بعدی ▶️", callback_data=f"hq:{key}:{i + 1}")
+        nav += 1
+    _add(kb, "🔙 سوال‌های این بخش", callback_data=f"hq:{key}")
+    _add(kb, "🆘 پشتیبانی", callback_data="sup")
+    kb.adjust(*([nav] if nav else []), 2)
+    return kb.as_markup()
+
+
 def guide_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     _add(kb, "📱 اندروید", callback_data="gd:android")
     _add(kb, "🍎 آیفون", callback_data="gd:ios")
     _add(kb, "💻 ویندوز", callback_data="gd:windows")
     _add(kb, "🖥 مک", callback_data="gd:mac")
-    _add(kb, "❓ سوالات پرتکرار", callback_data="faq")
-    _add(kb, "🔙 منوی اصلی", callback_data="menu")
+    _add(kb, "❓ سوالات کانفیگ", callback_data="hq:vpn")
+    _add(kb, "🔙 مرکز راهنما", callback_data="guide")
     kb.adjust(2, 2, 1, 1)
     return kb.as_markup()
 
 
 def guide_back_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
-    _add(kb, "🔙 راهنما", callback_data="guide")
+    _add(kb, "🔙 آموزش اتصال", callback_data="gd")
     _add(kb, "🏠 منوی اصلی", callback_data="menu")
     kb.adjust(2)
     return kb.as_markup()
@@ -1877,7 +1936,7 @@ def admin_ai_kb(has_key: bool) -> InlineKeyboardMarkup:
     """تنظیمات خدمات هوش مصنوعی."""
     kb = InlineKeyboardBuilder()
     _add(kb, "🔑 کلید API", style=PRIMARY, callback_data="adm:ai:key")
-    _add(kb, "💱 نرخ دلار", callback_data="adm:ai:f:ai_usd_rate")
+    _add(kb, "💱 نرخ تتر", callback_data="adm:ai:f:ai_usdt_rate")
     _add(kb, "➕ سود ثابت (تومان)", style=PRIMARY, callback_data="adm:ai:f:ai_markup_toman")
     _add(kb, "📈 درصد سود", callback_data="adm:ai:f:ai_profit_percent")
     _add(kb, "💳 درصد کارمزد", callback_data="adm:ai:f:ai_fee_percent")

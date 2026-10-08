@@ -434,7 +434,44 @@ async def _fail(message: Message, body: str, markup=None) -> None:  # noqa: ANN0
 # ==================== راهنما و سوالات پرتکرار ====================
 @router.callback_query(F.data == "guide")
 async def cb_guide(call: CallbackQuery) -> None:
+    """مرکز راهنما: سوالات پرتکرار هر حوزه + آموزش اتصال."""
+    await edit_or_send(call.message, texts.HELP_HUB, keyboards.help_hub_kb())
+    await call.answer()
+
+
+@router.callback_query(F.data == "gd")
+async def cb_guide_devices(call: CallbackQuery) -> None:
     await edit_or_send(call.message, texts.GUIDE_INTRO, keyboards.guide_kb())
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("hq:"))
+async def cb_help(call: CallbackQuery) -> None:
+    """hq:<حوزه> فهرست سوال ها؛ hq:<حوزه>:<شماره> جواب."""
+    from html import escape
+
+    from app import faq
+
+    parts = call.data.split(":")
+    d = faq.domain(parts[1]) if len(parts) > 1 else None
+    if not d:
+        return await call.answer()
+    items = d["items"]
+    head = f"╮── {d['emoji']} {escape(_t(d['title']))}\n│   {escape(_t(d['sub']))}"
+    if d.get("preview"):
+        head += "\n│   🔜 " + _t("پیش‌نمایش؛ فروش به‌زودی باز می‌شود")
+    if len(parts) == 2:
+        lines = "\n".join(f"{i + 1}. {escape(_t(q))}" for i, (q, _a) in enumerate(items))
+        body = f"{head}\n\n{lines}\n\n╯─ " + _t("شماره سوالت را بزن.")
+        await edit_or_send(call.message, body, keyboards.help_domain_kb(d["key"], len(items)))
+        return await call.answer()
+    try:
+        i = int(parts[2])
+        q, a = items[i]
+    except (ValueError, IndexError):
+        return await call.answer()
+    body = f"{head}\n\n<b>{i + 1}. {escape(_t(q))}</b>\n\n{escape(_t(a))}\n\n╯─ " + _t("جوابت را نگرفتی؟ از پشتیبانی بپرس.")
+    await edit_or_send(call.message, body, keyboards.help_answer_kb(d["key"], i, len(items)))
     await call.answer()
 
 
@@ -450,7 +487,8 @@ async def cb_guide_device(call: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "faq")
 async def cb_faq(call: CallbackQuery) -> None:
-    await edit_or_send(call.message, texts.FAQ_INTRO, keyboards.faq_kb())
+    """دکمه قدیمی «سوالات پرتکرار»: حالا مرکز راهنما."""
+    await edit_or_send(call.message, texts.HELP_HUB, keyboards.help_hub_kb())
     await call.answer()
 
 

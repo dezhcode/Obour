@@ -524,7 +524,7 @@ class Database:
         assert self._conn
         migrations = [
             # canboso: کلید یکتای خرید و خود درخواست، تا سفارش مبهم با همان
-            # کلید دوباره پرسیده شود؛ ارز هزینه (VND یا USD)
+            # کلید دوباره پرسیده شود؛ ارز هزینه (VND یا USDT)
             ("ai_orders", "idem_key", "ALTER TABLE ai_orders ADD COLUMN idem_key TEXT"),
             ("ai_orders", "request", "ALTER TABLE ai_orders ADD COLUMN request TEXT"),
             ("ai_orders", "cost_currency", "ALTER TABLE ai_orders ADD COLUMN cost_currency TEXT"),

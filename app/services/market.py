@@ -289,7 +289,7 @@ async def fresh(db: "Database", max_age: int = 60) -> dict:
 
 
 async def auto_rate(db: "Database", asset: str) -> int:
-    """نرخ خودکار یک ارز (usd | usdt | ton) به تومان؛ ۰ یعنی خودکار خاموش یا نامعلوم."""
+    """نرخ خودکار یک ارز (usdt | ton) به تومان؛ ۰ یعنی خودکار خاموش یا نامعلوم."""
     if not await auto_on(db):
         return 0
     try:
@@ -300,11 +300,13 @@ async def auto_rate(db: "Database", asset: str) -> int:
 
 
 def public(q: dict) -> dict:
-    """خروجی عمومی برای /rates و پنل ادمین."""
+    """خروجی عمومی برای /rates و پنل ادمین. فقط تتر و تون؛ دلار در عبور نمایش داده
+    نمی شود (قیمت دلار tgju فقط داخل همین ماژول برای سنجیدن درستی نرخ تتر است)."""
+    keys = {k: v for k, v in (q.get("keys") or {}).items() if k != "usd"}
     return {
         "source": "tgju.org",
-        "usd": int(q.get("usd") or 0), "usdt": int(q.get("usdt") or 0), "ton": int(q.get("ton") or 0),
+        "usdt": int(q.get("usdt") or 0), "ton": int(q.get("ton") or 0),
         "ton_usdt": float(q.get("ton_usdt") or 0), "ton_base": q.get("ton_base") or "",
         "unit": "toman", "updated_at": int(q.get("at") or 0), "tgju_time": q.get("time") or "",
-        "ok": bool(q.get("ok")), "stale": bool(q.get("stale")), "keys": q.get("keys") or {},
+        "ok": bool(q.get("ok")), "stale": bool(q.get("stale")), "keys": keys,
     }

@@ -1,11 +1,11 @@
-"""تبدیل قیمت دلاری سرویس دهنده به قیمت تومانی برای کاربر.
+"""تبدیل قیمت تتری (USDT) سرویس دهنده به قیمت تومانی برای کاربر.
 
 چرا یک ماژول جدا؟ چون این حساس ترین بخش فروش خدمات واسط است: یک
 اشتباه در فرمول یعنی فروش زیر قیمت تمام شده، و چون تحویل برگشت ناپذیر
 است، ضرر قابل جبران نیست.
 
 فرمول:
-    پایه      = قیمت دلاری × نرخ دلار
+    پایه      = قیمت تتری × نرخ تتر
     + سود     = پایه × درصد سود
     + کارمزد  = پایه × درصد کارمزد انتقال
     + حاشیه   = پایه × درصد حاشیه نوسان ارز
@@ -20,13 +20,12 @@
 محصول در API بالاتر است. صفر = برگشت به حالت درصدی.
 
 چرا حاشیه نوسان جدا از سود؟
-اگر همه را در یک عدد جمع کنی، وقتی دلار می پرد نمی فهمی سود واقعی ات
+اگر همه را در یک عدد جمع کنی، وقتی تتر می پرد نمی فهمی سود واقعی ات
 چقدر آب رفته. جدا بودنشان یعنی می شود گفت «۲۰٪ سود می خواهم و ۸٪ هم
 سپر نوسان» و بعد دقیقا دید کدام یک دارد مصرف می شود.
 
-نرخ دلار عمدا دستی است. سرویس های نرخ ارز برای ایران غیرقابل اتکا
-هستند و یک عدد غلط یعنی فروش محصول به قیمت مفت؛ به جایش اگر نرخ کهنه
-شود، داشبورد هشدار می دهد.
+نرخ تتر یا دستی است یا (اگر صفر باشد) از قیمت بازار tgju.org. یک عدد
+غلط یعنی فروش محصول به قیمت مفت؛ پس قیمت بازار با بازه منطقی سنجیده می شود.
 """
 from __future__ import annotations
 
@@ -37,7 +36,7 @@ from app.db import Database
 
 # کلید تنظیمات -> (عنوان فارسی، پیش فرض، توضیح)
 FIELDS: dict[str, tuple[str, str, str]] = {
-    "ai_usd_rate": ("نرخ دلار (تومان)", "0", "قیمت هر دلار به تومان؛ ۰ یعنی خودکار از tgju.org"),
+    "ai_usdt_rate": ("نرخ تتر (تومان)", "0", "قیمت هر تتر (USDT) به تومان؛ ۰ یعنی خودکار از tgju.org"),
     "ai_vnd_rate": ("نرخ دونگ ویتنام (تومان)", "0",
                     "تومان به ازای هر ۱ دونگ، اگر کیف پول canboso دونگی است (مثلا 4.1)"),
     "ai_markup_toman": ("سود ثابت (تومان)", "0",
@@ -54,7 +53,7 @@ FIELDS: dict[str, tuple[str, str, str]] = {
 class Breakdown:
     """ریز محاسبه یک قیمت - برای پیش نمایش در پنل ادمین."""
 
-    usd: float
+    cost: float      # قیمت سرویس دهنده به ارز خودش (USDT یا VND)
     rate: float
     base: int
     profit: int
@@ -62,7 +61,7 @@ class Breakdown:
     buffer: int
     final: int
     fixed: int = 0   # سود ثابت تومانی؛ صفر یعنی حالت درصدی
-    currency: str = "USD"
+    currency: str = "USDT"
 
     @property
     def net_profit(self) -> int:
@@ -78,35 +77,52 @@ async def load(db: Database) -> dict[str, float]:
             out[key] = float(str(raw).replace(",", "") or default)
         except (TypeError, ValueError):
             out[key] = float(default)
-    # نرخ دلار صفر یعنی خودکار از tgju.org (اگر روشن باشد)
-    if not out.get("ai_usd_rate"):
+    # نرخ قبلی «دلار» (ai_usd_rate) اگر نرخ تتر هنوز ثبت نشده، همان عدد می ماند
+    if not out.get("ai_usdt_rate"):
+        try:
+            out["ai_usdt_rate"] = float(str(await db.get_setting("ai_usd_rate", "0")).replace(",", "") or 0)
+        except (TypeError, ValueError):
+            out["ai_usdt_rate"] = 0.0
+    # بعد نرخ دستی تتر شارژ کریپتو (یک نرخ تتر برای کل عبور)
+    if not out.get("ai_usdt_rate"):
+        try:
+            out["ai_usdt_rate"] = float(str(await db.get_setting("crypto_usdt_rate", "0")).replace(",", "") or 0)
+        except (TypeError, ValueError):
+            out["ai_usdt_rate"] = 0.0
+    # نرخ تتر صفر یعنی خودکار از قیمت بازار tgju.org (اگر روشن باشد)
+    if not out.get("ai_usdt_rate"):
         from app.services import market
 
-        out["ai_usd_rate"] = float(await market.auto_rate(db, "usd"))
+        out["ai_usdt_rate"] = float(await market.auto_rate(db, "usdt"))
     return out
 
 
-def rate_for(cfg: dict[str, float], currency: str = "USD") -> float:
+def rate_for(cfg: dict[str, float], currency: str = "USDT") -> float:
     """تومان به ازای یک واحد از ارز کیف پول سرویس دهنده."""
-    currency = (currency or "USD").upper()
+    from app.canboso import norm_currency
+
+    currency = norm_currency(currency or "USDT")
     if currency == "VND":
         return float(cfg.get("ai_vnd_rate") or 0)
-    if currency in ("USD", "USDT"):
-        return float(cfg.get("ai_usd_rate") or 0)
+    if currency == "USDT":
+        return float(cfg.get("ai_usdt_rate") or 0)
     return 0.0
 
 
-def compute(usd: float, cfg: dict[str, float], currency: str = "USD") -> Breakdown:
-    """قیمت نهایی تومانی از قیمت سرویس دهنده (دلار یا دونگ)."""
+def compute(cost: float, cfg: dict[str, float], currency: str = "USDT") -> Breakdown:
+    """قیمت نهایی تومانی از قیمت سرویس دهنده (تتر یا دونگ)."""
+    from app.canboso import norm_currency
+
+    currency = norm_currency(currency or "USDT")
     rate = rate_for(cfg, currency)
-    base = round(usd * rate, 6)
+    base = round(cost * rate, 6)
     step = int(cfg.get("ai_round_to") or 1) or 1
 
     # حالت سود ثابت: قیمت API + مبلغ ثابت، بدون درصدها
     fixed = int(cfg.get("ai_markup_toman") or 0)
     if fixed > 0:
         final = int(math.ceil((base + fixed) / step) * step)
-        return Breakdown(usd=usd, rate=rate, base=int(round(base)), profit=final - int(round(base)),
+        return Breakdown(cost=cost, rate=rate, base=int(round(base)), profit=final - int(round(base)),
                          fee=0, buffer=0, final=final, fixed=fixed, currency=currency)
     profit = base * (cfg.get("ai_profit_percent", 0) / 100)
     fee = base * (cfg.get("ai_fee_percent", 0) / 100)
@@ -123,7 +139,7 @@ def compute(usd: float, cfg: dict[str, float], currency: str = "USD") -> Breakdo
     final = int(math.ceil(total / step) * step)
 
     return Breakdown(
-        usd=usd,
+        cost=cost,
         rate=rate,
         base=int(round(base)),
         profit=int(profit),
@@ -134,17 +150,19 @@ def compute(usd: float, cfg: dict[str, float], currency: str = "USD") -> Breakdo
     )
 
 
-async def price_for(db: Database, usd: float, currency: str = "USD") -> Breakdown:
-    return compute(usd, await load(db), currency)
+async def price_for(db: Database, cost: float, currency: str = "USDT") -> Breakdown:
+    return compute(cost, await load(db), currency)
 
 
-def is_configured(cfg: dict[str, float], currency: str = "USD") -> bool:
+def is_configured(cfg: dict[str, float], currency: str = "USDT") -> bool:
     """بدون نرخ ارز کیف پول سرویس دهنده هیچ قیمتی معنا ندارد."""
     return rate_for(cfg, currency) > 0
 
 
 def _unit(currency: str) -> str:
-    return {"VND": "دونگ", "USD": "دلار", "USDT": "تتر"}.get((currency or "").upper(), currency)
+    from app.canboso import norm_currency
+
+    return {"VND": "دونگ", "USDT": "تتر (USDT)"}.get(norm_currency(currency), currency)
 
 
 def explain(b: Breakdown) -> str:
@@ -152,7 +170,7 @@ def explain(b: Breakdown) -> str:
     if b.fixed:
         return (
             "╮── 🧮 ریز قیمت (سود ثابت)\n"
-            f"│   \u2068{b.usd:g}\u2069 {_unit(b.currency)}\n\n"
+            f"│   \u2068{b.cost:g}\u2069 {_unit(b.currency)}\n\n"
             f"├ قیمت API (× \u2068{b.rate:g}\u2069): \u2068{b.base:,}\u2069\n"
             f"├ سود ثابت: \u2068{b.fixed:,}\u2069\n\n"
             f"💰 قیمت کاربر: <b>\u2068{b.final:,}\u2069</b> تومان\n"
@@ -160,7 +178,7 @@ def explain(b: Breakdown) -> str:
         )
     return (
         "╮── 🧮 ریز قیمت\n"
-        f"│   \u2068{b.usd:g}\u2069 {_unit(b.currency)}\n\n"
+        f"│   \u2068{b.cost:g}\u2069 {_unit(b.currency)}\n\n"
         f"├ پایه (× \u2068{b.rate:g}\u2069): \u2068{b.base:,}\u2069\n"
         f"├ سود: \u2068{b.profit:,}\u2069\n"
         f"├ کارمزد: \u2068{b.fee:,}\u2069\n"

@@ -1328,7 +1328,7 @@ async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
         return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
     cat["items"] = [x for x in cat["items"] if x["priced"]]
     if not cat["items"]:
-        return await call.answer("محصولی نیامد؛ نرخ ارز کیف پول (دلار یا دونگ) را تنظیم کرده ای؟", show_alert=True)
+        return await call.answer("محصولی نیامد؛ نرخ ارز کیف پول (تتر یا دونگ) را تنظیم کرده ای؟", show_alert=True)
     cfg = await pricing.load(db)
     rows = []
     for x in cat["items"][:25]:
@@ -3239,8 +3239,10 @@ async def _market_text(db: Database, q: dict | None = None) -> str:
     at = int(q.get("at") or 0)
     when = _dt.fromtimestamp(at, TZ).strftime("%H:%M") if at else "هنوز خوانده نشده"
     manual = {k: int(float((await db.get_setting(f, "0") or "0").replace(",", "") or 0))
-              for k, f in (("usd", "ai_usd_rate"), ("usdt", "crypto_usdt_rate"), ("ton", "crypto_ton_rate"))}
+              for k, f in (("ai", "ai_usdt_rate"), ("usdt", "crypto_usdt_rate"), ("ton", "crypto_ton_rate"))}
     def used(k: str) -> str:
+        if k == "usdt" and manual["ai"]:
+            return f"شارژ: {('دستی ' + format(manual[k], ',')) if manual[k] else 'بازار'} · هوش مصنوعی: دستی {manual['ai']:,}"
         if manual[k]:
             return f"در حال استفاده: دستی {manual[k]:,}"
         return "در حال استفاده" if auto and q.get(k) else ("خودکار" if auto else "خاموش")
@@ -3249,14 +3251,13 @@ async def _market_text(db: Database, q: dict | None = None) -> str:
     return (
         "╮── 📈 نرخ بازار آزاد (tgju.org)\n"
         f"│   نرخ خودکار: {status}\n\n"
-        f"💵 دلار: {val('usd')} · {used('usd')}\n"
         f"🪙 تتر: {val('usdt')} · {used('usdt')}\n"
         f"🔷 تون کوین: {val('ton')} · {used('ton')}\n"
-        + (f"   ↳ 1 TON = {float(q.get('ton_usdt')):g} USDT × {'تتر' if q.get('ton_base') == 'usdt' else 'دلار'}\n" if q.get("ton_usdt") else "")
+        + (f"   ↳ 1 TON = {float(q.get('ton_usdt')):g} USDT × نرخ تتر\n" if q.get("ton_usdt") else "")
         + "\n"
         f"🕒 آخرین به روزرسانی: {when}{' (کهنه)' if q.get('stale') else ''}{err}\n\n"
         "هر نرخی که در تنظیمات صفر باشد از همین جا خوانده می شود:\n"
-        "• نرخ دلار هوش مصنوعی ← دلار\n• نرخ تتر و TON کریپتو ← تتر و تون\n"
+        "• نرخ تتر (قیمت محصولات هوش مصنوعی و شارژ کریپتو) ← تتر\n• نرخ TON کریپتو ← تون\n"
         "╰─ نرخ دستی (غیر صفر) همیشه اولویت دارد؛ برای استفاده از tgju آن را ۰ کن."
     )
 

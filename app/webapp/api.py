@@ -1003,6 +1003,14 @@ async def guide(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dic
     return {"items": items}
 
 
+async def faq(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """مرکز راهنما: سوالات پرتکرار هر حوزه (کانفیگ، هوش مصنوعی، شماره مجازی، ویزا کارت، پرداخت)."""
+    user = await _require_user(db, wuser)
+    from app import faq as faq_mod
+
+    return {"domains": faq_mod.public(user.get("lang") or "fa")}
+
+
 async def ticket_send(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, body: str, bot=None) -> dict:  # noqa: ANN001
     user = await _require_user(db, wuser)
     body = (body or "").strip()
@@ -1163,6 +1171,7 @@ ROUTES = {
     "custom": custom_info,
     "rules": rules,
     "guide": guide,
+    "faq": faq,
 }
 
 __all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase"]

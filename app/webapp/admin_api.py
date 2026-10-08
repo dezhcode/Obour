@@ -228,12 +228,15 @@ async def settings(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> 
     }
 
 
+from app.canboso import norm_currency  # noqa: E402
+
+
 async def _market_out(db: "Database", q: dict | None = None) -> dict:
     from app.services import market
 
     q = q if q is not None else await market.last(db)
     manual = {}
-    for k, f in (("usd", "ai_usd_rate"), ("usdt", "crypto_usdt_rate"), ("ton", "crypto_ton_rate")):
+    for k, f in (("ai_usdt", "ai_usdt_rate"), ("usdt", "crypto_usdt_rate"), ("ton", "crypto_ton_rate")):
         try:
             manual[k] = int(float((await db.get_setting(f, "0") or "0").replace(",", "") or 0))
         except ValueError:
@@ -536,7 +539,7 @@ async def ai_order_full(db: "Database", panel: "Panel | None", wuser: WebAppUser
         raise ApiError("سفارش پیدا نشد", 404, "not_found")
     u = await db.get_user(o["user_id"]) or {}
     return {**_ai_order_out(o, full=True), "user": _who(u), "error": o.get("error") or "",
-            "cost": o.get("usd_cost"), "cost_currency": o.get("cost_currency") or "USD"}
+            "cost": o.get("usd_cost"), "cost_currency": norm_currency(o.get("cost_currency") or "USDT")}
 
 
 async def purchases(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,

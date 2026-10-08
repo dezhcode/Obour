@@ -57,6 +57,13 @@ async def _pace() -> None:
         _last_call = time.monotonic()
 
 
+
+def norm_currency(c: object) -> str:
+    """ارز کیف پول سرویس دهنده. دلار در عبور همه جا «تتر» (USDT) است: هم قیمت
+    و هم نمایش؛ سرویس دهنده USD می گوید ولی برای ما معادل تتر است."""
+    c = str(c or "").strip().upper()
+    return "USDT" if c in ("USD", "USDT", "$", "US$") else c
+
 class CanbosoError(Exception):
     """قطعا انجام نشد (پول کاربر باید برگردد)."""
 
@@ -125,13 +132,13 @@ class Canboso:
 
     # ---------- محصولات ----------
     async def catalog(self, force: bool = False) -> dict:
-        """{"currency": "VND"|"USD", "products": [...]} با کش ۶۰ ثانیه."""
+        """{"currency": "VND"|"USDT", "products": [...]} با کش ۶۰ ثانیه."""
         global _products_cache
         if not force and _products_cache and time.monotonic() - _products_cache[0] < PRODUCTS_TTL:
             return _products_cache[1]
         data = await self._get("/products")
         out = {
-            "currency": str(data.get("walletCurrency") or "").upper(),
+            "currency": norm_currency(data.get("walletCurrency")),
             "products": [p for p in (data.get("products") or []) if isinstance(p, dict) and p.get("productId")],
         }
         _products_cache = (time.monotonic(), out)
@@ -158,9 +165,10 @@ class Canboso:
             log.warning("خواندن موجودی canboso نشد: %s", exc)
             return None
         try:
-            out = {"balance": float(data.get("balance") or 0),
-                   "currency": str(data.get("walletCurrency") or "").upper(),
-                   "text": data.get("balanceText") or ""}
+            cur = norm_currency(data.get("walletCurrency"))
+            # متن آماده سرویس دهنده با علامت دلار است؛ برای تتر خود عدد + USDT نشان داده می شود
+            out = {"balance": float(data.get("balance") or 0), "currency": cur,
+                   "text": "" if cur == "USDT" else (data.get("balanceText") or "")}
         except (TypeError, ValueError):
             return None
         _balance_cache = (time.monotonic(), out)

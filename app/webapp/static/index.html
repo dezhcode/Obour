@@ -365,6 +365,30 @@ html.perf-low #store-box{will-change:auto}
 .tile-s{font-size:11px;display:block}
 .tile.net{background:var(--net-t);color:var(--net-i)} .tile.ai{background:var(--ai-t);color:var(--ai-i)}
 .tile:active{transform:scale(.97)}
+/* مرکز راهنما: کارت هر حوزه و سوال/جواب آکاردئونی */
+.hc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 var(--pad)}
+.hc-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;min-height:118px;border-radius:var(--r-lg);
+  background:var(--surface);border:1px solid var(--line);text-align:right;transition:transform .15s var(--ease)}
+.hc-card:active{transform:scale(.97)}
+.hc-card .ic{width:38px;height:38px}
+.hc-t{font-size:14px;font-weight:800;color:var(--ink);line-height:1.5}
+.hc-s{font-size:11px;color:var(--ink-3);line-height:1.6}
+.hc-n{position:absolute;top:12px;left:12px;font-size:11px;font-weight:700;color:var(--ink-3)}
+.hc-card.wide{grid-column:1/-1;min-height:0;flex-direction:row;align-items:center}
+.hc-search{display:flex;align-items:center;gap:8px;margin:0 var(--pad) 14px;height:46px;padding:0 14px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line)}
+.hc-search svg{width:18px;height:18px;color:var(--ink-3);flex-shrink:0}
+.hc-search input{flex-grow:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:14px;color:var(--ink)}
+.faq-i{border-bottom:1px solid var(--line)}
+.faq-i:last-child{border-bottom:0}
+.faq-q{display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;text-align:right;font-size:14px;font-weight:700;color:var(--ink);line-height:1.7}
+.faq-q span{flex-grow:1}
+.faq-q svg{width:16px;height:16px;flex-shrink:0;color:var(--ink-3);transition:transform .2s var(--ease)}
+.faq-i.on .faq-q svg{transform:rotate(180deg)}
+.faq-a{display:none;padding:0 16px 16px;font-size:13px;color:var(--ink-2);line-height:2}
+.faq-i.on .faq-a{display:block}
+.faq-dom{font-size:11px;color:var(--ink-3);font-weight:600;padding:12px 16px 0}
+.pv-banner{display:flex;gap:10px;align-items:flex-start;margin:0 var(--pad) 14px;padding:12px 14px;border-radius:var(--r-md);background:var(--ai-t);color:var(--ai-i);font-size:12.5px;line-height:1.9}
+.pv-banner svg{width:18px;height:18px;flex-shrink:0;margin-top:3px}
 /* کارت بازی: شب نئونی خود بازی، ماشین بیرون زده از لبه */
 .gcard{position:relative;height:150px;border-radius:var(--r-xl);overflow:hidden;cursor:pointer;color:#F2F5FF;
   background:radial-gradient(120% 140% at 0% 100%,#1B2A6B 0%,rgba(27,42,107,0) 55%),linear-gradient(135deg,#0B1030,#05070F 70%);
@@ -2079,7 +2103,7 @@ async account(p){
       + (b.features.shop_referral ? Row({ kind:'cash', icon:'gift', title:'هم‌سفرها', sub:'دعوت کن، از هر خرید سهم بگیر', fn:"App.go('referral')" }) : '')
       + (aiOn('support') ? Row({ kind:'ai', icon:'spark', title:'دستیار هوشمند', sub:'پشتیبانی فوری با هوش مصنوعی', fn:"Assist.open('chat')" }) : '')
       + Row({ kind:'help', icon:'chat', title:'تیکت‌های من', sub: c.unread_replies ? 'یک پاسخ تازه' : 'گفتگو با پشتیبانی', subColor: c.unread_replies ? 'var(--help-i)' : '', fn:"App.go('tickets')" })
-      + Row({ kind:'net', icon:'book', title:'راهنمای اتصال', sub:'قدم به قدم، برای دستگاه خودت', fn:"App.go('guide')" }))}
+      + Row({ kind:'net', icon:'book', title:'مرکز راهنما', sub:'سوالات پرتکرار هر بخش و آموزش اتصال', fn:"App.go('help')" }))}
     ${Sec('تنظیمات')}
     ${Group(
       Row({ icon:'globe', title:'زبان', sub: LANG_NAMES[I18N.lang][1], fn:'Account.lang()' })
@@ -4087,8 +4111,8 @@ const AdminPlans = {
 const ADM_FIELDS = [
   ['پرداخت کارت به کارت', [['card_number', 'شماره کارت', 'numeric', ''], ['card_holder', 'نام صاحب کارت', 'text', ''], ['bank_name', 'نام بانک', 'text', ''],
     ['min_charge', 'حداقل شارژ (تومان)', 'numeric', 'برای همه روش‌ها']]],
-  ['نرخ‌ها', [['stars_rate', 'هر ستاره تلگرام (تومان)', 'numeric', '۰ یعنی Stars خاموش. تلگرام هنگام برداشت هر ستاره را حدود ۰٫۰۱۳ دلار حساب می‌کند.'],
-    ['crypto_usdt_rate', 'هر ۱ تتر (تومان)', 'numeric', '۰ یعنی کریپتو خاموش'], ['crypto_ton_rate', 'هر ۱ TON (تومان)', 'numeric', '۰ یعنی خودکار: قیمت دلاری TON × نرخ تتر'],
+  ['نرخ‌ها', [['stars_rate', 'هر ستاره تلگرام (تومان)', 'numeric', '۰ یعنی Stars خاموش. تلگرام هنگام برداشت هر ستاره را حدود ۰٫۰۱۳ تتر (USDT) حساب می‌کند.'],
+    ['crypto_usdt_rate', 'هر ۱ تتر (تومان)', 'numeric', '۰ یعنی خودکار از بازار؛ قیمت محصولات هوش مصنوعی هم با همین نرخ تتر حساب می‌شود'], ['crypto_ton_rate', 'هر ۱ TON (تومان)', 'numeric', '۰ یعنی خودکار: قیمت تتری TON × نرخ تتر'],
     ['crypto_fee_percent', 'درصد اضافه کریپتو', 'decimal', '۰ تا ۵۰']]],
 ];
 SubPages.adm_settings = async function(p){
@@ -4154,10 +4178,10 @@ const AdminSettings = {
     return Sec('نرخ بازار (tgju.org)') + Group(`<div class="row"><span class="row-m"><span class="row-t">نرخ خودکار</span>
         <span class="row-s">${m.auto ? 'نرخ‌های صفر از tgju خوانده می‌شوند' : 'خاموش؛ فقط نرخ‌های دستی'}</span></span>
         <span class="row-e">${Admin.sw(m.auto, `AdminSettings.market('toggle', ${!m.auto})`)}</span></div>`)
-      + KV([['دلار', v('usd')], ['تتر', v('usdt')], ['تون کوین', v('ton')], ['به‌روزرسانی', when]])
+      + KV([['تتر (USDT)', v('usdt')], ['تون کوین', v('ton')], ['به‌روزرسانی', when]])
       + (m.error ? `<div class="adm-note" style="color:var(--warn)">${ic('warn',2)} ${esc(m.error)}</div>` : '')
       + `<div class="mx" style="margin-top:10px"><button class="btn btn-s btn-block" id="mkt-r" onclick="AdminSettings.market('refresh')">${ic('refresh',2)}خواندن دوباره از tgju</button></div>
-        <div class="adm-note">دلار برای قیمت محصولات هوش مصنوعی و تتر و تون برای شارژ کریپتو. اگر در فیلدهای بالا عددی بنویسی، همان نرخ دستی اولویت دارد.</div>`;
+        <div class="adm-note">تتر برای قیمت محصولات هوش مصنوعی و شارژ کریپتو، تون برای شارژ با TON. اگر در فیلدهای بالا عددی بنویسی، همان نرخ دستی اولویت دارد.</div>`;
   },
   async market(action, on){
     const b = $('mkt-r'); if (action === 'refresh' && b) { b.disabled = true; b.textContent = 'در حال خواندن…'; }
@@ -4420,6 +4444,69 @@ const Rules = {
 
 /* ═════════ راهنمای اتصال ═════════
    دستگاه کاربر از خود تلگرام خوانده می شود و همان اول باز است. */
+/* ═════════ مرکز راهنما ═════════
+   سوالات پرتکرار هر حوزه (کانفیگ، هوش مصنوعی، شماره مجازی، ویزا کارت،
+   پرداخت) از /api/faq؛ همان متن هایی که ربات و دستیار هوشمند هم دارند. */
+const Help = {
+  data:null,
+  KIND:{ vpn:'net', ai:'ai', number:'help', visa:'cash', pay:'cash' },
+  async load(){ if (!this.data) this.data = (await api('faq')).domains; return this.data; },
+  card(d){
+    return `<button class="hc-card" onclick="App.go('help_d','${d.key}')"><span class="hc-n n">${N(fa(d.items.length))} سوال</span>
+      <span class="ic ${this.KIND[d.key] || ''}">${ic(d.icon)}</span>
+      <span><span class="hc-t">${esc(d.title)}</span>${d.preview ? ' ' + Badge('', 'پیش‌نمایش') : ''}<br><span class="hc-s">${esc(d.sub)}</span></span></button>`;
+  },
+  item(x, dom){
+    return `<div class="faq-i"><button class="faq-q" onclick="this.parentElement.classList.toggle('on');App.haptic()"><span>${esc(x.q)}</span>${ic('down',2)}</button>
+      <div class="faq-a">${esc(x.a)}</div>${dom ? `<div class="faq-dom" style="display:none"></div>` : ''}</div>`;
+  },
+  search(q){
+    const box = $('hc-res'), cards = $('hc-cards'); if (!box || !this.data) return;
+    q = (q || '').trim();
+    if (q.length < 2) { box.innerHTML = ''; cards.style.display = ''; return; }
+    const words = q.split(/\s+/).filter(Boolean);
+    const hits = [];
+    for (const d of this.data) for (const x of d.items) if (words.every(w => (x.q + ' ' + x.a).includes(w))) hits.push([d, x]);
+    cards.style.display = 'none';
+    box.innerHTML = hits.length
+      ? Sec(`${N(fa(hits.length))} نتیجه`) + Group(hits.slice(0, 20).map(([d, x]) => `<div class="faq-i"><div class="faq-dom">${esc(d.title)}</div>
+          <button class="faq-q" onclick="this.parentElement.classList.toggle('on');App.haptic()"><span>${esc(x.q)}</span>${ic('down',2)}</button>
+          <div class="faq-a">${esc(x.a)}</div></div>`).join(''))
+      : `<div class="card mx">${emptyBox('چیزی پیدا نشد', 'کلمه دیگری امتحان کن یا از پشتیبانی بپرس.')}</div>`;
+  },
+  askBtn(){
+    return `<div class="mx" style="margin-top:16px;display:grid;grid-template-columns:${aiOn('support') ? '1fr 1fr' : '1fr'};gap:8px">
+      ${aiOn('support') ? `<button class="btn btn-s" onclick="Assist.open('chat')">${ic('spark')}از دستیار بپرس</button>` : ''}
+      <button class="btn btn-s" onclick="App.go('compose')">${ic('chat')}تیکت به پشتیبانی</button></div>`;
+  }
+};
+SubPages.help = async function(p){
+  p.innerHTML = Top('مرکز راهنما', 'سوالات پرتکرار هر بخش') + skel(3, 110);
+  try {
+    const doms = await Help.load();
+    p.innerHTML = Top('مرکز راهنما', 'سوالات پرتکرار هر بخش')
+      + `<label class="hc-search">${ic('eye',2)}<input type="search" placeholder="${esc(I18N.t('جستجو در سوال‌ها…'))}" oninput="Help.search(this.value)"></label>`
+      + `<div id="hc-res"></div><div id="hc-cards"><div class="hc-grid">${doms.map(d => Help.card(d)).join('')}
+          <button class="hc-card wide" onclick="App.go('guide')"><span class="ic net">${ic('book')}</span><span><span class="hc-t">آموزش اتصال کانفیگ</span><br><span class="hc-s">قدم به قدم برای اندروید، آیفون، ویندوز و مک</span></span></button>
+        </div>${Help.askBtn()}</div>`;
+  } catch (err) { p.innerHTML = Top('مرکز راهنما') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.help_d = async function(p, key){
+  p.innerHTML = Top('مرکز راهنما') + skel(4, 60);
+  try {
+    const d = (await Help.load()).find(x => x.key === key);
+    if (!d) { p.innerHTML = Top('مرکز راهنما') + emptyBox('این بخش پیدا نشد'); return; }
+    const shop = { number:"App.go('numbers')", visa:"App.go('visa')", ai:"Store.kind='ai';App.tab('store')", vpn:"Store.kind='vpn';App.tab('store')", pay:"App.go('topup')" }[key];
+    p.innerHTML = Top(d.title, esc(d.sub))
+      + (d.preview ? `<div class="pv-banner">${ic('clock',2)}<span>این خدمت در حالت پیش‌نمایش است: می‌توانی جزئیات را ببینی ولی فروش هنوز باز نشده.</span></div>` : '')
+      + Group(d.items.map(x => Help.item(x)).join(''))
+      + (shop ? `<div class="mx" style="margin-top:14px"><button class="btn btn-p btn-block" style="height:48px" onclick="${shop}">${ic(d.preview ? 'eye' : 'store')}${d.preview ? 'دیدن صفحه ' + esc(d.title) : key === 'pay' ? 'شارژ کیف پول' : 'رفتن به فروشگاه'}</button></div>` : '')
+      + Help.askBtn();
+    const first = p.querySelector('.faq-i'); if (first) first.classList.add('on');
+  } catch (err) { p.innerHTML = Top('مرکز راهنما') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.help.noNav = SubPages.help_d.noNav = true;
+
 SubPages.guide = async function(p){
   p.innerHTML = Top('راهنمای اتصال') + skel(1, 260);
   try {
