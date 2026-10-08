@@ -104,6 +104,20 @@ pip install -r requirements.txt
 
 ## قدم ۴: ساخت فایل تنظیمات
 
+**راه سریع:** این اسکریپت `.env` را می سازد، توکن ربات عبور، توکن ربات Game Club و
+آیدی ادمین را می پرسد (توکن را با getMe تایید می کند)، `WEBHOOK_SECRET`،
+`WEBHOOK_PATH`، `ADMIN_KEY` و `GAME_CLUB_WEBHOOK_SECRET` را خودش می سازد و
+دسترسی فایل را 600 می کند:
+
+```bash
+python setup_env.py            # بعدش فقط مقادیر پنل را در .env بنویس
+python setup_env.py --apply    # بعد از پر کردن پنل: ری استارت + ثبت هر دو وبهوک
+```
+
+اگر بعدا خواستی سکرت ها را عوض کنی: `python setup_env.py --rotate --apply`.
+
+**راه دستی:**
+
 ```bash
 cp .env.example .env
 chmod 600 .env
