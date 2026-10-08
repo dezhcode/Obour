@@ -11,7 +11,20 @@ Game Club کنار ربات عبور روی **همان هاست، همان پر�
 
 ۱. در BotFather یک ربات تازه بساز و توکن و یوزرنیمش را بردار.
 
-۲. در همان `.env` مرکزی عبور (نمونه در `.env.example`):
+۲. روی هاست، در پوشهٔ عبور:
+
+```bash
+bash setup_all.sh          # راه اندازی کامل عبور و Game Club با یک دستور
+python setup_env.py --apply  # یا فقط تنظیمات و وبهوک ها
+```
+
+توکن ربات Game Club را می پرسد، با getMe تاییدش می کند و یوزرنیمش را در
+`GAME_CLUB_BOT_USERNAME` می نویسد، `GAME_CLUB_WEBHOOK_SECRET` را جدا از سکرت عبور
+می سازد، اپ را ری استارت می کند و وبهوک، دستورها و دکمهٔ منوی هر دو ربات را ثبت
+می کند. ثبت وبهوک Game Club به تنهایی: `python manage_webhook.py gc-set`
+(وضعیت: `gc-info`).
+
+راه دستی: همین کلیدها را در `.env` مرکزی بنویس (نمونه در `.env.example`):
 
 ```
 GAME_CLUB_BOT_TOKEN=123456:ABC...
@@ -22,7 +35,7 @@ GAME_CLUB_WEBHOOK_SECRET=<رشته تصادفی جدا از WEBHOOK_SECRET>
 بقیه کلیدها پیش‌فرض دارند: نرخ امتیاز، ورودی‌ها، بسته‌های شارژ، سهم عبور، زمان نوبت،
 کلید خاموش کردن بازی امتیازی (`GAME_CLUB_STAKE=false`).
 
-۳. اپ را ری‌استارت کن (`restart.sh` یا Restart در سی‌پنل) و یک بار باز کن:
+۳. اگر راه دستی رفتی، اپ را ری‌استارت کن (`restart.sh` یا Restart در سی‌پنل) و یک بار باز کن:
 
 ```
 https://<دامنه>/obour/gc/setwebhook?key=<ADMIN_KEY>

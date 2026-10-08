@@ -1,4 +1,7 @@
 .env
+.env.bak
+.env.tmp
+setup.env
 *.db
 *.db-wal
 *.db-shm

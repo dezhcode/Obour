@@ -102,7 +102,65 @@ pip install -r requirements.txt
 
 ---
 
+## راه اندازی کامل با یک دستور
+
+همه قدم های زیر (گرفتن کد، کتابخانه ها، `.env`، پلن ها، ری استارت، وبهوک هر دو ربات
+و بررسی نهایی) را این اسکریپت پشت سر هم انجام می دهد. هر بار اجرایش امن است:
+
+```bash
+source /home/wmkmbrcs/virtualenv/obour/3.11/bin/activate && cd /home/wmkmbrcs/obour && bash setup_all.sh
+```
+
+گزینه ها: `-y` بدون پرسش، `--no-update` بدون گرفتن کد تازه، `--panel` پرسیدن دوباره
+اطلاعات پنل، یا نام یک شاخه (`bash setup_all.sh <branch>`).
+
+### اگر ترمینال تایپ یا paste نمی پذیرد
+
+اول بدان که موقع وارد کردن توکن و پسورد چیزی روی صفحه نمایش داده نمی شود (برای
+امنیت). paste با کلیک راست یا `Ctrl+Shift+V` است و بعد Enter. اگر باز هم نشد،
+همه کار بدون ترمینال هم شدنی است:
+
+۱. **File Manager** سی پنل ← پوشه `/home/wmkmbrcs/obour` ← **+ File** ← نام `setup.env`
+   ← راست کلیک ← **Edit**. این ها را بنویس (خالی = مقدار فعلی بماند؛ نمونه کامل در
+   `setup.env.example`):
+
+```env
+BOT_TOKEN=
+GAME_CLUB_BOT_TOKEN=
+ADMIN_IDS=
+PANEL_USERNAME=
+PANEL_PASSWORD=
+```
+
+۲. **Cron Jobs** سی پنل ← Common Settings: **Once Per Minute** ← در Command این را بگذار:
+
+```bash
+cd /home/wmkmbrcs/obour && bash setup_all.sh --once >/dev/null 2>&1
+```
+
+۳. یکی دو دقیقه صبر کن و در File Manager فایل `logs/setup_all.log` را باز کن. اسکریپت
+   مقادیر را در `.env` ثبت کرده، `setup.env` را پاک کرده و وبهوک هر دو ربات را ثبت
+   کرده است. اگر خطا بود، `setup.env` سر جایش می ماند؛ درستش کن و ذخیره کن تا کران دوباره
+   امتحان کند.
+
+۴. کار که تمام شد کران را **Delete** کن. (با `--once` حتی اگر بماند کاری نمی کند، مگر
+   دوباره `setup.env` بسازی.)
+
 ## قدم ۴: ساخت فایل تنظیمات
+
+**راه سریع:** این اسکریپت `.env` را می سازد، توکن ربات عبور، توکن ربات Game Club و
+آیدی ادمین را می پرسد (توکن را با getMe تایید می کند)، `WEBHOOK_SECRET`،
+`WEBHOOK_PATH`، `ADMIN_KEY` و `GAME_CLUB_WEBHOOK_SECRET` را خودش می سازد و
+دسترسی فایل را 600 می کند:
+
+```bash
+python setup_env.py            # بعدش فقط مقادیر پنل را در .env بنویس
+python setup_env.py --apply    # بعد از پر کردن پنل: ری استارت + ثبت هر دو وبهوک
+```
+
+اگر بعدا خواستی سکرت ها را عوض کنی: `python setup_env.py --rotate --apply`.
+
+**راه دستی:**
 
 ```bash
 cp .env.example .env
