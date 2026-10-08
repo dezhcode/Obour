@@ -176,6 +176,8 @@ const P = {
   dice: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 15.5h.01M12 12h.01M15.5 8.5h.01M8.5 15.5h.01"/>',
   arrowUp: '<path d="M7 14l5-5 5 5"/>',
   up: '<path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/>',
+  exit: '<path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14"/><path d="M10 16.5L5.5 12 10 7.5M5.5 12H15"/>',
+  table: '<rect x="3" y="7" width="18" height="10" rx="5"/><path d="M8 17v3M16 17v3"/>',
   chat: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4h0A2.5 2.5 0 0 1 4 13.5z"/><path d="M8.5 9.5h.01M12 9.5h.01M15.5 9.5h.01"/>',
 };
 const icon = (n, w = 2.2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
@@ -353,7 +355,7 @@ const LUDO = {
   },
   ORDER: ['blue', 'red', 'green', 'yellow'],
   SAFE: [0, 8, 13, 21, 26, 34, 39, 47],
-  SOCKETS: [[2.1,2.1],[3.9,2.1],[2.1,3.9],[3.9,3.9]],
+  SOCKETS: [[1.75,1.75],[4.25,1.75],[1.75,4.25],[4.25,4.25]],
 };
 function boardArt() {
   const L = LUDO, startOf = {};
