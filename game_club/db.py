@@ -171,6 +171,9 @@ class GCDatabase:
             if col not in have:
                 await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
         await self._conn.execute("CREATE INDEX IF NOT EXISTS players_pic ON players(pic)")
+        # گفتگوی میزهایی که تمام یا بسته شده اند (مثلا از پیش از این نسخه) پاک می شود
+        await self._conn.execute(
+            "DELETE FROM chat WHERE match_id NOT IN (SELECT id FROM matches WHERE status IN ('lobby','playing'))")
         await self._conn.commit()
 
     async def close(self) -> None:
@@ -340,11 +343,16 @@ class GCDatabase:
             (match_id, status, json.dumps(cfg), json.dumps(state, ensure_ascii=False), host, invite, now, now))
 
     async def save_match(self, match_id: str, version: int, status: str, state: dict) -> bool:
-        """فقط اگر کسی در این فاصله ننوشته باشد ذخیره می شود."""
-        return await self.execute(
+        """فقط اگر کسی در این فاصله ننوشته باشد ذخیره می شود.
+
+        وقتی میز تمام یا بسته شد، گفتگوی آن میز هم پاک می شود (نگه داشته نمی شود)."""
+        ok = await self.execute(
             "UPDATE matches SET state = ?, status = ?, version = version + 1, updated_at = ? "
             "WHERE id = ? AND version = ?",
             (json.dumps(state, ensure_ascii=False), status, int(time.time()), match_id, version)) == 1
+        if ok and status in ("over", "cancelled"):
+            await self.execute("DELETE FROM chat WHERE match_id = ?", (match_id,))
+        return ok
 
     async def match_by_invite(self, code: str) -> dict | None:
         row = await self.one("SELECT id FROM matches WHERE invite = ?", (code,))

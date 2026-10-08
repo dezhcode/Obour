@@ -280,10 +280,17 @@ function openChat() {
   sh.querySelector('#chatForm').onsubmit = async e => { e.preventDefault(); if (await send(input.value)) input.value = ''; input.focus(); };
 }
 $('chatBtn').onclick = openChat;
+// پایان یا بستن میز: گفتگوی آن میز روی سرور پاک شده؛ اینجا هم پاک و دکمه پنهان می شود
+function endChat() {
+  chatLog = []; unread = 0; chatSheet = null;
+  for (const c of Object.keys(bubbles)) delete bubbles[c];
+  document.querySelectorAll('.bubble').forEach(x => x.remove());
+  $('chatBtn').hidden = true;
+}
 
 /* ---------- همگام سازی با سرور ---------- */
 async function apply(next) {
-  if (next && next.chat) chatIn(next.chat);
+  if (next && next.chat && !overShown && next.status !== 'over' && next.status !== 'cancelled') chatIn(next.chat);
   if (next && next.status === 'cancelled') return cancelled();
   if (!next || !next.game) return;
   busy = true;
@@ -331,6 +338,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 
 /* ---------- پایان، خروج ---------- */
 function over(v) {
+  endChat();
   const g = v.game, r = v.result || {}, w = g.winner, won = w === me;
   GC.guardClose(false); store.set('mid', null);
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
@@ -349,7 +357,7 @@ function over(v) {
 }
 function cancelled() {
   if (overShown) return;
-  overShown = true; GC.guardClose(false); store.set('mid', null); GC.refreshMe().catch(() => {});
+  overShown = true; endChat(); GC.guardClose(false); store.set('mid', null); GC.refreshMe().catch(() => {});
   sheet(`<h2 style="font-size:22px;font-weight:900">این میز بسته شد</h2><p class="muted">پشتیبانی این میز را بست و ورودی همه به کیف امتیازشان برگشت.</p>
     <a class="btn btn-block" href="ludo-lobby.html">${icon('dice')}میز تازه</a><a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
 }

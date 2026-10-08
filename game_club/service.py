@@ -440,8 +440,8 @@ def clean_chat(text: str) -> str:
 async def chat_send(db: GCDatabase, tg: int, match_id: str, text: str) -> dict:
     _, color = await _membership(db, tg, match_id)
     m = await db.get_match(match_id)
-    if not m or m["status"] == "cancelled":
-        raise GCError("not_found")
+    if not m or m["status"] not in ("lobby", "playing"):
+        raise GCError("not_found")   # بعد از پایان یا بستن میز گفتگو بسته است
     text = clean_chat(text)
     if not text:
         raise GCError("empty")
