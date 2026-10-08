@@ -318,6 +318,24 @@ def test_table_chat():
     asyncio.run(run())
 
 
+
+def test_shop_off_by_default():
+    """فروشگاه پیش فرض خاموش است: فهرست، خرید و انتقال همه shop_off می دهند."""
+    import types
+
+    from game_club import api
+    from game_club.config import gc as gconf
+    from game_club.service import GCError
+
+    assert gconf.shop_enabled is False
+    user = types.SimpleNamespace(id=1, first_name="x", username=None)
+    for name, method in (("shop", "GET"), ("shop/buy", "POST"), ("shop/transfer", "POST")):
+        try:
+            asyncio.run(api.handle(name, method, user, {}, {"plan_id": 1, "points": 100, "idem": "x" * 16}))
+            raise AssertionError(name + " worked while the shop is off")
+        except GCError as e:
+            assert e.code == "shop_off", e.code
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

@@ -36,6 +36,9 @@ def invite_link(code: str) -> str:
 
 
 async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # noqa: ANN001
+    # فروشگاه در دوره آزمایشی خاموش است (GAME_CLUB_SHOP): نه فهرست، نه خرید، نه انتقال
+    if name.startswith("shop") and not gc.shop_enabled:
+        raise GCError("shop_off")
     g = await gcrt.ensure()
     gdb = g.db
     tg = user.id
@@ -58,7 +61,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "obour": {"linked": bool(ou), "balance": int(ou["balance"]) if ou else 0},
             "active_match": active,
             "queue": bool(q_row and not q_row["claimed"]),
-            "settings": {"stake": gc.stake_enabled, "entries": list(gc.entries), "packs": list(gc.charge_packs),
+            "settings": {"stake": gc.stake_enabled, "shop": gc.shop_enabled, "entries": list(gc.entries), "packs": list(gc.charge_packs),
                          "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,
                          "bot": gc.username, "obour_bot": await ob.db.get_setting("bot_username", "")},
         }

@@ -27,6 +27,9 @@ class GCConfig:
     point_toman: int = max(1, _int_env("GAME_CLUB_POINT_TOMAN", "100"))
     # کلید خاموش کردن بازی امتیازی (فقط بازی آزاد می ماند)
     stake_enabled: bool = _bool("GAME_CLUB_STAKE", "true")
+    # فروشگاه (خرید خدمات عبور و انتقال امتیاز). در دوره آزمایشی خاموش است:
+    # نه دیده می شود و نه از API چیزی خریده می شود.
+    shop_enabled: bool = _bool("GAME_CLUB_SHOP", "false")
     entries: tuple[int, ...] = _ints("GAME_CLUB_ENTRIES", "50,100,250,500")
     charge_packs: tuple[int, ...] = _ints("GAME_CLUB_PACKS", "250,500,1000,2500")
     # سهم عبور از جایزه به درصد؛ پیش فرض صفر (برنده همه را می برد)

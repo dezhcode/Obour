@@ -48,6 +48,9 @@
   const { fa, FD, amount, icon, sheet, sheetHead, toast, sfx, haptic, errText, mount } = GC;
   const $ = id => document.getElementById(id);
   GC.back('index.html');
+  // فروشگاه خاموش: این صفحه دیده نمی شود
+  if (!GC.S.shopOn) { location.replace('index.html'); return; }
+  GC.refreshMe().then(me => { if (!me.settings.shop) location.replace('index.html'); }).catch(() => {});
   let shop = null;
   async function load() {
     try { shop = await GC.data.shop(); } catch (e) { $('items').innerHTML = `<p class="hint">${errText(e)}</p>`; return; }

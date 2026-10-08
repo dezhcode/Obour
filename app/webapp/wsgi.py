@@ -43,19 +43,6 @@ _CSP = (
     "base-uri 'none'; form-action 'none'"
 )
 
-# بازی آزمایشی داخل iframe خود مینی اپ باز می شود (frame-ancestors 'self')؛
-# GLTFLoader بافت های داخل مدل را با fetch از آدرس blob: می خواند.
-_GAME_CSP = (
-    "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline'; "
-    "style-src 'self' 'unsafe-inline'; "
-    "img-src 'self' data: blob:; "
-    "font-src 'self' data:; "
-    "connect-src 'self' blob: data:; "
-    "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org; "
-    "base-uri 'self'; form-action 'none'"
-)
-
 # سقف نرخ ساده در حافظه: هر کاربر تلگرام در هر پنجره.
 # مینی اپ آدرس عمومی دارد و بدون این، یک اسکریپت می تواند با یک
 # initData معتبر هزاران بار پنل را صدا بزند.
@@ -286,9 +273,8 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                      "405 Method Not Allowed")
 
     # ---------- خود صفحه ----------
-    if path in ("/", "/index.html", "/game", "/game/"):
-        game = path.startswith("/game")
-        fpath = os.path.join(STATIC_DIR, "game", "index.html") if game else os.path.join(STATIC_DIR, "index.html")
+    if path in ("/", "/index.html"):
+        fpath = os.path.join(STATIC_DIR, "index.html")
         if not os.path.isfile(fpath):
             return _json(start_response, {"error": "میني اپ نصب نشده"}, "404 Not Found")
         with open(fpath, "rb") as fh:
@@ -303,7 +289,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             # صفحه کش نمی شود تا نسخه تازه بلافاصله به دست کاربر برسد؛
             # سنگینی اش در استاتیک هاست که کش طولانی دارند.
             ("Cache-Control", "no-cache"),
-            ("Content-Security-Policy", _GAME_CSP if game else _CSP),
+            ("Content-Security-Policy", _CSP),
             ("X-Content-Type-Options", "nosniff"),
             ("Referrer-Policy", "no-referrer"),
         ])
