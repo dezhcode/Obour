@@ -394,11 +394,30 @@ def ai_confirm_kb(affordable: bool) -> InlineKeyboardMarkup:
 
 
 def admin_ai_unknown_kb(rows: list[dict]) -> InlineKeyboardMarkup:
-    """یک دکمه «بررسی دوباره» برای هر سفارش مبهم."""
+    """برای هر سفارش مبهم: «بررسی دوباره» (canboso، با کلید یکتا)، یا برای
+    سرویس دهنده ای که کلید یکتا ندارد (aitoolify) تصمیم دستی ادمین."""
+    from app.services import ai_shop
+
     kb = InlineKeyboardBuilder()
+    sizes: list[int] = []
     for o in rows[:10]:
-        _add(kb, f"🔄 بررسی دوباره {o['code']}", callback_data=f"adm:ai:rs:{o['id']}")
+        if ai_shop.can_retry(o):
+            _add(kb, f"🔄 بررسی دوباره {o['code']}", callback_data=f"adm:ai:rs:{o['id']}")
+            sizes.append(1)
+        else:
+            _add(kb, f"↩️ برگشت پول {o['code']}", callback_data=f"adm:ai:rf:{o['id']}")
+            _add(kb, f"✅ تحویل شد {o['code']}", callback_data=f"adm:ai:dn:{o['id']}")
+            sizes.append(2)
     _add(kb, "🔙 خدمات هوش مصنوعی", callback_data="adm:ai")
+    kb.adjust(*sizes, 1)
+    return kb.as_markup()
+
+
+def admin_ai_settle_kb(order_id: int, refund: bool) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    _add(kb, "↩️ بله، پول برگردد" if refund else "✅ بله، تحویل شده",
+         callback_data=f"adm:ai:{'rfy' if refund else 'dny'}:{order_id}")
+    _add(kb, "🔙 انصراف", callback_data="adm:ai:unknown")
     kb.adjust(1)
     return kb.as_markup()
 

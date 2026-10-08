@@ -1349,7 +1349,7 @@ async def cb_ai_balance(call: CallbackQuery, db: Database) -> None:
     bal = await wz.balance()
     await wz.close()
     await call.answer(
-        f"موجودی شما نزد canboso: {bal['text'] or bal['balance']}" if bal is not None
+        f"موجودی شما نزد سرویس دهنده: {bal['text'] or bal['balance']}" if bal is not None
         else "موجودی خوانده نشد.",
         show_alert=True,
     )
@@ -1419,6 +1419,9 @@ async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
     order = await db.get_ai_order(int(call.data.split(":")[3]))
     if not order:
         return await call.answer("سفارش پیدا نشد.", show_alert=True)
+    if not ai_shop.can_retry(order):
+        return await call.answer("این سفارش دوباره فرستاده نمی‌شه؛ از «برگشت پول» یا «تحویل شد» استفاده کن.",
+                                 show_alert=True)
     await call.answer("در حال پرسیدن از canboso…")
     r = await ai_shop.resolve(db, call.bot, order)
     await notify_buyer(call.bot, db, r)
@@ -1429,6 +1432,41 @@ async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
         ai_shop.NO_FUNDS: "↩️ موجودی canboso کم است؛ پول کاربر برگشت",
         ai_shop.UNKNOWN: "🔎 هنوز مبهم است؛ کمی بعد دوباره امتحان کن",
     }.get(r["status"], r["status"])
+    await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
+    await cb_ai_unknown(call, db)
+
+
+@router.callback_query(F.data.regexp(r"^adm:ai:(rf|dn):\d+$"))
+async def cb_ai_settle_ask(call: CallbackQuery, db: Database) -> None:
+    """سفارش مبهم aitoolify: اول در پنل سرویس دهنده نگاه کن، بعد تصمیم بگیر."""
+    _, _, act, oid = call.data.split(":")
+    order = await db.get_ai_order(int(oid))
+    if not order or order["status"] not in ("unknown", "pending"):
+        return await call.answer("این سفارش دیگر مبهم نیست.", show_alert=True)
+    refund = act == "rf"
+    body = (f"سفارش <code>{order['code']}</code> · {esc(order['title'])} · {order['price']:,} تومان\n\n"
+            "اول در پنل aitoolifystudio نگاه کن این سفارش ثبت شده یا نه.\n\n")
+    body += ("اگه <b>ثبت نشده</b>، پول کاربر به کیف پولش برمی‌گرده و بهش خبر داده می‌شه."
+             if refund else
+             "اگه <b>ثبت شده</b> و محتوا رو از پشتیبانی به کاربر دادی، سفارش «تحویل شد» علامت می‌خوره. "
+             "پولی برنمی‌گرده.")
+    await edit_or_send(call.message, body, keyboards.admin_ai_settle_kb(order["id"], refund))
+    await call.answer()
+
+
+@router.callback_query(F.data.regexp(r"^adm:ai:(rfy|dny):\d+$"))
+async def cb_ai_settle(call: CallbackQuery, db: Database) -> None:
+    from app.handlers.ai import notify_buyer
+    from app.services import ai_shop
+
+    _, _, act, oid = call.data.split(":")
+    order = await db.get_ai_order(int(oid))
+    if not order:
+        return await call.answer("سفارش پیدا نشد.", show_alert=True)
+    r = await ai_shop.settle_manual(db, order, refund=act == "rfy")
+    if r["status"] == ai_shop.FAILED:
+        await notify_buyer(call.bot, db, r)
+    label = {ai_shop.FAILED: "↩️ پول کاربر برگشت", ai_shop.DELIVERED: "✅ تحویل شد علامت خورد"}.get(r["status"], r["status"])
     await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
     await cb_ai_unknown(call, db)
 
@@ -1555,10 +1593,15 @@ async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
     except CanbosoError as exc:
         parsed = {"error": str(exc)}
     key = await ai_shop.api_key(db)
+    prov = await ai_shop.provider_name(db)
+    base = ("https://bot.aitoolifystudio.io/api/reseller/v1" if prov == "aitoolify"
+            else "https://canboso.com/api/v2/telegram-buyer")
+    auth = "  (Authorization: Bearer ***)" if prov == "aitoolify" else "?key=***"
     doc = {
+        "provider": prov,
         "requests": {
-            "products": "GET https://canboso.com/api/v2/telegram-buyer/products?key=***",
-            "balance": "GET https://canboso.com/api/v2/telegram-buyer/balance?key=***",
+            "products": f"GET {base}/products{auth}",
+            "balance": f"GET {base}/balance{auth}",
         },
         "responses": raw,
         "bot_view": parsed,
@@ -1570,8 +1613,8 @@ async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
     bal = raw.get("/balance", {})
     n = len(((prod.get("body") or {}) if isinstance(prod.get("body"), dict) else {}).get("products") or [])
     await call.message.answer_document(
-        BufferedInputFile(data.encode("utf-8"), filename="canboso_check.json"),
-        caption=(f"🧪 خروجی خام canboso\n"
+        BufferedInputFile(data.encode("utf-8"), filename=f"{prov}_check.json"),
+        caption=(f"🧪 خروجی خام {prov}\n"
                  f"/products → HTTP {prod.get('status')} · {prod.get('ms', '-')}ms · {n} محصول\n"
                  f"/balance → HTTP {bal.get('status')} · {bal.get('ms', '-')}ms\n"
                  "responses = پاسخ خام · bot_view = برداشت ربات (قیمت تومانی و موجودی)"),

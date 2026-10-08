@@ -1,4 +1,8 @@
-"""فروش خدمات هوش مصنوعی از canboso — مستقل از رابط.
+"""فروش خدمات هوش مصنوعی — مستقل از رابط.
+
+سرویس دهنده: aitoolifystudio (app/aitoolify.py) وقتی AITOOLIFY_API_KEY
+تنظیم باشد یا کلید پنل با sk_ شروع شود؛ وگرنه canboso (app/canboso.py).
+هر دو یک رابط و یک شکل خروجی دارند.
 
 ترتیب خرید عمدی است، چون تحویل **برگشت ناپذیر** است:
 
@@ -50,12 +54,26 @@ BAD_INPUT = "bad_input"
 
 
 async def api_key(db: "Database") -> str:
-    """کلید از .env (CANBOSO_API_KEY)، وگرنه همان که ادمین در پنل گذاشته."""
-    return config.canboso_api_key or (await db.get_setting("ai_api_key", "") or "").strip()
+    """کلید از .env (AITOOLIFY_API_KEY یا CANBOSO_API_KEY)، وگرنه همان که ادمین در پنل گذاشته."""
+    return (config.aitoolify_api_key or config.canboso_api_key
+            or (await db.get_setting("ai_api_key", "") or "").strip())
 
 
-async def client(db: "Database") -> Canboso:
-    return Canboso(await api_key(db))
+def is_aitoolify(key: str) -> bool:
+    return bool(key) and (key == config.aitoolify_api_key or key.startswith("sk_"))
+
+
+async def client(db: "Database"):  # noqa: ANN201  (Canboso یا Aitoolify؛ رابط یکسان)
+    key = await api_key(db)
+    if is_aitoolify(key):
+        from app.aitoolify import Aitoolify
+
+        return Aitoolify(key, config.aitoolify_base_url or None)
+    return Canboso(key)
+
+
+async def provider_name(db: "Database") -> str:
+    return "aitoolify" if is_aitoolify(await api_key(db)) else "canboso"
 
 
 # ═══════════════════ محصول ═══════════════════
@@ -398,7 +416,8 @@ async def buy(
         request = {"product_id": str(product_id), "months": months if req["months"] else None,
                    "email": email if req["email"] else None, "expected_cost": cost,
                    "guide": guide_of(p, await db.product_meta(str(product_id)))[:2500],
-                   "category": auto_category(p), "brand": str(p.get("emoji") or ""), "kind": delivery_kind(p)}
+                   "category": auto_category(p), "brand": str(p.get("emoji") or ""), "kind": delivery_kind(p),
+                   "provider": getattr(cb, "name", "canboso")}
         idem = f"obour-{order['code']}-{uuid.uuid4().hex[:16]}"
         await db.set_ai_request(order["id"], idem, json.dumps(request, ensure_ascii=False), currency)
         order = await db.get_ai_order(order["id"])
@@ -408,10 +427,24 @@ async def buy(
         await db.release_lock(lock)
 
 
+def provider_of(order: dict) -> str:
+    try:
+        return str(json.loads(order.get("request") or "{}").get("provider") or "canboso")
+    except (TypeError, ValueError):
+        return "canboso"
+
+
+def can_retry(order: dict) -> bool:
+    """فقط canboso کلید یکتای خرید دارد؛ فرستادن دوباره سفارش aitoolify ممکن است دوبار خرید کند."""
+    return provider_of(order) == "canboso"
+
+
 async def resolve(db: "Database", bot, order: dict) -> dict:  # noqa: ANN001
     """سفارش مبهم (یا pending جا مانده) را با همان Idempotency-Key دوباره می پرسد."""
     if order["status"] not in (UNKNOWN, "pending") or not order.get("idem_key"):
         return {"status": order["status"], "order": order}
+    if not can_retry(order):
+        return {"status": UNKNOWN, "order": order, "manual": True}
     user = await db.get_user(order["user_id"])
     cb = await client(db)
     try:
@@ -475,6 +508,23 @@ async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, fi
     return {"status": status, "order": await db.get_ai_order(order["id"]), "result": result}
 
 
+async def settle_manual(db: "Database", order: dict, refund: bool) -> dict:
+    """سفارش مبهمی که دوباره فرستادنش امن نیست، با تصمیم ادمین بسته می شود.
+
+    refund=True: در پنل سرویس دهنده انجام نشده بود؛ پول کاربر برمی گردد.
+    refund=False: انجام شده و ادمین محتوا را از پشتیبانی به کاربر داده است.
+    """
+    if order["status"] not in (UNKNOWN, "pending"):
+        return {"status": order["status"], "order": order}
+    user = await db.get_user(order["user_id"])
+    if refund:
+        await _refund(db, user, order, "بررسی دستی ادمین: انجام نشده بود")
+        return {"status": FAILED, "order": await db.get_ai_order(order["id"])}
+    await db.finish_ai_order(order["id"], DELIVERED, provider_order_id=order.get("provider_order_id") or "",
+                             products=order.get("products") or json.dumps({"manual": True}))
+    return {"status": DELIVERED, "order": await db.get_ai_order(order["id"]), "manual": True}
+
+
 async def _refund(db: "Database", user: dict, order: dict, reason: str) -> None:
     await db.atomic_credit(user["id"], int(order["price"]))
     await db.insert_transaction(user["id"], "refund", int(order["price"]), status="approved")
@@ -517,8 +567,13 @@ def delivery_html(order: dict) -> str:
         user = str(a.get("user") or "")
         if user.startswith(("http://", "https://")) and not a.get("password"):
             lines.append("🔗 " + i18n.t("لینک فعال سازی") + f": <code>{esc(user)}</code>")
-        else:
+        elif user or a.get("password"):
             lines.append(head + i18n.t("نام کاربری") + f": <code>{esc(user or '-')}</code>")
+        elif a.get("otherInfo"):
+            # محتوای خام تحویل (مثل کد یا متن حساب) قابل کپی
+            lines.append(("📦 " + (f"{i}. " if len(d.get("accounts") or []) > 1 else "")) + f"<code>{esc(a['otherInfo'])}</code>")
+            lines.append("")
+            continue
         if a.get("password"):
             lines.append("🔑 " + i18n.t("رمز") + f": <code>{esc(a['password'])}</code>")
         if a.get("verifyEmail"):

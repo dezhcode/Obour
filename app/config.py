@@ -177,6 +177,10 @@ class Config:
     # کلید خریدار (tgb_...) از ربات canboso. اگر خالی باشد، کلیدی که
     # ادمین در پنل گذاشته استفاده می شود.
     canboso_api_key: str = os.getenv("CANBOSO_API_KEY", "").strip()
+    # وب سرویس فروش عمده aitoolifystudio (کلید sk_live_...). اگر تنظیم باشد
+    # به جای canboso استفاده می شود.
+    aitoolify_api_key: str = os.getenv("AITOOLIFY_API_KEY", "").strip()
+    aitoolify_base_url: str = os.getenv("AITOOLIFY_BASE_URL", "").strip().rstrip("/")
 
     # ===== دستیار هوش مصنوعی (وب سرویس dezhcode) =====
     # کلید فقط در .env می ماند. بدون کلید همه بخش های هوشمند خاموش اند و
