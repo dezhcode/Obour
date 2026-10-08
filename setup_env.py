@@ -292,7 +292,8 @@ def resolve_admins(given: str | None, env: EnvFile, ask: Asker, bot_ids: set[int
 # ---------- خواندن از فایل ----------
 # کلیدهایی که از فایل --from عینا به .env می روند (بعد از چک ساده)
 PLAIN_KEYS = ("WEBHOOK_BASE_URL", "TG_PROXY", "TG_API_BASE", "PANEL_BASE_URL", "PANEL_USERNAME",
-              "PANEL_PASSWORD", "PANEL_API_KEY", "PANEL_GROUP_ID", "GAME_CLUB_BOT_USERNAME")
+              "PANEL_PASSWORD", "PANEL_API_KEY", "PANEL_GROUP_ID", "GAME_CLUB_BOT_USERNAME",
+              "AITOOLIFY_API_KEY")
 
 
 def load_from(a: argparse.Namespace) -> dict[str, str]:
