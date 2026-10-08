@@ -4,6 +4,8 @@
   python setup_env.py --apply      همان + ری استارت و ثبت وبهوک هر دو ربات
   python setup_env.py --rotate     ساخت دوباره سکرت ها (وبهوک ها باید دوباره ثبت شوند)
   python setup_env.py --dry-run    فقط نشان بده چه چیزی عوض می شود
+  python setup_env.py --panel      اطلاعات پنل PasarGuard را دوباره بپرس
+راه اندازی کامل (کد، کتابخانه، پلن، وبهوک) با یک دستور: bash setup_all.sh
 
 بدون پرسش (مثلا در اسکریپت دیگر):
   python setup_env.py --yes --bot-token ... --gc-token ... --admin-ids 111,222
@@ -233,6 +235,16 @@ def resolve_token(name: str, title: str, given: str | None, env: EnvFile, ask: A
             if status == "ok":
                 print(f"  تایید شد: @{info}")
                 return value, info
+            if status == "net" and ask.interactive and not env.get("TG_PROXY") and not env.get("TG_API_BASE"):
+                print(f"  تلگرام از این هاست در دسترس نیست ({info})")
+                proxy = ask.text("پروکسی تلگرام برای TG_PROXY (مثل socks5://host:port؛ Enter = بدون پروکسی)", "")
+                if proxy:
+                    env.set("TG_PROXY", proxy)
+                    print("  TG_PROXY ثبت شد")
+                    status, info = check_token(value, env)
+                    if status == "ok":
+                        print(f"  تایید شد: @{info}")
+                        return value, info
             if status == "net":
                 print(f"  هشدار: تلگرام در دسترس نیست، توکن بدون تایید ثبت می شود ({info})")
                 return value, ""
@@ -272,10 +284,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--gc-token", help="توکن ربات Game Club (GAME_CLUB_BOT_TOKEN)")
     p.add_argument("--admin-ids", help="آیدی عددی ادمین ها، با کاما")
     p.add_argument("--env", default=str(ENV_PATH), help="مسیر فایل .env (پیش فرض: کنار همین اسکریپت)")
+    p.add_argument("--panel", action="store_true", help="اطلاعات پنل PasarGuard را دوباره بپرس")
     p.add_argument("--rotate", action="store_true", help="همه سکرت ها و مسیر وبهوک را از نو بساز")
     p.add_argument("--no-check", action="store_true", help="توکن را با getMe تایید نکن")
     p.add_argument("--yes", "-y", action="store_true", help="بدون پرسش؛ فقط از فلگ ها و مقادیر موجود")
     p.add_argument("--dry-run", action="store_true", help="فقط تغییرات را نشان بده، چیزی ننویس")
+    p.add_argument("--no-hints", action="store_true", help=argparse.SUPPRESS)  # از setup_all.sh
     p.add_argument("--apply", action="store_true", help="بعد از نوشتن: ری استارت و ثبت وبهوک هر دو ربات")
     a = p.parse_args(argv)
 
@@ -299,7 +313,7 @@ def main(argv: list[str] | None = None) -> int:
     rows: list[tuple[str, str, str]] = []
 
     def put(key: str, value: str, generated: bool = False) -> None:
-        if key in ("ADMIN_IDS", "GAME_CLUB_BOT_USERNAME"):
+        if key in ("ADMIN_IDS", "GAME_CLUB_BOT_USERNAME", "WEBHOOK_BASE_URL", "PANEL_BASE_URL", "PANEL_USERNAME"):
             shown = value or "-"
         elif key == "WEBHOOK_PATH":
             shown = "/tg/…" + value[-3:]
@@ -335,7 +349,30 @@ def main(argv: list[str] | None = None) -> int:
     bot_ids = {int(t.split(":", 1)[0]) for t in (token, gc_token) if t}
     put("ADMIN_IDS", resolve_admins(a.admin_ids, env, ask, bot_ids))
 
-    # ۴. سکرت ها: فقط اگر خالی، نامعتبر یا --rotate
+    # ۴. آدرس اپ و پنل: فقط اگر خالی باشند (یا --panel)
+    base = env.get("WEBHOOK_BASE_URL")
+    if not base.startswith("https://"):
+        print("— آدرس اپ")
+        url = ask.text("آدرس اپ روی هاست (مثل https://dezhcode.pyho.ir/obour)", base).rstrip("/")
+        if url.startswith("https://"):
+            put("WEBHOOK_BASE_URL", url)
+    has_auth = env.get("PANEL_API_KEY") or (env.get("PANEL_USERNAME") and env.get("PANEL_PASSWORD"))
+    if ask.interactive and (a.panel or not has_auth):
+        print("— پنل PasarGuard (Enter = مقدار فعلی)")
+        url = ask.text("آدرس پنل (بدون /dashboard)", env.get("PANEL_BASE_URL")).rstrip("/")
+        if url:
+            put("PANEL_BASE_URL", url)
+        user = ask.text("یوزرنیم پنل", env.get("PANEL_USERNAME"))
+        if user:
+            put("PANEL_USERNAME", user)
+        password = ask.secret("پسورد پنل", env.get("PANEL_PASSWORD"))
+        if password:
+            if any(c in password for c in " #'\"\\"):
+                print(f"  {BAD} پسورد فاصله، # یا کوتیشن دارد؛ آن را دستی و داخل کوتیشن در .env بنویس")
+            else:
+                put("PANEL_PASSWORD", password)
+
+    # ۵. سکرت ها: فقط اگر خالی، نامعتبر یا --rotate
     taken: set[str] = set()
     for key in ("WEBHOOK_SECRET", "ADMIN_KEY", "GAME_CLUB_WEBHOOK_SECRET"):
         cur = env.get(key)
@@ -380,6 +417,8 @@ def main(argv: list[str] | None = None) -> int:
 
     rotated = any(tag == NEW and k in ("WEBHOOK_SECRET", "WEBHOOK_PATH", "GAME_CLUB_WEBHOOK_SECRET")
                   for tag, k, _ in rows)
+    if a.no_hints:
+        return 0
     do_apply = a.apply or (changed and ask.interactive and ask.yes("الان ری استارت کنم و وبهوک هر دو ربات را ثبت کنم؟", True))
     if do_apply:
         return apply(env_path, gc_enabled=bool(gc_token))

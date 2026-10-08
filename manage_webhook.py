@@ -100,4 +100,11 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    from aiogram.exceptions import TelegramAPIError, TelegramNetworkError
+
+    try:
+        asyncio.run(main())
+    except TelegramNetworkError as e:
+        raise SystemExit(f"تلگرام در دسترس نیست: {e}\nاگر هاست به api.telegram.org راه ندارد TG_PROXY یا TG_API_BASE را در .env بگذار.") from None
+    except TelegramAPIError as e:
+        raise SystemExit(f"تلگرام خطا داد: {e}") from None

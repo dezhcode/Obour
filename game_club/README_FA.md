@@ -14,7 +14,8 @@ Game Club کنار ربات عبور روی **همان هاست، همان پر�
 ۲. روی هاست، در پوشهٔ عبور:
 
 ```bash
-python setup_env.py --apply
+bash setup_all.sh          # راه اندازی کامل عبور و Game Club با یک دستور
+python setup_env.py --apply  # یا فقط تنظیمات و وبهوک ها
 ```
 
 توکن ربات Game Club را می پرسد، با getMe تاییدش می کند و یوزرنیمش را در
