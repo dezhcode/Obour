@@ -9,8 +9,8 @@
 <link rel="stylesheet" href="static/gc.css">
 <style>
 /* صفحه بازی: نوار نوبت، دو صندلی بالا، صفحه، دو صندلی پایین، رویدادها، داک تاس */
-.ludo{gap:var(--space-3);padding-block-end:var(--space-4)}
-.ludo .top h1{font-size:22px;line-height:30px}
+.mode-row{display:flex;justify-content:center}
+.seat.empty{visibility:hidden}
 .mode-tag{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:800;background:var(--surface);border-radius:var(--radius-pill);padding:2px 10px;box-shadow:var(--depth-sm)}
 .mode-tag .amount{font-size:12.5px}
 .seat .die.sm{margin-inline:2px}
@@ -38,36 +38,30 @@
 @keyframes bob{50%{transform:translateY(-6px)}}
 </style>
 </head>
-<body>
+<body class="game">
+<header class="appbar" id="appbar">
+  <div class="appbar-cap"><span id="capTitle">منچ</span></div>
+  <div class="appbar-in">
+    <button class="icon-btn back" id="exit" aria-label="خروج از بازی"><i data-ic="back"></i></button>
+    <div class="turnbar" id="turnbar" role="status" aria-live="polite"><span class="dot"></span><span class="txt" id="turnTxt">در حال وصل شدن…</span><span class="time" aria-hidden="true"><i id="timeBar"></i></span></div>
+    <button class="icon-btn" id="snd" aria-label="صدا"></button>
+    <button class="icon-btn" id="rules" aria-label="قوانین بازی"><i data-ic="help"></i></button>
+  </div>
+</header>
 <main class="page no-nav ludo">
-  <header class="top">
-    <div class="top-l">
-      <button class="icon-btn" id="exit" aria-label="خروج از بازی"><i data-ic="back"></i></button>
-      <div><h1 class="on-ground">منچ</h1></div>
-      <span class="mode-tag" id="modeTag"></span>
-    </div>
-    <div class="top-l">
-      <button class="icon-btn" id="snd" aria-label="صدا"></button>
-      <button class="icon-btn" id="rules" aria-label="قوانین بازی"><i data-ic="help"></i></button>
-    </div>
-  </header>
-
-  <div class="turnbar" id="turnbar" role="status" aria-live="polite"><span class="dot"></span><span class="txt" id="turnTxt">در حال آماده شدن…</span><span class="time" aria-hidden="true"><i id="timeBar"></i></span></div>
-
-  <div class="seats" dir="ltr">
-    <div class="seat c-blue" data-seat="blue"></div>
-    <div class="seat c-red right" data-seat="red"></div>
+  <div class="mode-row"><span class="mode-tag" id="modeTag"></span></div>
+  <div class="seats" dir="ltr" id="seatsTop">
+    <div class="seat" data-corner="0"></div>
+    <div class="seat right" data-corner="1"></div>
   </div>
-  <div class="board-frame" dir="ltr"><div class="board" id="board" aria-label="صفحهٔ منچ"></div></div>
-  <div class="seats" dir="ltr">
-    <div class="seat c-yellow" data-seat="yellow"></div>
-    <div class="seat c-green right" data-seat="green"></div>
+  <div class="board-frame" dir="ltr" id="frame"><div class="board rot" id="board" aria-label="صفحهٔ منچ"></div></div>
+  <div class="seats" dir="ltr" id="seatsBot">
+    <div class="seat" data-corner="3"></div>
+    <div class="seat right" data-corner="2"></div>
   </div>
-
-  <div class="feed" id="feed" aria-live="polite"></div>
-
-  <div class="dock">
-    <button class="dock-btn" id="roll" aria-label="ریختن تاس" aria-disabled="true"><span class="die c-yellow" id="myDie"></span></button>
+  <div class="feed1" id="feed" aria-live="polite"></div>
+  <div class="dock" id="dock">
+    <button class="dock-btn" id="roll" aria-label="ریختن تاس" aria-disabled="true"><span class="die c-yellow ghost" id="myDie"></span></button>
     <div class="dock-txt"><b id="dockT">صبر کن…</b><span id="dockS"></span></div>
   </div>
 </main>

@@ -47,6 +47,23 @@ if (live) {
   applyInsets();
   if (MOBILE.includes(tg.platform) && ver('8.0') && !tg.isFullscreen) { try { tg.requestFullscreen(); } catch (e) {} }
 }
+/* فقط پیش نمایش بیرون از تلگرام: #fs ظاهر تمام صفحه تلگرام را شبیه سازی می کند
+   (نوار وضعیت ۴۴ و نوار دکمه های تلگرام ۴۶ پیکسل)، #nofs خاموشش می کند */
+if (!live) {
+  try {
+    if (location.hash === '#fs') localStorage.setItem('gclub_fs_sim', '1');
+    if (location.hash === '#nofs') localStorage.removeItem('gclub_fs_sim');
+    if (localStorage.getItem('gclub_fs_sim')) {
+      root.style.setProperty('--sa-t', '44px'); root.style.setProperty('--csa-t', '46px'); root.style.setProperty('--sa-b', '24px');
+      root.classList.add('is-fs', 'fs-sim');
+      document.addEventListener('DOMContentLoaded', () => {
+        const bar = document.createElement('div'); bar.className = 'tg-sim'; bar.setAttribute('aria-hidden', 'true');
+        bar.innerHTML = '<span class="tg-sim-sb"><b>9:41</b><b>5G</b></span><span class="tg-sim-btn l">✕ بستن</span><span class="tg-sim-btn r">•••</span>';
+        document.body.appendChild(bar);
+      });
+    }
+  } catch (e) {}
+}
 /* دکمه برگشت بومی تلگرام؛ دکمه برگشت داخل صفحه فقط بیرون از تلگرام دیده می شود */
 function back(href) {
   if (!live || !ver('6.1')) return;
@@ -268,6 +285,29 @@ function mount(root = document) {
 }
 document.addEventListener('click', e => { if (e.target.closest('.btn,.chip,.seg button,.choice,.nav a,.icon-btn')) { sfx.tap(); haptic('select'); } }, true);
 
+/* ---------- آموزش بار اول منچ (قبل از نشستن سر میز، تا وقت نوبت نسوزد) ---------- */
+function coach(me = 'yellow') {
+  return new Promise(res => {
+    const body = s => s.replace(/^<svg[^>]*>|<\/svg>$/g, '');
+    const SL = [
+      ['رنگ تو پایین چپ است', 'هر بازیکن صفحه را از سمت خودش می‌بیند. مهره‌هایت را دور صفحه ببر و به مرکز برسان.', `<svg viewBox="0 0 100 100"><rect x="6" y="6" width="88" height="88" rx="18" fill="${COL[me].hex}"/><rect x="22" y="22" width="56" height="56" rx="12" fill="#FFFDF6"/><g transform="translate(30 20)">${body(pawn(me))}</g></svg>`],
+      ['روی تاس بزن', 'تاس پایین صفحه است. با ۶ یک مهره وارد بازی می‌شود و یک نوبت دیگر داری.', `<svg viewBox="0 0 100 100"><rect x="18" y="18" width="64" height="64" rx="16" fill="${COL[me].hex}"/><g fill="#fff"><circle cx="35" cy="35" r="6"/><circle cx="65" cy="35" r="6"/><circle cx="35" cy="50" r="6"/><circle cx="65" cy="50" r="6"/><circle cx="35" cy="65" r="6"/><circle cx="65" cy="65" r="6"/></g></svg>`],
+      ['مهره را انتخاب کن', 'مهره‌ای که بالا و پایین می‌پرد قابل حرکت است. دایرهٔ خط‌چین نشان می‌دهد کجا می‌رود.', `<svg viewBox="0 0 100 100"><rect x="8" y="58" width="24" height="24" rx="6" fill="#FFFDF6" stroke="#D6E2CB" stroke-width="2"/><rect x="38" y="58" width="24" height="24" rx="6" fill="#FFFDF6" stroke="#D6E2CB" stroke-width="2"/><rect x="68" y="58" width="24" height="24" rx="6" fill="#FFFDF6" stroke="#D6E2CB" stroke-width="2"/><circle cx="80" cy="70" r="9" fill="rgba(255,255,255,.8)" stroke="${COL[me].hex}" stroke-width="3" stroke-dasharray="4 3"/><g transform="translate(6 18) scale(.7)">${body(pawn(me))}</g><path d="M34 40c14-12 34-12 44 14" fill="none" stroke="#1C2A16" stroke-width="2.5" stroke-dasharray="4 4"/></svg>`],
+    ];
+    let i = 0;
+    const draw = () => {
+      const [t, d, svg] = SL[i];
+      const sh = sheet(`<div class="coach"><div class="pic">${svg}</div><h2>${t}</h2><p class="muted">${d}</p><div class="dots">${SL.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('')}</div></div>
+        <button class="btn btn-block" id="nx">${i < SL.length - 1 ? 'بعدی' : 'فهمیدم، شروع'}</button>
+        <button class="btn btn-light btn-block" id="sk">رد کردن آموزش</button>`, { center: true, dismiss: false });
+      const end = () => { S.tutorial = true; save(); GC.close(); res(); };
+      sh.querySelector('#nx').onclick = () => { if (++i < SL.length) draw(); else end(); };
+      sh.querySelector('#sk').onclick = end;
+    };
+    draw();
+  });
+}
+
 /* ---------- داده نمونه (تا وقتی API Game Club ساخته شود) ---------- */
 const PEOPLE = [['کیان ر.', 3], ['مهسا ک.', 5], ['امیرعلی م.', 2], ['نگار س.', 9], ['رضا ت.', 12], ['پریا ن.', 13], ['سینا ح.', 6], ['هستی ا.', 17], ['آرش د.', 10], ['یاسمن ف.', 21]];
 const LB = {
@@ -311,7 +351,7 @@ function boardArt() {
 const RATE = 100; // هر امتیاز چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
-window.GC = { tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
+window.GC = { coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
   PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount };

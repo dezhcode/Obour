@@ -61,7 +61,7 @@ h1,h2,h3,p{margin:0}
 .amount{display:inline-flex;align-items:center;gap:var(--space-1);font-weight:900;color:var(--coin-text)}
 .amount.lg{font-size:22px;line-height:28px}
 .amount.ink{color:var(--ink)}
-.pill{display:inline-flex;align-items:center;gap:var(--space-2);background:var(--surface);border-radius:var(--radius-pill);padding:4px 6px 4px 14px;box-shadow:var(--depth-sm);font-weight:900;font-size:16px}
+.pill{display:inline-flex;align-items:center;gap:var(--space-2);background:var(--surface);color:var(--ink);border-radius:var(--radius-pill);padding:4px 6px 4px 14px;box-shadow:var(--depth-sm);font-weight:900;font-size:16px}
 .pill .plus{width:30px;height:30px;border-radius:50%;background:var(--success);color:var(--on-fill);display:grid;place-items:center;box-shadow:var(--press-sm)}
 .pill .plus svg{width:16px;height:16px}
 
@@ -125,6 +125,7 @@ h1,h2,h3,p{margin:0}
 .scrim.center{align-items:center;padding:var(--space-4)}
 .sheet{width:100%;max-width:480px;max-height:92vh;overflow:auto;background:var(--surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-3) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom,0px));display:grid;gap:var(--space-5);align-content:start;box-shadow:var(--lift);animation:sheet-in .24s ease-out}
 .scrim.center .sheet{border-radius:var(--radius-xl);padding-block-end:var(--space-5);animation:pop-in .22s ease-out}
+.sheet>*{min-width:0}
 .grab{width:44px;height:5px;border-radius:5px;background:var(--line);justify-self:center}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
 .sheet-head h2{font-size:22px;line-height:30px;font-weight:900}
@@ -210,9 +211,9 @@ h1,h2,h3,p{margin:0}
 @keyframes flash{from{box-shadow:0 0 0 0 var(--c);opacity:1}to{box-shadow:0 0 0 22px var(--c);opacity:0}}
 
 /* نوار نوبت و داک تاس */
-.turnbar{display:flex;align-items:center;gap:var(--space-2);background:var(--surface);border-radius:var(--radius-pill);padding:6px 14px 6px 6px;box-shadow:var(--depth-sm);font-weight:900;font-size:14px;line-height:20px}
+.turnbar{display:flex;align-items:center;gap:var(--space-2);background:var(--surface);color:var(--ink);border-radius:var(--radius-pill);padding:6px 14px 6px 6px;box-shadow:var(--depth-sm);font-weight:900;font-size:14px;line-height:20px}
 .turnbar .dot{width:26px;height:26px;border-radius:50%;background:var(--c);box-shadow:inset 0 -3px 0 var(--e);flex:none}
-.turnbar .txt{flex:1;min-width:0}
+.turnbar .txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .turnbar .time{width:64px;height:8px;border-radius:8px;background:var(--surface-sunk);overflow:hidden;flex:none}
 .turnbar .time i{display:block;height:100%;width:100%;background:var(--c);transform-origin:right;transition:transform .2s linear}
 .dock{position:sticky;bottom:calc(var(--space-2) + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));z-index:var(--z-nav);display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border-radius:var(--radius-xl);padding:var(--space-3);box-shadow:var(--lift)}
@@ -266,3 +267,12 @@ body.game .page{gap:var(--space-2);padding-block:var(--space-2) var(--space-2)}
 .wait-line{display:flex;align-items:center;justify-content:center;gap:var(--space-2);font-weight:800}
 .spinner{width:18px;height:18px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--sky);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* شبیه سازی تمام صفحه تلگرام در پیش نمایش (فقط حالت نمایشی، #fs) */
+.tg-sim{position:fixed;inset:0 0 auto 0;height:90px;z-index:70;pointer-events:none;direction:ltr}
+.tg-sim-sb{position:absolute;inset:0 0 auto 0;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;color:#fff;font:700 14px/1 system-ui}
+.tg-sim-btn{position:absolute;top:50px;height:34px;border-radius:17px;background:rgba(0,0,0,.3);color:#fff;font:700 12px/34px var(--font-rokh);padding:0 14px}
+.tg-sim-btn.l{left:12px}.tg-sim-btn.r{right:12px}
+body.game .appbar-in{gap:var(--space-2)}
+body.game .appbar .turnbar{padding-inline-end:10px}
+body.game .appbar .turnbar .time{width:44px}

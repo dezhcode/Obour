@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import time
 
 import aiosqlite
@@ -106,6 +107,13 @@ CREATE TABLE IF NOT EXISTS locks (
 """
 
 
+_UNSAFE = re.compile(r"[<>&\"'`\\]|[\u0000-\u001f\u200e\u200f\u202a-\u202e]")
+
+
+def _clean(text: str) -> str:
+    return _UNSAFE.sub("", text or "").strip()[:40]
+
+
 class GCDatabase:
     def __init__(self, path: str) -> None:
         self.path = path
@@ -180,6 +188,10 @@ class GCDatabase:
 
     # ---------- بازیکن ----------
     async def player(self, tg_id: int, name: str = "", username: str | None = None) -> dict:
+        # نام از پروفایل تلگرام می آید و در صفحه بقیه بازیکن ها نشان داده می شود؛
+        # نویسه هایی که در HTML معنی دارند همین جا حذف می شوند (جلوگیری از XSS)
+        name = _clean(name)
+        username = _clean(username or "") or None
         now = int(time.time())
         await self.execute(
             "INSERT OR IGNORE INTO players(tg_id, name, username, av, created_at, seen_at) VALUES(?,?,?,?,?,?)",

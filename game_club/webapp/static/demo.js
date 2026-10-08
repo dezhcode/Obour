@@ -126,7 +126,10 @@ function payEntry(cfg) {
   S.bal -= cfg.entry; S.spent += cfg.entry; GC.ledger('ورودی منچ', -cfg.entry, 'entry'); save();
 }
 const ludo = {
-  async queueJoin(cfg) { payEntry(cfg); store.set('demo_q', { cfg, t0: Date.now() }); return ludo.queueStatus(); },
+  async queueJoin(cfg) {
+    if (cfg.solo) { const mm = makeMatch(Object.assign({}, cfg, { mode: 'free', entry: 0 })); saveM(mm); return { state: 'matched', match: mm.id }; }
+    payEntry(cfg); store.set('demo_q', { cfg, t0: Date.now() }); return ludo.queueStatus();
+  },
   async queueStatus() {
     const q = store.get('demo_q', null), m = loadM();
     if (!q) return m && m.status === 'playing' ? { state: 'matched', match: m.id } : { state: 'none' };

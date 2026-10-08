@@ -175,6 +175,13 @@ async def queue_join(db: GCDatabase, tg: int, raw_cfg: dict) -> dict:
     active = await db.active_match_of(tg)
     if active:
         return {"state": "matched", "match": active}
+    if raw_cfg.get("solo") and cfg["mode"] == "free":
+        # تمرین با ربات: بدون صف، همین حالا با ربات ها
+        if await db.queue_row(tg):
+            await queue_leave(db, tg)
+        mid = _code(10)
+        await _start_game(db, mid, cfg, [{"tg": tg, "paid": 0}], create=True)
+        return {"state": "matched", "match": mid}
     old = await db.queue_row(tg)
     if old:
         if old["cfg_key"] == cfg_key(cfg) and not old["claimed"]:
