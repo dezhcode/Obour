@@ -220,7 +220,20 @@ def main_menu(trial_available: bool = False) -> InlineKeyboardMarkup:
         rows.append(len(pair))
 
     _btn(kb, "guide", "راهنما", callback_data="guide")
-    _btn(kb, "support", "پشتیبانی", callback_data="sup")
+    # پشتیبانی کامل در مینی اپ است (تیکت، دستیار، راهنما)؛ بدون مینی اپ همان مسیر ربات
+    _sup_url = ""
+    try:
+        from app import webapp as _wa
+
+        _sup_url = _wa.url()
+    except Exception:  # noqa: BLE001
+        _sup_url = ""
+    if _sup_url:
+        from aiogram.types import WebAppInfo
+
+        _btn(kb, "support", "پشتیبانی", web_app=WebAppInfo(url=webapp_route(_sup_url, "support")))
+    else:
+        _btn(kb, "support", "پشتیبانی", callback_data="sup")
     rows.append(2)
 
     # ---------- مینی اپ ----------
@@ -579,7 +592,7 @@ def _crypto_btn(kb: InlineKeyboardBuilder, style: str | None = None) -> None:
     if url:
         from aiogram.types import WebAppInfo
 
-        _add(kb, "🔷 شارژ با TON / USDT", style=style, web_app=WebAppInfo(url=f"{url}#crypto"))
+        _add(kb, "🔷 شارژ با TON / USDT", style=style, web_app=WebAppInfo(url=webapp_route(url, "crypto")))
     else:
         _add(kb, "🔷 شارژ با TON / USDT", style=style, callback_data="cw")
 
@@ -737,6 +750,34 @@ def services_kb(services: list[dict]) -> InlineKeyboardMarkup:
     _add(kb, "🛒 خرید سرویس جدید", style=PRIMARY, callback_data="buy")
     _add(kb, "🔙 منوی اصلی", callback_data="menu")
     kb.adjust(1)
+    return kb.as_markup()
+
+
+def my_services_kb(services: list[dict], ai_count: int, ai_on: bool) -> InlineKeyboardMarkup:
+    """همه خدمات عبور در یک صفحه: کانفیگ ها، اشتراک های هوش مصنوعی، شماره مجازی و ویزا کارت."""
+    from app import texts
+    from app.utils import service_status
+
+    kb = InlineKeyboardBuilder()
+    rows: list[int] = []
+    for s in services[:12]:
+        name = (s.get("label") or "").strip() or f"سرویس {s['id']}"
+        dot = texts.SVC_DOT[service_status(s.get("expire_at"), duration_days=s.get("duration_days"))]
+        _add(kb, f"{dot} {name} · {s['data_gb']} {_t('گیگ')}", callback_data=f"svc:v:{s['id']}")
+        rows.append(1)
+    if ai_on or ai_count:
+        _add(kb, f"🤖 {_t('اشتراک های هوش مصنوعی')} ({ai_count})", callback_data="ai:mine")
+        rows.append(1)
+    pv = 0
+    for route, label in (("numbers", "📱 شماره مجازی · به زودی"), ("visa", "💳 ویزا کارت · به زودی")):
+        if _webapp_btn(kb, label, route):
+            pv += 1
+    if pv:
+        rows.append(pv)
+    _add(kb, "🛒 خرید سرویس جدید", style=PRIMARY, callback_data="buy")
+    _add(kb, "🔙 منوی اصلی", callback_data="menu")
+    rows += [1, 1]
+    kb.adjust(*rows)
     return kb.as_markup()
 
 
@@ -1366,8 +1407,24 @@ def _webapp_btn(kb: InlineKeyboardBuilder, text: str, route: str, style: str | N
         return False
     from aiogram.types import WebAppInfo
 
-    _add(kb, text, style=style, web_app=WebAppInfo(url=f"{url}#{route}"))
+    _add(kb, text, style=style, web_app=WebAppInfo(url=webapp_route(url, route)))
     return True
+
+
+def webapp_route(url: str, route: str) -> str:
+    """آدرس مینی اپ روی یک صفحه مشخص. مسیر در query است نه #: تلگرام داده
+    راه اندازی (tgWebAppData) را در # می گذارد و #crypto را از بین می برد."""
+    return f"{url}?r={route}"
+
+
+def ticket_reply_user_kb(thread_id: int) -> InlineKeyboardMarkup | None:
+    """زیر پاسخ پشتیبانی برای کاربر: دیدن و پاسخ در مینی اپ (همان تیکت)."""
+    kb = InlineKeyboardBuilder()
+    if _webapp_btn(kb, "💬 دیدن تیکت و پاسخ", f"ticket-{thread_id}", style=PRIMARY):
+        kb.adjust(1)
+        return kb.as_markup()
+    _add(kb, "💬 تیکت های من", callback_data="sup:tk")
+    return kb.as_markup()
 
 
 def help_hub_kb() -> InlineKeyboardMarkup:
@@ -1729,6 +1786,19 @@ def winback_kb() -> InlineKeyboardMarkup:
 
 
 # ---------- پشتیبانی و تیکت ----------
+def support_webapp_kb(unread: int = 0) -> InlineKeyboardMarkup | None:
+    """پشتیبانی در مینی اپ: مرکز پشتیبانی، تیکت تازه و تیکت ها. None یعنی مینی اپ خاموش است."""
+    kb = InlineKeyboardBuilder()
+    if not _webapp_btn(kb, "🆘 باز کردن پشتیبانی", "support", style=PRIMARY):
+        return None
+    _webapp_btn(kb, "✍️ تیکت جدید", "compose")
+    _webapp_btn(kb, f"🎫 {_t('تیکت های من')}{f' ({unread})' if unread else ''}", "tickets")
+    _webapp_btn(kb, "📖 مرکز راهنما", "help")
+    _add(kb, "🔙 منوی اصلی", callback_data="menu")
+    kb.adjust(1, 2, 1, 1)
+    return kb.as_markup()
+
+
 def support_kb(has_tickets: bool) -> InlineKeyboardMarkup:
     """چیدمان پشتیبانی: عمل اصلی تنها و برجسته، بقیه دوتا-دوتا کنار هم.
 

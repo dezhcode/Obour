@@ -96,8 +96,13 @@ async def cb_menu(call: CallbackQuery, user: dict) -> None:
 @router.callback_query(F.data == "sup")
 async def cb_support(call: CallbackQuery, db: Database, state: FSMContext, user: dict) -> None:
     await state.clear()
-    tickets = await db.user_tickets(user["id"], limit=1)
     unread = await db.unread_replies(user["id"])
+    web = keyboards.support_webapp_kb(unread)
+    if web is not None:
+        # پشتیبانی کامل در مینی اپ است
+        await edit_or_send(call.message, texts.SUPPORT_WEBAPP, web)
+        return await call.answer()
+    tickets = await db.user_tickets(user["id"], limit=1)
     note = (
         texts.SUPPORT_UNREAD.format(n=unread) if unread else texts.SUPPORT_NO_UNREAD
     )
@@ -216,7 +221,7 @@ async def msg_ticket(message: Message, db: Database, state: FSMContext, user: di
         user["id"], "in", body=body, file_id=file_id, user_msg_id=message.message_id
     )
     await _forward_to_support(
-        message, user, db, await db.ticket_code(thread_id), is_new=is_new
+        message, user, db, await db.ticket_code(thread_id), is_new=is_new, thread_id=thread_id
     )
 
 
@@ -231,7 +236,7 @@ async def media_fallback(message: Message, db: Database, user: dict) -> None:
         user_msg_id=message.message_id,
     )
     await _forward_to_support(
-        message, user, db, await db.ticket_code(thread_id), is_new=is_new
+        message, user, db, await db.ticket_code(thread_id), is_new=is_new, thread_id=thread_id
     )
 
 
@@ -254,12 +259,13 @@ async def text_fallback(message: Message, db: Database, user: dict) -> None:
         user["id"], "in", body=message.text, user_msg_id=message.message_id
     )
     await _forward_to_support(
-        message, user, db, await db.ticket_code(thread_id), is_new=is_new
+        message, user, db, await db.ticket_code(thread_id), is_new=is_new, thread_id=thread_id
     )
 
 
 async def _forward_to_support(
-    message: Message, user: dict, db, code: str | None = None, is_new: bool = True  # noqa: ANN001
+    message: Message, user: dict, db, code: str | None = None, is_new: bool = True,  # noqa: ANN001
+    thread_id: int | None = None,
 ) -> None:
     """ارسال تیکت به ادمین ها با راهنمای ریپلای.
 
@@ -330,8 +336,8 @@ async def _forward_to_support(
 
             copied = await message.copy_to(admin_id, reply_to_message_id=header.message_id)
             if db is not None:
-                await db.save_support_link(admin_id, header.message_id, user["telegram_id"])
-                await db.save_support_link(admin_id, copied.message_id, user["telegram_id"])
+                await db.save_support_link(admin_id, header.message_id, user["telegram_id"], thread_id)
+                await db.save_support_link(admin_id, copied.message_id, user["telegram_id"], thread_id)
         except Exception as exc:  # noqa: BLE001
             log.warning("support forward to %s failed: %s", admin_id, exc)
     if is_new:

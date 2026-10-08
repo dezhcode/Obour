@@ -427,7 +427,7 @@ def _invoice_kb(inv: dict):  # noqa: ANN202
     return keyboards.crypto_invoice_kb(
         inv, crypto_svc.tonkeeper_link(inv), crypto_svc.pay_address(),
         crypto_svc.fmt_units(inv["units"], inv["asset"]),
-        webapp_url=f"{wa}#crypto" if wa else "",
+        webapp_url=keyboards.webapp_route(wa, "crypto") if wa else "",
     )
 
 

@@ -267,7 +267,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
     # فهرست سفید نوشتن. هر مسیر دیگری خواندنی می ماند، تا اگر روزی
     # اندپوینتی اضافه شد بی سروصدا قابل نوشتن نشود.
     WRITE_PATHS = ("/api/purchase", "/api/custom/buy", "/api/service/renew", "/api/topup/start", "/api/topup/receipt",
-                   "/api/rules/accept", "/api/ticket/send", "/api/lang",
+                   "/api/rules/accept", "/api/ticket/send", "/api/ticket/close", "/api/ticket/rate", "/api/lang",
                    "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
                    "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
@@ -477,6 +477,14 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             )
             return _json(start_response, data)
 
+        # ---------- عکس پیام تیکت (فقط صاحب تیکت) ----------
+        if name == "ticket/photo":
+            data = runtime.run(webapi.ticket_photo(db, panel, wuser, msg_id=int(query.get("id") or 0),
+                                                   bot=runtime.bot), timeout=30)
+            start_response("200 OK", [("Content-Type", "image/jpeg"), ("Content-Length", str(len(data))),
+                                      ("Cache-Control", "private, max-age=86400"), ("X-Content-Type-Options", "nosniff")])
+            return [data]
+
         # ---------- گفتگوی تیکت ----------
         if name == "ticket":
             tid = int(query.get("id") or 0)
@@ -524,7 +532,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             return _json(start_response, data)
 
         # ---------- نوشتن های دیگر: شارژ، قوانین، تیکت ----------
-        if name in ("topup/start", "topup/receipt", "rules/accept", "ticket/send", "lang"):
+        if name in ("topup/start", "topup/receipt", "rules/accept", "ticket/send", "ticket/close", "ticket/rate", "lang"):
             if method != "POST":
                 return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
             if not _write_rate_ok(wuser.id):
@@ -559,9 +567,38 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             if name == "rules/accept":
                 return _json(start_response, runtime.run(webapi.rules_accept(db, panel, wuser), timeout=20))
             if name == "ticket/send":
-                body = _body(environ, limit=16384)
-                return _json(start_response, runtime.run(
-                    webapi.ticket_send(db, panel, wuser, body=str(body.get("body") or ""), bot=runtime.bot), timeout=30))
+                import base64, binascii  # noqa: E401
+                body = _body(environ, limit=7 * 1024 * 1024)
+                image = None
+                raw = str(body.get("image") or "")
+                if raw:
+                    raw = raw.split(",", 1)[1] if raw.startswith("data:") else raw
+                    try:
+                        image = base64.b64decode(raw, validate=True)
+                    except (TypeError, ValueError, binascii.Error):
+                        return _json(start_response, {"error": "عکس خوانده نشد", "code": "bad_image"}, "400 Bad Request")
+                try:
+                    thread_id = int(body.get("thread_id") or 0) or None
+                except (TypeError, ValueError):
+                    thread_id = None
+                return _json(start_response, runtime.run(webapi.ticket_send(
+                    db, panel, wuser, body=str(body.get("body") or ""), bot=runtime.bot, thread_id=thread_id,
+                    subject=str(body.get("subject") or ""), category=str(body.get("category") or ""),
+                    priority=str(body.get("priority") or ""), related=str(body.get("related") or ""),
+                    image=image), timeout=60))
+            if name in ("ticket/close", "ticket/rate"):
+                body = _body(environ, limit=4096)
+                try:
+                    tid = int(body.get("id") or 0)
+                    rating = int(body.get("rating") or 0)
+                except (TypeError, ValueError):
+                    tid, rating = 0, 0
+                if tid <= 0:
+                    return _json(start_response, {"error": "تیکت نامعتبر", "code": "bad_request"}, "400 Bad Request")
+                if name == "ticket/close":
+                    return _json(start_response, runtime.run(webapi.ticket_close(db, panel, wuser, ticket_id=tid), timeout=20))
+                return _json(start_response, runtime.run(webapi.ticket_rate(
+                    db, panel, wuser, ticket_id=tid, rating=rating, note=str(body.get("note") or "")), timeout=20))
 
         # ---------- کریپتو (TON Connect) ----------
         if name in ("crypto/start", "crypto/pay", "crypto/cancel"):

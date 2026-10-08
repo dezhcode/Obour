@@ -3038,17 +3038,25 @@ async def admin_support_reply(message: Message, db: Database) -> None:
     # جواب کدام سوالش است. اگر پیام قدیمی پاک شده باشد، تلگرام خطا
     # می دهد و بدون ریپلای دوباره تلاش می کنیم.
     reply_to = await db.last_user_msg_id(user["id"]) if user else None
+    # تیکتی که ادمین پیامش را دیده؛ اگر ثبت نشده بود (پیام های قدیمی)، تیکت باز آخر
+    thread = None
+    if user:
+        tid = await db.get_support_thread(message.from_user.id, message.reply_to_message.message_id)
+        thread = await db.thread_root(tid, user["id"]) if tid else None
+        thread = thread or await db.open_thread(user["id"])
     try:
         async def _deliver(rt: int | None) -> None:
-            if body and not message.photo:
-                with i18n.using(i18n.lang_of(user)):
+            with i18n.using(i18n.lang_of(user)):
+                kb = keyboards.ticket_reply_user_kb(int(thread["id"])) if thread else None
+                code = (thread or {}).get("code")
+                if body and not message.photo:
                     await message.bot.send_message(
                         user_tg,
-                        texts.SUPPORT_REPLY_GOT.format(body=body),
-                        reply_to_message_id=rt,
+                        texts.SUPPORT_REPLY_GOT.format(body=body) + (texts.SUPPORT_REPLY_CODE.format(code=code) if code else ""),
+                        reply_to_message_id=rt, reply_markup=kb,
                     )
-            else:
-                await message.copy_to(user_tg, reply_to_message_id=rt)
+                else:
+                    await message.copy_to(user_tg, reply_to_message_id=rt, reply_markup=kb)
 
         try:
             await _deliver(reply_to)
@@ -3058,8 +3066,8 @@ async def admin_support_reply(message: Message, db: Database) -> None:
         if user:
             # آخرین تیکت باز همین کاربر پاسخ داده شده علامت می خورد تا
             # در «تیکت های من» وضعیتش سبز شود
-            open_ticket = await db.open_thread(user["id"])
-            if open_ticket and (open_ticket.get("status") or "open") == "open":
+            open_ticket = thread
+            if open_ticket and (open_ticket.get("status") or "open") in ("open", "closed"):
                 await db.set_ticket_status(open_ticket["id"], "answered")
             # پاسخ به همان رشته گفتگوی باز می چسبد؛ اگر تیکت بازی نباشد
             # (مثلا ادمین بی مقدمه پیام می دهد) خودش رشته تازه می شود.

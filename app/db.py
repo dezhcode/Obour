@@ -584,6 +584,19 @@ class Database:
             # اثر انگشت رسید از خوانش هوش مصنوعی (مبلغ ریالی|تاریخ|ساعت|۴ رقم آخر کارت مقصد)
             # برای تشخیص رسید تکراری حتی اگر عکس دوباره گرفته یا بریده شده باشد
             ("transactions", "receipt_sig", "ALTER TABLE transactions ADD COLUMN receipt_sig TEXT"),
+            # تیکت حرفه ای (فقط روی ردیف ریشه): موضوع، دسته، اولویت، مورد مرتبط
+            # (svc:12 | ai:5 | tx:34)، امتیاز کاربر بعد از بسته شدن، زمان آخرین
+            # تغییر و مسیر ثبت (bot | mini | ai)
+            ("tickets", "subject", "ALTER TABLE tickets ADD COLUMN subject TEXT"),
+            ("tickets", "category", "ALTER TABLE tickets ADD COLUMN category TEXT"),
+            ("tickets", "priority", "ALTER TABLE tickets ADD COLUMN priority TEXT"),
+            ("tickets", "related", "ALTER TABLE tickets ADD COLUMN related TEXT"),
+            ("tickets", "rating", "ALTER TABLE tickets ADD COLUMN rating INTEGER"),
+            ("tickets", "rating_note", "ALTER TABLE tickets ADD COLUMN rating_note TEXT"),
+            ("tickets", "updated_at", "ALTER TABLE tickets ADD COLUMN updated_at TEXT"),
+            ("tickets", "via", "ALTER TABLE tickets ADD COLUMN via TEXT"),
+            # ریپلای ادمین به همان تیکتی برسد که پیامش را دیده (کاربر چند تیکت باز دارد)
+            ("support_links", "thread_id", "ALTER TABLE support_links ADD COLUMN thread_id INTEGER"),
         ]
         for table, column, sql in migrations:
             cur = await self._conn.execute(f"PRAGMA table_info({table})")
@@ -1323,9 +1336,51 @@ class Database:
                 "UPDATE tickets SET status = 'open' WHERE id = ? AND status = 'answered'",
                 (thread_id,),
             )
+        await self.execute("UPDATE tickets SET updated_at = ? WHERE id = ?", (now_str(), thread_id))
         return ticket_id, thread_id, is_new
 
+    async def create_thread(self, user_id: int, body: str | None, *, file_id: str | None = None,
+                            subject: str | None = None, category: str | None = None,
+                            priority: str | None = None, related: str | None = None,
+                            via: str | None = None) -> tuple[int, str]:
+        """تیکت تازه با موضوع، دسته، اولویت و مورد مرتبط. خروجی: (شناسه، کد پیگیری)."""
+        _, thread_id, _ = await self.add_ticket(user_id, "in", body=body, file_id=file_id, force_new=True)
+        await self.execute(
+            "UPDATE tickets SET subject = ?, category = ?, priority = ?, related = ?, via = ? WHERE id = ?",
+            (subject, category, priority, related, via, thread_id),
+        )
+        return thread_id, await self.ticket_code(thread_id) or ""
+
+    async def thread_root(self, thread_id: int, user_id: int | None = None) -> dict | None:
+        """ردیف ریشه یک تیکت (با بررسی مالکیت اگر user_id داده شود)."""
+        q = "SELECT * FROM tickets WHERE id = ? AND direction = 'in' AND COALESCE(thread_id, id) = id"
+        args: tuple = (thread_id,)
+        if user_id is not None:
+            q += " AND user_id = ?"
+            args += (user_id,)
+        row = await self.fetchone(q, args)
+        return dict(row) if row else None
+
+    async def rate_ticket(self, thread_id: int, user_id: int, rating: int, note: str | None = None) -> bool:
+        """امتیاز کاربر به پاسخگویی، فقط برای تیکت بسته شده خودش."""
+        return await self.execute(
+            "UPDATE tickets SET rating = ?, rating_note = ? WHERE id = ? AND user_id = ? AND direction = 'in' "
+            "AND COALESCE(thread_id, id) = id AND status = 'closed'",
+            (max(1, min(5, int(rating))), (note or "").strip()[:500] or None, thread_id, user_id),
+        ) > 0
+
+    async def ticket_photo(self, msg_id: int, user_id: int) -> str | None:
+        """file_id عکس یک پیام تیکت، فقط برای صاحب همان تیکت."""
+        row = await self.fetchone("SELECT file_id FROM tickets WHERE id = ? AND user_id = ?", (msg_id, user_id))
+        return row["file_id"] if row and row["file_id"] else None
+
     # ---------- وضعیت و پیگیری تیکت ----------
+    async def mark_thread_read(self, thread_id: int, user_id: int) -> None:
+        await self.execute(
+            "UPDATE tickets SET is_read = 1 WHERE user_id = ? AND direction = 'out' AND COALESCE(thread_id, id) = ?",
+            (user_id, thread_id),
+        )
+
     async def ticket_threads(self, user_id: int, limit: int = 10) -> list[dict]:
         """فهرست تیکت های کاربر (فقط پیام های خودش) با تعداد پاسخ ها.
 
@@ -1338,7 +1393,14 @@ class Database:
                         WHERE COALESCE(r.thread_id, r.id) = t.id
                           AND r.direction = 'out') AS replies,
                       (SELECT MAX(r.created_at) FROM tickets r
-                        WHERE COALESCE(r.thread_id, r.id) = t.id) AS last_at
+                        WHERE COALESCE(r.thread_id, r.id) = t.id) AS last_at,
+                      (SELECT COUNT(*) FROM tickets r
+                        WHERE COALESCE(r.thread_id, r.id) = t.id
+                          AND r.direction = 'out' AND r.is_read = 0) AS unread,
+                      (SELECT r.direction FROM tickets r
+                        WHERE COALESCE(r.thread_id, r.id) = t.id ORDER BY r.id DESC LIMIT 1) AS last_dir,
+                      (SELECT r.body FROM tickets r
+                        WHERE COALESCE(r.thread_id, r.id) = t.id ORDER BY r.id DESC LIMIT 1) AS last_body
                FROM tickets t
                WHERE t.user_id = ? AND t.direction = 'in'
                  AND COALESCE(t.thread_id, t.id) = t.id
@@ -2661,13 +2723,23 @@ class Database:
             "pending_count": pending["c"],
         }
     # ---------- نگاشت پیام های پشتیبانی (پایدار در دیتابیس) ----------
-    async def save_support_link(self, admin_id: int, message_id: int, user_tg_id: int) -> None:
+    async def save_support_link(self, admin_id: int, message_id: int, user_tg_id: int,
+                                thread_id: int | None = None) -> None:
         await self.execute(
-            "INSERT INTO support_links(admin_id, message_id, user_tg_id, created_at) "
-            "VALUES (?, ?, ?, ?) "
-            "ON CONFLICT(admin_id, message_id) DO UPDATE SET user_tg_id = excluded.user_tg_id",
-            (admin_id, message_id, user_tg_id, now_str()),
+            "INSERT INTO support_links(admin_id, message_id, user_tg_id, thread_id, created_at) "
+            "VALUES (?, ?, ?, ?, ?) "
+            "ON CONFLICT(admin_id, message_id) DO UPDATE SET user_tg_id = excluded.user_tg_id, "
+            "thread_id = excluded.thread_id",
+            (admin_id, message_id, user_tg_id, thread_id, now_str()),
         )
+
+    async def get_support_thread(self, admin_id: int, message_id: int) -> int | None:
+        """تیکتی که پیام ادمین به آن مربوط است (اگر ثبت شده باشد)."""
+        row = await self.fetchone(
+            "SELECT thread_id FROM support_links WHERE admin_id = ? AND message_id = ?",
+            (admin_id, message_id),
+        )
+        return int(row["thread_id"]) if row and row["thread_id"] else None
 
     async def get_support_link(self, admin_id: int, message_id: int) -> int | None:
         row = await self.fetchone(
