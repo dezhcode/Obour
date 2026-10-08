@@ -363,6 +363,7 @@ async def plans(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dic
 
     bot_username = await db.get_setting("bot_username", "")
     categories = await db.shop_categories()
+    sales, total = await db.plan_sales()
     out = []
     for cat in categories:
         rows = await db.active_plans(cat["id"])
@@ -380,6 +381,8 @@ async def plans(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dic
                     "duration_days": p["duration_days"],
                     "price": int(p["price"]),
                     "badge": p.get("badge") or "",
+                    "sold": sales.get(p["id"], {}).get("sold", 0),
+                    "buyers": sales.get(p["id"], {}).get("buyers", 0),
                     "buy_link": (
                         f"https://t.me/{bot_username}?start=plan_{p['id']}"
                         if bot_username else ""
@@ -388,7 +391,7 @@ async def plans(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dic
                 for p in rows
             ],
         })
-    return {"categories": out, "disabled": False, "locations": texts.LOCATION_INFO}
+    return {"categories": out, "disabled": False, "locations": texts.LOCATION_INFO, "stats": total}
 
 
 async def referral(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
@@ -555,6 +558,7 @@ async def ai_catalog(
     has_banner = bool(await db.get_setting("webapp_ai_banner", ""))
 
     items: list[dict] = []
+    cat_stats: dict[str, dict] = {}
     try:
         from app.canboso import CanbosoError
         from app.services import ai_shop
@@ -563,7 +567,21 @@ async def ai_catalog(
             cat = await ai_shop.catalog(db)
         except CanbosoError:
             cat = {"items": []}
-        sales = await db.ai_sales()
+        # فروش موفق و خریداران متفاوت هر محصول و هر دسته
+        pairs = await db.ai_buyers()
+        cat_of = {x["id"]: x["category"] for x in cat["items"]}
+        sold: dict[str, int] = {}
+        who: dict[str, set] = {}
+        cat_who: dict[str, set] = {}
+        cat_sold: dict[str, int] = {}
+        for pid, uid in pairs:
+            sold[pid] = sold.get(pid, 0) + 1
+            who.setdefault(pid, set()).add(uid)
+            c = cat_of.get(pid)
+            if c:
+                cat_sold[c] = cat_sold.get(c, 0) + 1
+                cat_who.setdefault(c, set()).add(uid)
+        cat_stats = {c: {"sold": cat_sold[c], "buyers": len(cat_who[c])} for c in cat_sold}
         for x in cat["items"]:
             months = [{"months": m, "price": x["month_prices"][m]} for m in x["months"]]
             items.append({
@@ -580,7 +598,8 @@ async def ai_catalog(
                 "category": x["category"],
                 "image": ai_shop.image_url(x["image"]),
                 "guide": x["guide"][:2500],
-                "sold": sales.get(x["id"], 0),
+                "sold": sold.get(x["id"], 0),
+                "buyers": len(who.get(x["id"], ())),
             })
     except Exception:  # noqa: BLE001
         # نبود کاتالوگ نباید صفحه را بشکند؛ ویترین خالی بهتر از خطاست.
@@ -595,6 +614,7 @@ async def ai_catalog(
         "balance": int(user["balance"]),
         "orders": [_ai_order_out(o, meta=metas.get(o.get("service_id") or "")) for o in orders],
         "categories": [{"key": k, "title": t} for k, (t, _e) in ai_shop_mod.CATEGORIES.items()],
+        "category_stats": cat_stats,
         "bot_link": f"https://t.me/{bot_username}" if bot_username else "",
     }
 
