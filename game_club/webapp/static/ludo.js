@@ -35,7 +35,8 @@ function buildBoard() {
   }
   h += `<div class="home"><svg viewBox="0 0 3 3" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L1.5 1.5L0 3z" fill="#4C8DFF"/><path d="M0 0L3 0L1.5 1.5z" fill="#FF5A6A"/><path d="M3 0L3 3L1.5 1.5z" fill="#2FC584"/><path d="M0 3L3 3L1.5 1.5z" fill="#FFC531"/></svg><span class="home-mark">${icon('trophy', 2.4)}</span></div>`;
   h += '<div class="layer" id="layer"></div>';
-  $('board').innerHTML = h;
+  const b = $('board'); b.style.gridTemplateColumns = b.style.gridTemplateRows = GRID;
+  b.innerHTML = h;
 }
 function posOf(c, p, k) {
   const s = SEAT[c];
@@ -44,7 +45,16 @@ function posOf(c, p, k) {
   if (p <= 55) { const [x, y] = s.lane[p - 51]; return [x + .5, y + .5]; }
   return s.fin;
 }
-const pct = v => (v / 15 * 100) + '%';
+/* ستون ها و ردیف های وسط (بازوهای مسیر) پهن تر از خانه ها هستند تا کاشی های مسیر بزرگ تر دیده شوند.
+   مختصات مهره ها به واحد خانه است (۰ تا ۱۵)؛ GRID آن را به درصد لایه تبدیل می کند و فاصله بین خانه ها (--gap) را هم حساب می کند */
+const YW = .9, MW = 1.2;
+const W = Array.from({ length: 15 }, (_, i) => i >= 6 && i <= 8 ? MW : YW);
+const CUM = W.reduce((a, w) => (a.push(a[a.length - 1] + w), a), [0]), TW = CUM[15];
+const GRID = `repeat(6,${YW}fr) repeat(3,${MW}fr) repeat(6,${YW}fr)`;
+function pct(v) {
+  const i = Math.max(0, Math.min(14, Math.floor(v))), p = (CUM[i] + (v - i) * W[i]) / TW;
+  return `calc(${(p * 100).toFixed(3)}% + ${(i - p * 14).toFixed(3)} * var(--gap))`;
+}
 function setRotation() {
   rot = ROT[me] || 0;
   const b = $('board');

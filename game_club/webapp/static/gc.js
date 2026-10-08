@@ -355,7 +355,7 @@ const LUDO = {
   },
   ORDER: ['blue', 'red', 'green', 'yellow'],
   SAFE: [0, 8, 13, 21, 26, 34, 39, 47],
-  SOCKETS: [[1.75,1.75],[4.25,1.75],[1.75,4.25],[4.25,4.25]],
+  SOCKETS: [[2.1,2.1],[3.9,2.1],[2.1,3.9],[3.9,3.9]],
 };
 function boardArt() {
   const L = LUDO, startOf = {};
