@@ -25,7 +25,7 @@ Game Club is Obour's game room inside Telegram: Ludo first, then Esm-Famil and H
 
 ## Type
 
-- One family: Rokh, five weights (400, 500, 700, 800, 900). Fallback `Vazirmatn, Tahoma`.
+- Two families. **Rokh** (400–900) only for titles: page and section headings, card and game-tile names, the wordmark, sheet titles. **Peyda** (400, 600, 700, 800; the Obour bot's font) for everything else: running text, labels, buttons, amounts, chat. Fallback `Tahoma`.
 - Use the styles by name: `t-display` for the wordmark, `t-title` for page titles, `t-heading` for section heads, `t-subhead` for card titles, `t-body` for text, `t-button` for buttons, `t-label` for form labels and chips, `t-caption` for meta, `t-amount` for point totals.
 - Don't use tabular numerals: Rokh spaces Persian digits apart with them.
 
@@ -69,6 +69,10 @@ Line icons, 24px grid, 2.2px stroke, round caps, `currentColor`, drawn for this 
 
 ## The Ludo screen
 
+- No names on the board and no mode tag: players are identified by their seats (Telegram photo and name).
+- Pawns are round glossy discs in the player color, no faces. A roll with no legal move shakes the die, outlines it in `danger`, shakes that color's pawns and shows a short label in the middle of the board.
+- Table chat (like Plato): the round `sky` chat button in the dice dock opens a sheet with history, quick phrases and a text field; new messages also appear for four seconds as a speech bubble next to the sender's seat.
+
 - Top to bottom: full-screen header with the turn bar, sound and rules → mode or prize tag → two seats → board (sized to the remaining height) → two seats → one-line event feed → dice dock.
 - Every player sees their own color at the bottom-left: the board rotates by 90° steps and pawns, labels and the trophy counter-rotate to stay upright; seats follow their corner. Their die is the big one in the dock.
 - Guidance is always visible: the turn bar says whose turn it is, the dock says the next action, the feed says what just happened, movable pawns bob and a dashed ring marks where each will land.
@@ -79,4 +83,4 @@ Line icons, 24px grid, 2.2px stroke, round caps, `currentColor`, drawn for this 
 
 - Text meets 4.5:1 on its ground (3:1 for 24px+ titles with the outline). Focus shows a 3px `surface` ring with a `sky-deep` halo.
 - Every icon-only button has a Persian `aria-label`; the turn bar and feed are live regions.
-- Rokh is a licensed font: use the files only under a web license that covers this app.
+- Rokh and Peyda are licensed fonts: use the files only under web licenses that cover this app.

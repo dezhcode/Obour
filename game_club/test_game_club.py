@@ -208,7 +208,9 @@ def test_notify_and_admin_close():
         assert m["status"] == "over"
         turn_pings = [x for x in sent if x[0] == 2 and "نوبت" in x[1]]
         assert 1 <= len(turn_pings) <= 2, sent
-        assert any(x[0] == 2 and x[2] == "index.html" for x in sent), sent   # نتیجه برای غایب
+        # نتیجه برای غایب: هر دو بازیکن غایب اند و هر کدام زودتر سه نوبت جا بیندازد می بازد،
+        # پس بازیکن ۲ یا خبر باخت (index) می گیرد یا خبر برد (wallet)
+        assert any(x[0] == 2 and x[2] in ("index.html", "wallet.html") and "منچ" in x[1] for x in sent), sent
         # بستن میز دعوت توسط ادمین = بازگشت ورودی
         before = (await db.get_player(1))["points"]
         inv = await service.invite_create(db, 1, cfg)
@@ -261,6 +263,46 @@ def test_telegram_profile():
             await service.invite_join(db, 78, r["code"])                       # میز دو نفره پر شد و شروع می شود
             game = (await service.match_view(db, 78, r["match"]))["game"]
             assert {x["pic"] for x in game["players"].values()} == {user["photo_url"], "pic/" + p2["pic"]}
+        finally:
+            await db.close()
+
+    asyncio.run(run())
+
+
+def test_table_chat():
+    """گفتگوی سر میز: فقط بازیکن های میز، پاک سازی متن، محدودیت سرعت، تحویل با match_view."""
+    tmp = tempfile.mkdtemp()
+    os.environ["GAME_CLUB_DB_PATH"] = os.path.join(tmp, "gc.db")
+    from game_club import service
+    from game_club.db import GCDatabase
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        try:
+            for tg, n in ((1, "علی"), (2, "سارا"), (3, "غریبه")):
+                await db.player(tg, n)
+            r = await service.invite_create(db, 1, {"mode": "free", "entry": 0, "players": 2, "pawns": 2})
+            await service.invite_join(db, 2, r["code"])
+            mid = r["match"]
+            await service.chat_send(db, 1, mid, "  سلام\u202e   <b>خوش‌بازی</b>\n ")
+            for bad, code in (("   ", "empty"), ("دوباره", "chat_slow")):
+                try:
+                    await service.chat_send(db, 1, mid, bad)
+                    raise AssertionError(code)
+                except service.GCError as e:
+                    assert e.code == code
+            try:
+                await service.chat_send(db, 3, mid, "سلام")                  # کسی که سر میز نیست
+                raise AssertionError("outsider")
+            except service.GCError as e:
+                assert e.code == "not_found"
+            await service.chat_send(db, 2, mid, "x" * 500)
+            v = await service.match_view(db, 2, mid, 0, 0)
+            assert [m["text"] for m in v["chat"]] == ["سلام <b>خوش‌بازی</b>", "x" * 140]   # متن خام؛ مینی اپ با textContent نشان می دهد
+            assert [m["me"] for m in v["chat"]] == [False, True] and v["chat"][0]["name"] == "علی"
+            assert (await service.match_view(db, 2, mid, 0, v["chat"][-1]["id"]))["chat"] == []
+            assert "chat" not in await service.match_view(db, 2, mid, 0)
         finally:
             await db.close()
 

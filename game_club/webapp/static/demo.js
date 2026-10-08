@@ -113,8 +113,20 @@ function settle(m) {
   if (won) { S.wins++; if (m.cfg.mode === 'stake') { S.bal += m.state.pot; S.won += m.state.pot; GC.ledger('جایزهٔ منچ', m.state.pot, 'prize'); } }
   save();
 }
-function out(m, since) {
+/* گفتگوی نمایشی: ربات ها گاهی جواب کوتاه می دهند */
+const QUIPS = ['سلام!', 'خوش‌بازی!', 'آفرین', 'شانسی بود', 'زود باش', 'این دفعه می‌برم', 'یک دست دیگه؟'];
+function botTalk(m) {
+  if (m.status !== 'playing') return;
+  m.chat = m.chat || []; m.chatAt = m.chatAt || Date.now();
+  if (Date.now() - m.chatAt < 9000 || Math.random() > .2) return;
+  const bots = m.state.order.filter(c => m.state.players[c].bot && !m.state.players[c].out); if (!bots.length) return;
+  const c = bots[Math.floor(Math.random() * bots.length)], p = m.state.players[c];
+  m.chatAt = Date.now();
+  m.chat.push({ id: (m.chat.length ? m.chat[m.chat.length - 1].id : 0) + 1, color: c, name: p.name, av: p.av, pic: '', bot: true, text: QUIPS[Math.floor(Math.random() * QUIPS.length)], at: Math.round(Date.now() / 1000), me: false });
+}
+function out(m, since, chat) {
   const o = { id: m.id, status: m.status, cfg: m.cfg, me: 'yellow' };
+  if (chat != null) o.chat = (m.chat || []).filter(x => x.id > chat).slice(-40);
   if (m.status === 'lobby') { o.lobby = { seats: m.seats, code: m.code, host: true, link: 'https://t.me/your_gameclub_bot?start=ludo_' + m.code }; return o; }
   o.game = view(m.state, 'yellow', since); o.pot = m.state.pot || 0;
   if (m.status === 'over') o.result = { won: m.state.winner === 'yellow', prize: m.state.winner === 'yellow' ? o.pot : 0, lost: m.state.winner === 'yellow' ? 0 : m.cfg.entry };
@@ -150,15 +162,15 @@ const ludo = {
   },
   async join() { throw err('bad_invite'); },
   async start(id) { const m = loadM(); if (!m || m.id !== id) throw err('not_found'); const mm = makeMatch(m.cfg, m.seats.length > 1); mm.id = m.id; saveM(mm); return { ok: true }; },
-  async match(id, since = 0) {
+  async match(id, since = 0, chat = null) {
     let m = loadM(); if (!m || (id && m.id !== id)) throw err('not_found');
     if (m.status === 'lobby') {
       if (m.seats.length === 1 && Date.now() - m.t0 > 5000) { m.seats.push({ color: SEATS[m.cfg.players][1], name: 'دوست شما', av: 11, me: false }); saveM(m); }
       if (m.seats.length === m.cfg.players) { await ludo.start(m.id); m = loadM(); }
       return out(m, since);
     }
-    if (m.status === 'playing') { tick(m.state, now()); if (m.state.over) { m.status = 'over'; settle(m); } saveM(m); }
-    return out(m, since);
+    if (m.status === 'playing') { tick(m.state, now()); if (m.state.over) { m.status = 'over'; settle(m); } botTalk(m); saveM(m); }
+    return out(m, since, chat);
   },
   async act(id, action, k, since) {
     const m = loadM(); if (!m || m.id !== id) throw err('not_found');
@@ -173,6 +185,15 @@ const ludo = {
   async roll(id, since) { return ludo.act(id, 'roll', null, since); },
   async move(id, k, since) { return ludo.act(id, 'move', k, since); },
   async leave(id) { const m = loadM(); if (m && m.status === 'lobby') { saveM(null); if (m.cfg.mode === 'stake') { S.bal += m.cfg.entry; GC.ledger('لغو میز منچ', m.cfg.entry, 'refund'); save(); } return { left: true }; } if (m && m.status === 'playing') { S.games++; save(); return ludo.act(id, 'leave', null, 0); } return { left: true }; },
+  async chat(id, text) {
+    const m = loadM(); if (!m || m.id !== id) throw err('not_found');
+    text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 140); if (!text) throw err('empty');
+    m.chat = m.chat || []; const last = m.chat.filter(x => x.me).pop();
+    if (last && Date.now() / 1000 - last.at < 1.5) throw err('chat_slow');
+    const id2 = (m.chat.length ? m.chat[m.chat.length - 1].id : 0) + 1;
+    m.chat.push({ id: id2, color: 'yellow', name: 'شما', av: 7, pic: '', text, at: Math.round(Date.now() / 1000), me: true });
+    m.chatAt = Date.now() - 7000; saveM(m); return { ok: true, id: id2 };
+  },
   async active() { const m = loadM(); return m && (m.status === 'playing' || m.status === 'lobby') ? m.id : null; },
 };
 

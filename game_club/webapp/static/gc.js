@@ -100,7 +100,7 @@ const ERR = {
   need_players: 'بازی امتیازی بدون حریف واقعی شروع نمی‌شود', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
   plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
   rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
-  not_your_turn: 'الان نوبت تو نیست', illegal_move: 'این مهره نمی‌تواند حرکت کند', not_found: 'این میز پیدا نشد', bad_pack: 'این بسته در دسترس نیست',
+  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', not_found: 'این میز پیدا نشد', bad_pack: 'این بسته در دسترس نیست',
 };
 const errText = e => ERR[e && e.code] || ERR.server;
 async function api(name, { body, q } = {}) {
@@ -134,7 +134,8 @@ const liveLudo = {
   invite: cfg => api('ludo/invite', { body: { cfg } }),
   join: code => api('ludo/join', { body: { code } }),
   start: match => api('ludo/start', { body: { match } }),
-  match: (id, since = 0) => api('ludo/match', { q: id ? { id, since } : { since } }),
+  match: (id, since = 0, chat = null) => api('ludo/match', { q: Object.assign(id ? { id, since } : { since }, chat == null ? {} : { chat }) }),
+  chat: (match, text) => api('ludo/chat', { body: { match, text } }),
   roll: (match, since) => api('ludo/roll', { body: { match, since } }),
   move: (match, k, since) => api('ludo/move', { body: { match, k, since } }),
   leave: match => api('ludo/leave', { body: { match } }),
@@ -174,6 +175,7 @@ const P = {
   bell: '<path d="M6 10a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 15 6 10zM10 20a2 2 0 0 0 4 0"/>',
   dice: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 15.5h.01M12 12h.01M15.5 8.5h.01M8.5 15.5h.01"/>',
   arrowUp: '<path d="M7 14l5-5 5 5"/>',
+  chat: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4h0A2.5 2.5 0 0 1 4 13.5z"/><path d="M8.5 9.5h.01M12 9.5h.01M15.5 9.5h.01"/>',
 };
 const icon = (n, w = 2.2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
 const COIN = '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="17.5" r="13" fill="#E09A00"/><circle cx="16" cy="15" r="13" fill="#FFC43B"/><circle cx="16" cy="15" r="9.4" fill="none" stroke="#E09A00" stroke-width="2"/><path d="M16 9.3l1.75 3.6 3.95.55-2.86 2.73.68 3.92L16 18.2l-3.52 1.9.68-3.92-2.86-2.73 3.95-.55z" fill="#FFF3C4"/></svg>';
@@ -214,14 +216,15 @@ const COL = {
   blue: { hex: '#4C8DFF', deep: '#2B62D6', fa: 'آبی' }, red: { hex: '#FF5A6A', deep: '#C93447', fa: 'قرمز' },
   green: { hex: '#2FC584', deep: '#1E8A5E', fa: 'سبز' }, yellow: { hex: '#FFC531', deep: '#C98A00', fa: 'زرد' },
 };
+/* مهره: دیسک گرد براق (بدون چشم). مرکز دیسک نزدیک ۸۲٪ ارتفاع است، همان نقطه ای
+   که مهره روی خانه می نشیند؛ بالای آن جای تاج برنده است. */
 function pawn(c, crown) {
   const { hex, deep } = COL[c];
-  return `<svg viewBox="0 0 40 50" aria-hidden="true"><ellipse cx="20" cy="46.5" rx="12" ry="3" fill="rgba(0,0,0,.28)"/>
-    <path d="M20 3c7.5 0 10.5 6.5 9 12-.6 2.4-2.2 3.8-3.4 4.6C32 22.5 36 30 36 37.5c0 6-7 8.5-16 8.5S4 43.5 4 37.5C4 30 8 22.5 14.4 19.6 13.2 18.8 11.6 17.4 11 15c-1.5-5.5 1.5-12 9-12z" fill="${hex}" stroke="${deep}" stroke-width="1.8"/>
-    <ellipse cx="13" cy="9.5" rx="2.6" ry="4" fill="rgba(255,255,255,.5)" transform="rotate(-25 13 9.5)"/><ellipse cx="11" cy="31" rx="2.8" ry="6.5" fill="rgba(255,255,255,.3)" transform="rotate(14 11 31)"/>
-    <ellipse cx="16" cy="11.5" rx="3.7" ry="4.3" fill="#fff" stroke="#1d1d1d" stroke-width=".8"/><ellipse cx="24" cy="11.5" rx="3.7" ry="4.3" fill="#fff" stroke="#1d1d1d" stroke-width=".8"/>
-    <circle cx="16.9" cy="12.4" r="1.9" fill="#111"/><circle cx="24.9" cy="12.4" r="1.9" fill="#111"/>
-    ${crown ? '<path d="M10 4l3.5 3.5L20-2l6.5 9.5L30 4l-1.5 7.5h-17z" fill="#FFC43B" stroke="#B57B00" stroke-width="1.2" stroke-linejoin="round"/>' : ''}</svg>`;
+  return `<svg viewBox="0 0 40 50" aria-hidden="true"><ellipse cx="20" cy="47" rx="13" ry="3" fill="rgba(0,0,0,.3)"/>
+    <circle cx="20" cy="40" r="14" fill="${deep}"/><circle cx="20" cy="37" r="14" fill="${hex}" stroke="#fff" stroke-width="3"/>
+    <circle cx="20" cy="37" r="7.5" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.4"/>
+    <ellipse cx="14.5" cy="31" rx="4.6" ry="3" fill="rgba(255,255,255,.5)" transform="rotate(-28 14.5 31)"/>
+    ${crown ? '<path d="M8 21l4.5 4 7.5-11 7.5 11 4.5-4-1.5 7.5h-21z" fill="#FFC93C" stroke="#C98A00" stroke-width="1.4" stroke-linejoin="round"/>' : ''}</svg>`;
 }
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 const pips = v => Array.from({ length: 9 }, (_, i) => `<i class="${v && PIPS[v].includes(i) ? 'on' : ''}"></i>`).join('');

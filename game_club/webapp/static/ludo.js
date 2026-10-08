@@ -31,7 +31,7 @@ function buildBoard() {
   for (const c of ORDER) SEAT[c].lane.forEach(([x, y]) => { h += `<div class="tile lane c-${c}" style="grid-column:${x + 1};grid-row:${y + 1}"></div>`; });
   for (const c of ORDER) {
     const [x, y] = SEAT[c].yard;
-    h += `<div class="yard c-${c}" data-yard="${c}" style="grid-column:${x + 1}/${x + 7};grid-row:${y + 1}/${y + 7}"><span class="panel"></span>${SOCKETS.map(([sx, sy]) => `<span class="sock" style="left:${sx / 6 * 100}%;top:${sy / 6 * 100}%"></span>`).join('')}<span class="who"></span></div>`;
+    h += `<div class="yard c-${c}" data-yard="${c}" style="grid-column:${x + 1}/${x + 7};grid-row:${y + 1}/${y + 7}"><span class="panel"></span>${SOCKETS.map(([sx, sy]) => `<span class="sock" style="left:${sx / 6 * 100}%;top:${sy / 6 * 100}%"></span>`).join('')}</div>`;
   }
   h += `<div class="home"><svg viewBox="0 0 3 3" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L1.5 1.5L0 3z" fill="#4C8DFF"/><path d="M0 0L3 0L1.5 1.5z" fill="#FF5A6A"/><path d="M3 0L3 3L1.5 1.5z" fill="#2FC584"/><path d="M0 3L3 3L1.5 1.5z" fill="#FFC531"/></svg><span class="home-mark">${icon('trophy', 2.4)}</span></div>`;
   h += '<div class="layer" id="layer"></div>';
@@ -93,7 +93,6 @@ function renderSeats(g) {
   for (const c of ORDER) {
     const yard = document.querySelector(`[data-yard="${c}"]`), pl = g.players[c];
     yard.classList.toggle('off', !pl || pl.out);
-    yard.querySelector('.who').textContent = pl ? (pl.me ? 'شما' : pl.name) + (pl.out ? ' · رفت' : '') : 'خالی';
     if (!pl) continue;
     const el = document.querySelector(`.seat[data-corner="${cornerOf(c)}"]`);
     el.classList.remove('empty'); el.classList.add('c-' + c);
@@ -104,6 +103,7 @@ function renderSeats(g) {
       <span class="die sm c-${c}${g.last[c] ? '' : ' ghost'}" data-die="${c}">${pips(g.last[c] || 0)}</span>`;
   }
   document.querySelectorAll('.yard').forEach(y => y.classList.toggle('turn', g.turn === y.dataset.yard));
+  for (const c of Object.keys(bubbles)) showBubble(c);
 }
 function dock(title, sub, state) {
   $('dockT').textContent = title; $('dockS').textContent = sub || '';
@@ -169,14 +169,27 @@ function flash(c, x, y) {
   const f = document.createElement('span'); f.className = 'flash c-' + c; f.style.left = pct(x); f.style.top = pct(y);
   $('layer').appendChild(f); setTimeout(() => f.remove(), 600);
 }
+/* تاسی که حرکتی نمی دهد: تاس «نه» می گوید (لرزش افقی و حلقه قرمز)، مهره های آن رنگ
+   سر جایشان می لرزند و یک برچسب کوتاه وسط صفحه می آید */
+function blocked(c, v, allYard) {
+  [c === me ? $('myDie') : null, document.querySelector(`[data-die="${c}"]`)].forEach(d => {
+    if (!d) return; d.classList.remove('nope'); void d.offsetWidth; d.classList.add('nope'); setTimeout(() => d.classList.remove('nope'), 1100);
+  });
+  (els[c] || []).forEach(el => { el.classList.remove('stuck'); void el.offsetWidth; el.classList.add('stuck'); setTimeout(() => el.classList.remove('stuck'), 700); });
+  const b = document.createElement('div');
+  b.className = 'blocked c-' + c; b.setAttribute('aria-hidden', 'true');
+  b.innerHTML = `<span class="die sm c-${c}">${pips(v)}</span><span>${allYard ? 'برای ورود ۶ لازم است' : 'حرکتی نیست'}</span>`;
+  $('frame').appendChild(b); setTimeout(() => b.remove(), 1300);
+}
 async function play(e) {
   const c = e.c;
   if (e.t === 'roll') { await rollAnim(c, e.v); if (e.auto && c === me) feed(c, 'وقتت تمام شد؛ تاس خودکار ریخته شد'); return; }
   if (e.t === 'nomove') {
-    sfx.nomove();
+    sfx.nomove(); if (c === me) haptic('warning');
     const allYard = (shown[c] || []).every(p => p < 0);
+    blocked(c, e.v, allYard);
     feed(c, (c === me ? FD(e.v) + ' آوردی' : nameOf(c) + ' ' + FD(e.v) + ' آورد') + '؛ ' + (allYard ? 'برای ورود مهره ۶ لازم است' : 'حرکتی ممکن نبود'));
-    await sleep(600); return;
+    await sleep(1000); return;
   }
   if (e.t === 'move') {
     if (!shown[c] || !els[c] || !els[c][e.k]) return;
@@ -202,8 +215,75 @@ async function play(e) {
   if (e.t === 'leave') { feed(c, (c === me ? 'از بازی بیرون رفتی' : nameOf(c) + (e.why === 'timeout' ? ' به‌خاطر غیبت حذف شد' : ' از بازی رفت'))); return; }
 }
 
+/* ---------- گفتگوی سر میز (مثل پلاتو) ----------
+   پیام ها با همان پرس و جوی هر ۰٫۹ ثانیه می آیند (chat=آخرین شماره). پیام تازه
+   چند ثانیه به شکل حباب کنار صندلی فرستنده دیده می شود؛ تاریخچه در برگه گفتگو. */
+const QUICK = ['سلام!', 'خوش‌بازی!', 'آفرین', 'شانسی بود', 'زود باش', 'یک دست دیگه؟'];
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+let chatId = 0, chatLog = [], unread = 0, chatSheet = null, sending = false;
+const bubbles = {};
+function showBubble(c) {
+  const b = bubbles[c], seat = document.querySelector(`.seat.c-${c}`);
+  if (!b || !seat) return;
+  if (Date.now() > b.until) { delete bubbles[c]; return; }
+  seat.querySelectorAll('.bubble').forEach(x => x.remove());
+  const el = document.createElement('div'); el.className = 'bubble'; el.textContent = b.text; el.setAttribute('aria-hidden', 'true');
+  seat.appendChild(el);
+}
+function bubble(m) {
+  bubbles[m.color] = { text: m.text, until: Date.now() + 4200 };
+  showBubble(m.color);
+  setTimeout(() => { if (bubbles[m.color] && Date.now() >= bubbles[m.color].until) { delete bubbles[m.color]; document.querySelectorAll(`.seat.c-${m.color} .bubble`).forEach(x => x.remove()); } }, 4300);
+}
+function badge() {
+  const b = $('chatBadge'); b.hidden = !unread; b.textContent = unread > 9 ? '+۹' : FD(unread);
+  $('chatBtn').setAttribute('aria-label', unread ? `گفتگوی میز، ${FD(unread)} پیام تازه` : 'گفتگوی میز');
+}
+function chatIn(list, quiet) {
+  if (!list || !list.length) return;
+  for (const m of list) {
+    if (m.id <= chatId) continue;
+    chatId = m.id; chatLog.push(m);
+    if (quiet) continue;
+    bubble(m);
+    if (!m.me && !(chatSheet && document.body.contains(chatSheet))) { unread++; sfx.tap(); }
+  }
+  chatLog = chatLog.slice(-60); badge();
+  if (chatSheet && document.body.contains(chatSheet)) renderChat();
+}
+function renderChat() {
+  const log = chatSheet.querySelector('#chatLog');
+  log.innerHTML = chatLog.length ? chatLog.map(m => `<div class="msg${m.me ? ' mine' : ''}">${m.me ? '' : face(m, COL[m.color] ? COL[m.color].hex : 'var(--surface)')}<div class="bub"><b>${m.me ? 'تو' : esc(m.name)}</b><span>${esc(m.text)}</span></div></div>`).join('')
+    : '<p class="hint">هنوز کسی چیزی نگفته. سلام کن!</p>';
+  log.scrollTop = log.scrollHeight;
+}
+async function send(text) {
+  text = String(text || '').trim();
+  if (!text || sending || !mid) return false;
+  sending = true;
+  try {
+    await GC.ludo.chat(mid, text);
+    chatIn((await GC.ludo.match(mid, since, chatId)).chat);
+    return true;
+  } catch (e) { sfx.error(); toast(errText(e)); return false; }
+  finally { sending = false; }
+}
+function openChat() {
+  unread = 0; badge();
+  const sh = sheet(`${sheetHead('گفتگوی میز')}<div class="chat-log" id="chatLog" aria-live="polite"></div>
+    <div class="quick">${QUICK.map(q => `<button class="chip sm" data-q>${q}</button>`).join('')}</div>
+    <form class="chat-form" id="chatForm"><input id="chatTxt" maxlength="140" placeholder="یه چیزی بگو…" autocomplete="off" enterkeyhint="send" aria-label="پیام به میز"><button class="send" aria-label="فرستادن">${icon('send')}</button></form>`,
+  { onClose: () => { chatSheet = null; } });
+  chatSheet = sh; renderChat();
+  sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => send(b.textContent); });
+  const input = sh.querySelector('#chatTxt');
+  sh.querySelector('#chatForm').onsubmit = async e => { e.preventDefault(); if (await send(input.value)) input.value = ''; input.focus(); };
+}
+$('chatBtn').onclick = openChat;
+
 /* ---------- همگام سازی با سرور ---------- */
 async function apply(next) {
+  if (next && next.chat) chatIn(next.chat);
   if (next && next.status === 'cancelled') return cancelled();
   if (!next || !next.game) return;
   busy = true;
@@ -222,7 +302,7 @@ async function poll() {
   clearTimeout(pollT);
   if (document.hidden || overShown) { pollT = setTimeout(poll, POLL_MS); return; }
   if (!busy && !acting) {
-    try { await apply(await GC.ludo.match(mid, since)); }
+    try { await apply(await GC.ludo.match(mid, since, chatId)); }
     catch (e) { if (e.code === 'not_found') return noMatch(); }
   }
   pollT = setTimeout(poll, POLL_MS);
@@ -313,7 +393,7 @@ function fitBoard() {
   const frame = $('frame'), page = document.querySelector('.page');
   const H = (window.Telegram && Telegram.WebApp && Telegram.WebApp.viewportStableHeight) || window.innerHeight;
   const other = $('appbar').offsetHeight + $('seatsTop').offsetHeight + $('seatsBot').offsetHeight + $('feed').offsetHeight + $('dock').offsetHeight
-    + document.querySelector('.mode-row').offsetHeight + 7 * 8 + 16 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sa-b')) || 0);
+    + 6 * 8 + 16 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sa-b')) || 0);
   const w = page.clientWidth - 2 * parseFloat(getComputedStyle(page).paddingInlineStart || 16);
   frame.style.setProperty('--board', Math.max(240, Math.min(w, H - other)) + 'px');
 }
@@ -325,16 +405,15 @@ async function start() {
   buildBoard(); fitBoard(); GC.portrait(true);
   dock('در حال وصل شدن…', '', 'wait');
   let first;
-  try { first = await GC.ludo.match(mid, 0); }
+  try { first = await GC.ludo.match(mid, 0, 0); }
   catch (e) { return e.code === 'not_found' ? noMatch() : (toast(errText(e)), setTimeout(start, 2500)); }
   if (first.status === 'lobby') { location.href = 'ludo-lobby.html'; return; }
   if (first.status === 'cancelled') return cancelled();
   mid = first.id; store.set('mid', mid); me = first.me; setRotation();
   const g = first.game;
-  $('capTitle').textContent = 'منچ · ' + (first.cfg.mode === 'stake' ? 'با امتیاز' : 'آزاد');
-  $('modeTag').innerHTML = first.cfg.mode === 'stake' ? `جایزهٔ برنده ${amount(first.pot)}` : Object.values(g.players).some(p => p.bot) ? 'آزاد · با ربات' : 'آزاد';
   $('myDie').className = 'die c-' + me + ' ghost';
   if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
+  chatIn(first.chat, true);
   snap = first; since = g.seq; shown = clone(g.pawns); ensurePawns(g); layout(); renderSeats(g); renderTurn(g); mount(); fitBoard();
   if (first.status === 'over') { overShown = true; over(first); return; }
   if (!S.tutorial) await GC.coach(me);

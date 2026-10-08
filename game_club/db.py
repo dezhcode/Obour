@@ -110,6 +110,17 @@ CREATE TABLE IF NOT EXISTS presence (
 );
 
 -- هر اعلان یک بار (کلید یکتا)
+-- گفتگوی سر میز (مثل پلاتو). متن پیش از ذخیره پاک سازی می شود
+CREATE TABLE IF NOT EXISTS chat (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  match_id TEXT NOT NULL,
+  tg_id INTEGER NOT NULL,
+  color TEXT NOT NULL DEFAULT '',
+  text TEXT NOT NULL,
+  created_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS chat_match ON chat(match_id, id);
+
 CREATE TABLE IF NOT EXISTS pings (
   key TEXT PRIMARY KEY,
   created_at INTEGER NOT NULL
@@ -241,6 +252,28 @@ class GCDatabase:
             await self.execute("UPDATE players SET photo=? WHERE tg_id=?", (photo[:400], tg_id))
         await self.execute("UPDATE players SET pic=? WHERE tg_id=? AND pic=''", (secrets.token_urlsafe(9), tg_id))
         return await self.one("SELECT * FROM players WHERE tg_id = ?", (tg_id,))  # type: ignore[return-value]
+
+    # ---------- گفتگو ----------
+    async def add_chat(self, match_id: str, tg_id: int, color: str, text: str) -> int:
+        async with self._lock:
+            assert self._conn
+            cur = await self._conn.execute(
+                "INSERT INTO chat(match_id, tg_id, color, text, created_at) VALUES(?,?,?,?,?)",
+                (match_id, tg_id, color, text, time.time()))
+            await self._conn.commit()
+            return int(cur.lastrowid or 0)
+
+    async def chat_since(self, match_id: str, since_id: int, limit: int = 40) -> list[dict]:
+        rows = await self.all(
+            "SELECT c.id, c.tg_id, c.color, c.text, c.created_at, p.name, p.av, p.photo, p.pic FROM chat c "
+            "LEFT JOIN players p ON p.tg_id = c.tg_id WHERE c.match_id = ? AND c.id > ? ORDER BY c.id DESC LIMIT ?",
+            (match_id, since_id, limit))
+        return rows[::-1]
+
+    async def chat_recent(self, match_id: str, tg_id: int, seconds: float) -> int:
+        row = await self.one("SELECT COUNT(*) AS n FROM chat WHERE match_id = ? AND tg_id = ? AND created_at > ?",
+                             (match_id, tg_id, time.time() - seconds))
+        return int(row["n"]) if row else 0
 
     async def player_by_pic(self, pic: str) -> dict | None:
         return await self.one("SELECT * FROM players WHERE pic = ? AND pic != ''", (pic,))

@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import random
+import re
 import secrets
 import time
 
@@ -425,7 +426,40 @@ def _ticker(now: float):
     return fn
 
 
-async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0) -> dict:
+# ---------- گفتگوی سر میز ----------
+CHAT_MAX = 140
+_CHAT_BAD = re.compile(r"[\u0000-\u001f\u007f\u200e\u200f\u202a-\u202e\u2066-\u2069]")
+
+
+def clean_chat(text: str) -> str:
+    """فاصله های اضافه و نویسه های کنترلی و جهت دهی حذف؛ حداکثر ۱۴۰ نویسه."""
+    text = _CHAT_BAD.sub(" ", str(text or ""))
+    return " ".join(text.split())[:CHAT_MAX]
+
+
+async def chat_send(db: GCDatabase, tg: int, match_id: str, text: str) -> dict:
+    _, color = await _membership(db, tg, match_id)
+    m = await db.get_match(match_id)
+    if not m or m["status"] == "cancelled":
+        raise GCError("not_found")
+    text = clean_chat(text)
+    if not text:
+        raise GCError("empty")
+    # جلوی سیل پیام: یک پیام در ۱٫۵ ثانیه و حداکثر ۱۲ پیام در دقیقه
+    if await db.chat_recent(match_id, tg, 1.5) or await db.chat_recent(match_id, tg, 60) >= 12:
+        raise GCError("chat_slow")
+    cid = await db.add_chat(match_id, tg, color, text)
+    return {"ok": True, "id": cid}
+
+
+async def chat_view(db: GCDatabase, tg: int, match_id: str, since_id: int) -> list[dict]:
+    rows = await db.chat_since(match_id, max(0, since_id))
+    return [{"id": r["id"], "color": r["color"], "text": r["text"], "at": int(r["created_at"]),
+             "name": (r.get("name") or "بازیکن")[:24], "av": int(r.get("av") or 1), "pic": pic_url(r),
+             "me": r["tg_id"] == tg} for r in rows]
+
+
+async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, chat_since: int | None = None) -> dict:
     rows, color = await _membership(db, tg, match_id)
     await db.touch(match_id, tg)
     now = time.time()
@@ -434,6 +468,8 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0) -> 
         await _ping_turn(db, m, tg, now)
     cfg = m["cfg"]
     out = {"id": m["id"], "status": m["status"], "cfg": cfg, "v": m["version"], "me": color}
+    if chat_since is not None:
+        out["chat"] = await chat_view(db, tg, match_id, chat_since)
     if m["status"] in ("lobby", "cancelled"):
         out["lobby"] = {"seats": [{"color": s["color"], "name": s["name"], "av": s["av"], "pic": s.get("pic", ""),
                                    "me": s["tg"] == tg}

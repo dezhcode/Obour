@@ -110,13 +110,17 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         mid = q.get("id") or await gdb.active_match_of(tg) or ""
         if not mid:
             raise GCError("not_found")
-        out = await service.match_view(gdb, tg, mid, int(q.get("since") or 0))
+        chat = q.get("chat")
+        out = await service.match_view(gdb, tg, mid, int(q.get("since") or 0),
+                                       int(chat) if str(chat or "").isdigit() else None)
         if out.get("lobby"):
             out["lobby"]["link"] = invite_link(out["lobby"]["code"] or "")
         return out
     if name in ("ludo/roll", "ludo/move") and method == "POST":
         return await service.act(gdb, tg, str(body.get("match") or ""), name[5:], body.get("k"),
                                  int(body.get("since") or 0))
+    if name == "ludo/chat" and method == "POST":
+        return await service.chat_send(gdb, tg, str(body.get("match") or ""), str(body.get("text") or ""))
     if name == "ludo/leave" and method == "POST":
         return await service.leave_any(gdb, tg, str(body.get("match") or ""))
 
