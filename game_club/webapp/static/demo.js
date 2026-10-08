@@ -108,7 +108,7 @@ function makeMatch(cfg, guest) {
   return { id: 'demo' + Date.now().toString(36), status: 'playing', cfg, state: st, settled: false };
 }
 function settle(m) {
-  if (m.settled || m.status !== 'over') return; m.settled = true;
+  if (m.settled || m.status !== 'over') return; m.settled = true; m.chat = [];
   const won = m.state.winner === 'yellow'; S.games++;
   if (won) { S.wins++; if (m.cfg.mode === 'stake') { S.bal += m.state.pot; S.won += m.state.pot; GC.ledger('جایزهٔ منچ', m.state.pot, 'prize'); } }
   save();
@@ -186,7 +186,7 @@ const ludo = {
   async move(id, k, since) { return ludo.act(id, 'move', k, since); },
   async leave(id) { const m = loadM(); if (m && m.status === 'lobby') { saveM(null); if (m.cfg.mode === 'stake') { S.bal += m.cfg.entry; GC.ledger('لغو میز منچ', m.cfg.entry, 'refund'); save(); } return { left: true }; } if (m && m.status === 'playing') { S.games++; save(); return ludo.act(id, 'leave', null, 0); } return { left: true }; },
   async chat(id, text) {
-    const m = loadM(); if (!m || m.id !== id) throw err('not_found');
+    const m = loadM(); if (!m || m.id !== id || m.status !== 'playing') throw err('not_found');
     text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 140); if (!text) throw err('empty');
     m.chat = m.chat || []; const last = m.chat.filter(x => x.me).pop();
     if (last && Date.now() / 1000 - last.at < 1.5) throw err('chat_slow');

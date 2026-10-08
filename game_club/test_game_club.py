@@ -303,6 +303,15 @@ def test_table_chat():
             assert [m["me"] for m in v["chat"]] == [False, True] and v["chat"][0]["name"] == "علی"
             assert (await service.match_view(db, 2, mid, 0, v["chat"][-1]["id"]))["chat"] == []
             assert "chat" not in await service.match_view(db, 2, mid, 0)
+            # پایان بازی: گفتگوی میز پاک می شود و دیگر پیامی پذیرفته نمی شود
+            await service.leave_any(db, 1, mid)
+            assert (await db.get_match(mid))["status"] == "over"
+            assert await db.chat_since(mid, 0) == []
+            try:
+                await service.chat_send(db, 2, mid, "خداحافظ")
+                raise AssertionError("chat after over")
+            except service.GCError as e:
+                assert e.code == "not_found"
         finally:
             await db.close()
 
