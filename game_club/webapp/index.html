@@ -1,918 +1,151 @@
 <!doctype html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>Game Club</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Lilita+One&family=Vazirmatn:wght@400;500;700;800;900&display=swap">
+<title>Game Club</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
 <style>
-/* layout: یک ستون موبایل (مینی‌اپ تلگرام) روی زمینهٔ چمن؛ «خانه» و «منچ» دو نمای همین صفحه‌اند. تم کارتونی تک‌حالته */
-:root{
-  --grass:#5BC236; --grass-d:#3A9327; --grass-dd:#24661A; --grass-l:#9BE86A;
-  --water:#3FB8EA; --water-d:#1E8CC4;
-  --blue:#2F7BF6; --blue-d:#1A4FB0; --red:#F04438; --red-d:#A3221A;
-  --yellow:#FFC43B; --yellow-d:#B57B00; --green:#3CC75A; --green-d:#1F8A39;
-  --paper:#FFFFFF; --cream:#FFF7E2; --ink:#1F2E18; --ink-2:#5B7150; --line:#E4EEDB;
-  --banner:#1F7BF2; --banner-d:#0C3C9C; --gold:#FFB800;
-  --display:'Lalezar','Vazirmatn',Tahoma,sans-serif;
-  --latin:'Lilita One','Lalezar',sans-serif;
-  --body:'Vazirmatn',Tahoma,sans-serif;
-  color-scheme:light;
-}
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-html,body{min-height:100%}
-body{margin:0;color:var(--ink);font-family:var(--body);font-size:14.5px;line-height:1.7;
-  background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.13) 0 1.5px,transparent 2.5px) 0 0/28px 28px,linear-gradient(180deg,#6ACB3C,#4AAE2C 60%,#3F9E27);background-color:var(--grass);background-attachment:fixed}
-button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
-button:focus-visible,a:focus-visible{outline:3px solid #fff;outline-offset:2px}
-h1,h2,h3{margin:0;font-family:var(--display);font-weight:400;line-height:1.25;text-wrap:balance}
-p{margin:0}
-.num{font-variant-numeric:tabular-nums}
-.app{max-width:470px;margin:0 auto;padding-inline:16px;padding-block:12px 110px;display:grid;gap:18px}
-
-/* دکمه‌های سه‌بعدی */
-.b3{--c:var(--blue);display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 18px;border-radius:16px;background:var(--c);color:#fff;
-  font-family:var(--display);font-size:19px;letter-spacing:0;text-shadow:0 2px 0 rgba(0,0,0,.22);box-shadow:inset 0 -5px 0 rgba(0,0,0,.22),inset 0 2px 0 rgba(255,255,255,.3),0 4px 0 rgba(0,0,0,.12);transition:transform .08s}
-.b3:active{transform:translateY(2px);box-shadow:inset 0 -3px 0 rgba(0,0,0,.22),0 2px 0 rgba(0,0,0,.12)}
-.b3:disabled{filter:grayscale(.7);opacity:.6;cursor:default}
-.b3 svg{width:20px;height:20px}
-.b3.y{--c:#FFB31A;color:#5A3A00;text-shadow:0 1px 0 rgba(255,255,255,.4)}
-.b3.g{--c:var(--green)}
-.b3.r{--c:var(--red)}
-.b3.w{--c:#fff;color:var(--ink);text-shadow:none}
-.b3.sm{min-height:38px;font-size:15px;border-radius:12px;padding:0 14px}
-
-.card{background:var(--paper);border-radius:22px;box-shadow:0 6px 0 rgba(0,0,0,.13);padding:16px}
-.sec-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;color:#fff}
-.sec-h h2{font-size:24px;text-shadow:0 2px 0 var(--grass-dd)}
-.sec-h small{font-size:12px;font-weight:700;color:#EAFFDD}
-.tag{display:inline-block;font-size:11px;font-weight:800;padding:1px 9px;border-radius:8px;background:var(--yellow);color:#5A3A00;line-height:1.8}
-.tag.soon{background:#E8EEF7;color:#5A6A80}
-.sample{font-size:11px;font-weight:700;color:var(--ink-2);background:var(--cream);border-radius:6px;padding:0 6px}
-
-/* سربرگ */
-.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.me{display:flex;align-items:center;gap:10px;min-width:0}
-.av{width:44px;height:44px;border-radius:50%;overflow:hidden;flex:none;border:3px solid #fff;box-shadow:0 3px 0 rgba(0,0,0,.15);background:#BFE7FF}
-.av svg{display:block;width:100%;height:100%}
-.me b{display:block;color:#fff;font-weight:900;font-size:15px;line-height:1.3;text-shadow:0 1px 0 var(--grass-dd)}
-.link-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:#0C4A1E;background:rgba(255,255,255,.75);border-radius:999px;padding:0 8px;line-height:1.9}
-.link-chip i{width:7px;height:7px;border-radius:50%;background:var(--green)}
-.wallet{display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:4px 4px 4px 12px;box-shadow:0 4px 0 rgba(0,0,0,.13);flex:none}
-.wallet .coin{width:26px;height:26px;flex:none}
-.wallet b{font-weight:900;font-size:16px}
-.wallet .plus{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;box-shadow:inset 0 -3px 0 rgba(0,0,0,.2);font-size:20px;font-weight:900;line-height:1}
-
-/* هیرو */
-.hero{position:relative;border-radius:26px;overflow:hidden;box-shadow:0 7px 0 rgba(0,0,0,.15);background:radial-gradient(90% 80% at 50% 0%,#A6EC6E,#62C93A 70%)}
-.hero-art{position:relative;height:190px}
-.hero-art svg{position:absolute}
-.hero-board{left:50%;top:18px;width:170px;transform:translateX(-50%) rotate(-6deg);filter:drop-shadow(0 10px 0 rgba(0,0,0,.12))}
-.hero-pawn{right:18px;bottom:-4px;width:96px;animation:bob 2.4s ease-in-out infinite}
-.hero-tree{width:46px}
+/* خانه: هیرو آسمانی با صفحه منچ، بعد حالت بازی، بازی ها، برترین ها و خدمات عبور */
+.hero{padding:0;overflow:hidden}
+.hero-sky{position:relative;height:178px;background:linear-gradient(180deg,#9ADBFF,var(--sky-tint));overflow:hidden}
+.hero-sky .hill{position:absolute;inset-inline:-10%;bottom:-60px;height:110px;border-radius:50%;background:var(--grass-ground)}
+.hero-sky .hero-board{position:absolute;left:50%;top:20px;width:150px;transform:translateX(-50%) rotate(-5deg);filter:drop-shadow(0 8px 0 rgba(28,42,22,.18))}
+.hero-sky .hero-board svg{display:block;width:100%}
+.hero-sky .king{position:absolute;inset-inline-start:22px;bottom:8px;width:74px;z-index:1;animation:bob 2.6s ease-in-out infinite}
+.hero-sky .king svg{display:block;width:100%;overflow:visible}
+.hero-sky .cloud{position:absolute;height:22px;border-radius:22px;background:var(--surface);opacity:.9}
+.hero-sky .cloud::before{content:"";position:absolute;width:26px;height:26px;border-radius:50%;background:inherit;top:-12px;left:10px}
 @keyframes bob{50%{transform:translateY(-6px)}}
-.banner{background:var(--banner);padding:12px 16px 16px;text-align:center;display:grid;gap:4px;box-shadow:inset 0 4px 0 rgba(255,255,255,.18)}
-.wordmark{font-family:var(--latin);font-size:46px;line-height:1;color:#fff;letter-spacing:1px;
-  text-shadow:0 2px 0 var(--banner-d),2px 0 0 var(--banner-d),-2px 0 0 var(--banner-d),0 -2px 0 var(--banner-d),2px 2px 0 var(--banner-d),-2px 2px 0 var(--banner-d),2px -2px 0 var(--banner-d),-2px -2px 0 var(--banner-d),0 6px 0 rgba(0,0,0,.25)}
-.banner p{font-family:var(--display);font-size:20px;color:#fff;text-shadow:0 2px 0 var(--banner-d)}
-.banner .b3{margin-top:8px}
-
-/* حالت بازی */
-.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.mode{background:#fff;border-radius:20px;padding:12px 14px;text-align:start;display:grid;gap:2px;box-shadow:0 5px 0 rgba(0,0,0,.12);border:3px solid transparent;align-content:start}
-.mode b{font-family:var(--display);font-size:19px;font-weight:400}
-.mode span{font-size:12px;color:var(--ink-2);line-height:1.6}
-.mode[aria-pressed="true"]{border-color:var(--blue);background:#EEF5FF}
-.mode[aria-pressed="true"] b{color:var(--blue)}
-
-/* بازی‌ها */
-.gm{display:grid;grid-template-columns:116px minmax(0,1fr);gap:14px;align-items:center}
-.gm-art{width:116px;height:116px;border-radius:18px;display:grid;place-items:center;overflow:hidden}
-.gm-art svg{width:100%;height:100%}
-.gm h3{font-size:26px}
-.gm p{font-size:12.5px;color:var(--ink-2)}
-.online{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--green-d)}
-.online i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(60,199,90,.25)}
-.gm .b3{margin-top:8px}
-.soon-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.soon{background:#fff;border-radius:20px;padding:12px;box-shadow:0 5px 0 rgba(0,0,0,.12);display:grid;gap:6px;justify-items:start}
-.soon .gm-art{width:100%;height:84px;border-radius:14px}
-.soon h3{font-size:20px}
-.soon .b3{width:100%}
-
-/* رده‌بندی */
-.tabs{display:flex;background:var(--cream);border-radius:14px;padding:4px;gap:4px}
-.tabs button{flex:1;border-radius:11px;padding:6px 8px;font-weight:800;font-size:13px;color:var(--ink-2)}
-.tabs button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 3px 0 rgba(0,0,0,.1)}
-.period{display:flex;gap:6px;margin-top:10px}
-.period button{font-size:12px;font-weight:800;padding:2px 12px;border-radius:999px;background:var(--line);color:var(--ink-2)}
-.period button[aria-selected="true"]{background:var(--ink);color:#fff}
-.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:end;gap:8px;margin-top:14px}
-.pod{display:grid;justify-items:center;gap:4px;text-align:center;min-width:0}
-.pod .av{width:54px;height:54px}
-.pod.p1 .av{width:66px;height:66px;border-color:var(--gold)}
-.pod b{font-size:13px;font-weight:900;line-height:1.3;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pod small{font-size:11.5px;color:var(--ink-2);font-weight:700}
-.step{width:100%;border-radius:12px 12px 0 0;display:grid;place-items:center;font-family:var(--latin);font-size:26px;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.2);box-shadow:inset 0 4px 0 rgba(255,255,255,.3)}
-.p1 .step{height:74px;background:var(--gold)}
-.p2 .step{height:54px;background:#AFC1D6}
-.p3 .step{height:42px;background:#E39A5B}
-.crown{width:30px;height:22px;margin-bottom:-6px}
-.lb{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
-.lb li{display:grid;grid-template-columns:28px 38px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 8px;border-radius:14px;background:#F6FAF2}
-.lb li .av{width:38px;height:38px;border-width:2px;box-shadow:none}
-.lb .rk{font-family:var(--latin);font-size:18px;color:var(--ink-2);text-align:center}
-.lb .nm{font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.35}
-.lb .nm small{display:block;font-weight:600;font-size:11.5px;color:var(--ink-2)}
-.lb .vl{font-weight:900;font-size:14px;display:flex;align-items:center;gap:4px}
-.lb .vl svg{width:18px;height:18px}
-.lb li.you{background:#EEF5FF;border:2px dashed var(--blue)}
-
-/* فروشگاه عبور */
-.shop{display:grid;gap:8px}
-.it{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px;border-radius:16px;background:#F6FAF2}
-.it-ic{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:#0E1330}
-.it-ic svg{width:24px;height:24px}
-.it b{display:block;font-weight:800;line-height:1.4}
-.it small{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:4px}
-.it small svg{width:15px;height:15px}
-.obour-note{display:flex;gap:10px;align-items:center;background:#0E1330;color:#E9EDFF;border-radius:16px;padding:10px 12px;font-size:12.5px;line-height:1.7;margin-bottom:10px}
-.obour-note svg{width:30px;height:30px;flex:none}
-.obour-note b{color:#3BF0CF}
-
-/* قوانین */
-.rules{display:grid;gap:8px;counter-reset:r}
-.rule{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:start}
-.rule .n{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-family:var(--latin);font-size:18px;color:#fff;box-shadow:inset 0 -3px 0 rgba(0,0,0,.2)}
-.rule b{display:block;font-weight:900}
-.rule p{font-size:13px;color:var(--ink-2)}
-
-/* ناوبری پایین */
-.nav{position:fixed;inset-inline:0;bottom:0;z-index:20;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center}
-.nav-in{display:flex;gap:4px;background:#fff;border-radius:22px;padding:6px;box-shadow:0 -2px 0 rgba(0,0,0,.05),0 8px 26px rgba(0,0,0,.25);width:100%;max-width:440px}
-.nav button{flex:1;display:grid;justify-items:center;gap:0;padding:4px 0;border-radius:16px;font-size:11px;font-weight:800;color:var(--ink-2)}
-.nav button svg{width:24px;height:24px}
-.nav button[aria-current="true"]{background:#EAF7E1;color:var(--green-d)}
-
-/* برگه‌ها و پنجره‌ها */
-.scrim{position:fixed;inset:0;z-index:40;background:rgba(10,30,8,.55);display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom,0px)}
-.scrim.center{align-items:center;padding:16px}
-.sheet{background:#fff;width:100%;max-width:470px;border-radius:28px 28px 0 0;padding:10px 18px 22px;display:grid;gap:14px;max-height:92vh;overflow:auto;align-content:start;animation:sup .25s ease-out}
-.scrim.center .sheet{border-radius:28px;animation:pop .25s ease-out}
-@keyframes sup{from{transform:translateY(40px);opacity:0}}
-@keyframes pop{from{transform:scale(.9);opacity:0}}
-.grab{width:44px;height:5px;border-radius:5px;background:var(--line);margin:0 auto}
-.sheet-h{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.sheet-h h3{font-size:28px}
-.x{width:38px;height:38px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-size:20px;font-weight:900;color:var(--ink-2)}
-.lbl{font-size:12.5px;font-weight:800;color:var(--ink-2);margin-bottom:6px}
-.seg{display:flex;gap:6px;background:var(--cream);border-radius:16px;padding:5px}
-.seg button{flex:1;border-radius:12px;padding:8px 6px;font-weight:800;font-size:13.5px;line-height:1.4;color:var(--ink-2)}
-.seg button small{display:block;font-weight:600;font-size:11px}
-.seg button[aria-pressed="true"]{background:#fff;color:var(--ink);box-shadow:0 3px 0 rgba(0,0,0,.1)}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chips button{display:inline-flex;align-items:center;gap:4px;border-radius:12px;padding:6px 12px;font-weight:900;background:var(--cream);border:2px solid transparent}
-.chips button svg{width:16px;height:16px}
-.chips button[aria-pressed="true"]{border-color:var(--gold);background:#FFF1C9}
-.pot{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#FFF1C9;border-radius:14px;padding:8px 12px;font-weight:800;font-size:13.5px}
-.pot b{font-size:17px;display:inline-flex;align-items:center;gap:4px}
-.pot b svg{width:20px;height:20px}
-.acts{display:grid;gap:8px}
-.hint{font-size:12px;color:var(--ink-2);text-align:center}
-.linkbox{display:flex;gap:6px;align-items:center;background:var(--cream);border-radius:14px;padding:6px 6px 6px 10px}
-.linkbox code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-size:12.5px;direction:ltr;text-align:left;font-family:ui-monospace,Menlo,monospace}
-.seats{display:flex;justify-content:center;gap:14px}
-.seat-w{display:grid;justify-items:center;gap:2px;font-size:12px;font-weight:800}
-.seat-w .av{width:56px;height:56px}
-.seat-w .wait{width:56px;height:56px;border-radius:50%;border:3px dashed #B9C9AE;display:grid;place-items:center;color:#9AB08C;font-size:22px;animation:spin 3s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:#fff;font-weight:800;border-radius:14px;padding:9px 16px;box-shadow:0 8px 26px rgba(0,0,0,.3);max-width:calc(100% - 32px);text-align:center;animation:tin .22s ease-out}
-@keyframes tin{from{transform:translate(-50%,16px);opacity:0}}
-
-/* ===== منچ ===== */
-.ludo{max-width:470px;margin:0 auto;padding-inline:12px;padding-block:10px 24px;display:grid;gap:10px}
-.lh{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.lh .back{width:42px;height:42px;border-radius:14px;background:#fff;display:grid;place-items:center;box-shadow:0 4px 0 rgba(0,0,0,.13)}
-.lh .back svg{width:22px;height:22px}
-.lh h1{font-size:30px;color:#fff;text-shadow:0 2px 0 var(--grass-dd)}
-.pill{display:inline-flex;align-items:center;gap:5px;background:#fff;border-radius:999px;padding:3px 12px;font-weight:900;box-shadow:0 4px 0 rgba(0,0,0,.13);font-size:13.5px}
-.pill svg{width:20px;height:20px}
-.table{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.seat{display:flex;align-items:center;gap:6px;transition:opacity .2s,transform .2s}
-.seat.right{flex-direction:row-reverse}
-.seat-in{display:grid;gap:2px;justify-items:center}
-.seat .av{width:52px;height:52px;border-width:4px}
-.seat .nm{background:#F3F3EF;border-radius:6px;padding:0 10px;font-weight:900;font-size:12.5px;line-height:1.7;box-shadow:0 2px 0 rgba(0,0,0,.15);max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.seat.off{opacity:.28;pointer-events:none}
-.seat.turn .av{animation:ring 1s ease-in-out infinite}
-@keyframes ring{50%{transform:scale(1.08)}}
-.die{width:48px;height:48px;border-radius:13px;background:var(--dc);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:7px;gap:1px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.35),0 4px 0 rgba(0,0,0,.15)}
-.die i{border-radius:50%;background:#fff;margin:1.5px;visibility:hidden;box-shadow:inset 0 1px 1px rgba(0,0,0,.25)}
-.die i.on{visibility:visible}
-.die.blank i{visibility:hidden}
-.seat.turn .die.ask{animation:ask .9s ease-in-out infinite;cursor:pointer}
-@keyframes ask{50%{transform:translateY(-5px) rotate(-6deg)}}
-.die.rolling{animation:roll .12s linear infinite}
-@keyframes roll{0%{transform:rotate(0)}50%{transform:rotate(14deg) translateY(-3px)}100%{transform:rotate(0)}}
-.seat.right .seat-in{order:0}
-
-.board-wrap{grid-column:1/-1;position:relative;padding:10px;border-radius:26px;background:linear-gradient(180deg,#7FD24E,#4FAE30);box-shadow:inset 0 3px 0 rgba(255,255,255,.35),inset 0 -6px 0 rgba(0,0,0,.18),0 8px 0 rgba(0,0,0,.15)}
-.board{position:relative;isolation:isolate;aspect-ratio:1;max-width:100%;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);gap:2px;padding:3px;border-radius:16px;
-  background:radial-gradient(circle at 20% 30%,rgba(255,255,255,.25) 0 2px,transparent 3px) 0 0/22px 22px,linear-gradient(135deg,#56CBF2,#2EA6DD);box-shadow:inset 0 0 0 3px rgba(0,0,0,.08)}
-.tile{border-radius:22%;background:linear-gradient(180deg,#86DD5C,#56BC37);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18),inset 0 1.5px 0 rgba(255,255,255,.4);display:grid;place-items:center}
-.tile svg{width:62%;height:62%}
-.tile.c-blue{background:linear-gradient(180deg,#5C9BFF,#2F7BF6)}
-.tile.c-red{background:linear-gradient(180deg,#FF6E63,#E23A2F)}
-.tile.c-green{background:linear-gradient(180deg,#5EDB78,#2FB24C)}
-.tile.c-yellow{background:linear-gradient(180deg,#FFD866,#F5B416)}
-.yard{position:relative;margin:2px;border-radius:14px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.2),inset 0 3px 0 rgba(255,255,255,.25)}
-.yard.c-blue{background:var(--blue)}.yard.c-red{background:var(--red)}.yard.c-green{background:var(--green)}.yard.c-yellow{background:var(--yellow)}
-.yard .dia{position:absolute;left:50%;top:50%;width:58%;height:58%;transform:translate(-50%,-50%) rotate(45deg);background:#FFFDF6;border-radius:18%;box-shadow:0 3px 0 rgba(0,0,0,.15)}
-.yard .slot{position:absolute;width:19%;height:19%;border-radius:50%;transform:translate(-50%,-50%);box-shadow:inset 0 2px 0 rgba(0,0,0,.2)}
-.yard.c-blue .slot{background:var(--blue)}.yard.c-red .slot{background:var(--red)}.yard.c-green .slot{background:var(--green)}.yard.c-yellow .slot{background:var(--yellow)}
-.center{grid-column:7/10;grid-row:7/10;border-radius:6px;overflow:hidden;box-shadow:0 2px 0 rgba(0,0,0,.15)}
-.center svg{width:100%;height:100%;display:block}
-.pawns{position:absolute;inset:3px;pointer-events:none}
-.pawn{position:absolute;width:7.6%;height:9.5%;transform:translate(-50%,-80%) scale(var(--s,1));transition:left .12s ease-out,top .12s ease-out,transform .15s;pointer-events:auto;z-index:2}
-.pawn svg{width:100%;height:100%;display:block;overflow:visible}
-.pawn.hop{animation:hop .12s ease-out}
-@keyframes hop{50%{margin-top:-6px}}
-.pawn.can{cursor:pointer;z-index:4;animation:can .7s ease-in-out infinite}
-.pawn.can::after{content:"";position:absolute;left:50%;bottom:-4%;width:110%;height:30%;transform:translateX(-50%);border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 8px #fff}
-@keyframes can{50%{margin-top:-5px}}
-.status{display:flex;align-items:center;gap:10px;background:#fff;border-radius:18px;padding:8px 12px;box-shadow:0 5px 0 rgba(0,0,0,.13);min-height:56px;font-weight:800}
-.status .av{width:38px;height:38px;border-width:2px;box-shadow:none}
-.status small{display:block;font-weight:600;font-size:12px;color:var(--ink-2)}
-.status .grow{flex:1;min-width:0;line-height:1.5}
-.lab{font-size:11.5px;color:#EAFFDD;text-align:center;font-weight:700}
-
-.win{display:grid;gap:6px;justify-items:center}
-.win-pawn{width:110px;height:140px;animation:bob 2s ease-in-out infinite}
-.win-pawn svg{display:block;width:110px;height:140px;overflow:visible}
-.win h3{font-size:34px;text-align:center}
-.win p{text-align:center;color:var(--ink-2)}
-.prize{display:flex;justify-content:center;align-items:center;gap:6px;font-family:var(--latin);font-size:34px;color:var(--yellow-d)}
-.prize svg{width:34px;height:34px}
-@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.hero-body{padding:var(--space-4) var(--space-4) var(--space-5);display:grid;gap:var(--space-3);text-align:center}
+.wordmark{font-size:34px;line-height:40px;font-weight:900;color:var(--sky-deep);letter-spacing:.5px}
+.hero-body p{color:var(--ink-muted)}
+.hero-actions{display:grid;grid-template-columns:1fr auto;gap:var(--space-2)}
+.me-name{display:block;font-weight:900;font-size:16px;line-height:22px}
+.linked{display:inline-flex;align-items:center;gap:5px;font-size:12px;line-height:18px;font-weight:700;color:var(--ink)}
+.linked i{width:8px;height:8px;border-radius:50%;background:var(--success)}
+.game{display:grid;grid-template-columns:104px minmax(0,1fr);gap:var(--space-4);align-items:center}
+.game .art{width:104px;height:104px;border-radius:var(--radius-lg);overflow:hidden}
+.game .art svg{display:block;width:100%;height:100%}
+.game h3{font-size:20px;line-height:28px;font-weight:900}
+.soon-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);margin-top:var(--space-2)}
+.soon{display:grid;gap:var(--space-2);align-content:start}
+.soon .art{height:76px;border-radius:var(--radius-md);display:grid;place-items:center;overflow:hidden}
+.soon .art svg{height:100%}
+.soon h3{font-size:16px;line-height:24px;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)}
+.example{font-size:12.5px;line-height:22px;color:var(--ink);background:rgba(255,255,255,.85);border-radius:var(--radius-md);padding:6px 12px;margin-top:var(--space-2)}
 </style>
-
 </head>
 <body>
-<div id="root" dir="rtl" lang="fa">
-
-<!-- ================= خانه ================= -->
-<main class="app" id="vHome">
+<main class="page">
   <header class="top">
-    <div class="me">
-      <span class="av" id="meAv"></span>
-      <div><b>سلام، بازیکن!</b><span class="link-chip"><i></i>متصل به حساب عبور</span></div>
+    <div class="top-l">
+      <span id="meAv"></span>
+      <div><span class="me-name">سلام، بازیکن</span><span class="linked"><i></i>متصل به حساب عبور</span></div>
     </div>
-    <button class="wallet" id="walletBtn" aria-label="کیف پول Game Club">
-      <span class="coin" data-coin></span><b class="num" data-bal>۰</b><span class="plus">+</span>
-    </button>
+    <div class="top-l">
+      <a class="icon-btn" href="help.html" aria-label="راهنما"><i data-ic="help"></i></a>
+      <a class="pill" href="wallet.html" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>۰</span><span class="plus"><i data-ic="plus"></i></span></a>
+    </div>
   </header>
 
-  <section class="hero" aria-label="Game Club">
-    <div class="hero-art" id="heroArt"></div>
-    <div class="banner">
-      <div class="wordmark">Game Club</div>
-      <p>بازی کن، امتیاز بگیر، از عبور خدمات بگیر</p>
-      <button class="b3 y" data-open-ludo>منچ آنلاین · همین حالا</button>
+  <section class="card hero" aria-label="Game Club">
+    <div class="hero-sky">
+      <span class="cloud" style="width:58px;top:30px;right:24px"></span>
+      <span class="cloud" style="width:44px;top:64px;left:30px"></span>
+      <div class="hero-board" id="heroBoard"></div>
+      <span class="hill"></span>
+      <div class="king" id="heroKing"></div>
+    </div>
+    <div class="hero-body">
+      <div class="wordmark" lang="en" dir="ltr">Game Club</div>
+      <p>بازی کن، امتیاز بگیر و با امتیازت از عبور اینترنت و اشتراک بگیر.</p>
+      <div class="hero-actions">
+        <a class="btn btn-gold" href="ludo-lobby.html"><i data-ic="dice"></i>شروع منچ</a>
+        <a class="btn btn-light" href="help.html">راهنما</a>
+      </div>
     </div>
   </section>
 
-  <section aria-label="نوع بازی">
-    <div class="sec-h"><h2>چطور بازی کنی؟</h2><span class="tag">آزمایشی</span></div>
-    <div class="modes" id="modes">
-      <button class="mode" data-mode="free"><b>بازی آزاد</b><span>بدون امتیاز، فقط برای سرگرمی و تمرین</span></button>
-      <button class="mode" data-mode="stake"><b>بازی با امتیاز</b><span>هر نفر ورودی می‌دهد و برنده همه را می‌برد</span></button>
+  <section aria-labelledby="hMode">
+    <div class="sec-head"><h2 id="hMode" class="on-ground">با امتیاز یا آزاد؟</h2><span class="tag">آزمایشی</span></div>
+    <div class="choice-row" id="modes">
+      <button class="choice" data-mode="free"><b>بازی آزاد</b><span>بدون امتیاز، برای سرگرمی و تمرین</span></button>
+      <button class="choice" data-mode="stake"><b>بازی با امتیاز</b><span>همه ورودی یکسان می‌دهند، برنده همه را می‌برد</span></button>
     </div>
+    <p class="example" id="modeEx"></p>
   </section>
 
-  <section id="secGames" aria-label="بازی‌ها">
-    <div class="sec-h"><h2>بازی‌ها</h2><small>به‌زودی بیشتر</small></div>
-    <div class="card gm">
-      <div class="gm-art" id="ludoArt"></div>
-      <div>
+  <section aria-labelledby="hGames">
+    <div class="sec-head"><h2 id="hGames" class="on-ground">بازی‌ها</h2></div>
+    <a class="card card-link game" href="ludo-lobby.html">
+      <div class="art" id="ludoArt"></div>
+      <div class="stack-sm">
         <h3>منچ</h3>
-        <p>۲ یا ۴ نفره · کلاسیک یا سریع · با دوستت یا با ناشناس</p>
-        <span class="online"><i></i><span id="onlineN">۳۴۲</span> نفر آنلاین <span class="sample">نمونه</span></span>
-        <div><button class="b3" data-open-ludo>بازی کن</button></div>
+        <p class="muted">۲ یا ۴ نفره · سریع یا کلاسیک · با دوست یا ناشناس</p>
+        <span><span class="tag tag-live"><span id="online">۳۴۲</span> نفر آنلاین</span> <span class="tag tag-sample">نمونه</span></span>
       </div>
-    </div>
+    </a>
     <div class="soon-row">
-      <div class="soon"><div class="gm-art" id="esmArt" style="background:#FFF1C9"></div><h3>اسم فامیل</h3><span class="tag soon">به‌زودی</span><button class="b3 w sm" data-notify="esm">خبرم کن</button></div>
-      <div class="soon"><div class="gm-art" id="hokmArt" style="background:#E6F3FF"></div><h3>حکم</h3><span class="tag soon">به‌زودی</span><button class="b3 w sm" data-notify="hokm">خبرم کن</button></div>
+      <div class="card soon">
+        <div class="art" style="background:var(--coin-tint)" id="esmArt"></div>
+        <h3>اسم فامیل <span class="tag tag-soon">به‌زودی</span></h3>
+        <button class="btn btn-light btn-sm" data-notify="esm"></button>
+      </div>
+      <div class="card soon">
+        <div class="art" style="background:var(--sky-tint)" id="hokmArt"></div>
+        <h3>حکم <span class="tag tag-soon">به‌زودی</span></h3>
+        <button class="btn btn-light btn-sm" data-notify="hokm"></button>
+      </div>
     </div>
   </section>
 
-  <section id="secLb" aria-label="رده‌بندی">
-    <div class="sec-h"><h2>رده‌بندی</h2><small>داده‌ها نمونه‌اند</small></div>
-    <div class="card">
-      <div class="tabs" role="tablist">
-        <button role="tab" data-lb="top" aria-selected="true">برترین بازیکن‌ها</button>
-        <button role="tab" data-lb="spend" aria-selected="false">بیشترین خرج</button>
-      </div>
-      <div class="period" role="tablist">
-        <button role="tab" data-per="week" aria-selected="true">این هفته</button>
-        <button role="tab" data-per="all" aria-selected="false">همیشه</button>
-      </div>
-      <div class="podium" id="podium"></div>
-      <ol class="lb" id="lbList"></ol>
-    </div>
+  <section aria-labelledby="hTop">
+    <div class="sec-head"><h2 id="hTop" class="on-ground">برترین‌های این هفته</h2><a href="leaderboard.html">همه</a></div>
+    <div class="card"><ol class="list" id="top3"></ol></div>
   </section>
 
-  <section id="secShop" aria-label="خدمات عبور">
-    <div class="sec-h"><h2>از عبور خدمات بگیر</h2><small>قیمت‌ها نمونه‌اند</small></div>
-    <div class="card">
-      <div class="obour-note">
-        <svg viewBox="0 0 32 32" fill="none"><rect x="1" y="1" width="30" height="30" rx="9" fill="#151B42"/><path d="M9 21l7-11 7 11" stroke="#3BF0CF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="21" r="2" fill="#B36BFF"/></svg>
-        <span>امتیازی که در Game Club می‌بری، در <b>عبور</b> خرج می‌شود: کانفیگ، حجم اضافه، تمدید یا اشتراک هوش مصنوعی. سفارش مستقیم روی حساب عبورت ثبت می‌شود.</span>
-      </div>
-      <div class="shop" id="shop"></div>
-    </div>
-  </section>
-
-  <section aria-label="قوانین">
-    <div class="sec-h"><h2>قوانین</h2></div>
-    <div class="card rules">
-      <div class="rule"><span class="n" style="background:var(--blue)">1</span><div><b>شارژ کیف پول</b><p>کیف Game Club را از کیف پول عبور یا کارت‌به‌کارت شارژ کن. هر ۱ امتیاز = ۱۰۰ تومان <span class="sample">نمونه</span></p></div></div>
-      <div class="rule"><span class="n" style="background:var(--red)">2</span><div><b>بازی با امتیاز</b><p>هر بازیکن ورودی یکسان می‌دهد و برنده مجموع ورودی‌ها را می‌برد. خروج وسط بازی باخت حساب می‌شود.</p></div></div>
-      <div class="rule"><span class="n" style="background:var(--green)">3</span><div><b>بازی آزاد</b><p>بدون امتیاز و بدون جایزه، برای سرگرمی و تمرین. با دوست یا ناشناس.</p></div></div>
-      <div class="rule"><span class="n" style="background:var(--yellow-d)">4</span><div><b>خرج امتیاز</b><p>امتیاز فقط برای خدمات عبور خرج می‌شود و به پول نقد برنمی‌گردد.</p></div></div>
+  <section aria-labelledby="hShop">
+    <div class="sec-head"><h2 id="hShop" class="on-ground">امتیازت را در عبور خرج کن</h2><a href="shop.html">همه</a></div>
+    <div class="card stack">
+      <div class="obour"><svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#151B42"/><path d="M10 22.5l7-11.5 7 11.5" fill="none" stroke="#3BF0CF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="22.5" r="2" fill="#B36BFF"/></svg>
+        <span>سفارش مستقیم روی <b>حساب عبورت</b> ثبت می‌شود؛ خرید جدا لازم نیست.</span></div>
+      <ul class="list" id="shopTeaser"></ul>
     </div>
   </section>
 </main>
-
-<nav class="nav" id="nav" aria-label="بخش‌ها">
-  <div class="nav-in">
-    <button data-nav="top" aria-current="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>خانه</button>
-    <button data-nav="secGames"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="11" rx="5"/><path d="M8 11v3M6.5 12.5h3"/><circle cx="15.5" cy="12" r=".8" fill="currentColor"/><circle cx="17.5" cy="14" r=".8" fill="currentColor"/></svg>بازی‌ها</button>
-    <button data-nav="secLb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21V11H4v10zM14 21V5h-4v16zM20 21v-7h-4v7z"/></svg>رده‌بندی</button>
-    <button data-nav="secShop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16l-1.5 11a2 2 0 0 1-2 1.8h-9a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>خدمات عبور</button>
-  </div>
-</nav>
-
-<!-- ================= منچ ================= -->
-<main class="ludo" id="vLudo" hidden>
-  <header class="lh">
-    <button class="back" id="ludoBack" aria-label="برگشت"><svg viewBox="0 0 24 24" fill="none" stroke="#1F2E18" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
-    <h1>منچ</h1>
-    <span class="pill" id="potPill"></span>
-  </header>
-  <div class="table" dir="ltr" id="table">
-    <div class="seat" data-seat="blue"></div>
-    <div class="seat right" data-seat="red"></div>
-    <div class="board-wrap"><div class="board" id="board"></div></div>
-    <div class="seat" data-seat="yellow"></div>
-    <div class="seat right" data-seat="green"></div>
-  </div>
-  <div class="status" id="status"></div>
-  <p class="lab">نسخهٔ آزمایشی · حریف‌ها فعلاً ربات‌اند و تاس در نسخهٔ واقعی روی سرور ریخته می‌شود</p>
-</main>
-
-<div id="layer"></div>
-</div>
-
+<script src="static/gc.js"></script>
 <script>
 (() => {
-/* ---------- ابزار ---------- */
-const $ = id => document.getElementById(id);
-const FD = s => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-const fa = n => FD(Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '٬'));
-const rand = n => Math.floor(Math.random() * n);
-const pick = a => a[rand(a.length)];
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const store = {
-  get(k, d) { try { const v = localStorage.getItem('gclub_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('gclub_' + k, JSON.stringify(v)); } catch (e) {} }
-};
-let S = Object.assign({ bal: 1250, wins: 0, games: 0, won: 0, spent: 0, mode: 'free', notify: {} }, store.get('state', {}));
-const save = () => store.set('state', S);
-function toast(t) {
-  document.querySelectorAll('.toast').forEach(x => x.remove());
-  const el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); el.textContent = t;
-  document.body.appendChild(el); setTimeout(() => el.remove(), 2600);
-}
-const COIN = '<svg viewBox="0 0 32 32"><circle cx="16" cy="17" r="13" fill="#D98A00"/><circle cx="16" cy="15" r="13" fill="#FFC43B"/><circle cx="16" cy="15" r="9.5" fill="none" stroke="#E69A00" stroke-width="2"/><path d="M16 9.5l1.7 3.5 3.8.5-2.8 2.6.7 3.8L16 18l-3.4 1.9.7-3.8-2.8-2.6 3.8-.5z" fill="#FFF3C4"/></svg>';
-function renderBal() {
-  document.querySelectorAll('[data-bal]').forEach(e => e.textContent = fa(S.bal));
-  document.querySelectorAll('[data-coin]').forEach(e => e.innerHTML = COIN);
-}
+  const { S, save, fa, toast, avatarEl, amount, icon, pawn, boardArt, PEOPLE, LB, SHOP } = GC;
+  document.getElementById('meAv').innerHTML = avatarEl(7);
+  document.getElementById('heroBoard').innerHTML = boardArt();
+  document.getElementById('heroKing').innerHTML = pawn('red', true).replace('viewBox="0 0 40 50"', 'viewBox="0 -4 40 54"');
+  document.getElementById('ludoArt').innerHTML = boardArt();
+  document.getElementById('esmArt').innerHTML = '<svg viewBox="0 0 150 76" aria-hidden="true"><rect x="26" y="10" width="62" height="56" rx="8" fill="#fff" stroke="#E7C66B" stroke-width="2"/><path d="M36 26h42M36 38h42M36 50h28" stroke="#C9D6E8" stroke-width="4" stroke-linecap="round"/><rect x="96" y="18" width="36" height="36" rx="9" fill="#EF4136"/><text x="114" y="44" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="22" fill="#fff">ب</text></svg>';
+  document.getElementById('hokmArt').innerHTML = '<svg viewBox="0 0 150 76" aria-hidden="true"><g transform="rotate(-12 58 40)"><rect x="38" y="10" width="40" height="56" rx="7" fill="#fff" stroke="#C9D6E8" stroke-width="2"/><path d="M58 24c6 7 11 10 11 16a5.5 5.5 0 0 1-9 4l2 7h-8l2-7a5.5 5.5 0 0 1-9-4c0-6 5-9 11-16z" fill="#1C2A16"/></g><g transform="rotate(10 98 40)"><rect x="78" y="10" width="40" height="56" rx="7" fill="#fff" stroke="#C9D6E8" stroke-width="2"/><path d="M98 50c-9-7-13-11-13-15.5a6 6 0 0 1 13-2.7 6 6 0 0 1 13 2.7C111 39 107 43 98 50z" fill="#EF4136"/></g></svg>';
 
-/* ---------- آواتار و مهره ---------- */
-function avatar(seed) {
-  const skin = ['#F6C9A0', '#E8B48A', '#D49A6A', '#F2D3B3'][seed % 4];
-  const hair = ['#3B2A20', '#1E1A18', '#8A5A2B', '#C9C9C9'][(seed >> 2) % 4];
-  const shirt = ['#2F7BF6', '#F04438', '#3CC75A', '#FFC43B', '#8B5CF6'][seed % 5];
-  const st = seed % 3;
-  const h = st === 0 ? `<path d="M17 29c0-10 7-16 15-16s15 6 15 16c-3-5-8-8-15-8s-12 3-15 8z" fill="${hair}"/>`
-    : st === 1 ? `<path d="M15 32c0-12 7-19 17-19s17 7 17 19v12c-3 0-5-3-5-7 0-8-2-12-12-13-10 1-12 5-12 13 0 4-2 7-5 7z" fill="${hair}"/>`
-    : `<path d="M15 28c0-9 8-15 17-15s17 6 17 15z" fill="${shirt}"/><rect x="30" y="24" width="24" height="5.5" rx="2.7" fill="${shirt}"/><rect x="15" y="26" width="34" height="3" fill="rgba(0,0,0,.15)"/>`;
-  return `<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" fill="#BFE7FF"/><path d="M8 64c2-12 12-19 24-19s22 7 24 19z" fill="${shirt}"/><circle cx="32" cy="31" r="15" fill="${skin}"/>${h}<circle cx="26.5" cy="31" r="2.1" fill="#222"/><circle cx="37.5" cy="31" r="2.1" fill="#222"/><path d="M26 37c3 3 9 3 12 0" stroke="#7A3B2A" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="22" cy="35" r="2.4" fill="rgba(240,68,56,.22)"/><circle cx="42" cy="35" r="2.4" fill="rgba(240,68,56,.22)"/></svg>`;
-}
-const COL = {
-  blue: { hex: '#2F7BF6', dark: '#1A4FB0', fa: 'آبی' }, red: { hex: '#F04438', dark: '#A3221A', fa: 'قرمز' },
-  green: { hex: '#3CC75A', dark: '#1F8A39', fa: 'سبز' }, yellow: { hex: '#FFC43B', dark: '#B57B00', fa: 'زرد' },
-};
-function pawnSvg(c, crown) {
-  const { hex, dark } = COL[c];
-  return `<svg viewBox="0 0 40 50" aria-hidden="true"><ellipse cx="20" cy="46.5" rx="12" ry="3" fill="rgba(0,0,0,.28)"/>
-    <path d="M20 3c7.5 0 10.5 6.5 9 12-.6 2.4-2.2 3.8-3.4 4.6C32 22.5 36 30 36 37.5c0 6-7 8.5-16 8.5S4 43.5 4 37.5C4 30 8 22.5 14.4 19.6 13.2 18.8 11.6 17.4 11 15c-1.5-5.5 1.5-12 9-12z" fill="${hex}" stroke="${dark}" stroke-width="1.6"/>
-    <ellipse cx="13" cy="9.5" rx="2.6" ry="4" fill="rgba(255,255,255,.5)" transform="rotate(-25 13 9.5)"/><ellipse cx="11" cy="31" rx="2.8" ry="6.5" fill="rgba(255,255,255,.3)" transform="rotate(14 11 31)"/>
-    <ellipse cx="16" cy="11.5" rx="3.7" ry="4.3" fill="#fff" stroke="#1d1d1d" stroke-width=".8"/><ellipse cx="24" cy="11.5" rx="3.7" ry="4.3" fill="#fff" stroke="#1d1d1d" stroke-width=".8"/>
-    <circle cx="16.9" cy="12.4" r="1.9" fill="#111"/><circle cx="24.9" cy="12.4" r="1.9" fill="#111"/>
-    ${crown ? '<path d="M10 4l3.5 3.5L20-2l6.5 9.5L30 4l-1.5 7.5h-17z" fill="#FFC43B" stroke="#B57B00" stroke-width="1.2" stroke-linejoin="round"/>' : ''}</svg>`;
-}
-const tree = (x, y, s) => `<svg class="hero-tree" style="left:${x}px;top:${y}px;width:${s}px" viewBox="0 0 40 56" aria-hidden="true"><rect x="17" y="42" width="6" height="12" rx="2" fill="#8B5A2B"/><path d="M20 2 34 22H26l11 14H24l12 10H4l12-10H3l11-14H6z" fill="#2E9B3E"/><path d="M20 2 34 22H26l11 14H24l12 10H20z" fill="#237F32"/></svg>`;
-function miniBoard(w) {
-  let t = '';
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) t += `<rect x="${37 + i * 16}" y="${37 + j * 16}" width="15" height="15" rx="4" fill="${i === 1 && j === 1 ? '#fff' : '#7ED957'}"/>`;
-  return `<svg viewBox="0 0 120 120" ${w ? `class="${w}"` : ''} aria-hidden="true"><rect x="2" y="2" width="116" height="116" rx="18" fill="#4FAE30"/><rect x="6" y="6" width="108" height="108" rx="15" fill="#3FB8EA"/>
-    <rect x="10" y="10" width="34" height="34" rx="8" fill="#2F7BF6"/><rect x="76" y="10" width="34" height="34" rx="8" fill="#F04438"/><rect x="10" y="76" width="34" height="34" rx="8" fill="#FFC43B"/><rect x="76" y="76" width="34" height="34" rx="8" fill="#3CC75A"/>
-    <rect x="18" y="18" width="18" height="18" rx="4" fill="#fff" transform="rotate(45 27 27)"/><rect x="84" y="18" width="18" height="18" rx="4" fill="#fff" transform="rotate(45 93 27)"/><rect x="18" y="84" width="18" height="18" rx="4" fill="#fff" transform="rotate(45 27 93)"/><rect x="84" y="84" width="18" height="18" rx="4" fill="#fff" transform="rotate(45 93 93)"/>${t}</svg>`;
-}
-
-/* ---------- خانه ---------- */
-$('meAv').innerHTML = avatar(7);
-$('heroArt').innerHTML = tree(14, 26, 44) + tree(48, 74, 34) + tree(330, 14, 40) + miniBoard('hero-board') + `<svg class="hero-pawn" viewBox="0 -4 40 54" aria-hidden="true">${pawnSvg('red', true).replace(/^<svg[^>]*>|<\/svg>$/g, '')}</svg>`;
-$('ludoArt').innerHTML = miniBoard();
-$('esmArt').innerHTML = `<svg viewBox="0 0 160 84" aria-hidden="true"><rect x="22" y="12" width="70" height="62" rx="8" fill="#fff" stroke="#E7C66B" stroke-width="2"/><path d="M32 30h50M32 44h50M32 58h34" stroke="#C9D6E8" stroke-width="4" stroke-linecap="round"/><rect x="100" y="20" width="38" height="38" rx="9" fill="#F04438"/><text x="119" y="47" text-anchor="middle" font-family="Lalezar,Vazirmatn,sans-serif" font-size="24" fill="#fff">ب</text><path d="M86 66l30-30 6 6-30 30-9 3z" fill="#FFB31A" stroke="#B57B00" stroke-width="1.5"/></svg>`;
-$('hokmArt').innerHTML = `<svg viewBox="0 0 160 84" aria-hidden="true"><g transform="rotate(-12 60 46)"><rect x="40" y="14" width="44" height="62" rx="7" fill="#fff" stroke="#C9D6E8" stroke-width="2"/><path d="M62 30c6 7 12 11 12 17a6 6 0 0 1-10 4l2 7h-8l2-7a6 6 0 0 1-10-4c0-6 6-10 12-17z" fill="#1F2E18"/></g><g transform="rotate(10 104 44)"><rect x="82" y="12" width="44" height="62" rx="7" fill="#fff" stroke="#C9D6E8" stroke-width="2"/><path d="M104 56c-10-8-14-12-14-17a6.5 6.5 0 0 1 14-3 6.5 6.5 0 0 1 14 3c0 5-4 9-14 17z" fill="#F04438"/></g></svg>`;
-
-function renderModes() {
-  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === S.mode)));
-}
-$('modes').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; S.mode = b.dataset.mode; save(); renderModes(); });
-
-document.querySelectorAll('[data-notify]').forEach(b => {
-  const sync = () => { b.textContent = S.notify[b.dataset.notify] ? 'خبرت می‌کنیم' : 'خبرم کن'; };
-  sync();
-  b.onclick = () => { S.notify[b.dataset.notify] = !S.notify[b.dataset.notify]; save(); sync(); if (S.notify[b.dataset.notify]) toast('وقتی آماده شد در ربات خبرت می‌کنیم'); };
-});
-
-// رده‌بندی نمونه
-const PEOPLE = [
-  ['کیان ر.', 3], ['مهسا ک.', 5], ['امیرعلی م.', 2], ['نگار س.', 9], ['رضا ت.', 12], ['پریا ن.', 13], ['سینا ح.', 6], ['هستی ا.', 17],
-];
-const LB = {
-  top: [[0, 48, 12400], [1, 41, 9850], [2, 37, 8200], [3, 33, 6900], [4, 29, 5750], [5, 26, 4300], [6, 22, 3950], [7, 19, 3100]],
-  spend: [[2, 0, 24500], [6, 0, 18200], [0, 0, 15900], [7, 0, 11300], [1, 0, 9600], [4, 0, 7400], [3, 0, 5200], [5, 0, 3900]],
-};
-let lbTab = 'top', lbPer = 'week';
-const CROWN = '<svg class="crown" viewBox="0 0 30 22" aria-hidden="true"><path d="M2 6l7 6 6-10 6 10 7-6-3 14H5z" fill="#FFC43B" stroke="#B57B00" stroke-width="1.5" stroke-linejoin="round"/></svg>';
-function renderLB() {
-  document.querySelectorAll('[data-lb]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.lb === lbTab)));
-  document.querySelectorAll('[data-per]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.per === lbPer)));
-  const k = lbPer === 'all' ? 6.4 : 1;
-  const rows = LB[lbTab].map(([p, w, v]) => ({ name: PEOPLE[p][0], av: PEOPLE[p][1], w: Math.round(w * k), v: Math.round(v * k / 50) * 50 }));
-  const val = r => lbTab === 'top' ? `${COIN}${fa(r.v)}` : `${COIN}${fa(r.v)}`;
-  const sub = r => lbTab === 'top' ? `${fa(r.w)} برد` : 'خرج در Game Club';
-  const pod = [1, 0, 2].map(i => {
-    const r = rows[i], cls = 'p' + (i + 1);
-    return `<div class="pod ${cls}">${i === 0 ? CROWN : ''}<span class="av">${avatar(r.av)}</span><b>${r.name}</b><small>${lbTab === 'top' ? fa(r.w) + ' برد' : fa(r.v)}</small><div class="step">${i + 1}</div></div>`;
-  }).join('');
-  $('podium').innerHTML = pod;
-  const mineV = lbTab === 'top' ? S.won : S.spent;
-  $('lbList').innerHTML = rows.slice(3).map((r, i) => `<li><span class="rk">${i + 4}</span><span class="av">${avatar(r.av)}</span><span class="nm">${r.name}<small>${sub(r)}</small></span><span class="vl">${val(r)}</span></li>`).join('') +
-    `<li class="you"><span class="rk">${mineV ? '—' : '—'}</span><span class="av">${avatar(7)}</span><span class="nm">شما<small>${lbTab === 'top' ? fa(S.wins) + ' برد از ' + fa(S.games) + ' بازی' : 'امتیاز خرج‌شده'}</small></span><span class="vl">${COIN}${fa(mineV)}</span></li>`;
-}
-document.querySelector('#secLb .card').addEventListener('click', e => {
-  const t = e.target.closest('[data-lb]'), p = e.target.closest('[data-per]');
-  if (t) lbTab = t.dataset.lb; if (p) lbPer = p.dataset.per;
-  if (t || p) renderLB();
-});
-
-// خدمات عبور
-const ICO = {
-  net: '<svg viewBox="0 0 24 24" fill="none" stroke="#3BF0CF" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
-  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="#3BF0CF" stroke-width="2.2" stroke-linecap="round"><path d="M4 16l4-4 3 3 7-7"/><path d="M14 8h4v4"/></svg>',
-  time: '<svg viewBox="0 0 24 24" fill="none" stroke="#FFC43B" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>',
-  ai: '<svg viewBox="0 0 24 24" fill="none" stroke="#B36BFF" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>',
-};
-const SHOP = [
-  { ic: 'net', t: 'کانفیگ ۱۰ گیگ یک‌ماهه', p: 950 },
-  { ic: 'net', t: 'کانفیگ ۳۰ گیگ یک‌ماهه', p: 2200 },
-  { ic: 'plus', t: '۵ گیگ حجم اضافه روی سرویس فعلی', p: 400 },
-  { ic: 'time', t: 'تمدید ۷ روزه سرویس', p: 350 },
-  { ic: 'ai', t: 'اشتراک هوش مصنوعی یک‌ماهه', p: 3800 },
-];
-function renderShop() {
-  $('shop').innerHTML = SHOP.map((s, i) => `<div class="it"><span class="it-ic">${ICO[s.ic]}</span><span><b>${s.t}</b><small>${COIN}${fa(s.p)} امتیاز</small></span><button class="b3 g sm" data-buy="${i}">دریافت</button></div>`).join('');
-}
-$('shop').addEventListener('click', e => {
-  const b = e.target.closest('[data-buy]'); if (!b) return;
-  const s = SHOP[+b.dataset.buy];
-  if (S.bal < s.p) { toast('امتیازت کافی نیست؛ بازی کن یا کیف را شارژ کن'); return; }
-  S.bal -= s.p; S.spent += s.p; save(); renderBal(); renderLB();
-  toast('ثبت شد: ' + s.t + ' · در نسخهٔ واقعی سفارش در ربات عبور ثبت می‌شود');
-});
-
-// ناوبری
-$('nav').addEventListener('click', e => {
-  const b = e.target.closest('[data-nav]'); if (!b) return;
-  document.querySelectorAll('[data-nav]').forEach(x => x.setAttribute('aria-current', String(x === b)));
-  if (b.dataset.nav === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
-  else $(b.dataset.nav).scrollIntoView({ behavior: 'smooth', block: 'start' });
-});
-
-/* ---------- لایه‌های رو (برگه و پنجره) ---------- */
-const layer = $('layer');
-function openSheet(html, center, onClose) {
-  layer.innerHTML = `<div class="scrim${center ? ' center' : ''}"><div class="sheet" role="dialog" aria-modal="true">${center ? '' : '<div class="grab"></div>'}${html}</div></div>`;
-  const sc = layer.firstChild;
-  sc.addEventListener('click', e => { if (e.target === sc && onClose !== false) { closeSheet(); onClose && onClose(); } });
-  return sc.firstChild;
-}
-const closeSheet = () => { layer.innerHTML = ''; };
-
-// کیف پول
-function openWallet() {
-  const P = [[250, 25000, 0], [500, 50000, 0], [1000, 100000, 50], [2500, 250000, 250]];
-  const sh = openSheet(`<div class="sheet-h"><h3>کیف پول</h3><button class="x" data-x aria-label="بستن">×</button></div>
-    <div class="pot"><span>موجودی Game Club</span><b>${COIN}<span class="num" data-bal></span></b></div>
-    <div><div class="lbl">روش شارژ</div><div class="seg" id="payM"><button aria-pressed="true" data-pm="obour">از کیف پول عبور<small>موجودی عبور: ۲۴۰٬۰۰۰ تومان · نمونه</small></button><button aria-pressed="false" data-pm="card">کارت‌به‌کارت<small>با تأیید ادمین</small></button></div></div>
-    <div><div class="lbl">بسته‌ها</div><div class="shop">${P.map(([pt, tm, gift], i) => `<div class="it"><span class="it-ic" style="background:#FFF1C9">${COIN}</span><span><b>${fa(pt)} امتیاز${gift ? ' + ' + fa(gift) + ' هدیه' : ''}</b><small>${fa(tm)} تومان</small></span><button class="b3 sm" data-pk="${i}">شارژ</button></div>`).join('')}</div></div>
-    <p class="hint">نسخهٔ آزمایشی است و پولی جابه‌جا نمی‌شود. در نسخهٔ واقعی شارژ از کیف عبور فوری است.</p>`);
-  renderBal();
-  sh.querySelector('[data-x]').onclick = closeSheet;
-  sh.querySelector('#payM').onclick = e => { const b = e.target.closest('[data-pm]'); if (!b) return; sh.querySelectorAll('[data-pm]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); };
-  sh.addEventListener('click', e => { const b = e.target.closest('[data-pk]'); if (!b) return; const [pt, , gift] = P[+b.dataset.pk]; S.bal += pt + gift; save(); renderBal(); toast('+' + fa(pt + gift) + ' امتیاز به کیفت اضافه شد'); });
-}
-$('walletBtn').onclick = openWallet;
-
-/* ===================================================================
-   منچ
-   =================================================================== */
-const TRACK = [[1,6],[2,6],[3,6],[4,6],[5,6],[6,5],[6,4],[6,3],[6,2],[6,1],[6,0],[7,0],[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[14,7],[14,8],[13,8],[12,8],[11,8],[10,8],[9,8],[8,9],[8,10],[8,11],[8,12],[8,13],[8,14],[7,14],[6,14],[6,13],[6,12],[6,11],[6,10],[6,9],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8],[0,7],[0,6]];
-const SEAT = {
-  blue:   { start: 0,  home: [[1,7],[2,7],[3,7],[4,7],[5,7]], yard: [0,0], fin: [6.75,7.5], arrow: 0 },
-  red:    { start: 13, home: [[7,1],[7,2],[7,3],[7,4],[7,5]], yard: [9,0], fin: [7.5,6.75], arrow: 90 },
-  green:  { start: 26, home: [[13,7],[12,7],[11,7],[10,7],[9,7]], yard: [9,9], fin: [8.25,7.5], arrow: 180 },
-  yellow: { start: 39, home: [[7,13],[7,12],[7,11],[7,10],[7,9]], yard: [0,9], fin: [7.5,8.25], arrow: 270 },
-};
-const ORDER = ['blue', 'red', 'green', 'yellow'];
-const SAFE = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
-const SLOTS = [[1.8,3],[4.2,3],[3,1.8],[3,4.2]];
-const NAMES = ['سارا', 'امیر', 'نگار', 'رضا', 'مهسا', 'علی', 'پریا', 'کیان', 'هستی', 'سینا'];
-const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="rgba(0,0,0,.18)"/></svg>';
-const ARROW = deg => `<svg viewBox="0 0 24 24" aria-hidden="true" style="transform:rotate(${deg}deg)"><path d="M7 4l12 8-12 8z" fill="#fff"/></svg>`;
-const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
-
-const L = { cfg: Object.assign({ entry: 100, players: 2, pawns: 2 }, store.get('ludoCfg', {})), G: null, built: false };
-
-function buildBoard() {
-  if (L.built) return; L.built = true;
-  const b = $('board'); let h = '';
-  const startOf = {}; for (const c of ORDER) startOf[SEAT[c].start] = c;
-  TRACK.forEach(([x, y], i) => {
-    const c = startOf[i];
-    h += `<div class="tile${c ? ' c-' + c : ''}" style="grid-column:${x + 1};grid-row:${y + 1}">${c ? ARROW(SEAT[c].arrow) : SAFE.has(i) ? STAR : ''}</div>`;
-  });
-  for (const c of ORDER) SEAT[c].home.forEach(([x, y]) => { h += `<div class="tile c-${c}" style="grid-column:${x + 1};grid-row:${y + 1}"></div>`; });
-  for (const c of ORDER) {
-    const [ox, oy] = SEAT[c].yard;
-    h += `<div class="yard c-${c}" style="grid-column:${ox + 1}/${ox + 7};grid-row:${oy + 1}/${oy + 7}"><span class="dia"></span>${SLOTS.map(([sx, sy]) => `<span class="slot" style="left:${sx / 6 * 100}%;top:${sy / 6 * 100}%"></span>`).join('')}</div>`;
+  const modes = document.getElementById('modes'), ex = document.getElementById('modeEx');
+  function renderMode() {
+    modes.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === S.mode)));
+    ex.innerHTML = S.mode === 'stake'
+      ? `مثال: ۴ نفر هر کدام ${amount(100)} ورودی می‌دهند و برنده ${amount(400)} می‌برد.`
+      : 'در بازی آزاد امتیازی کم یا اضافه نمی‌شود. برای تمرین قبل از بازی امتیازی خوب است.';
   }
-  h += `<div class="center"><svg viewBox="0 0 3 3" preserveAspectRatio="none"><path d="M0 0L1.5 1.5L0 3z" fill="#2F7BF6"/><path d="M0 0L3 0L1.5 1.5z" fill="#F04438"/><path d="M3 0L3 3L1.5 1.5z" fill="#3CC75A"/><path d="M0 3L3 3L1.5 1.5z" fill="#FFC43B"/><path d="M0 0L3 3M3 0L0 3" stroke="rgba(255,255,255,.5)" stroke-width=".05"/></svg></div>`;
-  h += '<div class="pawns" id="pawns"></div>';
-  b.innerHTML = h;
-}
+  modes.addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; S.mode = b.dataset.mode; save(); renderMode(); });
+  renderMode();
 
-/* موقعیت مهره روی صفحه (واحد: خانه، مرکز خانه) */
-function posOf(c, p, k) {
-  const s = SEAT[c];
-  if (p < 0) return [s.yard[0] + SLOTS[k][0], s.yard[1] + SLOTS[k][1]];
-  if (p <= 50) { const [x, y] = TRACK[(s.start + p) % 52]; return [x + .5, y + .5]; }
-  if (p <= 55) { const [x, y] = s.home[p - 51]; return [x + .5, y + .5]; }
-  return s.fin;
-}
-const tIdx = (c, p) => p >= 0 && p <= 50 ? (SEAT[c].start + p) % 52 : -1;
-
-function layout() {
-  const g = L.G; if (!g) return;
-  const groups = {};
-  for (const c of g.seats) g.pawns[c].forEach((p, k) => {
-    const [x, y] = posOf(c, p, k), key = x.toFixed(2) + ',' + y.toFixed(2);
-    (groups[key] = groups[key] || []).push([c, k, x, y]);
-  });
-  for (const list of Object.values(groups)) list.forEach(([c, k, x, y], i) => {
-    const el = g.els[c][k], n = list.length, off = n > 1 ? (i - (n - 1) / 2) * .34 : 0;
-    el.style.left = ((x + off) / 15 * 100) + '%';
-    el.style.top = ((y + (n > 1 ? .12 : 0)) / 15 * 100) + '%';
-    el.style.setProperty('--s', n > 1 ? .78 : 1);
-    el.style.zIndex = Math.round(y * 10) + (el.classList.contains('can') ? 400 : 0);
-  });
-}
-
-function dieHtml(v) { return Array.from({ length: 9 }, (_, i) => `<i class="${v && PIPS[v].includes(i) ? 'on' : ''}"></i>`).join(''); }
-function setDie(c, v) { const d = document.querySelector(`[data-seat="${c}"] .die`); if (d) { d.innerHTML = dieHtml(v); d.classList.toggle('blank', !v); } }
-
-function renderSeats() {
-  const g = L.G;
-  for (const c of ORDER) {
-    const el = document.querySelector(`[data-seat="${c}"]`), pl = g && g.players[c];
-    el.classList.toggle('off', !pl);
-    el.innerHTML = `<div class="seat-in"><span class="av" style="border-color:${COL[c].hex}">${pl ? avatar(pl.av) : ''}</span><span class="nm">${pl ? pl.name : '—'}</span></div><button class="die" style="--dc:${COL[c].hex}" aria-label="تاس ${COL[c].fa}">${dieHtml(pl && pl.last || 0)}</button>`;
-  }
-}
-function setStatus(c, main, sub) {
-  const pl = L.G.players[c];
-  $('status').innerHTML = `<span class="av" style="border-color:${COL[c].hex}">${avatar(pl.av)}</span><span class="grow">${main}${sub ? `<small>${sub}</small>` : ''}</span>`;
-}
-function markTurn() {
-  const g = L.G, c = g.seats[g.turn];
-  document.querySelectorAll('.seat').forEach(s => s.classList.toggle('turn', s.dataset.seat === c));
-}
-
-/* ---------- لابی ---------- */
-function openLudo() {
-  document.body.scrollTop = 0; window.scrollTo(0, 0);
-  $('vHome').hidden = true; $('nav').hidden = true; $('vLudo').hidden = false;
-  buildBoard();
-  if (!L.G) { L.G = null; renderSeats(); $('status').innerHTML = '<span class="grow">حالت بازی را انتخاب کن</span>'; $('potPill').textContent = 'منچ'; }
-  openLobby();
-}
-function goHome() {
-  L.G = null; closeSheet();
-  $('vLudo').hidden = true; $('vHome').hidden = false; $('nav').hidden = false;
-  renderBal(); renderLB();
-}
-function openLobby() {
-  const cfg = L.cfg, stake = S.mode === 'stake';
-  const sh = openSheet(`<div class="sheet-h"><h3>منچ</h3><button class="x" data-x aria-label="بستن">×</button></div>
-    <div><div class="lbl">نوع بازی</div><div class="seg" id="lbMode">
-      <button data-v="free" aria-pressed="${!stake}">بازی آزاد<small>بدون امتیاز</small></button>
-      <button data-v="stake" aria-pressed="${stake}">با امتیاز<small>برنده همه را می‌برد</small></button></div></div>
-    <div id="stakeBox" ${stake ? '' : 'hidden'}>
-      <div class="lbl">ورودی هر نفر</div>
-      <div class="chips" id="lbEntry">${[50, 100, 250, 500].map(v => `<button data-v="${v}" aria-pressed="${cfg.entry === v}">${COIN}${fa(v)}</button>`).join('')}</div>
-      <div class="pot" style="margin-top:10px"><span>جایزهٔ برنده</span><b>${COIN}<span id="lbPot"></span></b></div>
-    </div>
-    <div><div class="lbl">تعداد بازیکن</div><div class="seg" id="lbPl"><button data-v="2" aria-pressed="${cfg.players === 2}">۲ نفره</button><button data-v="4" aria-pressed="${cfg.players === 4}">۴ نفره</button></div></div>
-    <div><div class="lbl">مدل بازی</div><div class="seg" id="lbPw"><button data-v="2" aria-pressed="${cfg.pawns === 2}">سریع<small>۲ مهره، ۵ دقیقه</small></button><button data-v="4" aria-pressed="${cfg.pawns === 4}">کلاسیک<small>۴ مهره</small></button></div></div>
-    <div class="acts">
-      <button class="b3" data-how="online">بازی آنلاین با ناشناس</button>
-      <button class="b3 y" data-how="invite">دعوت دوست</button>
-      <button class="b3 g" data-how="bot">تمرین با ربات · آزاد</button>
-    </div>
-    <p class="hint">موجودی تو: ${fa(S.bal)} امتیاز</p>`, false, () => { if (!L.G) goHome(); });
-  const sync = () => {
-    const st = S.mode === 'stake';
-    sh.querySelector('#stakeBox').hidden = !st;
-    sh.querySelector('#lbPot').textContent = fa(cfg.entry * cfg.players);
-    sh.querySelectorAll('#lbMode [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.mode)));
-    sh.querySelectorAll('#lbEntry [data-v]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === cfg.entry)));
-    sh.querySelectorAll('#lbPl [data-v]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === cfg.players)));
-    sh.querySelectorAll('#lbPw [data-v]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === cfg.pawns)));
-    store.set('ludoCfg', cfg); save(); renderModes();
-  };
-  sh.addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    if (b.matches('[data-x]')) { closeSheet(); if (!L.G) goHome(); return; }
-    const box = b.parentElement.id;
-    if (box === 'lbMode') S.mode = b.dataset.v;
-    else if (box === 'lbEntry') cfg.entry = +b.dataset.v;
-    else if (box === 'lbPl') cfg.players = +b.dataset.v;
-    else if (box === 'lbPw') cfg.pawns = +b.dataset.v;
-    else if (b.dataset.how) return startMatch(b.dataset.how);
+  document.querySelectorAll('[data-notify]').forEach(b => {
+    const sync = () => { b.innerHTML = S.notify[b.dataset.notify] ? icon('check') + 'خبرت می‌کنیم' : icon('bell') + 'خبرم کن'; };
+    b.onclick = () => { S.notify[b.dataset.notify] = !S.notify[b.dataset.notify]; save(); sync(); if (S.notify[b.dataset.notify]) toast('وقتی آماده شد، ربات خبرت می‌کند'); };
     sync();
   });
-  sync();
-}
 
-function startMatch(how) {
-  const stake = S.mode === 'stake' && how !== 'bot', cfg = L.cfg;
-  if (stake && S.bal < cfg.entry) { toast('امتیاز کافی نیست؛ اول کیف را شارژ کن'); return; }
-  const others = cfg.players === 2 ? ['red'] : ['blue', 'red', 'green'];
-  const names = [...NAMES].sort(() => Math.random() - .5);
-  const opp = others.map((c, i) => ({ c, name: names[i], av: rand(20) + 1 }));
-  if (how === 'bot') { opp.forEach(o => o.name = 'ربات ' + o.name); return begin(opp, false); }
-  if (how === 'online') return matchmaking(opp, stake);
-  return invite(opp, stake);
-}
-function seatsHtml(list) {
-  return `<div class="seats">${list.map(p => p ? `<div class="seat-w"><span class="av" style="border-color:${COL[p.c].hex}">${avatar(p.av)}</span>${p.name}</div>` : '<div class="seat-w"><span class="wait">?</span>…</div>').join('')}</div>`;
-}
-async function matchmaking(opp, stake) {
-  const me = { c: 'yellow', name: 'شما', av: 7 };
-  const token = {};
-  L.wait = token;
-  const draw = n => {
-    const sh = openSheet(`<div class="sheet-h"><h3>پیدا کردن حریف…</h3></div>${seatsHtml([me, ...opp.map((o, i) => i < n ? o : null)])}
-      <p class="hint">${stake ? 'ورودی: ' + fa(L.cfg.entry) + ' امتیاز · جایزه: ' + fa(L.cfg.entry * L.cfg.players) : 'بازی آزاد'} · بازیکن‌ها ناشناس‌اند و فقط اسم کوچکشان دیده می‌شود</p>
-      <button class="b3 w" data-cancel>انصراف</button>`, true, false);
-    sh.querySelector('[data-cancel]').onclick = () => { L.wait = null; openLobby(); };
-  };
-  for (let n = 0; n <= opp.length; n++) { draw(n); await sleep(900 + rand(700)); if (L.wait !== token) return; }
-  begin(opp, stake);
-}
-async function invite(opp, stake) {
-  const code = 'ludo_' + Math.random().toString(36).slice(2, 7).toUpperCase();
-  const url = 'https://t.me/your_gameclub_bot?start=' + code;
-  const me = { c: 'yellow', name: 'شما', av: 7 };
-  const token = {}; L.wait = token;
-  const friend = Object.assign({}, opp[0], { name: 'دوست شما' });
-  const draw = joined => {
-    const sh = openSheet(`<div class="sheet-h"><h3>دعوت دوست</h3><button class="x" data-x aria-label="بستن">×</button></div>
-      <p>این لینک را برای دوستت بفرست. با باز کردنش مستقیم وارد همین میز می‌شود${stake ? ' و ورودی ' + fa(L.cfg.entry) + ' امتیاز از کیفش کم می‌شود' : ''}.</p>
-      <div class="linkbox"><code>${url}</code><button class="b3 sm" data-copy>کپی</button></div>
-      <a class="b3" href="https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent('بیا منچ بازی کنیم!')}" target="_blank" rel="noopener">ارسال در تلگرام</a>
-      ${seatsHtml([me, joined ? friend : null, ...opp.slice(1)])}
-      <p class="hint">${joined ? 'دوستت وارد شد! بازی شروع می‌شود…' : 'منتظر دوستت… (در این پیش‌نمایش چند ثانیه بعد خودکار وارد می‌شود)'}</p>
-      ${joined ? '' : '<button class="b3 w" data-solo>به جای دوست با ربات بازی کن</button>'}`, false, false);
-    sh.querySelector('[data-x]').onclick = () => { L.wait = null; openLobby(); };
-    const cp = sh.querySelector('[data-copy]');
-    cp.onclick = () => {
-      const done = () => toast('لینک دعوت کپی شد');
-      try { navigator.clipboard.writeText(url).then(done, () => toast('کپی نشد؛ لینک را نگه دار و دستی بفرست')); } catch (e) { toast('کپی نشد؛ لینک را دستی بفرست'); }
-    };
-    const solo = sh.querySelector('[data-solo]');
-    if (solo) solo.onclick = () => { L.wait = null; opp.forEach(o => o.name = 'ربات ' + o.name); begin(opp, false); };
-  };
-  draw(false);
-  await sleep(4500); if (L.wait !== token) return;
-  opp[0] = friend; draw(true);
-  await sleep(1300); if (L.wait !== token) return;
-  begin(opp, stake);
-}
-
-/* ---------- خود بازی ---------- */
-function begin(opp, stake) {
-  L.wait = null; closeSheet();
-  const cfg = L.cfg, players = { yellow: { name: 'شما', av: 7, human: true } };
-  opp.forEach(o => players[o.c] = { name: o.name, av: o.av, human: false });
-  const seats = ORDER.filter(c => players[c]);
-  const g = { id: {}, seats, players, stake, entry: cfg.entry, pot: stake ? cfg.entry * seats.length : 0, nP: cfg.pawns,
-    pawns: {}, els: {}, turn: seats.indexOf('yellow'), sixes: 0, phase: 'start' };
-  if (stake) { S.bal -= cfg.entry; S.spent += cfg.entry; save(); }
-  L.G = g;
-  const layerEl = $('pawns'); layerEl.innerHTML = '';
-  for (const c of seats) {
-    g.pawns[c] = Array(cfg.pawns).fill(-1); g.els[c] = [];
-    for (let k = 0; k < cfg.pawns; k++) {
-      const el = document.createElement('button');
-      el.className = 'pawn'; el.innerHTML = pawnSvg(c); el.dataset.c = c; el.dataset.k = k;
-      el.setAttribute('aria-label', 'مهره ' + COL[c].fa + ' ' + FD(k + 1));
-      layerEl.appendChild(el); g.els[c].push(el);
-    }
-  }
-  $('potPill').innerHTML = stake ? `${COIN}جایزه ${fa(g.pot)}` : 'بازی آزاد';
-  renderSeats(); renderBal(); layout();
-  loop(g);
-}
-
-$('table').addEventListener('click', e => {
-  const g = L.G; if (!g) return;
-  const die = e.target.closest('.die'), pw = e.target.closest('.pawn');
-  const cur = g.seats[g.turn];
-  if (die && g.phase === 'roll' && die.closest('.seat').dataset.seat === cur && g.players[cur].human && g.onRoll) { const f = g.onRoll; g.onRoll = null; f(); }
-  if (pw && g.phase === 'move' && pw.dataset.c === cur && pw.classList.contains('can') && g.onPick) { const f = g.onPick; g.onPick = null; f(+pw.dataset.k); }
-});
-
-function legal(c, d) {
-  const out = [];
-  L.G.pawns[c].forEach((p, k) => { if ((p < 0 && d === 6) || (p >= 0 && p + d <= 56)) out.push(k); });
-  return out;
-}
-function danger(c, ti) {
-  const g = L.G;
-  for (const o of g.seats) if (o !== c) for (const q of g.pawns[o]) {
-    const oi = tIdx(o, q); if (oi < 0) continue;
-    const dist = (ti - oi + 52) % 52; if (dist >= 1 && dist <= 6) return true;
-  }
-  return false;
-}
-function botPick(c, d, moves) {
-  const g = L.G; let best = moves[0], bs = -1e9;
-  for (const k of moves) {
-    const p = g.pawns[c][k], np = p < 0 ? 0 : p + d, ti = tIdx(c, np), cur = tIdx(c, p);
-    let s = np / 8 + Math.random() * 4;
-    if (p < 0) s += 50;
-    if (np === 56) s += 80;
-    if (p <= 50 && np > 50) s += 35;
-    if (ti >= 0) {
-      if (SAFE.has(ti)) s += 15;
-      else {
-        for (const o of g.seats) if (o !== c && g.pawns[o].some(q => tIdx(o, q) === ti)) s += 100;
-        if (danger(c, ti)) s -= 40;
-      }
-    }
-    if (cur >= 0 && !SAFE.has(cur) && danger(c, cur)) s += 25;
-    if (s > bs) { bs = s; best = k; }
-  }
-  return best;
-}
-async function rollDie(c) {
-  const d = document.querySelector(`[data-seat="${c}"] .die`);
-  d.classList.remove('ask', 'blank'); d.classList.add('rolling');
-  for (let i = 0; i < 8; i++) { d.innerHTML = dieHtml(1 + rand(6)); await sleep(60); }
-  // در نسخهٔ واقعی عدد تاس را سرور می‌دهد (POST /api/ludo/roll)
-  const v = 1 + rand(6);
-  d.classList.remove('rolling'); d.innerHTML = dieHtml(v);
-  L.G.players[c].last = v;
-  return v;
-}
-async function doMove(c, k, d) {
-  const g = L.G, el = g.els[c][k];
-  if (g.pawns[c][k] < 0) { g.pawns[c][k] = 0; layout(); await sleep(260); }
-  else for (let i = 0; i < d; i++) {
-    g.pawns[c][k]++; el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); layout(); await sleep(150);
-    if (g !== L.G) return {};
-  }
-  const p = g.pawns[c][k], ti = tIdx(c, p);
-  let captured = false;
-  if (ti >= 0 && !SAFE.has(ti)) for (const o of g.seats) if (o !== c) g.pawns[o].forEach((q, j) => { if (tIdx(o, q) === ti) { g.pawns[o][j] = -1; captured = true; } });
-  if (captured) { layout(); await sleep(280); }
-  return { captured, finished: p === 56 };
-}
-async function loop(g) {
-  while (g === L.G && g.phase !== 'over') {
-    const c = g.seats[g.turn], pl = g.players[c];
-    markTurn();
-    if (pl.human) {
-      g.phase = 'roll';
-      setStatus(c, 'نوبت شماست', g.sixes ? '۶ آوردی! یک تاس دیگر' : 'روی تاس زرد بزن');
-      document.querySelector(`[data-seat="${c}"] .die`).classList.add('ask');
-      await new Promise(r => g.onRoll = r);
-    } else {
-      g.phase = 'bot';
-      setStatus(c, 'نوبت ' + pl.name, g.sixes ? 'یک تاس اضافه' : 'در حال فکر کردن…');
-      await sleep(650);
-    }
-    if (g !== L.G) return;
-    g.phase = 'anim';
-    const d = await rollDie(c);
-    if (g !== L.G) return;
-    const moves = legal(c, d);
-    if (!moves.length) {
-      setStatus(c, (pl.human ? 'آوردی ' : pl.name + ' آورد ') + FD(d), 'حرکتی ممکن نیست');
-      await sleep(850); advance(g, false, d); continue;
-    }
-    let k;
-    const allYard = moves.every(m => g.pawns[c][m] < 0);
-    if (pl.human && moves.length > 1 && !allYard) {
-      g.phase = 'move';
-      setStatus(c, 'آوردی ' + FD(d), 'یکی از مهره‌های چشمک‌زن را انتخاب کن');
-      moves.forEach(m => g.els[c][m].classList.add('can')); layout();
-      k = await new Promise(r => g.onPick = r);
-      g.els[c].forEach(el => el.classList.remove('can'));
-      if (g !== L.G) return;
-      g.phase = 'anim';
-    } else {
-      k = pl.human ? moves[0] : botPick(c, d, moves);
-      setStatus(c, (pl.human ? 'آوردی ' : pl.name + ' آورد ') + FD(d), d === 6 && g.pawns[c][k] < 0 ? 'مهره وارد بازی شد' : '');
-      await sleep(pl.human ? 200 : 350);
-    }
-    const r = await doMove(c, k, d);
-    if (g !== L.G) return;
-    if (r.captured) setStatus(c, pl.human ? 'زدی! مهرهٔ حریف به خانه برگشت' : pl.name + ' یک مهره را زد', 'یک نوبت اضافه');
-    if (g.pawns[c].every(p => p === 56)) return over(g, c);
-    if (r.captured || r.finished) await sleep(650);
-    advance(g, d === 6 || r.captured || r.finished, d);
-  }
-}
-function advance(g, extra, d) {
-  g.sixes = d === 6 ? g.sixes + 1 : 0;
-  if (extra && g.sixes < 3) return;
-  g.sixes = 0; g.turn = (g.turn + 1) % g.seats.length;
-}
-function over(g, c) {
-  g.phase = 'over';
-  document.querySelectorAll('.seat').forEach(s => s.classList.remove('turn'));
-  const pl = g.players[c], me = pl.human;
-  S.games++;
-  if (me) { S.wins++; if (g.stake) { S.bal += g.pot; S.won += g.pot; } }
-  save(); renderBal();
-  const sh = openSheet(`<div class="win"><div class="win-pawn">${pawnSvg(c, true)}</div>
-      <h3>${me ? 'بردی!' : pl.name + ' برد'}</h3>
-      ${g.stake ? `<div class="prize" dir="ltr">${me ? '+' : ''}${fa(g.pot)}${COIN}</div><p>${me ? 'جایزه به کیف Game Club اضافه شد. می‌توانی در عبور خرجش کنی.' : 'ورودی این دست را باختی. دست بعد مال توست.'}</p>`
-        : `<p>${me ? 'بازی آزاد بود و جایزه نداشت. در بازی با امتیاز، برنده همهٔ ورودی‌ها را می‌برد.' : 'بازی آزاد بود. دوباره امتحان کن.'}</p>`}
-    </div>
-    <div class="acts"><button class="b3" data-again>بازی دوباره</button><button class="b3 w" data-home>خانهٔ Game Club</button></div>`, true, false);
-  sh.querySelector('[data-again]').onclick = () => { L.G = null; openLobby(); };
-  sh.querySelector('[data-home]').onclick = goHome;
-}
-
-$('ludoBack').onclick = () => {
-  const g = L.G;
-  if (!g || g.phase === 'over') return goHome();
-  const sh = openSheet(`<div class="sheet-h"><h3>از بازی خارج می‌شوی؟</h3></div>
-    <p>${g.stake ? 'بازی با امتیاز است. اگر خارج شوی باخت حساب می‌شود و ورودی ' + fa(g.entry) + ' امتیاز برنمی‌گردد.' : 'بازی آزاد است و چیزی از دست نمی‌دهی.'}</p>
-    <div class="acts"><button class="b3 r" data-leave>خروج</button><button class="b3 w" data-stay>ادامهٔ بازی</button></div>`, true);
-  sh.querySelector('[data-leave]').onclick = () => { if (g.stake) { S.games++; save(); } goHome(); };
-  sh.querySelector('[data-stay]').onclick = closeSheet;
-};
-document.querySelectorAll('[data-open-ludo]').forEach(b => b.onclick = openLudo);
-
-/* ---------- شروع ---------- */
-renderBal(); renderModes(); renderLB(); renderShop();
-setInterval(() => { const n = 320 + rand(60); $('onlineN').textContent = fa(n); }, 4000);
-if (location.hash === '#ludo') openLudo();
+  document.getElementById('top3').innerHTML = LB.top.slice(0, 3).map(([p, w, v], i) => `<li class="row"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${GC.FD(i + 1)}</span>${avatarEl(PEOPLE[p][1])}</span><span class="name">${PEOPLE[p][0]}<span class="meta">${fa(w)} برد</span></span>${amount(v)}</li>`).join('');
+  document.getElementById('shopTeaser').innerHTML = SHOP.slice(0, 2).map(s => `<li><a class="row" href="shop.html"><span class="ic-box" style="background:var(--obour-night);color:var(--obour-aqua)">${icon(s.ic)}</span><span class="name">${s.t}<span class="meta">${s.s}</span></span>${amount(s.p)}</a></li>`).join('');
+  setInterval(() => { document.getElementById('online').textContent = fa(320 + GC.rand(60)); }, 4000);
+  GC.nav('home'); GC.mount();
 })();
 </script>
 </body>

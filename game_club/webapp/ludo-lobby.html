@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Game Club · میز منچ</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<style>
+/* لابی منچ: چهار انتخاب به ترتیب، خلاصه، سه راه شروع. صف و دعوت در برگه */
+.q{display:grid;gap:var(--space-2)}
+.q-h{display:flex;align-items:center;gap:var(--space-2);font-weight:900}
+.q-h i{width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--on-fill);display:grid;place-items:center;font-style:normal;font-size:13px;flex:none}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)}
+.sum{background:var(--surface-sunk);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3)}
+.sum span{display:block;font-size:12px;color:var(--ink-muted)}
+.sum b{font-weight:900}
+.go{display:grid;gap:var(--space-2)}
+.go small{display:block;font-size:12px;line-height:16px;font-weight:600;opacity:.85}
+.go .btn{flex-direction:row;justify-content:flex-start;text-align:start;min-height:64px}
+.go .btn>span{display:grid}
+.seatline{display:flex;justify-content:center;gap:var(--space-4)}
+.seatw{display:grid;justify-items:center;gap:4px;font-size:12.5px;font-weight:800}
+.seatw .avatar{--size:60px}
+.wait{width:60px;height:60px;border-radius:50%;border:3px dashed var(--line);display:grid;place-items:center;color:var(--ink-muted);font-weight:900;animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.linkbox{display:flex;align-items:center;gap:var(--space-2);background:var(--surface-sunk);border-radius:var(--radius-md);padding:6px 6px 6px 12px}
+.linkbox code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;direction:ltr;text-align:left;font-size:12.5px;font-family:ui-monospace,Menlo,monospace}
+.count{font-size:44px;line-height:52px;font-weight:900;text-align:center;color:var(--sky-deep)}
+</style>
+</head>
+<body>
+<main class="page no-nav">
+  <header class="top">
+    <div class="top-l"><a class="icon-btn" href="index.html" aria-label="برگشت به خانه"><i data-ic="back"></i></a><h1 class="on-ground">منچ</h1></div>
+    <div class="top-l">
+      <a class="icon-btn" href="help.html" aria-label="راهنمای منچ"><i data-ic="help"></i></a>
+      <a class="pill" href="wallet.html" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>۰</span></a>
+    </div>
+  </header>
+
+  <section class="card stack" aria-label="تنظیم بازی">
+    <div class="q"><div class="q-h"><i>۱</i>نوع بازی</div>
+      <div class="choice-row" id="mode">
+        <button class="choice" data-v="free"><b>آزاد</b><span>بدون امتیاز و جایزه</span></button>
+        <button class="choice" data-v="stake"><b>با امتیاز</b><span>برنده همهٔ ورودی‌ها را می‌برد</span></button>
+      </div></div>
+    <div class="q" id="entryQ"><div class="q-h"><i>۲</i>ورودی هر نفر</div>
+      <div class="chips" id="entry"></div></div>
+    <div class="q"><div class="q-h"><i id="nP">۳</i>تعداد بازیکن</div>
+      <div class="seg" id="players"><button data-v="2">۲ نفره<small>رودررو</small></button><button data-v="4">۴ نفره<small>شلوغ و هیجانی</small></button></div></div>
+    <div class="q"><div class="q-h"><i id="nM">۴</i>مدل</div>
+      <div class="seg" id="pawns"><button data-v="2">سریع<small>۲ مهره · حدود ۵ دقیقه</small></button><button data-v="4">کلاسیک<small>۴ مهره · حدود ۱۵ دقیقه</small></button></div></div>
+  </section>
+
+  <section class="card stack" aria-label="خلاصه">
+    <div class="summary" id="summary"></div>
+    <div class="go">
+      <button class="btn" data-how="online"><i data-ic="users"></i><span>بازی با ناشناس<small>حریف را خودمان پیدا می‌کنیم</small></span></button>
+      <button class="btn btn-gold" data-how="invite"><i data-ic="link"></i><span>دعوت دوست<small>لینک بفرست، با هم بازی کنید</small></span></button>
+      <button class="btn btn-light" data-how="bot"><i data-ic="bot"></i><span>تمرین با ربات<small>همیشه آزاد و بدون امتیاز</small></span></button>
+    </div>
+    <p class="hint" id="bal"></p>
+  </section>
+</main>
+<script src="static/gc.js"></script>
+<script>
+(() => {
+  const { S, save, fa, FD, store, amount, avatarEl, icon, sheet, sheetHead, toast, sfx, sleep, rand, mount } = GC;
+  const $ = id => document.getElementById(id);
+  const cfg = Object.assign({ entry: 100, players: 2, pawns: 2 }, store.get('ludoCfg', {}));
+  const NAMES = ['سارا', 'امیر', 'نگار', 'رضا', 'مهسا', 'علی', 'پریا', 'کیان', 'هستی', 'سینا', 'آرش', 'یاسمن'];
+  const ENTRIES = [50, 100, 250, 500];
+  function render() {
+    const stake = S.mode === 'stake';
+    $('mode').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.mode)));
+    $('entryQ').hidden = !stake;
+    $('nP').textContent = stake ? '۳' : '۲'; $('nM').textContent = stake ? '۴' : '۳';
+    $('entry').innerHTML = ENTRIES.map(v => `<button class="chip" data-v="${v}" aria-pressed="${cfg.entry === v}"${S.bal < v ? ' disabled' : ''}>${GC.coin()}${fa(v)}</button>`).join('');
+    $('players').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === cfg.players)));
+    $('pawns').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === cfg.pawns)));
+    $('summary').innerHTML = stake
+      ? `<div class="sum"><span>ورودی تو</span>${amount(cfg.entry)}</div><div class="sum" style="background:var(--coin-tint)"><span>جایزهٔ برنده</span>${amount(cfg.entry * cfg.players)}</div>`
+      : `<div class="sum"><span>نوع</span><b>آزاد، بدون جایزه</b></div><div class="sum"><span>بازیکن</span><b>${FD(cfg.players)} نفر · ${FD(cfg.pawns)} مهره</b></div>`;
+    $('bal').innerHTML = `موجودی تو: ${fa(S.bal)} امتیاز`;
+    store.set('ludoCfg', cfg); mount();
+  }
+  $('mode').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { S.mode = b.dataset.v; save(); render(); } };
+  $('entry').onclick = e => { const b = e.target.closest('[data-v]'); if (b && !b.disabled) { cfg.entry = +b.dataset.v; render(); } };
+  $('players').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { cfg.players = +b.dataset.v; render(); } };
+  $('pawns').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { cfg.pawns = +b.dataset.v; render(); } };
+
+  let token = null;
+  function opponents() {
+    const seats = cfg.players === 2 ? ['red'] : ['blue', 'red', 'green'];
+    const names = [...NAMES].sort(() => Math.random() - .5);
+    return seats.map((c, i) => ({ c, name: names[i], av: rand(22) + 1 }));
+  }
+  const me = { c: 'yellow', name: 'شما', av: 7 };
+  const seatsHtml = list => `<div class="seatline">${list.map(p => p ? `<div class="seatw">${avatarEl(p.av, GC.COL[p.c].hex)}${p.name}</div>` : '<div class="seatw"><span class="wait">؟</span>…</div>').join('')}</div>`;
+  function go(opp, how, stake) {
+    store.set('match', { how, stake, entry: cfg.entry, players: cfg.players, pawns: cfg.pawns, opp, at: Date.now() });
+    location.href = 'ludo.html';
+  }
+  async function countdown(list, opp, how, stake, t) {
+    for (let n = 3; n >= 1; n--) {
+      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">همه آمدند!</h2>${seatsHtml(list)}<div class="count">${FD(n)}</div><p class="hint">بازی شروع می‌شود…</p>`, { center: true, dismiss: false });
+      sfx.tick(); await sleep(700); if (token !== t) return;
+    }
+    go(opp, how, stake);
+  }
+  async function online(stake) {
+    const opp = opponents(), t = token = {};
+    for (let n = 0; n <= opp.length; n++) {
+      const sh = sheet(`${sheetHead('پیدا کردن حریف')}${seatsHtml([me, ...opp.map((o, i) => i < n ? o : null)])}
+        <p class="hint">${stake ? 'ورودی ' + fa(cfg.entry) + ' · جایزه ' + fa(cfg.entry * cfg.players) + ' امتیاز' : 'بازی آزاد'} · ناشناس: فقط اسم کوچک دیده می‌شود</p>
+        <button class="btn btn-light btn-block" data-close>انصراف</button>`, { dismiss: false, onClose: () => { token = null; } });
+      if (n) sfx.turn();
+      await sleep(900 + rand(800)); if (token !== t) return;
+    }
+    countdown([me, ...opp], opp, 'online', stake, t);
+  }
+  async function invite(stake) {
+    const opp = opponents(), t = token = {};
+    const code = 'ludo_' + Math.random().toString(36).slice(2, 7).toUpperCase();
+    const url = 'https://t.me/your_gameclub_bot?start=' + code;
+    const friend = Object.assign({}, opp[0], { name: 'دوست شما' });
+    const draw = joined => {
+      const sh = sheet(`${sheetHead('دعوت دوست')}
+        <p>این لینک را بفرست. دوستت با باز کردنش مستقیم کنار تو می‌نشیند${stake ? ' و ' + fa(cfg.entry) + ' امتیاز ورودی از کیف خودش کم می‌شود' : ''}.</p>
+        <div class="linkbox"><code>${url}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
+        <a class="btn btn-block" href="https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent('بیا منچ بازی کنیم!')}" target="_blank" rel="noopener">${icon('send')}ارسال در تلگرام</a>
+        ${seatsHtml([me, joined ? friend : null, ...opp.slice(1)])}
+        <p class="hint">${joined ? 'دوستت آمد!' : 'منتظر دوستت… (در پیش‌نمایش چند ثانیه بعد خودکار می‌آید)'}</p>
+        ${joined ? '' : '<button class="btn btn-light btn-block" id="solo">به جای دوست با ربات بازی کن</button>'}`, { dismiss: false, onClose: () => { token = null; } });
+      sh.querySelector('#cp').onclick = () => { const ok = () => toast('لینک دعوت کپی شد'); try { navigator.clipboard.writeText(url).then(ok, () => toast('کپی نشد؛ لینک را نگه دار و دستی بفرست')); } catch (e) { toast('کپی نشد؛ لینک را دستی بفرست'); } };
+      const solo = sh.querySelector('#solo');
+      if (solo) solo.onclick = () => { token = null; opp.forEach(o => o.name = 'ربات ' + o.name); go(opp, 'bot', false); };
+    };
+    draw(false); await sleep(5000); if (token !== t) return;
+    opp[0] = friend; sfx.turn(); draw(true); await sleep(1200); if (token !== t) return;
+    countdown([me, ...opp], opp, 'invite', stake, t);
+  }
+  document.querySelector('.go').addEventListener('click', e => {
+    const b = e.target.closest('[data-how]'); if (!b) return;
+    const how = b.dataset.how, stake = S.mode === 'stake' && how !== 'bot';
+    if (stake && S.bal < cfg.entry) { sfx.error(); toast('امتیاز کافی نیست؛ اول کیف را شارژ کن'); return; }
+    if (how === 'bot') { const opp = opponents(); opp.forEach(o => o.name = 'ربات ' + o.name); return go(opp, 'bot', false); }
+    how === 'online' ? online(stake) : invite(stake);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

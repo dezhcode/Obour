@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Game Club · راهنما</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<style>
+/* راهنما: قوانین باشگاه، آموزش منچ با تصویر مسیر، بازی منصفانه */
+.route{display:grid;grid-template-columns:150px minmax(0,1fr);gap:var(--space-4);align-items:center}
+.route .art{width:150px;border-radius:var(--radius-lg);overflow:hidden}
+.route .art svg{display:block;width:100%}
+@media (max-width:380px){.route{grid-template-columns:1fr}.route .art{justify-self:center}}
+.steps{display:grid;gap:var(--space-3);margin:0;padding:0;list-style:none}
+.steps li{display:grid;grid-template-columns:56px minmax(0,1fr);gap:var(--space-3);align-items:center}
+.steps .pic{width:56px;height:56px;border-radius:var(--radius-md);background:var(--surface-sunk);display:grid;place-items:center;overflow:hidden}
+.steps .pic svg{width:46px;height:46px}
+.steps b{display:block;font-weight:900;line-height:22px}
+.steps p{font-size:13px;line-height:21px;color:var(--ink-muted)}
+.club{display:grid;gap:var(--space-3);margin:0;padding:0;list-style:none}
+.club li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:var(--space-3);align-items:start}
+.club b{display:block;font-weight:900;line-height:22px}
+.club p{font-size:13px;line-height:21px;color:var(--ink-muted)}
+</style>
+</head>
+<body>
+<main class="page no-nav">
+  <header class="top">
+    <div class="top-l"><a class="icon-btn" href="index.html" aria-label="برگشت به خانه"><i data-ic="back"></i></a><h1 class="on-ground">راهنما</h1></div>
+  </header>
+
+  <section aria-labelledby="hLudo">
+    <div class="sec-head"><h2 id="hLudo" class="on-ground">منچ را چطور بازی کنم؟</h2></div>
+    <div class="card stack">
+      <div class="route"><div class="art" id="routeArt"></div>
+        <p>تو همیشه <b>زرد</b> هستی، پایین سمت چپ. مهره‌هایت در جهت فلش‌ها دور صفحه می‌چرخند، وارد <b>راهروی زرد</b> می‌شوند و به مرکز می‌رسند. هر کس زودتر همهٔ مهره‌هایش را به مرکز برساند، برنده است.</p></div>
+      <ol class="steps" id="steps"></ol>
+    </div>
+  </section>
+
+  <section aria-labelledby="hClub">
+    <div class="sec-head"><h2 id="hClub" class="on-ground">قوانین Game Club</h2></div>
+    <div class="card">
+      <ul class="club">
+        <li><span class="ic-box" style="background:var(--grass-tint);color:var(--success)"><i data-ic="wallet"></i></span><div><b>شارژ</b><p>کیف امتیاز را از کیف پول عبور (فوری) یا کارت‌به‌کارت شارژ کن.</p></div></li>
+        <li><span class="ic-box" style="background:var(--coin-tint);color:var(--coin-text)"><i data-ic="trophy"></i></span><div><b>بازی با امتیاز</b><p>همه ورودی یکسان می‌دهند و برنده مجموع ورودی‌ها را می‌برد. خروج وسط بازی یعنی باخت.</p></div></li>
+        <li><span class="ic-box" style="background:var(--sky-tint);color:var(--sky-deep)"><i data-ic="dice"></i></span><div><b>بازی آزاد</b><p>بدون امتیاز. با دوست، با ناشناس یا با ربات، برای تمرین و سرگرمی.</p></div></li>
+        <li><span class="ic-box" style="background:var(--obour-night);color:var(--obour-aqua)"><i data-ic="bag"></i></span><div><b>خرج امتیاز</b><p>امتیاز فقط در خدمات عبور خرج می‌شود و به پول نقد برنمی‌گردد.</p></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="hFair">
+    <div class="sec-head"><h2 id="hFair" class="on-ground">بازی منصفانه</h2></div>
+    <div class="card">
+      <ul class="club">
+        <li><span class="ic-box" style="background:var(--grass-tint);color:var(--success)"><i data-ic="shield"></i></span><div><b>تاس روی سرور ریخته می‌شود</b><p>نه گوشی تو و نه گوشی حریف عدد تاس را تعیین نمی‌کند. هر حرکت روی سرور بررسی می‌شود.</p></div></li>
+        <li><span class="ic-box" style="background:var(--coin-tint);color:var(--coin-text)"><i data-ic="clock"></i></span><div><b>۲۰ ثانیه برای هر نوبت</b><p>اگر وقتت تمام شود، تاس خودکار ریخته و بهترین حرکت انجام می‌شود. سه نوبت پشت‌سرهم غیبت یعنی باخت.</p></div></li>
+        <li><span class="ic-box" style="background:var(--sky-tint);color:var(--sky-deep)"><i data-ic="users"></i></span><div><b>ناشناس می‌مانی</b><p>در بازی با ناشناس فقط اسم کوچک و آواتار دیده می‌شود، نه آیدی تلگرام.</p></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <a class="btn btn-gold btn-block" href="ludo-lobby.html"><i data-ic="dice"></i>شروع منچ</a>
+</main>
+<script src="static/gc.js"></script>
+<script>
+(() => {
+  const { LUDO, boardArt, pawn, pips } = GC;
+  // مسیر زرد روی تصویر صفحه
+  const s = LUDO.SEAT.yellow, pts = [];
+  for (let p = 0; p <= 50; p++) { const [x, y] = LUDO.TRACK[(s.start + p) % 52]; pts.push([x + .5, y + .5]); }
+  s.lane.forEach(([x, y]) => pts.push([x + .5, y + .5])); pts.push(s.fin);
+  const line = `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="#1C2A16" stroke-width=".22" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray=".5 .35"/><circle cx="${pts[0][0]}" cy="${pts[0][1]}" r=".42" fill="#1C2A16"/><path d="M7.5 7.9l-.55.75h1.1z" fill="#1C2A16"/>`;
+  document.getElementById('routeArt').innerHTML = boardArt().replace('</svg>', line + '</svg>');
+  const tile = (x, fill, extra = '') => `<rect x="${x}" y="17" width="14" height="14" rx="3.5" fill="${fill}"/>${extra}`;
+  const mini = (c, x, y, s = 13) => `<g transform="translate(${x} ${y}) scale(${s / 40})">${pawn(c).replace(/^<svg[^>]*>|<\/svg>$/g, '')}</g>`;
+  const STEPS = [
+    ['با ۶ وارد شو', 'مهره‌ها در لانه‌اند. فقط با ۶ یک مهره روی خانهٔ شروعِ رنگ خودت می‌آید.',
+      `<svg viewBox="0 0 46 46"><rect x="2" y="2" width="20" height="20" rx="5" fill="#FFC226"/><rect x="6" y="6" width="12" height="12" rx="3" fill="#FFFDF6"/>${mini('yellow', 5.5, 3)}<path d="M24 12h8" stroke="#1C2A16" stroke-width="2" stroke-linecap="round"/><path d="M30 9l3 3-3 3" fill="none" stroke="#1C2A16" stroke-width="2" stroke-linecap="round"/><rect x="26" y="26" width="18" height="18" rx="5" fill="#FFC226"/><g fill="#fff"><circle cx="30.5" cy="30.5" r="1.7"/><circle cx="39.5" cy="30.5" r="1.7"/><circle cx="30.5" cy="35" r="1.7"/><circle cx="39.5" cy="35" r="1.7"/><circle cx="30.5" cy="39.5" r="1.7"/><circle cx="39.5" cy="39.5" r="1.7"/></g></svg>`],
+    ['۶ یعنی یک نوبت دیگر', 'با ۶، زدن مهرهٔ حریف یا رساندن مهره به مرکز، دوباره تاس می‌ریزی. سه بار ۶ پشت‌سرهم نوبت را می‌سوزاند.',
+      `<svg viewBox="0 0 46 46"><rect x="6" y="6" width="34" height="34" rx="9" fill="#1668D9"/><g fill="#fff"><circle cx="15" cy="15" r="3"/><circle cx="31" cy="15" r="3"/><circle cx="15" cy="23" r="3"/><circle cx="31" cy="23" r="3"/><circle cx="15" cy="31" r="3"/><circle cx="31" cy="31" r="3"/></g></svg>`],
+    ['حریف را بزن', 'اگر دقیقاً روی خانهٔ مهرهٔ حریف بنشینی، آن مهره به لانه‌اش برمی‌گردد.',
+      `<svg viewBox="0 0 46 46">${tile(2, '#FFFDF6')}${tile(17, '#FFFDF6')}${tile(32, '#FFFDF6')}${mini('red', 18, 4, 14)}${mini('yellow', 2.5, 4, 13)}<path d="M9 13c3-9 13-9 16 0" fill="none" stroke="#1C2A16" stroke-width="1.6" stroke-dasharray="2 2"/></svg>`],
+    ['خانه‌های ستاره امن‌اند', 'روی ستاره و خانهٔ شروع هیچ مهره‌ای زده نمی‌شود.',
+      `<svg viewBox="0 0 46 46"><rect x="6" y="6" width="34" height="34" rx="8" fill="#FFFDF6" stroke="#D6E2CB" stroke-width="2"/><path d="M23 9.5l3.9 8 8.8 1.2-6.4 6.1 1.6 8.7L23 29.4l-7.9 4.1 1.6-8.7-6.4-6.1 8.8-1.2z" fill="#D6E2CB"/>${mini('yellow', 9, 9, 13)}${mini('red', 24, 9, 13)}</svg>`],
+    ['دقیق به مرکز برس', 'برای رسیدن به مرکز باید عدد تاس دقیقاً به اندازه باشد. اگر حرکتی ممکن نباشد، نوبت رد می‌شود.',
+      `<svg viewBox="0 0 46 46"><path d="M5 5L23 23L5 41z" fill="#2F7BF6"/><path d="M5 5L41 5L23 23z" fill="#EF4136"/><path d="M41 5L41 41L23 23z" fill="#2FB24C"/><path d="M5 41L41 41L23 23z" fill="#FFC226"/>${mini('yellow', 16.5, 17, 13)}</svg>`],
+  ];
+  document.getElementById('steps').innerHTML = STEPS.map(([t, d, svg]) => `<li><span class="pic">${svg}</span><div><b>${t}</b><p>${d}</p></div></li>`).join('');
+  GC.mount();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+/* Game Club — generated from tokens.json */
+@font-face{font-family:"Rokh";src:url("fonts/Rokh-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Rokh";src:url("fonts/Rokh-Medium.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:"Rokh";src:url("fonts/Rokh-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Rokh";src:url("fonts/Rokh-ExtraBold.woff2") format("woff2");font-weight:800;font-style:normal;font-display:swap}
+@font-face{font-family:"Rokh";src:url("fonts/Rokh-Black.woff2") format("woff2");font-weight:900;font-style:normal;font-display:swap}
+:root{--grass-ground:#5BC236;--grass-deep:#3F9E27;--grass-ink:#245F17;--grass-tint:#EAF7DF;--sky:#1668D9;--sky-deep:#0E4FB3;--sky-tint:#E6F0FF;--coin:#FFC43B;--coin-deep:#E09A00;--coin-ink:#3D2600;--coin-tint:#FFF4D6;--coin-text:#7A4E00;--surface:#FFFFFF;--surface-sunk:#F2F7EC;--line:#DCE8D2;--ink:#1C2A16;--ink-muted:#4E6345;--on-fill:#FFFFFF;--success:#1A7A35;--danger:#C9352B;--player-blue:#2F7BF6;--player-blue-deep:#1A4FB0;--player-red:#EF4136;--player-red-deep:#A8241B;--player-green:#2FB24C;--player-green-deep:#1B7A33;--player-yellow:#FFC226;--player-yellow-deep:#B57B00;--board-water:#46BDEB;--board-path:#FFFDF6;--board-path-edge:#D6E2CB;--scrim:rgba(12,30,8,0.55);--obour-night:#0E1330;--obour-aqua:#3BF0CF;--depth-sm:0 3px 0 rgba(28,42,22,0.14);--depth-md:0 6px 0 rgba(28,42,22,0.14);--press:inset 0 -5px 0 rgba(0,0,0,0.22), inset 0 2px 0 rgba(255,255,255,0.3);--press-sm:inset 0 -3px 0 rgba(0,0,0,0.22), inset 0 2px 0 rgba(255,255,255,0.3);--lift:0 12px 32px rgba(12,30,8,0.28);--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;--radius-sm:10px;--radius-md:14px;--radius-lg:20px;--radius-xl:26px;--radius-pill:999px;--z-pawn:2;--z-nav:20;--z-sheet:40;--z-toast:60;--font-rokh:Rokh, Vazirmatn, Tahoma, sans-serif}
+.t-display{font-family:Rokh, Vazirmatn, Tahoma, sans-serif;font-size:34px;line-height:40px;font-weight:900}
+.t-title{font-family:Rokh, Vazirmatn, Tahoma, sans-serif;font-size:26px;line-height:34px;font-weight:900}
+.t-heading{font-family:Rokh, Vazirmatn, Tahoma, sans-serif;font-size:20px;line-height:28px;font-weight:800}
+.t-subhead{font-family:Rokh, Vazirmatn, Tahoma, sans-serif;font-size:16px;line-height:24px;font-weight:800}
+.t-body{font-family:Rokh, Vazirmatn, Tahoma, sans-serif;font-size:14.5px;line-height:24px;font-weight:500}
+.t-button{font-family:Rokh, Vazirmatn, Tahoma, sans-serif;font-size:17px;line-height:24px;font-weight:900}
+.t-label{font-family:Rokh, Vazirmatn, Tahoma, sans-serif;font-size:13px;line-height:20px;font-weight:700}
+.t-caption{font-family:Rokh, Vazirmatn, Tahoma, sans-serif;font-size:12px;line-height:18px;font-weight:500}
+.t-amount{font-family:Rokh, Vazirmatn, Tahoma, sans-serif;font-size:22px;line-height:28px;font-weight:900}
