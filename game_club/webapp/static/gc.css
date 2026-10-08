@@ -15,6 +15,8 @@
 /* ---------- پایه ---------- */
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+/* فروشگاه در دوره آزمایشی خاموش است؛ هر چیز مربوط به خرید فقط با html.shop-on دیده می شود */
+html:not(.shop-on) .shop-only{display:none!important}
 html{-webkit-text-size-adjust:100%;direction:rtl}
 body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--font-peyda);font-size:14.5px;line-height:24px;font-weight:400;background:linear-gradient(180deg,var(--ground) 0,#332C48 60%,#2D2742) fixed var(--ground)}
 /* رخ فقط برای عنوان ها؛ بقیه متن ها با پیدا (فونت ربات عبور) */

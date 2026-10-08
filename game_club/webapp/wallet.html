@@ -15,6 +15,7 @@
 .bal .v{font-size:40px;line-height:48px;font-weight:900}
 .bal .worth{font-size:12.5px;color:var(--ink-muted)}
 .bal-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);width:100%;margin-top:var(--space-2)}
+html:not(.shop-on) .bal-actions{grid-template-columns:1fr}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2)}
 .stat{background:var(--surface-sunk);border-radius:var(--radius-md);padding:var(--space-2);text-align:center}
 .stat b{display:block;font-size:18px;line-height:26px;font-weight:900}
@@ -44,7 +45,7 @@
     <span class="worth" id="worth"></span>
     <div class="bal-actions">
       <button class="btn" id="charge"><i data-ic="plus"></i>شارژ</button>
-      <a class="btn btn-light" href="shop.html"><i data-ic="bag"></i>خرج در عبور</a>
+      <a class="btn btn-light shop-only" href="shop.html"><i data-ic="bag"></i>خرج در عبور</a>
     </div>
   </section>
 
@@ -60,7 +61,7 @@
     <div class="card">
       <ul class="rules">
         <li><i data-ic="check"></i><span>هر امتیاز معادل <b id="rate">…</b> تومان از کیف پول عبور است.</span></li>
-        <li><i data-ic="check"></i><span>امتیاز فقط برای خدمات عبور خرج می‌شود و به پول نقد برنمی‌گردد.</span></li>
+        <li class="shop-only"><i data-ic="check"></i><span>امتیاز فقط برای خدمات عبور خرج می‌شود و به پول نقد برنمی‌گردد.</span></li>
         <li><i data-ic="check"></i><span>ورودی بازی امتیازی تا پایان بازی قفل می‌ماند و یک‌جا به برنده می‌رسد.</span></li>
         <li><i data-ic="check"></i><span>اگر بازی شروع نشود یا ناتمام بماند، ورودی برمی‌گردد.</span></li>
       </ul>

@@ -10,10 +10,11 @@ const store = {
   set(k, v) { try { localStorage.setItem('gclub_' + k, JSON.stringify(v)); } catch (e) {} },
 };
 const S = Object.assign({
-  bal: 1250, wins: 0, games: 0, won: 0, spent: 0, mode: 'free', notify: {}, sound: true, tutorial: false, showSpend: false,
+  bal: 1250, shopOn: false, wins: 0, games: 0, won: 0, spent: 0, mode: 'free', notify: {}, sound: true, tutorial: false, showSpend: false,
   ledger: [{ t: 'هدیهٔ شروع Game Club', a: 1250, k: 'gift', at: Date.now() - 864e5 }],
 }, store.get('state', {}));
 const save = () => store.set('state', S);
+document.documentElement.classList.toggle('shop-on', !!S.shopOn);
 function ledger(t, a, k) { S.ledger.unshift({ t, a, k, at: Date.now() }); S.ledger = S.ledger.slice(0, 40); }
 
 /* ---------- SDK مینی اپ تلگرام ----------
@@ -94,7 +95,7 @@ function startParam() { try { return (tg && tg.initDataUnsafe && tg.initDataUnsa
 /* ---------- API سرور ---------- */
 const ERR = {
   insufficient: 'امتیاز کافی نیست؛ اول کیف را شارژ کن', obour_insufficient: 'موجودی کیف پول عبور کافی نیست',
-  no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است',
+  no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است', shop_off: 'خدمات عبور فعلا در دسترس نیست',
   bad_invite: 'این لینک دعوت معتبر نیست', started: 'این میز شروع شده', full: 'این میز پر است', in_match: 'تو الان سر یک میز دیگر هستی',
   need_players: 'بازی امتیازی بدون حریف واقعی شروع نمی‌شود', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
   plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
@@ -143,7 +144,12 @@ const liveLudo = {
 let points = null;
 async function refreshMe() {
   const me = await GC.data.me();
-  points = me.player.points; mount();
+  points = me.player.points;
+  // فروشگاه فقط وقتی سرور روشنش کرده باشد دیده می شود (پیش فرض خاموش)
+  const shop = !!(me.settings && me.settings.shop);
+  if (S.shopOn !== shop) { S.shopOn = shop; save(); }
+  document.documentElement.classList.toggle('shop-on', shop);
+  mount();
   return me;
 }
 
@@ -299,7 +305,7 @@ function setSound(on) { S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['wallet', 'wallet.html', 'کیف امتیاز', 'wallet'], ['shop', 'shop.html', 'خدمات عبور', 'bag']];
 function nav(active) {
   const n = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
-  n.innerHTML = `<div class="nav-in">${NAV.map(([id, href, label, ic]) => `<a href="${href}" aria-label="${label}"${id === active ? ' aria-current="page"' : ''}>${icon(ic)}<span class="sr">${label}</span></a>`).join('')}</div>`;
+  n.innerHTML = `<div class="nav-in">${NAV.filter(([id]) => id !== 'shop' || S.shopOn).map(([id, href, label, ic]) => `<a href="${href}" aria-label="${label}"${id === active ? ' aria-current="page"' : ''}>${icon(ic)}<span class="sr">${label}</span></a>`).join('')}</div>`;
   document.body.appendChild(n);
 }
 function mount(root = document) {

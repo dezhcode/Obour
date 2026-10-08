@@ -125,7 +125,7 @@ a.game:active{transform:scale(.985)}
     <div class="card top3"><ol class="list" id="top3"><li class="hint">در حال بارگذاری…</li></ol></div>
   </section>
 
-  <section aria-labelledby="hShop">
+  <section class="shop-only" aria-labelledby="hShop">
     <div class="sec-head"><h2 id="hShop">امتیازت را در عبور خرج کن</h2><a href="shop.html">همه</a></div>
     <div class="card stack">
       <div class="obour"><svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#151B42"/><path d="M10 22.5l7-11.5 7 11.5" fill="none" stroke="#3BF0CF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="22.5" r="2" fill="#B36BFF"/></svg>
@@ -183,7 +183,7 @@ a.game:active{transform:scale(.985)}
       $('top3').innerHTML = lb.rows.length ? lb.rows.slice(0, 3).map((r, i) => `<li class="row"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${FD(i + 1)}</span>${face(r)}</span><span class="name">${r.name}<span class="meta">${fa(r.wins)} برد${lb.sample ? ' · نمونه' : ''}</span></span>${amount(r.value)}</li>`).join('')
         : '<li class="hint">هنوز این هفته کسی بازی امتیازی نبرده. اولین نفر باش!</li>';
     } catch (e) { $('top3').innerHTML = `<li class="hint">${errText(e)}</li>`; }
-    try {
+    if (GC.S.shopOn) try {
       const sh = await GC.data.shop();
       $('shopTeaser').innerHTML = sh.plans.slice(0, 2).map(p => `<li><a class="row" href="shop.html"><span class="ic-box" style="background:var(--obour-night);color:var(--obour-aqua)">${icon('globe')}</span><span class="name">${p.title}<span class="meta">${p.days ? FD(p.days) + ' روزه' : ''}</span></span>${amount(p.points)}</a></li>`).join('')
         || '<li class="hint">فعلا پلنی برای فروش نیست.</li>';

@@ -112,8 +112,8 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
                              reply_markup=open_kb(f"ludo-lobby.html?join={code}", "نشستن سر میز"))
         return
     hello = ("به <b>Game Club</b> خوش آمدی!\n\n"
-             "منچ بازی کن، با دوستت یا با ناشناس. در بازی با امتیاز برنده همهٔ ورودی‌ها را می‌برد "
-             "و امتیازت را می‌توانی در عبور خرج کنی: کانفیگ، تمدید و اشتراک هوش مصنوعی.")
+             "منچ بازی کن، با دوستت یا با ناشناس. در بازی با امتیاز برنده همهٔ ورودی‌ها را می‌برد"
+             + ("؛ امتیازت را می‌توانی در عبور خرج کنی: کانفیگ، تمدید و اشتراک هوش مصنوعی." if gc.shop_enabled else "."))
     if arg == "obour":
         hello += "\n\nحساب عبورت با همین تلگرام وصل است؛ شارژ از کیف پول عبور فوری است."
     await message.answer(hello, reply_markup=open_kb())

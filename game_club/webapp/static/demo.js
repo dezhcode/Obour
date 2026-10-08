@@ -203,7 +203,7 @@ const data = {
     return { player: { name: 'بازیکن', av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: S.showSpend ? 1 : 0 },
       history: S.ledger.map(l => ({ kind: l.k, amount: l.a, note: l.t, created_at: Math.round(l.at / 1000) })),
       notify: Object.keys(S.notify).filter(k => S.notify[k]), obour: { linked: true, balance: 240000 }, active_match: await ludo.active(),
-      settings: { stake: true, entries: [50, 100, 250, 500], packs: [250, 500, 1000, 2500], rate: GC.RATE, turn_s: 20, rake: 0, bot: '', obour_bot: '' } };
+      settings: { stake: true, shop: false, entries: [50, 100, 250, 500], packs: [250, 500, 1000, 2500], rate: GC.RATE, turn_s: 20, rake: 0, bot: '', obour_bot: '' } };
   },
   async charge(points) { S.bal += points; GC.ledger('شارژ از کیف پول عبور', points, 'charge'); save(); return { ok: true, points }; },
   async notify(game) { S.notify[game] = !S.notify[game]; save(); return { on: S.notify[game] }; },
@@ -213,9 +213,9 @@ const data = {
     const rows = GC.LB[kind].map(([p, w, v]) => ({ name: GC.PEOPLE[p][0], av: GC.PEOPLE[p][1], wins: Math.round(w * K), value: Math.round(v * K / 50) * 50, me: false }));
     return { kind, period, rows, sample: true, mine: { value: kind === 'top' ? S.won : S.spent, wins: S.wins, games: S.games, visible: kind === 'top' || !!S.showSpend } };
   },
-  async shop() { return { plans: GC.SHOP.filter(s => s.cat === 'net').map((s, i) => ({ id: i + 1, title: s.t, gb: [10, 30][i], days: 30, price: s.p * GC.RATE, points: s.p })), rate: GC.RATE, obour: { linked: true, balance: 240000 }, sample: true }; },
-  async buy(planId) { const p = (await data.shop()).plans.find(x => x.id === planId); if (S.bal < p.points) throw err('insufficient'); S.bal -= p.points; S.spent += p.points; GC.ledger('خرید: ' + p.title, -p.points, 'shop'); save(); return { ok: true, title: p.title }; },
-  async transfer(points) { if (S.bal < points) throw err('insufficient'); S.bal -= points; S.spent += points; GC.ledger('انتقال به کیف پول عبور', -points, 'transfer'); save(); return { ok: true, points, toman: points * GC.RATE }; },
+  async shop() { if (!S.shopOn) throw err('shop_off'); return { plans: GC.SHOP.filter(s => s.cat === 'net').map((s, i) => ({ id: i + 1, title: s.t, gb: [10, 30][i], days: 30, price: s.p * GC.RATE, points: s.p })), rate: GC.RATE, obour: { linked: true, balance: 240000 }, sample: true }; },
+  async buy(planId) { if (!S.shopOn) throw err('shop_off'); const p = (await data.shop()).plans.find(x => x.id === planId); if (S.bal < p.points) throw err('insufficient'); S.bal -= p.points; S.spent += p.points; GC.ledger('خرید: ' + p.title, -p.points, 'shop'); save(); return { ok: true, title: p.title }; },
+  async transfer(points) { if (!S.shopOn) throw err('shop_off'); if (S.bal < points) throw err('insufficient'); S.bal -= points; S.spent += points; GC.ledger('انتقال به کیف پول عبور', -points, 'transfer'); save(); return { ok: true, points, toman: points * GC.RATE }; },
 };
 GC.demo = { ludo, data };
 })();
