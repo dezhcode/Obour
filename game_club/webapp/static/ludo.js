@@ -31,7 +31,7 @@ function buildBoard() {
   for (const c of ORDER) SEAT[c].lane.forEach(([x, y]) => { h += `<div class="tile lane c-${c}" style="grid-column:${x + 1};grid-row:${y + 1}"></div>`; });
   for (const c of ORDER) {
     const [x, y] = SEAT[c].yard;
-    h += `<div class="yard c-${c}" data-yard="${c}" style="grid-column:${x + 1}/${x + 7};grid-row:${y + 1}/${y + 7}"><span class="panel"></span>${SOCKETS.map(([sx, sy]) => `<span class="sock" style="left:${sx / 6 * 100}%;top:${sy / 6 * 100}%"></span>`).join('')}</div>`;
+    h += `<div class="yard c-${c}" data-yard="${c}" style="grid-column:${x + 1}/${x + 7};grid-row:${y + 1}/${y + 7}">${SOCKETS.map(([sx, sy]) => `<span class="sock" style="left:${sx / 6 * 100}%;top:${sy / 6 * 100}%"></span>`).join('')}</div>`;
   }
   h += `<div class="home"><svg viewBox="0 0 3 3" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L1.5 1.5L0 3z" fill="#4C8DFF"/><path d="M0 0L3 0L1.5 1.5z" fill="#FF5A6A"/><path d="M3 0L3 3L1.5 1.5z" fill="#2FC584"/><path d="M0 3L3 3L1.5 1.5z" fill="#FFC531"/></svg><span class="home-mark">${icon('trophy', 2.4)}</span></div>`;
   h += '<div class="layer" id="layer"></div>';
