@@ -702,13 +702,6 @@ def awaiting_receipt_kb(txn_id: int) -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def ref_skip_kb(txn_id: int) -> InlineKeyboardMarkup:
-    """زیر سوال کد پیگیری: اگر کاربر کد ندارد (رسید بی کد کمتر خودکار تایید می شود)."""
-    kb = InlineKeyboardBuilder()
-    _add(kb, "کد پیگیری ندارم", callback_data=f"wal:noref:{txn_id}")
-    return kb.as_markup()
-
-
 def card_kb(card_number: str, amount: int) -> InlineKeyboardMarkup:
     """دکمه های کپی کارت و مبلغ.
 

@@ -33,7 +33,6 @@ NOT_OPEN = "not_open"
 BAD_IMAGE = "bad_image"
 NO_ADMIN = "no_admin"
 ALREADY_SENT = "already_sent"
-BAD_REF = "bad_ref"
 
 
 async def card(db: "Database") -> dict:
@@ -115,11 +114,10 @@ def _image_kind(data: bytes) -> str | None:
     return None
 
 
-async def attach_receipt(bot, db: "Database", user: dict, txn_id: int, image: bytes, ref: str = "") -> dict:  # noqa: ANN001
-    """رسید و کد پیگیری را به تراکنش می چسباند، بررسی می کند و برای ادمین ها می فرستد."""
+async def attach_receipt(bot, db: "Database", user: dict, txn_id: int, image: bytes) -> dict:  # noqa: ANN001
+    """رسید را به تراکنش می چسباند، بررسی می کند و برای ادمین ها می فرستد."""
     from app.config import config
     from app.services import receipts
-    from app.services.assistant import clean_ref
 
     txn = await db.get_transaction(txn_id)
     # تراکنش باید مال همین کاربر و هنوز باز باشد - همان بررسی ربات
@@ -132,14 +130,10 @@ async def attach_receipt(bot, db: "Database", user: dict, txn_id: int, image: by
         return {"ok": False, "error": ALREADY_SENT}
     if not image or len(image) > MAX_RECEIPT or not _image_kind(image):
         return {"ok": False, "error": BAD_IMAGE}
-    # مینی اپ کد پیگیری نمی پرسد؛ اگر داده شد ذخیره می شود. تکراری بودن
-    # با هش عکس و کدهای روی رسید (بررسی هوشمند) سنجیده می شود.
-    ref = clean_ref(ref)
+    # تکراری بودن با هش عکس و اثر انگشت رسید (بررسی هوشمند) سنجیده می شود
     if not config.admin_ids:
         return {"ok": False, "error": NO_ADMIN}
 
-    if ref:
-        await db.set_receipt_meta(txn_id, ref_code=ref)
     r = await receipts.process(bot, db, txn_id, image=image, source="mini")
     if r.get("decision") == "manual" and not r.get("sent"):
         return {"ok": False, "error": NO_ADMIN}

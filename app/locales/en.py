@@ -748,8 +748,6 @@ PHRASES.update({
 
 # کد پیگیری رسید
 TEXTS.update({
-    'ASK_REF': "╮── 🔖 Tracking code\n│   One step left\n\nSend the tracking (reference) number of this receipt — digits only.\n\n╯─ It's printed on your bank receipt.",
-    'REF_BAD': "The tracking code must be digits only (4–30 digits). Send it again.",
 })
 
 PHRASES.update({

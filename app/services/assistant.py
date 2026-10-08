@@ -423,8 +423,8 @@ async def ticket_draft(db: "Database", user: dict, *, timeout: float | None = No
 # ═══════════════════ ۷: بررسی رسید کارت به کارت ═══════════════════
 #
 # سیستم مالی است، پس دو درخواست موازی و مستقل:
-#   «کور»: بدون دانستن مبلغ و کد، هر چه روی رسید هست عینا خوانده می شود
-#   «تطبیق»: مبلغ ریالی فاکتور، کد پیگیری کاربر و کارت مقصد داده می شود
+#   «کور»: بدون دانستن مبلغ، هر چه روی رسید هست عینا خوانده می شود
+#   «تطبیق»: مبلغ ریالی فاکتور و کارت مقصد داده می شود
 #            و برای هر کدام «می خواند / نمی خواند / ناخوانا» پرسیده می شود
 # تایید خودکار فقط وقتی است که هر دو، همه موارد را درست بدانند. رد خودکار
 # فقط وقتی است که هر دو روی یک ایراد قطعی هم نظر باشند. بقیه می ماند برای
@@ -442,10 +442,23 @@ def _int(s: Any) -> int | None:
     return int(d) if d else None
 
 
-def clean_ref(s: Any) -> str:
-    """کد پیگیری / شماره مرجع: فقط رقم، ۴ تا ۳۰ رقم؛ وگرنه خالی."""
-    d = _digits(s)
-    return d if 4 <= len(d) <= 30 else ""
+def receipt_sig(b: dict) -> str:
+    """اثر انگشت رسید از خوانش «کور»: مبلغ ریالی|تاریخ|ساعت|۴ رقم آخر کارت مقصد.
+
+    مبنای تشخیص رسید تکراری وقتی عکس دوباره گرفته یا بریده شده (هش عکس فرق
+    دارد). فقط وقتی ساخته می شود که همه بخش ها خوانا باشند؛ وگرنه خالی.
+    """
+    unit = str(b.get("unit") or "").lower()
+    amt = parse_amount(b.get("amount_digits")) or parse_amount(b.get("amount_text"))
+    if not amt or unit not in ("rial", "toman"):
+        return ""
+    rial = amt if unit == "rial" else amt * 10
+    date = str(b.get("date") or "")[:10]
+    tm = re.sub(r"[^\d:]", "", str(b.get("time") or "").translate(_FA_DIGITS))[:5]
+    _, tail = _card_parts(b.get("dest_card"))
+    if not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) and re.fullmatch(r"\d{1,2}:\d{2}", tm) and tail):
+        return ""
+    return f"{rial}|{date}|{tm.zfill(5)}|{tail}"
 
 
 def _card_parts(text: Any) -> tuple[str, str]:
@@ -512,7 +525,6 @@ async def _rcpt_blind(db: "Database", image: bytes, timeout: float) -> dict:
         "\"date_printed\": \"date exactly as printed or null\", \"date\": \"same date converted to Gregorian YYYY-MM-DD or null\", "
         "\"time\": \"HH:MM or null\", \"dest_card\": \"destination card number exactly as printed incl. * masks, or null\", "
         "\"dest_name\": \"destination owner name or null\", "
-        "\"ref_codes\": [\"every reference / tracking / trace number printed (شماره پیگیری، شماره مرجع، کد رهگیری)\"], "
         "\"edited_signs\": \"visible signs of editing, cropping of key fields, or a fake template; null if none\", "
         "\"confidence\": \"high|medium|low (how clearly every field above was readable)\"}"
     )
@@ -522,19 +534,18 @@ async def _rcpt_blind(db: "Database", image: bytes, timeout: float) -> dict:
     return data
 
 
-async def _rcpt_verify(db: "Database", image: bytes, *, rial: int, ref: str, card: str, holder: str, timeout: float) -> dict:
+async def _rcpt_verify(db: "Database", image: bytes, *, rial: int, card: str, holder: str, timeout: float) -> dict:
     prompt = (
         "You are a strict auditor checking an Iranian card-to-card bank receipt against an invoice. Be skeptical: "
         "answer true ONLY if you can clearly read the value on the receipt and it is exactly equal. If unreadable, answer null.\n"
         + AMOUNT_RULES +
         f"Invoice amount: {rial:,} RIAL (digits {rial}) = {rial // 10:,} TOMAN (digits {rial // 10}). "
         f"So the receipt must show {rial:,} if printed in rial, or {rial // 10:,} if printed in toman.\n"
-        f"Tracking/reference code the customer typed: {ref or '(none given)'}\n"
         f"Our destination card: {card or '(unknown)'}" + (f" — owner: {holder}" if holder else "") + "\n"
         "Return ONLY JSON: {\"is_receipt\": bool, \"status_success\": true|false|null, "
         "\"amount_matches\": true|false|null, \"amount_seen\": \"amount exactly as printed\", "
         "\"amount_seen_unit\": \"rial|toman|unknown\", \"amount_seen_rial\": <that amount converted to rial as an integer, or null>, "
-        "\"card_matches\": true|false|null, \"ref_matches\": true|false|null, "
+        "\"card_matches\": true|false|null, "
         "\"looks_genuine\": true|false|null, \"confidence\": \"high|medium|low\", \"notes\": \"short Persian note\"}"
     )
     data = parse_json(await ask(prompt, image=image, kind="receipt", db=db, timeout=timeout))
@@ -543,8 +554,7 @@ async def _rcpt_verify(db: "Database", image: bytes, *, rial: int, ref: str, car
     return data
 
 
-async def receipt_verdict(db: "Database", txn: dict, image: bytes, *, ref: str = "",
-                          need_ref: bool = True, timeout: float | None = None) -> dict:
+async def receipt_verdict(db: "Database", txn: dict, image: bytes, *, timeout: float | None = None) -> dict:
     """بررسی سخت گیرانه رسید.
 
     خروجی: {"decision": "approve" | "reject" | "manual", "reason": کلید REJECT_REASONS یا "",
@@ -553,13 +563,12 @@ async def receipt_verdict(db: "Database", txn: dict, image: bytes, *, ref: str =
     timeout = timeout or config.ai_timeout
     toman = int(txn.get("amount") or 0)
     rial = toman * 10
-    ref = clean_ref(ref or txn.get("ref_code"))
     card = _digits(await db.get_setting("card_number", ""))
     holder = (await db.get_setting("card_holder", "")).strip()
 
     blind, verify = await asyncio.gather(
         _rcpt_blind(db, image, timeout),
-        _rcpt_verify(db, image, rial=rial, ref=ref, card=card, holder=holder, timeout=timeout),
+        _rcpt_verify(db, image, rial=rial, card=card, holder=holder, timeout=timeout),
         return_exceptions=True,
     )
     if isinstance(blind, BaseException) and isinstance(verify, BaseException):
@@ -666,25 +675,6 @@ async def receipt_verdict(db: "Database", txn: dict, image: bytes, *, ref: str =
         else:
             lines.append(f"❔ نام مقصد «{html.escape(name[:40])}» با «{html.escape(holder[:40])}» فرق دارد")
 
-    # ── کد پیگیری کاربر باید روی رسید باشد
-    seen_refs = {clean_ref(x) for x in (b.get("ref_codes") or []) if clean_ref(x)}
-    vrm = _yes(v.get("ref_matches"))
-    if not ref and not need_ref:
-        # مینی اپ کد نمی پرسد: کدی که روی رسید خوانده شد مبنای تکراری است
-        # (صدا زننده آن را با دیتابیس می سنجد)؛ بدون کد خوانا تایید نمی شود.
-        if seen_refs:
-            good(f"کد پیگیری روی رسید: <code>{', '.join(sorted(seen_refs))[:60]}</code>")
-        else:
-            unknown("کد پیگیری روی رسید خوانده نشد")
-    elif not ref:
-        unknown("کاربر کد پیگیری نفرستاده")
-    elif ref in seen_refs and vrm is not False:
-        good(f"کد پیگیری <code>{ref}</code> روی رسید هست")
-    elif seen_refs:
-        bad(f"کد پیگیری کاربر <code>{ref}</code> روی رسید نیست (روی رسید: {', '.join(sorted(seen_refs))[:60]})")
-    else:
-        unknown(f"کد پیگیری روی رسید خوانده نشد (کاربر: <code>{ref}</code>)")
-
     # ── تاریخ: از روز ساخت فاکتور تا امروز
     try:
         rd = datetime.fromisoformat(str(b.get("date") or "")[:10]).date()
@@ -716,7 +706,8 @@ async def receipt_verdict(db: "Database", txn: dict, image: bytes, *, ref: str =
         decision = "reject"
     else:
         decision, reject = "manual", ""
-    return {"decision": decision, "reason": reject, "ok": ok_all, "data": b, "verify": v, "lines": lines}
+    return {"decision": decision, "reason": reject, "ok": ok_all, "data": b, "verify": v, "lines": lines,
+            "sig": receipt_sig(b)}
 
 
 async def receipt_check(db: "Database", txn: dict, image: bytes, *, timeout: float | None = None) -> dict:

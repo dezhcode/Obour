@@ -551,8 +551,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                 if txn_id <= 0 or not image:
                     return _json(start_response, {"error": "عکس رسید نرسید", "code": "bad_request"}, "400 Bad Request")
                 return _json(start_response, runtime.run(
-                    webapi.topup_receipt(db, panel, wuser, txn_id=txn_id, image=image,
-                                         ref=str(body.get("ref") or "")[:40], bot=runtime.bot), timeout=110))
+                    webapi.topup_receipt(db, panel, wuser, txn_id=txn_id, image=image, bot=runtime.bot), timeout=110))
             if name == "lang":
                 body = _body(environ, limit=256)
                 return _json(start_response, runtime.run(
