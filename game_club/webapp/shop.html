@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
 <title>Game Club · خدمات عبور</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -22,61 +23,78 @@
 </style>
 </head>
 <body>
+<header class="appbar">
+  <div class="appbar-cap"><span>خدمات عبور</span></div>
+  <div class="appbar-in">
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>خدمات عبور</h1></div>
+    <a class="pill" href="wallet.html" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span><span class="plus"><i data-ic="plus"></i></span></a>
+  </div>
+</header>
 <main class="page">
-  <header class="top">
-    <h1 class="on-ground">خدمات عبور</h1>
-    <a class="pill" href="wallet.html" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>۰</span><span class="plus"><i data-ic="plus"></i></span></a>
-  </header>
-
   <div class="obour"><svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#151B42"/><path d="M10 22.5l7-11.5 7 11.5" fill="none" stroke="#3BF0CF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="22.5" r="2" fill="#B36BFF"/></svg>
-    <span>هر خرید اینجا مستقیم روی <b>حساب عبورت</b> ثبت می‌شود و کانفیگ یا اشتراک در ربات عبور تحویل داده می‌شود.</span></div>
-
-  <section aria-label="دسته‌ها" class="chips" id="cats">
-    <button class="chip sm" data-v="all">همه</button>
-    <button class="chip sm" data-v="net">اینترنت آزاد</button>
-    <button class="chip sm" data-v="extra">حجم و تمدید</button>
-    <button class="chip sm" data-v="ai">هوش مصنوعی</button>
+    <span>هر خرید مستقیم روی <b>حساب عبورت</b> ثبت می‌شود و کانفیگ در ربات عبور تحویل داده می‌شود.</span></div>
+  <section class="stack" id="items" aria-label="پلن‌ها"><p class="hint" style="color:var(--ink)">در حال بارگذاری…</p></section>
+  <section class="card item" aria-label="انتقال">
+    <span class="ic-box"><i data-ic="wallet"></i></span>
+    <div><h3>انتقال به کیف پول عبور</h3><p class="muted">امتیاز را به تومان در کیف عبور ببر و هر خدمتی خواستی بخر، مثل اشتراک هوش مصنوعی.</p>
+      <div class="item-foot"><span class="muted" id="trRate"></span><button class="btn btn-sm" id="transfer">انتقال</button></div></div>
   </section>
-
-  <section class="stack" id="items" aria-label="خدمات"></section>
-  <p class="hint" style="color:var(--ink)">قیمت‌ها نمونه‌اند و در نسخهٔ واقعی از پنل عبور خوانده می‌شوند.</p>
+  <p class="hint" style="color:var(--ink)" id="sampleNote" hidden>پیش‌نمایش است؛ قیمت‌ها نمونه‌اند.</p>
 </main>
 <script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
 <script>
 (() => {
-  const { S, save, fa, amount, icon, sheet, sheetHead, toast, sfx, ledger, SHOP, RATE, mount } = GC;
+  const { fa, FD, amount, icon, sheet, sheetHead, toast, sfx, haptic, errText, mount } = GC;
   const $ = id => document.getElementById(id);
-  let cat = 'all';
-  function render() {
-    $('cats').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === cat)));
-    $('items').innerHTML = SHOP.filter(s => cat === 'all' || s.cat === cat).map(s => {
-      const short = S.bal < s.p;
-      return `<article class="card item"><span class="ic-box">${icon(s.ic)}</span><div><h3>${s.t}</h3><p class="muted">${s.s}</p>
-        <div class="item-foot"><div>${amount(s.p, 'lg')}<small>≈ ${fa(s.p * RATE)} تومان</small></div>
-        ${short ? `<span class="need">${fa(s.p - S.bal)} امتیاز کم داری</span>` : `<button class="btn btn-sm btn-success" data-buy="${s.id}">دریافت</button>`}</div></div></article>`;
-    }).join('');
+  GC.back('index.html');
+  let shop = null;
+  async function load() {
+    try { shop = await GC.data.shop(); } catch (e) { $('items').innerHTML = `<p class="hint">${errText(e)}</p>`; return; }
+    $('sampleNote').hidden = !shop.sample;
+    $('trRate').textContent = 'هر امتیاز ' + fa(shop.rate) + ' تومان';
+    const bal = GC.points;
+    $('items').innerHTML = shop.plans.length ? shop.plans.map(p => {
+      const short = bal < p.points;
+      return `<article class="card item"><span class="ic-box">${icon('globe')}</span><div><h3>${p.title}</h3><p class="muted">${p.gb ? FD(p.gb) + ' گیگ' : ''}${p.days ? ' · ' + FD(p.days) + ' روز' : ''} · تحویل فوری در ربات عبور</p>
+        <div class="item-foot"><div>${amount(p.points, 'lg')}<small>${fa(p.price)} تومان</small></div>
+        ${short ? `<span class="need">${fa(p.points - bal)} امتیاز کم داری</span>` : `<button class="btn btn-sm btn-success" data-buy="${p.id}">دریافت</button>`}</div></div></article>`;
+    }).join('') : '<p class="hint" style="color:var(--ink)">فعلا پلنی برای فروش نیست.</p>';
     mount();
   }
-  $('cats').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { cat = b.dataset.v; render(); } };
+  function done(title, sub) {
+    sheet(`<span class="ok-badge">${icon('check', 3)}</span><h2 style="text-align:center;font-size:22px;font-weight:900">${title}</h2><p class="hint">${sub}</p><button class="btn btn-block" data-close>باشه</button>`, { center: true });
+  }
   $('items').addEventListener('click', e => {
     const b = e.target.closest('[data-buy]'); if (!b) return;
-    const s = SHOP.find(x => x.id === b.dataset.buy);
+    const p = shop.plans.find(x => x.id === +b.dataset.buy);
     const sh = sheet(`${sheetHead('تأیید خرید')}
-      <div class="receipt"><div><span>خدمت</span><b>${s.t}</b></div><div><span>هزینه</span>${amount(s.p)}</div><div><span>موجودی بعد از خرید</span>${amount(S.bal - s.p, 'ink')}</div><div><span>تحویل</span><b>ربات عبور</b></div></div>
+      <div class="receipt"><div><span>پلن</span><b>${p.title}</b></div><div><span>هزینه</span>${amount(p.points)}</div><div><span>موجودی بعد از خرید</span>${amount(GC.points - p.points, 'ink')}</div><div><span>تحویل</span><b>ربات عبور</b></div></div>
       <button class="btn btn-success btn-block" id="ok">${icon('check')}پرداخت با امتیاز</button>
       <button class="btn btn-light btn-block" data-close>انصراف</button>`);
-    sh.querySelector('#ok').onclick = () => {
-      if (S.bal < s.p) { sfx.error(); toast('امتیازت کافی نیست'); return; }
-      S.bal -= s.p; S.spent += s.p; ledger('خرید: ' + s.t, -s.p, 'shop'); save(); sfx.coin();
-      const code = 'GC-' + Math.random().toString(36).slice(2, 7).toUpperCase();
-      sheet(`<span class="ok-badge">${icon('check', 3)}</span><h2 style="text-align:center;font-size:22px;font-weight:900">سفارش ثبت شد</h2>
-        <div class="receipt"><div><span>خدمت</span><b>${s.t}</b></div><div><span>کد پیگیری</span><b dir="ltr">${code}</b></div></div>
-        <p class="hint">در نسخهٔ واقعی، ربات عبور همین حالا کانفیگ یا اشتراک را برایت می‌فرستد.</p>
-        <button class="btn btn-block" data-close>باشه</button>`, { center: true });
-      render();
+    sh.querySelector('#ok').onclick = async ev => {
+      ev.target.disabled = true;
+      try {
+        const r = await GC.data.buy(p.id);
+        await GC.refreshMe();
+        if (r.ok) { sfx.coin(); haptic('success'); done('خرید انجام شد', 'کانفیگ همین حالا در ربات عبور برایت فرستاده شد.'); }
+        else { haptic('warning'); done('مبلغ به کیف عبور رفت', `ساخت سرویس الان ممکن نشد؛ ${fa(r.credited)} تومان در کیف پول عبورت است و می‌توانی همان‌جا بخری.`); }
+        load();
+      } catch (err) { ev.target.disabled = false; sfx.error(); haptic('error'); toast(errText(err)); }
     };
   });
-  render(); GC.nav('shop');
+  $('transfer').onclick = () => {
+    const opts = [100, 250, 500, 1000].filter(v => v <= GC.points);
+    if (!opts.length) { toast('برای انتقال حداقل ۱۰۰ امتیاز لازم است'); return; }
+    const sh = sheet(`${sheetHead('انتقال به کیف پول عبور')}<div class="chips" id="tv">${opts.map(v => `<button class="chip" data-v="${v}">${GC.coin()}${fa(v)}</button>`).join('')}</div><p class="hint">هر امتیاز ${fa(shop ? shop.rate : GC.RATE)} تومان. انتقال برگشت ندارد.</p>`);
+    sh.querySelector('#tv').onclick = async e => {
+      const c = e.target.closest('[data-v]'); if (!c) return;
+      try { const r = await GC.data.transfer(+c.dataset.v); await GC.refreshMe(); sfx.coin(); haptic('success'); done('انتقال انجام شد', `${fa(r.toman)} تومان به کیف پول عبورت اضافه شد.`); load(); }
+      catch (err) { sfx.error(); toast(errText(err)); }
+    };
+  };
+  (async () => { try { await GC.refreshMe(); } catch (e) {} load(); })();
+  GC.nav('shop'); mount();
 })();
 </script>
 </body>

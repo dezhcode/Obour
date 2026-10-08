@@ -18,6 +18,7 @@
   GET   /setwebhook?key=SECRET    ثبت وبهوک روی تلگرام + فهرست دستورها
   GET   /setcommands?key=SECRET   ثبت فقط فهرست دستورها
   GET   /delwebhook?key=SECRET    حذف وبهوک
+  *     /gc/...                   Game Club: مینی اپ، API، وبهوک ربات دوم (game_club/wsgi.py)
 """
 from __future__ import annotations
 
@@ -143,6 +144,18 @@ def application(environ, start_response):  # noqa: ANN001, ANN201
 
     path = _path(environ)
     method = environ.get("REQUEST_METHOD", "GET").upper()
+
+    # ---------- Game Club (ربات و مینی اپ بازی، زیر /gc) ----------
+    # ماژول جدا دارد؛ اگر خراب باشد فقط همین مسیرها خطا می دهند.
+    try:
+        from game_club.wsgi import handle as gc_handle
+        from game_club.wsgi import is_gc_path
+
+        if is_gc_path(path):
+            return gc_handle(environ, start_response, path, runtime, _authorized)
+    except Exception:  # noqa: BLE001
+        sys.stderr.write(traceback.format_exc())
+        return _respond(start_response, "500 Internal Server Error", "game club error")
 
     # ---------- مینی اپ ----------
     # قبل از بقیه مسیرها می آید چون زیرمسیر خودش را دارد و نباید با

@@ -55,10 +55,19 @@ Line icons, 24px grid, 2.2px stroke, round caps, `currentColor`, drawn for this 
 - Main pages (home, leaderboard, wallet, Obour services) share the bottom nav. Flow pages (Ludo lobby, game, help) have a back button and no nav.
 - Every flow step or confirmation is a bottom sheet; results and exits are centered dialogs.
 
+## Full-screen header (Telegram Mini App)
+
+- Every page opens full screen on phones (`requestFullscreen`, Bot API 8.0). The header (`.appbar`) is a full-bleed band from the very top edge of the phone, `grass-ink` fading to a darker grass, rounded only at the bottom (`radius-xl`).
+- It stacks three layers: the phone status bar (`--sa-t` from `safeAreaInset.top`), Telegram's floating-button band (`--csa-t` from `contentSafeAreaInset.top`), then the page row. In Telegram's band only a small centered title sits (`.appbar-cap`, `on-fill`, 13px/900); never put a control there, because Telegram's close/back and menu buttons float over its corners.
+- The page row holds the page title (`t-title` size, white with a `grass-ink` shadow) and at most two controls on the end side: the balance pill and one icon button. In the game the row becomes the turn bar.
+- Back is Telegram's native BackButton inside Telegram; the in-page back button (`.back`) shows only in a normal browser.
+- Bottom-fixed parts (nav, dice dock) add `--sa-b` so they clear the home indicator. Side gutters grow to `--sa-l`/`--sa-r` in landscape.
+- Header color in Telegram is `#245F17` and background `#5BC236`, so non-full-screen clients show no seam.
+
 ## The Ludo screen
 
-- Top to bottom: header (back, title, mode or prize, sound, rules) → turn bar → two seats → board → two seats → event feed → dice dock.
-- The local player is always yellow, bottom-left; their die is the big one in the dock.
+- Top to bottom: full-screen header with the turn bar, sound and rules → mode or prize tag → two seats → board (sized to the remaining height) → two seats → one-line event feed → dice dock.
+- Every player sees their own color at the bottom-left: the board rotates by 90° steps and pawns, labels and the trophy counter-rotate to stay upright; seats follow their corner. Their die is the big one in the dock.
 - Guidance is always visible: the turn bar says whose turn it is, the dock says the next action, the feed says what just happened, movable pawns bob and a dashed ring marks where each will land.
 - 20 seconds per turn; when time runs out the roll and the best move happen automatically.
 - The board geometry and rules live in one place (`GC.LUDO`); the live game computes dice and legal moves on the server.

@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
 <title>Game Club · کیف امتیاز</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -28,16 +29,18 @@
 </style>
 </head>
 <body>
-<main class="page">
-  <header class="top">
-    <h1 class="on-ground">کیف امتیاز</h1>
+<header class="appbar">
+  <div class="appbar-cap"><span>کیف امتیاز</span></div>
+  <div class="appbar-in">
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>کیف امتیاز</h1></div>
     <a class="icon-btn" href="help.html" aria-label="راهنما"><i data-ic="help"></i></a>
-  </header>
-
+  </div>
+</header>
+<main class="page">
   <section class="card bal" aria-label="موجودی">
     <span class="big-coin" data-coin></span>
     <span class="muted">موجودی Game Club</span>
-    <span class="v" data-bal>۰</span>
+    <span class="v" data-bal>…</span>
     <span class="worth" id="worth"></span>
     <div class="bal-actions">
       <button class="btn btn-success" id="charge"><i data-ic="plus"></i>شارژ</button>
@@ -45,56 +48,63 @@
     </div>
   </section>
 
-  <section class="card stack" aria-label="آمار من">
-    <div class="stats" id="stats"></div>
-  </section>
+  <section class="card stack" aria-label="آمار من"><div class="stats" id="stats"></div></section>
 
   <section aria-labelledby="hHist">
     <div class="sec-head"><h2 id="hHist" class="on-ground">تاریخچه</h2></div>
-    <div class="card"><ul class="list" id="hist"></ul></div>
+    <div class="card"><ul class="list" id="hist"><li class="hint">در حال بارگذاری…</li></ul></div>
   </section>
 
   <section aria-labelledby="hRule">
     <div class="sec-head"><h2 id="hRule" class="on-ground">قانون امتیاز</h2></div>
     <div class="card">
       <ul class="rules">
-        <li><i data-ic="check"></i><span>هر امتیاز معادل <b id="rate"></b> تومان از کیف پول عبور است <span class="tag tag-sample">نمونه</span></span></li>
+        <li><i data-ic="check"></i><span>هر امتیاز معادل <b id="rate">…</b> تومان از کیف پول عبور است.</span></li>
         <li><i data-ic="check"></i><span>امتیاز فقط برای خدمات عبور خرج می‌شود و به پول نقد برنمی‌گردد.</span></li>
         <li><i data-ic="check"></i><span>ورودی بازی امتیازی تا پایان بازی قفل می‌ماند و یک‌جا به برنده می‌رسد.</span></li>
-        <li><i data-ic="check"></i><span>اگر بازی به‌خاطر خطای سرور ناتمام بماند، ورودی همه برمی‌گردد.</span></li>
+        <li><i data-ic="check"></i><span>اگر بازی شروع نشود یا ناتمام بماند، ورودی برمی‌گردد.</span></li>
       </ul>
     </div>
   </section>
 </main>
 <script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
 <script>
 (() => {
-  const { S, save, fa, FD, amount, icon, toast, sheet, sheetHead, sfx, ledger, RATE, mount } = GC;
+  const { fa, FD, amount, icon, toast, sheet, sheetHead, sfx, haptic, errText, mount } = GC;
   const $ = id => document.getElementById(id);
-  const KIND = { gift: ['spark', 'var(--coin-tint)', 'var(--coin-text)'], charge: ['plus', 'var(--grass-tint)', 'var(--success)'], entry: ['dice', 'var(--sky-tint)', 'var(--sky-deep)'], prize: ['trophy', 'var(--coin-tint)', 'var(--coin-text)'], shop: ['bag', 'var(--obour-night)', 'var(--obour-aqua)'] };
-  const when = t => { const d = Math.round((Date.now() - t) / 6e4); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
-  function render() {
-    $('worth').textContent = 'ارزش در عبور: ' + fa(S.bal * RATE) + ' تومان';
-    $('rate').textContent = fa(RATE);
-    $('stats').innerHTML = `<div class="stat"><b>${fa(S.games)}</b><span>بازی</span></div><div class="stat"><b>${fa(S.wins)}</b><span>برد</span></div><div class="stat"><b>${fa(S.won)}</b><span>امتیاز برده</span></div>`;
-    $('hist').innerHTML = S.ledger.map(l => { const [ic, bg, fg] = KIND[l.k] || KIND.gift;
-      return `<li class="row"><span class="ic-box" style="background:${bg};color:${fg}">${icon(ic)}</span><span class="name">${l.t}<span class="meta">${when(l.at)}</span></span><span class="amount ${l.a >= 0 ? 'plus-a' : 'minus-a'}" dir="ltr">${l.a >= 0 ? '+' : '−'}${fa(Math.abs(l.a))}</span></li>`; }).join('');
+  GC.back('index.html');
+  const KIND = { gift: ['spark', 'var(--coin-tint)', 'var(--coin-text)', 'هدیه'], charge: ['plus', 'var(--grass-tint)', 'var(--success)', 'شارژ'], entry: ['dice', 'var(--sky-tint)', 'var(--sky-deep)', 'ورودی'], refund: ['back', 'var(--sky-tint)', 'var(--sky-deep)', 'بازگشت'], prize: ['trophy', 'var(--coin-tint)', 'var(--coin-text)', 'جایزه'], shop: ['bag', 'var(--obour-night)', 'var(--obour-aqua)', 'خرید'], transfer: ['wallet', 'var(--obour-night)', 'var(--obour-aqua)', 'انتقال'], admin: ['shield', 'var(--sky-tint)', 'var(--sky-deep)', 'پشتیبانی'] };
+  const when = t => { const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
+  let me = null;
+  async function load() {
+    try { me = await GC.refreshMe(); } catch (e) { toast(errText(e)); return; }
+    const rate = me.settings.rate;
+    $('worth').textContent = 'ارزش در عبور: ' + fa(me.player.points * rate) + ' تومان';
+    $('rate').textContent = fa(rate);
+    $('stats').innerHTML = `<div class="stat"><b>${fa(me.player.games)}</b><span>بازی</span></div><div class="stat"><b>${fa(me.player.wins)}</b><span>برد</span></div><div class="stat"><b>${me.obour.linked ? fa(Math.floor(me.obour.balance / 1000)) + 'K' : '—'}</b><span>کیف عبور (تومان)</span></div>`;
+    $('hist').innerHTML = me.history.length ? me.history.map(l => { const [ic, bg, fg] = KIND[l.kind] || KIND.gift;
+      return `<li class="row"><span class="ic-box" style="background:${bg};color:${fg}">${icon(ic)}</span><span class="name">${l.note || KIND[l.kind]?.[3] || ''}<span class="meta">${when(l.created_at)}${l.status === 'pending' ? ' · در حال انجام' : ''}</span></span><span class="amount ${l.amount >= 0 ? 'plus-a' : 'minus-a'}" dir="ltr">${l.amount >= 0 ? '+' : '−'}${fa(Math.abs(l.amount))}</span></li>`; }).join('')
+      : '<li class="hint">هنوز تراکنشی نداری. با شارژ از کیف پول عبور شروع کن.</li>';
     mount();
   }
   $('charge').onclick = () => {
-    const P = [[250, 0], [500, 0], [1000, 50], [2500, 250]];
-    const sh = sheet(`${sheetHead('شارژ کیف امتیاز')}
-      <div><div class="label">از کجا شارژ می‌کنی؟</div>
-        <div class="seg" id="pm"><button aria-pressed="true" data-v="obour">کیف پول عبور<small>فوری · موجودی ۲۴۰٬۰۰۰ تومان (نمونه)</small></button><button aria-pressed="false" data-v="card">کارت‌به‌کارت<small>بعد از تأیید ادمین</small></button></div></div>
-      <div><div class="label">بسته</div><ul class="list">${P.map(([p, g], i) => `<li class="row pkg"><span class="ic-box" style="background:var(--coin-tint)">${GC.coin()}</span><span class="name">${fa(p)} امتیاز${g ? ` <span class="gift">+ ${fa(g)} هدیه</span>` : ''}<span class="meta">${fa(p * RATE)} تومان</span></span><button class="btn btn-sm" data-i="${i}">شارژ</button></li>`).join('')}</ul></div>
-      <p class="hint">پیش‌نمایش است و پولی جابه‌جا نمی‌شود.</p>`);
-    sh.querySelector('#pm').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; sh.querySelectorAll('#pm [data-v]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); };
-    sh.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b) return;
-      const [p, g] = P[+b.dataset.i], card = sh.querySelector('#pm [aria-pressed="true"]').dataset.v === 'card';
-      if (card) { GC.close(); toast('درخواست ثبت شد؛ بعد از تأیید رسید، امتیاز اضافه می‌شود'); return; }
-      S.bal += p + g; ledger('شارژ از کیف پول عبور', p + g, 'charge'); save(); sfx.coin(); GC.close(); render(); toast('+' + fa(p + g) + ' امتیاز اضافه شد'); });
+    if (!me) return;
+    const rate = me.settings.rate, packs = me.settings.packs;
+    const sh = sheet(`${sheetHead('شارژ از کیف پول عبور')}
+      <div class="pot"><span>موجودی کیف پول عبور</span><b>${me.obour.linked ? fa(me.obour.balance) + ' تومان' : 'وصل نیست'}</b></div>
+      <ul class="list">${packs.map((p, i) => `<li class="row pkg"><span class="ic-box" style="background:var(--coin-tint)">${GC.coin()}</span><span class="name">${fa(p)} امتیاز<span class="meta">${fa(p * rate)} تومان از کیف عبور</span></span><button class="btn btn-sm btn-success" data-i="${i}"${me.obour.balance < p * rate ? ' disabled' : ''}>شارژ</button></li>`).join('')}</ul>
+      <p class="hint">کیف عبور کم است؟ اول در ربات عبور شارژش کن (کارت‌به‌کارت، تتر یا استارز).</p>
+      <button class="btn btn-light btn-block" id="obourBot">${icon('wallet')}شارژ کیف پول عبور</button>`);
+    sh.querySelector('#obourBot').onclick = () => { const b = me.settings.obour_bot; b ? GC.openLink('https://t.me/' + b) : toast('ربات عبور در دسترس نیست'); };
+    sh.addEventListener('click', async e => {
+      const b = e.target.closest('[data-i]'); if (!b || b.disabled) return;
+      b.disabled = true;
+      try { const r = await GC.data.charge(packs[+b.dataset.i]); sfx.coin(); haptic('success'); GC.close(); toast('+' + fa(r.points) + ' امتیاز اضافه شد'); load(); }
+      catch (err) { b.disabled = false; sfx.error(); haptic('error'); toast(errText(err)); }
+    });
   };
-  render(); GC.nav('wallet');
+  load(); GC.nav('wallet'); mount();
 })();
 </script>
 </body>
