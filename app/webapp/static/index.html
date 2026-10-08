@@ -154,42 +154,6 @@ html.perf-low .slide{transform:none !important;opacity:1 !important}
 .pass.cat-work{--p:#1D4FB8;--p2:#D5E3FF;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#3B7BFF 0%,#1D4FB8 52%,var(--deep) 100%)}
 .pass.cat-fun{--p:var(--ember);--p2:#FFDCCF;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#E0573E 0%,var(--ember) 55%,#4A1E0B 100%)}
 .pass.cat-tools{--p:var(--ocean);--p2:#D3EEF4;--pd:rgba(0,0,0,.24);background:radial-gradient(120% 90% at 100% 0%,#1497B3 0%,var(--ocean) 55%,#063645 100%)}
-.cat-pass{height:auto;min-height:188px;cursor:pointer;gap:0}
-.cat-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.cat-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.cat-pass .pass-name{min-width:0}
-.cat-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;min-height:36px}
-.cat-row .cat-stack{margin-top:0;min-width:0}
-.cat-from{font-size:12px;color:var(--p2);white-space:nowrap;flex-shrink:0}
-.cat-from .n{color:var(--on-pass);font-size:14px}
-/* نوار «بعدی»: تمام عرض پایین کارت، اسم دسته کناری را می گوید */
-.cat-next{display:flex;align-items:center;gap:8px;width:100%;height:40px;margin-top:auto;padding:0 12px;border-radius:13px;
-  background:var(--pd);color:var(--on-pass);font-size:13px;font-weight:800;transition:transform .15s var(--ease),background .2s}
-.cat-pass .cat-next{margin-top:14px}
-.cat-next:active{transform:scale(.97)}
-.cat-next-i{width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.cat-next-i svg{width:14px;height:14px;color:var(--tunnel)}
-.cat-next-l{font-weight:600;color:var(--p2)}
-.cat-next-t{flex-grow:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:start}
-.cat-next > svg{width:16px;height:16px;flex-shrink:0;animation:cat-nudge 1.8s var(--ease) infinite}
-.cat-next.prev > svg{transform:scaleX(-1);animation:none}
-html[dir=ltr] .cat-next > svg{transform:scaleX(-1)}
-html[dir=ltr] .cat-next.prev > svg{transform:none}
-@keyframes cat-nudge{0%,60%,100%{translate:0}30%{translate:-4px}}
-html[dir=ltr] .cat-next > svg{animation-name:cat-nudge-l}
-@keyframes cat-nudge-l{0%,60%,100%{translate:0}30%{translate:4px}}
-html.perf-low .cat-next > svg{animation:none}
-.cat-pass .pass-name{display:flex;align-items:center;gap:10px;font-size:18px}
-.cat-ic{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.cat-ic svg{width:20px;height:20px;color:var(--tunnel)}
-.cat-sub{font-size:12.5px;color:var(--p2);margin-top:12px;line-height:1.8}
-.cat-stack{display:flex;align-items:center;margin-top:12px;min-height:36px}
-.cat-stack .ai-mono{width:34px;height:34px;border-radius:11px;font-size:11px;box-shadow:0 0 0 2px var(--p)}
-.cat-stack .ai-mono + .ai-mono{margin-inline-start:-8px}
-.cat-more{margin-inline-start:8px;font-size:12px;font-weight:800;color:var(--p2)}
-.cat-deck .slides{padding-bottom:22px}
-.cat-deck .slide{flex-basis:76%;scroll-snap-stop:normal}
-.cat-deck .dots{margin-top:-8px;margin-bottom:6px}
 .ord-pass{cursor:pointer}
 .ord-big{display:flex;align-items:center;gap:14px;margin-top:18px}
 .ord-big .ai-mono.lg{box-shadow:0 0 0 3px rgba(255,255,255,.16)}
@@ -235,19 +199,9 @@ html.perf-low .cat-next > svg{animation:none}
 .pass.pl.cat-ai{--acc:#5B45D6;--acc2:#8A6CF6}
 .pass.pl.cat-fun{--acc:#D2462E;--acc2:#F07A4A}
 .pass.pl.cat-tools{--acc:#0B7F9C;--acc2:#1FB5C9}
-.pass.pl .cat-ic{background:color-mix(in srgb,var(--acc) 12%,#fff);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9)}
-.pass.pl .cat-ic svg{color:var(--acc)}
-.pass.pl .cat-sub{color:#3E4B69}
-.pass.pl .cat-from .n{color:#0A1633}
-.pass.pl .cat-stack .ai-mono{box-shadow:0 0 0 2.5px #F2F6FF}
-.pass.pl .cat-more{color:var(--acc)}
-.pass.pl .cat-next{background:rgba(255,255,255,.66);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#0A1633}
-.pass.pl .cat-next-i{background:color-mix(in srgb,var(--acc) 12%,#fff)}
-.pass.pl .cat-next-i svg{color:var(--acc)}
-.pass.pl .cat-next > svg{color:var(--acc)}
 .pass.pl .ord-big .ai-mono.lg{box-shadow:0 8px 18px -10px rgba(10,22,51,.45)}
 .pass.pl .ord-t{color:#0A1633}
-html.perf-low .pass.pl::after,html.perf-low .pass.pl .pass-st,html.perf-low .pl-ib,html.perf-low .pass.pl .cat-next{-webkit-backdrop-filter:none;backdrop-filter:none}
+html.perf-low .pass.pl::after,html.perf-low .pass.pl .pass-st,html.perf-low .pl-ib{-webkit-backdrop-filter:none;backdrop-filter:none}
 /* ═══ کارت دارک هولوگرامی (اسلایدرهای خانه و فروشگاه) ═══
    زمینه تیره، یک لایه هولوگرام با mix-blend screen، لبه رنگین کمانی
    یک پیکسلی و رگه نور مورب. هر دسته فروشگاه طرح خودش را دارد:
@@ -298,15 +252,6 @@ html.perf-low .pass.pl::after,html.perf-low .pass.pl .pass-st,html.perf-low .pl-
 .pass.hx .pass-btn{height:38px;padding:0 16px;border-radius:14px;gap:6px;background:var(--btn);color:#0A1633;box-shadow:0 6px 18px -6px var(--btn)}
 .pass.hx .pass-btn svg{width:16px;height:16px}
 .pass.hx .pl-ib{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);color:#F3F7FF}
-.pass.hx .cat-ic{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
-.pass.hx .cat-ic svg,.pass.hx .cat-next-i svg,.pass.hx .cat-next > svg{color:var(--acc)}
-.pass.hx .cat-sub{color:var(--p2)}
-.pass.hx .cat-from{color:var(--p2)}.pass.hx .cat-from .n{color:#fff}
-.pass.hx .cat-stack .ai-mono{box-shadow:0 0 0 2px rgba(10,14,30,.9)}
-.pass.hx .cat-more{color:var(--acc)}
-.pass.hx .cat-next{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);color:#F3F7FF}
-.pass.hx .cat-next-i{background:rgba(255,255,255,.1)}
-.pass.hx .cat-next-l{color:var(--p2)}
 .pass.hx .ord-big .ai-mono.lg{box-shadow:0 0 0 3px rgba(255,255,255,.12)}
 html.perf-low .pass.hx .pass-st{-webkit-backdrop-filter:none;backdrop-filter:none}
 html.perf-low .pass.hx .pass-num{filter:none}
@@ -365,6 +310,195 @@ html.perf-low #store-box{will-change:auto}
 .tile-s{font-size:11px;display:block}
 .tile.net{background:var(--net-t);color:var(--net-i)} .tile.ai{background:var(--ai-t);color:var(--ai-i)}
 .tile:active{transform:scale(.97)}
+.tk-list{display:flex;flex-direction:column;gap:10px;padding:0 var(--pad)}
+.tk-card{display:flex;flex-direction:column;gap:8px;width:100%;padding:14px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);text-align:right;transition:transform .15s var(--ease)}
+.tk-card:active{transform:scale(.98)}
+.tk-card.unread{border-color:var(--ai-i);box-shadow:0 0 0 1px var(--ai-i) inset}
+.tkc-top{display:flex;align-items:center;gap:10px;width:100%}
+.ic.sm{width:32px;height:32px}.ic.sm svg{width:16px;height:16px}
+.tk-sub{flex-grow:1;min-width:0;font-size:14.5px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-dot{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--ai-i);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.tk-prev{font-size:12.5px;color:var(--ink-2);line-height:1.8;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tk-prev b{color:var(--ai-i);font-weight:700}
+.tk-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%}
+.tk-cat{font-size:11px;font-weight:700;color:var(--ink-3);padding:3px 8px;border-radius:8px;background:var(--sunk)}
+.tk-when{margin-inline-start:auto;font-size:11px;color:var(--ink-3)}
+.tk-head{padding:14px 16px}
+.tk-head-r{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tk-head .kv{padding:8px 0}
+.tk-tl{display:flex;flex-direction:column;gap:8px;margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)}
+.tk-ev{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);font-weight:600}
+.tk-ev i{width:22px;height:22px;border-radius:11px;background:var(--sunk);display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+.tk-ev i svg{width:12px;height:12px}
+.tk-ev small{margin-inline-start:auto;color:var(--ink-3);font-size:11px}
+.tk-close{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ok)}
+.tk-close svg{width:16px;height:16px}
+.tk-rate{padding:16px;display:flex;flex-direction:column;gap:10px;text-align:center}
+.tk-rate-t{font-size:14px;font-weight:800}
+.tk-stars{display:flex;justify-content:center;gap:6px;direction:ltr}
+.tk-stars button{width:40px;height:40px;color:var(--line)}
+.tk-stars button svg{width:30px;height:30px}
+.tk-stars button.on{color:#F5B301}
+.tk-stars button.on svg{fill:currentColor}
+.tk-rated{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;font-size:13px;color:var(--ink-2)}
+.tk-rated svg{width:16px;height:16px;color:#F5B301;fill:currentColor}
+.tk-cats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 var(--pad)}
+.tk-catb{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line);font-size:11.5px;font-weight:700;color:var(--ink-2);line-height:1.5;text-align:center}
+.tk-catb svg{width:20px;height:20px;color:var(--ink-3)}
+.tk-catb.on{border-color:var(--brand);background:var(--net-t);color:var(--ink)}
+.tk-catb.on svg{color:var(--brand)}
+.tk-input{width:100%;height:46px;border:0;outline:0;background:none;font:inherit;font-size:14.5px;color:var(--ink)}
+.tk-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 var(--pad);padding:4px;border-radius:var(--r-md);background:var(--sunk)}
+.tk-seg button{height:38px;border-radius:10px;font-size:13px;font-weight:700;color:var(--ink-2)}
+.tk-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(10,22,51,.12)}
+.tk-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.tk-attach{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--brand);cursor:pointer}
+.tk-attach svg,.reply-att svg{width:18px;height:18px}
+.tk-attach.has,.reply-att.has{color:var(--ok)}
+.reply-att{width:48px;height:48px;flex-shrink:0;border-radius:24px;display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);cursor:pointer}
+.bubble-photo.ok{padding:0;background:none;overflow:hidden}
+.bubble-photo img{display:block;max-width:100%;max-height:260px;border-radius:12px}
+.sp-hero{padding:18px;border-radius:var(--r-xl);color:#fff;background:linear-gradient(135deg,#1C3FA8,#0A1633);box-shadow:0 14px 30px -14px rgba(10,22,51,.6)}
+.sp-hero-t{font-size:20px;font-weight:800}
+.sp-hero-s{font-size:12.5px;line-height:1.9;opacity:.85;margin-top:6px}
+.sp-hero-b{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.sp-hero-b .btn{height:44px;font-size:14px}
+.sp-hero-b .btn-s{background:rgba(255,255,255,.14);color:#fff;border:0}
+/* مرکز راهنما: کارت هر حوزه و سوال/جواب آکاردئونی */
+.hc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 var(--pad)}
+.hc-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;min-height:118px;border-radius:var(--r-lg);
+  background:var(--surface);border:1px solid var(--line);text-align:right;transition:transform .15s var(--ease)}
+.hc-card:active{transform:scale(.97)}
+.hc-card .ic{width:38px;height:38px}
+.hc-t{font-size:14px;font-weight:800;color:var(--ink);line-height:1.5}
+.hc-s{font-size:11px;color:var(--ink-3);line-height:1.6}
+.hc-n{position:absolute;top:12px;left:12px;font-size:11px;font-weight:700;color:var(--ink-3)}
+.hc-card.wide{grid-column:1/-1;min-height:0;flex-direction:row;align-items:center}
+.hc-search{display:flex;align-items:center;gap:8px;margin:0 var(--pad) 14px;height:46px;padding:0 14px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line)}
+.hc-search svg{width:18px;height:18px;color:var(--ink-3);flex-shrink:0}
+.hc-search input{flex-grow:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:14px;color:var(--ink)}
+.faq-i{border-bottom:1px solid var(--line)}
+.faq-i:last-child{border-bottom:0}
+.faq-q{display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;text-align:right;font-size:14px;font-weight:700;color:var(--ink);line-height:1.7}
+.faq-q span{flex-grow:1}
+.faq-q svg{width:16px;height:16px;flex-shrink:0;color:var(--ink-3);transition:transform .2s var(--ease)}
+.faq-i.on .faq-q svg{transform:rotate(180deg)}
+.faq-a{display:none;padding:0 16px 16px;font-size:13px;color:var(--ink-2);line-height:2}
+.faq-i.on .faq-a{display:block}
+.faq-dom{font-size:11px;color:var(--ink-3);font-weight:600;padding:12px 16px 0}
+/* ═══ فروشگاه ═══
+   بالا: جستجو و موجودی. بعد ریل بخش ها (اینترنت آزاد، هوش مصنوعی، ...،
+   شماره مجازی و ویزا کارت پیش نمایش)، کارت معرفی بخش فعال و محتوایش. */
+.sh-top{display:flex;gap:8px;align-items:center;padding:0 var(--pad);margin-bottom:12px}
+.sh-search{flex-grow:1;min-width:0;display:flex;align-items:center;gap:8px;height:46px;padding:0 14px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line)}
+.sh-search svg{width:18px;height:18px;color:var(--ink-3);flex-shrink:0}
+.sh-search input{flex-grow:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:14px;color:var(--ink)}
+.sh-bal{height:46px;display:flex;align-items:center;gap:6px;padding:0 12px;border-radius:var(--r-md);background:var(--cash-t);color:var(--cash-i);font-size:13.5px;font-weight:800;flex-shrink:0;max-width:46%}
+.sh-bal svg{width:18px;height:18px;flex-shrink:0}
+.sh-bal .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dept{display:flex;gap:8px;overflow-x:auto;padding:2px var(--pad) 6px;scrollbar-width:none;scroll-padding:0 var(--pad)}
+.dept::-webkit-scrollbar{display:none}
+.dept-b{position:relative;flex:0 0 auto;width:82px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 9px;border-radius:var(--r-lg);
+  background:var(--surface);border:1.5px solid var(--line);transition:transform .15s var(--ease),border-color .2s,background .2s}
+.dept-b:active{transform:scale(.95)}
+.dept-b .ic{width:42px;height:42px;border-radius:14px}
+.dept-b .ic svg{width:21px;height:21px}
+.dept-t{font-size:11.5px;font-weight:800;color:var(--ink);line-height:1.35;text-align:center}
+.dept-s{font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+.dept-b.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 8%,var(--surface))}
+.dept-b.on .dept-t{color:var(--brand)}
+.dept-pv{position:absolute;top:7px;inset-inline-end:7px;width:7px;height:7px;border-radius:50%;background:var(--ai);box-shadow:0 0 0 2px var(--surface)}
+.ic.number{background:#FBE1EE;color:#9B1F5E} .ic.visa{background:#1E2230;color:#E9C77B}
+.dh{position:relative;overflow:hidden;margin:10px var(--pad) 0;padding:16px 16px 14px;border-radius:var(--r-xl);color:#fff;box-shadow:var(--shadow-pass);
+  background:radial-gradient(120% 90% at 100% 0%,#1D3F9E 0%,var(--navy) 55%,var(--deep) 100%)}
+.dh-ai{background:radial-gradient(120% 90% at 100% 0%,#6A55E0 0%,var(--indigo) 52%,#241A6E 100%)}
+.dh-work{background:radial-gradient(120% 90% at 100% 0%,#3B7BFF 0%,#1D4FB8 52%,var(--deep) 100%)}
+.dh-fun{background:radial-gradient(120% 90% at 100% 0%,#E0573E 0%,var(--ember) 55%,#4A1E0B 100%)}
+.dh-tools{background:radial-gradient(120% 90% at 100% 0%,#1497B3 0%,var(--ocean) 55%,#063645 100%)}
+.dh-number{background:radial-gradient(120% 90% at 100% 0%,#D9488F 0%,#8E1F5A 55%,#3A0C25 100%)}
+.dh-art{position:absolute;inset-inline-end:-14px;bottom:-26px;width:120px;height:120px;opacity:.13;pointer-events:none}
+.dh-art svg{width:100%;height:100%}
+.dh-t{font-size:18px;font-weight:900;line-height:1.4}
+.dh-s{font-size:12.5px;color:rgba(255,255,255,.82);margin-top:3px;line-height:1.8;max-width:88%}
+.dh-from{display:inline-block;margin-top:8px;font-size:12px;color:rgba(255,255,255,.8)}
+.dh-from .n{font-size:16px;font-weight:900;color:#fff}
+.dh-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.dh-chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:99px;background:rgba(255,255,255,.14);font-size:11px;font-weight:700}
+.dh-chip svg{width:13px;height:13px}
+.soon{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 var(--pad)}
+.soon.one{grid-template-columns:1fr}
+.soon-c{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-height:132px;padding:14px;border-radius:var(--r-lg);color:#fff;text-align:start;transition:transform .15s var(--ease)}
+.soon-c:active{transform:scale(.97)}
+.soon-c.num{background:linear-gradient(150deg,#D9488F,#5A1240)}
+.soon-c.visa{background:linear-gradient(150deg,#2E3344,#0B0C11)}
+.soon-c > svg{position:absolute;inset-inline-end:-10px;bottom:-14px;width:84px;height:84px;opacity:.16}
+.soon-tag{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.18)}
+.soon-c.visa .soon-tag{background:rgba(233,199,123,.2);color:#F3D99B}
+.soon-t{font-size:15px;font-weight:900;margin-top:auto}
+.soon-s{font-size:11.5px;color:rgba(255,255,255,.78);line-height:1.7}
+.tile.num{background:#FBE1EE;color:#9B1F5E} .tile.visa{background:#1E2230;color:#E9C77B}
+.tile.visa .tile-s{color:#C9B48A}
+.tiles > :last-child:nth-child(odd){grid-column:1/-1;height:auto;min-height:72px;flex-direction:row;align-items:center;justify-content:flex-start;gap:14px}
+/* «خبرم کن» */
+.wl{display:flex;align-items:center;gap:12px;padding:14px}
+.wl-m{flex-grow:1;min-width:0}
+.wl-t{font-size:14px;font-weight:800;color:var(--ink)}
+.wl-s{font-size:11.5px;color:var(--ink-3);margin-top:2px;line-height:1.7}
+/* شماره مجازی */
+.nm-svc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 var(--pad)}
+.nm-s{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:var(--r-md);background:var(--surface);border:1.5px solid var(--line);font-size:12px;font-weight:700;color:var(--ink-2);transition:border-color .2s,background .2s}
+.nm-s svg{width:20px;height:20px}
+.nm-s.on{border-color:#C2408A;background:color-mix(in srgb,#C2408A 8%,var(--surface));color:#9B1F5E}
+.nm-ks{margin:10px var(--pad) 0;font-size:12px;color:var(--ink-3);line-height:1.8}
+.nm-flag{width:40px;height:40px;border-radius:var(--r-md);background:var(--sunk);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.nm-row{cursor:default}
+.nm-p{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;font-size:13px;color:var(--ink)}
+.nm-p small{font-size:11px;color:var(--ink-3);font-weight:600}
+.nm-p span{font-size:10.5px;color:var(--ink-3)}
+/* ویزا کارت */
+.vc-wrap{perspective:900px;margin-bottom:16px}
+.vcard{position:relative;overflow:hidden;aspect-ratio:1.586;border-radius:20px;padding:18px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;
+  box-shadow:0 22px 40px -20px rgba(7,9,31,.8);transition:background .4s;background:radial-gradient(120% 120% at 100% 0%,#3D52FF 0%,#1A1F6E 48%,#07091F 100%)}
+.vcard.t-lite{background:radial-gradient(120% 120% at 100% 0%,#1497B3 0%,#0B4F63 50%,#031C24 100%)}
+.vcard.t-pro{background:radial-gradient(120% 120% at 100% 0%,#4A4436 0%,#1C1A16 50%,#070706 100%)}
+.vc-holo{position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.14) 45%,transparent 60%);pointer-events:none}
+.vc-h{display:flex;align-items:center;justify-content:space-between;gap:8px;direction:ltr}
+.vc-o{font-weight:900;letter-spacing:3px;font-size:15px}
+.vc-k{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.16);direction:rtl}
+.vc-chip{width:42px;height:31px;border-radius:7px;background:linear-gradient(135deg,#F1D58E,#B8893A);box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.vc-num{direction:ltr;text-align:left;font:700 19px/1 ui-monospace,'SF Mono',Menlo,Consolas,monospace;letter-spacing:1px;white-space:nowrap}
+.vc-f{display:flex;align-items:flex-end;justify-content:space-between;direction:ltr;gap:8px}
+.vc-hold{font-size:12px;font-weight:700;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.vc-hold small{display:block;font-size:9px;opacity:.65;letter-spacing:1px;font-weight:600}
+.vc-brand{font-style:italic;font-weight:900;font-size:24px;letter-spacing:1px;flex-shrink:0}
+.vp-list{display:flex;flex-direction:column;gap:10px;padding:0 var(--pad)}
+.vp{position:relative;display:block;width:100%;text-align:start;padding:14px;border-radius:var(--r-lg);background:var(--surface);border:1.5px solid var(--line);transition:border-color .2s,background .2s}
+.vp.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 6%,var(--surface))}
+.vp-h{display:flex;align-items:center;gap:8px}
+.vp-t{font-size:14.5px;font-weight:800;color:var(--ink);flex-grow:1;min-width:0}
+.vp-r{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.vp.on .vp-r{border-color:var(--brand);background:var(--brand);color:#fff}
+.vp:not(.on) .vp-r svg{opacity:0}
+.vp-r svg{width:12px;height:12px}
+.vp-s{font-size:12px;color:var(--ink-3);margin-top:4px;line-height:1.8}
+.vp-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}
+.vp-g div{padding:8px 10px;border-radius:10px;background:var(--sunk);font-size:11px;color:var(--ink-3);line-height:1.6}
+.vp-g b{display:block;font-size:13px;color:var(--ink)}
+.vc-works{display:flex;flex-wrap:wrap;gap:6px}
+.vc-works span{height:30px;display:inline-flex;align-items:center;padding:0 12px;border-radius:99px;background:var(--surface);border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--ink-2)}
+.rl-sum{position:relative;max-height:300px;overflow:hidden}
+.rl-sum.open{max-height:none}
+.rl-more{position:absolute;inset:auto 0 0 0;height:84px;display:flex;align-items:flex-end;justify-content:center;gap:6px;padding-bottom:14px;
+  background:linear-gradient(to bottom,transparent,var(--surface) 62%);font-size:13px;font-weight:800;color:var(--brand)}
+.rl-more svg{width:16px;height:16px}
+.tr-i .faq-q{padding-block:12px}
+.tr-h{display:flex;align-items:center;gap:10px;min-width:0;text-align:start}
+.tr-h .ic{flex-shrink:0;flex-grow:0}
+.faq-i.on .tr-h svg{transform:none}
+.tr-ol{margin:0;padding-inline-start:18px;display:flex;flex-direction:column;gap:8px}
+.tr-ol li{line-height:1.95}
+.pv-banner{display:flex;gap:10px;align-items:flex-start;margin:0 var(--pad) 14px;padding:12px 14px;border-radius:var(--r-md);background:var(--ai-t);color:var(--ai-i);font-size:12.5px;line-height:1.9}
+.pv-banner svg{width:18px;height:18px;flex-shrink:0;margin-top:3px}
 /* کارت بازی: شب نئونی خود بازی، ماشین بیرون زده از لبه */
 .gcard{position:relative;height:150px;border-radius:var(--r-xl);overflow:hidden;cursor:pointer;color:#F2F5FF;
   background:radial-gradient(120% 140% at 0% 100%,#1B2A6B 0%,rgba(27,42,107,0) 55%),linear-gradient(135deg,#0B1030,#05070F 70%);
@@ -1158,7 +1292,7 @@ const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : 
    متن هایی که از سرور می آیند (خطاها، راهنما، لوکیشن ها) را خود سرور به
    زبان کاربر می فرستد؛ نام پلن ها و متن قوانین را ادمین نوشته و ترجمه
    نمی شوند. */
-const L10N = {"en":{") شناسه توست و رسیدت با آن شناخته میشود. رندش نکن.":") identify you and that's how your receipt is recognised. Don't round it.","سه رقم آخر (":"The last three digits (","از اپ بانکت همین مبلغ را به کارت بالا بزن، ظرف":"In your bank app, send this exact amount to the card above, within","دقیقه.":"minutes.","از اپ بانکت همین مبلغ را به کارت بالا بزن.":"In your bank app, send this exact amount to the card above.","{n} روز اخیر":"Last {n} days","روز اخیر":"days","نمودار مصرف {n} روز اخیر":"Usage chart for the last {n} days","{n} پلن":"{n} plans","{n} کانفیگ":"{n} configs","موجود: {n}":"In stock: {n}","موجود:":"In stock:","QR ساخته نشد":"Couldn't make the QR","ساخت QR نشد":"Couldn't make the QR","[تصویر]":"[image]","تصویر — در ربات ببین":"Image — view it in the bot","· شناسه":"· ID","آخرین پاداشها":"Latest rewards","اتصال":"Connect","اتصال سریع":"Quick connect","ادامه و دیدن شماره کارت":"Continue to the card number","ارتباط برقرار نشد.":"Couldn't connect.","ارسال":"Send","ارسال به پشتیبانی":"Send to support","ارسال رسید":"Send receipt","از هر خرید همسفرهایت":"From every purchase your fellow travellers make,","به کیف پولت اضافه میشود.":"goes to your wallet.","اسکرینشات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.":"Choose the bank receipt screenshot above and tap «Send receipt».","اسکرینشات یا عکس رسید بانکی":"A screenshot or photo of the bank receipt","اسکن کن":"Scan it","اشتراک AI":"AI subscriptions","اشتراک با دوستان در تلگرام":"Share with friends on Telegram","اشتراک سرویسهای AI":"AI service subscriptions","اضافه شد":"added","افزودن به صفحه اصلی":"Add to home screen","افزودن خودکار اشتراک":"Adds the subscription automatically","اندروید":"Android","انقضا":"Expiry","انگلیس":"UK","اول در ربات ثبت نام کن":"Sign up in the bot first","اول قوانین را بخوان و بپذیر":"Read and accept the rules first","اولین شارژ یا خریدت اینجا ثبت میشود.":"Your first top-up or purchase will show up here.","اولین کارت عبورت":"Your first Obour pass","اگر مشکلی داری، همین جا بپرس.":"If something's wrong, ask right here.","اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمیشود و تاییدش طول میکشد.":"If you pay less or more, your receipt isn't recognised automatically and approval takes longer.","این بخش فعلا خاموش است":"This section is off for now","این فایل عکس نیست":"This file isn't an image","این نسخه تلگرام پشتیبانی نمیکند":"This Telegram version doesn't support it","این گفتگو بسته شده است":"This conversation is closed","اینترنت آزاد":"Free internet","اینترنت آزاد ·":"Free internet ·","با عبور، اینترنت آزاد":"Free internet with Obour","با هر خریدی همه این لوکیشنها رو یکجا میگیری؛ لازم نیست جدا بخری.":"Every purchase gives you all these locations at once; no need to buy them separately.","باز":"Open","باز نشد":"It didn't open","باز هم وصل نشد؟ بپرس":"Still not connecting? Ask us","بانک":"Bank","بدون پاسخ":"No replies","برای دیدن گفتگو روی تیکت بزن":"Tap a ticket to see the conversation","برای فرستادن عکس، فعلا از ربات استفاده کن.":"To send a photo, use the bot for now.","برای نمودار دست کم دو روز آمار لازم است":"The chart needs at least two days of data","برنامهات را انتخاب کن، بقیه خودکار":"Choose your app, the rest is automatic","برنامهات را بزن":"Tap your app","برنامهات را بزن؛ اشتراک خودکار اضافه میشود.":"Tap your app; the subscription is added automatically.","برگشت":"Back","بستن":"Close","بسته":"Closed","به تیکت":"to ticket","به نام":"Card holder","بهترین ارزش":"Best value","بیشتر":"More","تاریخ":"Date","تاریخ ساخت":"Created","تایید شده":"Approved","تحویل شد":"Delivered","تلاش دوباره":"Try again","تمام شد":"Over","تمدید":"Renew","تنظیمات":"Settings","تومان":"toman","تومان ·":"toman ·","تومان · پرداخت کارت به کارت، تایید در چند دقیقه":"toman · card-to-card payment, approved in a few minutes","تومان است":"toman","تیکت":"Ticket","تیکت تازه":"New ticket","تیکت جدید":"New ticket","تیکتی نداری":"No tickets","تیکتها و راهنمای اتصال":"Tickets and connection guide","تیکتهای من":"My tickets","جزئیات":"Details","حجم تمام شد":"Data used up","حجم و مدت":"Data and duration","حجم کل":"Total data","حداقل":"Minimum","حداقل شارژ":"Minimum top-up","حساب":"Account","خانه":"Home","خرید":"Buy","خرید انجام نشد":"The purchase didn't go through","خرید سرویس":"Service purchase","خرید و تمدید":"Buy and renew","خریدار":"Buyers","خطای ارتباط":"Connection error","خوانده نشد":"Couldn't load","در انتظار":"Pending","در حال ارسال…":"Sending…","در حال رزرو مبلغ…":"Reserving the amount…","در حال ساخت…":"Creating…","در ربات /start بزن و قوانین را بپذیر، بعد برگرد.":"Send /start in the bot and accept the rules, then come back.","درآمد تو از همسفرها":"Your earnings from fellow travellers","دستگاهت را انتخاب کن":"Choose your device","دستی کپی کن":"Copy it by hand","دعوت شده":"Invited","دعوت کن، از هر خرید سهم بگیر":"Invite, earn from every purchase","دعوت کن، با هم عبور کنید":"Invite friends, travel together","دلیل":"Reason","دیدن پلنها":"See plans","راهنما هنوز تنظیم نشده":"The guide isn't set up yet","راهنمای اتصال":"Connection guide","رد شده":"Rejected","رسید انتخاب شد · برای عوض کردن بزن":"Receipt selected · tap to change","رفتن به ربات":"Go to the bot","رو به اتمام":"Running low","روز":"days","روز · تا":"days · until","روز · همه کشورها":"days · all countries","روز با عبور":"days with Obour","روز بخیر":"Good afternoon","روزانه":"Daily","روزانه، هفتگی یا ماهانه":"Daily, weekly or monthly","روی همه دستگاههات کار میکنه، بدون محدودیت تعداد دستگاه":"Works on all your devices, with no device limit","ریال":"rial","زبان":"Language","ساخته شد":"created","سرورها و لوکیشنها":"Servers & locations","سرویس":"Service","سرویس خوانده نشد":"Couldn't load the service","سرویس فعال":"active services","سرویسها خوانده نشد":"Couldn't load services","سرویسهای من":"My services","سفارش در ربات":"Order in the bot","سفارشهای من":"My orders","سه قدم تا اتصال":"Three steps to connect","سوابق خوانده نشد":"Couldn't load history","شارژ":"Top up","شارژ فعلا ممکن نیست":"Top-up isn't possible right now","شارژ و سوابق":"Top-up and history","شارژ کیف پول":"Top up wallet","شب بخیر":"Good evening","شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.":"The card number isn't set up yet. Contact support.","صبح بخیر":"Good morning","عبور · نسخه":"Obour · version","عصر بخیر":"Good evening","عضو از":"Member since","عکس رسید":"Receipt photo","عکس رسید را انتخاب کن":"Choose the receipt photo","عکس رسید را بفرست":"Send the receipt photo","فروشگاه":"Shop","فعال":"Active","فعلا محصولی برای نمایش نیست":"No products to show right now","فعلا پلنی برای فروش نیست":"No plans on sale right now","قدم 1 از 2 · مبلغ":"Step 1 of 2 · amount","قدم 2 از 2 · پرداخت و رسید":"Step 2 of 2 · payment and receipt","قدم به قدم، برای دستگاه خودت":"Step by step, for your device","قوانین":"Rules","قوانین و حریم خصوصی":"Rules and privacy","قوانین پذیرفته شد":"Rules accepted","قیمت":"Price","قیمت هر گیگ به پلن بستگی داره؛ هرچی حجم بیشتر، هر گیگ ارزونتر":"The price per GB depends on the plan; the more data, the cheaper each GB","لینک دعوت تو":"Your invite link","لینک را برای دوستانت بفرست.":"Send the link to your friends.","لینک ربات در دسترس نیست":"The bot link isn't available","ماهانه":"Monthly","مبلغ به تومان":"Amount in toman","مبلغ تازه":"New amount","مبلغ دقیق واریز":"Exact amount to pay","مبلغ را دقیقا کپی کن":"Copy the exact amount","مبلغ شارژ":"Top-up amount","متن قوانین هنوز تنظیم نشده است.":"The rules haven't been written yet.","مثل یک اپ جدا باز شود":"Opens like a separate app","محصولات خوانده نشد":"Couldn't load products","مرورگر اجازه کپی خودکار نداد. روی متن نگه دار و کپی کن:":"The browser didn't allow automatic copying. Press and hold the text to copy it:","مشکلت را بنویس؛ مثلا کدام سرویس، روی چه دستگاهی، و چه پیغامی میبینی.":"Describe the problem: which service, on what device, and what message you see.","مصرف":"Usage","مصرف شده":"Used","معمولا چند دقیقه طول میکشد. بعد از تایید، مبلغ به کیف پولت اضافه میشود و در ربات خبر میگیری.":"It usually takes a few minutes. Once approved, the amount is added to your wallet and you're notified in the bot.","منقضی":"Expired","منقضی شده":"Expired","مهلت تمام شد. اگر واریز کردهای رسید را بفرست، وگرنه مبلغ تازه بگیر.":"Time's up. If you've paid, send the receipt; otherwise get a new amount.","مهلت پرداخت":"Time to pay","موجودی بعد از خرید":"Balance after purchase","موجودی فعلی":"Current balance","موجودی کیف پول":"Wallet balance","مگ":"MB","مگ مانده":"MB left","گیگ مانده":"GB left","میانگین روزانه":"Daily average","نامحدود":"Unlimited","ناموجود":"Out of stock","ناموفق":"Failed","ناوبری":"Navigation","هر کس با این لینک بیاید، همسفر توست":"Anyone who joins with this link is your fellow traveller","هر گیگ":"per GB","هفتگی":"Weekly","همه":"All","همه توی یک لینک؛ هر کدوم رو خواستی توی اپ انتخاب کن":"All in one link; pick any of them in the app","همه کشورها":"All countries","همسفرها":"Fellow travellers","هنوز تراکنشی نیست":"No transactions yet","هنوز سرویسی نداری":"No services yet","هنوز پاداشی نگرفتهای":"No rewards yet","هنوز پذیرفته نشده":"Not accepted yet","هوش مصنوعی":"AI","وصل شو":"Connect","وضعیت":"Status","وقتی موجود شد در ربات خبر بگیر":"Get notified in the bot when it's back in stock","پاداش":"Reward","پاداش همسفر":"Referral reward","پاسخ":"replies","پاسخ داده شده":"Answered","پاسخ پشتیبانی هم اینجا و هم در ربات میرسد":"Support's reply arrives both here and in the bot","پاسخت را بنویس…":"Write your reply…","پذیرفته شده":"Accepted","پذیرفته شده ·":"Accepted ·","پرداخت از کیف پول":"Pay from wallet","پرداخت از کیف پول، تحویل فوری":"Pay from your wallet, instant delivery","پشتیبانی":"Support","پشتیبانی و راهنما":"Support and guide","پلن":"Plan","پلن را انتخاب کن":"Choose a plan","پلنها خوانده نشد":"Couldn't load plans","پنل جواب نداد؛ عدد از آخرین آمار روزانه است":"The server didn't respond; the figure is from the last daily snapshot","پیام":"Message","پیامت را بنویس":"Write your message","پیش از خرید، یک بار بخوان و بپذیر":"Read and accept once before buying","پیشنهادی":"Recommended","چطور شارژ میشود؟":"How does the top-up work?","چه چیزی لازم داری؟":"What do you need?","کارت به کارت کن":"Pay card to card","کارت به کارت، تایید سریع":"Card to card, quick approval","کارت عبور بلافاصله ساخته میشود":"Your pass is created instantly","کارت عبورت آماده شد":"Your pass is ready","کارت مقصد":"Destination card","کارها":"Actions","کانفیگ":"configs","کانفیگ در":"configs in","کانفیگ پرسرعت، همه کشورها":"Fast configs, every country","کشور":"countries","کد پیگیری":"Tracking code","کم":"short","کپی":"Copy","کپی شد":"Copied","کپی شماره کارت":"Copy card number","کپی لینک":"Copy link","کپی مبلغ (ریال)":"Copy amount (rial)","کیف پول":"Wallet","کیف پول را شارژ کن":"Top up your wallet","کیف پولت خالی است":"Your wallet is empty","کیفت شارژ میشود":"Your wallet is topped up","گفتگو":"Conversation","گفتگو با پشتیبانی":"Chat with support","گیگ":"GB","گیگ ·":"GB ·","یا لینک را دستی اضافه کن":"Or add the link manually","یک پاسخ تازه":"One new reply","یک پاسخ تازه از پشتیبانی":"A new reply from support","یک پلن انتخاب کن؛ چند ثانیه بعد کارتت اینجا با لینک اتصال آماده است.":"Pick a plan; a few seconds later your pass is here with its connection link.","دقیقا همین مبلغ را واریز کن":"Pay exactly this amount","سه رقم آخر شناسه توست؛ با آن رسیدت شناخته میشود.":"The last three digits identify you; that's how your receipt is recognised.","رسیدت رسید":"Receipt received","برگشت به کیف پول":"Refunded to wallet","خواندم و میپذیرم":"I've read and accept","دیدن پلن ها":"See plans","تیکت جدید ·":"New ticket · ","پیامت را بنویس.":"Write your message.","سرویسها":"Services","سرویسهای من ·":"My services ·","{n} فعال":"{n} active","{n} سرویس فعال":"{n} active services","{n} پاسخ":"{n} replies","{n} پیام":"{n} messages","{n} تومان کم داری · شارژ":"{n} toman short · top up","{n} گیگ":"{n} GB","{n} روز":"{n} days","کپی مبلغ":"Copy amount","باز ·":"Open ·","بسته ·":"Closed ·","پاسخ داده شده ·":"Answered ·","اولین خرید":"First purchase","ماهانه {n} گیگ":"Monthly {n} GB","هفتگی {n} گیگ":"Weekly {n} GB","روزانه {n} گیگ":"Daily {n} GB","ماهانه نامحدود":"Monthly unlimited","{n} ماهه {n} گیگ":"{n}-month {n} GB","{n} روزه {n} گیگ":"{n}-day {n} GB","{n} ماهه":"{n} months","{n} روزه":"{n} days","{n} گیگ {n} روزه":"{n} GB {n} days","{n} گیگ {n} ماهه":"{n} GB {n} months","سرویس اصلی":"Main service","یک ماه":"one month","· یک ماه":"· one month","کارت به کارت":"Card to card","کارت بانکی ایران":"Iranian bank card","کیف پول کریپتو":"Crypto wallet","کریپتو · TON / USDT":"Crypto · TON / USDT","حالت تست (testnet)":"Test mode (testnet)","تومان · تایید خودکار، بدون رسید":"toman · automatic approval, no receipt","با چه ارزی؟":"Which currency?","Tether · شبکه TON":"Tether · TON network","کیف پول وصل است":"Wallet connected","کیف پولی وصل نیست":"No wallet connected","Tonkeeper، Telegram Wallet، MyTonWallet و…":"Tonkeeper, Telegram Wallet, MyTonWallet…","قطع":"Disconnect","پرداخت":"Pay","پرداخت {n} TON":"Pay {n} TON","پرداخت {n} USDT":"Pay {n} USDT","در حال ساخت فاکتور…":"Creating the invoice…","TON Connect بار نشد":"TON Connect didn't load","اتصال کیف پول نشد":"Couldn't connect the wallet","پرداخت کریپتو":"Crypto payment","فاکتور":"Invoice","مبلغ دقیق":"Exact amount","تومان · testnet":"toman · testnet","منتظر پرداختت هستیم. بعد از پرداخت، کیف پولت خودکار شارژ میشود.":"Waiting for your payment. Once you pay, your wallet is topped up automatically.","پرداخت دستی":"Pay manually","آدرس":"Address","مبلغ":"Amount","کامنت":"Comment","کپی آدرس":"Copy address","کپی کامنت":"Copy comment","فقط روی شبکه TON بفرست و کامنت را حتما بنویس؛ بدون کامنت یا با مبلغ کمتر، شارژ خودکار انجام نمیشود.":"Send only on the TON network and always include the comment; without it, or with a lower amount, the top-up won't be automatic.","برای کارمزد شبکه حدود {n} TON هم در کیف پولت لازم است.":"You'll also need about {n} TON in your wallet for the network fee.","پرداخت با کیف پول":"Pay with wallet","باز کردن در Tonkeeper":"Open in Tonkeeper","انصراف و مبلغ تازه":"Cancel and start over","تراکنش فرستاده شد. منتظر تایید شبکهایم؛ معمولا کمتر از یک دقیقه.":"Transaction sent. Waiting for network confirmation; usually under a minute.","پرداخت را در کیف پول رد کردی":"You declined the payment in your wallet","پرداخت انجام نشد":"The payment didn't go through","کیف پولت شارژ شد":"Your wallet is topped up","موجودی:":"Balance:","مبلغ کمتر از فاکتور بود":"The amount was lower than the invoice","رسیده:":"Received:","لازم:":"Required:","کیف پولت خودکار شارژ نشد؛ پشتیبانی بررسی میکند.":"Your wallet wasn't topped up automatically; support will review it.","پرداخت کریپتو فعلا فعال نیست":"Crypto payment isn't available right now","از کارت به کارت استفاده کن یا بعدا سر بزن.":"Use a card transfer or check back later.","نرخ ارزها هنوز تنظیم نشده":"Exchange rates aren't set yet","کمی بعد دوباره امتحان کن یا از کارت به کارت استفاده کن.":"Try again a bit later or use a card transfer.","مهلت تمام شد. اگر پرداخت کردهای صبر کن، خودکار شناخته میشود؛ وگرنه فاکتور تازه بگیر.":"Time's up. If you've paid, just wait, it's recognised automatically; otherwise get a new invoice.","فاکتور تازه":"New invoice","TON / USDT یا Telegram Stars":"TON / USDT or Telegram Stars","ستاره تلگرام":"Telegram stars","روش پرداختی تنظیم نشده. با پشتیبانی تماس بگیر.":"No payment method is set up. Contact support.","شارژ با Stars فعلا فعال نیست":"Topping up with Stars isn't available right now","کمی بعد دوباره امتحان کن.":"Try again a bit later.","تومان · هر ستاره":"toman · 1 star =","پرداخت در خود تلگرام":"Pay inside Telegram","صفحه پرداخت تلگرام باز میشود؛ اگر ستاره نداری، همانجا میتوانی بخری.":"Telegram's payment screen opens; if you don't have stars, you can buy them right there.","شارژ فوری":"Instant top-up","بلافاصله بعد از پرداخت، مبلغ به کیف پولت اضافه میشود.":"The amount is added to your wallet right after you pay.","در حال شارژ کیف پول…":"Topping up your wallet…","پرداختت رسید":"Your payment arrived","شارژ کیف پول چند لحظه دیگر انجام میشود و در ربات خبرت میکنیم.":"Your wallet will be topped up in a moment and we'll let you know in the bot.","+{n} تومان ·":"+{n} toman ·","بساز به سلیقه خودت":"Build your own","حجم و مدت دلخواه؛ قیمت همان لحظه":"Your own data and duration; instant price","حجم و مدت را خودت انتخاب کن":"Choose the data and duration yourself","سرویس تو":"Your service","تومان همه کشورها · بدون محدودیت دستگاه":"toman All countries · no device limit","همه کشورها · بدون محدودیت دستگاه":"All countries · no device limit","حجم":"Data","مدت":"Duration","هرچی حجم بیشتر، هر گیگ ارزونتر · قیمت مدتهای طولانی کمی بیشتره":"The more data, the cheaper each GB · longer durations cost a little more","سرویس دلخواه":"Custom service","{n} کم · شارژ":"{n} short · top up","کم · شارژ":"short · top up","سرویس {n}":"Service {n}","فعال و آماده استفاده":"Active and ready to use","همه چیز روبهراه است. هر وقت خواستی وصل شوی، برنامه را باز کن و Connect را بزن.":"Everything's fine. Whenever you want to connect, open the app and tap Connect.","سرویس آماده است؛ هنوز وصل نشدی":"Your service is ready; you haven't connected yet","سه قدم ساده پایین همین صفحه را انجام بده؛ کمتر از یک دقیقه طول میکشد.":"Follow the three simple steps below; it takes less than a minute.","سرویس رو به اتمام است":"Your service is running out","فقط {n} روز مانده. قبل از تمام شدن تمدید کن تا اتصالت قطع نشود.":"Only {n} days left. Renew before it ends so you don't get cut off.","حجم کمی مانده. قبل از تمام شدن تمدید کن تا اتصالت قطع نشود.":"Only a little data left. Renew before it runs out so you don't get cut off.","سرویس منقضی شده":"Your service has expired","اتصال قطع است. با تمدید، همین لینک دوباره کار میکند و لازم نیست چیزی را از نو تنظیم کنی.":"You're disconnected. Renew and this same link works again; nothing to set up from scratch.","حجم سرویس تمام شده":"Your data has run out","اتصال قطع است. با تمدید، حجم تازه روی همین لینک اضافه میشود.":"You're disconnected. Renew and fresh data is added to this same link.","تمدید همین سرویس ·":"Renew ·","تمدید همین سرویس":"Renew this service","خرید سرویس تازه":"Buy a new service","راهاندازی اتصال":"Set up the connection","پنل جواب نداد؛ عددها از آخرین آمار روزانه است":"The server didn't respond; figures are from the last daily snapshot","حجم باقیمانده":"Data left","روز باقیمانده":"Days left","از":"from","تا":"until","میانگین مصرف روزانه":"Daily average use","با این مصرف، حجمت تا آخر مدت کافی است.":"At this rate, your data will last until the end.","با این مصرف، حجمت حدود {n} روز دیگر تمام میشود.":"At this rate, your data runs out in about {n} days.","اتصال در ۳ قدم":"Connect in 3 steps","یک برنامه نصب کن":"Install an app","پیشنهاد ما برای":"Our pick for","اگر از قبل یکی از اینها را داری، همان کافی است.":"If you already have one of these, that's enough.","اشتراک را اضافه کن":"Add the subscription","دکمه زیر برنامه را باز میکند و اشتراکت خودکار اضافه میشود.":"The button below opens the app and adds your subscription automatically.","افزودن به":"Add to","کار نکرد؟ لینک را کپی کن و در برنامه «افزودن از کلیپبورد» (Import from clipboard) را بزن.":"Didn't work? Copy the link and choose Import from clipboard in the app.","کپی لینک اشتراک":"Copy subscription link","QR برای دستگاه دیگر":"QR for another device","در برنامه دکمه اتصال (Connect) را بزن. اگر کشوری کند بود یا وصل نشد، از فهرست کشور دیگری را انتخاب کن؛ همه در همین اشتراک هستند.":"Tap Connect in the app. If a country is slow or won't connect, pick another from the list; they're all in this subscription.","بعد از تمدید، حجم تازه روی همین لینک مینشیند؛ لازم نیست چیزی را دوباره تنظیم کنی.":"After renewing, fresh data lands on this same link; nothing to set up again.","مدت سرویس بعد از تمدید: {n} روز":"Duration after renewing: {n} days","({n} روز باقیمانده فعلی هم حساب میشود)":"(your remaining {n} days are included)","تمدید با کیف پول":"Renew from wallet","پلن این سرویس دیگر فروخته نمیشود. برای ادامه، یک پلن تازه از فروشگاه بخر.":"This service's plan isn't sold anymore. To continue, buy a new plan from the shop.","این سرویس دلخواه یا آزمایشی است و تمدید مستقیم ندارد. برای ادامه، یک پلن تازه بخر.":"This is a custom or trial service and can't be renewed directly. To continue, buy a new plan.","مشخصات سرویس":"Service details","نام سرویس":"Service name","نام کاربری":"Username","تاریخ خرید":"Purchased","تاریخ انقضا":"Expires","کشورها":"Countries","تعداد دستگاه":"Devices","بدون محدودیت":"Unlimited","کمک":"Help","راهنمای کامل اتصال":"Full connection guide","تصویری و قدم به قدم برای هر دستگاه":"Step by step for every device","وصل نمیشوم":"I can't connect","به پشتیبانی بگو؛ همینجا جواب میگیری":"Tell support; you'll get the answer right here","لینک اشتراک مخصوص توست؛ آن را با کسی به اشتراک نگذار.":"Your subscription link is personal; don't share it with anyone.","{n} کانفیگ در {n} کشور":"{n} configs in {n} countries","{n} گیگ · {n} روز":"{n} GB · {n} days","موجودی بعد از تمدید":"Balance after renewing","تمدید و پرداخت":"Renew and pay","در حال تمدید…":"Renewing…","تمدید شد؛ همین لینک دوباره کار میکند":"Renewed; this same link works again","تمدید نشد":"Couldn't renew","{n} تومان کم داری؛ اول کیف پول را شارژ کن":"You're {n} toman short; top up your wallet first","مدیریت":"Admin","پنل مدیریت":"Admin panel","رسیدها، کاربران، پلنها و تنظیمات":"Receipts, users, plans and settings","تحویل فوری نام کاربری و رمز":"Instant username and password","فعالسازی روی ایمیل خودت":"Activated on your own email","ارتقای اکانت خودت":"Upgrade of your own account","موجود":"In stock","در انتظار فروشنده":"Waiting for the seller","در حال بررسی":"Under review","کد پیگیری رسید":"Receipt tracking code","کد پیگیری یا شماره مرجع (فقط عدد)":"Tracking or reference number (digits only)","روی رسید بانکت نوشته شده؛ رسیدت با همین کد بررسی میشود.":"It's printed on your bank receipt; your receipt is checked with this code.","عکس و کد پیگیری رسید را بفرست":"Send the receipt photo and tracking code","اسکرینشات رسید بانکی را انتخاب کن، کد پیگیریاش را بنویس و «ارسال رسید» را بزن.":"Choose the bank receipt screenshot, enter its tracking code and tap «Send receipt».","در حال ارسال و بررسی…":"Sending and checking…","کد پیگیری رسید را بنویس (فقط عدد)":"Enter the receipt's tracking code (digits only)","رسید تایید نشد":"Receipt not approved","رسید تکراری":"Duplicate receipt","رسید با فاکتور نمیخواند؛ دلیلش در ربات برایت فرستاده شد. اگر اشتباه شده، به پشتیبانی بگو.":"The receipt doesn't match the invoice; the reason was sent to you in the bot. If this is a mistake, tell support.","این رسید قبلا ثبت شده است. اگر اشتباه شده، به پشتیبانی بگو.":"This receipt was already used. If this is a mistake, tell support.","هیچ کانفیگی وصل نمیشود":"None of the configs connect","وصل میشود ولی سرعت کم است":"It connects but it's slow","لینک را چطور در اپ وارد کنم؟":"How do I add the link to the app?","حجم و اعتبار من چقدر مانده؟":"How much data and time do I have left?","کدام پلن برایم بهتر است؟":"Which plan is best for me?","چطور روی آیفون وصل شوم؟":"How do I connect on iPhone?","دستیار عبور":"Obour assistant","عیبیابی اتصال":"Connection troubleshooting","دستیار هوشمند":"Smart assistant","هوش مصنوعی · حساب و سرویسهایت را میبیند":"AI · sees your account and services","مشکل اتصال را با هم حل کنیم":"Let's fix your connection together","سلام! چطور کمکت کنم؟":"Hi! How can I help?","بگو چه اتفاقی میافتد؛ اگر اپ خطا میدهد، از همان صفحه اسکرینشات بفرست. نوع دستگاهت را هم بگو.":"Tell me what happens; if the app shows an error, send a screenshot of that screen. Also mention your device.","درباره سرویس، حجم، اتصال یا خرید بپرس. اگر کارت راه نیفتاد، با یک دکمه گفتگو برای پشتیبانی فرستاده میشود.":"Ask about your service, data, connection or purchases. If it doesn't solve it, one tap sends the chat to support.","سوالت را بنویس…":"Write your question…","جواب نگرفتم؛ ارسال به پشتیبانی":"Didn't help — send to support","عکس پیوست شد":"Image attached","دستیار الان جواب نداد":"The assistant didn't answer","این گفتگو برای پشتیبانی فرستاده شود؟":"Send this conversation to support?","برای پشتیبانی فرستاده شد":"Sent to support","پلن مناسب من چیه؟":"Which plan suits me?","از روی مصرف واقعیات، بهترین پلن تمدید را پیشنهاد میدهم.":"Based on your real usage, I'll suggest the best plan to renew with.","پیشنهاد بده":"Suggest","در حال بررسی مصرفت…":"Checking your usage…","پیشنهاد هوشمند":"Smart suggestion","دوباره بسنج":"Re-check","دنبال چی هستی؟ بنویس، پیدا می‌کنم":"What are you looking for? e.g. «a cheap AI for writing»","دارم میگردم…":"Searching…","پیشنهاد من":"My picks","چیزی که دقیقا به نیازت بخورد پیدا نکردم.":"I couldn't find an exact match.","همین الان جواب بگیر؛ حتی با اسکرینشات":"Get answers now — even from a screenshot","پشتیبانی فوری با هوش مصنوعی":"Instant AI support","اول از دستیار هوشمند بپرس":"Ask the smart assistant first","جواب فوری؛ اگر نشد، با یک دکمه تیکت میشود":"Instant answers; if not, one tap makes it a ticket","با اسکرینشات خطا، قدم به قدم":"Step by step, with an error screenshot","عیبیابی فوری با دستیار هوشمند، حتی با اسکرینشات":"Instant troubleshooting with the smart assistant, even from a screenshot","قیمت تون به تتر × نرخ تتر بازار. ":"TON price in USDT × market USDT rate. ","کیف پول‌های متصل":"Connected wallets","اتصال کیف پول TON":"Connect a TON wallet","متصل":"Connected","شارژ با این کیف پول":"Top up with this wallet","قطع اتصال":"Disconnect","اتصال کیف پول قطع شد":"Wallet disconnected","روش پرداخت":"Payment method","مشاهده تراکنش در tonviewer":"View transaction on tonviewer","خرید هوش مصنوعی":"AI purchase","برگشت وجه":"Refund","تغییر توسط پشتیبانی":"Changed by support","موجودی کیف پول عبور":"Obour wallet balance","TON · کیف پول کریپتو":"TON · crypto wallet","USDT · کیف پول کریپتو":"USDT · crypto wallet","مبلغ پرداختی":"Amount paid","کیف پول پرداخت‌کننده":"Paying wallet","تراکنش شبکه":"Network transaction","تعداد ستاره":"Stars","نرخ عبور":"Obour rate","قیمت بازار":"Market price","نرخ لحظه ساخت فاکتور قفل می‌شود.":"The rate is locked when the invoice is created.","نرخ تعیین‌شده عبور":"Rate set by Obour","نرخ بازار (tgju.org)":"Market rates (tgju.org)","نرخ خودکار":"Automatic rates","تون کوین":"Toncoin","شارژ با":"Top up with","پرفروش این دسته":"Best seller here","پیشنهاد ویژه":"Featured","خرید موفق":"successful purchases","تحویل در لحظه":"Delivered instantly","فقط":"Only","عدد":"left","آماده اتصال":"Ready to connect","همه کشورها، یک لینک":"All countries, one link","تا تاریخ":"Until","منقضی شده ·":"Expired ·","آزمایشی":"Beta","عبور ریسر":"Obour Racer","لایی بکش، رکورد بزن":"Weave through traffic, set records","بازی کن":"Play","بهزودی با بازی کردن میتوانی کانفیگ اینترنت آزاد دریافت کنی.":"Soon you will be able to earn free internet configs by playing."}};
+const L10N = {"en":{") شناسه توست و رسیدت با آن شناخته میشود. رندش نکن.":") identify you and that's how your receipt is recognised. Don't round it.","سه رقم آخر (":"The last three digits (","از اپ بانکت همین مبلغ را به کارت بالا بزن، ظرف":"In your bank app, send this exact amount to the card above, within","دقیقه.":"minutes.","از اپ بانکت همین مبلغ را به کارت بالا بزن.":"In your bank app, send this exact amount to the card above.","{n} روز اخیر":"Last {n} days","روز اخیر":"days","نمودار مصرف {n} روز اخیر":"Usage chart for the last {n} days","{n} پلن":"{n} plans","{n} کانفیگ":"{n} configs","موجود: {n}":"In stock: {n}","موجود:":"In stock:","QR ساخته نشد":"Couldn't make the QR","ساخت QR نشد":"Couldn't make the QR","[تصویر]":"[image]","تصویر — در ربات ببین":"Image — view it in the bot","· شناسه":"· ID","آخرین پاداشها":"Latest rewards","اتصال":"Connect","اتصال سریع":"Quick connect","ادامه و دیدن شماره کارت":"Continue to the card number","ارتباط برقرار نشد.":"Couldn't connect.","ارسال":"Send","ارسال به پشتیبانی":"Send to support","ارسال رسید":"Send receipt","از هر خرید همسفرهایت":"From every purchase your fellow travellers make,","به کیف پولت اضافه میشود.":"goes to your wallet.","اسکرینشات رسید بانکی را همین بالا انتخاب کن و «ارسال رسید» را بزن.":"Choose the bank receipt screenshot above and tap «Send receipt».","اسکرینشات یا عکس رسید بانکی":"A screenshot or photo of the bank receipt","اسکن کن":"Scan it","اشتراک AI":"AI subscriptions","اشتراک با دوستان در تلگرام":"Share with friends on Telegram","اشتراک سرویسهای AI":"AI service subscriptions","اضافه شد":"added","افزودن به صفحه اصلی":"Add to home screen","افزودن خودکار اشتراک":"Adds the subscription automatically","اندروید":"Android","انقضا":"Expiry","انگلیس":"UK","اول در ربات ثبت نام کن":"Sign up in the bot first","اول قوانین را بخوان و بپذیر":"Read and accept the rules first","اولین شارژ یا خریدت اینجا ثبت میشود.":"Your first top-up or purchase will show up here.","اولین کارت عبورت":"Your first Obour pass","اگر مشکلی داری، همین جا بپرس.":"If something's wrong, ask right here.","اگر کمتر یا بیشتر واریز کنی، رسیدت خودکار شناخته نمیشود و تاییدش طول میکشد.":"If you pay less or more, your receipt isn't recognised automatically and approval takes longer.","این بخش فعلا خاموش است":"This section is off for now","این فایل عکس نیست":"This file isn't an image","این نسخه تلگرام پشتیبانی نمیکند":"This Telegram version doesn't support it","این گفتگو بسته شده است":"This conversation is closed","اینترنت آزاد":"Free internet","اینترنت آزاد ·":"Free internet ·","با عبور، اینترنت آزاد":"Free internet with Obour","با هر خریدی همه این لوکیشنها رو یکجا میگیری؛ لازم نیست جدا بخری.":"Every purchase gives you all these locations at once; no need to buy them separately.","باز":"Open","باز نشد":"It didn't open","باز هم وصل نشد؟ بپرس":"Still not connecting? Ask us","بانک":"Bank","بدون پاسخ":"No replies","برای دیدن گفتگو روی تیکت بزن":"Tap a ticket to see the conversation","برای فرستادن عکس، فعلا از ربات استفاده کن.":"To send a photo, use the bot for now.","برای نمودار دست کم دو روز آمار لازم است":"The chart needs at least two days of data","برنامهات را انتخاب کن، بقیه خودکار":"Choose your app, the rest is automatic","برنامهات را بزن":"Tap your app","برنامهات را بزن؛ اشتراک خودکار اضافه میشود.":"Tap your app; the subscription is added automatically.","برگشت":"Back","بستن":"Close","بسته":"Closed","به تیکت":"to ticket","به نام":"Card holder","بهترین ارزش":"Best value","بیشتر":"More","تاریخ":"Date","تاریخ ساخت":"Created","تایید شده":"Approved","تحویل شد":"Delivered","تلاش دوباره":"Try again","تمام شد":"Over","تمدید":"Renew","تنظیمات":"Settings","تومان":"toman","تومان ·":"toman ·","تومان · پرداخت کارت به کارت، تایید در چند دقیقه":"toman · card-to-card payment, approved in a few minutes","تومان است":"toman","تیکت":"Ticket","تیکت تازه":"New ticket","تیکت جدید":"New ticket","تیکتی نداری":"No tickets","تیکتها و راهنمای اتصال":"Tickets and connection guide","تیکتهای من":"My tickets","جزئیات":"Details","حجم تمام شد":"Data used up","حجم و مدت":"Data and duration","حجم کل":"Total data","حداقل":"Minimum","حداقل شارژ":"Minimum top-up","حساب":"Account","خانه":"Home","خرید":"Buy","خرید انجام نشد":"The purchase didn't go through","خرید سرویس":"Service purchase","خرید و تمدید":"Buy and renew","خریدار":"Buyers","خطای ارتباط":"Connection error","خوانده نشد":"Couldn't load","در انتظار":"Pending","در حال ارسال…":"Sending…","در حال رزرو مبلغ…":"Reserving the amount…","در حال ساخت…":"Creating…","در ربات /start بزن و قوانین را بپذیر، بعد برگرد.":"Send /start in the bot and accept the rules, then come back.","درآمد تو از همسفرها":"Your earnings from fellow travellers","دستگاهت را انتخاب کن":"Choose your device","دستی کپی کن":"Copy it by hand","دعوت شده":"Invited","دعوت کن، از هر خرید سهم بگیر":"Invite, earn from every purchase","دعوت کن، با هم عبور کنید":"Invite friends, travel together","دلیل":"Reason","دیدن پلنها":"See plans","راهنما هنوز تنظیم نشده":"The guide isn't set up yet","راهنمای اتصال":"Connection guide","رد شده":"Rejected","رسید انتخاب شد · برای عوض کردن بزن":"Receipt selected · tap to change","رفتن به ربات":"Go to the bot","رو به اتمام":"Running low","روز":"days","روز · تا":"days · until","روز · همه کشورها":"days · all countries","روز با عبور":"days with Obour","روز بخیر":"Good afternoon","روزانه":"Daily","روزانه، هفتگی یا ماهانه":"Daily, weekly or monthly","روی همه دستگاههات کار میکنه، بدون محدودیت تعداد دستگاه":"Works on all your devices, with no device limit","ریال":"rial","زبان":"Language","ساخته شد":"created","سرورها و لوکیشنها":"Servers & locations","سرویس":"Service","سرویس خوانده نشد":"Couldn't load the service","سرویس فعال":"active services","سرویسها خوانده نشد":"Couldn't load services","سرویسهای من":"My services","سفارش در ربات":"Order in the bot","سفارشهای من":"My orders","سه قدم تا اتصال":"Three steps to connect","سوابق خوانده نشد":"Couldn't load history","شارژ":"Top up","شارژ فعلا ممکن نیست":"Top-up isn't possible right now","شارژ و سوابق":"Top-up and history","شارژ کیف پول":"Top up wallet","شب بخیر":"Good evening","شماره کارت هنوز تنظیم نشده. با پشتیبانی تماس بگیر.":"The card number isn't set up yet. Contact support.","صبح بخیر":"Good morning","عبور · نسخه":"Obour · version","عصر بخیر":"Good evening","عضو از":"Member since","عکس رسید":"Receipt photo","عکس رسید را انتخاب کن":"Choose the receipt photo","عکس رسید را بفرست":"Send the receipt photo","فروشگاه":"Shop","فعال":"Active","فعلا محصولی برای نمایش نیست":"No products to show right now","فعلا پلنی برای فروش نیست":"No plans on sale right now","قدم 1 از 2 · مبلغ":"Step 1 of 2 · amount","قدم 2 از 2 · پرداخت و رسید":"Step 2 of 2 · payment and receipt","قدم به قدم، برای دستگاه خودت":"Step by step, for your device","قوانین":"Rules","قوانین و حریم خصوصی":"Rules and privacy","قوانین پذیرفته شد":"Rules accepted","قیمت":"Price","قیمت هر گیگ به پلن بستگی داره؛ هرچی حجم بیشتر، هر گیگ ارزونتر":"The price per GB depends on the plan; the more data, the cheaper each GB","لینک دعوت تو":"Your invite link","لینک را برای دوستانت بفرست.":"Send the link to your friends.","لینک ربات در دسترس نیست":"The bot link isn't available","ماهانه":"Monthly","مبلغ به تومان":"Amount in toman","مبلغ تازه":"New amount","مبلغ دقیق واریز":"Exact amount to pay","مبلغ را دقیقا کپی کن":"Copy the exact amount","مبلغ شارژ":"Top-up amount","متن قوانین هنوز تنظیم نشده است.":"The rules haven't been written yet.","مثل یک اپ جدا باز شود":"Opens like a separate app","محصولات خوانده نشد":"Couldn't load products","مرورگر اجازه کپی خودکار نداد. روی متن نگه دار و کپی کن:":"The browser didn't allow automatic copying. Press and hold the text to copy it:","مشکلت را بنویس؛ مثلا کدام سرویس، روی چه دستگاهی، و چه پیغامی میبینی.":"Describe the problem: which service, on what device, and what message you see.","مصرف":"Usage","مصرف شده":"Used","معمولا چند دقیقه طول میکشد. بعد از تایید، مبلغ به کیف پولت اضافه میشود و در ربات خبر میگیری.":"It usually takes a few minutes. Once approved, the amount is added to your wallet and you're notified in the bot.","منقضی":"Expired","منقضی شده":"Expired","مهلت تمام شد. اگر واریز کردهای رسید را بفرست، وگرنه مبلغ تازه بگیر.":"Time's up. If you've paid, send the receipt; otherwise get a new amount.","مهلت پرداخت":"Time to pay","موجودی بعد از خرید":"Balance after purchase","موجودی فعلی":"Current balance","موجودی کیف پول":"Wallet balance","مگ":"MB","مگ مانده":"MB left","گیگ مانده":"GB left","میانگین روزانه":"Daily average","نامحدود":"Unlimited","ناموجود":"Out of stock","ناموفق":"Failed","ناوبری":"Navigation","هر کس با این لینک بیاید، همسفر توست":"Anyone who joins with this link is your fellow traveller","هر گیگ":"per GB","هفتگی":"Weekly","همه":"All","همه توی یک لینک؛ هر کدوم رو خواستی توی اپ انتخاب کن":"All in one link; pick any of them in the app","همه کشورها":"All countries","همسفرها":"Fellow travellers","هنوز تراکنشی نیست":"No transactions yet","هنوز سرویسی نداری":"No services yet","هنوز پاداشی نگرفتهای":"No rewards yet","هنوز پذیرفته نشده":"Not accepted yet","هوش مصنوعی":"AI","وصل شو":"Connect","وضعیت":"Status","وقتی موجود شد در ربات خبر بگیر":"Get notified in the bot when it's back in stock","پاداش":"Reward","پاداش همسفر":"Referral reward","پاسخ":"replies","پاسخ داده شده":"Answered","پاسخ پشتیبانی هم اینجا و هم در ربات میرسد":"Support's reply arrives both here and in the bot","پاسخت را بنویس…":"Write your reply…","پذیرفته شده":"Accepted","پذیرفته شده ·":"Accepted ·","پرداخت از کیف پول":"Pay from wallet","پرداخت از کیف پول، تحویل فوری":"Pay from your wallet, instant delivery","پشتیبانی":"Support","پشتیبانی و راهنما":"Support and guide","پلن":"Plan","پلن را انتخاب کن":"Choose a plan","پلنها خوانده نشد":"Couldn't load plans","پنل جواب نداد؛ عدد از آخرین آمار روزانه است":"The server didn't respond; the figure is from the last daily snapshot","پیام":"Message","پیامت را بنویس":"Write your message","پیش از خرید، یک بار بخوان و بپذیر":"Read and accept once before buying","پیشنهادی":"Recommended","چطور شارژ میشود؟":"How does the top-up work?","چه چیزی لازم داری؟":"What do you need?","کارت به کارت کن":"Pay card to card","کارت به کارت، تایید سریع":"Card to card, quick approval","کارت عبور بلافاصله ساخته میشود":"Your pass is created instantly","کارت عبورت آماده شد":"Your pass is ready","کارت مقصد":"Destination card","کارها":"Actions","کانفیگ":"configs","کانفیگ در":"configs in","کانفیگ پرسرعت، همه کشورها":"Fast configs, every country","کشور":"countries","کد پیگیری":"Tracking code","کم":"short","کپی":"Copy","کپی شد":"Copied","کپی شماره کارت":"Copy card number","کپی لینک":"Copy link","کپی مبلغ (ریال)":"Copy amount (rial)","کیف پول":"Wallet","کیف پول را شارژ کن":"Top up your wallet","کیف پولت خالی است":"Your wallet is empty","کیفت شارژ میشود":"Your wallet is topped up","گفتگو":"Conversation","گفتگو با پشتیبانی":"Chat with support","گیگ":"GB","گیگ ·":"GB ·","یا لینک را دستی اضافه کن":"Or add the link manually","یک پاسخ تازه":"One new reply","یک پاسخ تازه از پشتیبانی":"A new reply from support","یک پلن انتخاب کن؛ چند ثانیه بعد کارتت اینجا با لینک اتصال آماده است.":"Pick a plan; a few seconds later your pass is here with its connection link.","دقیقا همین مبلغ را واریز کن":"Pay exactly this amount","سه رقم آخر شناسه توست؛ با آن رسیدت شناخته میشود.":"The last three digits identify you; that's how your receipt is recognised.","رسیدت رسید":"Receipt received","برگشت به کیف پول":"Refunded to wallet","خواندم و میپذیرم":"I've read and accept","دیدن پلن ها":"See plans","تیکت جدید ·":"New ticket · ","پیامت را بنویس.":"Write your message.","سرویسها":"Services","سرویسهای من ·":"My services ·","{n} فعال":"{n} active","{n} سرویس فعال":"{n} active services","{n} پاسخ":"{n} replies","{n} پیام":"{n} messages","{n} تومان کم داری · شارژ":"{n} toman short · top up","{n} گیگ":"{n} GB","{n} روز":"{n} days","کپی مبلغ":"Copy amount","باز ·":"Open ·","بسته ·":"Closed ·","پاسخ داده شده ·":"Answered ·","اولین خرید":"First purchase","ماهانه {n} گیگ":"Monthly {n} GB","هفتگی {n} گیگ":"Weekly {n} GB","روزانه {n} گیگ":"Daily {n} GB","ماهانه نامحدود":"Monthly unlimited","{n} ماهه {n} گیگ":"{n}-month {n} GB","{n} روزه {n} گیگ":"{n}-day {n} GB","{n} ماهه":"{n} months","{n} روزه":"{n} days","{n} گیگ {n} روزه":"{n} GB {n} days","{n} گیگ {n} ماهه":"{n} GB {n} months","سرویس اصلی":"Main service","یک ماه":"one month","· یک ماه":"· one month","کارت به کارت":"Card to card","کارت بانکی ایران":"Iranian bank card","کیف پول کریپتو":"Crypto wallet","کریپتو · TON / USDT":"Crypto · TON / USDT","حالت تست (testnet)":"Test mode (testnet)","تومان · تایید خودکار، بدون رسید":"toman · automatic approval, no receipt","با چه ارزی؟":"Which currency?","Tether · شبکه TON":"Tether · TON network","کیف پول وصل است":"Wallet connected","کیف پولی وصل نیست":"No wallet connected","Tonkeeper، Telegram Wallet، MyTonWallet و…":"Tonkeeper, Telegram Wallet, MyTonWallet…","قطع":"Disconnect","پرداخت":"Pay","پرداخت {n} TON":"Pay {n} TON","پرداخت {n} USDT":"Pay {n} USDT","در حال ساخت فاکتور…":"Creating the invoice…","TON Connect بار نشد":"TON Connect didn't load","اتصال کیف پول نشد":"Couldn't connect the wallet","پرداخت کریپتو":"Crypto payment","فاکتور":"Invoice","مبلغ دقیق":"Exact amount","تومان · testnet":"toman · testnet","منتظر پرداختت هستیم. بعد از پرداخت، کیف پولت خودکار شارژ میشود.":"Waiting for your payment. Once you pay, your wallet is topped up automatically.","پرداخت دستی":"Pay manually","آدرس":"Address","مبلغ":"Amount","کامنت":"Comment","کپی آدرس":"Copy address","کپی کامنت":"Copy comment","فقط روی شبکه TON بفرست و کامنت را حتما بنویس؛ بدون کامنت یا با مبلغ کمتر، شارژ خودکار انجام نمیشود.":"Send only on the TON network and always include the comment; without it, or with a lower amount, the top-up won't be automatic.","برای کارمزد شبکه حدود {n} TON هم در کیف پولت لازم است.":"You'll also need about {n} TON in your wallet for the network fee.","پرداخت با کیف پول":"Pay with wallet","باز کردن در Tonkeeper":"Open in Tonkeeper","انصراف و مبلغ تازه":"Cancel and start over","تراکنش فرستاده شد. منتظر تایید شبکهایم؛ معمولا کمتر از یک دقیقه.":"Transaction sent. Waiting for network confirmation; usually under a minute.","پرداخت را در کیف پول رد کردی":"You declined the payment in your wallet","پرداخت انجام نشد":"The payment didn't go through","کیف پولت شارژ شد":"Your wallet is topped up","موجودی:":"Balance:","مبلغ کمتر از فاکتور بود":"The amount was lower than the invoice","رسیده:":"Received:","لازم:":"Required:","کیف پولت خودکار شارژ نشد؛ پشتیبانی بررسی میکند.":"Your wallet wasn't topped up automatically; support will review it.","پرداخت کریپتو فعلا فعال نیست":"Crypto payment isn't available right now","از کارت به کارت استفاده کن یا بعدا سر بزن.":"Use a card transfer or check back later.","نرخ ارزها هنوز تنظیم نشده":"Exchange rates aren't set yet","کمی بعد دوباره امتحان کن یا از کارت به کارت استفاده کن.":"Try again a bit later or use a card transfer.","مهلت تمام شد. اگر پرداخت کردهای صبر کن، خودکار شناخته میشود؛ وگرنه فاکتور تازه بگیر.":"Time's up. If you've paid, just wait, it's recognised automatically; otherwise get a new invoice.","فاکتور تازه":"New invoice","TON / USDT یا Telegram Stars":"TON / USDT or Telegram Stars","ستاره تلگرام":"Telegram stars","روش پرداختی تنظیم نشده. با پشتیبانی تماس بگیر.":"No payment method is set up. Contact support.","شارژ با Stars فعلا فعال نیست":"Topping up with Stars isn't available right now","کمی بعد دوباره امتحان کن.":"Try again a bit later.","تومان · هر ستاره":"toman · 1 star =","پرداخت در خود تلگرام":"Pay inside Telegram","صفحه پرداخت تلگرام باز میشود؛ اگر ستاره نداری، همانجا میتوانی بخری.":"Telegram's payment screen opens; if you don't have stars, you can buy them right there.","شارژ فوری":"Instant top-up","بلافاصله بعد از پرداخت، مبلغ به کیف پولت اضافه میشود.":"The amount is added to your wallet right after you pay.","در حال شارژ کیف پول…":"Topping up your wallet…","پرداختت رسید":"Your payment arrived","شارژ کیف پول چند لحظه دیگر انجام میشود و در ربات خبرت میکنیم.":"Your wallet will be topped up in a moment and we'll let you know in the bot.","+{n} تومان ·":"+{n} toman ·","بساز به سلیقه خودت":"Build your own","حجم و مدت دلخواه؛ قیمت همان لحظه":"Your own data and duration; instant price","حجم و مدت را خودت انتخاب کن":"Choose the data and duration yourself","سرویس تو":"Your service","تومان همه کشورها · بدون محدودیت دستگاه":"toman All countries · no device limit","همه کشورها · بدون محدودیت دستگاه":"All countries · no device limit","حجم":"Data","مدت":"Duration","هرچی حجم بیشتر، هر گیگ ارزونتر · قیمت مدتهای طولانی کمی بیشتره":"The more data, the cheaper each GB · longer durations cost a little more","سرویس دلخواه":"Custom service","{n} کم · شارژ":"{n} short · top up","کم · شارژ":"short · top up","سرویس {n}":"Service {n}","فعال و آماده استفاده":"Active and ready to use","همه چیز روبهراه است. هر وقت خواستی وصل شوی، برنامه را باز کن و Connect را بزن.":"Everything's fine. Whenever you want to connect, open the app and tap Connect.","سرویس آماده است؛ هنوز وصل نشدی":"Your service is ready; you haven't connected yet","سه قدم ساده پایین همین صفحه را انجام بده؛ کمتر از یک دقیقه طول میکشد.":"Follow the three simple steps below; it takes less than a minute.","سرویس رو به اتمام است":"Your service is running out","فقط {n} روز مانده. قبل از تمام شدن تمدید کن تا اتصالت قطع نشود.":"Only {n} days left. Renew before it ends so you don't get cut off.","حجم کمی مانده. قبل از تمام شدن تمدید کن تا اتصالت قطع نشود.":"Only a little data left. Renew before it runs out so you don't get cut off.","سرویس منقضی شده":"Your service has expired","اتصال قطع است. با تمدید، همین لینک دوباره کار میکند و لازم نیست چیزی را از نو تنظیم کنی.":"You're disconnected. Renew and this same link works again; nothing to set up from scratch.","حجم سرویس تمام شده":"Your data has run out","اتصال قطع است. با تمدید، حجم تازه روی همین لینک اضافه میشود.":"You're disconnected. Renew and fresh data is added to this same link.","تمدید همین سرویس ·":"Renew ·","تمدید همین سرویس":"Renew this service","خرید سرویس تازه":"Buy a new service","راهاندازی اتصال":"Set up the connection","پنل جواب نداد؛ عددها از آخرین آمار روزانه است":"The server didn't respond; figures are from the last daily snapshot","حجم باقیمانده":"Data left","روز باقیمانده":"Days left","از":"from","تا":"until","میانگین مصرف روزانه":"Daily average use","با این مصرف، حجمت تا آخر مدت کافی است.":"At this rate, your data will last until the end.","با این مصرف، حجمت حدود {n} روز دیگر تمام میشود.":"At this rate, your data runs out in about {n} days.","اتصال در ۳ قدم":"Connect in 3 steps","یک برنامه نصب کن":"Install an app","پیشنهاد ما برای":"Our pick for","اگر از قبل یکی از اینها را داری، همان کافی است.":"If you already have one of these, that's enough.","اشتراک را اضافه کن":"Add the subscription","دکمه زیر برنامه را باز میکند و اشتراکت خودکار اضافه میشود.":"The button below opens the app and adds your subscription automatically.","افزودن به":"Add to","کار نکرد؟ لینک را کپی کن و در برنامه «افزودن از کلیپبورد» (Import from clipboard) را بزن.":"Didn't work? Copy the link and choose Import from clipboard in the app.","کپی لینک اشتراک":"Copy subscription link","QR برای دستگاه دیگر":"QR for another device","در برنامه دکمه اتصال (Connect) را بزن. اگر کشوری کند بود یا وصل نشد، از فهرست کشور دیگری را انتخاب کن؛ همه در همین اشتراک هستند.":"Tap Connect in the app. If a country is slow or won't connect, pick another from the list; they're all in this subscription.","بعد از تمدید، حجم تازه روی همین لینک مینشیند؛ لازم نیست چیزی را دوباره تنظیم کنی.":"After renewing, fresh data lands on this same link; nothing to set up again.","مدت سرویس بعد از تمدید: {n} روز":"Duration after renewing: {n} days","({n} روز باقیمانده فعلی هم حساب میشود)":"(your remaining {n} days are included)","تمدید با کیف پول":"Renew from wallet","پلن این سرویس دیگر فروخته نمیشود. برای ادامه، یک پلن تازه از فروشگاه بخر.":"This service's plan isn't sold anymore. To continue, buy a new plan from the shop.","این سرویس دلخواه یا آزمایشی است و تمدید مستقیم ندارد. برای ادامه، یک پلن تازه بخر.":"This is a custom or trial service and can't be renewed directly. To continue, buy a new plan.","مشخصات سرویس":"Service details","نام سرویس":"Service name","نام کاربری":"Username","تاریخ خرید":"Purchased","تاریخ انقضا":"Expires","کشورها":"Countries","تعداد دستگاه":"Devices","بدون محدودیت":"Unlimited","کمک":"Help","راهنمای کامل اتصال":"Full connection guide","تصویری و قدم به قدم برای هر دستگاه":"Step by step for every device","وصل نمیشوم":"I can't connect","به پشتیبانی بگو؛ همینجا جواب میگیری":"Tell support; you'll get the answer right here","لینک اشتراک مخصوص توست؛ آن را با کسی به اشتراک نگذار.":"Your subscription link is personal; don't share it with anyone.","{n} کانفیگ در {n} کشور":"{n} configs in {n} countries","{n} گیگ · {n} روز":"{n} GB · {n} days","موجودی بعد از تمدید":"Balance after renewing","تمدید و پرداخت":"Renew and pay","در حال تمدید…":"Renewing…","تمدید شد؛ همین لینک دوباره کار میکند":"Renewed; this same link works again","تمدید نشد":"Couldn't renew","{n} تومان کم داری؛ اول کیف پول را شارژ کن":"You're {n} toman short; top up your wallet first","مدیریت":"Admin","پنل مدیریت":"Admin panel","رسیدها، کاربران، پلنها و تنظیمات":"Receipts, users, plans and settings","تحویل فوری نام کاربری و رمز":"Instant username and password","فعالسازی روی ایمیل خودت":"Activated on your own email","ارتقای اکانت خودت":"Upgrade of your own account","موجود":"In stock","در انتظار فروشنده":"Waiting for the seller","در حال بررسی":"Under review","کد پیگیری رسید":"Receipt tracking code","کد پیگیری یا شماره مرجع (فقط عدد)":"Tracking or reference number (digits only)","روی رسید بانکت نوشته شده؛ رسیدت با همین کد بررسی میشود.":"It's printed on your bank receipt; your receipt is checked with this code.","عکس و کد پیگیری رسید را بفرست":"Send the receipt photo and tracking code","اسکرینشات رسید بانکی را انتخاب کن، کد پیگیریاش را بنویس و «ارسال رسید» را بزن.":"Choose the bank receipt screenshot, enter its tracking code and tap «Send receipt».","در حال ارسال و بررسی…":"Sending and checking…","کد پیگیری رسید را بنویس (فقط عدد)":"Enter the receipt's tracking code (digits only)","رسید تایید نشد":"Receipt not approved","رسید تکراری":"Duplicate receipt","رسید با فاکتور نمیخواند؛ دلیلش در ربات برایت فرستاده شد. اگر اشتباه شده، به پشتیبانی بگو.":"The receipt doesn't match the invoice; the reason was sent to you in the bot. If this is a mistake, tell support.","این رسید قبلا ثبت شده است. اگر اشتباه شده، به پشتیبانی بگو.":"This receipt was already used. If this is a mistake, tell support.","هیچ کانفیگی وصل نمیشود":"None of the configs connect","وصل میشود ولی سرعت کم است":"It connects but it's slow","لینک را چطور در اپ وارد کنم؟":"How do I add the link to the app?","حجم و اعتبار من چقدر مانده؟":"How much data and time do I have left?","کدام پلن برایم بهتر است؟":"Which plan is best for me?","چطور روی آیفون وصل شوم؟":"How do I connect on iPhone?","دستیار عبور":"Obour assistant","عیبیابی اتصال":"Connection troubleshooting","دستیار هوشمند":"Smart assistant","هوش مصنوعی · حساب و سرویسهایت را میبیند":"AI · sees your account and services","مشکل اتصال را با هم حل کنیم":"Let's fix your connection together","سلام! چطور کمکت کنم؟":"Hi! How can I help?","بگو چه اتفاقی میافتد؛ اگر اپ خطا میدهد، از همان صفحه اسکرینشات بفرست. نوع دستگاهت را هم بگو.":"Tell me what happens; if the app shows an error, send a screenshot of that screen. Also mention your device.","درباره سرویس، حجم، اتصال یا خرید بپرس. اگر کارت راه نیفتاد، با یک دکمه گفتگو برای پشتیبانی فرستاده میشود.":"Ask about your service, data, connection or purchases. If it doesn't solve it, one tap sends the chat to support.","سوالت را بنویس…":"Write your question…","جواب نگرفتم؛ ارسال به پشتیبانی":"Didn't help — send to support","عکس پیوست شد":"Image attached","دستیار الان جواب نداد":"The assistant didn't answer","این گفتگو برای پشتیبانی فرستاده شود؟":"Send this conversation to support?","برای پشتیبانی فرستاده شد":"Sent to support","پلن مناسب من چیه؟":"Which plan suits me?","از روی مصرف واقعیات، بهترین پلن تمدید را پیشنهاد میدهم.":"Based on your real usage, I'll suggest the best plan to renew with.","پیشنهاد بده":"Suggest","در حال بررسی مصرفت…":"Checking your usage…","پیشنهاد هوشمند":"Smart suggestion","دوباره بسنج":"Re-check","دنبال چی هستی؟ بنویس، پیدا می‌کنم":"What are you looking for? e.g. «a cheap AI for writing»","دارم میگردم…":"Searching…","پیشنهاد من":"My picks","چیزی که دقیقا به نیازت بخورد پیدا نکردم.":"I couldn't find an exact match.","همین الان جواب بگیر؛ حتی با اسکرینشات":"Get answers now — even from a screenshot","پشتیبانی فوری با هوش مصنوعی":"Instant AI support","اول از دستیار هوشمند بپرس":"Ask the smart assistant first","جواب فوری؛ اگر نشد، با یک دکمه تیکت میشود":"Instant answers; if not, one tap makes it a ticket","با اسکرینشات خطا، قدم به قدم":"Step by step, with an error screenshot","عیبیابی فوری با دستیار هوشمند، حتی با اسکرینشات":"Instant troubleshooting with the smart assistant, even from a screenshot","قیمت تون به تتر × نرخ تتر بازار. ":"TON price in USDT × market USDT rate. ","کیف پول‌های متصل":"Connected wallets","اتصال کیف پول TON":"Connect a TON wallet","متصل":"Connected","شارژ با این کیف پول":"Top up with this wallet","قطع اتصال":"Disconnect","اتصال کیف پول قطع شد":"Wallet disconnected","روش پرداخت":"Payment method","مشاهده تراکنش در tonviewer":"View transaction on tonviewer","خرید هوش مصنوعی":"AI purchase","برگشت وجه":"Refund","تغییر توسط پشتیبانی":"Changed by support","موجودی کیف پول عبور":"Obour wallet balance","TON · کیف پول کریپتو":"TON · crypto wallet","USDT · کیف پول کریپتو":"USDT · crypto wallet","مبلغ پرداختی":"Amount paid","کیف پول پرداخت‌کننده":"Paying wallet","تراکنش شبکه":"Network transaction","تعداد ستاره":"Stars","نرخ عبور":"Obour rate","قیمت بازار":"Market price","نرخ لحظه ساخت فاکتور قفل می‌شود.":"The rate is locked when the invoice is created.","نرخ تعیین‌شده عبور":"Rate set by Obour","نرخ بازار (tgju.org)":"Market rates (tgju.org)","نرخ خودکار":"Automatic rates","تون کوین":"Toncoin","شارژ با":"Top up with","پرفروش این دسته":"Best seller here","پیشنهاد ویژه":"Featured","خرید موفق":"successful purchases","تحویل در لحظه":"Delivered instantly","فقط":"Only","عدد":"left","آماده اتصال":"Ready to connect","همه کشورها، یک لینک":"All countries, one link","تا تاریخ":"Until","منقضی شده ·":"Expired ·","آزمایشی":"Beta","عبور ریسر":"Obour Racer","لایی بکش، رکورد بزن":"Weave through traffic, set records","بازی کن":"Play","بهزودی با بازی کردن میتوانی کانفیگ اینترنت آزاد دریافت کنی.":"Soon you will be able to earn free internet configs by playing.","/ ۲۰۰۰":"/ 2000","{n} تیکت باز":"{n} open tickets","{n} سال":"{n} yr","{n} ماه":"{n} mo","{n} روز، کد نامحدود":"{n} days, unlimited codes","اجاره {n} روزه":"{n}-day rental","ChatGPT و OpenAI":"ChatGPT & OpenAI","آخرین تغییر":"Last update","آلمان":"Germany","آمریکا":"USA","اندونزی":"Indonesia","ترکیه":"Turkey","فرانسه":"France","هلند":"Netherlands","کانادا":"Canada","آموزش اتصال":"Connection guide","آموزش اتصال کانفیگ":"Config connection guide","ادامه خلاصه":"Read the rest of the summary","از فهرست انتظار خارج شدی":"You left the waitlist","اسم محصول، حجم (مثلا ۲۰ گیگ) یا مدت را امتحان کن.":"Try a product name, a data amount (e.g. 20 GB) or a duration.","اعتبار کارت":"Card validity","امکانات":"Features","اول جواب سوالت را در مرکز راهنما ببین؛ اگر نبود، دستیار هوشمند فوری جواب میدهد یا تیکت بزن.":"Check the help center for your answer first; if it isn't there, the smart assistant answers instantly, or open a ticket.","اولویت":"Priority","اولویت مهم":"High priority","اولین نفری باش که باخبر میشود":"Be the first to know","اولین پاسخ پشتیبانی":"First support reply","اگر مشکلی داری، یک تیکت تازه بساز.":"If something's wrong, open a new ticket.","این بخش پیدا نشد":"This section wasn't found","این خدمت در حالت پیشنمایش است: میتوانی جزئیات را ببینی ولی فروش هنوز باز نشده.":"This service is in preview: you can see the details, but sales haven't opened yet.","اینستاگرام":"Instagram","با تتر شارژش کن و در هر سایت خارجی پرداخت کن":"Top it up with USDT and pay on any foreign site","برای کدام سرویس؟":"For which service?","برای گرفتن یک کد تایید؛ اگر کد نیاید مبلغ کامل برمیگردد":"For one verification code; if no code arrives, you get a full refund","برای یک خرید یا یک اشتراک؛ بعد از استفاده بسته میشود":"For one purchase or subscription; closed after use","بسته شد":"Closed","بسته شده":"Closed","به محض باز شدن فروش، در ربات خبرت میکنیم":"We'll message you in the bot as soon as sales open","بهروز شده":"Updated","بهروزرسانی":"Refresh","بهزودی":"Coming soon","بهزودی در عبور":"Coming soon to Obour","تتر":"USDT","تتر (USDT)":"Tether (USDT)","تحویل فوری":"Instant delivery","تصویر":"Image","تلگرام":"Telegram","واتساپ":"WhatsApp","گوگل و جیمیل":"Google & Gmail","سایر سایتها":"Other sites","توضیح":"Description","تومان کیف پول به تتر تبدیل و روی کارت مینشیند":"Toman from your wallet is converted to USDT and loaded onto the card","تیکت بازی نداری":"You have no open tickets","تیکت بسته شد":"Ticket closed","تیکت بسته شود؟ بعدا میتوانی تیکت تازه بسازی.":"Close this ticket? You can open a new one later.","تیکت به پشتیبانی":"Ticket to support","تیکت ساخته شد":"Ticket created","تیکت، دستیار هوشمند و راهنما":"Tickets, smart assistant and help","تیکتهای باز":"Open tickets","تیکتی نیست":"No tickets","ثبت امتیاز":"Submit rating","ثبت تیکت":"Submit ticket","ثبت شد":"Saved","ثبت شد؛ به محض فعال شدن خبرت میکنیم":"Done — we'll let you know as soon as it's live","جستجو در سوالها…":"Search questions…","جستجوی محصول یا پلن…":"Search products or plans…","جواب فوری؛ اگر نشد با یک دکمه تیکت میشود":"Instant answers; if that doesn't help, one tap turns it into a ticket","حساب کاربری":"Account","خبرم کن":"Notify me","خدمات عبور":"Obour services","خلاصه مشکل در یک جمله":"The problem in one sentence","دامنه و هاست":"Domains & hosting","در انتظار پاسخ":"Awaiting reply","در حال بارگذاری عکس…":"Loading image…","در فهرست انتظاری":"You're on the waitlist","درباره چیست؟":"What is it about?","درخواست ها زیاد شد، چند لحظه صبر کن":"Too many requests, please wait a moment","دسته تیکت را انتخاب کن":"Choose a ticket category","دیدن صفحه":"Open page:","راههای سریع":"Quick options","رفتن به فروشگاه":"Go to the shop","ساخته شده":"Created","سایر موارد":"Something else","سرورهای ابری":"Cloud servers","سقف بالاتر و کارمزد کمتر برای خریدهای بیشتر":"Higher limits and lower fees for bigger spending","سوال":"questions","سوالات پرتکرار شماره مجازی":"Virtual number FAQ","سوالات پرتکرار هر بخش":"Frequent questions by section","سوالات پرتکرار هر بخش و آموزش اتصال":"FAQ for every section and connection guides","سوالات پرتکرار ویزا کارت":"Visa card FAQ","شارژ با تتر یا کیف پول":"Top up with USDT or your wallet","شارژ، کارمزد، امنیت و سایتها":"Top-ups, fees, security and sites","شرایط خدمات، بازگشت وجه و گارانتی":"Terms of service, refunds and warranty","شماره مجازی":"Virtual numbers","شماره مجازی در حالت پیشنمایش است: کشورها و قیمتهای تقریبی را ببین؛ خرید بهزودی باز میشود.":"Virtual numbers are in preview: see the countries and approximate prices; buying opens soon.","شماره کارت و CVV فقط در حساب خودت نمایش داده میشود":"The card number and CVV are shown only in your own account","شماره یک ماه مال توست و هر چند بار بخواهی کد میگیری":"The number is yours for a month and you can receive as many codes as you like","عادی":"Normal","مهم":"High","فوری":"Urgent","عکس باز نشد":"Couldn't open the image","فقط برای خودت":"Just for you","قدم به قدم برای اندروید، آیفون، ویندوز و مک":"Step by step for Android, iPhone, Windows and Mac","قدم به قدم برای هر دستگاه":"Step by step for every device","قفل موقت":"Temporary lock","قیمت تقریبی":"Approximate price","لغو":"Cancel","مبلغ از کیف پول عبور کم و شماره همان لحظه نشان داده میشود":"The amount comes out of your Obour wallet and the number appears right away","متن کامل قوانین و مقررات":"Full terms and conditions","محصول":"Product","محصولات آماده":"Ready-made products","مرتبط با":"Related to","مرتبط با (اختیاری)":"Related to (optional)","مرکز راهنما":"Help center","مشکلت را بنویس":"Describe the problem","مشکلم حل شد؛ تیکت را ببند":"Solved — close the ticket","ممنون از نظرت":"Thanks for your feedback","موضوع":"Subject","موضوع را بنویس":"Write a subject","نرخها":"Rates","نوع شماره":"Number type","نوع کارت":"Card type","نوع کارت را انتخاب کن و هزینه صدور از کیف پول کم میشود":"Pick a card type; the issuing fee comes out of your wallet","هر روز، معمولا کمتر از چند ساعت":"Every day, usually within a few hours","هر وقت خواستی شارژش کن؛ مناسب اشتراکهای ماهانه":"Top it up whenever you like; good for monthly subscriptions","هر وقت خواستی کارت را قفل یا باز کن":"Lock or unlock the card whenever you want","هر پرداخت کارت در مینی اپ ثبت میشود":"Every card payment is recorded in the mini app","هرچه دقیقتر بهتر: کدام سرویس، روی چه دستگاهی، چه پیغامی میبینی.":"The more detail the better: which service, on which device, and what message you see.","هزینه صدور":"Issuing fee","هیچکدام":"None","وقتی فعال شد خبرم کن":"Notify me when it's live","ویزا کارت":"Visa card","ویزا کارت در حالت پیشنمایش است: انواع کارت و کارمزدهای تقریبی را ببین؛ صدور بهزودی باز میشود.":"The Visa card is in preview: see the card types and approximate fees; issuing opens soon.","ویزا کارت مجازی":"Virtual Visa card","پاسخ داده شد":"Answered","پاسخگویی پشتیبانی چطور بود؟":"How was the support?","پرداخت اشتراکها و خریدهای خارجی":"Pay for subscriptions and foreign purchases","پرداخت و کیف پول":"Payments & wallet","پشتیبانی در مینی اپ":"Support in the mini app","پشتیبانی و تیکتها":"Support & tickets","پشتیبانی:":"Support:","پلنهای اینترنت آزاد":"Free internet plans","پیشنمایش":"Preview","پیشنمایش · بهزودی":"Preview · coming soon","پیشنمایش · صدور بهزودی":"Preview · issuing soon","پیشنهاد ما":"Our pick","پیوست عکس":"Attach a screenshot","چطور کار میکند؟":"How does it work?","چطور کمکت کنیم؟":"How can we help?","چیزی پیدا نشد":"Nothing found","کارت حرفهای":"Pro card","کارت شارژی":"Reloadable card","کارت چند دقیقه بعد با شماره، تاریخ و CVV آماده است":"A few minutes later the card is ready with its number, expiry and CVV","کارت یکبار مصرف":"Single-use card","کارمزد هر شارژ":"Fee per top-up","کانفیگ و اتصال":"Configs & connection","کانفیگ پرسرعت در همه کشورها، همه توی یک لینک؛ روزانه، هفتگی و ماهانه":"Fast configs in every country, all in one link; daily, weekly and monthly","کجا کار میکند؟":"Where does it work?","کد تایید تلگرام، واتساپ و سایتها":"Verification codes for Telegram, WhatsApp and sites","کد تایید تلگرام، واتساپ و گوگل":"Codes for Telegram, WhatsApp and Google","کد تایید در مینی اپ و ربات برایت میآید":"The code arrives in the mini app and the bot","کد نیامد؟ پول برمیگردد":"No code? Money back","کشور و سرویسی که کد تایید برایش لازم است را انتخاب کن":"Choose the country and the service you need the code for","کل":"Total","کلمه دیگری امتحان کن یا از پشتیبانی بپرس.":"Try another word or ask support.","کمترین شارژ":"Minimum top-up","گزارش تراکنشها":"Transaction history","یک تا پنج ستاره انتخاب کن":"Choose one to five stars","یک کد تایید":"One verification code","یکبار مصرف":"Single use","یکبار مصرف یا اجارهای، بازگشت وجه و بیشتر":"Single use or rental, refunds and more","هر ۱ TON (تومان)":"Per 1 TON (toman)","هر ۱ تتر (تومان)":"Per 1 USDT (toman)","هر ستاره تلگرام (تومان)":"Per Telegram Star (toman)","۰ یعنی Stars خاموش. تلگرام هنگام برداشت هر ستاره را حدود ۰٫۰۱۳ تتر (USDT) حساب میکند.":"0 turns Stars off. When withdrawing, Telegram counts each star as about 0.013 USDT.","۰ یعنی خودکار از بازار؛ قیمت محصولات هوش مصنوعی هم با همین نرخ تتر حساب میشود":"0 means automatic from the market; AI product prices use this USDT rate too","۰ یعنی خودکار: قیمت تتری TON × نرخ تتر":"0 means automatic: TON price in USDT × the USDT rate","تتر برای قیمت محصولات هوش مصنوعی و شارژ کریپتو، تون برای شارژ با TON. اگر در فیلدهای بالا عددی بنویسی، همان نرخ دستی اولویت دارد.":"USDT is used for AI product prices and crypto top-ups, TON for TON top-ups. A number in the fields above overrides the automatic rate.","کلیات و پذیرش قوانین":"General terms and acceptance","حساب کاربری و امنیت":"Account and security","کانفیگ و اینترنت آزاد":"Configs and free internet","اشتراکهای آماده (هوش مصنوعی و...)":"Ready-made subscriptions (AI and more)","شماره مجازی (پیشنمایش)":"Virtual numbers (preview)","ویزا کارت مجازی (پیشنمایش)":"Virtual Visa card (preview)","کیف پول و پرداخت":"Wallet and payments","بازگشت وجه و جبران":"Refunds and compensation","پاداش دعوت (همسفرها)":"Referral rewards","پشتیبانی و تیکت":"Support and tickets","حریم خصوصی":"Privacy","محدودیت مسئولیت":"Limitation of liability","تغییر قوانین":"Changes to the terms"}};
 /* مینی اپ فقط فارسی و انگلیسی دارد؛ ربات چهار زبان. کاربری که در ربات
    روسی یا چینی است، اینجا انگلیسی می بیند. */
 const LANG_NAMES = { fa:['🇮🇷','فارسی'], en:['🇬🇧','English'] };
@@ -1299,6 +1433,13 @@ const ICON = {
   ton:'<path d="M5.5 5h13l-6.5 14z"/><path d="M12 5v14"/>',
   usdt:'<path d="M7 6h10M12 6v12"/><ellipse cx="12" cy="11" rx="6" ry="2"/>',
   card:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  send:'<path d="M21 3 3 10.5l7 2.5 2.5 7z"/><path d="m10 13 4.5-4.5"/>',
+  camera:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8"/>',
+  grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
 };
 const ic = (k, sw) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.8}" stroke-linecap="round" stroke-linejoin="round">${ICON[k]||''}</svg>`;
@@ -1428,8 +1569,37 @@ const App = {
     if (err) return this.fatal(err);
     this.tab('home');
     /* دکمه «پرداخت با TON Connect» ربات مینی اپ را با #crypto باز می کند */
-    if (location.hash === '#crypto' && this.boot.crypto) { Topup.method = 'crypto'; this.go('topup'); }
-    else if (location.hash === '#stars' && payMethods().includes('stars')) { Topup.method = 'stars'; this.go('topup'); }
+    /* مسیر: ?r=crypto (دکمه های تازه ربات) یا اولین بخش # (دکمه های قدیمی).
+       تلگرام داده راه اندازی را در # می گذارد، پس # هرگز دقیقا «#crypto» نیست. */
+    let r = ''; try { r = new URLSearchParams(location.search).get('r') || ''; } catch(e){}
+    if (!r) { const h = String(location.hash || '').replace(/^#/, '').split(/[&?]/)[0]; if (h && !/^tgWebApp/.test(h)) r = h; }
+    this.route(r);
+  },
+
+  /* دکمه های ربات مینی اپ را مستقیم روی یک صفحه باز می کنند: #crypto، #support،
+     #ticket-12، #help-ai، #visa و ... */
+  route(hash){
+    const h = String(hash || '').replace(/^#/, ''); if (!h) return;
+    const [k, arg] = [h.split('-')[0], h.split('-').slice(1).join('-')];
+    const m = payMethods();
+    switch (k) {
+      case 'crypto': if (this.boot.crypto) { Topup.method = 'crypto'; this.go('topup'); } else this.go('topup'); break;
+      case 'stars': if (m.includes('stars')) Topup.method = 'stars'; this.go('topup'); break;
+      case 'topup': this.go('topup'); break;
+      case 'support': this.go('support'); break;
+      case 'tickets': this.go('tickets'); break;
+      case 'compose': this.go('compose'); break;
+      case 'ticket': if (+arg > 0) this.go('thread', +arg); else this.go('tickets'); break;
+      case 'help': if (arg) this.go('help_d', arg); else this.go('help'); break;
+      case 'guide': this.go('guide'); break;
+      case 'rules': this.go('rules'); break;
+      case 'assist': if (aiOn('support')) Assist.open(arg === 'fix' ? 'fix' : 'chat'); break;
+      case 'store': if (arg === 'ai' || arg === 'vpn' || arg === 'number') Store.kind = arg; this.tab('store'); break;
+      case 'services': this.tab('home'); break;
+      case 'visa': this.go('visa'); break;
+      case 'numbers': Store.kind = 'number'; this.tab('store'); break;
+      case 'wallet': this.tab('wallet'); break;
+    }
   },
 
   syncHeight(){
@@ -1759,6 +1929,16 @@ function GameCard(){
         <div class="gc-s">لایی بکش، رکورد بزن</div><span class="gc-play">${ic('play', 2.2)}بازی کن</span></div></div>
     <div class="gc-note mx">${ic('gift')}<span>به‌زودی با بازی کردن می‌توانی کانفیگ اینترنت آزاد دریافت کنی.</span></div>`;
 }
+/* همه خدمات عبور در صفحه اصلی؛ شماره مجازی و ویزا کارت پیش نمایش اند */
+function HomeTiles(){
+  const f = App.boot.features;
+  return `<div class="tiles">
+    ${f.shop_vpn !== false ? `<button class="tile net" onclick="Store.kind='vpn';App.tab('store')">${ic('globe')}<span><span class="tile-t">اینترنت آزاد</span><span class="tile-s">خرید و تمدید</span></span></button>` : ''}
+    ${f.shop_ai ? `<button class="tile ai" onclick="Store.kind='ai';App.tab('store')">${ic('spark')}<span><span class="tile-t">هوش مصنوعی</span><span class="tile-s">اشتراک AI</span></span></button>` : ''}
+    <button class="tile num" onclick="Store.kind='number';App.tab('store')">${ic('phone')}<span><span class="tile-t">شماره مجازی</span><span class="tile-s">پیش‌نمایش · به‌زودی</span></span></button>
+    <button class="tile visa" onclick="App.go('visa')">${ic('card')}<span><span class="tile-t">ویزا کارت</span><span class="tile-s">پیش‌نمایش · به‌زودی</span></span></button>
+  </div>`;
+}
 function WalletStrip(bal){
   const empty = !(bal > 0);
   return `<div class="card wallet mx"><span class="ic cash">${ic('wallet')}</span>
@@ -1775,40 +1955,35 @@ const SHOP_CATS = {
   work: ['brief', 'work',  'ابزار کاری',   'طراحی، تیم و بهره‌وری'],
   fun:  ['play',  'fun',   'سرگرمی',      'فیلم، موسیقی و ویدیو'],
   tools:['tool',  'tools', 'ابزار',        'آموزش، ایمیل و بیشتر'],
+  number:['phone','number','شماره مجازی',  'کد تایید تلگرام، واتساپ و سایت‌ها'],
 };
-/* دسته ها به شکل دسته کارت، مثل کارت های «سرویس های من»: ورق بزن، کارت وسط
-   دسته فعال است و محتوای زیرش با حرکت جابه جا می شود. */
-function CatDeck(active, counts){
-  const vpnOn = App.boot.features.shop_vpn !== false, aiOn = App.boot.features.shop_ai;
-  const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : aiOn && (!counts || counts[k] || k === active));
-  Store.deckKeys = keys;
-  const items = (AI.d && AI.d.items) || [];
-  const card = (key, i) => {
-    const [icon, , t, sub] = SHOP_CATS[key];
-    /* کارت کناری فقط لبه اش پیداست؛ اسم دسته بعدی را روی همین کارت می نویسیم
-       تا کاربر بداند با ورق زدن به کجا می رود. کارت آخر به قبلی اشاره می کند. */
-    const nk = keys[i + 1] || keys[i - 1], back = !keys[i + 1];
-    const hint = nk ? `<button class="cat-next${back ? ' prev' : ''}" onclick="event.stopPropagation();Store.tapCat('${nk}')">
-        <span class="cat-next-i">${ic(SHOP_CATS[nk][0], 2)}</span><span class="cat-next-l">${back ? 'قبلی' : 'بعدی'}</span><span class="cat-next-t">${SHOP_CATS[nk][2]}</span>${ic('chev', 2.4)}</button>` : '';
-    const list = items.filter(x => x.category === key && x.stock !== 0);
-    const n = counts ? counts[key] || 0 : null;
-    const minP = list.length ? Math.min(...list.map(x => x.price)) : 0;
-    const pill = key === 'vpn' ? 'کانفیگ عبور' : n != null ? fa(n) + ' محصول' : '…';
-    const stack = key === 'vpn'
-      ? ''
-      : list.slice(0, 5).map(x => AiThumb(x)).join('') + (list.length > 5 ? `<span class="cat-more">${esc('+' + fa(list.length - 5))}</span>` : '');
-    return `<div class="slide"><div class="${'pass hx hx-' + HX[key] + ' cat-pass cat-' + key}" onclick="Store.tapCat('${key}')" role="button" aria-label="${esc(I18N.t(t))}"><span class="hx-holo"></span>${TUNNEL}
-      <div class="pass-head"><span class="pass-name"><span class="cat-ic">${ic(icon, 2)}</span><span class="cat-t">${t}</span></span>${key === 'vpn' ? '' : `<span class="pass-st"><i></i>${esc(pill)}</span>`}</div>
-      <div class="cat-sub">${key === 'vpn' ? 'کانفیگ پرسرعت، همه کشورها، همه توی یک لینک' : sub}</div>
-      <div class="cat-row"><div class="cat-stack">${stack || `<span class="pass-meta">روزانه، هفتگی و ماهانه</span>`}</div>
-        ${minP ? `<span class="cat-from"><span>از</span> ${N(fa(minP))} <span>تومان</span></span>` : ''}</div>
-      ${hint}
-    </div></div>`;
-  };
-  return `<div class="slider cat-deck"><div class="slides" id="cat-slides" data-dots="cat-dots" data-idx="${Math.max(0, keys.indexOf(active))}"
-      onscroll="SliderFx.tick('cat-slides');Store.settle()">${keys.map(card).join('')}</div>
-    ${keys.length > 1 ? `<div class="dots" id="cat-dots">${keys.map(k => `<span class="dot${k === active ? ' on' : ''}"></span>`).join('')}</div>` : ''}</div>`;
+/* ریل بخش های فروشگاه: هر بخش یک دکمه کوچک با آیکون و تعداد. شماره مجازی
+   پیش نمایش است و همین جا باز می شود؛ ویزا کارت صفحه جدای خودش را دارد. */
+function Depts(active, counts){
+  const f = App.boot.features, vpnOn = f.shop_vpn !== false, aiOn = f.shop_ai;
+  const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : k === 'number' ? true : aiOn && (!counts || counts[k] || k === active));
+  Store.keys = keys;
+  const sub = k => k === 'vpn' ? 'کانفیگ' : k === 'number' ? 'پیش‌نمایش' : counts ? fa(counts[k] || 0) + ' محصول' : '…';
+  return `<div class="dept" id="dept">${keys.map(k => `<button class="dept-b${k === active ? ' on' : ''}" data-k="${k}" onclick="Store.to('${k}')">
+      <span class="ic ${SHOP_CATS[k][1]}">${ic(SHOP_CATS[k][0])}</span><span class="dept-t">${SHOP_CATS[k][2]}</span><span class="dept-s">${esc(sub(k))}</span>${k === 'number' ? '<i class="dept-pv"></i>' : ''}</button>`).join('')}
+    <button class="dept-b" onclick="App.go('visa')"><span class="ic visa">${ic('card')}</span><span class="dept-t">ویزا کارت</span><span class="dept-s">پیش‌نمایش</span><i class="dept-pv"></i></button></div>`;
 }
+/* کارت معرفی بخش فعال: چه چیزی، از چه قیمتی، و سه اطمینان خرید */
+function DeptHero(k){
+  const prices = k === 'vpn'
+    ? (Store.data && !Store.data.disabled ? Store.data.categories : []).flatMap(c => c.plans.map(x => x.price))
+    : ((AI.d && AI.d.items) || []).filter(x => x.category === k && x.stock !== 0).map(x => x.price);
+  const minP = prices.length ? Math.min(...prices) : 0;
+  const sub = k === 'vpn' ? 'کانفیگ پرسرعت در همه کشورها، همه توی یک لینک؛ روزانه، هفتگی و ماهانه' : SHOP_CATS[k][3];
+  const chips = k === 'number' ? [['clock', 'به‌زودی'], ['wallet', 'پرداخت از کیف پول'], ['refresh', 'کد نیامد؟ پول برمی‌گردد']]
+    : [['bolt', 'تحویل فوری'], ['wallet', 'پرداخت از کیف پول'], ['chat', 'پشتیبانی در مینی اپ']];
+  return `<div class="${'dh dh-' + k}"><span class="dh-art">${ic(SHOP_CATS[k][0], 1.2)}</span>
+    <div class="dh-t">${SHOP_CATS[k][2]}</div><div class="dh-s">${sub}</div>
+    ${minP ? `<div class="dh-from">از ${N(fa(minP))} تومان</div>` : ''}
+    <div class="dh-chips">${chips.map(([i, t]) => `<span class="dh-chip">${ic(i, 2)}${t}</span>`).join('')}</div></div>`;
+}
+const Steps = list => Group(list.map((t, i) => `<div class="row"><span class="ic"><span class="n">${fa(i + 1)}</span></span>
+  <span class="row-m"><span class="row-t" style="font-weight:600;font-size:13.5px;line-height:1.8">${esc(t)}</span></span></div>`).join(''));
 /* ═════════ CHART ═════════
    نمودار خطی مصرف. SVG خالص، بدون کتابخانه.
 
@@ -1988,6 +2163,7 @@ async home(p){
   try {
     const [{ items }, orders] = await Promise.all([api('services'),
       b.features.shop_ai ? api('ai/orders').then(r => r.items).catch(() => []) : Promise.resolve([])]);
+    if (!$('home-pass')) return;  // کاربر پیش از رسیدن داده صفحه را عوض کرده (مثلا با ?r=)
     Home.services = items.slice();
     Home.orders = orders.filter(o => o.status !== 'failed');
     if (!items.length && !Home.orders.length) {
@@ -2000,7 +2176,8 @@ async home(p){
         [['1','کیف پول را شارژ کن', (App.boot.pay_methods || []).includes('card') ? 'کارت به کارت، تایید سریع' : 'TON / USDT یا Telegram Stars'],
          ['2','پلن را انتخاب کن','روزانه، هفتگی یا ماهانه'],
          ['3','وصل شو','برنامه‌ات را انتخاب کن، بقیه خودکار']].map(([n, t, s]) =>
-          `<div class="row"><span class="ic"><span class="n">${n}</span></span><span class="row-m"><span class="row-t">${t}</span><span class="row-s">${s}</span></span></div>`).join(''));
+          `<div class="row"><span class="ic"><span class="n">${n}</span></span><span class="row-m"><span class="row-t">${t}</span><span class="row-s">${s}</span></span></div>`).join(''))
+        + Sec('خدمات عبور') + HomeTiles();
       return;
     }
     const act = items.filter(s => !s.expired).length + Home.orders.filter(o => o.status === 'delivered' || o.status === 'done').length;
@@ -2008,27 +2185,30 @@ async home(p){
     $('home-pass').innerHTML = Slider(Home.live().concat(Home.orders.map(o => ({ _order:o }))));
     SliderFx.apply('slides');
     const unread = b.counters.unread_replies;
-    $('home-more').innerHTML = Sec('چه چیزی لازم داری؟') + `<div class="tiles">
-        <button class="tile net" onclick="Store.kind='vpn';App.tab('store')">${ic('globe')}<span><span class="tile-t">اینترنت آزاد</span><span class="tile-s">خرید و تمدید</span></span></button>
-        ${b.features.shop_ai ? `<button class="tile ai" onclick="Store.kind='ai';App.tab('store')">${ic('spark')}<span><span class="tile-t">هوش مصنوعی</span><span class="tile-s">اشتراک AI</span></span></button>` : ''}
-      </div><div class="gap"></div>`
+    $('home-more').innerHTML = Sec('چه چیزی لازم داری؟') + HomeTiles() + `<div class="gap"></div>`
       + Group((aiOn('support') ? Row({ kind:'ai', icon:'spark', title:'دستیار هوشمند', sub:'همین الان جواب بگیر؛ حتی با اسکرین‌شات', fn:"Assist.open('chat')" }) : '')
         + Row({ kind:'help', icon:'chat', title:'پشتیبانی و راهنما',
           sub: unread ? 'یک پاسخ تازه از پشتیبانی' : 'تیکت‌ها و راهنمای اتصال',
-          subColor: unread ? 'var(--help-i)' : '', fn:"App.go('tickets')" }));
+          subColor: unread ? 'var(--help-i)' : '', fn:"App.go('support')" }));
   } catch (err) {
+    if (!$('home-pass')) return;
     $('home-pass').innerHTML = `<div class="card mx">${emptyBox('سرویس‌ها خوانده نشد', err.message)}</div>`;
   }
 },
 
 async store(p){
-  const ai = App.boot.features.shop_ai;
-  if (!ai) Store.kind = 'vpn';
-  if (App.boot.features.shop_vpn === false && Store.kind === 'vpn') Store.kind = 'ai';
+  const f = App.boot.features, ai = f.shop_ai;
+  if (!ai && Store.kind !== 'number') Store.kind = 'vpn';
+  if (f.shop_vpn === false && Store.kind === 'vpn') Store.kind = ai ? 'ai' : 'number';
   p.innerHTML = TabTop('فروشگاه', 'پرداخت از کیف پول، تحویل فوری')
-    + (ai ? `<div id="kinds-box">${CatDeck(Store.kind)}</div>` : '') + `<div id="store-box">${skel(2, 200)}</div>`;
-  if (ai) Store.mountDeck();
-  const first = Store.kind === 'vpn' ? Store.loadVpn() : Store.loadAi();
+    + `<div class="sh-top"><label class="sh-search">${ic('search', 2)}<input type="search" id="sh-q" placeholder="${esc(I18N.t('جستجوی محصول یا پلن…'))}" oninput="Store.search(this.value)"></label>
+        <button class="sh-bal" onclick="App.go('topup')" aria-label="${esc(I18N.t('شارژ کیف پول'))}">${ic('wallet')}<span class="n" data-bal>${fa(App.boot.user.balance)}</span></button></div>
+      <div id="sh-res"></div>
+      <div id="sh-main"><div id="dept-box">${Depts(Store.kind)}</div><div id="dept-hero">${DeptHero(Store.kind)}</div>
+        <div class="gap" style="height:6px"></div><div id="store-box">${skel(2, 200)}</div><div id="soon-box"></div></div>`;
+  Store.centerDept(false);
+  Store.soonCards();
+  const first = Store.load();
   if (ai) Store.catalog();
   return first;
 },
@@ -2078,8 +2258,8 @@ async account(p){
             end:`<span><span class="n" data-bal style="font-size:14px">${fa(u.balance)}</span> <span class="lbl">تومان</span></span>` })
       + (b.features.shop_referral ? Row({ kind:'cash', icon:'gift', title:'هم‌سفرها', sub:'دعوت کن، از هر خرید سهم بگیر', fn:"App.go('referral')" }) : '')
       + (aiOn('support') ? Row({ kind:'ai', icon:'spark', title:'دستیار هوشمند', sub:'پشتیبانی فوری با هوش مصنوعی', fn:"Assist.open('chat')" }) : '')
-      + Row({ kind:'help', icon:'chat', title:'تیکت‌های من', sub: c.unread_replies ? 'یک پاسخ تازه' : 'گفتگو با پشتیبانی', subColor: c.unread_replies ? 'var(--help-i)' : '', fn:"App.go('tickets')" })
-      + Row({ kind:'net', icon:'book', title:'راهنمای اتصال', sub:'قدم به قدم، برای دستگاه خودت', fn:"App.go('guide')" }))}
+      + Row({ kind:'help', icon:'chat', title:'پشتیبانی و تیکت‌ها', sub: c.unread_replies ? 'یک پاسخ تازه' : 'تیکت، دستیار هوشمند و راهنما', subColor: c.unread_replies ? 'var(--help-i)' : '', fn:"App.go('support')" })
+      + Row({ kind:'net', icon:'book', title:'مرکز راهنما', sub:'سوالات پرتکرار هر بخش و آموزش اتصال', fn:"App.go('help')" }))}
     ${Sec('تنظیمات')}
     ${Group(
       Row({ icon:'globe', title:'زبان', sub: LANG_NAMES[I18N.lang][1], fn:'Account.lang()' })
@@ -2089,7 +2269,7 @@ async account(p){
 }
 };
 
-const APP_VERSION = '6.3.0';
+const APP_VERSION = '6.4.0';
 const Account = {
   /* زبان با ربات یکی است: همان ستون users.lang، پس انتخاب اینجا زبان
      ربات را هم عوض می کند. عوض کردنش صفحه را از نو می سازد. */
@@ -2113,36 +2293,22 @@ const Account = {
 const Store = {
   data:null, kind:'vpn', cat:0,
 
-  /* جابه جایی نوع درجا؛ ساخت دوباره کل صفحه، اسکرول را به بالا می برد */
-  deckKeys:[],
-  mountDeck(){
-    SliderFx.hooks['cat-slides'] = () => {};
-    requestAnimationFrame(() => SliderFx.center('cat-slides', Math.max(0, this.deckKeys.indexOf(this.kind)), false));
-  },
-  /* کارت وسط بعد از ایستادن ورق زدن، دسته فعال می شود */
-  settle(){
-    clearTimeout(this._settle);
-    this._settle = setTimeout(() => {
-      const box = $('cat-slides'); if (!box) return;
-      const k = this.deckKeys[+(box.dataset.idx || 0)];
-      if (this._target) { if (k === this._target) this._target = null; return; }
-      if (k && k !== this.kind) this.to(k);
-    }, 170);
-  },
-  tapCat(k){
-    const i = this.deckKeys.indexOf(k);
-    if (k === this.kind) return;
-    this._target = k;
-    SliderFx.center('cat-slides', i, true);
-    this.to(k);
+  keys:[],
+  load(){ return this.kind === 'vpn' ? this.loadVpn() : this.kind === 'number' ? this.loadNumbers() : this.loadAi(); },
+  centerDept(smooth){
+    const b = document.querySelector(`#dept .dept-b[data-k="${this.kind}"]`);
+    if (b) try { b.scrollIntoView({ inline:'center', block:'nearest', behavior: smooth ? 'smooth' : 'auto' }); } catch(e){}
   },
   /* جابه جایی دسته: محتوای قبلی به سمت ورق خوردن بیرون می رود و تازه از سمت دیگر می آید */
   async to(k){
     if (this.kind === k) return;
-    const from = this.deckKeys.indexOf(this.kind), dest = this.deckKeys.indexOf(k);
+    const from = this.keys.indexOf(this.kind), dest = this.keys.indexOf(k);
     this.kind = k; App.haptic();
-    const box = $('cat-slides');
-    const sb = $('store-box');
+    document.querySelectorAll('#dept .dept-b').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+    this.centerDept(true);
+    const hero = $('dept-hero'); if (hero) hero.innerHTML = DeptHero(k);
+    this.soonCards();
+    const sb = $('store-box'); if (!sb) return;
     const rtl = document.documentElement.dir === 'rtl', dir = (dest > from ? 1 : -1) * (rtl ? 1 : -1);
     const calm = document.documentElement.classList.contains('perf-low') || !sb.animate;
     let out = null;
@@ -2155,7 +2321,7 @@ const Store = {
     if (out) out.cancel();
     if (!calm) sb.animate([{ opacity:0, transform:`translateX(${-dir * 36}px) scale(.98)` }, { opacity:1, transform:'none' }],
                           { duration:320, easing:'cubic-bezier(.22,.9,.3,1)' });
-    return k === 'vpn' ? this.loadVpn() : this.loadAi();
+    return this.load();
   },
 
   /* کاتالوگ محصولات آماده یک بار خوانده می شود؛ شمارش دسته ها از همان */
@@ -2163,8 +2329,9 @@ const Store = {
     if (!AI.d || force) { try { AI.d = await api('ai'); } catch(e){ return null; } }
     const counts = {};
     for (const x of AI.d.items || []) counts[x.category] = (counts[x.category] || 0) + 1;
-    const box = $('kinds-box');
-    if (box) { box.innerHTML = CatDeck(this.kind, counts); this.mountDeck(); }
+    const box = $('dept-box');
+    if (box) { box.innerHTML = Depts(this.kind, counts); this.centerDept(false); }
+    const hero = $('dept-hero'); if (hero) hero.innerHTML = DeptHero(this.kind);
     if (this.kind === 'vpn') this.vpnExtra();
     return AI.d;
   },
@@ -2180,6 +2347,8 @@ const Store = {
   async loadVpn(){
     try {
       const d = await api('plans'); this.data = d;
+      if (this.kind !== 'vpn' || !$('store-box')) return;
+      const hero = $('dept-hero'); if (hero) hero.innerHTML = DeptHero('vpn');
       if (d.disabled || !d.categories.length) return void ($('store-box').innerHTML = emptyBox('فعلا پلنی برای فروش نیست'));
       /* بار اول فروشگاه روی ماهانه باز می شود، نه روزانه: پرفروش ترین و
          به صرفه ترین دسته است. بعد از آن، انتخاب خود کاربر می ماند. */
@@ -2251,9 +2420,77 @@ const Store = {
     </div>`;
   },
 
+  /* جستجو در محصولات آماده و پلن های اینترنت آزاد؛ عدد فارسی هم پذیرفته می شود */
+  search(q){
+    const res = $('sh-res'), main = $('sh-main'); if (!res) return;
+    q = String(q || '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim().toLowerCase();
+    if (q.length < 2) { res.innerHTML = ''; main.style.display = ''; return; }
+    main.style.display = 'none';
+    if (!this.data && !this._plq && App.boot.features.shop_vpn !== false)
+      this._plq = api('plans').then(d => { this.data = d; const i = $('sh-q'); if (i) this.search(i.value); }).catch(() => {});
+    if (!AI.d && !this._aiq && App.boot.features.shop_ai)
+      this._aiq = this.catalog().then(() => { const i = $('sh-q'); if (i) this.search(i.value); });
+    const words = q.split(/\s+/).filter(Boolean);
+    const has = t => { t = String(t || '').replace(/‌/g, '').toLowerCase(); return words.every(w => t.includes(w.replace(/‌/g, ''))); };
+    const ai = ((AI.d && AI.d.items) || []).filter(x => has([x.title, x.brand, SHOP_CATS[x.category] ? SHOP_CATS[x.category][2] : '', SHOP_CATS[x.category] ? I18N.t(SHOP_CATS[x.category][2]) : ''].join(' ')));
+    const plans = [];
+    for (const c of (this.data && !this.data.disabled ? this.data.categories : []))
+      for (const x of c.plans) if (has(`${c.title} ${x.title} ${x.data_gb} گیگ ${x.duration_days} روز اینترنت کانفیگ vpn config`)) plans.push(x);
+    const bal = App.boot.user.balance;
+    res.innerHTML = (plans.length ? Sec('پلن‌های اینترنت آزاد', esc(fa(plans.length))) + `<div class="tickets">${plans.slice(0, 8).map(x => this.ticket(x, bal)).join('')}</div>` : '')
+      + (ai.length ? Sec('محصولات آماده', esc(fa(ai.length))) + `<div class="ai-list">${ai.slice(0, 20).map(x => AI.card(x)).join('')}</div>` : '')
+      + (!plans.length && !ai.length ? `<div class="card mx">${emptyBox('چیزی پیدا نشد', 'اسم محصول، حجم (مثلا ۲۰ گیگ) یا مدت را امتحان کن.')}</div>` : '');
+  },
+
+  /* کارت های «به زودی در عبور» ته فروشگاه */
+  soonCards(){
+    const box = $('soon-box'); if (!box) return;
+    const num = this.kind !== 'number';
+    box.innerHTML = Sec('به‌زودی در عبور') + `<div class="soon${num ? '' : ' one'}">
+      ${num ? `<button class="soon-c num" onclick="Store.to('number');$('view').scrollTo({ top:0, behavior:'smooth' })">${ic('phone', 1.4)}<span class="soon-tag">پیش‌نمایش</span>
+        <span class="soon-t">شماره مجازی</span><span class="soon-s">کد تایید تلگرام، واتساپ و گوگل</span></button>` : ''}
+      <button class="soon-c visa" onclick="App.go('visa')">${ic('card', 1.4)}<span class="soon-tag">پیش‌نمایش</span>
+        <span class="soon-t">ویزا کارت مجازی</span><span class="soon-s">پرداخت اشتراک‌ها و خریدهای خارجی</span></button></div>`;
+  },
+
+  /* شماره مجازی (پیش نمایش): سرویس، نوع شماره و کشورها با قیمت تقریبی */
+  nm:{ kind:0, svc:'telegram' },
+  async loadNumbers(){
+    try {
+      const d = await Soon.load(), n = d.number;
+      const box = $('store-box'); if (!box || this.kind !== 'number') return;
+      this.nm.kind = Math.min(this.nm.kind, n.kinds.length - 1);
+      box.innerHTML = `<div class="pv-banner">${ic('clock', 2)}<span>شماره مجازی در حالت پیش‌نمایش است: کشورها و قیمت‌های تقریبی را ببین؛ خرید به‌زودی باز می‌شود.</span></div>`
+        + Sec('برای کدام سرویس؟') + `<div class="nm-svc" id="nm-svc">${n.services.map(x => `<button class="nm-s${x.key === this.nm.svc ? ' on' : ''}" data-k="${x.key}" onclick="Store.nmSvc('${x.key}')">${ic(x.icon)}<span>${esc(x.title)}</span></button>`).join('')}</div>`
+        + Sec('نوع شماره') + Tabs('nm-kind', n.kinds.map(k => ({ t:k.title })), this.nm.kind, 'Store.nmKind')
+        + `<div class="nm-ks" id="nm-ks">${esc(n.kinds[this.nm.kind].sub)}</div>`
+        + Sec('کشورها', 'قیمت تقریبی') + `<div id="nm-list">${this.nmList(n)}</div>`
+        + Sec('چطور کار می‌کند؟') + Steps(n.steps)
+        + '<div class="gap"></div>' + Soon.card('number')
+        + '<div class="gap"></div>' + Group(Row({ kind:'number', icon:'book', title:'سوالات پرتکرار شماره مجازی', sub:'یک‌بار مصرف یا اجاره‌ای، بازگشت وجه و بیشتر', fn:"App.go('help_d','number')" }));
+    } catch (err) { const box = $('store-box'); if (box && this.kind === 'number') box.innerHTML = emptyBox('خوانده نشد', err.message); }
+  },
+  nmList(n){
+    const key = n.kinds[this.nm.kind].key;
+    return Group(n.countries.map(c => `<div class="row nm-row"><span class="nm-flag">${esc(c.flag)}</span>
+        <span class="row-m"><span class="row-t">${esc(c.title)}</span><span class="row-s">${key === 'once' ? 'یک کد تایید' : '30 روز، کد نامحدود'}</span></span>
+        <span class="nm-p">${Soon.price(c[key])}</span></div>`).join(''));
+  },
+  nmKind(i){
+    if (i === this.nm.kind || !Soon.d) return;
+    this.nm.kind = i; App.haptic(); slideTabs('nm-kind', i);
+    const n = Soon.d.number;
+    $('nm-ks').textContent = I18N.t(n.kinds[i].sub);
+    $('nm-list').innerHTML = this.nmList(n);
+  },
+  nmSvc(k){
+    this.nm.svc = k; App.haptic();
+    document.querySelectorAll('#nm-svc .nm-s').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  },
+
   async loadAi(){
     try {
-      const cat = this.kind in SHOP_CATS && this.kind !== 'vpn' ? this.kind : 'ai';
+      const cat = this.kind in SHOP_CATS && this.kind !== 'vpn' && this.kind !== 'number' ? this.kind : 'ai';
       const d = await api('ai'); AI.d = d;
       if (!d.enabled) return void ($('store-box').innerHTML = emptyBox('این بخش فعلا خاموش است'));
       if (d.balance != null) App.setBalance(d.balance);
@@ -2263,8 +2500,8 @@ const Store = {
       const inStock = items.filter(x => x.stock !== 0);
       const feat = items.length > 2 && inStock.length ? inStock.reduce((a, x) => (x.sold || 0) > (a.sold || 0) ? x : a) : null;
       const rest = feat ? items.filter(x => x !== feat) : items;
-      $('store-box').innerHTML = WalletStrip(App.boot.user.balance)
-        + ShopAsk.html()
+      if (!$('store-box') || this.kind !== cat) return;
+      $('store-box').innerHTML = ShopAsk.html()
         + (d.banner ? `<div class="gap" style="height:14px"></div><div class="banner"><img src="${STATIC}ai-banner.jpg" alt="" onerror="this.parentNode.remove()"></div>` : '')
         + Sec('محصولات', esc(fa(items.length) + ' محصول'))
         + (feat ? AI.feature(feat) : '')
@@ -2430,39 +2667,9 @@ async referral(p){
   } catch (err) { p.innerHTML = Top('هم‌سفرها') + emptyBox('خوانده نشد', err.message); }
 },
 
-async tickets(p){
-  p.innerHTML = Top('تیکت‌های من', 'برای دیدن گفتگو روی تیکت بزن') + skel(3, 100);
-  const st = { open:['ai','باز'], answered:['ok','پاسخ داده شده'], closed:['','بسته'] };
-  try {
-    const d = await api('tickets');
-    p.innerHTML = Top('تیکت‌های من', 'برای دیدن گفتگو روی تیکت بزن') + '<div class="gap" style="height:8px"></div>'
-      + (aiOn('support') ? Group(Row({ kind:'ai', icon:'spark', title:'اول از دستیار هوشمند بپرس', sub:'جواب فوری؛ اگر نشد، با یک دکمه تیکت می‌شود', fn:"Assist.open('chat')" })
-          + Row({ kind:'net', icon:'tool', title:'عیب‌یابی اتصال', sub:'با اسکرین‌شات خطا، قدم به قدم', fn:"Assist.open('fix')" })) + '<div class="gap" style="height:14px"></div>' : '')
-      + (d.items.length ? d.items.map(t => { const s = st[t.status] || ['', t.status];
-          return `<button class="card mx" style="display:flex;flex-direction:column;gap:8px;padding:14px 16px;width:calc(100% - 44px);text-align:right;margin-bottom:12px" onclick="App.go('thread',${t.id})">
-            <span style="display:flex;justify-content:space-between;align-items:center;width:100%">${Badge(s[0], s[1])}<span class="n" style="font-size:12px;color:var(--ink-3)">${esc(t.code)}</span></span>
-            <span style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%">${t.has_photo ? '[تصویر] ' : ''}${esc(t.preview)}</span>
-            <span style="display:flex;justify-content:space-between;width:100%;font-size:12px;color:var(--ink-3)"><span>${t.replies ? N(t.replies) + ' پاسخ' : 'بدون پاسخ'}</span>${N(jdate(t.last_at))}</span></button>`; }).join('')
-        : emptyBox('تیکتی نداری', 'اگر مشکلی داری، همین جا بپرس.'))
-      + `<button class="btn btn-p mx" style="width:calc(100% - 44px);margin-top:4px" onclick="App.go('compose')">${ic('plus',2.2)}تیکت جدید</button>`;
-  } catch (err) { p.innerHTML = Top('تیکت‌های من') + emptyBox('خوانده نشد', err.message); }
-},
+async tickets(p){ return Tickets.list(p); },
 
-async thread(p, id){
-  p.innerHTML = Top('گفتگو') + skel(3, 60);
-  const st = { open:'باز', answered:'پاسخ داده شده', closed:'بسته' };
-  try {
-    const t = await api('ticket?id=' + id);
-    p.innerHTML = Top(t.code, `${st[t.status] || t.status} · ${N(t.messages.length)} پیام`) + Thread(t.messages)
-      + (t.status === 'closed'
-        ? `<div class="short" style="margin-top:18px">این گفتگو بسته شده است</div>
-           <div class="foot"><button class="btn btn-p btn-block" onclick="App.go('compose')">${ic('plus',2.2)}تیکت تازه</button></div>`
-        : `<div class="foot reply"><textarea id="tk-body" class="compose reply-in" rows="1" maxlength="2000" placeholder="پاسخت را بنویس…"
-             oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
-           <button class="reply-go" id="tk-go" onclick="Compose.send()" aria-label="ارسال">${ic('up',2.4)}</button></div>`);
-    const sc = p.parentNode; if (sc && sc.scrollHeight) sc.scrollTop = sc.scrollHeight;
-  } catch (err) { p.innerHTML = Top('گفتگو') + emptyBox('خوانده نشد', err.message); }
-}
+async thread(p, id){ return Tickets.view(p, id); }
 };
 /* ═════════ شارژ کیف پول ═════════
    دو قدم، همان ترتیب ربات: مبلغ → کارت و رسید. مبلغ یکتا از سرور می آید
@@ -4087,8 +4294,8 @@ const AdminPlans = {
 const ADM_FIELDS = [
   ['پرداخت کارت به کارت', [['card_number', 'شماره کارت', 'numeric', ''], ['card_holder', 'نام صاحب کارت', 'text', ''], ['bank_name', 'نام بانک', 'text', ''],
     ['min_charge', 'حداقل شارژ (تومان)', 'numeric', 'برای همه روش‌ها']]],
-  ['نرخ‌ها', [['stars_rate', 'هر ستاره تلگرام (تومان)', 'numeric', '۰ یعنی Stars خاموش. تلگرام هنگام برداشت هر ستاره را حدود ۰٫۰۱۳ دلار حساب می‌کند.'],
-    ['crypto_usdt_rate', 'هر ۱ تتر (تومان)', 'numeric', '۰ یعنی کریپتو خاموش'], ['crypto_ton_rate', 'هر ۱ TON (تومان)', 'numeric', '۰ یعنی خودکار: قیمت دلاری TON × نرخ تتر'],
+  ['نرخ‌ها', [['stars_rate', 'هر ستاره تلگرام (تومان)', 'numeric', '۰ یعنی Stars خاموش. تلگرام هنگام برداشت هر ستاره را حدود ۰٫۰۱۳ تتر (USDT) حساب می‌کند.'],
+    ['crypto_usdt_rate', 'هر ۱ تتر (تومان)', 'numeric', '۰ یعنی خودکار از بازار؛ قیمت محصولات هوش مصنوعی هم با همین نرخ تتر حساب می‌شود'], ['crypto_ton_rate', 'هر ۱ TON (تومان)', 'numeric', '۰ یعنی خودکار: قیمت تتری TON × نرخ تتر'],
     ['crypto_fee_percent', 'درصد اضافه کریپتو', 'decimal', '۰ تا ۵۰']]],
 ];
 SubPages.adm_settings = async function(p){
@@ -4154,10 +4361,10 @@ const AdminSettings = {
     return Sec('نرخ بازار (tgju.org)') + Group(`<div class="row"><span class="row-m"><span class="row-t">نرخ خودکار</span>
         <span class="row-s">${m.auto ? 'نرخ‌های صفر از tgju خوانده می‌شوند' : 'خاموش؛ فقط نرخ‌های دستی'}</span></span>
         <span class="row-e">${Admin.sw(m.auto, `AdminSettings.market('toggle', ${!m.auto})`)}</span></div>`)
-      + KV([['دلار', v('usd')], ['تتر', v('usdt')], ['تون کوین', v('ton')], ['به‌روزرسانی', when]])
+      + KV([['تتر (USDT)', v('usdt')], ['تون کوین', v('ton')], ['به‌روزرسانی', when]])
       + (m.error ? `<div class="adm-note" style="color:var(--warn)">${ic('warn',2)} ${esc(m.error)}</div>` : '')
       + `<div class="mx" style="margin-top:10px"><button class="btn btn-s btn-block" id="mkt-r" onclick="AdminSettings.market('refresh')">${ic('refresh',2)}خواندن دوباره از tgju</button></div>
-        <div class="adm-note">دلار برای قیمت محصولات هوش مصنوعی و تتر و تون برای شارژ کریپتو. اگر در فیلدهای بالا عددی بنویسی، همان نرخ دستی اولویت دارد.</div>`;
+        <div class="adm-note">تتر برای قیمت محصولات هوش مصنوعی و شارژ کریپتو، تون برای شارژ با TON. اگر در فیلدهای بالا عددی بنویسی، همان نرخ دستی اولویت دارد.</div>`;
   },
   async market(action, on){
     const b = $('mkt-r'); if (action === 'refresh' && b) { b.disabled = true; b.textContent = 'در حال خواندن…'; }
@@ -4402,7 +4609,14 @@ SubPages.rules = async function(p){
   try {
     const d = await api('rules');
     p.innerHTML = Top('قوانین و حریم خصوصی', d.accepted ? `پذیرفته شده · ${N(jdate(d.accepted_at))}` : 'پیش از خرید، یک بار بخوان و بپذیر')
-      + `<div class="card mx rules">${d.text ? esc(d.text) : 'متن قوانین هنوز تنظیم نشده است.'}</div>`
+      + ((d.sections || []).length && d.text
+          ? `<div class="card mx rules rl-sum" id="rl-sum">${esc(d.text)}<button class="rl-more" onclick="$('rl-sum').classList.add('open');this.remove();App.haptic()">${ic('down', 2)}ادامه خلاصه</button></div>`
+          : `<div class="card mx rules">${d.text ? esc(d.text) : 'متن قوانین هنوز تنظیم نشده است.'}</div>`)
+      + ((d.sections || []).length ? Sec('متن کامل قوانین و مقررات', d.updated ? `به‌روز شده ${N(jdate(d.updated))}` : '')
+          + Group(d.sections.map((x, i) => `<div class="faq-i tr-i"><button class="faq-q" onclick="this.parentElement.classList.toggle('on');App.haptic()">
+              <span class="tr-h"><span class="ic sm">${ic(x.icon)}</span><span>${N(fa(i + 1) + '.')}&nbsp;${esc(x.title)}</span></span>${ic('down', 2)}</button>
+              <div class="faq-a"><ol class="tr-ol">${x.items.map(t => `<li>${esc(t)}</li>`).join('')}</ol></div></div>`).join(''))
+          + '<div class="gap"></div>' : '')
       + (d.accepted ? '' : `<div class="foot"><button class="btn btn-p btn-block" id="rl-go" onclick="Rules.accept()">${ic('check',2.2)}خواندم و می‌پذیرم</button></div>`);
   } catch (err) { p.innerHTML = Top('قوانین') + emptyBox('خوانده نشد', err.message); }
 };
@@ -4420,6 +4634,146 @@ const Rules = {
 
 /* ═════════ راهنمای اتصال ═════════
    دستگاه کاربر از خود تلگرام خوانده می شود و همان اول باز است. */
+/* ═════════ مرکز راهنما ═════════
+   سوالات پرتکرار هر حوزه (کانفیگ، هوش مصنوعی، شماره مجازی، ویزا کارت،
+   پرداخت) از /api/faq؛ همان متن هایی که ربات و دستیار هوشمند هم دارند. */
+const Help = {
+  data:null,
+  KIND:{ vpn:'net', ai:'ai', number:'help', visa:'cash', pay:'cash' },
+  async load(){ if (!this.data) this.data = (await api('faq')).domains; return this.data; },
+  card(d){
+    return `<button class="hc-card" onclick="App.go('help_d','${d.key}')"><span class="hc-n n">${N(fa(d.items.length))} سوال</span>
+      <span class="ic ${this.KIND[d.key] || ''}">${ic(d.icon)}</span>
+      <span><span class="hc-t">${esc(d.title)}</span>${d.preview ? ' ' + Badge('', 'پیش‌نمایش') : ''}<br><span class="hc-s">${esc(d.sub)}</span></span></button>`;
+  },
+  item(x, dom){
+    return `<div class="faq-i"><button class="faq-q" onclick="this.parentElement.classList.toggle('on');App.haptic()"><span>${esc(x.q)}</span>${ic('down',2)}</button>
+      <div class="faq-a">${esc(x.a)}</div>${dom ? `<div class="faq-dom" style="display:none"></div>` : ''}</div>`;
+  },
+  search(q){
+    const box = $('hc-res'), cards = $('hc-cards'); if (!box || !this.data) return;
+    q = (q || '').trim();
+    if (q.length < 2) { box.innerHTML = ''; cards.style.display = ''; return; }
+    const words = q.split(/\s+/).filter(Boolean);
+    const hits = [];
+    for (const d of this.data) for (const x of d.items) if (words.every(w => (x.q + ' ' + x.a).includes(w))) hits.push([d, x]);
+    cards.style.display = 'none';
+    box.innerHTML = hits.length
+      ? Sec(`${N(fa(hits.length))} نتیجه`) + Group(hits.slice(0, 20).map(([d, x]) => `<div class="faq-i"><div class="faq-dom">${esc(d.title)}</div>
+          <button class="faq-q" onclick="this.parentElement.classList.toggle('on');App.haptic()"><span>${esc(x.q)}</span>${ic('down',2)}</button>
+          <div class="faq-a">${esc(x.a)}</div></div>`).join(''))
+      : `<div class="card mx">${emptyBox('چیزی پیدا نشد', 'کلمه دیگری امتحان کن یا از پشتیبانی بپرس.')}</div>`;
+  },
+  askBtn(){
+    return `<div class="mx" style="margin-top:16px;display:grid;grid-template-columns:${aiOn('support') ? '1fr 1fr' : '1fr'};gap:8px">
+      ${aiOn('support') ? `<button class="btn btn-s" onclick="Assist.open('chat')">${ic('spark')}از دستیار بپرس</button>` : ''}
+      <button class="btn btn-s" onclick="App.go('compose')">${ic('chat')}تیکت به پشتیبانی</button></div>`;
+  }
+};
+SubPages.help = async function(p){
+  p.innerHTML = Top('مرکز راهنما', 'سوالات پرتکرار هر بخش') + skel(3, 110);
+  try {
+    const doms = await Help.load();
+    p.innerHTML = Top('مرکز راهنما', 'سوالات پرتکرار هر بخش')
+      + `<label class="hc-search">${ic('eye',2)}<input type="search" placeholder="${esc(I18N.t('جستجو در سوال‌ها…'))}" oninput="Help.search(this.value)"></label>`
+      + `<div id="hc-res"></div><div id="hc-cards"><div class="hc-grid">${doms.map(d => Help.card(d)).join('')}
+          <button class="hc-card wide" onclick="App.go('guide')"><span class="ic net">${ic('book')}</span><span><span class="hc-t">آموزش اتصال کانفیگ</span><br><span class="hc-s">قدم به قدم برای اندروید، آیفون، ویندوز و مک</span></span></button>
+        </div>${Help.askBtn()}</div>`;
+  } catch (err) { p.innerHTML = Top('مرکز راهنما') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.help_d = async function(p, key){
+  p.innerHTML = Top('مرکز راهنما') + skel(4, 60);
+  try {
+    const d = (await Help.load()).find(x => x.key === key);
+    if (!d) { p.innerHTML = Top('مرکز راهنما') + emptyBox('این بخش پیدا نشد'); return; }
+    const shop = { number:"Store.kind='number';App.tab('store')", visa:"App.go('visa')", ai:"Store.kind='ai';App.tab('store')", vpn:"Store.kind='vpn';App.tab('store')", pay:"App.go('topup')" }[key];
+    p.innerHTML = Top(d.title, esc(d.sub))
+      + (d.preview ? `<div class="pv-banner">${ic('clock',2)}<span>این خدمت در حالت پیش‌نمایش است: می‌توانی جزئیات را ببینی ولی فروش هنوز باز نشده.</span></div>` : '')
+      + Group(d.items.map(x => Help.item(x)).join(''))
+      + (shop ? `<div class="mx" style="margin-top:14px"><button class="btn btn-p btn-block" style="height:48px" onclick="${shop}">${ic(d.preview ? 'eye' : 'store')}${d.preview ? `<span>دیدن صفحه</span>&nbsp;<span>${esc(d.title)}</span>` : key === 'pay' ? 'شارژ کیف پول' : 'رفتن به فروشگاه'}</button></div>` : '')
+      + Help.askBtn();
+    const first = p.querySelector('.faq-i'); if (first) first.classList.add('on');
+  } catch (err) { p.innerHTML = Top('مرکز راهنما') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.help.noNav = SubPages.help_d.noNav = true;
+
+/* ═════════ خدمات پیش نمایش: شماره مجازی و ویزا کارت ═════════
+   داده از /api/soon؛ قیمت ها به تتر و با نرخ تتر عبور تقریبی به تومان. */
+const Soon = {
+  d:null,
+  async load(force){ if (!this.d || force) this.d = await api('soon'); return this.d; },
+  toman(usdt){ const r = this.d && this.d.usdt_rate; return r ? Math.round(usdt * r / 1000) * 1000 : 0; },
+  price(usdt){
+    const t = this.toman(usdt);
+    return `<b>${N(fa(usdt))} <small>تتر</small></b>${t ? `<span>≈ ${N(fa(t))} تومان</span>` : ''}`;
+  },
+  card(kind){
+    const w = (this.d && this.d.waitlist && this.d.waitlist[kind]) || { count:0, joined:false };
+    return `<div class="card wl mx" id="wl-${kind}"><span class="ic ${w.joined ? 'net' : 'ai'}">${ic(w.joined ? 'check' : 'bell', 2)}</span>
+      <div class="wl-m"><div class="wl-t">${w.joined ? 'در فهرست انتظاری' : 'وقتی فعال شد خبرم کن'}</div>
+        <div class="wl-s">${w.joined ? 'به محض باز شدن فروش، در ربات خبرت می‌کنیم' : 'اولین نفری باش که باخبر می‌شود'}${w.count ? ` · ${N(fa(w.count))} نفر منتظرند` : ''}</div></div>
+      <button class="btn btn-sm ${w.joined ? 'btn-s' : 'btn-p'}" onclick="Soon.toggle('${kind}')">${w.joined ? 'لغو' : 'خبرم کن'}</button></div>`;
+  },
+  async toggle(kind){
+    if (!this.d || this._busy) return;
+    this._busy = true;
+    try {
+      const r = await api('soon/join', { kind, on: !this.d.waitlist[kind].joined });
+      this.d.waitlist[kind] = r.waitlist;
+      const el = $('wl-' + kind); if (el) el.outerHTML = this.card(kind);
+      App.notify('success');
+      App.toast(r.waitlist.joined ? 'ثبت شد؛ به محض فعال شدن خبرت می‌کنیم' : 'از فهرست انتظار خارج شدی');
+    } catch (e) { App.toast(e.message, true); }
+    this._busy = false;
+  }
+};
+
+const Visa = {
+  on:null,
+  face(c){
+    const name = String((App.boot && App.boot.user && App.boot.user.name) || '').replace(/[^A-Za-z .'-]/g, '').trim() || 'OBOUR MEMBER';
+    return `<span class="vc-holo"></span>
+      <div class="vc-h"><span class="vc-o">OBOUR</span><span class="vc-k">${esc(c.title)}</span></div>
+      <div class="vc-chip"></div>
+      <div class="vc-num n">4•••  ••••  ••••  ••••</div>
+      <div class="vc-f"><span class="vc-hold"><small>CARD HOLDER</small>${esc(name.slice(0, 22))}</span><span class="vc-brand">VISA</span></div>`;
+  },
+  plan(c, i){
+    return `<button class="vp${i === this.on ? ' on' : ''}" onclick="Visa.pick(${i})">
+      <div class="vp-h"><span class="vp-t">${esc(c.title)}</span>${c.best ? Badge('ai', 'پیشنهاد ما') : ''}<span class="vp-r">${ic('check', 3)}</span></div>
+      <div class="vp-s">${esc(c.sub)}</div>
+      <div class="vp-g"><div>هزینه صدور<b>${Soon.price(c.issue)}</b></div><div>کارمزد هر شارژ<b>${N(fa(c.topup_pct))}٪</b></div>
+        <div>کمترین شارژ<b>${N(fa(c.min_topup))} تتر</b></div><div>اعتبار کارت<b>${esc(c.valid)}</b></div></div></button>`;
+  },
+  pick(i){
+    const v = Soon.d && Soon.d.visa; if (!v || i === this.on) return;
+    this.on = i; App.haptic();
+    document.querySelectorAll('#vp-list .vp').forEach((b, j) => b.classList.toggle('on', j === i));
+    const card = $('vcard'); if (card) { card.className = 'vcard t-' + v.cards[i].key; card.innerHTML = this.face(v.cards[i]); }
+  }
+};
+SubPages.visa = async function(p){
+  p.innerHTML = Top('ویزا کارت مجازی', 'پیش‌نمایش') + skel(1, 210) + skel(2, 120);
+  try {
+    const v = (await Soon.load()).visa;
+    if (Visa.on == null) Visa.on = Math.max(0, v.cards.findIndex(c => c.best));
+    if (Visa.on == null || Visa.on >= v.cards.length) Visa.on = 0;
+    const c = v.cards[Visa.on];
+    p.innerHTML = Top('ویزا کارت مجازی', 'پیش‌نمایش · صدور به‌زودی')
+      + `<div class="vc-wrap mx"><div class="${'vcard t-' + c.key}" id="vcard">${Visa.face(c)}</div></div>`
+      + `<div class="pv-banner">${ic('clock', 2)}<span>ویزا کارت در حالت پیش‌نمایش است: انواع کارت و کارمزدهای تقریبی را ببین؛ صدور به‌زودی باز می‌شود.</span></div>`
+      + Sec('نوع کارت', 'قیمت تقریبی') + `<div class="vp-list" id="vp-list">${v.cards.map((x, i) => Visa.plan(x, i)).join('')}</div>`
+      + Sec('کجا کار می‌کند؟') + `<div class="vc-works mx">${v.works.map(w => `<span>${esc(w)}</span>`).join('')}</div>`
+      + Sec('امکانات') + `<div class="hc-grid">${v.features.map(f => `<div class="hc-card"><span class="ic cash">${ic(f.icon)}</span>
+          <span><span class="hc-t">${esc(f.title)}</span><br><span class="hc-s">${esc(f.sub)}</span></span></div>`).join('')}</div>`
+      + Sec('چطور کار می‌کند؟') + Steps(v.steps)
+      + '<div class="gap"></div>' + Soon.card('visa')
+      + '<div class="gap"></div>' + Group(Row({ kind:'cash', icon:'book', title:'سوالات پرتکرار ویزا کارت', sub:'شارژ، کارمزد، امنیت و سایت‌ها', fn:"App.go('help_d','visa')" }))
+      + Help.askBtn();
+  } catch (err) { p.innerHTML = Top('ویزا کارت مجازی') + emptyBox('خوانده نشد', err.message); }
+};
+SubPages.visa.noNav = true;
+
 SubPages.guide = async function(p){
   p.innerHTML = Top('راهنمای اتصال') + skel(1, 260);
   try {
@@ -4605,35 +4959,196 @@ const ShopAsk = {
   },
 };
 
-/* ═════════ تیکت جدید ═════════ */
-SubPages.compose = function(p){
-  p.innerHTML = Top('تیکت جدید', 'پاسخ پشتیبانی هم اینجا و هم در ربات می‌رسد') + `
-    <div class="card mx" style="padding:14px">
-      <textarea id="tk-body" class="compose" rows="7" maxlength="2000" placeholder="مشکلت را بنویس؛ مثلا کدام سرویس، روی چه دستگاهی، و چه پیغامی می‌بینی." oninput="Compose.count(this)"></textarea>
-      <div class="short" style="text-align:left" id="tk-count"><span class="n">0</span> / <span class="n">2000</span></div>
-    </div>
-    <div class="short" style="margin:12px var(--pad) 0;text-align:right">برای فرستادن عکس، فعلا از ربات استفاده کن.</div>
-    <div class="foot"><button class="btn btn-p btn-block" id="tk-go" onclick="Compose.send()">${ic('chat',2)}ارسال به پشتیبانی</button></div>`;
+/* ═════════ پشتیبانی و تیکت ═════════
+   مثل سامانه های پشتیبانی سایت ها: هر تیکت موضوع، دسته، اولویت و مورد
+   مرتبط (سرویس، سفارش یا تراکنش) دارد؛ چند تیکت باز همزمان، عکس پیوست،
+   خط زمان وضعیت، بستن و امتیاز بعد از حل شدن. پاسخ پشتیبانی هم در ربات
+   و هم این جا می رسد. */
+const TK_ST = { open:['ai','در انتظار پاسخ'], answered:['ok','پاسخ داده شد'], closed:['','بسته شده'] };
+const TK_PR = { normal:['','عادی'], high:['warn','مهم'], urgent:['bad','فوری'] };
+const Tickets = {
+  data:null, filter:'open', opts:null,
+  badge(t){ const s = TK_ST[t.status] || ['', t.status]; return Badge(s[0], s[1]); },
+  async list(p){
+    p.innerHTML = Top('تیکت‌های من') + skel(3, 96);
+    try {
+      this.data = await api('tickets');
+      p.innerHTML = Top('تیکت‌های من', `${N(fa(this.data.open))} باز · ${N(fa(this.data.items.length))} کل`)
+        + Tabs('tk-tabs', [{ t:'باز', s:fa(this.data.open) }, { t:'بسته', s:fa(this.data.items.length - this.data.open) }, { t:'همه' }],
+               ['open', 'closed', 'all'].indexOf(this.filter), 'Tickets.pick')
+        + '<div id="tk-list" style="margin-top:14px"></div>'
+        + `<div class="foot"><button class="btn btn-p btn-block" onclick="App.go('compose')">${ic('plus',2.2)}تیکت جدید</button></div>`;
+      this.renderList();
+    } catch (err) { p.innerHTML = Top('تیکت‌های من') + emptyBox('خوانده نشد', err.message); }
+  },
+  pick(i){ this.filter = ['open', 'closed', 'all'][i]; App.haptic(); slideTabs('tk-tabs', i); this.renderList(); },
+  card(t){
+    const pr = TK_PR[t.priority] || TK_PR.normal;
+    return `<button class="tk-card${t.unread ? ' unread' : ''}" onclick="App.go('thread',${t.id})">
+      <span class="tkc-top"><span class="ic sm ${t.category === 'ai' ? 'ai' : t.category === 'pay' ? 'cash' : 'net'}">${ic(t.category_icon || 'chat')}</span>
+        <span class="tk-sub">${esc(t.subject || t.preview)}</span>${t.unread ? `<span class="tk-dot">${N(fa(t.unread))}</span>` : ''}</span>
+      <span class="tk-prev">${t.last_side === 'support' ? '<b>پشتیبانی:</b> ' : ''}${esc(t.preview)}</span>
+      <span class="tk-meta">${this.badge(t)}${t.priority !== 'normal' ? Badge(pr[0], pr[1]) : ''}${t.category_title ? `<span class="tk-cat">${esc(t.category_title)}</span>` : ''}
+        <span class="tk-when n">${esc(t.code)} · ${N(jdate(t.last_at))}</span></span></button>`;
+  },
+  renderList(){
+    const box = $('tk-list'); if (!box || !this.data) return;
+    const items = this.data.items.filter(t => this.filter === 'all' || (this.filter === 'open' ? t.status !== 'closed' : t.status === 'closed'));
+    box.innerHTML = items.length ? `<div class="tk-list">${items.map(t => this.card(t)).join('')}</div>`
+      : `<div class="card mx">${emptyBox(this.filter === 'open' ? 'تیکت بازی نداری' : 'تیکتی نیست', this.filter === 'open' ? 'اگر مشکلی داری، یک تیکت تازه بساز.' : '')}</div>`;
+  },
+
+  /* ── یک تیکت ── */
+  cur:null,
+  async view(p, id){
+    p.innerHTML = Top('تیکت') + skel(3, 70);
+    try {
+      const t = this.cur = await api('ticket?id=' + id);
+      const pr = TK_PR[t.priority] || TK_PR.normal;
+      const ev = { created:['plus','تیکت ساخته شد'], answered:['chat','اولین پاسخ پشتیبانی'], closed:['check','بسته شد'] };
+      const rel = t.related ? `<div class="kv"><span class="kv-k">مرتبط با</span><span class="kv-v">${esc(t.related.title)} <span style="color:var(--ink-3)">· ${esc(t.related.sub)}</span></span></div>` : '';
+      p.innerHTML = Top(t.subject || t.code, `<span class="n">${esc(t.code)}</span>`)
+        + `<div class="tk-head card mx"><div class="tk-head-r">${this.badge(t)}${Badge(pr[0], 'اولویت ' + pr[1])}${t.category_title ? `<span class="tk-cat">${esc(t.category_title)}</span>` : ''}</div>
+            <div class="group" style="margin:12px 0 0;border:0">
+              <div class="kv"><span class="kv-k">ساخته شده</span><span class="kv-v n">${N(jfull(t.created_at))}</span></div>
+              <div class="kv"><span class="kv-k">آخرین تغییر</span><span class="kv-v n">${N(jfull(t.updated_at))}</span></div>${rel}</div>
+            <div class="tk-tl">${t.events.map(e => `<span class="tk-ev"><i>${ic((ev[e.kind] || ['clock'])[0], 2)}</i>${esc((ev[e.kind] || ['', e.kind])[1])}<small class="n">${N(jdate(e.at))}</small></span>`).join('')}</div>
+          </div>`
+        + Thread(t.messages)
+        + (t.status === 'closed' ? this.rateBox(t) : `<div class="short" style="margin:16px var(--pad) 0"><button class="tk-close" onclick="Tickets.close(${t.id})">${ic('check',2)}مشکلم حل شد؛ تیکت را ببند</button></div>`)
+        + (t.status === 'closed'
+          ? `<div class="foot"><button class="btn btn-p btn-block" onclick="App.go('compose')">${ic('plus',2.2)}تیکت تازه</button></div>`
+          : `<div class="foot reply"><label class="reply-att" id="tk-att" aria-label="پیوست عکس">${ic('image',2)}<input type="file" accept="image/*" hidden onchange="Compose.pick(this)"></label>
+             <textarea id="tk-body" class="compose reply-in" rows="1" maxlength="2000" placeholder="پاسخت را بنویس…"
+               oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+             <button class="reply-go" id="tk-go" onclick="Compose.reply(${t.id})" aria-label="ارسال">${ic('up',2.4)}</button></div>`);
+      Compose.img = null;
+      this.loadPhotos(p);
+      const sc = p.parentNode; if (sc && sc.scrollHeight) sc.scrollTop = sc.scrollHeight;
+    } catch (err) { p.innerHTML = Top('تیکت') + emptyBox('خوانده نشد', err.message); }
+  },
+  rateBox(t){
+    if (t.rating) return `<div class="tk-rated mx">${ic('star',2)}امتیاز تو: <b class="n">${N(fa(t.rating))} از ۵</b>${t.rating_note ? ` · ${esc(t.rating_note)}` : ''}</div>`;
+    return `<div class="card mx tk-rate" style="margin-top:16px"><div class="tk-rate-t">پاسخگویی پشتیبانی چطور بود؟</div>
+      <div class="tk-stars" id="tk-stars">${[1,2,3,4,5].map(i => `<button onclick="Tickets.star(${i})" aria-label="${i}">${ic('star',2)}</button>`).join('')}</div>
+      <textarea id="tk-note" class="compose" rows="2" maxlength="300" placeholder="نظرت (اختیاری)"></textarea>
+      <button class="btn btn-s btn-block" onclick="Tickets.rate(${t.id})">ثبت امتیاز</button></div>`;
+  },
+  stars:0,
+  star(i){ this.stars = i; App.haptic(); document.querySelectorAll('#tk-stars button').forEach((b, k) => b.classList.toggle('on', k < i)); },
+  async rate(id){
+    if (!this.stars) return App.toast('یک تا پنج ستاره انتخاب کن', true);
+    try { await api('ticket/rate', { id, rating:this.stars, note:($('tk-note') || {}).value || '' }); App.notify('success'); App.toast('ممنون از نظرت'); this.stars = 0; App.renderSub(); }
+    catch (err) { App.toast(err.message, true); }
+  },
+  async close(id){
+    if (!confirm(I18N.t('تیکت بسته شود؟ بعدا می‌توانی تیکت تازه بسازی.'))) return;
+    try { await api('ticket/close', { id }); App.notify('success'); App.toast('تیکت بسته شد'); App.renderSub(); }
+    catch (err) { App.toast(err.message, true); }
+  },
+  /* عکس پیام ها با همان هدر احراز هویت گرفته و به صورت blob نشان داده می شوند */
+  async loadPhotos(root){
+    for (const el of root.querySelectorAll('[data-photo]')) {
+      try {
+        const res = await fetch(BASE + 'ticket/photo?id=' + el.dataset.photo, { headers:{ 'X-Init-Data': INIT } });
+        if (!res.ok) throw new Error();
+        const url = URL.createObjectURL(await res.blob());
+        el.innerHTML = `<img src="${url}" alt="" onclick="window.open(this.src)">`; el.classList.add('ok');
+      } catch (e) { el.innerHTML = ic('image') + esc(I18N.t('عکس باز نشد')); }
+    }
+  },
+};
+
+/* ── تیکت تازه ── */
+SubPages.compose = async function(p){
+  Compose.reset();
+  p.innerHTML = Top('تیکت جدید', 'پاسخ پشتیبانی هم این‌جا و هم در ربات می‌رسد') + skel(3, 80);
+  try { Tickets.opts = Tickets.opts || await api('ticket/related'); } catch (e) { Tickets.opts = { categories:[], priorities:[], related:[] }; }
+  const o = Tickets.opts;
+  p.innerHTML = Top('تیکت جدید', 'پاسخ پشتیبانی هم این‌جا و هم در ربات می‌رسد')
+    + Sec('درباره چیست؟') + `<div class="tk-cats">${o.categories.map(c => `<button class="tk-catb" data-cat="${c.key}" onclick="Compose.cat('${c.key}')">${ic(c.icon)}<span>${esc(c.title)}</span></button>`).join('')}</div>`
+    + Sec('موضوع') + `<div class="card mx" style="padding:4px 14px"><input id="tk-subj" class="tk-input" maxlength="120" placeholder="${esc(I18N.t('خلاصه مشکل در یک جمله'))}"></div>`
+    + (o.related.length ? Sec('مرتبط با (اختیاری)') + `<div class="card mx" style="padding:4px 14px"><select id="tk-rel" class="tk-input"><option value="">${esc(I18N.t('هیچ‌کدام'))}</option>
+        ${o.related.map(r => `<option value="${r.value}">${esc(r.title)}${r.sub ? ' · ' + esc(r.sub) : ''}</option>`).join('')}</select></div>` : '')
+    + Sec('اولویت') + `<div class="tk-seg" id="tk-pr">${o.priorities.map(x => `<button data-pr="${x.key}" class="${x.key === 'normal' ? 'on' : ''}" onclick="Compose.pr('${x.key}')">${esc(x.title)}</button>`).join('')}</div>`
+    + Sec('توضیح') + `<div class="card mx" style="padding:14px">
+        <textarea id="tk-body" class="compose" rows="6" maxlength="2000" placeholder="${esc(I18N.t('هرچه دقیق‌تر بهتر: کدام سرویس، روی چه دستگاهی، چه پیغامی می‌بینی.'))}" oninput="Compose.count(this)"></textarea>
+        <div class="tk-row"><label class="tk-attach" id="tk-att">${ic('image',2)}<span>پیوست عکس</span><input type="file" accept="image/*" hidden onchange="Compose.pick(this)"></label>
+          <span class="short n" id="tk-count">0 / 2000</span></div></div>`
+    + `<div class="foot"><button class="btn btn-p btn-block" id="tk-go" onclick="Compose.create()">${ic('chat',2)}ثبت تیکت</button></div>`;
+  if (Compose.preset) Compose.cat(Compose.preset);
 };
 SubPages.compose.noNav = true;
 const Compose = {
-  busy:false,
-  count(el){ const c = $('tk-count'); if (c) c.innerHTML = `<span class="n">${fa(el.value.length)}</span> / <span class="n">2000</span>`; },
-  async send(threadAfter){
-    const el = $('tk-body'); const body = el ? el.value.trim() : '';
-    if (body.length < 2) return App.toast('پیامت را بنویس', true);
+  busy:false, img:null, category:'', priority:'normal', preset:'',
+  reset(){ this.img = null; this.category = ''; this.priority = 'normal'; },
+  count(el){ const c = $('tk-count'); if (c) c.textContent = fa(el.value.length) + ' / ۲۰۰۰'; },
+  cat(k){ this.category = k; App.haptic(); document.querySelectorAll('.tk-catb').forEach(b => b.classList.toggle('on', b.dataset.cat === k)); },
+  pr(k){ this.priority = k; App.haptic(); document.querySelectorAll('#tk-pr button').forEach(b => b.classList.toggle('on', b.dataset.pr === k)); },
+  pick(input){
+    const f = input.files && input.files[0]; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { const img = new Image(); img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      this.img = c.toDataURL('image/jpeg', 0.85);
+      const a = $('tk-att'); if (a) a.classList.add('has');
+      App.haptic(); App.toast(I18N.t('عکس پیوست شد'));
+    }; img.onerror = () => App.toast('این فایل عکس نیست', true); img.src = rd.result; };
+    rd.readAsDataURL(f);
+  },
+  async create(){
+    const subject = ($('tk-subj') || {}).value.trim(), body = ($('tk-body') || {}).value.trim();
+    if (!this.category) return App.toast('دسته تیکت را انتخاب کن', true);
+    if (subject.length < 3) return App.toast('موضوع را بنویس', true);
+    if (body.length < 2 && !this.img) return App.toast('مشکلت را بنویس', true);
+    await this.post({ subject, body, category:this.category, priority:this.priority, related:($('tk-rel') || {}).value || '' }, 'ثبت تیکت');
+  },
+  async reply(id){
+    const body = ($('tk-body') || {}).value.trim();
+    if (body.length < 2 && !this.img) return App.toast('پیامت را بنویس', true);
+    await this.post({ thread_id:id, body }, '');
+  },
+  async post(payload, label){
     if (this.busy) return; this.busy = true;
-    const b = $('tk-go'); if (b) { b.disabled = true; b.textContent = 'در حال ارسال…'; }
+    const b = $('tk-go'); if (b) { b.disabled = true; if (label) b.textContent = 'در حال ارسال…'; }
     try {
-      const r = await api('ticket/send', { body });
-      App.notify('success');
-      App.toast(r.is_new ? 'تیکت ' + r.code + ' ساخته شد' : 'به تیکت ' + r.code + ' اضافه شد');
-      App.stack = App.stack.filter(x => x[0] !== 'compose' && x[0] !== 'thread');
-      App.go('thread', r.thread_id);
-    } catch (err) { App.toast(err.message, true); if (b) { b.disabled = false; b.innerHTML = ic('chat',2) + 'ارسال به پشتیبانی'; } }
+      const r = await api('ticket/send', this.img ? { ...payload, image:this.img } : payload);
+      App.notify('success'); this.img = null;
+      if (r.is_new) {
+        App.toast('تیکت ' + r.code + ' ثبت شد');
+        App.stack = App.stack.filter(x => x[0] !== 'compose' && x[0] !== 'thread');
+        App.go('thread', r.thread_id);
+      } else App.renderSub();
+    } catch (err) { App.toast(err.message, true); if (b) { b.disabled = false; if (label) b.innerHTML = ic('chat',2) + label; } }
     finally { this.busy = false; }
-  }
+  },
+  /* سازگاری با فراخوان های قدیمی (دستیار هوشمند) */
+  async send(){ const t = Tickets.cur; return t ? this.reply(t.id) : this.create(); }
 };
+
+/* ── مرکز پشتیبانی ── */
+SubPages.support = async function(p){
+  p.innerHTML = Top('پشتیبانی', 'هر روز، معمولا کمتر از چند ساعت') + skel(2, 120);
+  let d = { items:[], open:0, unread:0 };
+  try { d = Tickets.data = await api('tickets'); } catch (e) {}
+  const recent = d.items.filter(t => t.status !== 'closed').slice(0, 3);
+  p.innerHTML = Top('پشتیبانی', 'هر روز، معمولا کمتر از چند ساعت')
+    + `<div class="sp-hero mx"><div class="sp-hero-t">چطور کمکت کنیم؟</div>
+        <div class="sp-hero-s">اول جواب سوالت را در مرکز راهنما ببین؛ اگر نبود، دستیار هوشمند فوری جواب می‌دهد یا تیکت بزن.</div>
+        <div class="sp-hero-b"><button class="btn btn-p" onclick="App.go('compose')">${ic('plus',2.2)}تیکت جدید</button>
+          <button class="btn btn-s" onclick="App.go('help')">${ic('book',2)}مرکز راهنما</button></div></div>`
+    + Sec('راه‌های سریع') + Group(
+        (aiOn('support') ? Row({ kind:'ai', icon:'spark', title:'دستیار هوشمند', sub:'جواب فوری؛ اگر نشد با یک دکمه تیکت می‌شود', fn:"Assist.open('chat')" })
+          + Row({ kind:'net', icon:'tool', title:'عیب‌یابی اتصال', sub:'با اسکرین‌شات خطا، قدم به قدم', fn:"Assist.open('fix')" }) : '')
+        + Row({ kind:'help', icon:'chat', title:'تیکت‌های من', sub:d.unread ? `${fa(d.unread)} پاسخ خوانده‌نشده` : `${fa(d.open)} تیکت باز`,
+                subColor:d.unread ? 'var(--help-i)' : '', fn:"App.go('tickets')" })
+        + Row({ kind:'net', icon:'book', title:'آموزش اتصال', sub:'قدم به قدم برای هر دستگاه', fn:"App.go('guide')" })
+        + Row({ icon:'shield', title:'قوانین و حریم خصوصی', sub:'شرایط خدمات، بازگشت وجه و گارانتی', fn:"App.go('rules')" }))
+    + (recent.length ? Sec('تیکت‌های باز', `<button class="sec-a" onclick="App.go('tickets')">همه</button>`) + `<div class="tk-list">${recent.map(t => Tickets.card(t)).join('')}</div>` : '');
+};
+SubPages.support.noNav = true;
 
 /* گفتگو تمام صفحه است: نوار ناوبری کنار می رود و جایش دکمه پاسخ می نشیند */
 SubPages.thread.noNav = true;
@@ -4662,7 +5177,7 @@ function Bubble(m, first, tail, turn){
   if (turn) cls.push('turn');
   return `<div class="${cls.join(' ')}"><div class="bubble ${mine ? 'bubble-mine' : 'bubble-theirs'}">`
     + (!mine && first ? `<span class="bubble-who">پشتیبانی</span>` : '')
-    + (m.has_photo ? `<div class="bubble-photo">${ic('image')}تصویر — در ربات ببین</div>` : '')
+    + (m.has_photo ? `<div class="bubble-photo" ${m.id ? `data-photo="${m.id}"` : ''}>${ic('image')}${m.id ? 'در حال بارگذاری عکس…' : 'تصویر'}</div>` : '')
     + (m.body ? `<span class="bubble-text">${esc(m.body)}</span>` : '')
     /* ساعت بعد از متن: شناوری که بعد از متن بیاید، اگر جا باشد روی
        همان خط آخر می نشیند و اگر نباشد به خط بعد می رود. */

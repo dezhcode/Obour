@@ -54,15 +54,16 @@ async def cb_services(call: CallbackQuery, db: Database, user: dict) -> None:
         await call.answer()
     except Exception:  # noqa: BLE001
         pass
+    from app import features
+
     services = await db.user_services(user["id"])
-    if not services:
-        return await edit_or_send(
-            call.message, texts.SERVICES_EMPTY, keyboards.back_menu()
-        )
+    orders = [o for o in await db.user_ai_orders(user["id"], limit=50) if o.get("status") != "failed"]
+    active = sum(1 for s in services if service_status(s["expire_at"], duration_days=s.get("duration_days")) != "expired")
+    ai_on = features.is_on("shop_ai")
     await edit_or_send(
         call.message,
-        texts.SERVICES_LIST.format(count=len(services)),
-        keyboards.services_kb(services),
+        texts.SERVICES_HUB.format(vpn=len(services), vpn_active=active, ai=len(orders)),
+        keyboards.my_services_kb(services, len(orders), ai_on),
     )
 
 

@@ -114,7 +114,9 @@ def cost_of(p: dict, months: int | None = None) -> float:
 
 
 def currency_of(p: dict, wallet: str) -> str:
-    return str((p.get("price") or {}).get("currency") or wallet or "USD").upper()
+    from app.canboso import norm_currency
+
+    return norm_currency((p.get("price") or {}).get("currency") or wallet or "USDT")
 
 
 # ═══════════════════ دسته، تصویر و آموزش ═══════════════════

@@ -1328,7 +1328,7 @@ async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
         return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
     cat["items"] = [x for x in cat["items"] if x["priced"]]
     if not cat["items"]:
-        return await call.answer("محصولی نیامد؛ نرخ ارز کیف پول (دلار یا دونگ) را تنظیم کرده ای؟", show_alert=True)
+        return await call.answer("محصولی نیامد؛ نرخ ارز کیف پول (تتر یا دونگ) را تنظیم کرده ای؟", show_alert=True)
     cfg = await pricing.load(db)
     rows = []
     for x in cat["items"][:25]:
@@ -1707,6 +1707,16 @@ async def cb_rules_preview(call: CallbackQuery, db: Database) -> None:
         reply_markup=keyboards.rules_kb(),
     )
     await call.answer()
+
+
+@router.callback_query(F.data == "adm:rules:default")
+async def cb_rules_default(call: CallbackQuery, db: Database) -> None:
+    """متن ادمین با خلاصه کامل پیش فرض (app/terms.py) عوض می شود؛ متن کامل بخش به بخش در مینی اپ است."""
+    from app import terms
+
+    await db.set_setting("rules_text", terms.SUMMARY)
+    await _rules_home(call.message, db)
+    await call.answer("متن پیش‌فرض کامل جایگزین شد ✅", show_alert=True)
 
 
 @router.callback_query(F.data == "adm:rules:edit")
@@ -3038,17 +3048,25 @@ async def admin_support_reply(message: Message, db: Database) -> None:
     # جواب کدام سوالش است. اگر پیام قدیمی پاک شده باشد، تلگرام خطا
     # می دهد و بدون ریپلای دوباره تلاش می کنیم.
     reply_to = await db.last_user_msg_id(user["id"]) if user else None
+    # تیکتی که ادمین پیامش را دیده؛ اگر ثبت نشده بود (پیام های قدیمی)، تیکت باز آخر
+    thread = None
+    if user:
+        tid = await db.get_support_thread(message.from_user.id, message.reply_to_message.message_id)
+        thread = await db.thread_root(tid, user["id"]) if tid else None
+        thread = thread or await db.open_thread(user["id"])
     try:
         async def _deliver(rt: int | None) -> None:
-            if body and not message.photo:
-                with i18n.using(i18n.lang_of(user)):
+            with i18n.using(i18n.lang_of(user)):
+                kb = keyboards.ticket_reply_user_kb(int(thread["id"])) if thread else None
+                code = (thread or {}).get("code")
+                if body and not message.photo:
                     await message.bot.send_message(
                         user_tg,
-                        texts.SUPPORT_REPLY_GOT.format(body=body),
-                        reply_to_message_id=rt,
+                        texts.SUPPORT_REPLY_GOT.format(body=body) + (texts.SUPPORT_REPLY_CODE.format(code=code) if code else ""),
+                        reply_to_message_id=rt, reply_markup=kb,
                     )
-            else:
-                await message.copy_to(user_tg, reply_to_message_id=rt)
+                else:
+                    await message.copy_to(user_tg, reply_to_message_id=rt, reply_markup=kb)
 
         try:
             await _deliver(reply_to)
@@ -3058,8 +3076,8 @@ async def admin_support_reply(message: Message, db: Database) -> None:
         if user:
             # آخرین تیکت باز همین کاربر پاسخ داده شده علامت می خورد تا
             # در «تیکت های من» وضعیتش سبز شود
-            open_ticket = await db.open_thread(user["id"])
-            if open_ticket and (open_ticket.get("status") or "open") == "open":
+            open_ticket = thread
+            if open_ticket and (open_ticket.get("status") or "open") in ("open", "closed"):
                 await db.set_ticket_status(open_ticket["id"], "answered")
             # پاسخ به همان رشته گفتگوی باز می چسبد؛ اگر تیکت بازی نباشد
             # (مثلا ادمین بی مقدمه پیام می دهد) خودش رشته تازه می شود.
@@ -3239,8 +3257,10 @@ async def _market_text(db: Database, q: dict | None = None) -> str:
     at = int(q.get("at") or 0)
     when = _dt.fromtimestamp(at, TZ).strftime("%H:%M") if at else "هنوز خوانده نشده"
     manual = {k: int(float((await db.get_setting(f, "0") or "0").replace(",", "") or 0))
-              for k, f in (("usd", "ai_usd_rate"), ("usdt", "crypto_usdt_rate"), ("ton", "crypto_ton_rate"))}
+              for k, f in (("ai", "ai_usdt_rate"), ("usdt", "crypto_usdt_rate"), ("ton", "crypto_ton_rate"))}
     def used(k: str) -> str:
+        if k == "usdt" and manual["ai"]:
+            return f"شارژ: {('دستی ' + format(manual[k], ',')) if manual[k] else 'بازار'} · هوش مصنوعی: دستی {manual['ai']:,}"
         if manual[k]:
             return f"در حال استفاده: دستی {manual[k]:,}"
         return "در حال استفاده" if auto and q.get(k) else ("خودکار" if auto else "خاموش")
@@ -3249,14 +3269,13 @@ async def _market_text(db: Database, q: dict | None = None) -> str:
     return (
         "╮── 📈 نرخ بازار آزاد (tgju.org)\n"
         f"│   نرخ خودکار: {status}\n\n"
-        f"💵 دلار: {val('usd')} · {used('usd')}\n"
         f"🪙 تتر: {val('usdt')} · {used('usdt')}\n"
         f"🔷 تون کوین: {val('ton')} · {used('ton')}\n"
-        + (f"   ↳ 1 TON = {float(q.get('ton_usdt')):g} USDT × {'تتر' if q.get('ton_base') == 'usdt' else 'دلار'}\n" if q.get("ton_usdt") else "")
+        + (f"   ↳ 1 TON = {float(q.get('ton_usdt')):g} USDT × نرخ تتر\n" if q.get("ton_usdt") else "")
         + "\n"
         f"🕒 آخرین به روزرسانی: {when}{' (کهنه)' if q.get('stale') else ''}{err}\n\n"
         "هر نرخی که در تنظیمات صفر باشد از همین جا خوانده می شود:\n"
-        "• نرخ دلار هوش مصنوعی ← دلار\n• نرخ تتر و TON کریپتو ← تتر و تون\n"
+        "• نرخ تتر (قیمت محصولات هوش مصنوعی و شارژ کریپتو) ← تتر\n• نرخ TON کریپتو ← تون\n"
         "╰─ نرخ دستی (غیر صفر) همیشه اولویت دارد؛ برای استفاده از tgju آن را ۰ کن."
     )
 
@@ -3274,3 +3293,50 @@ async def cb_market(call: CallbackQuery, db: Database) -> None:
     await edit_or_send(call.message, await _market_text(db, q), keyboards.admin_market_kb(await market.auto_on(db)))
     if call.data != "adm:mkt:r":
         await call.answer()
+
+
+# ---------- خدمات پیش نمایش: فهرست «خبرم کن» ----------
+@router.message(Command("soon"))
+async def cmd_soon(message: Message, db: Database) -> None:
+    """/soon — تعداد منتظران شماره مجازی و ویزا کارت، و اعلام فعال شدن به آن ها."""
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    from app import preview
+
+    counts = await preview.counts(db)
+    kb = InlineKeyboardBuilder()
+    for kind, title in preview.TITLES.items():
+        if counts.get(kind):
+            kb.button(text=f"📣 اعلام فعال شدن {title} ({counts[kind]})", callback_data=f"adm:soon:ask:{kind}")
+    kb.adjust(1)
+    await message.answer(
+        "⏳ <b>فهرست انتظار خدمات پیش‌نمایش</b>\n\n"
+        + "\n".join(f"• {title}: {counts.get(kind, 0)} نفر" for kind, title in preview.TITLES.items())
+        + "\n\nبعد از باز کردن فروش، با دکمه زیر به همه منتظران در ربات خبر بده.",
+        reply_markup=kb.as_markup() if counts and any(counts.values()) else None,
+    )
+
+
+@router.callback_query(F.data.startswith("adm:soon:"))
+async def cb_soon(call: CallbackQuery, db: Database) -> None:
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+    from app import preview
+
+    _, _, action, kind = (call.data.split(":") + [""])[:4]
+    if kind not in preview.TITLES:
+        return await call.answer()
+    if action == "ask":
+        kb = InlineKeyboardBuilder()
+        kb.button(text="✅ بله، خبر بده", callback_data=f"adm:soon:go:{kind}")
+        kb.button(text="انصراف", callback_data="adm:soon:no:" + kind)
+        await call.message.edit_text(
+            f"به همه منتظران «{preview.TITLES[kind]}» پیام «فعال شد» فرستاده و فهرست خالی شود؟",
+            reply_markup=kb.as_markup())
+        return await call.answer()
+    if action == "no":
+        await call.message.edit_text("لغو شد.")
+        return await call.answer()
+    sent = await preview.announce(call.bot, db, kind)
+    await call.message.edit_text(f"به {sent} نفر خبر داده شد ✅")
+    await call.answer()

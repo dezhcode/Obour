@@ -302,15 +302,13 @@ async def photo_receipt(message: Message, db: Database, state: FSMContext) -> No
         return await message.answer(_t("این درخواست شارژ دیگه باز نیست. از کیف پول شروع کن."))
 
     await db.set_receipt(txn_id, message.photo[-1].file_id)
-    # کد پیگیری را خود کاربر می نویسد (نه از روی عکس): مبنای تشخیص رسید
-    # تکراری است و در بررسی هوشمند باید روی همان رسید پیدا شود.
-    await state.set_state(Wallet.waiting_ref)
-    await state.update_data(txn_id=txn_id)
-    await message.answer(texts.ASK_REF, reply_markup=keyboards.ref_skip_kb(txn_id))
+    # بعد از عکس رسید چیزی پرسیده نمی شود: رسید مستقیم بررسی و برای ادمین فرستاده می شود
+    await state.clear()
+    await _submit_receipt(message, db, txn_id)
 
 
 async def _submit_receipt(message: Message, db: Database, txn_id: int) -> None:
-    """رسید و کد پیگیری کامل شد: اعلام به کاربر، بعد بررسی و خبر به ادمین."""
+    """رسید رسید: اعلام به کاربر، بعد بررسی و خبر به ادمین."""
     from app.services import receipts
 
     code = (await db.get_transaction(txn_id) or {}).get("code")
@@ -319,52 +317,6 @@ async def _submit_receipt(message: Message, db: Database, txn_id: int) -> None:
         await receipts.process(message.bot, db, txn_id, source="bot")
     except Exception:  # noqa: BLE001
         log.exception("بررسی رسید %s شکست خورد", txn_id)
-
-
-@router.message(Wallet.waiting_ref, F.text)
-async def msg_receipt_ref(message: Message, db: Database, state: FSMContext) -> None:
-    from app.services.assistant import clean_ref
-
-    if (message.text or "").startswith("/"):
-        return
-    data = await state.get_data()
-    txn_id = data.get("txn_id")
-    txn = await db.get_transaction(txn_id) if txn_id else None
-    me = await db.get_user_by_tg(message.from_user.id)
-    if not txn or not me or txn["user_id"] != me["id"] or txn["status"] != "pending":
-        await state.clear()
-        return await message.answer(_t("این درخواست شارژ دیگه باز نیست. از کیف پول شروع کن."))
-    ref = clean_ref(message.text)
-    if not ref:
-        return await message.answer(texts.REF_BAD, reply_markup=keyboards.ref_skip_kb(txn_id))
-    await db.set_receipt_meta(txn_id, ref_code=ref)
-    await state.clear()
-    await _submit_receipt(message, db, txn_id)
-
-
-@router.message(Wallet.waiting_ref, F.photo)
-async def photo_receipt_again(message: Message, db: Database, state: FSMContext) -> None:
-    """عکس دوم به جای کد: همان رسید جایگزین می شود و دوباره کد خواسته می شود."""
-    data = await state.get_data()
-    if data.get("txn_id"):
-        await db.set_receipt(int(data["txn_id"]), message.photo[-1].file_id)
-    await message.answer(texts.ASK_REF, reply_markup=keyboards.ref_skip_kb(int(data.get("txn_id") or 0)))
-
-
-@router.callback_query(F.data.startswith("wal:noref:"))
-async def cb_receipt_noref(call: CallbackQuery, db: Database, state: FSMContext) -> None:
-    txn_id = int(call.data.split(":")[2])
-    txn = await db.get_transaction(txn_id)
-    me = await db.get_user_by_tg(call.from_user.id)
-    await state.clear()
-    if not txn or not me or txn["user_id"] != me["id"] or txn["status"] != "pending" or not txn.get("receipt_file_id"):
-        return await call.answer(_t("این درخواست شارژ دیگه باز نیست."), show_alert=True)
-    await call.answer()
-    try:
-        await call.message.edit_reply_markup(reply_markup=None)
-    except Exception:  # noqa: BLE001
-        pass
-    await _submit_receipt(call.message, db, txn_id)
 
 
 
@@ -475,7 +427,7 @@ def _invoice_kb(inv: dict):  # noqa: ANN202
     return keyboards.crypto_invoice_kb(
         inv, crypto_svc.tonkeeper_link(inv), crypto_svc.pay_address(),
         crypto_svc.fmt_units(inv["units"], inv["asset"]),
-        webapp_url=f"{wa}#crypto" if wa else "",
+        webapp_url=keyboards.webapp_route(wa, "crypto") if wa else "",
     )
 
 

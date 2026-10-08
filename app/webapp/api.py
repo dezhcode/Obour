@@ -7,6 +7,8 @@
 """
 from __future__ import annotations
 
+import html
+
 import asyncio
 import json
 import logging
@@ -419,50 +421,66 @@ async def referral(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> 
     }
 
 
-async def tickets(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
-    """فهرست گفتگوهای پشتیبانی با آخرین پیام و تعداد پاسخ.
+def _ticket_root_out(t: dict) -> dict:
+    from app.services import support as sup
 
-    خواندن فهرست، پیام های خوانده نشده را هم علامت خورده می کند - همان
-    کاری که باز کردن بخش پشتیبانی در ربات می کند. اگر این کار را نکنیم،
-    نشانگر قرمز روی هدر می ماند حتی بعد از اینکه کاربر پاسخ را دید.
-    """
-    user = await _require_user(db, wuser)
-    threads = await db.ticket_threads(user["id"], limit=20)
-    await db.mark_tickets_read(user["id"])
+    cat = t.get("category") if t.get("category") in sup.CATEGORIES else None
     return {
-        "items": [
-            {
-                "id": t["id"],
-                "code": t.get("code") or track_code("TK", t["id"]),
-                "status": t.get("status") or "open",
-                "created_at": t["created_at"],
-                "last_at": t.get("last_at") or t["created_at"],
-                "replies": int(t.get("replies") or 0),
-                "preview": (t.get("body") or "").strip()[:90] or i18n.t("بدون متن"),
-                "has_photo": bool(t.get("file_id")),
-            }
-            for t in threads
-        ]
+        "id": t["id"],
+        "code": t.get("code") or track_code("TK", t["id"]),
+        "status": t.get("status") or "open",
+        "subject": t.get("subject") or "",
+        "category": cat or "",
+        "category_title": i18n.t(sup.CATEGORIES[cat][0]) if cat else "",
+        "category_icon": sup.CATEGORIES[cat][1] if cat else "chat",
+        "priority": t.get("priority") or "normal",
+        "created_at": t["created_at"],
+        "updated_at": t.get("updated_at") or t.get("last_at") or t["created_at"],
+        "closed_at": t.get("closed_at") or "",
+        "rating": t.get("rating"),
+        "via": t.get("via") or "",
     }
+
+
+async def tickets(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """فهرست تیکت ها: موضوع، دسته، اولویت، وضعیت، آخرین پیام و پیام های خوانده نشده."""
+    user = await _require_user(db, wuser)
+    threads = await db.ticket_threads(user["id"], limit=50)
+    items = []
+    for t in threads:
+        last = (t.get("last_body") or t.get("body") or "").strip()
+        items.append({
+            **_ticket_root_out(t),
+            "last_at": t.get("last_at") or t["created_at"],
+            "replies": int(t.get("replies") or 0),
+            "unread": int(t.get("unread") or 0),
+            "last_side": "support" if t.get("last_dir") == "out" else "user",
+            "preview": last[:110] or i18n.t("[تصویر]"),
+            "has_photo": bool(t.get("file_id")),
+        })
+    return {"items": items, "open": sum(1 for x in items if x["status"] != "closed"),
+            "unread": sum(x["unread"] for x in items)}
 
 
 async def ticket_thread(
     db: "Database", panel: "Panel | None", wuser: WebAppUser, ticket_id: int
 ) -> dict:
-    """گفتگوی کامل یک تیکت. پاسخ دادن همچنان در ربات است.
+    """یک تیکت کامل: مشخصات، مورد مرتبط، خط زمان رویدادها و پیام ها (با عکس).
 
-    مالکیت با user_id در خود کوئری چک می شود؛ ticket_messages بدون آن
-    پیام های تیکت هر کسی را می داد.
+    مالکیت با user_id در خود کوئری چک می شود. باز کردن تیکت، پاسخ های آن را
+    خوانده شده علامت می زند.
     """
-    user = await _require_user(db, wuser)
-    rows = await db.ticket_messages(ticket_id, user["id"])
-    if not rows:
-        raise ApiError("تیکت پیدا نشد", 404, "not_found")
+    from app.services import support as sup
 
-    root = rows[0]
+    user = await _require_user(db, wuser)
+    root = await db.thread_root(ticket_id, user["id"])
+    rows = await db.ticket_messages(ticket_id, user["id"]) if root else []
+    if not root or not rows:
+        raise ApiError("تیکت پیدا نشد", 404, "not_found")
+    await db.mark_thread_read(ticket_id, user["id"])
     messages = [
         {
-            # in = پیام کاربر، out = پاسخ پشتیبانی
+            "id": r["id"],
             "side": "user" if r.get("direction") == "in" else "support",
             "body": (r.get("body") or "").strip(),
             "has_photo": bool(r.get("file_id")),
@@ -470,56 +488,43 @@ async def ticket_thread(
         }
         for r in rows
     ]
+    # خط زمان: ساخته شد، اولین پاسخ، بسته شد، امتیاز
+    events = [{"kind": "created", "at": root["created_at"]}]
+    first_reply = next((m for m in messages if m["side"] == "support"), None)
+    if first_reply:
+        events.append({"kind": "answered", "at": first_reply["created_at"]})
+    if root.get("status") == "closed" and root.get("closed_at"):
+        events.append({"kind": "closed", "at": root["closed_at"]})
+    rel = await sup.describe_related(db, user["id"], root.get("related"))
     return {
-        "id": root["id"],
-        "code": root.get("code") or track_code("TK", root["id"]),
-        "status": root.get("status") or "open",
-        "created_at": root["created_at"],
+        **_ticket_root_out({**root, "last_at": rows[-1]["created_at"]}),
+        "related": rel,
+        "rating_note": root.get("rating_note") or "",
+        "events": events,
         "messages": messages,
     }
 
 
-def qr_svg(data: str) -> bytes:
-    """QR ساده به صورت SVG.
+async def ticket_related(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """گزینه های فرم تیکت تازه: دسته ها، اولویت ها و موردهای مرتبط کاربر."""
+    from app.services import support as sup
 
-    قاب برند (qr_png) برای پیام های ربات است؛ داخل مینی اپ فقط یک QR
-    تمیز لازم است که سریع خوانده شود. SVG هم سبک تر از PNG است و هم
-    روی هر تراکم پیکسلی لبه تیز می ماند - که برای QR مهم است، چون
-    ماژول های نرم شده را دوربین بعضی گوشی ها سخت می خواند.
-
-    پس زمینه سفید صریح دارد: QR روی زمینه تیره خوانده نمی شود و نباید
-    به تم صفحه وابسته باشد.
-    """
-    import qrcode
-
-    qr = qrcode.QRCode(
-        error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=1, border=2
-    )
-    qr.add_data(data)
-    qr.make(fit=True)
-    matrix = qr.get_matrix()
-    n = len(matrix)
-
-    # ماژول های هر ردیف در یک path ادغام می شوند تا فایل کوچک بماند
-    parts = []
-    for y, row in enumerate(matrix):
-        x = 0
-        while x < n:
-            if row[x]:
-                run = x
-                while run < n and row[run]:
-                    run += 1
-                parts.append(f"M{x} {y}h{run - x}v1h-{run - x}z")
-                x = run
-            else:
-                x += 1
-
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {n} {n}" '
-        f'width="{n * 8}" height="{n * 8}" shape-rendering="crispEdges">'
-        f'<rect width="{n}" height="{n}" fill="#fff"/>'
-        f'<path d="{"".join(parts)}" fill="#000"/></svg>'
-    ).encode("utf-8")
+    user = await _require_user(db, wuser)
+    opts = []
+    for s in (await db.user_services(user["id"]))[:15]:
+        opts.append({"value": f"svc:{s['id']}", "kind": "vpn",
+                     "title": (s.get("label") or "").strip() or f"{i18n.t('سرویس')} {s['id']}", "sub": i18n.t("کانفیگ")})
+    for o in (await db.user_ai_orders(user["id"], limit=10)):
+        opts.append({"value": f"ai:{o['id']}", "kind": "ai", "title": o.get("title") or o.get("code") or "",
+                     "sub": o.get("code") or ""})
+    for t in (await db.user_transactions(user["id"], limit=8)):
+        opts.append({"value": f"tx:{t['id']}", "kind": "pay", "title": f"{int(t.get('amount') or 0):,}",
+                     "sub": t.get("code") or ""})
+    return {
+        "categories": [{"key": k, "title": i18n.t(v[0]), "icon": v[1]} for k, v in sup.CATEGORIES.items()],
+        "priorities": [{"key": k, "title": i18n.t(v)} for k, v in sup.PRIORITIES.items()],
+        "related": opts,
+    }
 
 
 async def qr_payload(
@@ -784,7 +789,6 @@ _CHARGE_ERR = {
     charge_svc.BAD_IMAGE: (400, "فقط عکس رسید (JPG یا PNG) تا ۳ مگابایت"),
     charge_svc.NO_ADMIN: (503, "رسید به پشتیبانی نرسید؛ دوباره امتحان کن"),
     charge_svc.ALREADY_SENT: (409, "رسید این شارژ قبلا فرستاده شده و در حال بررسی است"),
-    charge_svc.BAD_REF: (400, "کد پیگیری رسید را درست بنویس (فقط عدد، ۴ تا ۳۰ رقم)"),
 }
 
 
@@ -809,9 +813,9 @@ async def topup_start(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
 
 
 async def topup_receipt(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, txn_id: int, image: bytes,  # noqa: ANN001
-                        ref: str = "", bot=None) -> dict:
+                        bot=None) -> dict:
     user = await _require_user(db, wuser)
-    r = await charge_svc.attach_receipt(bot, db, user, txn_id, image, ref=ref)
+    r = await charge_svc.attach_receipt(bot, db, user, txn_id, image)
     if not r["ok"]:
         _charge_error(r)
     fresh = await db.get_user(user["id"]) or user
@@ -968,9 +972,17 @@ async def crypto_cancel(db: "Database", panel: "Panel | None", wuser: WebAppUser
 
 async def rules(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
     user = await _require_user(db, wuser)
+    import re
+
+    from app import terms
+
+    raw = await db.get_setting("rules_text", "") or ""
+    # متن ربات HTML تلگرام است؛ مینی اپ متن ساده می خواهد
+    plain = html.unescape(re.sub(r"<[^>]+>", "", raw))
     return {
+        **terms.public(),
         "enabled": await db.get_setting("rules_enabled", "1") == "1",
-        "text": _latin(await db.get_setting("rules_text", "") or ""),
+        "text": _latin(plain),
         "accepted": bool(user.get("rules_accepted_at")),
         "accepted_at": user.get("rules_accepted_at"),
     }
@@ -1004,15 +1016,80 @@ async def guide(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dic
     return {"items": items}
 
 
-async def ticket_send(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, body: str, bot=None) -> dict:  # noqa: ANN001
+async def faq(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """مرکز راهنما: سوالات پرتکرار هر حوزه (کانفیگ، هوش مصنوعی، شماره مجازی، ویزا کارت، پرداخت)."""
+    user = await _require_user(db, wuser)
+    from app import faq as faq_mod
+
+    return {"domains": faq_mod.public(user.get("lang") or "fa")}
+
+
+async def soon(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """خدمات پیش نمایش (شماره مجازی و ویزا کارت): کشورها، کارت ها، قیمت تقریبی و «خبرم کن»."""
+    user = await _require_user(db, wuser)
+    from app import preview
+
+    return await preview.public(db, user["id"])
+
+
+async def soon_join(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, kind: str, on: bool = True) -> dict:
+    user = await _require_user(db, wuser)
+    from app import preview
+
+    if not await preview.join(db, user["id"], kind, on):
+        raise ApiError("خدمت نامعتبر", 400, "bad_request")
+    return {"ok": True, "waitlist": (await preview.waitlist(db, user["id"]))[kind]}
+
+
+async def ticket_send(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, body: str, bot=None,  # noqa: ANN001
+                      thread_id: int | None = None, subject: str = "", category: str = "", priority: str = "",
+                      related: str = "", image: bytes | None = None) -> dict:
+    """تیکت تازه (با موضوع) یا پاسخ در یک تیکت (thread_id)؛ با عکس اختیاری."""
+    from app.services import support as sup
+
     user = await _require_user(db, wuser)
     body = (body or "").strip()
-    if len(body) < 2:
+    if not thread_id and len((subject or "").strip()) < 3:
+        raise ApiError("موضوع تیکت را بنویس", 400, "subject")
+    if len(body) < 2 and not image:
         raise ApiError("پیام خیلی کوتاه است", 400, "empty")
-    r = await support_svc.send(bot, db, user, body)
+    r = await support_svc.send(bot, db, user, body, via="mini", image=image, thread_id=thread_id,
+                               subject=subject, category=category, priority=priority, related=related)
     if not r["ok"]:
-        raise ApiError("پیام خالی است", 400, "empty")
+        raise ApiError({sup.NOT_FOUND: "تیکت پیدا نشد", sup.CLOSED: "این تیکت بسته شده؛ تیکت تازه بساز",
+                        sup.BAD_IMAGE: "عکس باید jpg، png یا webp و کمتر از ۵ مگابایت باشد"}.get(r["error"], "پیام خالی است"),
+                       400, r["error"])
     return {"ok": True, "thread_id": r["thread_id"], "code": r["code"], "is_new": r["is_new"]}
+
+
+async def ticket_close(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, ticket_id: int) -> dict:
+    user = await _require_user(db, wuser)
+    if not await db.close_ticket(ticket_id, user["id"]):
+        raise ApiError("تیکت پیدا نشد یا قبلا بسته شده", 404, "not_found")
+    return {"ok": True}
+
+
+async def ticket_rate(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, ticket_id: int,
+                      rating: int, note: str = "") -> dict:
+    user = await _require_user(db, wuser)
+    if not 1 <= int(rating) <= 5:
+        raise ApiError("امتیاز ۱ تا ۵", 400, "bad_request")
+    if not await db.rate_ticket(ticket_id, user["id"], int(rating), note):
+        raise ApiError("فقط تیکت بسته شده امتیاز می گیرد", 400, "not_closed")
+    return {"ok": True}
+
+
+async def ticket_photo(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, msg_id: int, bot=None) -> bytes:  # noqa: ANN001
+    """عکس یک پیام تیکت (فقط برای صاحب تیکت) از تلگرام."""
+    import io
+
+    user = await _require_user(db, wuser)
+    file_id = await db.ticket_photo(msg_id, user["id"])
+    if not file_id or bot is None:
+        raise ApiError("عکس پیدا نشد", 404, "not_found")
+    f = await bot.get_file(file_id)
+    buf = await bot.download_file(f.file_path, destination=io.BytesIO())
+    return buf.getvalue() if hasattr(buf, "getvalue") else bytes(buf)
 
 
 # ═══════════════════ نوشتن ═══════════════════
@@ -1148,6 +1225,49 @@ _PURCHASE_ERRORS = {
 }
 
 
+def qr_svg(data: str) -> bytes:
+    """QR ساده به صورت SVG.
+
+    قاب برند (qr_png) برای پیام های ربات است؛ داخل مینی اپ فقط یک QR
+    تمیز لازم است که سریع خوانده شود. SVG هم سبک تر از PNG است و هم
+    روی هر تراکم پیکسلی لبه تیز می ماند - که برای QR مهم است، چون
+    ماژول های نرم شده را دوربین بعضی گوشی ها سخت می خواند.
+
+    پس زمینه سفید صریح دارد: QR روی زمینه تیره خوانده نمی شود و نباید
+    به تم صفحه وابسته باشد.
+    """
+    import qrcode
+
+    qr = qrcode.QRCode(
+        error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=1, border=2
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    matrix = qr.get_matrix()
+    n = len(matrix)
+
+    # ماژول های هر ردیف در یک path ادغام می شوند تا فایل کوچک بماند
+    parts = []
+    for y, row in enumerate(matrix):
+        x = 0
+        while x < n:
+            if row[x]:
+                run = x
+                while run < n and row[run]:
+                    run += 1
+                parts.append(f"M{x} {y}h{run - x}v1h-{run - x}z")
+                x = run
+            else:
+                x += 1
+
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {n} {n}" '
+        f'width="{n * 8}" height="{n * 8}" shape-rendering="crispEdges">'
+        f'<rect width="{n}" height="{n}" fill="#fff"/>'
+        f'<path d="{"".join(parts)}" fill="#000"/></svg>'
+    ).encode("utf-8")
+
+
 # نگاشت مسیر -> تابع. فقط همین ها در دسترس اند.
 ROUTES = {
     "bootstrap": bootstrap,
@@ -1164,6 +1284,9 @@ ROUTES = {
     "custom": custom_info,
     "rules": rules,
     "guide": guide,
+    "faq": faq,
+    "soon": soon,
+    "ticket/related": ticket_related,
 }
 
 __all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase"]

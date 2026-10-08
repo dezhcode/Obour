@@ -69,7 +69,7 @@ async def _ai_ready(db: Database) -> bool:
     from app.services import ai_shop
 
     cfg = await pricing.load(db)
-    return bool(await ai_shop.api_key(db)) and (pricing.is_configured(cfg, "USD") or pricing.is_configured(cfg, "VND"))
+    return bool(await ai_shop.api_key(db)) and (pricing.is_configured(cfg, "USDT") or pricing.is_configured(cfg, "VND"))
 
 
 @router.callback_query(F.data == "buy:ai")

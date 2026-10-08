@@ -1,8 +1,10 @@
 """بررسی رسید کارت به کارت و اعلام به ادمین ها؛ مشترک ربات و مینی اپ.
 
 ترتیب:
-۱. تکراری بودن، قطعی و بدون هوش مصنوعی: همان کد پیگیری یا همان عکس
-   (هش) روی شارژ دیگری که در انتظار یا تایید شده است.
+۱. تکراری بودن، قطعی و بدون هوش مصنوعی: همان عکس (هش) روی شارژ دیگری
+   که در انتظار یا تایید شده است. بعد از خواندن هوشمند، اثر انگشت رسید
+   (مبلغ، تاریخ، ساعت و کارت مقصد) هم با شارژهای دیگر سنجیده می شود تا
+   همان رسید با عکس دوباره یا بریده شده هم تکراری شناخته شود.
 ۲. اگر «بررسی خودکار رسید» روشن باشد: دو بررسی مستقل هوش مصنوعی
    (assistant.receipt_verdict). فقط اگر همه موارد دقیقا مطابق باشد تایید،
    فقط اگر ایراد قطعی باشد رد؛ هر شکی = تصمیم با ادمین.
@@ -69,14 +71,9 @@ async def process(bot, db: "Database", txn_id: int, *, image: bytes | None = Non
     digest = hashlib.sha256(image).hexdigest() if image else ""
     if digest:
         await db.set_receipt_meta(txn_id, receipt_hash=digest)
-    ref = assistant.clean_ref(txn.get("ref_code"))
 
     # ── ۱. تکراری (قطعی)
     dup_lines: list[str] = []
-    other = await db.charge_with_ref(ref, txn_id)
-    if other:
-        dup_lines.append(f"⚠️ کد پیگیری <code>{ref}</code> قبلا روی شارژ {html.escape(other.get('code') or '#' + str(other['id']))} "
-                         f"({'تایید شده' if other['status'] == 'approved' else 'در انتظار'}) ثبت شده")
     same_img = await db.charge_with_hash(digest, txn_id)
     if same_img:
         dup_lines.append(f"⚠️ همین عکس قبلا برای شارژ {html.escape(same_img.get('code') or '#' + str(same_img['id']))} فرستاده شده")
@@ -87,16 +84,16 @@ async def process(bot, db: "Database", txn_id: int, *, image: bytes | None = Non
         decision = "duplicate"
     elif auto and image:
         try:
-            verdict = await assistant.receipt_verdict(db, txn, image, ref=ref, need_ref=source != "mini")
-            # کدی که هوش مصنوعی روی رسید دیده، روی شارژ دیگری هست؟
-            for r in {assistant.clean_ref(x) for x in (verdict["data"].get("ref_codes") or [])} - {"", ref}:
-                o = await db.charge_with_ref(r, txn_id)
+            verdict = await assistant.receipt_verdict(db, txn, image)
+            # همان رسید (مبلغ، تاریخ، ساعت و کارت مقصد یکی) روی شارژ دیگری هست؟
+            sig = verdict.get("sig") or ""
+            if sig:
+                await db.set_receipt_meta(txn_id, receipt_sig=sig)
+                o = await db.charge_with_sig(sig, txn_id)
                 if o:
-                    dup_lines.append(f"⚠️ کد پیگیری روی رسید (<code>{r}</code>) متعلق به شارژ {html.escape(o.get('code') or '#' + str(o['id']))} است")
-            read = sorted({assistant.clean_ref(x) for x in (verdict["data"].get("ref_codes") or [])} - {""})
-            if not ref and read:
-                # کد خوانده شده ثبت می شود تا رسیدهای بعدی با آن سنجیده شوند
-                await db.set_receipt_meta(txn_id, ref_code=read[0])
+                    dup_lines.append(f"⚠️ همین رسید (همان مبلغ، تاریخ، ساعت و کارت) قبلا برای شارژ "
+                                     f"{html.escape(o.get('code') or '#' + str(o['id']))} "
+                                     f"({'تایید شده' if o['status'] == 'approved' else 'در انتظار'}) فرستاده شده")
             if dup_lines:
                 decision = "duplicate"
             elif verdict["decision"] == "approve":
@@ -130,8 +127,7 @@ async def process(bot, db: "Database", txn_id: int, *, image: bytes | None = Non
         name=esc(user.get("first_name") or "-"), username=esc(user.get("username") or "-"),
         telegram_id=user.get("telegram_id", "-"), amount=f"{txn['amount']:,}", balance=f"{int(user.get('balance') or 0):,}",
     )
-    caption += f"\n\n🔖 کد پیگیری کاربر: <code>{ref}</code>" if ref else "\n\n🔖 کد پیگیری: <i>نفرستاده</i>"
-    caption += f"\n💵 مبلغ به ریال: <code>{int(txn['amount']) * 10:,}</code>"
+    caption += f"\n\n💵 مبلغ به ریال: <code>{int(txn['amount']) * 10:,}</code>"
     if source == "mini":
         caption += "\n📱 <i>از مینی اپ</i>"
     head = {
@@ -166,7 +162,7 @@ async def process(bot, db: "Database", txn_id: int, *, image: bytes | None = Non
 
 
 async def process_late(bot, db: "Database", *, use_ai: bool) -> int:  # noqa: ANN001
-    """رسیدهایی که کاربر بعد از عکس، کد پیگیری را نفرستاد."""
+    """رسیدهایی که عکسشان رسیده ولی بررسی نشده (ربات وسط کار قطع شده بود)."""
     n = 0
     for t in await db.receipts_unreviewed(older_than_minutes=10, limit=5 if use_ai else 20):
         r = await process(bot, db, t["id"], source="late", use_ai=use_ai)

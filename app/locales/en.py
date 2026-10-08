@@ -79,6 +79,10 @@ TEXTS = {
     },
     "INVALID_AMOUNT": "╭── ⚠️ Invalid amount\n│   Send it again\n\n╰─ Send a number in toman. Minimum top-up is {min_charge} toman.",
     "SERVICES_EMPTY": "╭── 🌐 Your services\n│   Nothing yet\n\nPick a plan in the shop.\n╰─ It only takes a few seconds.",
+    "SERVICES_HUB": "╭── 👤 My services\n│   Everything from Obour in one place\n\n🌐 Configs: {vpn} services ({vpn_active} active)\n🤖 AI subscriptions: {ai} orders\n📱 Virtual numbers: coming soon\n💳 Visa card: coming soon\n\n╰─ 🟢 Active · 🟠 Running low · 🔴 Ended",
+    "SUPPORT_WEBAPP": "╭── 🆘 Obour support\n│   In the mini app\n\nTickets with subject and screenshots, status tracking, the smart assistant and the help center are all in the mini app. Support replies still arrive right here in the bot.\n╰─ Tap the button below.",
+    "HELP_HUB": "╭── 📖 Help center\n│   Frequent questions by section\n\nPick the section your question is about: configs, AI, virtual numbers, Visa card or wallet.\n╰─ Step-by-step connection guides are at the bottom of this page.",
+    "SOON_LIVE": "╭── 🔔 Good news\n│   {title} is live\n\nYou asked us to tell you when {title} opened in Obour; you can use it in the mini app now.\n╰─ Tap the button below.",
     "SERVICES_LIST": "╭── 👤 Your services\n│   {count} services\n\nTap any of them to see its details.\n╰─ 🟢 Active · 🟠 Running low · 🔴 Ended",
     "SERVICE_DETAIL": "╭── 🌐 {name}\n│   {title}\n\n{status}\n\n📊 Usage\n├ {bar} {percent}%\n╰ {used} of {total}\n\n⏰ Validity\n╰─ {time_left} left\n\n🔗 Connection link\nYour service's personal link is ready.",
     "SERVICE_RELINK_ASK": "╭── 🔄 Revoke link\n│   {name}\n\nThe current link stops working for good and we make a fresh one.\nUse this when your link has leaked or been blocked.\n\n╰─ You'll need to add it to your app again.",
@@ -748,11 +752,33 @@ PHRASES.update({
 
 # کد پیگیری رسید
 TEXTS.update({
-    'ASK_REF': "╮── 🔖 Tracking code\n│   One step left\n\nSend the tracking (reference) number of this receipt — digits only.\n\n╯─ It's printed on your bank receipt.",
-    'REF_BAD': "The tracking code must be digits only (4–30 digits). Send it again.",
 })
 
 PHRASES.update({
     "کد پیگیری ندارم": "I don't have a tracking code",
     "کد پیگیری رسید را درست بنویس (فقط عدد، ۴ تا ۳۰ رقم)": "Enter the receipt's tracking code correctly (digits only, 4–30)",
+})
+
+PHRASES.update({
+    "اشتراک های هوش مصنوعی": "AI subscriptions",
+    "شماره مجازی · به زودی": "Virtual numbers · soon",
+    "ویزا کارت · به زودی": "Visa card · soon",
+    "باز کردن پشتیبانی": "Open support",
+    "مرکز راهنما": "Help center",
+    "مرکز راهنما در مینی اپ": "Help center in the mini app",
+    "دیدن تیکت و پاسخ": "View ticket and reply",
+    "آموزش اتصال کانفیگ": "Config connection guide",
+    "سوال‌های این بخش": "Questions in this section",
+    "سوال بعدی ▶️": "Next question ▶️",
+    "◀️ سوال قبلی": "◀️ Previous question",
+})
+
+PHRASES.update({
+    "باز کردن در مینی اپ": "Open in the mini app",
+    "شماره مجازی": "Virtual numbers",
+    "ویزا کارت": "Visa card",
+})
+
+PHRASES.update({
+    "متن کامل قوانین و مقررات": "Full terms and conditions",
 })
