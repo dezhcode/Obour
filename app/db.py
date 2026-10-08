@@ -583,6 +583,8 @@ class Database:
             ("users", "ai_name", "ALTER TABLE users ADD COLUMN ai_name TEXT"),
             # توضیح فارسی محصول که ادمین از پیش نویس هوش مصنوعی تایید کرده
             ("shop_product_meta", "desc_fa", "ALTER TABLE shop_product_meta ADD COLUMN desc_fa TEXT"),
+            # «پرفروش» دستی ادمین: ویترین دسته و برچسب روی کارت محصول
+            ("shop_product_meta", "featured", "ALTER TABLE shop_product_meta ADD COLUMN featured INTEGER"),
             # رسید کارت به کارت: ستون کد پیگیری قدیمی (دیگر پرسیده نمی شود)،
             # هش عکس (رسید تکراری)، زمان رسیدن عکس و زمان بررسی
             ("transactions", "ref_code", "ALTER TABLE transactions ADD COLUMN ref_code TEXT"),
@@ -2425,8 +2427,8 @@ class Database:
         return dict(row) if row else {}
 
     async def set_product_meta(self, product_id: str, **fields) -> None:
-        """فقط category، image و guide؛ None یعنی برگشت به پیش فرض."""
-        allowed = {k: v for k, v in fields.items() if k in ("category", "image", "guide", "desc_fa")}
+        """category، image، guide، desc_fa و featured؛ None یعنی برگشت به پیش فرض."""
+        allowed = {k: v for k, v in fields.items() if k in ("category", "image", "guide", "desc_fa", "featured")}
         if not allowed:
             return
         await self.execute(

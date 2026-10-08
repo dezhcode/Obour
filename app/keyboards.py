@@ -323,6 +323,8 @@ def ai_shop_kb(items: list[dict] | None = None, back: str = "buy") -> InlineKeyb
     for x in items or []:
         price = f"{x['price']:,}" if not x["months"] else f"{min(x['month_prices'].values()):,}+"
         label = f"{x['name']} · {price}" if x["available"] else f"{x['name']} · " + _t("ناموجود")
+        if x.get("featured"):
+            label = "🔥 " + label
         kb.button(text=label[:60], callback_data=f"ai:p:{x['id']}"[:64])
         rows.append(1)
     if _ai_ready("ai_shop_help") and items:
@@ -2040,7 +2042,7 @@ AI_PAGE = 10
 
 
 def admin_ai_products_kb(items: list[dict], page: int) -> InlineKeyboardMarkup:
-    """روشن/خاموش کردن نمایش هر محصول؛ سبز یعنی به کاربر نشان داده می شود."""
+    """روشن/خاموش کردن نمایش هر محصول (سبز یعنی نمایش) و کنارش 🔥 «پرفروش»."""
     kb = InlineKeyboardBuilder()
     rows: list[int] = []
     chunk = items[page * AI_PAGE:(page + 1) * AI_PAGE]
@@ -2050,8 +2052,14 @@ def admin_ai_products_kb(items: list[dict], page: int) -> InlineKeyboardMarkup:
             continue
         mark = "🟢" if x["visible"] else "🔴"
         stock = "∞" if x["stock"] is None else x["stock"]
-        _add(kb, f"{mark} {x['name'][:34]} · {stock}", style=SUCCESS if x["visible"] else DANGER, callback_data=data)
-        rows.append(1)
+        _add(kb, f"{mark} {x['name'][:30]} · {stock}", style=SUCCESS if x["visible"] else DANGER, callback_data=data)
+        fdata = f"adm:ai:pf:{page}:{x['id']}"
+        if len(fdata.encode()) <= 64:
+            # «پرفروش»: ویترین دسته و برچسب روی کارت محصول در ربات و مینی اپ
+            _add(kb, "🔥" if x.get("featured") else "☆", alt="پرفروش", callback_data=fdata)
+            rows.append(2)
+        else:
+            rows.append(1)
     nav = 0
     if page > 0:
         _add(kb, "◀️ قبلی", callback_data=f"adm:ai:pl:{page - 1}"); nav += 1

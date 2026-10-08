@@ -1455,7 +1455,7 @@ async def _ai_products(message: Message, db: Database, page: int) -> None:
     page = max(0, min(page, (len(items) - 1) // keyboards.AI_PAGE if items else 0))
     rows = []
     for x in items[page * keyboards.AI_PAGE:(page + 1) * keyboards.AI_PAGE]:
-        mark = "🟢" if x["visible"] else "🔴"
+        mark = ("🟢" if x["visible"] else "🔴") + (" 🔥" if x.get("featured") else "")
         state = "ناموجود" if not x["available"] else f"نمایش: {_stock_txt(x['stock'])}"
         price = f"{x['price']:,} تومان" if x["priced"] else f"⚠️ نرخ {x['currency']} تنظیم نشده"
         months = f" · ماه ها: {', '.join(map(str, x['months']))}" if x["months"] else ""
@@ -1473,6 +1473,7 @@ async def _ai_products(message: Message, db: Database, page: int) -> None:
         + ("\n\n".join(rows) or "محصولی نیامد.")
         + "\n\n<blockquote>موجودی که کاربر می بیند کمترینِ «موجودی API» و «تعدادی که با کیف پول شما خریدنی است» است. "
           "🟢 یعنی در ربات و مینی اپ نمایش داده می شود؛ برای عوض کردن روی محصول بزن. "
+          "🔥 یعنی «پرفروش»: ویترین دسته و برچسب روی کارت محصول؛ با دکمه ☆/🔥 کنار هر محصول عوضش کن. "
           "محصول تازه سرویس دهنده تا روشنش نکنی نمایش داده نمی شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی).</blockquote>"
     )
     await edit_or_send(message, body, keyboards.admin_ai_products_kb(items, page))
@@ -1499,6 +1500,16 @@ async def cb_ai_product_toggle(call: CallbackQuery, db: Database) -> None:
         return await call.answer("این محصول دیگر در canboso نیست.", show_alert=True)
     await ai_shop.set_visible(db, pid, not item["visible"], [x["id"] for x in cat["items"]])
     await call.answer("روشن شد ✅" if not item["visible"] else "خاموش شد")
+    await _ai_products(call.message, db, int(page or 0))
+
+
+@router.callback_query(F.data.startswith("adm:ai:pf:"))
+async def cb_ai_product_featured(call: CallbackQuery, db: Database) -> None:
+    """«پرفروش» دستی یک محصول را روشن/خاموش می کند."""
+    _, _, _, page, pid = call.data.split(":", 4)
+    on = not (await db.product_meta(pid)).get("featured")
+    await db.set_product_meta(pid, featured=1 if on else None)
+    await call.answer("🔥 پرفروش شد" if on else "از پرفروش ها برداشته شد")
     await _ai_products(call.message, db, int(page or 0))
 
 

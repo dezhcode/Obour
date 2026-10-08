@@ -191,6 +191,11 @@ async def plan_update(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
     for k, v in (fields or {}).items():
         if k == "is_active":
             clean[k] = 1 if v else 0
+        elif k == "badge":
+            # «پرفروش»؛ مثل ربات در هر دسته فقط یک پلن
+            if v and plan.get("category_id"):
+                await db.execute("UPDATE plans SET badge = NULL WHERE category_id = ?", (plan["category_id"],))
+            clean[k] = "best" if v else None
         elif k in _PLAN_FIELDS:
             try:
                 n = int(str(v).replace(",", ""))
@@ -316,7 +321,7 @@ async def ai_products(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
 
 
 async def ai_meta_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, pid: str,
-                      category=None, guide=None, desc_fa=None) -> dict:  # noqa: ANN001
+                      category=None, guide=None, desc_fa=None, featured=None) -> dict:  # noqa: ANN001
     """دسته ("" = خودکار)، آموزش فعال سازی و توضیح فارسی ("" = متن سرویس دهنده)."""
     from app.services import ai_shop
 
@@ -333,6 +338,8 @@ async def ai_meta_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
         fields["guide"] = str(guide).strip()[:3000] or None
     if desc_fa is not None:
         fields["desc_fa"] = str(desc_fa).strip()[:1500] or None
+    if featured is not None:
+        fields["featured"] = 1 if featured else None
     await db.set_product_meta(pid, **fields)
     log.info("ادمین %s تنظیمات محصول %s را عوض کرد: %s", wuser.id, pid, list(fields))
     return {"ok": True}
