@@ -453,6 +453,7 @@ html.perf-low #store-box{will-change:auto}
 .nm-s.on{border-color:#C2408A;background:color-mix(in srgb,#C2408A 8%,var(--surface));color:#9B1F5E}
 .nm-ks{margin:10px var(--pad) 0;font-size:12px;color:var(--ink-3);line-height:1.8}
 .nm-flag{width:40px;height:40px;border-radius:var(--r-md);background:var(--sunk);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.nm-flag img{width:30px;height:22.5px;border-radius:4px;object-fit:cover;box-shadow:0 0 0 1px rgba(10,22,51,.12)}
 .nm-row{cursor:default}
 .nm-p{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;font-size:13px;color:var(--ink)}
 .nm-p small{font-size:11px;color:var(--ink-3);font-weight:600}
@@ -544,6 +545,8 @@ html.perf-low #store-box{will-change:auto}
 .tk-top .sl{margin-top:4px}
 .ai-ft-s .sl{color:inherit}
 .cg-st{font-size:11.5px;font-weight:700;color:var(--tunnel)}
+.ai-hot{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:999px;background:var(--cash-t);color:var(--cash-i);font-size:11px;font-weight:800}
+.ai-hot svg{width:12px;height:12px}
 .pv-banner{display:flex;gap:10px;align-items:flex-start;margin:0 var(--pad) 14px;padding:12px 14px;border-radius:var(--r-md);background:var(--ai-t);color:var(--ai-i);font-size:12.5px;line-height:1.9}
 .pv-banner svg{width:18px;height:18px;flex-shrink:0;margin-top:3px}
 /* کارت بازی: شب نئونی خود بازی، ماشین بیرون زده از لبه */
@@ -2046,7 +2049,7 @@ function CatGrid(){
       const list = items.filter(x => (x.category || 'ai') === k);
       if (AI.d && !list.length) continue;
       const pool = list.filter(x => x.stock !== 0);
-      const pv = (pool.length ? pool : list).slice().sort((a, b) => (b.sold || 0) - (a.sold || 0)).slice(0, 3);
+      const pv = (pool.length ? pool : list).slice().sort((a, b) => (b.featured - a.featured) || ((b.sold || 0) - (a.sold || 0))).slice(0, 3);
       tiles.push([k, `<span class="cg-h"><span class="cg-ic">${ic(SHOP_CATS[k][0])}</span>${AI.d ? `<span class="cg-c">${esc(fa(list.length) + ' محصول')}</span>` : ''}</span>
         <span class="cg-pv">${AI.d ? pv.map(x => AiThumb(x, 'sm')).join('') : '<i class="cg-sk"></i><i class="cg-sk"></i><i class="cg-sk"></i>'}</span>
         <span class="cg-b"><span class="cg-n">${SHOP_CATS[k][2]}</span>${(() => { const st = (AI.d && AI.d.category_stats || {})[k];
@@ -2365,7 +2368,7 @@ async account(p){
 }
 };
 
-const APP_VERSION = '6.4.2';
+const APP_VERSION = '6.4.3';
 const Account = {
   /* زبان با ربات یکی است: همان ستون users.lang، پس انتخاب اینجا زبان
      ربات را هم عوض می کند. عوض کردنش صفحه را از نو می سازد. */
@@ -2583,7 +2586,7 @@ const Store = {
   },
   nmList(n){
     const key = n.kinds[this.nm.kind].key;
-    return Group(n.countries.map(c => `<div class="row nm-row"><span class="nm-flag">${esc(c.flag)}</span>
+    return Group(n.countries.map(c => `<div class="row nm-row"><span class="nm-flag"><img src="${STATIC}flags/${esc(String(c.code || '').toLowerCase())}.svg" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode(${esc(JSON.stringify(c.flag || ''))}))"></span>
         <span class="row-m"><span class="row-t">${esc(c.title)}</span><span class="row-s">${key === 'once' ? 'یک کد تایید' : '30 روز، کد نامحدود'}</span></span>
         <span class="nm-p">${Soon.price(c[key])}</span></div>`).join(''));
   },
@@ -2609,7 +2612,9 @@ const Store = {
       const items = all.filter(x => x.stock !== 0).concat(all.filter(x => x.stock === 0));
       /* ویترین: پرفروش ترین محصول موجود دسته؛ با دو محصول یا کمتر ویترین لازم نیست */
       const inStock = items.filter(x => x.stock !== 0);
-      const feat = items.length > 2 && inStock.length ? inStock.reduce((a, x) => (x.sold || 0) > (a.sold || 0) ? x : a) : null;
+      const picked = inStock.filter(x => x.featured);
+      const pool = picked.length ? picked : (items.length > 2 ? inStock : []);
+      const feat = pool.length ? pool.reduce((a, x) => (x.sold || 0) > (a.sold || 0) ? x : a) : null;
       const rest = feat ? items.filter(x => x !== feat) : items;
       if (!$('store-box') || this.kind !== cat) return;
       const orders = d.orders.filter(o => !o.category || o.category === cat);
@@ -3630,7 +3635,7 @@ const AI = {
     const out = x.stock === 0, how = AI_HOW[x.type] || AI_HOW.account, c = aiBrand(x.title, x.brand)[0];
     return `<button class="ai-p${out ? ' out' : ''}" style="--c:${c}" onclick="App.go('ai_product', ${esc(JSON.stringify(x.id))})">
       <span class="ai-p-g"></span>${AiThumb(x)}
-      <span class="ai-p-m"><span class="ai-p-t ai-lat">${esc(x.title)}</span>
+      <span class="ai-p-m">${x.featured ? `<span class="ai-hot">${ic('star', 2.2)}پرفروش</span>` : ''}<span class="ai-p-t ai-lat">${esc(x.title)}</span>
         <span class="ai-p-b"><span class="ai-how">${ic(how[0], 2)}<span>${how[1]}</span></span>${this.stockTag(x)}</span>${SalesLine(x.sold, x.buyers)}</span>
       <span class="ai-p-e">${x.from_price ? '<span class="lbl">از</span>' : ''}<span class="n">${fa(x.price)}</span><span class="lbl">تومان</span>
         <span class="ai-p-add">${ic(out ? 'chev' : 'plus', 2.4)}</span></span></button>`;
@@ -3641,7 +3646,7 @@ const AI = {
     const fast = x.type === 'account' || x.type === 'link';
     return `<div class="ai-ft" style="--c:${c}" onclick="App.go('ai_product', ${esc(JSON.stringify(x.id))})" role="button" aria-label="${esc(x.title)}">
       <span class="ai-ft-wm" aria-hidden="true">${esc(t)}</span>
-      <span class="ai-ft-bdg">${ic('star', 2)}${x.sold ? 'پرفروش این دسته' : 'پیشنهاد ویژه'}</span>
+      <span class="ai-ft-bdg">${ic('star', 2)}${x.featured || x.sold ? 'پرفروش این دسته' : 'پیشنهاد ویژه'}</span>
       <div class="ai-ft-r">${AiThumb(x, 'lg')}<div style="min-width:0"><div class="ai-ft-t ai-lat">${esc(x.title)}</div>
         ${x.sold ? `<div class="ai-ft-s">${SalesLine(x.sold, x.buyers)}</div>` : ''}</div></div>
       <div class="ai-ft-m"><span>${ic(how[0], 2)}${how[1]}</span>${fast ? `<span>${ic('clock', 2)}تحویل در لحظه</span>` : ''}${x.stock != null && x.stock <= 3 ? `<span class="warn"><span>فقط</span> ${N(fa(x.stock))} <span>عدد</span></span>` : ''}</div>
@@ -4374,7 +4379,7 @@ SubPages.adm_plans = async function(p){
     AdminPlans.data = d.categories;
     p.innerHTML = Top('پلن‌ها', 'برای ویرایش روی پلن بزن') + d.categories.map(c => Sec((c.emoji ? c.emoji + ' ' : '') + c.title + (c.active ? '' : ' (خاموش)'))
       + (c.plans.length ? Group(c.plans.map(x => Row({ kind: x.active ? 'net' : '', icon:'globe', title:x.title,
-          sub:`${fa(x.price)} تومان · ${fa(x.data_gb)} گیگ · ${fa(x.duration_days)} روز`,
+          sub:`${x.badge ? '🔥 پرفروش · ' : ''}${fa(x.price)} تومان · ${fa(x.data_gb)} گیگ · ${fa(x.duration_days)} روز`,
           end: Admin.sw(x.active, `AdminPlans.toggle(${x.id})`), fn:`AdminPlans.edit(${x.id})` })).join('')) : emptyBox('پلنی در این دسته نیست', ''))).join('')
       + `<div class="adm-note">ساخت پلن و دسته‌ی تازه از پنل ربات انجام می‌شود.</div>`;
   } catch (err) { p.innerHTML = Top('پلن‌ها') + emptyBox('خوانده نشد', err.message); }
@@ -4391,7 +4396,14 @@ const AdminPlans = {
     const x = this.find(id); if (!x) return;
     const f = (k, l, v) => `<div class="adm-f" style="padding:8px 0"><label>${l}</label><input class="adm-in" id="pl-${k}" inputmode="numeric" dir="ltr" value="${v}"></div>`;
     App.sheet(`<div class="sheet-t">${esc(x.title)}</div>${f('price', 'قیمت (تومان)', x.price)}${f('data_gb', 'حجم (گیگ)', x.data_gb)}${f('duration_days', 'مدت (روز)', x.duration_days)}
-      <button class="btn btn-p btn-block" style="margin-top:12px" onclick="AdminPlans.save(${id})">ذخیره</button>`);
+      <button class="btn btn-p btn-block" style="margin-top:12px" onclick="AdminPlans.save(${id})">ذخیره</button>
+      <button class="btn btn-s btn-block" style="margin-top:8px" onclick="AdminPlans.best(${id}, ${!x.badge})">${x.badge ? 'برداشتن از پرفروش‌ها' : '🔥 پرفروش این دسته'}</button>
+      <div class="adm-note" style="margin:8px 0 0">در هر دسته فقط یک پلن پرفروش است؛ روی کارت پلن در فروشگاه برچسب «پرفروش» می‌خورد.</div>`);
+  },
+  async best(id, on){
+    App.closeSheet();
+    const r = await Admin.act('admin/plan', { id, fields:{ badge:on } }, on ? 'پرفروش شد' : 'از پرفروش‌ها برداشته شد');
+    if (r) SubPages.adm_plans($('sub').querySelector('.page'));
   },
   async save(id){
     const fields = {};
@@ -4550,6 +4562,9 @@ const AdminAi = {
           ${aiOn('admin') ? `<button class="btn btn-s" id="drf-guide" onclick="AdminAi.draft(${esc(JSON.stringify(x.id))}, 'guide')">${ic('spark',2)}پیش‌نویس هوشمند</button>` : ''}
           <button class="btn btn-p" style="${aiOn('admin') ? '' : 'grid-column:1/-1'}" onclick="AdminAi.saveGuide(${esc(JSON.stringify(x.id))})">ذخیره آموزش</button></div></div>
       ${x.description ? Sec('توضیح canboso') + `<div class="card mx"><div class="ai-guide clip" dir="auto">${esc(x.description)}</div></div>` : ''}
+      ${Sec('پرفروش')}${Group(`<div class="row"><span class="row-m"><span class="row-t">${x.featured ? '🔥 پرفروش' : 'پرفروش نیست'}</span>
+          <span class="row-s">ویترین دسته در فروشگاه و برچسب «پرفروش» روی کارت محصول</span></span>
+        <span class="row-e">${Admin.sw(x.featured, `AdminAi.meta(${esc(JSON.stringify(x.id))}, { featured:${!x.featured} })`)}</span></div>`)}
       ${Sec('نمایش')}${Group(`<div class="row"><span class="row-m"><span class="row-t">${x.visible ? 'به کاربر نمایش داده می‌شود' : 'پنهان'}</span></span>
         <span class="row-e">${Admin.sw(x.visible, `AdminAi.setHere(${esc(JSON.stringify(x.id))}, ${!x.visible})`)}</span></div>`)}`;
   },

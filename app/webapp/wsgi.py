@@ -792,7 +792,8 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             if name == "admin/ai/meta":
                 return _json(start_response, runtime.run(admin_api.ai_meta_set(
                     db, panel, wuser, pid=str(body.get("id") or "")[:80], category=body.get("category"),
-                    guide=body.get("guide"), desc_fa=body.get("desc_fa")), timeout=30))
+                    guide=body.get("guide"), desc_fa=body.get("desc_fa"),
+                    featured=(bool(body.get("featured")) if "featured" in body else None)), timeout=30))
             if name == "admin/ai/image":
                 return _json(start_response, runtime.run(admin_api.ai_image_set(
                     db, panel, wuser, pid=str(body.get("id") or "")[:80], image=str(body.get("image") or ""),

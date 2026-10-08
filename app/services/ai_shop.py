@@ -324,6 +324,7 @@ async def catalog(db: "Database", force: bool = False, admin: bool = False) -> d
             "category_set": bool((metas.get(pid) or {}).get("category")),
             "image": (metas.get(pid) or {}).get("image") or "",
             "guide": (metas.get(pid) or {}).get("guide") or "",
+            "featured": bool((metas.get(pid) or {}).get("featured")),
             "provider_image": str(p.get("image") or ""),
             "stock": stock,
             "api_stock": api_stock,

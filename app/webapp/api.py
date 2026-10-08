@@ -600,6 +600,7 @@ async def ai_catalog(
                 "guide": x["guide"][:2500],
                 "sold": sold.get(x["id"], 0),
                 "buyers": len(who.get(x["id"], ())),
+                "featured": bool(x.get("featured")),
             })
     except Exception:  # noqa: BLE001
         # نبود کاتالوگ نباید صفحه را بشکند؛ ویترین خالی بهتر از خطاست.
