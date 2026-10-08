@@ -17,8 +17,8 @@ from __future__ import annotations
 #
 # شماره های قدیمی (۵۴ و ۵۵) همان ۵.۴ و ۵.۵ هستند؛ عمدا از ۵.۰.۰ شروع
 # نشد تا ترتیب نسخه ها به هم نریزد و لاگ های قدیمی قابل ردیابی بمانند.
-VERSION = "6.1.1"
-BUILD_DATE = "1405-06-29"
+VERSION = "6.4.0"
+BUILD_DATE = "1405-07-16"
 
 
 def version_tuple() -> tuple[int, int, int]:
@@ -305,6 +305,19 @@ def self_check() -> list[tuple[str, bool, str]]:
         add("QR ساده در مینی اپ", callable(qr_svg))
     except Exception as exc:  # noqa: BLE001
         add("ایموجی و QR مینی اپ", False, str(exc))
+
+    # --- نسخه ۶.۴: تیکت حرفه ای، مرکز راهنما، پیش نمایش ها و قوانین کامل ---
+    try:
+        from app import faq, preview, terms
+        from app.db import Database as _D2
+        from app.services import support
+
+        add("تیکت با موضوع و اولویت", hasattr(_D2, "create_thread") and "urgent" in support.PRIORITIES)
+        add("مرکز راهنمای حوزه ای", len(faq.DOMAINS) >= 5)
+        add("شماره مجازی و ویزا کارت (پیش نمایش)", bool(preview.NUMBERS["countries"] and preview.VISA["cards"]))
+        add("قوانین کامل", len(terms.SECTIONS) >= 12)
+    except Exception as exc:  # noqa: BLE001
+        add("نسخه ۶.۴", False, str(exc))
 
     return checks
 

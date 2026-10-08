@@ -1225,6 +1225,49 @@ _PURCHASE_ERRORS = {
 }
 
 
+def qr_svg(data: str) -> bytes:
+    """QR ساده به صورت SVG.
+
+    قاب برند (qr_png) برای پیام های ربات است؛ داخل مینی اپ فقط یک QR
+    تمیز لازم است که سریع خوانده شود. SVG هم سبک تر از PNG است و هم
+    روی هر تراکم پیکسلی لبه تیز می ماند - که برای QR مهم است، چون
+    ماژول های نرم شده را دوربین بعضی گوشی ها سخت می خواند.
+
+    پس زمینه سفید صریح دارد: QR روی زمینه تیره خوانده نمی شود و نباید
+    به تم صفحه وابسته باشد.
+    """
+    import qrcode
+
+    qr = qrcode.QRCode(
+        error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=1, border=2
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    matrix = qr.get_matrix()
+    n = len(matrix)
+
+    # ماژول های هر ردیف در یک path ادغام می شوند تا فایل کوچک بماند
+    parts = []
+    for y, row in enumerate(matrix):
+        x = 0
+        while x < n:
+            if row[x]:
+                run = x
+                while run < n and row[run]:
+                    run += 1
+                parts.append(f"M{x} {y}h{run - x}v1h-{run - x}z")
+                x = run
+            else:
+                x += 1
+
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {n} {n}" '
+        f'width="{n * 8}" height="{n * 8}" shape-rendering="crispEdges">'
+        f'<rect width="{n}" height="{n}" fill="#fff"/>'
+        f'<path d="{"".join(parts)}" fill="#000"/></svg>'
+    ).encode("utf-8")
+
+
 # نگاشت مسیر -> تابع. فقط همین ها در دسترس اند.
 ROUTES = {
     "bootstrap": bootstrap,

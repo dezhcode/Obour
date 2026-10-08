@@ -13,7 +13,7 @@
   GET   /app/api/<n>              داده مینی اپ (فقط خواندنی، فاز یک)
   GET   /cron?key=..              اجرای کارهای دوره ای (هشدارها، پاکسازی)
   GET   /img/<name>               تصویرهای داخل ربات (app/assets)
-  GET   /rates                    نرخ دلار، تتر و تون از tgju.org (JSON، تومان)
+  GET   /rates                    نرخ تتر و تون از tgju.org (JSON، تومان)
   GET   /status?key=SECRET        وضعیت کامل
   GET   /setwebhook?key=SECRET    ثبت وبهوک روی تلگرام + فهرست دستورها
   GET   /setcommands?key=SECRET   ثبت فقط فهرست دستورها
