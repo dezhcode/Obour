@@ -275,9 +275,9 @@ body.game .prog i{background:rgba(255,255,255,.22)}
 body.game .prog i.done{background:var(--c)}
 body.game .die.ghost{--c:rgba(255,255,255,.14);--e:transparent}
 body.game .die.ghost i{background:var(--on-fill);opacity:.35}
-body.game .board-frame{background:var(--game-deep);padding:4px;border-radius:var(--radius-xl);box-shadow:0 22px 44px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.07)}
-body.game .board{background:var(--game-deep);--gap:2px;--pad:2px;border-radius:var(--radius-lg)}
-body.game .tile{border-radius:7px;box-shadow:inset 0 -2px 0 var(--board-path-edge)}
+body.game .board-frame{background:var(--game-deep);padding:3px;border-radius:var(--radius-xl);box-shadow:0 22px 44px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.07)}
+body.game .board{background:var(--game-deep);--gap:1.5px;--pad:2px;border-radius:var(--radius-lg)}
+body.game .tile{border-radius:30%;box-shadow:inset 0 -2px 0 var(--board-path-edge)}
 body.game .tile.lane,body.game .tile.start{box-shadow:inset 0 -2px 0 var(--e)}
 body.game .yard{border-radius:var(--radius-lg);box-shadow:inset 0 -4px 0 var(--e),inset 0 2px 0 rgba(255,255,255,.3)}
 body.game .yard .panel{border-radius:28%;box-shadow:inset 0 -3px 0 var(--board-path-edge)}
@@ -355,7 +355,7 @@ html:not(.is-fs) .appbar-cap{display:none}
    =================================================================== */
 body.game .appbar-in{min-height:52px;padding-block:var(--space-1) var(--space-2)}
 body.game .appbar .turnbar{flex:1;min-width:0;box-shadow:none}
-body.game .page{gap:var(--space-2);padding-block:var(--space-2) var(--space-2);padding-inline:max(var(--space-2),var(--sa-l,0px),var(--sa-r,0px))}
+body.game .page{gap:var(--space-2);padding-block:var(--space-2) var(--space-2);padding-inline:max(var(--space-1),var(--sa-l,0px),var(--sa-r,0px))}
 .board-frame{margin-inline:auto;width:min(100%,var(--board,100%))}
 .board.rot{transform:rotate(var(--rot,0deg))}
 .board .who,.board .home-mark svg{transform:rotate(var(--counter,0deg))}
