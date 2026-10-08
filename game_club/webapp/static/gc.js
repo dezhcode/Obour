@@ -219,14 +219,14 @@ const COL = {
   blue: { hex: '#4C8DFF', deep: '#2B62D6', fa: 'آبی' }, red: { hex: '#FF5A6A', deep: '#C93447', fa: 'قرمز' },
   green: { hex: '#2FC584', deep: '#1E8A5E', fa: 'سبز' }, yellow: { hex: '#FFC531', deep: '#C98A00', fa: 'زرد' },
 };
-/* مهره: دیسک گرد براق (بدون چشم). مرکز دیسک نزدیک ۸۲٪ ارتفاع است، همان نقطه ای
+/* مهره: سکه گرد سه بعدی با لبه سفید و ستاره سفید وسط. مرکز دیسک نزدیک ۷۴٪ ارتفاع است، همان نقطه ای
    که مهره روی خانه می نشیند؛ بالای آن جای تاج برنده است. */
 function pawn(c, crown) {
   const { hex, deep } = COL[c];
-  return `<svg viewBox="0 0 40 50" aria-hidden="true"><ellipse cx="20" cy="47" rx="13" ry="3" fill="rgba(0,0,0,.3)"/>
-    <circle cx="20" cy="40" r="14" fill="${deep}"/><circle cx="20" cy="37" r="14" fill="${hex}" stroke="#fff" stroke-width="3"/>
-    <circle cx="20" cy="37" r="7.5" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.4"/>
-    <ellipse cx="14.5" cy="31" rx="4.6" ry="3" fill="rgba(255,255,255,.5)" transform="rotate(-28 14.5 31)"/>
+  return `<svg viewBox="0 0 40 50" aria-hidden="true"><ellipse cx="20" cy="47.5" rx="13" ry="2.6" fill="rgba(0,0,0,.35)"/>
+    <circle cx="20" cy="40" r="14" fill="${deep}"/><circle cx="20" cy="37" r="14" fill="#fff"/><circle cx="20" cy="37" r="11" fill="${hex}"/>
+    <path d="M20 30.2l2 4.1 4.5.6-3.3 3.1.8 4.5-4-2.2-4 2.2.8-4.5-3.3-3.1 4.5-.6z" fill="#fff" fill-opacity=".92"/>
+    <path d="M11.5 33a9.5 9.5 0 0 1 7-6" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.2" stroke-linecap="round"/>
     ${crown ? '<path d="M8 21l4.5 4 7.5-11 7.5 11 4.5-4-1.5 7.5h-21z" fill="#FFC93C" stroke="#C98A00" stroke-width="1.4" stroke-linejoin="round"/>' : ''}</svg>`;
 }
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
