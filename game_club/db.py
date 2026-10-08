@@ -100,6 +100,20 @@ CREATE TABLE IF NOT EXISTS notify (
   PRIMARY KEY (tg_id, game)
 );
 
+-- آخرین باری که هر بازیکن صفحه میز را پرسیده (برای اعلان به کسی که بیرون رفته)
+CREATE TABLE IF NOT EXISTS presence (
+  match_id TEXT NOT NULL,
+  tg_id INTEGER NOT NULL,
+  seen REAL NOT NULL,
+  PRIMARY KEY (match_id, tg_id)
+);
+
+-- هر اعلان یک بار (کلید یکتا)
+CREATE TABLE IF NOT EXISTS pings (
+  key TEXT PRIMARY KEY,
+  created_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS locks (
   key TEXT PRIMARY KEY,
   expires_at REAL NOT NULL
@@ -355,6 +369,46 @@ class GCDatabase:
                                  "kind IN ('entry','refund','shop','transfer') AND status='done' AND created_at >= ?",
                                  (tg_id, since))
         return row or {"value": 0}
+
+    # ---------- حضور و اعلان ----------
+    async def touch(self, match_id: str, tg_id: int) -> None:
+        """ثبت حضور؛ برای کم کردن نوشتن، حداکثر هر ۳ ثانیه یک بار."""
+        now = time.time()
+        await self.execute(
+            "INSERT INTO presence(match_id, tg_id, seen) VALUES(?,?,?) "
+            "ON CONFLICT(match_id, tg_id) DO UPDATE SET seen = excluded.seen WHERE seen < excluded.seen - 3",
+            (match_id, tg_id, now))
+
+    async def seen(self, match_id: str, tg_id: int) -> float:
+        row = await self.one("SELECT seen FROM presence WHERE match_id = ? AND tg_id = ?", (match_id, tg_id))
+        return float(row["seen"]) if row else 0.0
+
+    async def ping_once(self, key: str) -> bool:
+        try:
+            await self.execute("INSERT INTO pings(key, created_at) VALUES(?, ?)", (key, int(time.time())))
+            return True
+        except aiosqlite.IntegrityError:
+            return False
+
+    async def ping_count(self, prefix: str) -> int:
+        row = await self.one("SELECT COUNT(*) AS n FROM pings WHERE key LIKE ?", (prefix + "%",))
+        return int(row["n"]) if row else 0
+
+    # ---------- آمار ادمین ----------
+    async def stats(self, since: int) -> dict:
+        q = lambda sql, *a: self.one(sql, a)  # noqa: E731
+        return {
+            "players": (await q("SELECT COUNT(*) AS n FROM players"))["n"],
+            "points": (await q("SELECT COALESCE(SUM(points),0) AS n FROM players"))["n"],
+            "playing": (await q("SELECT COUNT(*) AS n FROM matches WHERE status = 'playing'"))["n"],
+            "lobby": (await q("SELECT COUNT(*) AS n FROM matches WHERE status = 'lobby'"))["n"],
+            "queue": (await q("SELECT COUNT(*) AS n FROM queue WHERE claimed IS NULL"))["n"],
+            "games": (await q("SELECT COUNT(DISTINCT match_id) AS n FROM results WHERE created_at >= ?", since))["n"],
+            "charge": (await q("SELECT COALESCE(SUM(amount),0) AS n FROM ledger WHERE kind='charge' AND status='done' AND created_at >= ?", since))["n"],
+            "entry": (await q("SELECT COALESCE(-SUM(amount),0) AS n FROM ledger WHERE kind='entry' AND status='done' AND created_at >= ?", since))["n"],
+            "prize": (await q("SELECT COALESCE(SUM(amount),0) AS n FROM ledger WHERE kind='prize' AND status='done' AND created_at >= ?", since))["n"],
+            "shop": (await q("SELECT COALESCE(-SUM(amount),0) AS n FROM ledger WHERE kind IN ('shop','transfer') AND status='done' AND created_at >= ?", since))["n"],
+        }
 
     # ---------- خبرم کن ----------
     async def toggle_notify(self, tg_id: int, game: str) -> bool:

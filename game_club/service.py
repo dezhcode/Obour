@@ -26,6 +26,25 @@ BOT_NAMES = ("سارا", "امیر", "نگار", "رضا", "مهسا", "علی",
 _ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
+# تابع ارسال پیام ربات (tg, text, page)؛ bot.py هنگام راه اندازی می گذارد
+notifier = None
+AWAY = 12.0  # کسی که این مدت صفحه میز را نپرسیده، بیرون از مینی اپ حساب می شود
+
+
+async def _notify(db: GCDatabase, tg: int | None, key: str, text: str, page: str = "ludo.html") -> None:
+    """هر اعلان یک بار؛ خطای ارسال (مثلا ربات استارت نشده) بازی را نمی شکند."""
+    if notifier is None or not tg or not await db.ping_once(key):
+        return
+    try:
+        await notifier(tg, text, page)
+    except Exception:  # noqa: BLE001
+        log.debug("اعلان Game Club نرفت", exc_info=True)
+
+
+async def _away(db: GCDatabase, match_id: str, tg: int, now: float) -> bool:
+    return now - await db.seen(match_id, tg) > AWAY
+
+
 class GCError(Exception):
     def __init__(self, code: str, **extra) -> None:
         super().__init__(code)
@@ -163,6 +182,16 @@ async def settle(db: GCDatabase, m: dict) -> None:
                 await earn(db, r["tg_id"], prize, "prize", "جایزهٔ منچ", m["id"], f"prize:{m['id']}")
         await db.add_result(m["id"], r["tg_id"], won, prize if (won and cfg["mode"] == "stake") else 0)
     await db.deactivate(m["id"])
+    now = time.time()
+    for r in rows:
+        if not await _away(db, m["id"], r["tg_id"], now):
+            continue
+        won = r["color"] == winner
+        if won:
+            text = f"منچ را بردی! {prize:,} امتیاز جایزه به کیفت اضافه شد." if cfg["mode"] == "stake" and prize else "منچ را بردی!"
+        else:
+            text = "بازی منچ تمام شد و این دست را باختی." if winner else "بازی منچ تمام شد."
+        await _notify(db, r["tg_id"], f"over:{m['id']}:{r['tg_id']}", text, "wallet.html" if won and prize else "index.html")
 
 
 def _color_of(rows: list[dict], tg: int) -> str | None:
@@ -318,6 +347,9 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
         raise GCError(color)
     if color:
         await db.add_match_player(m["id"], tg, color, paid)
+        host = m["host"]
+        if host and host != tg and await _away(db, m["id"], host, time.time()):
+            await _notify(db, host, f"join:{m['id']}:{tg}", f"{info['name']} سر میز منچ تو نشست!", "ludo-lobby.html")
         if len(mm["state"]["seats"]) == cfg["players"]:
             await _lobby_go(db, mm)
     return {"match": m["id"]}
@@ -394,8 +426,11 @@ def _ticker(now: float):
 
 async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0) -> dict:
     rows, color = await _membership(db, tg, match_id)
+    await db.touch(match_id, tg)
     now = time.time()
     m, _ = await mutate(db, match_id, _ticker(now))
+    if m["status"] == "playing":
+        await _ping_turn(db, m, tg, now)
     cfg = m["cfg"]
     out = {"id": m["id"], "status": m["status"], "cfg": cfg, "v": m["version"], "me": color}
     if m["status"] in ("lobby", "cancelled"):
@@ -411,6 +446,54 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0) -> 
         out["result"] = {"won": st.get("winner") == color, "prize": prize if st.get("winner") == color else 0,
                          "lost": next((r["paid"] for r in rows if r["tg_id"] == tg), 0) if st.get("winner") != color else 0}
     return out
+
+
+async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
+    """نوبت کسی رسیده که بیرون از مینی اپ است: در ربات خبرش کن (حداکثر دو بار در هر بازی)."""
+    st = m["state"]
+    if st["over"]:
+        return
+    p = st["players"][ludo.current(st)]
+    uid = p.get("uid")
+    if p["bot"] or not uid or uid == asker or not await _away(db, m["id"], uid, now):
+        return
+    if await db.ping_count(f"turn:{m['id']}:{uid}:") >= 2:
+        return
+    extra = " در بازی امتیازی سه نوبت غیبت یعنی باخت." if st.get("stake") else ""
+    await _notify(db, uid, f"turn:{m['id']}:{uid}:{st.get('turn_id', 0)}",
+                  f"نوبت توست در منچ! {gc.turn_seconds} ثانیه وقت داری، بعدش حرکت خودکار انجام می‌شود.{extra}")
+
+
+async def admin_close(db: GCDatabase, match_id: str) -> dict:
+    """بستن میز گیرکرده توسط ادمین: میز لغو و همه ورودی ها برمی گردد."""
+    m = await db.get_match(match_id)
+    if not m or m["status"] not in ("lobby", "playing"):
+        raise GCError("not_open")
+
+    def cancel(mm: dict):
+        if mm["status"] not in ("lobby", "playing"):
+            return False, False
+        mm["status"] = "cancelled"
+        return True, True
+
+    _, ok = await mutate(db, match_id, cancel)
+    if not ok:
+        raise GCError("not_open")
+    refunded = 0
+    if m["status"] == "lobby":
+        for seat in m["state"].get("seats", []):
+            if seat.get("paid") and await earn(db, seat["tg"], seat["paid"], "refund", "بستن میز توسط پشتیبانی",
+                                                match_id, "refund:" + seat["ref"]):
+                refunded += seat["paid"]
+    else:
+        for r in await db.match_players(match_id):
+            if r["paid"] and await earn(db, r["tg_id"], r["paid"], "refund", "بستن میز توسط پشتیبانی",
+                                        match_id, f"cancel:{match_id}:{r['tg_id']}"):
+                refunded += r["paid"]
+    await db.mark_settled(match_id)
+    await db.deactivate(match_id)
+    log.warning("میز %s توسط ادمین بسته شد؛ %s امتیاز برگشت", match_id, refunded)
+    return {"refunded": refunded}
 
 
 async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None = None, since: int = 0) -> dict:

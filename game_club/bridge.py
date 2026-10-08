@@ -117,6 +117,10 @@ async def buy(gdb: GCDatabase, odb: "Database", panel, bot, tg: int, plan_id: in
         raise GCError("no_obour")
     pts = points_for(int(plan["price"]))
     toman = pts * gc.point_toman
+    # همان درخواست دوباره رسید (دابل کلیک، شبکه): نتیجه قبلی، بدون خرید دوم
+    prev = await gdb.ledger_by_idem("shop:" + idem)
+    if prev:
+        return {"ok": prev["status"] == "done", "repeat": True, "title": plan["title"]}
     if not await spend(gdb, tg, pts, "shop", f"خرید: {plan['title']}"[:120], f"plan:{plan['id']}", "shop:" + idem):
         raise GCError("insufficient")
     await _to_obour_wallet(odb, user, toman, "gcp:" + idem)

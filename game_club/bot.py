@@ -7,6 +7,10 @@
   /start obour      آمده از کارت Game Club در مینی اپ عبور
   /points           موجودی امتیاز
   /help             قوانین کوتاه
+ادمین ها (ADMIN_IDS عبور):
+  /gcstats                  آمار امروز و همه
+  /gcpoints <tg_id> <مقدار>  افزودن یا کسر امتیاز (منفی = کسر)
+  /gcclose <match_id>       بستن میز گیرکرده و برگرداندن ورودی ها
 """
 from __future__ import annotations
 
@@ -59,6 +63,14 @@ class GCRuntime:
                 dp["gdb"] = db
                 dp.include_router(router)
                 self.dp = dp
+                from . import service
+
+                bot = self.bot
+
+                async def notify(tg: int, text: str, page: str) -> None:
+                    await bot.send_message(tg, text, reply_markup=open_kb(page, "باز کردن Game Club"))
+
+                service.notifier = notify
             self.db = db
             log.info("Game Club آماده شد (db=%s)", gc.db_path)
         return self
@@ -124,6 +136,70 @@ async def on_help(message: Message) -> None:
         "• تاس روی سرور ریخته می‌شود؛ هر نوبت ۲۰ ثانیه وقت داری\n"
         "• امتیاز فقط در خدمات عبور خرج می‌شود و به پول نقد برنمی‌گردد",
         reply_markup=open_kb("help.html", "راهنمای کامل"))
+
+
+# ---------- ادمین ----------
+def _is_admin(message: Message) -> bool:
+    from app.config import config as obour_cfg
+
+    return bool(message.from_user and message.from_user.id in obour_cfg.admin_ids)
+
+
+@router.message(Command("gcstats"))
+async def on_stats(message: Message, gdb: GCDatabase) -> None:
+    if not _is_admin(message):
+        return
+    import time as _t
+
+    day = await gdb.stats(int(_t.time()) - 86400)
+    allt = await gdb.stats(0)
+    f = lambda v: f"{int(v):,}"  # noqa: E731
+    await message.answer(
+        "<b>Game Club</b>\n"
+        f"بازیکن: {f(allt['players'])} · امتیاز در گردش: {f(allt['points'])}\n"
+        f"الان: {f(allt['playing'])} میز در بازی، {f(allt['lobby'])} میز دعوت، {f(allt['queue'])} نفر در صف\n\n"
+        "<b>۲۴ ساعت گذشته</b>\n"
+        f"بازی تمام شده: {f(day['games'])}\n"
+        f"شارژ: {f(day['charge'])} امتیاز ({f(day['charge'] * gc.point_toman)} تومان)\n"
+        f"ورودی: {f(day['entry'])} · جایزه: {f(day['prize'])}\n"
+        f"خرج در عبور: {f(day['shop'])}")
+
+
+@router.message(Command("gcpoints"))
+async def on_points_admin(message: Message, command: CommandObject, gdb: GCDatabase) -> None:
+    if not _is_admin(message):
+        return
+    parts = (command.args or "").split()
+    if len(parts) != 2 or not parts[0].isdigit() or not parts[1].lstrip("-").isdigit() or int(parts[1]) == 0:
+        await message.answer("شکل درست: <code>/gcpoints 123456789 500</code> (منفی برای کسر)")
+        return
+    tg, amount = int(parts[0]), int(parts[1])
+    if not await gdb.get_player(tg):
+        await message.answer("این کاربر هنوز Game Club را باز نکرده.")
+        return
+    from . import service
+
+    idem = f"admin:{message.chat.id}:{message.message_id}"
+    ok = (await service.earn(gdb, tg, amount, "admin", "تنظیم دستی پشتیبانی", "admin", idem) if amount > 0
+          else await service.spend(gdb, tg, -amount, "admin", "تنظیم دستی پشتیبانی", "admin", idem))
+    p = await gdb.get_player(tg)
+    await message.answer(("انجام شد" if ok else "انجام نشد (موجودی کافی نیست؟)") + f". موجودی فعلی: {p['points']:,}")
+    log.warning("ادمین %s امتیاز %s را %+d کرد (ok=%s)", message.from_user.id, tg, amount, ok)
+
+
+@router.message(Command("gcclose"))
+async def on_close(message: Message, command: CommandObject, gdb: GCDatabase) -> None:
+    if not _is_admin(message):
+        return
+    mid = (command.args or "").strip()
+    from . import service
+
+    try:
+        r = await service.admin_close(gdb, mid)
+    except service.GCError:
+        await message.answer("میز باز با این شناسه پیدا نشد.")
+        return
+    await message.answer(f"میز {mid} بسته شد؛ {r['refunded']:,} امتیاز ورودی به بازیکن ها برگشت.")
 
 
 @router.message(F.text)

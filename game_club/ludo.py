@@ -49,7 +49,7 @@ def new_state(seats: list[dict], n_pawns: int, now: float, turn_s: int, stake: b
         "order": order, "players": players, "pawns": {c: [YARD] * n_pawns for c in order},
         "turn": turn, "phase": "roll", "dice": None, "movable": [], "sixes": 0,
         "next_at": now + 1.5, "deadline": now + 1.5 + turn_s, "turn_s": turn_s, "stake": stake,
-        "last": {}, "events": [], "seq": 0, "winner": None, "over": False, "started": now,
+        "last": {}, "events": [], "seq": 0, "turn_id": 0, "winner": None, "over": False, "started": now,
         "stats": {c: {"caps": 0, "sixes": 0} for c in order},
     }
     return st
@@ -126,6 +126,7 @@ def _next_turn(st: dict) -> None:
 
 def _begin_turn(st: dict, now: float, wait: float) -> None:
     st["phase"], st["dice"], st["movable"] = "roll", None, []
+    st["turn_id"] = st["seq"]
     st["next_at"] = now + wait
     st["deadline"] = now + wait + st["turn_s"]
 

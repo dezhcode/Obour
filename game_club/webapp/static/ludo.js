@@ -204,6 +204,7 @@ async function play(e) {
 
 /* ---------- همگام سازی با سرور ---------- */
 async function apply(next) {
+  if (next && next.status === 'cancelled') return cancelled();
   if (!next || !next.game) return;
   busy = true;
   try {
@@ -266,6 +267,12 @@ function over(v) {
     <a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
   GC.refreshMe().catch(() => {});
 }
+function cancelled() {
+  if (overShown) return;
+  overShown = true; GC.guardClose(false); store.set('mid', null); GC.refreshMe().catch(() => {});
+  sheet(`<h2 style="font-size:22px;font-weight:900">این میز بسته شد</h2><p class="muted">پشتیبانی این میز را بست و ورودی همه به کیف امتیازشان برگشت.</p>
+    <a class="btn btn-block" href="ludo-lobby.html">${icon('dice')}میز تازه</a><a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+}
 function noMatch() {
   store.set('mid', null);
   sheet(`<h2 style="font-size:22px;font-weight:900">میزی پیدا نشد</h2><p class="muted">این بازی تمام شده یا هنوز سر میزی ننشسته‌ای.</p>
@@ -321,6 +328,7 @@ async function start() {
   try { first = await GC.ludo.match(mid, 0); }
   catch (e) { return e.code === 'not_found' ? noMatch() : (toast(errText(e)), setTimeout(start, 2500)); }
   if (first.status === 'lobby') { location.href = 'ludo-lobby.html'; return; }
+  if (first.status === 'cancelled') return cancelled();
   mid = first.id; store.set('mid', mid); me = first.me; setRotation();
   const g = first.game;
   $('capTitle').textContent = 'منچ · ' + (first.cfg.mode === 'stake' ? 'با امتیاز' : 'آزاد');
