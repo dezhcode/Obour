@@ -358,21 +358,26 @@ function over(v) {
 function cancelled() {
   if (overShown) return;
   overShown = true; endChat(); GC.guardClose(false); store.set('mid', null); GC.refreshMe().catch(() => {});
-  sheet(`<h2 style="font-size:22px;font-weight:900">این میز بسته شد</h2><p class="muted">پشتیبانی این میز را بست و ورودی همه به کیف امتیازشان برگشت.</p>
-    <a class="btn btn-block" href="ludo-lobby.html">${icon('dice')}میز تازه</a><a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+  sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
+      <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میز را بست و ورودی همه به کیف امتیازشان برگشت.</p>
+      <div class="dlg-acts"><a class="btn" href="ludo-lobby.html">میز تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
   store.set('mid', null);
-  sheet(`<h2 style="font-size:22px;font-weight:900">میزی پیدا نشد</h2><p class="muted">این بازی تمام شده یا هنوز سر میزی ننشسته‌ای.</p>
-    <a class="btn btn-block" href="ludo-lobby.html">${icon('dice')}یک میز بساز</a><a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+  sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
+      <h2 id="dT">میزی پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز سر میزی ننشسته‌ای.</p>
+      <div class="dlg-acts"><a class="btn" href="ludo-lobby.html">یک میز بساز</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
 }
 function askExit() {
   if (!snap || snap.status === 'over') { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake';
-  const sh = sheet(`<h2 style="font-size:22px;font-weight:900">از بازی بیرون می‌روی؟</h2>
-    <p class="muted">${stake ? `بازی با امتیاز است. خروج یعنی باخت و ${fa(snap.cfg.entry)} امتیاز ورودی برنمی‌گردد.` : 'بازی آزاد است و چیزی از دست نمی‌دهی.'}</p>
-    <button class="btn btn-danger btn-block" id="leave">بیرون برو</button>
-    <button class="btn btn-light btn-block" data-close>ادامهٔ بازی</button>`, { center: true });
+  const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
+      <span class="dlg-ic warn">${icon('exit')}</span>
+      <h2 id="dT">از بازی بیرون می‌روی؟</h2>
+      <p id="dD">${stake ? 'خروج یعنی باختِ همین دست؛ میز بدون تو ادامه می‌دهد.' : 'این دست برای تو تمام می‌شود و بقیه بدون تو ادامه می‌دهند.'}</p>
+      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
+      <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
+    </div>`, { center: true });
   sh.querySelector('#leave').onclick = async () => {
     try { await GC.ludo.leave(mid); } catch (e) {}
     GC.guardClose(false); store.set('mid', null); location.href = 'index.html';

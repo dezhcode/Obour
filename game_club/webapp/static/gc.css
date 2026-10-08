@@ -134,7 +134,22 @@ h1,h2,h3,p{margin:0}
 .scrim{position:fixed;inset:0;z-index:var(--z-sheet);background:var(--scrim);display:flex;align-items:flex-end;justify-content:center}
 .scrim.center{align-items:center;padding:var(--space-4)}
 .sheet{width:100%;max-width:480px;max-height:92vh;overflow:auto;background:var(--surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-3) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom,0px));display:grid;gap:var(--space-5);align-content:start;box-shadow:var(--lift);animation:sheet-in .24s ease-out}
-.scrim.center .sheet{border-radius:var(--radius-xl);padding-block-end:var(--space-5);animation:pop-in .22s ease-out}
+.scrim.center .sheet{max-width:360px;border-radius:var(--radius-xl);padding:var(--space-6) var(--space-5) var(--space-5);animation:pop-in .22s ease-out}
+
+/* پنجره تایید (خروج، میز بسته شد، میز پیدا نشد): آیکن، عنوان، توضیح کوتاه، دو دکمه کنار هم.
+   کار امن (ادامه) دکمه اصلی و اول است؛ کار پرخطر (خروج) دکمه کم رنگ قرمز */
+.dlg{display:grid;justify-items:center;text-align:center;gap:var(--space-2)}
+.dlg-ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;margin-bottom:var(--space-1);background:var(--sky-tint);color:var(--sky-deep)}
+.dlg-ic svg{width:30px;height:30px}
+.dlg-ic.warn{background:#FDECEE;color:var(--danger)}
+.dlg h2{font-size:21px;line-height:30px;font-weight:900}
+.dlg p{font-size:14px;line-height:24px;color:var(--ink-muted);max-width:290px}
+.dlg-note{display:flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%;background:var(--coin-tint);color:var(--coin-ink);border-radius:var(--radius-md);padding:10px 12px;font-size:13.5px;line-height:20px;font-weight:700;margin-top:var(--space-1)}
+.dlg-note .amount{color:var(--coin-ink)}
+.dlg-acts{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);width:100%;margin-top:var(--space-3)}
+.dlg-acts.one{grid-template-columns:1fr}
+.dlg-acts .btn{min-height:48px;font-size:15px;padding-inline:var(--space-3)}
+.btn-danger-soft{--bg:#FDECEE;--fg:var(--danger);--edge:transparent;box-shadow:none}
 .sheet>*{min-width:0}
 .grab{width:44px;height:5px;border-radius:5px;background:var(--line);justify-self:center}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
@@ -197,8 +212,8 @@ h1,h2,h3,p{margin:0}
 .tile.lane,.tile.start{background:var(--c);box-shadow:inset 0 -2px 0 var(--e)}
 .tile.safe svg path{fill:var(--board-path-edge)}
 .yard{position:relative;margin:1px;border-radius:var(--radius-md);background:var(--c);box-shadow:inset 0 -5px 0 var(--e),inset 0 3px 0 rgba(255,255,255,.25)}
-.yard .panel{position:absolute;inset:14%;border-radius:22%;background:var(--board-path);box-shadow:inset 0 -3px 0 var(--board-path-edge)}
-.yard .sock{position:absolute;width:22%;height:22%;border-radius:50%;transform:translate(-50%,-50%);background:var(--c);opacity:.35}
+.yard .panel{position:absolute;inset:7%;border-radius:20%;background:var(--board-path);box-shadow:inset 0 -3px 0 var(--board-path-edge)}
+.yard .sock{position:absolute;width:27%;height:27%;border-radius:50%;transform:translate(-50%,-50%);background:var(--c);opacity:.3}
 .yard.turn{animation:yard-pulse 1.1s ease-in-out infinite}
 .yard.off{filter:saturate(.25) brightness(1.1);opacity:.55}
 @keyframes yard-pulse{50%{box-shadow:inset 0 -5px 0 var(--e),inset 0 3px 0 rgba(255,255,255,.25),0 0 0 4px var(--surface)}}
@@ -206,7 +221,7 @@ h1,h2,h3,p{margin:0}
 .home svg{display:block;width:100%;height:100%}
 .layer{position:absolute;inset:3px;pointer-events:none;z-index:var(--z-pawn)}
 /* مرکز دیسک مهره در ۷۴٪ ارتفاع SVG است؛ همان نقطه دقیقا روی مرکز خانه یا جای لانه می نشیند */
-.pawn{position:absolute;width:7.4%;height:9.2%;transform-origin:50% 74%;transform:translate(-50%,-74%) rotate(var(--counter,0deg)) scale(var(--s,1));transition:left .14s ease-out,top .14s ease-out,transform .15s;pointer-events:auto}
+.pawn{position:absolute;width:8.2%;height:10.25%;transform-origin:50% 74%;transform:translate(-50%,-74%) rotate(var(--counter,0deg)) scale(var(--s,1));transition:left .14s ease-out,top .14s ease-out,transform .15s;pointer-events:auto}
 .pawn svg{display:block;width:100%;height:100%;overflow:visible}
 .pawn.hop svg{animation:pawn-hop .14s ease-out}
 .pawn.can{cursor:pointer}
@@ -260,8 +275,8 @@ body.game .prog i{background:rgba(255,255,255,.22)}
 body.game .prog i.done{background:var(--c)}
 body.game .die.ghost{--c:rgba(255,255,255,.14);--e:transparent}
 body.game .die.ghost i{background:var(--on-fill);opacity:.35}
-body.game .board-frame{background:var(--game-deep);padding:7px;border-radius:var(--radius-xl);box-shadow:0 22px 44px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.07)}
-body.game .board{background:var(--game-deep);gap:2.5px;border-radius:var(--radius-lg)}
+body.game .board-frame{background:var(--game-deep);padding:4px;border-radius:var(--radius-xl);box-shadow:0 22px 44px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.07)}
+body.game .board{background:var(--game-deep);gap:2px;padding:2px;border-radius:var(--radius-lg)}
 body.game .tile{border-radius:30%;box-shadow:inset 0 -2px 0 var(--board-path-edge)}
 body.game .tile.lane,body.game .tile.start{box-shadow:inset 0 -2px 0 var(--e)}
 body.game .yard{border-radius:var(--radius-lg);box-shadow:inset 0 -4px 0 var(--e),inset 0 2px 0 rgba(255,255,255,.3)}
@@ -340,7 +355,7 @@ html:not(.is-fs) .appbar-cap{display:none}
    =================================================================== */
 body.game .appbar-in{min-height:52px;padding-block:var(--space-1) var(--space-2)}
 body.game .appbar .turnbar{flex:1;min-width:0;box-shadow:none}
-body.game .page{gap:var(--space-2);padding-block:var(--space-2) var(--space-2)}
+body.game .page{gap:var(--space-2);padding-block:var(--space-2) var(--space-2);padding-inline:max(var(--space-2),var(--sa-l,0px),var(--sa-r,0px))}
 .board-frame{margin-inline:auto;width:min(100%,var(--board,100%))}
 .board.rot{transform:rotate(var(--rot,0deg))}
 .board .who,.board .home-mark svg{transform:rotate(var(--counter,0deg))}
