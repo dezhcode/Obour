@@ -6,6 +6,11 @@
 #   bash setup_all.sh -y              بدون پرسش (فقط مقادیر موجود .env)
 #   bash setup_all.sh --no-update     بدون گرفتن کد تازه از گیت هاب
 #   bash setup_all.sh --panel         اطلاعات پنل را دوباره بپرس
+#   bash setup_all.sh --once          برای Cron Jobs: فقط یک بار، یا هر بار که setup.env تازه باشد
+#
+# بدون تایپ در ترمینال: مقادیر را در فایل setup.env کنار اپ بنویس (نمونه:
+# setup.env.example، با File Manager سی پنل). اسکریپت آن را می خواند، در .env ثبت
+# می کند و پاکش می کند. گزارش هر اجرا در logs/setup_all.log می ماند.
 #
 # کارها به ترتیب:
 #   ۱. فعال کردن venv و رفتن به پوشه اپ
@@ -25,7 +30,7 @@ main() {
 
   local APP_DIR="${OBOUR_DIR:-/home/wmkmbrcs/obour}"
   local VENV="${OBOUR_VENV:-/home/wmkmbrcs/virtualenv/obour/3.11}"
-  local BRANCH="" YES="" UPDATE=1 PANEL="" REEXEC=""
+  local BRANCH="" YES="" UPDATE=1 PANEL="" REEXEC="" ONCE=""
   local arg
   for arg in "$@"; do
     case "$arg" in
@@ -33,7 +38,8 @@ main() {
       --no-update) UPDATE=0 ;;
       --panel) PANEL="--panel" ;;
       --reexec) REEXEC=1 ;;
-      -h|--help) sed -n '2,21p' "$0"; return 0 ;;
+      --once) ONCE="--once" ;;
+      -h|--help) sed -n '2,27p' "$0"; return 0 ;;
       -*) echo "گزینه ناشناخته: $arg"; return 2 ;;
       *) BRANCH="$arg" ;;
     esac
@@ -43,12 +49,41 @@ main() {
   warn() { printf '\033[1;33m!! %s\033[0m\n' "$*"; }
   fail() { printf '\033[1;31mXX %s\033[0m\n' "$*"; exit 1; }
 
-  # ۱. venv و پوشه
+  cd "$APP_DIR" || fail "پوشه اپ پیدا نشد: $APP_DIR"
+  mkdir -p logs tmp
+
+  # کران هر دقیقه اجرا می کند: کار فقط وقتی هست که هنوز اجرا نشده یا setup.env تازه آمده
+  if [ -n "$ONCE" ] && [ -z "$REEXEC" ] && [ -f tmp/setup_all.done ] && [ ! -f setup.env ]; then
+    return 0
+  fi
+  # setup.env خراب: تا وقتی عوضش نکرده ای، کران دوباره امتحانش نمی کند
+  if [ -n "$ONCE" ] && [ -f setup.env ] && [ -f tmp/setup_all.failed ] \
+     && [ "$(sha1sum < setup.env)" = "$(cat tmp/setup_all.failed)" ]; then
+    return 0
+  fi
+  # جلوگیری از دو اجرای هم زمان (قفل کهنه تر از ۳۰ دقیقه رها می شود)
+  if [ -z "$REEXEC" ]; then
+    find tmp -maxdepth 1 -name setup_all.lock -mmin +30 -exec rm -rf {} + 2>/dev/null
+    mkdir tmp/setup_all.lock 2>/dev/null || { echo "یک اجرای دیگر در جریان است."; return 0; }
+  fi
+  # shellcheck disable=SC2064  # مسیر همین حالا باز می شود؛ بعد از main متغیر محلی نیست
+  trap "rm -rf '$APP_DIR/tmp/setup_all.lock'" EXIT
+  [ -z "$REEXEC" ] && exec > >(tee -a logs/setup_all.log) 2>&1
+  echo; echo "######## $(date '+%Y-%m-%d %H:%M:%S') setup_all.sh $*"
+
+  # بدون ترمینال تعاملی (کران، Execute script) پرسشی در کار نیست
+  [ -t 0 ] || YES="--yes"
+  local FROM=""
+  if [ -f setup.env ]; then
+    FROM="--from setup.env"
+    YES="--yes"
+  fi
+
+  # ۱. venv
   step "۱. محیط پایتون و پوشه اپ"
   [ -f "$VENV/bin/activate" ] || fail "venv پیدا نشد: $VENV"
   # shellcheck disable=SC1091
   source "$VENV/bin/activate"
-  cd "$APP_DIR" || fail "پوشه اپ پیدا نشد: $APP_DIR"
   echo "پایتون: $(python --version 2>&1)  |  پوشه: $APP_DIR"
 
   # ۲. کد تازه
@@ -64,7 +99,7 @@ main() {
     after="$(sha1sum setup_all.sh 2>/dev/null || true)"
     if [ "$before" != "$after" ] && [ -f setup_all.sh ]; then
       echo "نسخه تازه همین اسکریپت آمد؛ از نو اجرا می شود."
-      exec bash setup_all.sh --reexec --no-update $YES $PANEL
+      exec bash setup_all.sh --reexec --no-update $YES $PANEL $ONCE
     fi
   else
     step "۲. گرفتن کد تازه: رد شد"
@@ -81,7 +116,12 @@ main() {
 
   # ۴. تنظیمات
   step "۴. تنظیمات .env"
-  python setup_env.py --no-hints $YES $PANEL || fail "تنظیمات کامل نشد؛ چیزی ثبت نشد"
+  [ -n "$FROM" ] && echo "مقادیر از setup.env خوانده می شود."
+  if ! python setup_env.py --no-hints $YES $PANEL $FROM; then
+    [ -f setup.env ] && sha1sum < setup.env > tmp/setup_all.failed
+    fail "تنظیمات کامل نشد؛ چیزی ثبت نشد. خطای بالا را درست کن (setup.env سر جایش ماند)"
+  fi
+  rm -f tmp/setup_all.failed
   chmod 600 .env
 
   # ۵. پلن ها
@@ -136,6 +176,7 @@ PY
   step "۸. بررسی نهایی"
   python check_setup.py || true
 
+  touch tmp/setup_all.done
   echo
   if [ "$hooks_ok" = 1 ]; then
     echo "تمام. در تلگرام به هر دو ربات /start بده."

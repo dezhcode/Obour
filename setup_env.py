@@ -5,6 +5,7 @@
   python setup_env.py --rotate     ساخت دوباره سکرت ها (وبهوک ها باید دوباره ثبت شوند)
   python setup_env.py --dry-run    فقط نشان بده چه چیزی عوض می شود
   python setup_env.py --panel      اطلاعات پنل PasarGuard را دوباره بپرس
+  python setup_env.py --from setup.env   بدون تایپ: مقادیر از فایل (نمونه: setup.env.example)
 راه اندازی کامل (کد، کتابخانه، پلن، وبهوک) با یک دستور: bash setup_all.sh
 
 بدون پرسش (مثلا در اسکریپت دیگر):
@@ -68,6 +69,17 @@ def _split_value(raw: str) -> tuple[str, str]:
     return s, ""
 
 
+def quote(value: str) -> str:
+    """مقدار امن برای python-dotenv: ساده بدون کوتیشن، بقیه داخل کوتیشن."""
+    if re.fullmatch(r"[A-Za-z0-9_\-.:/@,+=%~]*", value):
+        return value
+    if "'" not in value and "\n" not in value:
+        return f"'{value}'"  # داخل ' ' همه چیز عینا خوانده می شود
+    if '"' not in value and "\\" not in value and "\n" not in value:
+        return f'"{value}"'
+    raise ValueError("مقدار هم ' و هم \" (یا \\) دارد؛ آن را دستی در .env بنویس")
+
+
 class EnvFile:
     def __init__(self, path: Path) -> None:
         self.path = path
@@ -89,14 +101,14 @@ class EnvFile:
             if m and m.group(2) == key:
                 _, comment = _split_value(m.group(4))
                 nl = "\n" if line.endswith("\n") else ""
-                self.lines[i] = f"{m.group(1)}{key}={value}{comment}{nl}"
+                self.lines[i] = f"{m.group(1)}{key}={quote(value)}{comment}{nl}"
                 found = True
         if not found:
             if self.lines and not self.lines[-1].endswith("\n"):
                 self.lines[-1] += "\n"
             if not self.added:
                 self.lines.append("\n# ---------- افزوده شده با setup_env.py ----------\n")
-            self.lines.append(f"{key}={value}\n")
+            self.lines.append(f"{key}={quote(value)}\n")
             self.added.append(key)
 
     def text(self) -> str:
@@ -118,8 +130,8 @@ def mask(value: str) -> str:
     if ":" in value and value.split(":", 1)[0].isdigit():  # توکن ربات: آیدی ربات + ۴ حرف آخر
         bot_id, rest = value.split(":", 1)
         return f"{bot_id}:…{rest[-4:]}"
-    if len(value) <= 8:
-        return "•" * len(value)
+    if len(value) < 24:  # پسورد و مانند آن: هیچ حرفی نشان داده نمی شود
+        return f"•••• ({len(value)} حرف)"
     return f"{value[:3]}…{value[-3:]} ({len(value)} حرف)"
 
 
@@ -277,6 +289,38 @@ def resolve_admins(given: str | None, env: EnvFile, ask: Asker, bot_ids: set[int
     raise SystemExit("ADMIN_IDS سه بار نامعتبر بود؛ چیزی نوشته نشد.")
 
 
+# ---------- خواندن از فایل ----------
+# کلیدهایی که از فایل --from عینا به .env می روند (بعد از چک ساده)
+PLAIN_KEYS = ("WEBHOOK_BASE_URL", "TG_PROXY", "TG_API_BASE", "PANEL_BASE_URL", "PANEL_USERNAME",
+              "PANEL_PASSWORD", "PANEL_API_KEY", "PANEL_GROUP_ID", "GAME_CLUB_BOT_USERNAME")
+
+
+def load_from(a: argparse.Namespace) -> dict[str, str]:
+    """فایل setup.env را می خواند؛ خالی ها نادیده گرفته می شوند (یعنی مقدار فعلی بماند)."""
+    path = Path(a.from_file)
+    if not path.exists():
+        raise SystemExit(f"فایل {path} پیدا نشد")
+    f = EnvFile(path)
+    keys = ("BOT_TOKEN", "GAME_CLUB_BOT_TOKEN", "ADMIN_IDS") + PLAIN_KEYS
+    vals = {k: f.get(k).strip() for k in keys if f.get(k).strip()}
+    for k in ("WEBHOOK_BASE_URL", "PANEL_BASE_URL"):
+        if k in vals:
+            vals[k] = vals[k].rstrip("/")
+            if not vals[k].startswith(("https://", "http://")):
+                raise SystemExit(f"{k} در {path} باید با https:// شروع شود؛ چیزی نوشته نشد")
+    for k, v in vals.items():
+        try:
+            quote(v)
+        except ValueError as e:
+            raise SystemExit(f"{k}: {e}") from None
+    if "GAME_CLUB_BOT_USERNAME" in vals:
+        vals["GAME_CLUB_BOT_USERNAME"] = vals["GAME_CLUB_BOT_USERNAME"].lstrip("@")
+    a.bot_token = a.bot_token or vals.get("BOT_TOKEN")
+    a.gc_token = a.gc_token or vals.get("GAME_CLUB_BOT_TOKEN")
+    a.admin_ids = a.admin_ids or vals.get("ADMIN_IDS")
+    return vals
+
+
 # ---------- اجرا ----------
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="ثبت توکن، سکرت وبهوک و آیدی ادمین در .env")
@@ -285,6 +329,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--admin-ids", help="آیدی عددی ادمین ها، با کاما")
     p.add_argument("--env", default=str(ENV_PATH), help="مسیر فایل .env (پیش فرض: کنار همین اسکریپت)")
     p.add_argument("--panel", action="store_true", help="اطلاعات پنل PasarGuard را دوباره بپرس")
+    p.add_argument("--from", dest="from_file", metavar="FILE",
+                   help="مقادیر را از یک فایل بخوان (برای وقتی ترمینال تایپ نمی پذیرد)؛ بعد از ثبت پاک می شود")
     p.add_argument("--rotate", action="store_true", help="همه سکرت ها و مسیر وبهوک را از نو بساز")
     p.add_argument("--no-check", action="store_true", help="توکن را با getMe تایید نکن")
     p.add_argument("--yes", "-y", action="store_true", help="بدون پرسش؛ فقط از فلگ ها و مقادیر موجود")
@@ -294,7 +340,8 @@ def main(argv: list[str] | None = None) -> int:
     a = p.parse_args(argv)
 
     env_path = Path(a.env).resolve()
-    interactive = not a.yes and sys.stdin.isatty()
+    src = load_from(a) if a.from_file else None
+    interactive = not a.yes and not src and sys.stdin.isatty()
     ask = Asker(interactive)
 
     created = False
@@ -307,13 +354,16 @@ def main(argv: list[str] | None = None) -> int:
     before = env.text()
 
     print(f"\nفایل تنظیمات: {env_path}" + ("  (از .env.example ساخته می شود)" if created else ""))
-    print("توکن ها هنگام تایپ نمایش داده نمی شوند. Enter یعنی مقدار فعلی بماند.\n")
+    if interactive:
+        print("توکن و پسورد هنگام تایپ یا paste نمایش داده نمی شوند؛ paste کن (کلیک راست یا Ctrl+Shift+V) و Enter بزن.")
+        print("Enter خالی یعنی مقدار فعلی بماند. اگر ترمینال چیزی نمی پذیرد: setup.env.example را ببین.\n")
 
     verify = not a.no_check
     rows: list[tuple[str, str, str]] = []
 
     def put(key: str, value: str, generated: bool = False) -> None:
-        if key in ("ADMIN_IDS", "GAME_CLUB_BOT_USERNAME", "WEBHOOK_BASE_URL", "PANEL_BASE_URL", "PANEL_USERNAME"):
+        if key in ("ADMIN_IDS", "GAME_CLUB_BOT_USERNAME", "WEBHOOK_BASE_URL", "PANEL_BASE_URL", "PANEL_USERNAME",
+                   "PANEL_GROUP_ID", "TG_API_BASE"):
             shown = value or "-"
         elif key == "WEBHOOK_PATH":
             shown = "/tg/…" + value[-3:]
@@ -324,6 +374,12 @@ def main(argv: list[str] | None = None) -> int:
             return
         env.set(key, value)
         rows.append((NEW if generated else OK, key, shown))
+
+    if src:  # شبکه و آدرس ها پیش از تایید توکن، تا getMe از همان پروکسی برود
+        print(f"مقادیر از فایل {a.from_file} خوانده شد: {', '.join(sorted(src)) or 'هیچ'}\n")
+        for key in PLAIN_KEYS:
+            if src.get(key):
+                put(key, src[key])
 
     # ۱. ربات عبور
     print("— ربات عبور")
@@ -367,10 +423,10 @@ def main(argv: list[str] | None = None) -> int:
             put("PANEL_USERNAME", user)
         password = ask.secret("پسورد پنل", env.get("PANEL_PASSWORD"))
         if password:
-            if any(c in password for c in " #'\"\\"):
-                print(f"  {BAD} پسورد فاصله، # یا کوتیشن دارد؛ آن را دستی و داخل کوتیشن در .env بنویس")
-            else:
+            try:
                 put("PANEL_PASSWORD", password)
+            except ValueError as e:
+                print(f"  {BAD} {e}")
 
     # ۵. سکرت ها: فقط اگر خالی، نامعتبر یا --rotate
     taken: set[str] = set()
@@ -414,6 +470,9 @@ def main(argv: list[str] | None = None) -> int:
             os.chmod(bak, 0o600)
         env.save()
         print(f"\nذخیره شد: {env_path} (دسترسی 600)" + ("" if created else f"؛ نسخه قبلی: {env_path.name}.bak"))
+    if src:  # توکن و پسورد نباید در فایل دوم روی هاست بمانند
+        Path(a.from_file).unlink(missing_ok=True)
+        print(f"فایل {a.from_file} پاک شد (مقادیرش حالا در .env است).")
 
     rotated = any(tag == NEW and k in ("WEBHOOK_SECRET", "WEBHOOK_PATH", "GAME_CLUB_WEBHOOK_SECRET")
                   for tag, k, _ in rows)

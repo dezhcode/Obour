@@ -114,6 +114,38 @@ source /home/wmkmbrcs/virtualenv/obour/3.11/bin/activate && cd /home/wmkmbrcs/ob
 گزینه ها: `-y` بدون پرسش، `--no-update` بدون گرفتن کد تازه، `--panel` پرسیدن دوباره
 اطلاعات پنل، یا نام یک شاخه (`bash setup_all.sh <branch>`).
 
+### اگر ترمینال تایپ یا paste نمی پذیرد
+
+اول بدان که موقع وارد کردن توکن و پسورد چیزی روی صفحه نمایش داده نمی شود (برای
+امنیت). paste با کلیک راست یا `Ctrl+Shift+V` است و بعد Enter. اگر باز هم نشد،
+همه کار بدون ترمینال هم شدنی است:
+
+۱. **File Manager** سی پنل ← پوشه `/home/wmkmbrcs/obour` ← **+ File** ← نام `setup.env`
+   ← راست کلیک ← **Edit**. این ها را بنویس (خالی = مقدار فعلی بماند؛ نمونه کامل در
+   `setup.env.example`):
+
+```env
+BOT_TOKEN=
+GAME_CLUB_BOT_TOKEN=
+ADMIN_IDS=
+PANEL_USERNAME=
+PANEL_PASSWORD=
+```
+
+۲. **Cron Jobs** سی پنل ← Common Settings: **Once Per Minute** ← در Command این را بگذار:
+
+```bash
+cd /home/wmkmbrcs/obour && bash setup_all.sh --once >/dev/null 2>&1
+```
+
+۳. یکی دو دقیقه صبر کن و در File Manager فایل `logs/setup_all.log` را باز کن. اسکریپت
+   مقادیر را در `.env` ثبت کرده، `setup.env` را پاک کرده و وبهوک هر دو ربات را ثبت
+   کرده است. اگر خطا بود، `setup.env` سر جایش می ماند؛ درستش کن و ذخیره کن تا کران دوباره
+   امتحان کند.
+
+۴. کار که تمام شد کران را **Delete** کن. (با `--once` حتی اگر بماند کاری نمی کند، مگر
+   دوباره `setup.env` بسازی.)
+
 ## قدم ۴: ساخت فایل تنظیمات
 
 **راه سریع:** این اسکریپت `.env` را می سازد، توکن ربات عبور، توکن ربات Game Club و
