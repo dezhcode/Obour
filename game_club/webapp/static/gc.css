@@ -206,20 +206,20 @@ h1,h2,h3,p{margin:0}
 
 /* صفحه بازی */
 .board-frame{position:relative;padding:8px;border-radius:var(--radius-xl);background:var(--ground-deep);box-shadow:inset 0 3px 0 rgba(255,255,255,.25),var(--depth-md)}
-.board{position:relative;isolation:isolate;aspect-ratio:1;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);gap:2px;padding:3px;border-radius:var(--radius-lg);background:var(--game-deep)}
+.board{--gap:2px;--pad:3px;position:relative;isolation:isolate;aspect-ratio:1;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);gap:var(--gap);padding:var(--pad);border-radius:var(--radius-lg);background:var(--game-deep)}
 .tile{border-radius:22%;background:var(--board-path);box-shadow:inset 0 -2px 0 var(--board-path-edge);display:grid;place-items:center;position:relative}
 .tile svg{width:64%;height:64%}
 .tile.lane,.tile.start{background:var(--c);box-shadow:inset 0 -2px 0 var(--e)}
 .tile.safe svg path{fill:var(--board-path-edge)}
 .yard{position:relative;margin:1px;border-radius:var(--radius-md);background:var(--c);box-shadow:inset 0 -5px 0 var(--e),inset 0 3px 0 rgba(255,255,255,.25)}
-.yard .panel{position:absolute;inset:7%;border-radius:20%;background:var(--board-path);box-shadow:inset 0 -3px 0 var(--board-path-edge)}
-.yard .sock{position:absolute;width:27%;height:27%;border-radius:50%;transform:translate(-50%,-50%);background:var(--c);opacity:.3}
+.yard .panel{position:absolute;inset:14%;border-radius:22%;background:var(--board-path);box-shadow:inset 0 -3px 0 var(--board-path-edge)}
+.yard .sock{position:absolute;width:22%;height:22%;border-radius:50%;transform:translate(-50%,-50%);background:var(--c);opacity:.35}
 .yard.turn{animation:yard-pulse 1.1s ease-in-out infinite}
 .yard.off{filter:saturate(.25) brightness(1.1);opacity:.55}
 @keyframes yard-pulse{50%{box-shadow:inset 0 -5px 0 var(--e),inset 0 3px 0 rgba(255,255,255,.25),0 0 0 4px var(--surface)}}
 .home{grid-column:7/10;grid-row:7/10;border-radius:6px;overflow:hidden;position:relative}
 .home svg{display:block;width:100%;height:100%}
-.layer{position:absolute;inset:3px;pointer-events:none;z-index:var(--z-pawn)}
+.layer{position:absolute;inset:var(--pad);pointer-events:none;z-index:var(--z-pawn)}
 /* مرکز دیسک مهره در ۷۴٪ ارتفاع SVG است؛ همان نقطه دقیقا روی مرکز خانه یا جای لانه می نشیند */
 .pawn{position:absolute;width:8.2%;height:10.25%;transform-origin:50% 74%;transform:translate(-50%,-74%) rotate(var(--counter,0deg)) scale(var(--s,1));transition:left .14s ease-out,top .14s ease-out,transform .15s;pointer-events:auto}
 .pawn svg{display:block;width:100%;height:100%;overflow:visible}
@@ -276,8 +276,8 @@ body.game .prog i.done{background:var(--c)}
 body.game .die.ghost{--c:rgba(255,255,255,.14);--e:transparent}
 body.game .die.ghost i{background:var(--on-fill);opacity:.35}
 body.game .board-frame{background:var(--game-deep);padding:4px;border-radius:var(--radius-xl);box-shadow:0 22px 44px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.07)}
-body.game .board{background:var(--game-deep);gap:2px;padding:2px;border-radius:var(--radius-lg)}
-body.game .tile{border-radius:30%;box-shadow:inset 0 -2px 0 var(--board-path-edge)}
+body.game .board{background:var(--game-deep);--gap:2px;--pad:2px;border-radius:var(--radius-lg)}
+body.game .tile{border-radius:7px;box-shadow:inset 0 -2px 0 var(--board-path-edge)}
 body.game .tile.lane,body.game .tile.start{box-shadow:inset 0 -2px 0 var(--e)}
 body.game .yard{border-radius:var(--radius-lg);box-shadow:inset 0 -4px 0 var(--e),inset 0 2px 0 rgba(255,255,255,.3)}
 body.game .yard .panel{border-radius:28%;box-shadow:inset 0 -3px 0 var(--board-path-edge)}
