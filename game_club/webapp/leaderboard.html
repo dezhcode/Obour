@@ -58,10 +58,10 @@
 <script src="static/demo.js"></script>
 <script>
 (() => {
-  const { fa, FD, avatarEl, amount, errText, toast } = GC;
+  const { fa, FD, face, amount, errText, toast } = GC;
   const $ = id => document.getElementById(id);
   GC.back('index.html');
-  let tab = 'top', per = 'week', myAv = 7, showSpend = false;
+  let tab = 'top', per = 'week', myP = { av: 7 }, showSpend = false;
   const CROWN = '<svg class="crown" viewBox="0 0 32 22" aria-hidden="true"><path d="M2 6l7.5 6L16 2l6.5 10L30 6l-3 14H5z" fill="#FFC43B" stroke="#B57B00" stroke-width="1.6" stroke-linejoin="round"/></svg>';
   async function render() {
     $('tab').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === tab)));
@@ -73,17 +73,17 @@
     const rows = lb.rows, sub = r => tab === 'top' ? fa(r.wins) + ' برد' : 'خرج در Game Club';
     $('podiumCard').hidden = !rows.length;
     $('podium').innerHTML = [1, 0, 2].filter(i => rows[i]).map(i => { const r = rows[i];
-      return `<div class="pod p${i + 1}" style="order:${[1, 0, 2].indexOf(i)}">${i === 0 ? CROWN : ''}${avatarEl(r.av, i === 0 ? 'var(--coin)' : 'var(--surface)')}<b>${r.name}</b>${amount(r.value)}<div class="step">${FD(i + 1)}</div></div>`; }).join('');
-    $('rest').innerHTML = rows.length > 3 ? rows.slice(3).map((r, i) => `<li class="row${r.me ? ' me' : ''}"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${FD(i + 4)}</span>${avatarEl(r.av)}</span><span class="name">${r.name}<span class="meta">${sub(r)}</span></span>${amount(r.value)}</li>`).join('')
+      return `<div class="pod p${i + 1}" style="order:${[1, 0, 2].indexOf(i)}">${i === 0 ? CROWN : ''}${face(r, i === 0 ? 'var(--coin)' : 'var(--surface)')}<b>${r.name}</b>${amount(r.value)}<div class="step">${FD(i + 1)}</div></div>`; }).join('');
+    $('rest').innerHTML = rows.length > 3 ? rows.slice(3).map((r, i) => `<li class="row${r.me ? ' me' : ''}"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${FD(i + 4)}</span>${face(r)}</span><span class="name">${r.name}<span class="meta">${sub(r)}</span></span>${amount(r.value)}</li>`).join('')
       : `<li class="hint">${rows.length ? 'فعلا همین‌ها.' : tab === 'top' ? 'هنوز در این بازه کسی بازی امتیازی نبرده.' : 'هنوز کسی در این بازه خرجی نکرده یا اجازهٔ نمایش نداده.'}</li>`;
     const m = lb.mine;
-    $('mine').innerHTML = `<div class="row me" style="background:var(--surface);box-shadow:var(--lift)"><span style="display:flex;align-items:center;gap:10px"><span class="rank">—</span>${avatarEl(myAv, 'var(--sky)')}</span><span class="name">جایگاه شما<span class="meta">${!m.visible ? 'در این فهرست نمایش داده نمی‌شوی' : tab === 'top' ? fa(m.wins) + ' برد از ' + fa(m.games) + ' بازی' : 'امتیاز خرج‌شده'}</span></span>${amount(m.value)}</div>`;
+    $('mine').innerHTML = `<div class="row me" style="background:var(--surface);box-shadow:var(--lift)"><span style="display:flex;align-items:center;gap:10px"><span class="rank">—</span>${face(myP, 'var(--sky)')}</span><span class="name">جایگاه شما<span class="meta">${!m.visible ? 'در این فهرست نمایش داده نمی‌شوی' : tab === 'top' ? fa(m.wins) + ' برد از ' + fa(m.games) + ' بازی' : 'امتیاز خرج‌شده'}</span></span>${amount(m.value)}</div>`;
     $('sw').setAttribute('aria-checked', String(!!showSpend));
   }
   $('tab').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { tab = b.dataset.v; render(); } };
   $('per').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { per = b.dataset.v; render(); } };
   $('sw').onclick = async () => { showSpend = !showSpend; try { await GC.data.setFlag('show_spend', showSpend); } catch (e) { showSpend = !showSpend; toast(errText(e)); } render(); };
-  (async () => { try { const me = await GC.refreshMe(); myAv = me.player.av; showSpend = !!me.player.show_spend; } catch (e) {} render(); })();
+  (async () => { try { const me = await GC.refreshMe(); myP = me.player; showSpend = !!me.player.show_spend; } catch (e) {} render(); })();
   GC.nav('leaderboard'); GC.mount();
 })();
 </script>

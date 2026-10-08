@@ -6,7 +6,7 @@
    هر بازیکن رنگ خودش را پایین چپ می بیند: صفحه به اندازه رنگ او می چرخد
    و مهره ها و برچسب ها برعکس می چرخند تا سرپا بمانند. */
 (() => {
-const { S, save, fa, FD, store, avatar, COL, pawn, pips, LUDO, sfx, setSound, sheet, sheetHead, toast, sleep, icon, amount, mount, haptic, errText } = GC;
+const { S, save, fa, FD, store, face, COL, pawn, pips, LUDO, sfx, setSound, sheet, sheetHead, toast, sleep, icon, amount, mount, haptic, errText } = GC;
 const { TRACK, SEAT, ORDER, SOCKETS } = LUDO;
 const SAFE = new Set(LUDO.SAFE);
 const $ = id => document.getElementById(id);
@@ -33,7 +33,7 @@ function buildBoard() {
     const [x, y] = SEAT[c].yard;
     h += `<div class="yard c-${c}" data-yard="${c}" style="grid-column:${x + 1}/${x + 7};grid-row:${y + 1}/${y + 7}"><span class="panel"></span>${SOCKETS.map(([sx, sy]) => `<span class="sock" style="left:${sx / 6 * 100}%;top:${sy / 6 * 100}%"></span>`).join('')}<span class="who"></span></div>`;
   }
-  h += `<div class="home"><svg viewBox="0 0 3 3" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L1.5 1.5L0 3z" fill="#2F7BF6"/><path d="M0 0L3 0L1.5 1.5z" fill="#EF4136"/><path d="M3 0L3 3L1.5 1.5z" fill="#2FB24C"/><path d="M0 3L3 3L1.5 1.5z" fill="#FFC226"/></svg><span class="home-mark">${icon('trophy', 2.4)}</span></div>`;
+  h += `<div class="home"><svg viewBox="0 0 3 3" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0L1.5 1.5L0 3z" fill="#4C8DFF"/><path d="M0 0L3 0L1.5 1.5z" fill="#FF5A6A"/><path d="M3 0L3 3L1.5 1.5z" fill="#2FC584"/><path d="M0 3L3 3L1.5 1.5z" fill="#FFC531"/></svg><span class="home-mark">${icon('trophy', 2.4)}</span></div>`;
   h += '<div class="layer" id="layer"></div>';
   $('board').innerHTML = h;
 }
@@ -99,7 +99,7 @@ function renderSeats(g) {
     el.classList.remove('empty'); el.classList.add('c-' + c);
     el.classList.toggle('turn', g.turn === c);
     const done = g.done[c] || 0, total = Math.max((g.pawns[c] || []).length, done);
-    el.innerHTML = `<span class="avatar timer" style="--ring:var(--c)"><span>${avatar(pl.av)}</span></span>
+    el.innerHTML = `${face(pl, 'var(--c)', 'timer')}
       <div class="seat-txt" dir="rtl"><span class="seat-name">${pl.me ? 'شما' : pl.name}${pl.out ? ' (رفت)' : ''}</span><span class="prog" title="مهره‌های رسیده">${Array.from({ length: total }, (_, i) => `<i class="${i < done ? 'done' : ''}"></i>`).join('')}</span></div>
       <span class="die sm c-${c}${g.last[c] ? '' : ' ghost'}" data-die="${c}">${pips(g.last[c] || 0)}</span>`;
   }

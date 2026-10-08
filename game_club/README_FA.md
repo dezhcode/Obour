@@ -64,6 +64,7 @@ game_club/
   bridge.py      پل به عبور: شارژ از کیف عبور، خرید پلن با امتیاز، انتقال
   api.py         اندپوینت‌های مینی اپ
   bot.py         ربات تلگرام (/start، /start ludo_CODE، /points، /help)
+  pics.py        عکس پروفایل تلگرام بازیکن ها (/gc/pic/<key>)
   wsgi.py        مسیرهای /gc زیر Passenger
   test_game_club.py
   design/        سیستم دیزاین (tokens.json منبع اصلی، build_tokens.py)
@@ -83,6 +84,7 @@ game_club/
 | `/gc/api/...` | API مینی اپ؛ initData در هدر `X-Init-Data` |
 | `POST /gc/hook` | وبهوک ربات (هدر secret token) |
 | `GET /gc/setwebhook?key=` | ثبت وبهوک، دستورها، دکمهٔ منو |
+| `GET /gc/pic/<key>` | عکس پروفایل تلگرام بازیکن |
 
 API: `me`، `settings`، `notify`، `wallet/charge`، `shop`، `shop/buy`، `shop/transfer`،
 `leaderboard`، `ludo/queue` (+ `/leave`)، `ludo/invite`، `ludo/join`، `ludo/start`،
@@ -120,6 +122,14 @@ API: `me`، `settings`، `notify`، `wallet/charge`، `shop`، `shop/buy`، `sho
 - برگشت با BackButton خود تلگرام؛ در منچ کشیدن عمودی غیرفعال، صفحه عمودی قفل،
   و در بازی امتیازی بستن مینی اپ تأیید می‌خواهد.
 - لرزش (HapticFeedback) برای تاس، ۶، زدن، برد و خطا.
+
+## نام و عکس بازیکن ها از تلگرام
+
+- نام کامل (نام و نام خانوادگی تلگرام) و `photo_url` هر بار از initData مینی اپ به روز می شود.
+- اگر تلگرام `photo_url` نداد (مثلا کاربر از دکمه ربات آمده)، مینی اپ عکس را از
+  `/gc/pic/<key>` می گیرد. سرور آن را با Bot API (`getUserProfilePhotos`) می گیرد و یک روز
+  در `data/gc_pics/` نگه می دارد. `key` تصادفی است تا آیدی تلگرام کسی در آدرس نیاید.
+- اگر عکسی نبود، حرف اول نام روی یک رنگ ثابت نشان داده می شود. ربات های بازی آزاد آواتار کارتونی دارند.
 
 ## یک تصمیم مهم
 

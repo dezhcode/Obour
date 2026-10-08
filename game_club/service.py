@@ -18,7 +18,7 @@ import time
 
 from . import ludo
 from .config import gc
-from .db import GCDatabase
+from .db import GCDatabase, pic_url
 
 log = logging.getLogger("gameclub.service")
 
@@ -112,7 +112,7 @@ async def earn(db: GCDatabase, tg: int, amount: int, kind: str, note: str, ref: 
 # ---------- ساخت و تغییر میز ----------
 async def _seat_info(db: GCDatabase, tg: int) -> dict:
     p = await db.get_player(tg) or {}
-    return {"name": (p.get("name") or "بازیکن")[:24], "av": int(p.get("av") or 1)}
+    return {"name": (p.get("name") or "بازیکن")[:24], "av": int(p.get("av") or 1), "pic": pic_url(p)}
 
 
 async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dict], *, create: bool) -> None:
@@ -124,7 +124,8 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
             next(x for x in colors if x not in used)
         used.add(c)
         info = await _seat_info(db, h["tg"])
-        seats.append({"color": c, "uid": h["tg"], "name": info["name"], "av": info["av"], "bot": False, "paid": h["paid"]})
+        seats.append({"color": c, "uid": h["tg"], "name": info["name"], "av": info["av"], "pic": info["pic"],
+                      "bot": False, "paid": h["paid"]})
     names = random.sample(BOT_NAMES, len(BOT_NAMES))
     for c in colors:
         if c not in used:
@@ -434,7 +435,8 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0) -> 
     cfg = m["cfg"]
     out = {"id": m["id"], "status": m["status"], "cfg": cfg, "v": m["version"], "me": color}
     if m["status"] in ("lobby", "cancelled"):
-        out["lobby"] = {"seats": [{"color": s["color"], "name": s["name"], "av": s["av"], "me": s["tg"] == tg}
+        out["lobby"] = {"seats": [{"color": s["color"], "name": s["name"], "av": s["av"], "pic": s.get("pic", ""),
+                                   "me": s["tg"] == tg}
                                   for s in m["state"].get("seats", [])],
                         "code": m["invite"], "host": m["host"] == tg}
         return out
@@ -553,7 +555,7 @@ async def leaderboard(db: GCDatabase, tg: int, kind: str, period: str) -> dict:
     mine = await db.my_value(tg, since, kind)
     return {
         "kind": kind, "period": period,
-        "rows": [{"name": r["name"] or "بازیکن", "av": r["av"], "value": int(r["value"] or 0),
+        "rows": [{"name": r["name"] or "بازیکن", "av": r["av"], "pic": pic_url(r), "value": int(r["value"] or 0),
                   "wins": int(r.get("wins") or 0), "me": r["tg_id"] == tg} for r in rows],
         "mine": {"value": int(mine.get("value") or 0), "wins": int(mine.get("wins") or 0),
                  "games": int(mine.get("games") or 0), "visible": kind == "top" or bool(me.get("show_spend"))},

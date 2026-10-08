@@ -1,4 +1,4 @@
-Game Club is Obour's game room inside Telegram: Ludo first, then Esm-Famil and Hokm. Players play free or for points, and spend points on Obour services. The world is a bright outdoor board game: grass ground, sky, gold coins, chunky pieces you can almost pick up.
+Game Club is Obour's game room inside Telegram: Ludo first, then Esm-Famil and Hokm. Players play free or for points, and spend points on Obour services. The look follows social game apps like Plato: a light lavender-grey ground, white rounded cards with soft shadows, colorful game tiles, real Telegram photos for every player, and a dark game table for Ludo.
 
 ## Voice and copy
 
@@ -12,10 +12,13 @@ Game Club is Obour's game room inside Telegram: Ludo first, then Esm-Famil and H
 
 ## Color
 
-- Every screen sits on `grass-ground` (with the `grass-deep` gradient). Small text on the ground is `ink`; white titles on the ground use the `.on-ground` outline in `grass-ink` and are 20px or larger.
+- Every screen sits on `ground`. Text on the ground is `ink`. The Ludo game screen is the exception: it sits on `game-bg` (dark), with `game-glass` cards and `game-ink` for secondary text.
 - Content lives on `surface` cards; inner rows and tracks use `surface-sunk`; dividers use `line`.
 - `ink` for text, `ink-muted` for meta lines. Both pass 4.5:1 on `surface` and `surface-sunk`.
-- `sky` is the main action; `coin` is points, prizes and the start/play action; text on `coin` is `coin-ink`, never white.
+- `sky` is the main action and the active bottom-nav circle; `violet` is the Ludo brand (feature card, Ludo tile); `coin` is points and prizes; text on `coin` is `coin-ink`, never white.
+- Game tiles use `tile-violet` (Ludo), `tile-orange` (Esm-Famil) and `tile-coral` (Hokm) with white art on top.
+- Buttons are pills (`radius-pill`) with a soft colored shadow; cards use `radius-xl` and `depth-md`.
+- Players are shown by their Telegram photo (`GC.face`): `photo_url` from initData, else `/gc/pic/<key>` fetched by the bot, else the first letter of their Telegram name on a fixed color. Bots keep the cartoon avatar.
 - `success` and `danger` always come with a word or icon (charge vs. leave), never color alone.
 - The four player colors (`player-blue`, `player-red`, `player-green`, `player-yellow`) are only for game pieces, seats and the board. Yellow is always the local player.
 - `obour-night` and `obour-aqua` appear only in panels that point to Obour services.
@@ -52,17 +55,17 @@ Line icons, 24px grid, 2.2px stroke, round caps, `currentColor`, drawn for this 
 ## Layout
 
 - One column, max 480px, centered; phone first.
-- Main pages (home, leaderboard, wallet, Obour services) share the bottom nav. Flow pages (Ludo lobby, game, help) have a back button and no nav.
+- Main pages (home, leaderboard, wallet, Obour services) share the bottom nav: a white bar with rounded top corners, icons only (labels for screen readers), the current page inside a `sky` circle. Flow pages (Ludo lobby, game, help) have a back button and no nav.
 - Every flow step or confirmation is a bottom sheet; results and exits are centered dialogs.
 
 ## Full-screen header (Telegram Mini App)
 
-- Every page opens full screen on phones (`requestFullscreen`, Bot API 8.0). The header (`.appbar`) is a full-bleed band from the very top edge of the phone, `grass-ink` fading to a darker grass, rounded only at the bottom (`radius-xl`).
-- It stacks three layers: the phone status bar (`--sa-t` from `safeAreaInset.top`), Telegram's floating-button band (`--csa-t` from `contentSafeAreaInset.top`), then the page row. In Telegram's band only a small centered title sits (`.appbar-cap`, `on-fill`, 13px/900); never put a control there, because Telegram's close/back and menu buttons float over its corners.
-- The page row holds the page title (`t-title` size, white with a `grass-ink` shadow) and at most two controls on the end side: the balance pill and one icon button. In the game the row becomes the turn bar.
+- Every page opens full screen on phones (`requestFullscreen`, Bot API 8.0). The header (`.appbar`) starts at the very top edge of the phone and has the page `ground` color (transparent on the game screen).
+- It stacks three layers: the phone status bar (`--sa-t` from `safeAreaInset.top`), Telegram's floating-button band (`--csa-t` from `contentSafeAreaInset.top`), then the page row. In Telegram's band only a small centered title sits (`.appbar-cap`, 13px/900); never put a control there, because Telegram's close/back and menu buttons float over its corners.
+- The page row holds the page title (`t-title` size, `ink`) and at most two controls on the end side: the balance pill and one icon button. In the game the row becomes the turn bar.
 - Back is Telegram's native BackButton inside Telegram; the in-page back button (`.back`) shows only in a normal browser.
 - Bottom-fixed parts (nav, dice dock) add `--sa-b` so they clear the home indicator. Side gutters grow to `--sa-l`/`--sa-r` in landscape.
-- Header color in Telegram is `#245F17` and background `#5BC236`, so non-full-screen clients show no seam.
+- Telegram header and background colors are `#F5F6FB` (`ground`), and `#3A3350` (`game-bg`) on the Ludo screen, so non-full-screen clients show no seam.
 
 ## The Ludo screen
 

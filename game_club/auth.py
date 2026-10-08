@@ -10,12 +10,42 @@ import hashlib
 import hmac
 import json
 import time
+from dataclasses import dataclass
+from urllib.parse import urlparse
 
 from app.webapp.auth import MAX_AGE, AuthError, WebAppUser, _candidates
 
 from .config import gc
 
-__all__ = ["AuthError", "WebAppUser", "verify", "sign"]
+__all__ = ["AuthError", "GCUser", "WebAppUser", "photo_ok", "sign", "verify"]
+
+# عکس پروفایل تلگرام (photo_url در initData) فقط از دامنه های خود تلگرام پذیرفته می شود
+_PHOTO_HOSTS = ("t.me", "telegram.org", "telesco.pe", "telegram-cdn.org")
+
+
+def photo_ok(url: str) -> str:
+    """آدرس عکس اگر امن و از تلگرام باشد، وگرنه رشته خالی."""
+    url = (url or "").strip()
+    if not url or len(url) > 400 or any(ch in url for ch in " \"'<>`\\"):
+        return ""
+    try:
+        u = urlparse(url)
+    except ValueError:
+        return ""
+    host = (u.hostname or "").lower()
+    if u.scheme != "https" or not any(host == h or host.endswith("." + h) for h in _PHOTO_HOSTS):
+        return ""
+    return url
+
+
+@dataclass(slots=True)
+class GCUser(WebAppUser):
+    last_name: str = ""
+    photo_url: str = ""
+
+    @property
+    def full_name(self) -> str:
+        return " ".join(x for x in (self.first_name, self.last_name) if x).strip()
 
 
 def sign(fields: dict, token: str | None = None) -> str:
@@ -24,7 +54,7 @@ def sign(fields: dict, token: str | None = None) -> str:
     return hmac.new(secret, check.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
-def verify(init_data: str) -> WebAppUser:
+def verify(init_data: str) -> GCUser:
     if not init_data:
         raise AuthError("initData خالی است")
     if not gc.token:
@@ -49,11 +79,13 @@ def verify(init_data: str) -> WebAppUser:
     uid = raw.get("id")
     if not isinstance(uid, int) or uid <= 0:
         raise AuthError("کاربر در initData نیست")
-    return WebAppUser(
+    return GCUser(
         id=uid,
         first_name=(raw.get("first_name") or "")[:64],
         username=(raw.get("username") or "")[:64],
         language_code=(raw.get("language_code") or "")[:8],
         is_premium=bool(raw.get("is_premium")),
         start_param=(matched.get("start_param") or "")[:64],
+        last_name=(raw.get("last_name") or "")[:64],
+        photo_url=photo_ok(raw.get("photo_url") or ""),
     )

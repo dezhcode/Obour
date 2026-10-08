@@ -42,7 +42,8 @@ def track_index(color: str, p: int) -> int:
 def new_state(seats: list[dict], n_pawns: int, now: float, turn_s: int, stake: bool, first: str | None = None) -> dict:
     """seats: [{color, uid, name, av, bot}]"""
     order = [c for c in ORDER if any(s["color"] == c for s in seats)]
-    players = {s["color"]: {"uid": s.get("uid"), "name": s["name"], "av": s.get("av", 1), "bot": bool(s.get("bot")),
+    players = {s["color"]: {"uid": s.get("uid"), "name": s["name"], "av": s.get("av", 1), "pic": s.get("pic", ""),
+                            "bot": bool(s.get("bot")),
                             "out": False, "misses": 0} for s in seats}
     turn = order.index(first) if first in order else random.randrange(len(order))
     st = {
@@ -277,7 +278,8 @@ def view(st: dict, me: str | None, since: int, now: float) -> dict:
     cp = st["players"][cur]
     return {
         "order": st["order"],
-        "players": {c: {"name": p["name"], "av": p["av"], "bot": p["bot"], "out": p["out"], "me": c == me}
+        "players": {c: {"name": p["name"], "av": p["av"], "pic": p.get("pic", ""), "bot": p["bot"], "out": p["out"],
+                        "me": c == me}
                     for c, p in st["players"].items()},
         "pawns": st["pawns"],
         "turn": None if st["over"] else cur,

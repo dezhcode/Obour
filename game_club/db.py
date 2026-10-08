@@ -12,6 +12,7 @@ import asyncio
 import json
 import os
 import re
+import secrets
 import time
 
 import aiosqlite
@@ -128,6 +129,15 @@ def _clean(text: str) -> str:
     return _UNSAFE.sub("", text or "").strip()[:40]
 
 
+def pic_url(p: dict | None) -> str:
+    """آدرس عکس پروفایل برای مینی اپ: photo_url تلگرام، وگرنه عکسی که ربات می گیرد."""
+    if not p:
+        return ""
+    if p.get("photo"):
+        return p["photo"]
+    return f"pic/{p['pic']}" if p.get("pic") else ""
+
+
 class GCDatabase:
     def __init__(self, path: str) -> None:
         self.path = path
@@ -143,6 +153,13 @@ class GCDatabase:
         await self._conn.execute("PRAGMA journal_mode=WAL")
         await self._conn.execute("PRAGMA busy_timeout=8000")
         await self._conn.executescript(SCHEMA)
+        # ستون های تازه روی دیتابیس قدیمی: عکس پروفایل تلگرام و کلید آدرس عکس
+        cur = await self._conn.execute("PRAGMA table_info(players)")
+        have = {r[1] for r in await cur.fetchall()}
+        for col in ("photo", "pic"):
+            if col not in have:
+                await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
+        await self._conn.execute("CREATE INDEX IF NOT EXISTS players_pic ON players(pic)")
         await self._conn.commit()
 
     async def close(self) -> None:
@@ -201,20 +218,32 @@ class GCDatabase:
         await self.execute("DELETE FROM locks WHERE key = ?", (key,))
 
     # ---------- بازیکن ----------
-    async def player(self, tg_id: int, name: str = "", username: str | None = None) -> dict:
-        # نام از پروفایل تلگرام می آید و در صفحه بقیه بازیکن ها نشان داده می شود؛
-        # نویسه هایی که در HTML معنی دارند همین جا حذف می شوند (جلوگیری از XSS)
+    async def player(self, tg_id: int, name: str = "", username: str | None = None,
+                     photo: str | None = None) -> dict:
+        """ساخت یا به روز کردن بازیکن با نام و عکس پروفایل تلگرام.
+
+        نام در صفحه بقیه بازیکن ها نشان داده می شود؛ نویسه هایی که در HTML معنی
+        دارند همین جا حذف می شوند (جلوگیری از XSS). photo=None یعنی عکس دست نخورد
+        (مثلا پیام ربات که photo_url ندارد)؛ رشته خالی یعنی کاربر عکسش را پنهان کرده.
+        pic کلید تصادفی آدرس /gc/pic/<pic> است تا آیدی تلگرام کسی در آدرس عکس نیاید.
+        """
         name = _clean(name)
         username = _clean(username or "") or None
         now = int(time.time())
         await self.execute(
-            "INSERT OR IGNORE INTO players(tg_id, name, username, av, created_at, seen_at) VALUES(?,?,?,?,?,?)",
-            (tg_id, name[:40], username, tg_id % 23 + 1, now, now),
+            "INSERT OR IGNORE INTO players(tg_id, name, username, av, pic, created_at, seen_at) VALUES(?,?,?,?,?,?,?)",
+            (tg_id, name[:40], username, tg_id % 23 + 1, secrets.token_urlsafe(9), now, now),
         )
         if name:
             await self.execute("UPDATE players SET name=?, username=?, seen_at=? WHERE tg_id=?",
                                (name[:40], username, now, tg_id))
+        if photo is not None:
+            await self.execute("UPDATE players SET photo=? WHERE tg_id=?", (photo[:400], tg_id))
+        await self.execute("UPDATE players SET pic=? WHERE tg_id=? AND pic=''", (secrets.token_urlsafe(9), tg_id))
         return await self.one("SELECT * FROM players WHERE tg_id = ?", (tg_id,))  # type: ignore[return-value]
+
+    async def player_by_pic(self, pic: str) -> dict | None:
+        return await self.one("SELECT * FROM players WHERE pic = ? AND pic != ''", (pic,))
 
     async def get_player(self, tg_id: int) -> dict | None:
         return await self.one("SELECT * FROM players WHERE tg_id = ?", (tg_id,))
@@ -349,13 +378,13 @@ class GCDatabase:
     # ---------- رده بندی ----------
     async def top_players(self, since: int, limit: int = 10) -> list[dict]:
         return await self.all(
-            "SELECT r.tg_id, p.name, p.av, SUM(r.won) AS wins, SUM(r.prize) AS value "
+            "SELECT r.tg_id, p.name, p.av, p.photo, p.pic, SUM(r.won) AS wins, SUM(r.prize) AS value "
             "FROM results r JOIN players p ON p.tg_id = r.tg_id WHERE r.created_at >= ? "
             "GROUP BY r.tg_id HAVING wins > 0 ORDER BY value DESC, wins DESC LIMIT ?", (since, limit))
 
     async def top_spenders(self, since: int, limit: int = 10) -> list[dict]:
         return await self.all(
-            "SELECT l.tg_id, p.name, p.av, -SUM(l.amount) AS value FROM ledger l "
+            "SELECT l.tg_id, p.name, p.av, p.photo, p.pic, -SUM(l.amount) AS value FROM ledger l "
             "JOIN players p ON p.tg_id = l.tg_id "
             "WHERE l.kind IN ('entry','refund','shop','transfer') AND l.status = 'done' AND l.created_at >= ? "
             "AND p.show_spend = 1 GROUP BY l.tg_id HAVING value > 0 ORDER BY value DESC LIMIT ?", (since, limit))

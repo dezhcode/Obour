@@ -12,6 +12,7 @@ import re
 from . import bridge, service
 from .bot import gcrt
 from .config import gc
+from .db import pic_url
 from .service import GCError
 
 _IDEM = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
@@ -38,7 +39,10 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
     g = await gcrt.ensure()
     gdb = g.db
     tg = user.id
-    player = await gdb.player(tg, user.first_name or user.username or "بازیکن", user.username or None)
+    # نام و عکس هر بار از initData تلگرام به روز می شود
+    full = getattr(user, "full_name", "") or user.first_name
+    player = await gdb.player(tg, full or user.username or "بازیکن", user.username or None,
+                              getattr(user, "photo_url", None))
     ob = _obour()
 
     # ---------- خود من ----------
@@ -47,7 +51,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         active = await gdb.active_match_of(tg)
         q_row = await gdb.queue_row(tg)
         return {
-            "player": {k: player[k] for k in ("name", "av", "points", "games", "wins", "show_spend", "tutorial", "sound")},
+            "player": {**{k: player[k] for k in ("name", "av", "points", "games", "wins", "show_spend", "tutorial",
+                                                 "sound")}, "pic": pic_url(player)},
             "history": await gdb.history(tg),
             "notify": await gdb.notify_of(tg),
             "obour": {"linked": bool(ou), "balance": int(ou["balance"]) if ou else 0},
