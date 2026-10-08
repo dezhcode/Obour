@@ -10,11 +10,13 @@
 """
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 import logging
 import mimetypes
 import os
+import re
 import time
 import traceback
 
@@ -84,6 +86,37 @@ def _query(environ: dict) -> dict:
     return {k: v[0] for k, v in parse_qs(environ.get("QUERY_STRING", "")).items()}
 
 
+# تلگرام css و js را یک ساعت کش می کند. هر صفحه (که کش نمی شود) آدرس این فایل ها را
+# با ?v=<هش محتوا> می دهد تا بعد از هر به روزرسانی فایل تازه گرفته شود و صفحه جدید
+# با css و js قدیمی کشیده نشود.
+_ASSET_RE = re.compile(rb'((?:href|src)="static/[\w./-]+\.(?:css|js))"')
+_ver_cache: dict[str, tuple[float, str]] = {}
+
+
+def _asset_ver(rel: str) -> str:
+    full = os.path.join(WEB_DIR, rel)
+    try:
+        mtime = os.path.getmtime(full)
+    except OSError:
+        return ""
+    hit = _ver_cache.get(rel)
+    if hit and hit[0] == mtime:
+        return hit[1]
+    with open(full, "rb") as fh:
+        ver = hashlib.sha1(fh.read()).hexdigest()[:10]
+    _ver_cache[rel] = (mtime, ver)
+    return ver
+
+
+def _versioned(html: bytes) -> bytes:
+    def sub(m: re.Match) -> bytes:
+        attr = m.group(1)
+        ver = _asset_ver(attr.split(b'"', 1)[1].decode())
+        return attr + (b"?v=" + ver.encode() if ver else b"") + b'"'
+
+    return _ASSET_RE.sub(sub, html)
+
+
 def _file(start_response, rel: str):
     rel = rel.lstrip("/")
     full = os.path.realpath(os.path.join(WEB_DIR, rel))
@@ -99,6 +132,7 @@ def _file(start_response, rel: str):
     page = full.endswith(".html")
     extra = [("Cache-Control", "no-cache" if page else "public, max-age=3600")]
     if page:
+        data = _versioned(data)
         extra.append(("Content-Security-Policy", _CSP))
     return _send(start_response, "200 OK", data, ctype, extra)
 
