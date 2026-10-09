@@ -335,7 +335,7 @@ let samplesLoading = null;
 function loadSamples() {
   const a = ctx();
   if (!a || samplesLoading) return samplesLoading;
-  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'throw', 'flick', 'shuffle', 'collect', 'fb_kick', 'fb_clack', 'fb_wall', 'fb_whistle', 'fb_goal'].map(async n => {
+  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'throw', 'flick', 'shuffle', 'collect', 'fb_kick', 'fb_clack1', 'fb_clack2', 'fb_clack3', 'fb_ball1', 'fb_ball2', 'fb_wall', 'fb_post', 'fb_whistle', 'fb_goal', 'fb_crowd'].map(async n => {
     try {
       const r = await fetch('static/sfx/' + n + '.mp3');
       const b = await r.arrayBuffer();
@@ -344,14 +344,14 @@ function loadSamples() {
   }));
   return samplesLoading;
 }
-function sample(n, { g = 1, rate = 1, at = 0 } = {}) {
+function sample(n, { g = 1, rate = 1, at = 0, loop = false } = {}) {
   const a = ctx(); if (!a) return true;
   const buf = SAMPLES[n];
   if (!buf) { loadSamples(); return false; }
   const s = a.createBufferSource(), v = a.createGain();
-  s.buffer = buf; s.playbackRate.value = rate * (.94 + Math.random() * .12); v.gain.value = g;
+  s.buffer = buf; s.loop = loop; s.playbackRate.value = loop ? 1 : rate * (.94 + Math.random() * .12); v.gain.value = g;
   s.connect(v); v.connect(master); s.start(a.currentTime + at);
-  return true;
+  return loop ? { s, v } : true;
 }
 sfx.card = {
   place() { sample('place' + (1 + Math.floor(Math.random() * 3)), { g: 1 }) || (noise(.05, { g: .5, f: 1300, q: .8 }), tone(150, .05, { g: .2 })); },
@@ -361,15 +361,29 @@ sfx.card = {
   collect() { sample('collect', { g: .85 }) || noise(.25, { g: .25, f: 1600, q: .8 }); },
   trump() { [659, 880, 1175].forEach((f, i) => tone(f, .22, { type: 'triangle', g: .16, at: i * .08 })); },
 };
-// فوتبال: g شدت برخورد (۰ تا ۱)
+// فوتبال: g شدت برخورد (۰ تا ۱)؛ صدای ضعیف تر برای برخوردهای آرام، با کمی تفاوت هر بار
+let crowdLoop = null;
+const pickN = (base, n) => base + (1 + Math.floor(Math.random() * n));
 sfx.fb = {
-  kick(g = 1) { sample('fb_kick', { g: .5 + g * .5 }) || (tone(200, .08, { g: .3, to: 120 }), noise(.02, { g: .3, f: 2600, q: 1.4 })); },
-  clack(g = 1, at = 0) { sample('fb_clack', { g: .25 + g * .75, at }) || noise(.03, { g: .2 + g * .3, f: 3200, q: 2, at }); },
-  wall(g = 1, at = 0) { sample('fb_wall', { g: .3 + g * .7, at }) || (noise(.08, { g: .25 + g * .3, f: 500, q: .8, at }), tone(118, .08, { g: .2, at })); },
-  whistle() { sample('fb_whistle', { g: .55 }) || (tone(2650, .16, { g: .12 }), tone(2650, .5, { g: .12, at: .25 })); },
-  goal() { sample('fb_goal', { g: .9 }) || noise(1.6, { g: .3, f: 1000, q: .6 }); },
+  kick(g = 1) { sample('fb_kick', { g: .35 + g * .45 }) || (tone(200, .08, { g: .3, to: 120 }), noise(.02, { g: .3, f: 2600, q: 1.4 })); },
+  clack(g = 1, at = 0) { sample(pickN('fb_clack', 3), { g: .15 + g * .85, at, rate: .97 + g * .06 }) || noise(.03, { g: .2 + g * .3, f: 2000, q: 2, at }); },
+  ball(g = 1, at = 0) { sample(pickN('fb_ball', 2), { g: .25 + g * .85, at }) || (tone(240, .09, { g: .3, to: 180, at }), noise(.02, { g: .2, f: 900, q: .8, at })); },
+  wall(g = 1, at = 0) { sample('fb_wall', { g: .2 + g * .8, at }) || (noise(.08, { g: .25 + g * .3, f: 500, q: .8, at }), tone(118, .08, { g: .2, at })); },
+  post(g = 1, at = 0) { sample('fb_post', { g: .35 + g * .65, at }) || tone(1320, .5, { type: 'triangle', g: .12, at }); },
+  whistle() { sample('fb_whistle', { g: .4 }) || (tone(3150, .16, { g: .1 }), tone(3150, .55, { g: .1, at: .26 })); },
+  goal() { sample('fb_goal', { g: .95 }) || noise(1.6, { g: .3, f: 1000, q: .6 }); },
+  // همهمه تماشاگرها در پس زمینه بازی
+  crowd(on = true) {
+    const a = ctx();
+    if (!on || !a) { if (crowdLoop) { try { crowdLoop.v.gain.setTargetAtTime(0, crowdLoop.s.context.currentTime, .3); crowdLoop.s.stop(crowdLoop.s.context.currentTime + 1.5); } catch (e) {} crowdLoop = null; } return; }
+    if (crowdLoop) return;
+    const r = sample('fb_crowd', { g: 0, loop: true });
+    if (r && r.s) { crowdLoop = r; r.v.gain.setTargetAtTime(.2, a.currentTime, .8); }
+    else if (!r) setTimeout(() => sfx.fb.crowd(true), 600);
+  },
+  roar() { if (crowdLoop) { const t = crowdLoop.s.context.currentTime, g = crowdLoop.v.gain; g.cancelScheduledValues(t); g.setTargetAtTime(.5, t, .15); g.setTargetAtTime(.2, t + 2.2, .8); } },
 };
-function setSound(on) { S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
+function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
 /* ---------- ناوبری پایین (چهار بخش اصلی) ---------- */
 const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['wallet', 'wallet.html', 'کیف امتیاز', 'wallet'], ['shop', 'shop.html', 'خدمات عبور', 'bag']];

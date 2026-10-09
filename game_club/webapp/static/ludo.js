@@ -133,7 +133,7 @@ function renderTurn(g) {
     dock(FD(g.dice) + ' آوردی', 'مهره‌ای را که بالا و پایین می‌پرد بزن؛ دایرهٔ خط‌چین مقصدش است', 'pick');
     showHints(g.dice, g.movable);
   } else dock('نوبت ' + nameOf(g.turn), g.players[g.turn] && g.players[g.turn].bot ? 'ربات فکر می‌کند…' : 'منتظر حرکت حریف…', 'wait');
-  deadlineAt = g.deadline_ms ? Date.now() + g.deadline_ms : 0; turnMs = g.turn_ms || 20000; warned = false;
+  setDeadline(g.deadline_ms); turnMs = g.turn_ms || 20000; tickTimer();
 }
 function clearHints() {
   for (const c in els) els[c].forEach(e => e.classList.remove('can'));
@@ -152,13 +152,22 @@ function showHints(d, moves) {
 }
 
 /* ---------- تایمر نوبت ---------- */
-setInterval(() => {
+// مهلت نوبت: پرسش های پی در پی سرور با تاخیر شبکه کمی جابه جایش می کنند؛ فقط تغییر
+// واقعی (نوبت تازه) را بپذیر تا حلقه زمان یکنواخت کم شود و هشدار یک بار بیاید
+function setDeadline(ms) {
+  const d = ms ? Date.now() + ms : 0;
+  if (!d) { deadlineAt = 0; return; }
+  if (!deadlineAt || Math.abs(d - deadlineAt) > 1500) warned = false;
+  if (!deadlineAt || Math.abs(d - deadlineAt) > 700) deadlineAt = d;
+}
+function tickTimer() {
   const left = deadlineAt ? Math.max(0, deadlineAt - Date.now()) / turnMs : 1;
   $('timeBar').style.transform = `scaleX(${Math.min(1, left)})`;
   const av = snap && snap.game.turn ? document.querySelector(`.seat.c-${snap.game.turn} .avatar`) : null;
   document.querySelectorAll('.seat .avatar').forEach(a => a.style.setProperty('--t', a === av ? Math.min(1, left) : 1));
   if (snap && snap.game.turn === me && deadlineAt && left < .25 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
-}, 200);
+}
+setInterval(tickTimer, 200);
 
 /* ---------- پخش رویدادها ---------- */
 async function rollAnim(c, v) {
