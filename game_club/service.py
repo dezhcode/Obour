@@ -17,7 +17,7 @@ import re
 import secrets
 import time
 
-from . import ludo
+from . import hokm, ludo
 from .config import gc
 from .db import GCDatabase, pic_url
 
@@ -25,6 +25,43 @@ log = logging.getLogger("gameclub.service")
 
 BOT_NAMES = ("سارا", "امیر", "نگار", "رضا", "مهسا", "علی", "پریا", "کیان", "هستی", "سینا", "آرش", "یاسمن")
 _ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+# هر بازی: موتور قواعد، نام فارسی و صفحه میز
+GAMES = {"ludo": (ludo, "منچ", "ludo.html"), "hokm": (hokm, "حکم", "hokm.html")}
+
+
+def game_of(cfg: dict) -> str:
+    return "hokm" if cfg.get("game") == "hokm" else "ludo"
+
+
+def _eng(cfg: dict):
+    return GAMES[game_of(cfg)][0]
+
+
+def _gname(cfg: dict) -> str:
+    return GAMES[game_of(cfg)][1]
+
+
+def _gpage(cfg: dict) -> str:
+    return GAMES[game_of(cfg)][2]
+
+
+def _seat_order(cfg: dict) -> tuple:
+    """ترتیب صندلی ها؛ در حکم اولین مهمان میز دعوت یار سازنده می شود."""
+    return hokm.LOBBY_ORDER if game_of(cfg) == "hokm" else ludo.SEATS[cfg["players"]]
+
+
+def _current(st: dict) -> str | None:
+    if st.get("game") == "hokm":
+        return hokm.SEATS[st["hakem"] if st["phase"] == "trump" else st["turn"]] if st["phase"] in ("trump", "play") else None
+    return ludo.current(st)
+
+
+def _winners(st: dict) -> set:
+    if st.get("game") == "hokm":
+        return hokm.winners(st)
+    return {st["winner"]} if st.get("winner") else set()
 
 
 # تابع ارسال پیام ربات (tg, text, page)؛ bot.py هنگام راه اندازی می گذارد
@@ -62,6 +99,20 @@ def norm_cfg(raw: dict) -> dict:
     mode = "stake" if raw.get("mode") == "stake" else "free"
     if mode == "stake" and not gc.stake_enabled:
         raise GCError("stake_off")
+    if raw.get("game") == "hokm":
+        try:
+            target = int(raw.get("target") or 7)
+            entry = int(raw.get("entry") or 0)
+        except (TypeError, ValueError):
+            raise GCError("bad_cfg") from None
+        if target not in (3, 7):
+            raise GCError("bad_cfg")
+        if mode == "stake":
+            if entry not in gc.entries:
+                raise GCError("bad_entry")
+        else:
+            entry = 0
+        return {"game": "hokm", "mode": mode, "entry": entry, "players": 4, "target": target}
     try:
         players = int(raw.get("players") or 2)
         pawns = int(raw.get("pawns") or 2)
@@ -79,6 +130,8 @@ def norm_cfg(raw: dict) -> dict:
 
 
 def cfg_key(cfg: dict) -> str:
+    if game_of(cfg) == "hokm":
+        return f"hokm:{cfg['mode']}:{cfg['entry']}:{cfg['target']}"
     return f"{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg['pawns']}"
 
 
@@ -118,7 +171,7 @@ async def _seat_info(db: GCDatabase, tg: int) -> dict:
 
 async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dict], *, create: bool) -> None:
     """humans: [{tg, paid, color?}] → میز در حال بازی."""
-    colors = list(ludo.SEATS[cfg["players"]])
+    colors = list(_seat_order(cfg))
     seats, used = [], set()
     for h in humans:
         c = h.get("color") if h.get("color") in colors and h.get("color") not in used else \
@@ -133,8 +186,11 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
             if cfg["mode"] == "stake":
                 raise GCError("need_players")
             seats.append({"color": c, "uid": None, "name": "ربات " + names.pop(), "av": random.randint(1, 23), "bot": True})
-    first = random.choice([s["color"] for s in seats if not s["bot"]])
-    state = ludo.new_state(seats, cfg["pawns"], time.time(), gc.turn_seconds, cfg["mode"] == "stake", first)
+    if game_of(cfg) == "hokm":
+        state = hokm.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
+    else:
+        first = random.choice([s["color"] for s in seats if not s["bot"]])
+        state = ludo.new_state(seats, cfg["pawns"], time.time(), gc.turn_seconds, cfg["mode"] == "stake", first)
     state["pot"] = sum(s.get("paid", 0) for s in seats)
     if create:
         await db.create_match(match_id, "playing", cfg, state, humans[0]["tg"])
@@ -172,28 +228,47 @@ async def settle(db: GCDatabase, m: dict) -> None:
         return
     st, cfg = m["state"], m["cfg"]
     rows = await db.match_players(m["id"])
-    winner = st.get("winner")
-    pot = sum(r["paid"] for r in rows)
-    prize = pot - pot * gc.rake_percent // 100
+    winners = _winners(st)
+    name = _gname(cfg)
+    shares = prize_shares(st, rows)
     for r in rows:
-        won = r["color"] == winner
+        won = r["color"] in winners
+        share = shares.get(r["tg_id"], 0)
         if cfg["mode"] == "stake":
-            if winner is None and r["paid"]:
-                await earn(db, r["tg_id"], r["paid"], "refund", "بازگشت ورودی منچ", m["id"], f"endrefund:{m['id']}:{r['tg_id']}")
-            elif won and prize:
-                await earn(db, r["tg_id"], prize, "prize", "جایزهٔ منچ", m["id"], f"prize:{m['id']}")
-        await db.add_result(m["id"], r["tg_id"], won, prize if (won and cfg["mode"] == "stake") else 0)
+            if not winners and r["paid"]:
+                await earn(db, r["tg_id"], r["paid"], "refund", f"بازگشت ورودی {name}", m["id"], f"endrefund:{m['id']}:{r['tg_id']}")
+            elif share:
+                # منچ یک برنده دارد (idem قبلی همان می ماند)؛ در حکم هر عضو تیم برنده سهم خودش را می گیرد
+                idem = f"prize:{m['id']}" if game_of(cfg) == "ludo" else f"prize:{m['id']}:{r['tg_id']}"
+                await earn(db, r["tg_id"], share, "prize", f"جایزهٔ {name}", m["id"], idem)
+        await db.add_result(m["id"], r["tg_id"], won, share if cfg["mode"] == "stake" else 0)
     await db.deactivate(m["id"])
     now = time.time()
     for r in rows:
         if not await _away(db, m["id"], r["tg_id"], now):
             continue
-        won = r["color"] == winner
+        won = r["color"] in winners
+        share = shares.get(r["tg_id"], 0)
         if won:
-            text = f"منچ را بردی! {prize:,} امتیاز جایزه به کیفت اضافه شد." if cfg["mode"] == "stake" and prize else "منچ را بردی!"
+            text = f"{name} را بردی! {share:,} امتیاز جایزه به کیفت اضافه شد." if cfg["mode"] == "stake" and share else f"{name} را بردی!"
         else:
-            text = "بازی منچ تمام شد و این دست را باختی." if winner else "بازی منچ تمام شد."
-        await _notify(db, r["tg_id"], f"over:{m['id']}:{r['tg_id']}", text, "wallet.html" if won and prize else "index.html")
+            text = f"بازی {name} تمام شد و این بار باختی." if winners else f"بازی {name} تمام شد."
+        await _notify(db, r["tg_id"], f"over:{m['id']}:{r['tg_id']}", text, "wallet.html" if won and share else "index.html")
+
+
+def prize_shares(st: dict, rows: list[dict]) -> dict:
+    """جایزه هر نفر (فقط بازی امتیازی). منچ: همه به برنده. حکم: بین اعضای تیم برنده
+    که بازی را ترک نکرده اند تقسیم می شود."""
+    if not st.get("stake"):
+        return {}
+    winners = _winners(st)
+    pot = sum(r["paid"] for r in rows)
+    prize = pot - pot * gc.rake_percent // 100
+    got = [r for r in rows if r["color"] in winners
+           and not (st.get("game") == "hokm" and st["players"].get(r["color"], {}).get("out"))]
+    if not got or not prize:
+        return {}
+    return {r["tg_id"]: prize // len(got) for r in got}
 
 
 def _color_of(rows: list[dict], tg: int) -> str | None:
@@ -221,7 +296,7 @@ async def queue_join(db: GCDatabase, tg: int, raw_cfg: dict) -> dict:
     held = 0
     if cfg["mode"] == "stake":
         ref = f"q{tg}-{int(time.time() * 1000)}"
-        if not await spend(db, tg, cfg["entry"], "entry", "ورودی منچ", ref, f"entry:{ref}"):
+        if not await spend(db, tg, cfg["entry"], "entry", f"ورودی {_gname(cfg)}", ref, f"entry:{ref}"):
             raise GCError("insufficient")
         held = cfg["entry"]
     await db.queue_put(tg, cfg_key(cfg), cfg, held)
@@ -281,7 +356,8 @@ async def queue_leave(db: GCDatabase, tg: int) -> dict:
         return {"state": "matched", "match": row["claimed"]}
     await db.queue_del(tg)
     if row["held"]:
-        await earn(db, tg, row["held"], "refund", "انصراف از صف منچ", "queue", f"qrefund:{tg}:{row['created_at']}")
+        await earn(db, tg, row["held"], "refund", f"انصراف از صف {_gname(json.loads(row['cfg']))}", "queue",
+                   f"qrefund:{tg}:{row['created_at']}")
     return {"state": "none"}
 
 
@@ -293,10 +369,10 @@ async def invite_create(db: GCDatabase, tg: int, raw_cfg: dict) -> dict:
     if await db.queue_row(tg):
         await queue_leave(db, tg)
     mid, code = _code(10), _code(6)
-    colors = ludo.SEATS[cfg["players"]]
+    colors = _seat_order(cfg)
     paid, ref = 0, f"{mid}:{tg}:{int(time.time() * 1000)}"
     if cfg["mode"] == "stake":
-        if not await spend(db, tg, cfg["entry"], "entry", "ورودی منچ", mid, "entry:" + ref):
+        if not await spend(db, tg, cfg["entry"], "entry", f"ورودی {_gname(cfg)}", mid, "entry:" + ref):
             raise GCError("insufficient")
         paid = cfg["entry"]
     info = await _seat_info(db, tg)
@@ -322,7 +398,7 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
     # هر نشستن یک ref تازه دارد؛ کسی که بلند شد و دوباره نشست، دوباره ورودی می دهد
     paid, ref = 0, f"{m['id']}:{tg}:{int(time.time() * 1000)}"
     if cfg["mode"] == "stake":
-        if not await spend(db, tg, cfg["entry"], "entry", "ورودی منچ", m["id"], "entry:" + ref):
+        if not await spend(db, tg, cfg["entry"], "entry", f"ورودی {_gname(cfg)}", m["id"], "entry:" + ref):
             raise GCError("insufficient")
         paid = cfg["entry"]
     info = await _seat_info(db, tg)
@@ -333,7 +409,7 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
             return False, "started"
         if any(s["tg"] == tg for s in seats):
             return False, None
-        free = [c for c in ludo.SEATS[cfg["players"]] if c not in {s["color"] for s in seats}]
+        free = [c for c in _seat_order(cfg) if c not in {s["color"] for s in seats}]
         if not free:
             return False, "full"
         seats.append({"color": free[0], "tg": tg, "paid": paid, "ref": ref, **info})
@@ -345,13 +421,14 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
         color = "busy"
     if color in ("full", "started", "busy"):
         if paid:
-            await earn(db, tg, paid, "refund", "بازگشت ورودی منچ", m["id"], "refund:" + ref)
+            await earn(db, tg, paid, "refund", f"بازگشت ورودی {_gname(cfg)}", m["id"], "refund:" + ref)
         raise GCError(color)
     if color:
         await db.add_match_player(m["id"], tg, color, paid)
         host = m["host"]
         if host and host != tg and await _away(db, m["id"], host, time.time()):
-            await _notify(db, host, f"join:{m['id']}:{tg}", f"{info['name']} سر میز منچ تو نشست!", "ludo-lobby.html")
+            await _notify(db, host, f"join:{m['id']}:{tg}", f"{info['name']} سر میز {_gname(cfg)} تو نشست!",
+                          _gpage(cfg).replace(".html", "-lobby.html"))
         if len(mm["state"]["seats"]) == cfg["players"]:
             await _lobby_go(db, mm)
     return {"match": m["id"]}
@@ -388,7 +465,7 @@ async def lobby_leave(db: GCDatabase, tg: int, m: dict) -> None:
         if ok:
             for s in m["state"]["seats"]:
                 if s["paid"]:
-                    await earn(db, s["tg"], s["paid"], "refund", "لغو میز منچ", m["id"], "refund:" + s["ref"])
+                    await earn(db, s["tg"], s["paid"], "refund", f"لغو میز {_gname(m['cfg'])}", m["id"], "refund:" + s["ref"])
             await db.deactivate(m["id"])
         return
 
@@ -403,7 +480,7 @@ async def lobby_leave(db: GCDatabase, tg: int, m: dict) -> None:
     if seat:
         await db.execute("DELETE FROM match_players WHERE match_id = ? AND tg_id = ?", (m["id"], tg))
         if seat["paid"]:
-            await earn(db, tg, seat["paid"], "refund", "خروج از میز منچ", m["id"], "refund:" + seat["ref"])
+            await earn(db, tg, seat["paid"], "refund", f"خروج از میز {_gname(m['cfg'])}", m["id"], "refund:" + seat["ref"])
 
 
 # ---------- بازی ----------
@@ -419,7 +496,7 @@ def _ticker(now: float):
     def fn(m: dict):
         if m["status"] != "playing":
             return False, None
-        changed = ludo.tick(m["state"], now)
+        changed = _eng(m["cfg"]).tick(m["state"], now)
         if m["state"]["over"]:
             m["status"] = "over"
         return changed, None
@@ -477,29 +554,33 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, cha
                         "code": m["invite"], "host": m["host"] == tg}
         return out
     st = m["state"]
-    out["game"] = ludo.view(st, color, since, now)
+    out["game"] = _eng(cfg).view(st, color, since, now)
     out["pot"] = st.get("pot", 0)
     if m["status"] == "over":
-        prize = (st.get("pot", 0) - st.get("pot", 0) * gc.rake_percent // 100) if cfg["mode"] == "stake" else 0
-        out["result"] = {"won": st.get("winner") == color, "prize": prize if st.get("winner") == color else 0,
-                         "lost": next((r["paid"] for r in rows if r["tg_id"] == tg), 0) if st.get("winner") != color else 0}
+        won = color in _winners(st)
+        out["result"] = {"won": won, "prize": prize_shares(st, rows).get(tg, 0),
+                         "lost": next((r["paid"] for r in rows if r["tg_id"] == tg), 0) if not won else 0}
     return out
 
 
 async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
     """نوبت کسی رسیده که بیرون از مینی اپ است: در ربات خبرش کن (حداکثر دو بار در هر بازی)."""
     st = m["state"]
-    if st["over"]:
+    cur = _current(st)
+    if st["over"] or cur is None:
         return
-    p = st["players"][ludo.current(st)]
+    p = st["players"][cur]
     uid = p.get("uid")
     if p["bot"] or not uid or uid == asker or not await _away(db, m["id"], uid, now):
         return
     if await db.ping_count(f"turn:{m['id']}:{uid}:") >= 2:
         return
-    extra = " در بازی امتیازی سه نوبت غیبت یعنی باخت." if st.get("stake") else ""
+    hk = st.get("game") == "hokm"
+    extra = (" در بازی امتیازی سه نوبت غیبت یعنی بیرون رفتن از بازی." if hk else " در بازی امتیازی سه نوبت غیبت یعنی باخت.") \
+        if st.get("stake") else ""
+    what = ("حکم را انتخاب کن" if st["phase"] == "trump" else "برگت را بازی کن") if hk else "حرکت خودکار انجام می‌شود"
     await _notify(db, uid, f"turn:{m['id']}:{uid}:{st.get('turn_id', 0)}",
-                  f"نوبت توست در منچ! {gc.turn_seconds} ثانیه وقت داری، بعدش حرکت خودکار انجام می‌شود.{extra}")
+                  f"نوبت توست در {_gname(m['cfg'])}! {gc.turn_seconds} ثانیه وقت داری؛ {what}.{extra}", _gpage(m["cfg"]))
 
 
 async def admin_close(db: GCDatabase, match_id: str) -> dict:
@@ -542,18 +623,24 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
         if m["status"] != "playing":
             return False, "over"
         st = m["state"]
-        changed = ludo.tick(st, now)
-        if action == "roll":
-            err = ludo.roll(st, color, now)
-        elif action == "move":
-            err = ludo.move(st, color, int(k if k is not None else -1), now)
-        elif action == "leave":
-            ludo.leave(st, color, now, "left")
+        eng = _eng(m["cfg"])
+        changed = eng.tick(st, now)
+        kk = int(k) if str(k if k is not None else "").lstrip("-").isdigit() else -1
+        if action == "leave":
+            eng.leave(st, color, now, "left")
             err = None
+        elif eng is ludo and action == "roll":
+            err = ludo.roll(st, color, now)
+        elif eng is ludo and action == "move":
+            err = ludo.move(st, color, kk, now)
+        elif eng is hokm and action == "trump":
+            err = hokm.choose_trump(st, int(color), kk, now)
+        elif eng is hokm and action == "play":
+            err = hokm.play(st, int(color), kk, now)
         else:
             err = "bad_action"
         if err is None and action != "leave":
-            ludo.human_acted(st, color)
+            eng.human_acted(st, color)
         if st["over"]:
             m["status"] = "over"
         return changed or err is None, err

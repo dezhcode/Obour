@@ -1,0 +1,132 @@
+/* حکم: میز سبز مدرن، ورق «درشت‌خوان» (عدد و نماد بزرگ بالا سمت راست)، دست بادبزنی و
+   برگ های هر دور روی هم وسط میز. طرح: صفحه طراحی «حکم Game Club». */
+html:has(body.hokm){overflow:hidden}
+body.hokm{--felt:#1A7A47;--gold:#F5C451;--gold-ink:#3A2A00;--red:#D62839;--black:#1C2230;
+  margin:0;height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;color:#fff;
+  background:radial-gradient(120% 80% at 50% 30%,#1B6B43 0%,#0F4A2D 55%,#0A3420 100%) fixed;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+body.hokm .appbar{background:transparent;color:#fff;flex:none}
+body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);gap:var(--space-2)}
+.hk-ib{width:44px;height:44px;flex:none;border-radius:14px;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.22)}
+.hk-ib svg{width:20px;height:20px}
+.hk-ib:active{transform:scale(.94)}
+
+/* امتیاز: ما | حکم | حریف */
+.hk-score{flex:1;min-width:0;height:62px;display:grid;grid-template-columns:minmax(0,1fr) 62px minmax(0,1fr);align-items:center;border-radius:20px;background:rgba(0,0,0,.22)}
+.hk-score .tm{display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.15}
+.hk-score .tm span{font-size:11px;font-weight:600;color:rgba(255,255,255,.8)}
+.hk-score .tm.us span{color:var(--gold)}
+.hk-score .tm b{font-size:21px;font-weight:800}
+.hk-score .tm b small{font-size:12px;font-weight:600;color:rgba(255,255,255,.6)}
+.hk-score .tm em{font-style:normal;font-size:10.5px;color:rgba(255,255,255,.72)}
+.hk-trump{display:flex;flex-direction:column;align-items:center;gap:2px}
+.hk-trump .disc{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 3px var(--gold)}
+.hk-trump .disc svg{width:21px;height:21px}
+.hk-trump .disc.unset{background:transparent;box-shadow:none;border:2px dashed rgba(255,255,255,.5);color:rgba(255,255,255,.7);font-weight:800}
+.hk-trump small{font-size:10px;font-weight:600;color:rgba(255,255,255,.82)}
+.hk-trump .disc.pop{animation:hk-pop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes hk-pop{0%{transform:scale(.3)}100%{transform:scale(1)}}
+
+/* صفحه بازی */
+.hk-page{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2);
+  padding:0 max(var(--space-3),var(--sa-r,0px)) calc(var(--space-2) + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px))) max(var(--space-3),var(--sa-l,0px));
+  max-width:520px;width:100%;margin:0 auto;box-sizing:border-box;overflow:hidden}
+.hk-table{position:relative;flex:1;min-height:0;box-sizing:border-box;padding:12px 8px;border-radius:28px;direction:ltr;
+  background:radial-gradient(90% 70% at 50% 45%,#25975C 0%,#1A7A47 60%,#136438 100%);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12),inset 0 0 36px rgba(0,0,0,.25),0 16px 30px rgba(0,0,0,.3);
+  display:grid;grid-template-columns:minmax(0,1fr) 206px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:6px}
+.hk-seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;direction:rtl;min-width:0;transition:opacity .2s}
+.hk-seat[data-rel="2"]{grid-column:2;grid-row:1}
+.hk-seat[data-rel="3"]{grid-column:1;grid-row:2;align-self:center}
+.hk-seat[data-rel="1"]{grid-column:3;grid-row:2;align-self:center}
+.hk-seat .avatar{--size:50px;padding:3px}
+.hk-seat b{font-size:13px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hk-seat em{font-style:normal;font-size:11px;color:rgba(255,255,255,.78);white-space:nowrap}
+.hk-seat em.hk{color:var(--gold)}
+.hk-seat.out{opacity:.55}
+.hk-crown{position:absolute;top:-4px;right:calc(50% - 32px);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--gold);box-shadow:0 0 0 2px var(--felt);z-index:2}
+.hk-crown svg{width:13px;height:13px}
+.hk-seat .avatar.timer{background:conic-gradient(var(--gold) calc(var(--t,1)*360deg),rgba(255,255,255,.2) 0)}
+
+.hk-center{grid-column:2;grid-row:2;position:relative;align-self:stretch;display:grid;place-items:center;direction:rtl}
+.hk-pile{position:relative;width:206px;height:236px;transform:scale(var(--pile,1));transform-origin:50% 50%}
+.hk-pile .hk-card{transition:transform .2s,box-shadow .2s}
+.hk-pile .hk-card.win{box-shadow:0 0 0 3px var(--gold),0 10px 20px rgba(0,0,0,.4)}
+.hk-pile .hk-card .crown{position:absolute;top:-1px;left:-1px;width:24px;height:24px;border-radius:0 0 10px 0;display:grid;place-items:center;background:var(--gold)}
+.hk-pile .hk-card .crown svg{width:14px;height:14px}
+.hk-tip{position:absolute;top:0;left:0;right:0;margin:0 auto;width:max-content;max-width:100%;padding:2px 10px;border-radius:999px;background:rgba(0,0,0,.28);font-size:11.5px;font-weight:600;color:#FFE08F;white-space:nowrap}
+.hk-wait{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;font-size:13px;font-weight:600;color:rgba(255,255,255,.88)}
+.hk-wait .spinner{border-color:rgba(255,255,255,.25);border-top-color:#fff}
+
+/* انتخاب حکم (حاکم) */
+.hk-pick{width:204px;box-sizing:border-box;padding:14px 12px 12px;border-radius:22px;background:rgba(0,0,0,.32);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;animation:pop-in .22s ease-out}
+.hk-pick h2{font-size:17px;line-height:24px;font-weight:800;font-family:var(--font-peyda)}
+.hk-pick p{font-size:11.5px;line-height:18px;color:rgba(255,255,255,.8)}
+.hk-pick .suits{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.hk-pick .suits button{height:58px;border-radius:14px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12.5px;font-weight:800}
+.hk-pick .suits button svg{width:24px;height:24px}
+.hk-pick .suits button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--gold)}
+.hk-pick .ok{width:100%;min-height:46px;--bg:var(--gold);--fg:var(--gold-ink);--edge:rgba(0,0,0,.3);font-size:15px}
+
+/* نوار من: نوبت، زمان، راهنما */
+.hk-me{grid-column:1/4;grid-row:3;display:flex;justify-content:center;direction:rtl;min-height:52px}
+.hk-me .pill{display:flex;align-items:center;gap:10px;padding:5px 16px 5px 5px;border-radius:999px;background:rgba(0,0,0,.28);color:#fff;box-shadow:none;font-weight:400;font-size:14px;max-width:calc(100% - 64px)}
+.hk-me .pill.mine{box-shadow:inset 0 0 0 1.5px rgba(245,196,81,.7)}
+.hk-me .avatar{--size:44px;padding:3px}
+.hk-me .txt{display:flex;flex-direction:column;line-height:1.35;min-width:0}
+.hk-me .txt b{font-size:14px;font-weight:800;white-space:nowrap}
+.hk-me .txt span{font-size:11.5px;color:rgba(255,255,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hk-me .clock{margin-inline-start:6px;padding:1px 8px;border-radius:999px;background:var(--gold);color:var(--gold-ink);font-size:11.5px}
+.hk-chat{position:absolute;left:10px;bottom:12px;width:46px;height:46px;z-index:3}
+.hk-chat svg{width:22px;height:22px}
+.hk-chat .badge{box-shadow:0 0 0 2px var(--felt)}
+
+/* دست بادبزنی */
+.hk-hand{position:relative;flex:none;height:150px;direction:ltr}
+.hk-hand .hk-card{left:calc(50% - 32px);bottom:14px;transform-origin:50% 520px;transform:rotate(var(--a,0deg)) translateY(var(--y,0px));transition:transform .18s ease-out,filter .15s,box-shadow .15s}
+.hk-hand .hk-card.ok{--y:-16px;box-shadow:0 0 0 2.5px var(--gold),0 10px 18px rgba(0,0,0,.35);cursor:pointer}
+.hk-hand .hk-card.no{filter:brightness(.82)}
+.hk-hand .hk-card.ok:active{--y:-22px}
+.hk-hand .hk-card.in{animation:hk-in .32s cubic-bezier(.2,.8,.3,1.2) both}
+@keyframes hk-in{from{opacity:0;transform:rotate(var(--a,0deg)) translateY(60px)}}
+
+/* ورق (مدل درشت‌خوان) */
+.hk-card{position:absolute;width:64px;height:90px;border-radius:10px;background:#fff;color:var(--black);overflow:hidden;direction:ltr;box-shadow:0 3px 8px rgba(0,0,0,.3);box-sizing:border-box}
+.hk-card.red{color:var(--red)}
+.hk-card .ix{position:absolute;top:5px;right:2px;width:24px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.hk-card .ix b{font-family:var(--font-peyda);font-size:23px;line-height:.95;font-weight:800;letter-spacing:-2px}
+.hk-card .ix svg{width:17px;height:17px}
+.hk-card .wm{position:absolute;left:-8px;bottom:-8px;width:52px;height:52px;opacity:.13}
+.hk-card .em{position:absolute;left:6px;bottom:6px;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:rgba(28,34,48,.08)}
+.hk-card.red .em{background:rgba(214,40,57,.1)}
+.hk-card .em svg{width:22px;height:22px}
+.hk-back{position:absolute;width:64px;height:90px;box-sizing:border-box;border-radius:10px;border:4px solid #fff;background:linear-gradient(135deg,var(--gold) 0 50%,#1A7A47 50% 100%);box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.hk-fly{position:fixed;inset:0;pointer-events:none;z-index:30}
+.hk-fly>*{position:fixed}
+
+/* نتیجه دست و بازی */
+.hk-res{display:grid;justify-items:center;gap:var(--space-2);text-align:center}
+.hk-res .ic{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:rgba(245,196,81,.16);box-shadow:inset 0 0 0 2px var(--gold);color:var(--gold)}
+.hk-res .ic.lost{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 2px rgba(255,255,255,.3);color:#fff}
+.hk-res .ic svg{width:34px;height:34px}
+.hk-res h2{font-size:22px;line-height:30px;font-weight:800}
+.hk-res p{font-size:13.5px;color:var(--ink-muted)}
+.hk-res .kot{padding:2px 12px;border-radius:999px;background:var(--gold);color:var(--gold-ink);font-size:13px;font-weight:800}
+.hk-bars{width:100%;display:grid;gap:10px;margin-top:var(--space-1)}
+.hk-bar{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:800}
+.hk-bar>span{width:38px;text-align:start}
+.hk-bar>b{width:26px}
+.hk-bar .seg7{flex:1;display:grid;gap:4px;direction:rtl}
+.hk-bar .seg7 i{height:10px;border-radius:5px;background:rgba(255,255,255,.12)}
+.hk-bar.us .seg7 i.on{background:var(--gold)}
+.hk-bar.them .seg7 i.on{background:#FF9AA4}
+.hk-tricks{display:flex;justify-content:center;gap:var(--space-5);padding:10px 16px;border-radius:18px;background:var(--surface-sunk);width:100%;box-sizing:border-box}
+.hk-tricks div{display:grid;justify-items:center}
+.hk-tricks b{font-size:30px;line-height:34px;font-weight:800}
+.hk-tricks span{font-size:11.5px;color:var(--ink-muted)}
+body.hokm .sheet{color:var(--ink)}
+@media (max-height:700px){
+  .hk-hand{height:132px}
+  .hk-seat .avatar{--size:44px}
+  .hk-score{height:56px}
+}
