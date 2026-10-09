@@ -5,6 +5,8 @@
 خروجی در game_club/webapp/static/sfx/ ساخته می شود (mp3 تک کاناله). صداها از
 نویز فیلترشده ساخته می شوند تا شبیه کاغذ واقعی باشند:
 - place1..3  نشستن ورق روی ماهوت (ضربه کوتاه کاغذ + بم نرم میز)
+- place_soft1..3 / place_hard1..3  پرتاب آرام / محکم (با سطح صدای واقعی)
+- slide_soft / slide_hard  سُر خوردن کوتاه و آرام / بلند و تند
 - throw      هوای پرتاب ورق تا روی میز
 - flick      یک ورق پخش شده (برای پخش دست)
 - shuffle    بُر زدن (ریفل) با پل آخر
@@ -80,23 +82,26 @@ def modal(n: int, rng: np.random.Generator, freqs, decays, amps) -> np.ndarray:
     return x
 
 
-def place(rng: np.random.Generator, gain: float = 1.0, dur: float = 0.24) -> np.ndarray:
-    """نشستن ورق روی ماهوت: هوای زیر ورق که بیرون می زند (پف بم)، تق کاغذ با مُدهای ورق،
-    و ضربهٔ نرم میز که پارچه خفه اش می کند."""
+def place(rng: np.random.Generator, gain: float = 1.0, dur: float = 0.24, power: float = 0.6) -> np.ndarray:
+    """نشستن ورق روی ماهوت. power از ۰ (آرام گذاشتن) تا ۱ (محکم کوبیدن):
+    آرام = پف هوای نرم و بم، تق کاغذی خفه، بدون ترق؛ محکم = ترق تیز کاغذ، پف و ضربهٔ میز
+    قوی تر و کوتاه تر، مُدهای خود ورق بیشتر شنیده می شود."""
     n = int(dur * SR)
     t = np.arange(n) / SR
     nz = rng.standard_normal(n)
-    puff = biquad(biquad(nz, "lp", 650 * rng.uniform(.85, 1.2)), "hp", 120) * env(n, 0.0015, 0.011 * rng.uniform(.8, 1.2))
-    slap = biquad(nz, "bp", 1500 * rng.uniform(.85, 1.2), 0.7) * env(n, 0.0004, 0.006 * rng.uniform(.8, 1.2))
-    crisp = biquad(rng.standard_normal(n), "hp", 3500) * env(n, 0.0002, 0.0018)
-    card = modal(n, rng, (520, 1180, 1960, 2880, 4100), (.006, .005, .004, .003, .0025), (.5, .7, .55, .35, .2)) * env(n, 0.0003, 1)
-    thump = np.sin(2 * np.pi * 105 * rng.uniform(.9, 1.15) * t) * env(n, 0.002, 0.016)
-    x = 1.25 * puff + 1.0 * slap + 0.25 * crisp + 0.35 * card + 0.45 * thump
-    return biquad(room(x, 0.12), "lp", 6500) * gain
+    pw = float(np.clip(power, 0, 1))
+    puff = biquad(biquad(nz, "lp", (380 + 520 * pw) * rng.uniform(.85, 1.2)), "hp", 90) * env(n, 0.002 - 0.0012 * pw, (0.016 - 0.007 * pw) * rng.uniform(.8, 1.2))
+    slap = biquad(nz, "bp", (1050 + 1100 * pw) * rng.uniform(.85, 1.2), 0.7) * env(n, 0.0004, (0.009 - 0.005 * pw) * rng.uniform(.8, 1.2))
+    crisp = biquad(rng.standard_normal(n), "hp", 3800) * env(n, 0.0002, 0.0012 + 0.001 * pw)
+    card = modal(n, rng, (520, 1180, 1960, 2880, 4100), (.006, .005, .004, .003, .0025), (.5, .7, .55, .35, .2))
+    thump = np.sin(2 * np.pi * (120 - 30 * pw) * rng.uniform(.9, 1.15) * t) * env(n, 0.002, 0.012 + 0.01 * pw)
+    x = (1.3 - 0.2 * pw) * puff + (0.6 + 0.7 * pw) * slap + (0.05 + 0.5 * pw ** 1.5) * crisp + (0.15 + 0.35 * pw) * card + (0.3 + 0.45 * pw) * thump
+    return biquad(room(x, 0.12), "lp", 3800 + 3200 * pw) * gain
 
 
-def slide(rng: np.random.Generator, dur: float = 0.22) -> np.ndarray:
-    """سُر خوردن ورق روی ماهوت: اصطکاک دانه دانه (چسبیدن و رها شدن ریز) که آرام می شود."""
+def slide(rng: np.random.Generator, dur: float = 0.22, rate: float = 900) -> np.ndarray:
+    """سُر خوردن ورق روی ماهوت: اصطکاک دانه دانه (چسبیدن و رها شدن ریز) که آرام می شود.
+    سُر خوردن تند (پرتاب محکم) دانه های بیشتر و صدای روشن تر دارد."""
     n = int(dur * SR)
     t = np.arange(n) / SR
     grains = np.zeros(n)
@@ -105,7 +110,7 @@ def slide(rng: np.random.Generator, dur: float = 0.22) -> np.ndarray:
         k = int(pos * SR)
         if k < n:
             grains[k] += rng.uniform(.4, 1.0) * (1 - pos / dur)
-        pos += rng.exponential(1 / 900) * (1 + 2.5 * pos / dur)
+        pos += rng.exponential(1 / rate) * (1 + 2.5 * pos / dur)
     tex = biquad(grains + 0.25 * rng.standard_normal(n), "bp", 2400 * rng.uniform(.9, 1.1), 0.8)
     body = biquad(rng.standard_normal(n), "bp", 900, 0.9) * 0.35
     shape = np.clip(t / 0.012, 0, 1) * (1 - t / dur) ** 1.4
@@ -211,8 +216,9 @@ def flip(rng: np.random.Generator) -> np.ndarray:
     return 0.55 * sw + tick
 
 
-def save(name: str, x: np.ndarray) -> None:
-    x = x / (np.max(np.abs(x)) + 1e-9) * 0.7
+def save(name: str, x: np.ndarray, peak: float = 0.7) -> None:
+    """peak سطح نهایی است؛ نسخه های آرام عمدا آرام تر ذخیره می شوند تا شدت واقعی بماند."""
+    x = x / (np.max(np.abs(x)) + 1e-9) * peak
     fade = min(len(x), int(0.01 * SR))
     x[-fade:] *= np.linspace(1, 0, fade)
     pcm = (x * 32767).astype("<i2")
@@ -234,8 +240,12 @@ def main() -> None:
     rng = np.random.default_rng(1405)
     for k in (1, 2, 3):
         save(f"place{k}", place(rng))
+        save(f"place_soft{k}", place(rng, power=0.1 + 0.05 * k), peak=0.38)
+        save(f"place_hard{k}", place(rng, power=0.85 + 0.05 * k), peak=0.92)
     for k in (1, 2):
         save(f"slide{k}", slide(rng, 0.2 + 0.05 * k))
+    save("slide_soft", slide(rng, 0.17, 650), peak=0.32)
+    save("slide_hard", slide(rng, 0.36, 1400), peak=0.6)
     save("throw", throw(rng))
     save("flick", flick(rng))
     save("shuffle", shuffle(rng))

@@ -136,13 +136,20 @@ function renderHand(g, anim = false) {
   const hand = $('hand');
   const cards = order(g.hand || [], g.trump), n = cards.length;
   const mine = g.turn === me && g.phase === 'play', ok = new Set(mine ? g.legal : []);
-  // کل بادبزن حدود ۳۱ درجه تا با ۱۳ برگ هم در عرض گوشی جا شود
-  const step = n > 1 ? Math.min(6.5, 31 / (n - 1)) : 0;
+  // نوبت من: برگ هایی که می شود انداخت جدا از بقیه (با فاصله) و بالاتر؛ بقیه پایین تر و کم رنگ
+  const split = mine && ok.size > 0 && ok.size < n, GAP = 1.8;
+  let acc = 0, gaps = 0;
+  const pos = cards.map((c, i) => { if (i && split && ok.has(c) !== ok.has(cards[i - 1])) { acc += GAP; gaps++; } return acc++; });
+  const total = n > 1 ? pos[n - 1] : 0;
+  // کل بادبزن حدود ۳۱ درجه تا با ۱۳ برگ هم در عرض گوشی جا شود (با فاصله گروه ها کمی بازتر)
+  const step = total ? Math.min(6.5, (30 + gaps * 3) / total) : 0;
   const fresh = anim ? cards.filter(c => !handShown.includes(c)) : [];
   hand.innerHTML = cards.map((c, i) => {
-    const a = ((n - 1) / 2 - i) * step;
+    // دست آدم دقیق نمی چیند: هر برگ کمی کج تر یا جابه جا (ثابت برای هر برگ تا با هر رسم نلرزد)
+    const a = (total / 2 - pos[i]) * step + (hash01(c, 21) * 2 - 1) * 1.4;
+    const jx = (hash01(c, 22) * 2 - 1) * 2.5, jy = (hash01(c, 23) * 2 - 1) * 3.5;
     const cls = [mine ? (ok.has(c) ? 'ok' : 'no') : '', fresh.includes(c) ? 'in' : ''].filter(Boolean).join(' ');
-    return cardHtml(c, cls, `--a:${a.toFixed(2)}deg;z-index:${n - i};animation-delay:${fresh.indexOf(c) * 45}ms`);
+    return cardHtml(c, cls, `--a:${a.toFixed(2)}deg;--jx:${jx.toFixed(1)}px;--jy:${jy.toFixed(1)}px;z-index:${n - i};animation-delay:${fresh.indexOf(c) * 45}ms`);
   }).join('');
   hand.querySelectorAll('.hk-card').forEach(el => { el.setAttribute('role', 'button'); el.tabIndex = el.classList.contains('ok') ? 0 : -1; });
   handShown = cards;
@@ -195,71 +202,99 @@ function pilePoint(x, y) {
   const r = $('pile').getBoundingClientRect(), k = pileScale();
   return [r.left + (x + 32) * k, r.top + (y + 45) * k];
 }
-/* پرتاب برگ: در هوا کمی کج است و می چرخد، با مقاومت هوا آرام می شود، کمی جلوتر روی ماهوت
-   می نشیند و تا جای خودش سُر می خورد. سایه هوایی بزرگ و محو هنگام نشستن جمع می شود.
-   جای نهایی (slotOf) برای همه یکی است؛ فقط مسیر رسیدن طبیعی است. */
+/* قدرت پرتاب (۰ آرام تا ۱ محکم): معمولا تصادفی؛ برگی که حکم می زند (می بُرد) همیشه محکم،
+   برگی که سر می شود (از برگ های قبلی بالاتر) حدود دو سوم وقت ها محکم */
+function throwPower(s, c) {
+  let p = .28 + Math.random() * .5;
+  const g = snap && snap.game, tr = g ? g.trump : null;
+  if (pileShown.length && tr != null) {
+    const led = suit(pileShown[0][1]);
+    const cut = suit(c) === tr && led !== tr;
+    const tops = winnerOf(pileShown.concat([[+s, c]]), tr) === +s;
+    if (cut) p = .86 + Math.random() * .14;
+    else if (tops && Math.random() < .65) p = .74 + Math.random() * .24;
+  }
+  return p;
+}
+/* پرتاب برگ: در هوا کج است و می چرخد و با مقاومت هوا آرام می شود؛ کمی جلوتر روی ماهوت
+   می خورد، اگر محکم بود یک جهش کوچک می کند و بعد تا جای خودش سُر می خورد (روی برگ دیگر کمتر).
+   هر چه محکم تر: سریع تر، چرخش و سُر بیشتر، صدای تیزتر و بلندتر. جای نهایی برای همه یکی است. */
 async function throwCard(s, c, from) {
   const [x, y, r] = slotOf(s, c), k = pileScale();
   const [tx, ty] = pilePoint(x, y);
   const [ox, oy] = from ? center(from) : [tx, ty + 200];
-  const R = rel(String(s)), pan = panOf(s), mine = String(s) === me;
+  const R = rel(String(s)), pan = panOf(s), mine = String(s) === me, P = throwPower(s, c);
   const el = document.createElement('div'); el.className = 'hk-thrown';
   el.style.left = (tx - 32) + 'px'; el.style.top = (ty - 45) + 'px';
   el.innerHTML = '<i class="air"></i>' + cardHtml(c);
   $('fly').appendChild(el);
-  const dx = ox - tx, dy = oy - ty, dist = Math.hypot(dx, dy) || 1;
-  const dur = Math.max(380, Math.min(580, 300 + dist * .55));
-  // روی ماهوت کمی سُر می خورد؛ اگر روی برگ دیگری بنشیند خیلی کم
+  const dx = ox - tx, dy = oy - ty, dist = Math.hypot(dx, dy) || 1, ux = dx / dist, uy = dy / dist;
+  const dur = Math.max(400, Math.min(720, (330 + dist * .6) * (1.18 - .42 * P)));
   const onCard = pileShown.some(([i2, c2]) => { const [x2, y2] = slotOf(i2, c2); return Math.abs(x2 - x) < 52 && Math.abs(y2 - y) < 72; });
-  const slide = onCard ? 3 + hash01(c, 7) * 3 : 6 + hash01(c, 8) * 5, sx = dx / dist * slide, sy = dy / dist * slide;
-  const r0 = mine ? r - 10 : R === 1 ? 78 : R === 3 ? -78 : 172;
-  // کج شدن در هوا: پرتاب از پایین یا بالا حول محور افقی، از کنارها حول محور عمودی
-  const rx = R === 0 ? 30 : R === 2 ? -26 : 0, ry = R === 1 ? -26 : R === 3 ? 26 : 0;
-  const T = (tx_, ty_, rot, ax, ay, sc) => `perspective(700px) translate(${tx_.toFixed(1)}px,${ty_.toFixed(1)}px) rotate(${rot.toFixed(1)}deg) rotateX(${ax}deg) rotateY(${ay}deg) scale(${sc.toFixed(3)})`;
+  const slide = (onCard ? 7 + 9 * P : 11 + 17 * P) * (.8 + Math.random() * .4);
+  // کمی کج از مسیر مستقیم سُر می خورد (پیچ دست)
+  const side = (Math.random() * 2 - 1) * .35;
+  const sx = (ux - uy * side) * slide, sy = (uy + ux * side) * slide;
+  const spin = (mine ? 10 : 0) + 30 * P * (Math.random() < .5 ? -1 : 1);
+  const r0 = (mine ? r - 10 : R === 1 ? 78 : R === 3 ? -78 : 172) + spin;
+  const tilt = 16 + 22 * P;
+  const rx = R === 0 ? tilt : R === 2 ? -tilt : 0, ry = R === 1 ? -tilt : R === 3 ? tilt : 0;
+  const hop = P > .45 || Math.random() < .35 ? (1.5 + 6 * P) * (.7 + Math.random() * .6) : 0;
+  const T = (tx_, ty_, rot, ax, ay, sc) => `perspective(700px) translate(${tx_.toFixed(1)}px,${ty_.toFixed(1)}px) rotate(${rot.toFixed(1)}deg) rotateX(${ax.toFixed(1)}deg) rotateY(${ay.toFixed(1)}deg) scale(${sc.toFixed(3)})`;
+  const land = .55, rl = r + (r0 - r) * .1;
+  const frames = [{ transform: T(dx, dy, r0, rx, ry, mine ? 1.04 : .5) },
+    { transform: T(sx, sy, rl, rx * .15, ry * .15, k * 1.04), offset: land, easing: 'cubic-bezier(.3,.6,.4,1)' }];
+  if (hop) {
+    frames.push({ transform: T(sx * .72, sy * .72 - hop, rl + (r - rl) * .35, rx * .12 * P, ry * .12 * P, k * (1 + .035 * P)), offset: land + .08 });
+    frames.push({ transform: T(sx * .5, sy * .5, rl + (r - rl) * .6, 0, 0, k), offset: land + .17, easing: 'cubic-bezier(.2,.7,.3,1)' });
+  } else frames.push({ transform: T(sx * .45, sy * .45, rl + (r - rl) * .55, 0, 0, k), offset: land + .14, easing: 'cubic-bezier(.2,.7,.3,1)' });
+  frames.push({ transform: T(0, 0, r, 0, 0, k) });
   const ease = 'cubic-bezier(.2,.65,.35,1)';
   sfx.card.throw(pan);
-  const anim = el.animate([
-    { transform: T(dx, dy, r0, rx, ry, mine ? 1.04 : .5) },
-    { transform: T(sx, sy, r + (r0 - r) * .08, rx * .2, ry * .2, k * 1.05), offset: .6 },
-    { transform: T(sx * .45, sy * .45, r + .8, 0, 0, k), offset: .74 },
-    { transform: T(0, 0, r, 0, 0, k) },
+  const anim = el.animate(frames, { duration: dur, easing: 'linear' });
+  el.firstChild.animate([
+    { opacity: .32 + .2 * P, transform: `translate(${14 + 10 * P}px,${26 + 16 * P}px) scale(1.06)` }, { opacity: .2, transform: 'translate(4px,8px)', offset: land }, { opacity: hop ? .12 : 0, transform: 'translate(2px,4px)', offset: land + .08 }, { opacity: 0, transform: 'none', offset: land + .17 }, { opacity: 0 },
   ], { duration: dur, easing: ease });
-  el.querySelector('.air').animate([
-    { opacity: .45, transform: 'translate(18px,34px) scale(1.06)' }, { opacity: .2, transform: 'translate(4px,8px)', offset: .6 }, { opacity: 0, transform: 'none', offset: .74 }, { opacity: 0 },
-  ], { duration: dur, easing: ease });
-  const g = Math.min(1, .45 + dist / dur / 2.2);
-  setTimeout(() => { sfx.card.place(g, pan); sfx.card.slide(g * .8, pan); if (mine) haptic('light'); }, dur * .6);
+  const tLand = dur * land;
+  setTimeout(() => { sfx.card.place(P, pan); if (mine) haptic(P > .7 ? 'medium' : 'light'); }, tLand);
+  if (hop) setTimeout(() => sfx.card.place(P * .3, pan), tLand + dur * .17);
+  sfx.card.slide(P * (onCard ? .7 : 1), pan, (tLand + dur * (hop ? .17 : .05)) / 1000);
+  if (P > .85 && R !== 0) setTimeout(() => jolt(), tLand);
   await anim.finished.catch(() => {});
   pileShown.push([+s, c]);
   renderPile(snap && snap.game);
   el.remove();
 }
-/* جمع کردن دور: چهار برگ وسط روی هم مرتب می شوند (تق دسته روی میز)، بعد دسته پشت رو تا
-   کنار برنده سُر می خورد و روی دسته برگ های تیمش می نشیند */
+// برگ محکم میز را کمی می لرزاند
+function jolt() {
+  const t = $('table'); if (!t) return;
+  t.animate([{ transform: 'none' }, { transform: 'translate(0,1.5px)' }, { transform: 'translate(0,-.6px)' }, { transform: 'none' }], { duration: 160, easing: 'ease-out' });
+}
+/* جمع کردن دور: برگ ها از همان جایی که افتاده اند پشت رو به دسته برگ های تیم برنده
+   سُر می خورند (دیگر وسط میز دوباره نمایش داده نمی شوند) */
 async function collectTrick(w, tricks) {
-  renderPile(Object.assign({}, snap.game, { phase: 'play' }));
-  await sleep(650);
+  await sleep(420);
   const team = +w % 2, target = team === teamUs() ? $('stackUs') : $('stackThem');
   const [wx, wy] = target ? center(target) : [innerWidth / 2, innerHeight];
-  const [cx, cy] = center($('pile'));
   const cards = [...$('pile').querySelectorAll('.hk-card')], k = pileScale(), pan = panOf(w);
-  const D = 820;
-  setTimeout(() => sfx.card.square(pan * .5), D * .4);
-  setTimeout(() => sfx.card.slide(.6, pan), D * .55);
+  const D = 520;
+  sfx.card.slide(.55, pan, 0);
+  setTimeout(() => sfx.card.square(pan * .5), D * .85);
   const anims = cards.map((card, i) => {
     const r = card.getBoundingClientRect(), [x0, y0] = [r.left + r.width / 2, r.top + r.height / 2];
-    const rot = +((card.style.transform.match(/-?[\d.]+/) || [0])[0]), jit = (i - 1.5) * 1.4;
-    const clone = card.cloneNode(true);
-    clone.classList.remove('win'); clone.querySelectorAll('.crown').forEach(x => x.remove());
+    const rot = +((card.style.transform.match(/-?[\d.]+/) || [0])[0]), jit = (i - 1.5) * 3;
+    // روی برگ در مسیر کم کم پشت رو می شود (پشت ورق روی آن پیدا می شود)
+    const clone = document.createElement('div'); clone.className = 'hk-thrown';
+    clone.innerHTML = cardHtml(+card.dataset.card) + backHtml('', 'left:0;top:0;opacity:0');
     clone.style.left = (x0 - 32) + 'px'; clone.style.top = (y0 - 45) + 'px'; clone.style.zIndex = 30 + i;
     clone.style.transform = `rotate(${rot}deg) scale(${k})`;
     $('fly').appendChild(clone);
+    const opt = { duration: D, delay: i * 45, easing: 'cubic-bezier(.45,.05,.3,1)', fill: 'backwards' };
+    clone.lastElementChild.animate([{ opacity: 0 }, { opacity: 0, offset: .25 }, { opacity: 1, offset: .6 }, { opacity: 1 }], opt);
     return clone.animate([
       { transform: `rotate(${rot}deg) scale(${k})` },
-      { transform: `translate(${cx - x0 + jit}px,${cy - y0 - jit}px) rotate(${jit}deg) scale(${k})`, offset: .4 },
-      { transform: `translate(${cx - x0 + jit}px,${cy - y0 - jit}px) rotate(${jit}deg) scale(${k})`, offset: .5 },
       { transform: `translate(${wx - x0}px,${wy - y0}px) rotate(${(team === teamUs() ? 90 : -90) + jit}deg) scale(.47)` },
-    ], { duration: D, easing: 'cubic-bezier(.45,.05,.3,1)' }).finished.catch(() => {}).then(() => clone.remove());
+    ], opt).finished.catch(() => {}).then(() => clone.remove());
   });
   pileShown = []; renderPile(null);
   await Promise.all(anims);
