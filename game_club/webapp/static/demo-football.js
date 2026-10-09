@@ -152,7 +152,7 @@ function view(st, me, since) {
 const loadM = () => store.get('demo_football', null), saveM = m => store.set('demo_football', m);
 function makeMatch(cfg, guest) {
   const names = [...BOTS].sort(() => Math.random() - .5);
-  const seats = [{ color: '0', name: 'شما', av: 7 }, guest ? { color: '1', name: 'دوست شما', av: 11, bot: true } : { color: '1', name: 'ربات ' + names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true }];
+  const seats = [{ color: '0', name: 'شما', av: 7 }, guest ? { color: '1', name: 'دوست شما', av: 11, bot: true } : { color: '1', name: names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true }];
   const st = newState(seats, cfg.target || 3); st.pot = cfg.mode === 'stake' ? cfg.entry * 2 : 0; st.stake = cfg.mode === 'stake';
   return { id: 'fb' + Date.now().toString(36), status: 'playing', cfg: Object.assign({ game: 'football', players: 2 }, cfg), state: st, settled: false };
 }

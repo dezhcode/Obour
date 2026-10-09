@@ -131,6 +131,14 @@ CREATE TABLE IF NOT EXISTS locks (
   expires_at REAL NOT NULL
 );
 
+-- ظاهرهای خریده شده (میز و ورق حکم): item مثل table:b یا cards:c
+CREATE TABLE IF NOT EXISTS owned (
+  tg_id INTEGER NOT NULL,
+  item TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (tg_id, item)
+);
+
 -- پنل مدیریت: هر کار ادمین یک ردیف (چه کسی، چه کاری، روی چه کسی/میزی)
 CREATE TABLE IF NOT EXISTS admin_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -204,7 +212,7 @@ class GCDatabase:
         # ستون های تازه روی دیتابیس قدیمی: عکس پروفایل تلگرام و کلید آدرس عکس
         cur = await self._conn.execute("PRAGMA table_info(players)")
         have = {r[1] for r in await cur.fetchall()}
-        for col in ("photo", "pic", "ban_note"):
+        for col in ("photo", "pic", "ban_note", "table_skin", "card_skin"):
             if col not in have:
                 await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
         if "banned" not in have:   # مسدود شده توسط ادمین
@@ -539,6 +547,17 @@ class GCDatabase:
             "prize": (await q("SELECT COALESCE(SUM(amount),0) AS n FROM ledger WHERE kind='prize' AND status='done' AND created_at >= ?", since))["n"],
             "shop": (await q("SELECT COALESCE(-SUM(amount),0) AS n FROM ledger WHERE kind IN ('shop','transfer') AND status='done' AND created_at >= ?", since))["n"],
         }
+
+    # ---------- ظاهر (میز و ورق) ----------
+    async def owned_of(self, tg_id: int) -> set[str]:
+        return {r["item"] for r in await self.all("SELECT item FROM owned WHERE tg_id = ?", (tg_id,))}
+
+    async def add_owned(self, tg_id: int, item: str) -> None:
+        await self.execute("INSERT OR IGNORE INTO owned(tg_id, item, created_at) VALUES(?,?,?)", (tg_id, item, int(time.time())))
+
+    async def set_skin(self, tg_id: int, kind: str, look: str) -> None:
+        col = {"table": "table_skin", "cards": "card_skin"}[kind]
+        await self.execute(f"UPDATE players SET {col} = ? WHERE tg_id = ?", (look, tg_id))
 
     # ---------- پنل مدیریت ----------
     async def admin_stats(self, now: int) -> dict:

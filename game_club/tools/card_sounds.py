@@ -9,6 +9,11 @@
 - flick      یک ورق پخش شده (برای پخش دست)
 - shuffle    بُر زدن (ریفل) با پل آخر
 - collect    جمع شدن ورق های یک دور
+- slide1..2  سُر خوردن ورق روی ماهوت
+- square     تق زدن دسته روی میز برای مرتب کردن
+- flip       برگرداندن ورق
+همه از مدل فیزیکی ساده ساخته می شوند: مُدهای میرای خود ورق، هوای زیر ورق، ضربهٔ نرم میز،
+اصطکاک دانه دانهٔ ماهوت و زمان بندی واقعی ریفل (حدود ۵۰ برگ).
 """
 from __future__ import annotations
 
@@ -65,67 +70,145 @@ def room(x: np.ndarray, amount: float = 0.16) -> np.ndarray:
     return y
 
 
-def place(rng: np.random.Generator, gain: float = 1.0, dur: float = 0.26) -> np.ndarray:
+def modal(n: int, rng: np.random.Generator, freqs, decays, amps) -> np.ndarray:
+    """ارتعاش خود ورق (مقوای نازک): چند مُد میرا که ماهوت زود خفه شان می کند."""
+    t = np.arange(n) / SR
+    x = np.zeros(n)
+    for f, d, a in zip(freqs, decays, amps):
+        f *= rng.uniform(.93, 1.07)
+        x += a * np.sin(2 * np.pi * f * t + rng.uniform(0, 6.28)) * np.exp(-t / d)
+    return x
+
+
+def place(rng: np.random.Generator, gain: float = 1.0, dur: float = 0.24) -> np.ndarray:
+    """نشستن ورق روی ماهوت: هوای زیر ورق که بیرون می زند (پف بم)، تق کاغذ با مُدهای ورق،
+    و ضربهٔ نرم میز که پارچه خفه اش می کند."""
     n = int(dur * SR)
     t = np.arange(n) / SR
     nz = rng.standard_normal(n)
-    snap = biquad(nz, "hp", 2200) * env(n, 0.0006, 0.0035 * rng.uniform(.8, 1.2))
-    paper = biquad(nz, "bp", 1300 * rng.uniform(.85, 1.2), 0.8) * env(n, 0.0012, 0.016 * rng.uniform(.8, 1.25))
-    air = biquad(rng.standard_normal(n), "bp", 3600 * rng.uniform(.9, 1.1), 1.3) * env(n, 0.0008, 0.007)
-    thump = np.sin(2 * np.pi * 150 * rng.uniform(.9, 1.15) * t) * env(n, 0.002, 0.02)
-    x = 0.35 * snap + 1.6 * paper + 0.3 * air + 0.55 * thump
-    return biquad(room(x), "lp", 5200) * gain
+    puff = biquad(biquad(nz, "lp", 650 * rng.uniform(.85, 1.2)), "hp", 120) * env(n, 0.0015, 0.011 * rng.uniform(.8, 1.2))
+    slap = biquad(nz, "bp", 1500 * rng.uniform(.85, 1.2), 0.7) * env(n, 0.0004, 0.006 * rng.uniform(.8, 1.2))
+    crisp = biquad(rng.standard_normal(n), "hp", 3500) * env(n, 0.0002, 0.0018)
+    card = modal(n, rng, (520, 1180, 1960, 2880, 4100), (.006, .005, .004, .003, .0025), (.5, .7, .55, .35, .2)) * env(n, 0.0003, 1)
+    thump = np.sin(2 * np.pi * 105 * rng.uniform(.9, 1.15) * t) * env(n, 0.002, 0.016)
+    x = 1.25 * puff + 1.0 * slap + 0.25 * crisp + 0.35 * card + 0.45 * thump
+    return biquad(room(x, 0.12), "lp", 6500) * gain
 
 
-def throw(rng: np.random.Generator, dur: float = 0.2) -> np.ndarray:
+def slide(rng: np.random.Generator, dur: float = 0.22) -> np.ndarray:
+    """سُر خوردن ورق روی ماهوت: اصطکاک دانه دانه (چسبیدن و رها شدن ریز) که آرام می شود."""
     n = int(dur * SR)
     t = np.arange(n) / SR
-    sweep = 1100 + 1700 * (t / dur) ** 0.8
-    rustle = 1 + 0.35 * biquad(rng.standard_normal(n), "lp", 60) * 8
-    shape = np.sin(np.pi * np.clip(t / dur, 0, 1)) ** 1.6
-    return biquad(biquad(rng.standard_normal(n), "bp", sweep, 0.9), "lp", 4500) * shape * rustle * 0.9
+    grains = np.zeros(n)
+    pos = 0.0
+    while pos < dur * 0.92:
+        k = int(pos * SR)
+        if k < n:
+            grains[k] += rng.uniform(.4, 1.0) * (1 - pos / dur)
+        pos += rng.exponential(1 / 900) * (1 + 2.5 * pos / dur)
+    tex = biquad(grains + 0.25 * rng.standard_normal(n), "bp", 2400 * rng.uniform(.9, 1.1), 0.8)
+    body = biquad(rng.standard_normal(n), "bp", 900, 0.9) * 0.35
+    shape = np.clip(t / 0.012, 0, 1) * (1 - t / dur) ** 1.4
+    return biquad(room((tex + body) * shape, 0.08), "lp", 5000)
+
+
+def throw(rng: np.random.Generator, dur: float = 0.18) -> np.ndarray:
+    """هوای ورق در پرواز: خِش نرم که با نزدیک شدن کمی زیرتر می شود."""
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    sweep = 700 + 1400 * (t / dur) ** 1.2
+    flutter = 1 + 0.5 * np.sin(2 * np.pi * rng.uniform(22, 30) * t)
+    shape = np.sin(np.pi * np.clip(t / dur, 0, 1)) ** 2
+    return biquad(biquad(rng.standard_normal(n), "bp", sweep, 1.1), "lp", 4000) * shape * flutter * 0.6
 
 
 def flick(rng: np.random.Generator, gain: float = 1.0) -> np.ndarray:
-    n = int(0.09 * SR)
+    """یک ورق که از دسته جدا و پخش می شود: تق نوک انگشت و فِش کوتاه."""
+    n = int(0.11 * SR)
     nz = rng.standard_normal(n)
-    a = biquad(nz, "hp", 2600) * env(n, 0.0004, 0.004)
-    b = biquad(nz, "bp", 1900 * rng.uniform(.85, 1.2), 1.0) * env(n, 0.001, 0.011)
-    return biquad(0.3 * a + 1.3 * b, "lp", 6000) * gain
+    a = biquad(nz, "hp", 2800) * env(n, 0.0003, 0.003)
+    b = biquad(nz, "bp", 2100 * rng.uniform(.85, 1.2), 1.0) * env(n, 0.0008, 0.01)
+    card = modal(n, rng, (900, 1700, 2600), (.004, .003, .0025), (.4, .5, .3))
+    sw = biquad(rng.standard_normal(n), "bp", 1300, 1.2) * env(n, 0.01, 0.03) * 0.35
+    return biquad(0.35 * a + 1.1 * b + 0.25 * card + sw, "lp", 6500) * gain
+
+
+def flap(rng: np.random.Generator) -> np.ndarray:
+    """یک برگ در ریفل: گوشهٔ ورق که از زیر شست رها می شود و به برگ زیری می خورد."""
+    n = int(0.03 * SR)
+    nz = rng.standard_normal(n)
+    return (biquad(nz, "bp", rng.uniform(2300, 3600), 1.4) * env(n, 0.0002, rng.uniform(.0015, .003))
+            + 0.4 * modal(n, rng, (1400, 2500), (.002, .0015), (.5, .4))) * rng.uniform(.45, 1)
+
+
+def square(rng: np.random.Generator, hits: int = 2) -> np.ndarray:
+    """مرتب کردن دسته: دو بار تق زدن لبهٔ دسته روی میز."""
+    n = int((0.09 * hits + 0.12) * SR)
+    x = np.zeros(n)
+    for h in range(hits):
+        m = int(0.09 * SR)
+        t = np.arange(m) / SR
+        k = int(h * 0.075 * SR)
+        hit = (np.sin(2 * np.pi * 190 * rng.uniform(.9, 1.1) * t) * env(m, 0.001, 0.014)
+               + 0.6 * biquad(rng.standard_normal(m), "bp", 1250, 0.9) * env(m, 0.0004, 0.006)
+               + 0.25 * modal(m, rng, (620, 1450), (.008, .005), (.6, .4)))
+        x[k:k + m] += hit * (1 if h == hits - 1 else .7)
+    return biquad(room(x, 0.12), "lp", 5000)
 
 
 def shuffle(rng: np.random.Generator) -> np.ndarray:
-    n = int(1.15 * SR)
+    """بُر زدن ریفل: حدود ۵۰ برگ که اول آرام و بعد تند لای هم می روند، پل (آبشار برگ ها)
+    و در آخر دو تق برای مرتب کردن دسته."""
+    n = int(1.55 * SR)
     x = np.zeros(n)
-    pos, gap = 0.04, 0.032
-    while pos < 0.82:
-        f = flick(rng, rng.uniform(.35, .75))
+    pos, gap = 0.05, 0.026
+    count = 0
+    while pos < 0.78 and count < 52:
+        f = flap(rng)
         k = int(pos * SR)
         x[k:k + len(f)] += f[: n - k]
-        pos += gap * rng.uniform(.8, 1.2)
-        gap = max(0.011, gap * 0.95)
+        pos += gap * rng.uniform(.7, 1.3)
+        gap = max(0.0085, gap * 0.955) if count < 36 else gap * 1.06
+        count += 1
     t = np.arange(n) / SR
-    rustle = biquad(rng.standard_normal(n), "bp", 2200, 0.7) * np.clip((t - 0.02) / 0.1, 0, 1) * np.clip((0.85 - t) / 0.1, 0, 1) * 0.18
-    x += rustle
-    br = throw(rng, 0.22) * 0.7
-    k = int(0.84 * SR)
-    x[k:k + len(br)] += br[: n - k]
-    p = place(rng, 0.7, 0.2)
-    k = int(1.0 * SR)
-    x[k:k + len(p)] += p[: n - k]
-    return biquad(room(x, 0.1), "lp", 5500)
+    # پل: برگ ها با هم می ریزند (فِش بلند با تق های ریز)
+    br0 = 0.86
+    br = biquad(rng.standard_normal(n), "bp", 1900, 0.7) * np.clip((t - br0) / 0.04, 0, 1) * np.clip((br0 + 0.28 - t) / 0.12, 0, 1) * 0.3
+    x += br
+    p = br0
+    while p < br0 + 0.26:
+        f = flap(rng) * 0.45
+        k = int(p * SR)
+        x[k:k + len(f)] += f[: n - k]
+        p += rng.uniform(.004, .009)
+    sq = square(rng)
+    k = int(1.22 * SR)
+    x[k:k + len(sq)] += sq[: n - k] * 0.9
+    return biquad(room(x, 0.1), "lp", 6000)
 
 
 def collect(rng: np.random.Generator) -> np.ndarray:
-    n = int(0.34 * SR)
-    t = np.arange(n) / SR
-    sweep = 900 + 1300 * (t / 0.34)
-    shape = np.sin(np.pi * np.clip(t / 0.3, 0, 1)) ** 1.3
-    x = biquad(biquad(rng.standard_normal(n), "bp", sweep, 0.9), "lp", 4000) * shape * 0.7
-    p = place(rng, 0.55, 0.2)
-    k = int(0.22 * SR)
-    x[k:k + len(p)] += p[: n - k]
+    """جمع کردن برگ های روی میز: سُر خوردن و یک تق."""
+    s1 = slide(rng, 0.26)
+    sq = square(rng, 1)
+    n = len(s1) + int(0.08 * SR)
+    x = np.zeros(n)
+    x[:len(s1)] += s1 * 0.8
+    k = int(0.2 * SR)
+    x[k:k + len(sq)] += sq[: n - k]
     return x
+
+
+def flip(rng: np.random.Generator) -> np.ndarray:
+    """برگرداندن ورق: فِش سریع هوا و تق کوتاه کاغذ."""
+    n = int(0.16 * SR)
+    t = np.arange(n) / SR
+    sw = biquad(rng.standard_normal(n), "bp", 1500 + 2500 * t / 0.16, 1.0) * np.sin(np.pi * np.clip(t / 0.09, 0, 1)) ** 2
+    tick = np.zeros(n)
+    k = int(0.085 * SR)
+    f = flick(rng, 0.8)
+    tick[k:k + len(f)] += f[: n - k]
+    return 0.55 * sw + tick
 
 
 def save(name: str, x: np.ndarray) -> None:
@@ -151,10 +234,14 @@ def main() -> None:
     rng = np.random.default_rng(1405)
     for k in (1, 2, 3):
         save(f"place{k}", place(rng))
+    for k in (1, 2):
+        save(f"slide{k}", slide(rng, 0.2 + 0.05 * k))
     save("throw", throw(rng))
     save("flick", flick(rng))
     save("shuffle", shuffle(rng))
     save("collect", collect(rng))
+    save("square", square(rng))
+    save("flip", flip(rng))
 
 
 if __name__ == "__main__":

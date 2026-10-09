@@ -127,7 +127,7 @@ const loadM = () => store.get('demo_hokm', null), saveM = m => store.set('demo_h
 function makeMatch(cfg, guest) {
   const names = [...BOTS].sort(() => Math.random() - .5);
   const seats = SEATS.map(s => s === '0' ? { color: s, name: 'شما', av: 7 } : guest && s === '2' ? { color: s, name: 'دوست شما', av: 11, bot: true }
-    : { color: s, name: 'ربات ' + names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true });
+    : { color: s, name: names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true });
   const st = newState(seats, cfg.target); st.pot = cfg.mode === 'stake' ? cfg.entry * 4 : 0; st.stake = cfg.mode === 'stake';
   return { id: 'hk' + Date.now().toString(36), status: 'playing', cfg: Object.assign({ game: 'hokm', players: 4 }, cfg), state: st, settled: false };
 }

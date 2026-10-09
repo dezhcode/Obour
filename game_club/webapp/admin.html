@@ -124,7 +124,7 @@ const ic = (n, w) => XP[n] ? icon('x', w).replace('</svg>', XP[n] + '</svg>') : 
 const when = t => { if (!t) return '—'; const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
 const date = t => t ? new Date(t * 1000).toLocaleDateString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 const GAME = { ludo: ['منچ', 'dice'], hokm: ['حکم', 'card'], football: ['فوتبال', 'bolt'] };
-const KIND = { charge: 'شارژ', entry: 'ورودی', refund: 'بازگشت', prize: 'جایزه', admin: 'پشتیبانی', transfer: 'انتقال به عبور', shop: 'خرید', gift: 'هدیه' };
+const KIND = { charge: 'شارژ', entry: 'ورودی', refund: 'بازگشت', prize: 'جایزه', admin: 'پشتیبانی', transfer: 'انتقال به عبور', shop: 'خرید', gift: 'هدیه', style: 'میز و ورق' };
 const ACT = { points: 'تغییر امتیاز', ban: 'مسدود کردن', unban: 'رفع مسدودی', message: 'پیام مستقیم', close: 'بستن میز', broadcast: 'پیام همگانی', broadcast_cancel: 'توقف پیام همگانی', setting: 'تنظیمات' };
 const SET = {
   maintenance: ['حالت تعمیرات', 'میز تازه ساخته نمی‌شود؛ بازی‌های در جریان ادامه دارند. ادمین‌ها مستثنا هستند.'],

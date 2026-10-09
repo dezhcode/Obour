@@ -1,0 +1,76 @@
+/* ورق واقعی (static/cards.js) و ماهوت میزها. اندازه ورق با font-size خودش (۶۴px = ۶۴ در ۹۰).
+   طرح ورق با کلاس cards-a / cards-b / cards-c روی یک والد، طرح میز با tbl-a / tbl-b / tbl-c.
+   A کلاسیک (عاجی، سریف، پشت سرمه ای مشبک)، B کافه شب (کرم با قاب طلایی، پشت زرشکی ستاره ای)،
+   C Game Club (سفید، شاخص درشت، پشت آبی با دانه های سکه). */
+.hk-card{position:absolute;width:1em;height:1.406em;font-size:64px;box-sizing:border-box;border-radius:.075em;overflow:hidden;direction:ltr;
+  --paper:#FBF7EE;--edge:#D9D1BF;--k:#17191F;--rd:#C21F32;--gold:#B8912F;--robe:#AFC2DF;--cb:#EEF1F6;--alt:#B3262F;
+  --ixf:Georgia,"Noto Serif","Times New Roman",serif;--ixw:700;--ixs:.17em;--pip:.17em;
+  background-color:var(--paper);
+  background-image:radial-gradient(rgba(90,70,30,.06) .6px,transparent .8px),radial-gradient(rgba(255,255,255,.5) .6px,transparent .8px);
+  background-size:3px 3px,4px 4px;background-position:0 0,1px 2px;color:var(--k);
+  box-shadow:0 1px 0 var(--edge),0 2px 0 rgba(0,0,0,.16),0 2px 3px rgba(0,0,0,.32),0 5px 9px rgba(0,0,0,.16)}
+.hk-card.red{color:var(--rd);--robe:#F6C5C9;--cb:#FCECEA;--alt:#1C3F8C}
+.hk-card svg path{fill:currentColor}
+.hk-card .ix{position:absolute;z-index:2;font-size:var(--ixs);width:1.15em;text-align:center;line-height:1}
+.hk-card .ix.tl{left:3.5%;top:3.4%}
+.hk-card .ix.br{right:3.5%;bottom:3.4%;transform:rotate(180deg)}
+.hk-card .ix b{display:block;font-family:var(--ixf);font-weight:var(--ixw);font-size:1em;letter-spacing:-.05em}
+.hk-card .ix svg{display:block;width:.8em;height:.8em;margin:.1em auto 0}
+.hk-card .pp{position:absolute;left:14%;right:14%;top:9%;bottom:9%}
+.hk-card .pp svg{position:absolute;width:var(--pip);height:var(--pip);transform:translate(-50%,-50%)}
+.hk-card .pp svg.f{transform:translate(-50%,-50%) rotate(180deg)}
+.hk-card .pp svg.ace{left:50%;top:50%;width:.4em;height:.4em;filter:drop-shadow(0 1px 0 rgba(0,0,0,.18))}
+.hk-card .pp svg.ace.sp{width:.5em;height:.5em}
+.hk-card .pp svg.ring{left:50%;top:50%;width:.74em;height:.74em;opacity:.55}
+.hk-card .pp svg.ring path{fill:var(--gold)}
+.hk-card .ct{position:absolute;left:17%;right:17%;top:12%;bottom:12%}
+.hk-card .ct>svg{display:block;width:100%;height:100%}
+.hk-card .ct .k{fill:currentColor}
+.hk-card .ct .r2{fill:var(--robe);opacity:.55}
+.hk-card .ct .gs{fill:none;stroke:var(--gold);stroke-width:2.6}
+.hk-card .ct .g{fill:var(--gold)}
+.hk-card .ct .nk{fill:#EDC9A2}
+.hk-card .ct .sk{fill:#F2D3B1}
+.hk-card .ct .hr{fill:#5B3B22}
+.hk-card .ct .ey{fill:#2A1E16}
+.hk-card .ct .mo{fill:none;stroke:#9A4B3A;stroke-width:1.1}
+.hk-card .ct .ht2{fill:var(--alt)}
+.hk-card .ct .it{fill:#8C95A1}
+.hk-card .ct .it2{fill:var(--alt)}
+.hk-card .ct .cb{fill:var(--cb);stroke:var(--gold);stroke-width:2.4}
+.hk-card .ct .gl2{stroke:var(--gold);stroke-width:1.2}
+.hk-card .gloss{position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:3;
+  background:linear-gradient(118deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,0) 32%,rgba(255,255,255,0) 70%,rgba(0,0,0,.05) 100%);
+  box-shadow:inset 0 0 0 .5px rgba(0,0,0,.14)}
+
+.cards-b .hk-card{--paper:#F7EEDB;--edge:#CDBF9C;--k:#2B1C12;--rd:#A51A2C;--gold:#B08A2E;--ixs:.16em}
+.cards-b .hk-card::before{content:"";position:absolute;inset:.05em;border:1.5px solid #C9A54A;border-radius:.045em;pointer-events:none}
+.cards-c .hk-card{--paper:#FFFFFF;--edge:#D6DCE5;--k:#141A26;--rd:#E0263E;--gold:#E8A400;--ixf:var(--font-peyda,Tahoma),Tahoma,sans-serif;--ixw:900;--ixs:.23em;--pip:.2em;background-image:none}
+.cards-c .hk-card .gloss{background:linear-gradient(118deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 32%,rgba(255,255,255,0) 70%,rgba(0,0,0,.04) 100%)}
+
+/* پشت ورق */
+.hk-back{position:absolute;width:1em;height:1.406em;font-size:64px;box-sizing:border-box;border-radius:.075em;overflow:hidden;border:.055em solid #fff;
+  background:#1D3461;
+  background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.17) 0 1.2px,transparent 1.2px .05em),repeating-linear-gradient(-45deg,rgba(255,255,255,.17) 0 1.2px,transparent 1.2px .05em);
+  box-shadow:0 1px 0 #D9D1BF,0 2px 0 rgba(0,0,0,.16),0 2px 3px rgba(0,0,0,.32),0 5px 9px rgba(0,0,0,.16)}
+.hk-back i{position:absolute;inset:.025em;border:1px solid rgba(255,255,255,.55);border-radius:.03em}
+.hk-back i::after{content:"";position:absolute;left:50%;top:50%;width:.32em;height:.32em;margin:-.16em 0 0 -.16em;border-radius:50%;
+  background:radial-gradient(circle,#1D3461 0 26%,#FBF7EE 29%);box-shadow:0 0 0 1px rgba(255,255,255,.9)}
+.cards-b .hk-back{border-color:#F3E6C8;background:#6A1B28;
+  background-image:repeating-conic-gradient(from 22.5deg,rgba(214,178,84,.4) 0 12deg,transparent 12deg 45deg);background-size:.16em .16em}
+.cards-b .hk-back i{border-color:rgba(214,178,84,.85)}
+.cards-b .hk-back i::after{background:radial-gradient(circle,#D6B254 0 24%,#6A1B28 27%);box-shadow:0 0 0 1.5px #D6B254}
+.cards-c .hk-back{background:linear-gradient(160deg,#2B7DF0,#0E4FB3);
+  background-image:radial-gradient(circle,rgba(255,196,59,.6) 0 .012em,transparent .017em),linear-gradient(160deg,#2B7DF0,#0E4FB3);background-size:.07em .07em,100% 100%}
+.cards-c .hk-back i::after{content:"Game Club";width:auto;height:auto;margin:0;transform:translate(-50%,-50%);padding:.02em .06em;border-radius:99px;
+  background:#FFC43B;color:#3D2600;font:900 .1em/1.3 var(--font-peyda,Tahoma),Tahoma,sans-serif;white-space:nowrap;box-shadow:0 0 0 1px rgba(255,255,255,.9)}
+
+/* ماهوت میزها: --f1 روشن وسط، --f2، --f3 لبه تیره */
+.tbl-a{--f1:#2F8F4E;--f2:#1E6B3A;--f3:#0F3F1D;--rim:inset 0 0 0 1.5px rgba(255,255,255,.12)}
+.tbl-b{--f1:#7E2737;--f2:#5A1A25;--f3:#2A0A10;--rim:inset 0 0 0 7px #4A2C1A,inset 0 0 0 9px #2B170C,inset 0 0 0 10px rgba(214,178,84,.55)}
+.tbl-c{--f1:#157888;--f2:#0E5563;--f3:#062A33;--rim:inset 0 0 0 1.5px rgba(255,255,255,.14)}
+.felt{background:
+  radial-gradient(ellipse 62% 42% at 50% 47%,rgba(255,236,190,.16),rgba(255,236,190,0) 72%),
+  repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),
+  repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),
+  radial-gradient(ellipse 85% 65% at 50% 46%,var(--f1,#2F8F4E) 0%,var(--f2,#1E6B3A) 55%,var(--f3,#0F3F1D) 100%)}

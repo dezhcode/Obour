@@ -27,11 +27,12 @@ const suit = c => Math.floor(c / 13), rank = c => c % 13;
 const red = s => s === 1 || s === 2;
 const svgP = (d, fill = 'currentColor') => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}" fill="${fill}"/></svg>`;
 const suitSvg = s => svgP(SP[s], red(s) ? '#D62839' : '#1C2230');
-function cardHtml(c, cls = '', style = '') {
-  const s = suit(c), r = rank(c), fc = r >= 9 && r <= 11;
-  return `<div class="hk-card${red(s) ? ' red' : ''}${cls ? ' ' + cls : ''}" data-card="${c}" style="${style}" role="img" aria-label="${RANKS[r]} ${SUIT_FA[s]}">`
-    + `<span class="ix"><b>${RANKS[r]}</b>${svgP(SP[s])}</span>${fc ? `<span class="em">${svgP(EMB[r])}</span>` : `<span class="wm">${svgP(SP[s])}</span>`}</div>`;
-}
+// ورق واقعی (خال چینی، تصویر دوسر، پشت ورق) از static/cards.js؛ طرحش با کلاس cards-* روی body
+const C = window.GCCards;
+const cardHtml = (c, cls = '', style = '') => C.face(c, cls, style);
+const backHtml = (cls = '', style = '') => C.back(cls, style);
+// صدای ورق هر بازیکن از سمت خودش: چپ، راست، روبه رو (وسط)
+const panOf = s => { const r = rel(String(s)); return r === 1 ? .55 : r === 3 ? -.55 : 0; };
 function winnerOf(trick, tr) {
   let [bi, b] = trick[0];
   for (const [i, c] of trick.slice(1)) { if (suit(c) === suit(b)) { if (rank(c) > rank(b)) [bi, b] = [i, c]; } else if (suit(c) === tr) [bi, b] = [i, c]; }
@@ -53,7 +54,7 @@ const slotOf = (s, c) => { const [x, y, r] = SLOT[rel(String(s))]; return [x, y,
 function renderScore(g) {
   const us = teamUs(), tr = g.trump;
   $('score').innerHTML = `
-    <div class="tm us"><span>ما</span><b>${FD(g.score[us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[us])} برگ</em></div>
+    <div class="tm us"><span>شما</span><b>${FD(g.score[us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[us])} برگ</em></div>
     <div class="hk-trump"><span class="disc${tr == null ? ' unset' : ''}" id="trumpDisc">${tr == null ? '؟' : suitSvg(tr)}</span><small>${tr == null ? 'حکم' : 'حکم ' + SUIT_FA[tr]}</small></div>
     <div class="tm"><span>حریف</span><b>${FD(g.score[1 - us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[1 - us])} برگ</em></div>`;
 }
@@ -65,9 +66,24 @@ function renderSeats(g) {
     el.dataset.seat = s;
     el.classList.toggle('out', !!p.out);
     el.innerHTML = `${hk ? `<span class="hk-crown" title="حاکم">${svgP(CROWN, '#3A2A00')}</span>` : ''}${face(p, turn ? 'var(--gold)' : partner ? '#9BE3B8' : '#FFFFFF', turn ? 'timer' : '')}
-      <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جایش' : FD(p.count) + ' برگ'].filter(Boolean).join('، ')}</em>`;
+      <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جایش' : FD(p.count) + ' برگ'].filter(Boolean).join('، ')}</em>${fanHtml(p.count)}`;
   }
   for (const s of Object.keys(bubbles)) showBubble(s);
+}
+function fanHtml(n) {
+  n = Math.min(6, n || 0); if (!n) return '';
+  const mid = (n - 1) / 2;
+  return `<span class="hk-fan" aria-hidden="true">${Array.from({ length: n }, (_, i) => backHtml('', `transform:translate(${((i - mid) * 5).toFixed(1)}px,0) rotate(${((i - mid) * 9).toFixed(1)}deg)`)).join('')}</span>`;
+}
+// دسته برگ های برده شده هر تیم: ضربدری روی هم، با شمار
+function renderStacks(tricks, drop = -1) {
+  const us = teamUs();
+  [[$('stackUs'), tricks ? tricks[us] : 0, drop === us], [$('stackThem'), tricks ? tricks[1 - us] : 0, drop === 1 - us]].forEach(([el, n, d]) => {
+    if (!el) return;
+    el.innerHTML = Array.from({ length: n }, (_, i) => backHtml(d && i === n - 1 ? 'drop' : '',
+      `transform:translate(${(i * .8).toFixed(1)}px,${(-i * 1.4).toFixed(1)}px) rotate(${(i % 2 ? 90 : 0) + ((i * 37) % 9) - 4}deg);z-index:${i + 1}`)).join('')
+      + (n ? `<span class="n">${FD(n)} برگ</span>` : '');
+  });
 }
 function renderPile(g) {
   const pile = $('pile');
@@ -121,7 +137,7 @@ function renderHand(g, anim = false) {
   hand.innerHTML = cards.map((c, i) => {
     const a = ((n - 1) / 2 - i) * step;
     const cls = [mine ? (ok.has(c) ? 'ok' : 'no') : '', fresh.includes(c) ? 'in' : ''].filter(Boolean).join(' ');
-    return cardHtml(c, cls, `--a:${a.toFixed(2)}deg;z-index:${i + 1};animation-delay:${fresh.indexOf(c) * 45}ms`);
+    return cardHtml(c, cls, `--a:${a.toFixed(2)}deg;z-index:${n - i};animation-delay:${fresh.indexOf(c) * 45}ms`);
   }).join('');
   hand.querySelectorAll('.hk-card').forEach(el => { el.setAttribute('role', 'button'); el.tabIndex = el.classList.contains('ok') ? 0 : -1; });
   handShown = cards;
@@ -144,7 +160,7 @@ function renderMe(g) {
   setDeadline(g.deadline_ms); turnMs = g.turn_ms || 20000;
 }
 function renderAll(g, anim = false) {
-  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); mount($('meBar')); tickTimer();
+  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); renderStacks(g.tricks); mount($('meBar')); tickTimer();
 }
 
 /* ---------- تایمر نوبت ---------- */
@@ -174,49 +190,97 @@ function pilePoint(x, y) {
   const r = $('pile').getBoundingClientRect(), k = pileScale();
   return [r.left + (x + 32) * k, r.top + (y + 45) * k];
 }
+/* پرتاب برگ: در هوا کمی کج است و می چرخد، با مقاومت هوا آرام می شود، کمی جلوتر روی ماهوت
+   می نشیند و تا جای خودش سُر می خورد. سایه هوایی بزرگ و محو هنگام نشستن جمع می شود.
+   جای نهایی (slotOf) برای همه یکی است؛ فقط مسیر رسیدن طبیعی است. */
 async function throwCard(s, c, from) {
   const [x, y, r] = slotOf(s, c), k = pileScale();
   const [tx, ty] = pilePoint(x, y);
   const [ox, oy] = from ? center(from) : [tx, ty + 200];
-  const wrap = document.createElement('div'); wrap.innerHTML = cardHtml(c);
-  const el = wrap.firstElementChild; el.style.left = (tx - 32) + 'px'; el.style.top = (ty - 45) + 'px';
+  const R = rel(String(s)), pan = panOf(s), mine = String(s) === me;
+  const el = document.createElement('div'); el.className = 'hk-thrown';
+  el.style.left = (tx - 32) + 'px'; el.style.top = (ty - 45) + 'px';
+  el.innerHTML = '<i class="air"></i>' + cardHtml(c);
   $('fly').appendChild(el);
-  sfx.card.throw();
-  const r0 = s === me ? 0 : (rel(s) === 1 ? 70 : rel(s) === 3 ? -70 : 160);
+  const dx = ox - tx, dy = oy - ty, dist = Math.hypot(dx, dy) || 1;
+  const dur = Math.max(380, Math.min(580, 300 + dist * .55));
+  const slide = 9 + ((c * 13) % 9), sx = dx / dist * slide, sy = dy / dist * slide;
+  const r0 = mine ? r - 10 : R === 1 ? 78 : R === 3 ? -78 : 172;
+  // کج شدن در هوا: پرتاب از پایین یا بالا حول محور افقی، از کنارها حول محور عمودی
+  const rx = R === 0 ? 30 : R === 2 ? -26 : 0, ry = R === 1 ? -26 : R === 3 ? 26 : 0;
+  const T = (tx_, ty_, rot, ax, ay, sc) => `perspective(700px) translate(${tx_.toFixed(1)}px,${ty_.toFixed(1)}px) rotate(${rot.toFixed(1)}deg) rotateX(${ax}deg) rotateY(${ay}deg) scale(${sc.toFixed(3)})`;
+  const ease = 'cubic-bezier(.2,.65,.35,1)';
+  sfx.card.throw(pan);
   const anim = el.animate([
-    { transform: `translate(${ox - tx}px,${oy - ty}px) rotate(${r0}deg) scale(${s === me ? 1 : .45})` },
-    { transform: `translate(0,0) rotate(${r + (r - r0) * -.08}deg) scale(${k * 1.06})`, offset: .82 },
-    { transform: `translate(0,0) rotate(${r}deg) scale(${k})` },
-  ], { duration: 420, easing: 'cubic-bezier(.18,.7,.3,1)' });
-  setTimeout(() => { sfx.card.place(); if (s === me) haptic('light'); }, 330);
+    { transform: T(dx, dy, r0, rx, ry, mine ? 1.04 : .5) },
+    { transform: T(sx, sy, r + (r0 - r) * .08, rx * .2, ry * .2, k * 1.05), offset: .6 },
+    { transform: T(sx * .45, sy * .45, r + .8, 0, 0, k), offset: .74 },
+    { transform: T(0, 0, r, 0, 0, k) },
+  ], { duration: dur, easing: ease });
+  el.querySelector('.air').animate([
+    { opacity: .45, transform: 'translate(18px,34px) scale(1.06)' }, { opacity: .2, transform: 'translate(4px,8px)', offset: .6 }, { opacity: 0, transform: 'none', offset: .74 }, { opacity: 0 },
+  ], { duration: dur, easing: ease });
+  const g = Math.min(1, .45 + dist / dur / 2.2);
+  setTimeout(() => { sfx.card.place(g, pan); sfx.card.slide(g * .8, pan); if (mine) haptic('light'); }, dur * .6);
   await anim.finished.catch(() => {});
   pileShown.push([+s, c]);
   renderPile(snap && snap.game);
   el.remove();
 }
-async function collectTrick(w) {
+/* جمع کردن دور: چهار برگ وسط روی هم مرتب می شوند (تق دسته روی میز)، بعد دسته پشت رو تا
+   کنار برنده سُر می خورد و روی دسته برگ های تیمش می نشیند */
+async function collectTrick(w, tricks) {
   renderPile(Object.assign({}, snap.game, { phase: 'play' }));
   await sleep(650);
-  const target = seatEl(w);
+  const team = +w % 2, target = team === teamUs() ? $('stackUs') : $('stackThem');
   const [wx, wy] = target ? center(target) : [innerWidth / 2, innerHeight];
-  const cards = [...$('pile').querySelectorAll('.hk-card')];
-  sfx.card.collect();
-  const anims = cards.map(card => {
-    const r = card.getBoundingClientRect(), clone = card.cloneNode(true);
-    clone.style.left = (r.left + r.width / 2 - 32) + 'px'; clone.style.top = (r.top + r.height / 2 - 45) + 'px';
-    const [cx, cy] = [r.left + r.width / 2, r.top + r.height / 2];
-    const rot = (card.style.transform.match(/-?[\d.]+/) || [0])[0];
-    clone.style.transform = `rotate(${rot}deg) scale(${pileScale()})`;
+  const [cx, cy] = center($('pile'));
+  const cards = [...$('pile').querySelectorAll('.hk-card')], k = pileScale(), pan = panOf(w);
+  const D = 820;
+  setTimeout(() => sfx.card.square(pan * .5), D * .4);
+  setTimeout(() => sfx.card.slide(.6, pan), D * .55);
+  const anims = cards.map((card, i) => {
+    const r = card.getBoundingClientRect(), [x0, y0] = [r.left + r.width / 2, r.top + r.height / 2];
+    const rot = +((card.style.transform.match(/-?[\d.]+/) || [0])[0]), jit = (i - 1.5) * 1.4;
+    const clone = card.cloneNode(true);
+    clone.classList.remove('win'); clone.querySelectorAll('.crown').forEach(x => x.remove());
+    clone.style.left = (x0 - 32) + 'px'; clone.style.top = (y0 - 45) + 'px'; clone.style.zIndex = 30 + i;
+    clone.style.transform = `rotate(${rot}deg) scale(${k})`;
     $('fly').appendChild(clone);
-    return clone.animate([{ transform: `rotate(${rot}deg) scale(${pileScale()})`, opacity: 1 },
-      { transform: `translate(${wx - cx}px,${wy - cy}px) rotate(${+rot * 2}deg) scale(.35)`, opacity: 0 }],
-    { duration: 420, easing: 'cubic-bezier(.5,0,.7,1)' }).finished.catch(() => {}).then(() => clone.remove());
+    return clone.animate([
+      { transform: `rotate(${rot}deg) scale(${k})` },
+      { transform: `translate(${cx - x0 + jit}px,${cy - y0 - jit}px) rotate(${jit}deg) scale(${k})`, offset: .4 },
+      { transform: `translate(${cx - x0 + jit}px,${cy - y0 - jit}px) rotate(${jit}deg) scale(${k})`, offset: .5 },
+      { transform: `translate(${wx - x0}px,${wy - y0}px) rotate(${(team === teamUs() ? 90 : -90) + jit}deg) scale(.47)` },
+    ], { duration: D, easing: 'cubic-bezier(.45,.05,.3,1)' }).finished.catch(() => {}).then(() => clone.remove());
   });
   pileShown = []; renderPile(null);
   await Promise.all(anims);
+  if (tricks) renderStacks(tricks, team);
+}
+/* بُر زدن: دسته دو نیم می شود و برگ ها یکی در میان لای هم می روند، بعد دسته جمع می شود */
+async function riffle() {
+  const pile = $('pile');
+  pile.innerHTML = '';
+  const L = pileEl(backHtml('deck', 'left:30px;top:73px;z-index:1;transform:rotate(-9deg)'));
+  const Rt = pileEl(backHtml('deck', 'left:112px;top:73px;z-index:1;transform:rotate(9deg)'));
+  sfx.card.shuffle();
+  for (let i = 0; i < 16; i++) {
+    const left = i % 2 === 0, b = pileEl(backHtml('', `left:71px;top:${73 - i * .4}px;z-index:${10 + i}`));
+    b.animate([{ transform: `translate(${left ? -41 : 41}px,-10px) rotate(${left ? -9 : 9}deg)` }, { transform: `rotate(${((i * 37) % 7) - 3}deg)` }],
+      { duration: 120, easing: 'cubic-bezier(.4,0,.8,1)', fill: 'forwards' });
+    await sleep(36 + (i < 8 ? 10 : 0));
+  }
+  L.remove(); Rt.remove();
+  await sleep(160);
+  // جمع شدن دسته
+  await Promise.all([...pile.querySelectorAll('.hk-back')].map(b => b.animate([{}, { transform: 'rotate(0deg)' }], { duration: 160, fill: 'forwards' }).finished.catch(() => {})));
+  sfx.card.square(0);
+  pile.innerHTML = backHtml('deck', 'left:71px;top:73px;z-index:1');
+  await sleep(140);
 }
 async function dealAnim(rounds, first) {
-  if (first) { sfx.card.shuffle(); await sleep(650); }
+  if (first) await riffle();
   const [cx, cy] = center($('pile'));
   const order4 = ['0', '1', '2', '3'];
   for (let r = 0; r < rounds; r++) {
@@ -224,16 +288,17 @@ async function dealAnim(rounds, first) {
       const t = s === me ? $('hand') : seatEl(s);
       if (!t) continue;
       const [tx, ty] = center(t);
-      const b = document.createElement('div'); b.className = 'hk-back';
-      b.style.left = (cx - 32) + 'px'; b.style.top = (cy - 45) + 'px';
+      const w = document.createElement('div'); w.innerHTML = backHtml();
+      const b = w.firstElementChild; b.style.left = (cx - 32) + 'px'; b.style.top = (cy - 45) + 'px';
       $('fly').appendChild(b);
-      sfx.card.flick();
-      b.animate([{ transform: 'scale(.7) rotate(0deg)', opacity: 1 }, { transform: `translate(${tx - cx}px,${ty - cy}px) scale(${s === me ? .9 : .45}) rotate(${(+s * 90) + 20}deg)`, opacity: .2 }],
-        { duration: 260, easing: 'cubic-bezier(.3,.6,.4,1)' }).finished.catch(() => {}).then(() => b.remove());
-      await sleep(48);
+      sfx.card.flick(0, panOf(s));
+      b.animate([{ transform: 'scale(.8) rotate(0deg)', opacity: 1 }, { transform: `translate(${tx - cx}px,${ty - cy}px) scale(${s === me ? .95 : .42}) rotate(${(+s * 90) + 200}deg)`, opacity: .35 }],
+        { duration: 300, easing: 'cubic-bezier(.2,.7,.35,1)' }).finished.catch(() => {}).then(() => b.remove());
+      await sleep(52);
     }
   }
-  await sleep(220);
+  await sleep(260);
+  $('pile').innerHTML = '';
 }
 /* حکم اعلام شد: خال از جای حاکم به وسط میز می پرد، با پرتو و حلقه، بعد به جای
    حکم در سربرگ می نشیند */
@@ -311,7 +376,7 @@ async function crownTo(s, from) {
 // دست اول: برگ ها رو باز دور میز می روند تا اولین آس بیاید
 async function aceDraw(e) {
   bar('انتخاب حاکم', 'برگ‌ها رو باز پخش می‌شود؛ اولین آس حاکم است');
-  $('pile').innerHTML = '<div class="hk-back deck" style="left:71px;top:73px;z-index:1"></div>';
+  $('pile').innerHTML = backHtml('deck', 'left:71px;top:73px;z-index:1');
   sfx.card.shuffle(); haptic('light');
   await sleep(700);
   const n = e.draw.length, step = n > 14 ? 170 : n > 8 ? 230 : 300, cnt = {};
@@ -320,8 +385,8 @@ async function aceDraw(e) {
     const r = rel(s), m = cnt[s] = (cnt[s] || 0) + 1, [x0, y0, a0] = DRAW_AT[r];
     const x = x0 + (r === 3 ? m * 3 : r === 1 ? -m * 3 : (m % 3 - 1) * 5), y = y0 + (r === 2 ? m * 2 : r === 0 ? -m * 2 : (m % 3 - 1) * 4);
     const rot = a0 + ((c * 37) % 9) - 4;
-    const b = pileEl(`<div class="hk-back" style="left:${x}px;top:${y}px;z-index:${++z};transform:rotate(${rot}deg)"></div>`);
-    sfx.card.flick();
+    const b = pileEl(backHtml('', `left:${x}px;top:${y}px;z-index:${++z};transform:rotate(${rot}deg)`));
+    sfx.card.flick(0, panOf(s));
     await b.animate([{ transform: `translate(${71 - x}px,${73 - y}px) rotate(0deg) scale(.92)` }, { transform: `rotate(${rot}deg)` }],
       { duration: step * .5, easing: 'cubic-bezier(.2,.7,.3,1)' }).finished.catch(() => {});
     last = await flipTo(b, c, rot, step * .4);
@@ -386,7 +451,7 @@ async function play(e) {
     return;
   }
   if (e.t === 'trick') {
-    await collectTrick(e.c);
+    await collectTrick(e.c, e.tricks);
     const us = teamUs();
     $('score').querySelectorAll('.tm em')[0].textContent = FD(e.tricks[us]) + ' برگ';
     $('score').querySelectorAll('.tm em')[1].textContent = FD(e.tricks[1 - us]) + ' برگ';
@@ -521,17 +586,42 @@ async function act(fn, before) {
     if (snap && snap.game) renderAll(snap.game);
   } finally { acting = false; }
 }
-$('hand').addEventListener('click', e => {
-  const el = e.target.closest('.hk-card.ok'); if (!el || acting || busy || !snap) return;
+function playCard(el) {
+  if (!el || acting || busy || !snap) return;
   const g = snap.game, c = +el.dataset.card;
-  if (g.turn !== me || g.phase !== 'play' || !g.legal.includes(c)) return;
+  if (g.turn !== me || g.phase !== 'play' || !g.legal.includes(c)) { el.style.translate = ''; el.classList.remove('drag'); return; }
   selfPlayed = c;
   $('hand').querySelectorAll('.hk-card').forEach(x => x.classList.remove('ok', 'no'));
   const r = el.getBoundingClientRect(), ghost = document.createElement('span');
   ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
   $('fly').appendChild(ghost); el.remove(); setTimeout(() => ghost.remove(), 700);
   act(() => GC.hokm.play(mid, c, since), () => throwCard(me, c, ghost));
+}
+// برگ را بزن، یا بگیر و رو به میز بکش و رها کن (کشیدن کوتاه = برگشت سر جایش)
+let drag = null, dragged = false;
+$('hand').addEventListener('click', e => { if (dragged) { dragged = false; return; } playCard(e.target.closest('.hk-card.ok')); });
+$('hand').addEventListener('pointerdown', e => {
+  const el = e.target.closest('.hk-card.ok'); if (!el || acting || busy) return;
+  drag = { el, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false };
 });
+$('hand').addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!drag.moved && Math.hypot(dx, dy) < 8) return;
+  if (!drag.moved) { drag.moved = true; drag.el.classList.add('drag'); try { drag.el.setPointerCapture(drag.id); } catch (err) {} }
+  drag.el.style.translate = `${dx.toFixed(0)}px ${Math.min(12, dy).toFixed(0)}px`;
+});
+const endDrag = e => {
+  if (!drag || (e && e.pointerId !== drag.id)) return;
+  const d = drag; drag = null;
+  if (!d.moved) return;
+  dragged = true; setTimeout(() => { dragged = false; }, 60);
+  const dy = e ? e.clientY - d.y : 0;
+  if (dy < -55) playCard(d.el);
+  else { d.el.classList.remove('drag'); d.el.style.translate = ''; }
+};
+$('hand').addEventListener('pointerup', endDrag);
+$('hand').addEventListener('pointercancel', () => { if (drag) { drag.el.classList.remove('drag'); drag.el.style.translate = ''; drag = null; } });
 $('hand').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('ok')) { e.preventDefault(); e.target.click(); } });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 
@@ -604,8 +694,15 @@ window.addEventListener('resize', fit);
 try { Telegram.WebApp.onEvent('viewportChanged', fit); Telegram.WebApp.onEvent('fullscreenChanged', () => setTimeout(fit, 50)); } catch (e) {}
 
 /* ---------- شروع ---------- */
+function applyStyle(st) {
+  if (!st) return;
+  const b = document.body;
+  b.className = b.className.replace(/\b(tbl|cards)-[a-z]\b/g, '').trim();
+  b.classList.add('tbl-' + (st.table || 'a'), 'cards-' + (st.cards || 'a'));
+}
 async function start() {
   GC.portrait(true);
+  GC.data.me().then(m => applyStyle(m && m.style)).catch(() => {});
   $('meBar').innerHTML = '<div class="pill"><span class="txt"><b>در حال وصل شدن…</b></span></div>';
   fit();
   let first;

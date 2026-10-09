@@ -75,7 +75,7 @@ html:not(.shop-on) .bal-actions{grid-template-columns:1fr}
   const { fa, FD, amount, icon, toast, sheet, sheetHead, sfx, haptic, errText, mount } = GC;
   const $ = id => document.getElementById(id);
   GC.back('index.html');
-  const KIND = { gift: ['spark', 'var(--coin-tint)', 'var(--coin-text)', 'هدیه'], charge: ['plus', 'var(--success-tint)', 'var(--success)', 'شارژ'], entry: ['dice', 'var(--sky-tint)', 'var(--sky-deep)', 'ورودی'], refund: ['back', 'var(--sky-tint)', 'var(--sky-deep)', 'بازگشت'], prize: ['trophy', 'var(--coin-tint)', 'var(--coin-text)', 'جایزه'], shop: ['bag', 'var(--obour-night)', 'var(--obour-aqua)', 'خرید'], transfer: ['wallet', 'var(--obour-night)', 'var(--obour-aqua)', 'انتقال'], admin: ['shield', 'var(--sky-tint)', 'var(--sky-deep)', 'پشتیبانی'] };
+  const KIND = { gift: ['spark', 'var(--coin-tint)', 'var(--coin-text)', 'هدیه'], charge: ['plus', 'var(--success-tint)', 'var(--success)', 'شارژ'], entry: ['dice', 'var(--sky-tint)', 'var(--sky-deep)', 'ورودی'], refund: ['back', 'var(--sky-tint)', 'var(--sky-deep)', 'بازگشت'], prize: ['trophy', 'var(--coin-tint)', 'var(--coin-text)', 'جایزه'], shop: ['bag', 'var(--obour-night)', 'var(--obour-aqua)', 'خرید'], transfer: ['wallet', 'var(--obour-night)', 'var(--obour-aqua)', 'انتقال'], admin: ['shield', 'var(--sky-tint)', 'var(--sky-deep)', 'پشتیبانی'], style: ['bag', 'var(--violet-tint)', 'var(--violet)', 'خرید میز و ورق'] };
   const when = t => { const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
   let me = null;
   async function load() {
