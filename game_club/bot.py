@@ -3,7 +3,7 @@
 روی همان event loop عبور ساخته می شود (app.runtime) ولی Bot، Dispatcher
 و دیتابیس خودش را دارد. کار اصلی ربات باز کردن مینی اپ است:
   /start            خوش آمد + دکمه ورود
-  /start ludo_CODE  لینک دعوت دوست: دکمه مستقیم به همان میز (حکم: hokm_CODE)
+  /start ludo_CODE  لینک دعوت دوست: دکمه مستقیم به همان میز (حکم: hokm_CODE، فوتبال: football_CODE)
   /start obour      آمده از کارت Game Club در مینی اپ عبور
   /points           موجودی امتیاز
   /help             قوانین کوتاه
@@ -101,8 +101,8 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
     await gdb.player(u.id, _name(message), u.username)
     arg = (command.args or "").strip()
     game = arg.split("_", 1)[0]
-    if game in ("ludo", "hokm") and "_" in arg:
-        name = "منچ" if game == "ludo" else "حکم"
+    if game in ("ludo", "hokm", "football") and "_" in arg:
+        name = {"ludo": "منچ", "hokm": "حکم", "football": "فوتبال"}[game]
         code = "".join(ch for ch in arg.split("_", 1)[1].upper() if ch.isalnum())[:12]
         m = await gdb.match_by_invite(code)
         if not m or m["status"] != "lobby":
@@ -110,12 +110,12 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
                                  reply_markup=open_kb(f"{game}-lobby.html", f"میز تازهٔ {name}"))
             return
         mode = "با امتیاز (ورودی " + f"{m['cfg']['entry']:,}" + ")" if m["cfg"]["mode"] == "stake" else "آزاد"
-        who = "یار خودش در حکم" if game == "hokm" else "یک دست منچ"
+        who = {"hokm": "یار خودش در حکم", "football": "یک بازی فوتبال", "ludo": "یک دست منچ"}[game]
         await message.answer(f"دوستت تو را به {who} دعوت کرده (<b>{name} {mode}</b>).\nبزن تا کنارش بنشینی:",
                              reply_markup=open_kb(f"{game}-lobby.html?join={code}", "نشستن سر میز"))
         return
     hello = ("به <b>Game Club</b> خوش آمدی!\n\n"
-             "منچ و حکم بازی کن، با دوستت یا با ناشناس. در بازی با امتیاز برنده همهٔ ورودی‌ها را می‌برد"
+             "منچ، حکم و فوتبال بازی کن، با دوستت یا با ناشناس. در بازی با امتیاز برنده همهٔ ورودی‌ها را می‌برد"
              + ("؛ امتیازت را می‌توانی در عبور خرج کنی: کانفیگ، تمدید و اشتراک هوش مصنوعی." if gc.shop_enabled else "."))
     if arg == "obour":
         hello += "\n\nحساب عبورت با همین تلگرام وصل است؛ شارژ از کیف پول عبور فوری است."

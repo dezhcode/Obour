@@ -204,17 +204,18 @@ const ludo = {
 /* میزهای باز برای صفحهٔ خانه (منچ و حکم نمایشی) */
 function demoTables() {
   const out = [];
-  for (const [key, game, mine] of [['demo_hokm', 'hokm', '0'], ['demo_match', 'ludo', 'yellow']]) {
+  for (const [key, game, mine] of [['demo_football', 'football', '0'], ['demo_hokm', 'hokm', '0'], ['demo_match', 'ludo', 'yellow']]) {
     const m = store.get(key, null); if (!m) continue;
     if (m.status === 'lobby') out.push({ kind: 'lobby', id: m.id, game, cfg: m.cfg, found: m.seats.length, need: m.cfg.players || 4, host: true, players: m.seats });
     else if (m.status === 'playing' && !m.state.over) {
       const st = m.state, t = { kind: 'playing', id: m.id, game, cfg: m.cfg, players: (st.order || Object.keys(st.players)).map(c => Object.assign({}, st.players[c], { me: String(c) === mine })) };
-      if (game === 'hokm') { t.score = [st.score[0], st.score[1]]; t.target = st.target; t.my_turn = (st.phase === 'trump' || st.phase === 'play') && String(st.phase === 'trump' ? st.hakem : st.turn) === '0'; }
+      if (game === 'football') { t.score = [st.score[0], st.score[1]]; t.target = st.target; t.my_turn = st.phase === 'play' && st.turn === 0; }
+      else if (game === 'hokm') { t.score = [st.score[0], st.score[1]]; t.target = st.target; t.my_turn = (st.phase === 'trump' || st.phase === 'play') && String(st.phase === 'trump' ? st.hakem : st.turn) === '0'; }
       else t.my_turn = st.order[st.turn] === 'yellow';
       out.push(t);
     }
   }
-  for (const [key, game] of [['demo_hq', 'hokm'], ['demo_q', 'ludo']]) { const q = store.get(key, null); if (q) out.push({ kind: 'queue', game, cfg: q.cfg, found: 1, need: q.cfg.players || 4 }); }
+  for (const [key, game] of [['demo_fq', 'football'], ['demo_hq', 'hokm'], ['demo_q', 'ludo']]) { const q = store.get(key, null); if (q) out.push({ kind: 'queue', game, cfg: q.cfg, found: 1, need: q.cfg.players || 4 }); }
   return out;
 }
 

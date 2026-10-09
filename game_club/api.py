@@ -74,7 +74,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         return {"ok": True}
     if name == "notify" and method == "POST":
         game = str(body.get("game") or "")
-        if game not in ("esm", "hokm"):
+        if game not in ("esm", "hokm", "football"):
             raise GCError("bad_game")
         return {"on": await gdb.toggle_notify(tg, game)}
 
@@ -97,7 +97,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
 
     # ---------- میزها: منچ (ludo/...) و حکم (hokm/...) با یک سرویس ----------
     game, _, op = name.partition("/")
-    if game in ("ludo", "hokm") and op:
+    if game in ("ludo", "hokm", "football") and op:
         def cfg_in() -> dict:
             c = body.get("cfg") or {}
             return {**c, "game": game} if isinstance(c, dict) else {"game": game}
@@ -129,10 +129,10 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             if out.get("lobby"):
                 out["lobby"]["link"] = invite_link(out["lobby"]["code"] or "", service.game_of(out["cfg"]))
             return out
-        acts = ("roll", "move") if game == "ludo" else ("trump", "play")
+        acts = {"ludo": ("roll", "move"), "hokm": ("trump", "play"), "football": ("setup", "shot")}[game]
         if op in acts and method == "POST":
             return await service.act(gdb, tg, str(body.get("match") or ""), op, body.get("k"),
-                                     int(body.get("since") or 0))
+                                     int(body.get("since") or 0), body)
         if op == "chat" and method == "POST":
             return await service.chat_send(gdb, tg, str(body.get("match") or ""), str(body.get("text") or ""))
         if op == "leave" and method == "POST":

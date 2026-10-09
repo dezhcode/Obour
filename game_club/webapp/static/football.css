@@ -1,0 +1,175 @@
+/* فوتبال: «استادیوم روز» — چمن راه‌راه، دیواره سفید، سکوی تماشاگر دو طرف و مهره های
+   فلزی با نشان تیم. طرح: صفحه طراحی «فوتبال Game Club»، سبک A و مهره مدل ۱. */
+html:has(body.football){overflow:hidden}
+body.football{--gold:#F5C451;--gold-ink:#3A2A00;--me:#2F80ED;--rail:#e9edf1;
+  margin:0;height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;color:#fff;
+  background:radial-gradient(120% 60% at 50% 45%,#3d7d2f 0%,#2a5c22 70%,#214a1b 100%) fixed;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+body.football .appbar{background:transparent;color:#fff;flex:none}
+body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(--space-2)}
+.fb-ib{width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.3)}
+.fb-ib svg{width:20px;height:20px}
+.fb-ib:active{transform:scale(.94)}
+
+/* سربرگ: من | امتیاز | حریف */
+.fb-head{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px}
+.fb-pl{display:flex;align-items:center;gap:7px;min-width:0;position:relative}
+.fb-pl.op{flex-direction:row-reverse;text-align:left}
+.fb-pl .avatar{--size:44px;flex:none}
+.fb-pl .avatar.timer{background:conic-gradient(var(--gold) calc(var(--t,1)*360deg),rgba(255,255,255,.2) 0)}
+.fb-pl.me .avatar{--ring:var(--me)}
+.fb-pl .nm{display:grid;min-width:0;line-height:1.25}
+.fb-pl .nm b{font-size:13.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fb-pl .nm span{font-size:11px;font-weight:600;color:rgba(255,255,255,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fb-pl .dot{position:absolute;bottom:1px;width:10px;height:10px;border-radius:50%;background:#3DD08E;box-shadow:0 0 0 2px #2a5c22}
+.fb-pl.op .dot{left:34px}
+.fb-pl.op.away .dot{background:#9aa3ad}
+.fb-sc{display:grid;justify-items:center;line-height:1.1}
+.fb-sc b{font-size:28px;font-weight:800;letter-spacing:1px;text-shadow:0 2px 4px rgba(0,0,0,.35);white-space:nowrap}
+.fb-sc span{font-size:11.5px;font-weight:600;color:rgba(255,255,255,.88)}
+.fb-sc b.bump{animation:fb-bump .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes fb-bump{0%{transform:scale(1.8)}100%{transform:scale(1)}}
+
+.fb-status{flex:none;display:flex;justify-content:center;height:30px;align-items:center}
+.fb-pill{display:inline-flex;align-items:center;gap:8px;padding:4px 14px;border-radius:999px;background:rgba(0,0,0,.32);font-size:13px;font-weight:800;transition:background .2s}
+.fb-pill.mine{background:var(--me);box-shadow:0 6px 14px -4px rgba(0,0,0,.4)}
+.fb-pill em{font-style:normal;font-weight:600;opacity:.85}
+
+/* ورزشگاه: سکوها + زمین */
+.fb-arena{flex:1;min-height:0;position:relative;display:grid;place-items:center;direction:ltr}
+.fb-stadium{position:relative;display:flex;align-items:center;gap:8px}
+.fb-crowd{width:22px;border-radius:6px;align-self:stretch;
+  background:radial-gradient(circle at 3px 3px,#f2c94c 1.4px,transparent 1.9px) 0 0/6px 6px,
+    radial-gradient(circle at 3px 3px,#eb5757 1.4px,transparent 1.9px) 3px 3px/6px 6px,
+    radial-gradient(circle at 3px 3px,#56ccf2 1.3px,transparent 1.8px) 0 3px/6px 6px,
+    repeating-linear-gradient(180deg,#3c4152 0 5px,#2e3242 5px 6px);
+  box-shadow:inset 0 0 0 2px #8b93a3,0 6px 12px rgba(0,0,0,.35)}
+.fb-crowd.cheer{animation:fb-cheer .18s steps(2) 10}
+@keyframes fb-cheer{50%{background-position:0 2px,3px 1px,0 5px,0 0}}
+.fb-pitch{position:relative;border-radius:3px;
+  background:repeating-linear-gradient(180deg,#5bb041 0 calc(var(--s)*64px),#50a038 calc(var(--s)*64px) calc(var(--s)*128px));
+  box-shadow:0 0 0 5px var(--rail),0 0 0 6px rgba(0,0,0,.25),0 14px 26px rgba(0,0,0,.35)}
+.fb-ln{position:absolute;border:0 solid rgba(255,255,255,.85);pointer-events:none;box-sizing:border-box}
+.fb-net{position:absolute;box-sizing:border-box;border:3px solid #f1f3f5;pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.55) 0 1px,transparent 1px 6px),repeating-linear-gradient(0deg,rgba(255,255,255,.55) 0 1px,transparent 1px 6px),rgba(0,0,0,.18)}
+.fb-net.top{border-bottom:0}
+.fb-net.bot{border-top:0}
+.fb-net.shake{animation:fb-shake .5s ease-out}
+@keyframes fb-shake{30%{transform:scale(1.06,1.18)}60%{transform:scale(.98,.95)}}
+
+/* مهره فلزی با نشان */
+.fd{position:absolute;left:0;top:0;border-radius:50%;box-sizing:border-box;will-change:transform;
+  background:conic-gradient(from 40deg,#f4f6f8,#9aa3ad,#eef1f4,#7d8792,#f4f6f8);
+  box-shadow:0 4px 0 rgba(0,0,0,.28),0 6px 9px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.25);transition:box-shadow .2s}
+.fd svg{display:block;width:100%;height:100%;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+.fb-pitch.myturn .fd.me{box-shadow:0 0 0 3px rgba(130,220,255,.55),0 0 14px 5px rgba(120,210,255,.55),0 4px 0 rgba(0,0,0,.28)}
+.fb-pitch.myturn .fd.me.pulse{animation:fb-glow 1.4s ease-in-out infinite}
+@keyframes fb-glow{50%{box-shadow:0 0 0 4px rgba(130,220,255,.75),0 0 20px 8px rgba(120,210,255,.7),0 4px 0 rgba(0,0,0,.28)}}
+.fd.aim{box-shadow:0 0 0 3px var(--gold),0 0 18px 6px rgba(245,196,81,.7),0 4px 0 rgba(0,0,0,.28)!important}
+.fb-ball{position:absolute;left:0;top:0;border-radius:50%;will-change:transform;filter:drop-shadow(0 3px 2px rgba(0,0,0,.4));z-index:3}
+.fb-ball svg{display:block;width:100%;height:100%}
+.fb-aim{position:absolute;inset:0;overflow:visible;pointer-events:none;z-index:4}
+
+/* پایین: راهنما و گفتگو */
+.fb-hint{flex:none;display:flex;justify-content:center;height:30px;align-items:center}
+.fb-hint span{padding:4px 12px;border-radius:999px;background:rgba(0,0,0,.3);font-size:12px;font-weight:600;transition:opacity .25s}
+.fb-hint span[hidden]{display:inline-block;opacity:0}
+.fb-bar{flex:none;display:flex;align-items:center;gap:10px;padding:8px max(14px,var(--sa-r,0px)) calc(8px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px))) max(14px,var(--sa-l,0px));background:#12161f}
+.fb-say{flex:1;min-width:0;height:42px;border-radius:21px;background:#1d2330;color:rgba(255,255,255,.6);font-size:14px;font-weight:600;text-align:start;padding:0 14px;display:flex;align-items:center;gap:8px}
+.fb-say svg{width:20px;height:20px;color:#3DD08E;flex:none}
+.fb-say .badge{margin-inline-start:auto}
+.fb-emo{width:44px;height:44px;border-radius:50%;background:var(--gold);color:var(--gold-ink);display:grid;place-items:center;flex:none}
+.fb-emo svg{width:24px;height:24px}
+.fb-bubble{position:absolute;top:calc(100% + 6px);z-index:20;max-width:170px;padding:6px 10px;border-radius:14px;background:#fff;color:#1C2230;font-size:12.5px;font-weight:700;line-height:18px;box-shadow:0 8px 18px rgba(0,0,0,.3);animation:hk-rise .3s ease-out both;white-space:normal}
+.fb-pl.me .fb-bubble{right:0}
+.fb-pl.op .fb-bubble{left:0}
+@keyframes hk-rise{from{opacity:0;transform:scale(.7) translateY(-6px)}}
+
+/* لایه های تمام صفحه: انتخاب تیم، «مقابل»، گل */
+.fb-layer{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;color:#fff}
+.fb-setup{background:radial-gradient(120% 60% at 50% 0%,#3a2f78 0%,#231c4d 55%,#17123a 100%);
+  padding:max(14px,var(--sa-t,0px)) 16px calc(16px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));gap:12px;overflow-y:auto;animation:fb-fade .25s ease-out}
+@keyframes fb-fade{from{opacity:0}}
+.fb-setup .top{display:flex;align-items:center;justify-content:space-between}
+.fb-cd{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.25);font-size:13px;font-weight:600}
+.fb-cd i{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;background:conic-gradient(var(--gold) calc(var(--t,1)*360deg),rgba(255,255,255,.15) 0)}
+.fb-setup h1{margin:0;font-size:24px;font-weight:800}
+.fb-setup .sub{margin:2px 0 0;font-size:13px;line-height:21px;color:rgba(255,255,255,.72)}
+.fb-teams{display:flex;flex-direction:column;gap:8px}
+.fb-team{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:10px 14px;border-radius:18px;background:#2b2463;border:2px solid transparent;color:#fff;text-align:start;width:100%;box-sizing:border-box}
+.fb-team[aria-pressed="true"]{border-color:var(--gold);background:#352c78;box-shadow:0 8px 18px -8px rgba(245,196,81,.5)}
+.fb-team b{font-size:15px;font-weight:800}
+.fb-team small{display:block;font-size:11.5px;color:rgba(255,255,255,.6);font-weight:600}
+.fb-kit{display:grid;justify-items:center;gap:3px;font-size:10.5px;color:rgba(255,255,255,.6);font-weight:600}
+.fb-kit .fd{position:relative}
+.fb-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:4px;border-radius:16px;background:rgba(0,0,0,.25)}
+.fb-tabs button{height:40px;border-radius:12px;color:rgba(255,255,255,.55);font-size:14px;font-weight:800}
+.fb-tabs button[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink)}
+.fb-forms{border-radius:22px;background:#2b2463;padding:14px 10px;display:flex;flex-direction:column;gap:10px}
+.fb-forms .h{display:flex;align-items:center;gap:8px;padding-inline:4px}
+.fb-forms .h b{font-size:16px;font-weight:800}
+.fb-forms .h span{font-size:12px;color:rgba(255,255,255,.6)}
+.fb-forms .h i{width:30px;height:30px;border-radius:10px;display:grid;place-items:center}
+.fb-forms .h i svg{width:18px;height:18px}
+.fb-forms .row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));justify-items:center}
+.fb-opt{display:flex;flex-direction:column;align-items:center;gap:6px;color:rgba(255,255,255,.55);font-size:14px;font-weight:800}
+.fb-mini{position:relative;width:70px;height:90px;border-radius:12px;overflow:hidden;box-sizing:border-box;border:2px solid rgba(255,255,255,.12);
+  background:repeating-linear-gradient(180deg,#3d8c33 0 12px,#367d2d 12px 24px);opacity:.55;transition:opacity .15s,border-color .15s}
+.fb-mini::before{content:"";position:absolute;left:22px;right:22px;top:-12px;height:24px;border:1.5px solid rgba(255,255,255,.6);border-radius:50%}
+.fb-mini::after{content:"";position:absolute;left:16px;right:16px;bottom:0;height:15px;border:1.5px solid rgba(255,255,255,.6);border-bottom:0}
+.fb-mini i{position:absolute;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#3D7BFF;box-shadow:0 0 0 2px #fff,0 2px 3px rgba(0,0,0,.4);z-index:1}
+.fb-opt[aria-pressed="true"]{color:#fff}
+.fb-opt[aria-pressed="true"] .fb-mini{opacity:1;border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,196,81,.25)}
+.fb-go{height:54px;border-radius:27px;background:#3D7BFF;color:#fff;font-size:16px;font-weight:800;box-shadow:0 6px 0 #2557c4;flex:none;width:100%}
+.fb-setup .fb-go{position:sticky;bottom:0;z-index:2;box-shadow:0 6px 0 #2557c4,0 -14px 24px 6px #17123a}
+.fb-go:active{transform:translateY(3px);box-shadow:0 3px 0 #2557c4}
+.fb-wait{flex:1;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center}
+.fb-wait b{font-size:18px;font-weight:800}
+.fb-wait span{font-size:13px;color:rgba(255,255,255,.7)}
+
+.fb-vs{pointer-events:none;align-items:stretch;justify-content:center;background:rgba(10,12,30,.6);animation:fb-fade .3s ease-out}
+.fb-vs .band{background:linear-gradient(180deg,rgba(23,18,58,0),#17123a 16%,#17123a 84%,rgba(23,18,58,0));padding:46px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px;animation:fb-band .5s cubic-bezier(.2,1.2,.4,1) both}
+@keyframes fb-band{from{transform:scaleY(.2);opacity:0}}
+.fb-vs .side{display:grid;justify-items:center;gap:8px;text-align:center}
+.fb-vs .side small{font-size:12px;font-weight:800;color:var(--gold)}
+.fb-vs .side.op small{color:#FF9F9F}
+.fb-vs .side b{font-size:19px;font-weight:800}
+.fb-vs .side span{font-size:12px;color:rgba(255,255,255,.7)}
+.fb-vs .side .fd{position:relative;animation:fb-in-r .6s .15s cubic-bezier(.2,1.3,.4,1) both}
+.fb-vs .side.op .fd{animation-name:fb-in-l}
+@keyframes fb-in-r{from{transform:translateX(120px) rotate(200deg);opacity:0}}
+@keyframes fb-in-l{from{transform:translateX(-120px) rotate(-200deg);opacity:0}}
+.fb-vs .vs{width:62px;height:62px;border-radius:50%;background:var(--gold);color:var(--gold-ink);display:grid;place-items:center;font-size:15px;font-weight:800;box-shadow:0 0 0 6px rgba(245,196,81,.25),0 10px 20px rgba(0,0,0,.4);transform:rotate(-8deg);animation:fb-pop .5s .45s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes fb-pop{from{transform:scale(0) rotate(-40deg)}}
+.fb-vs .info{grid-column:1/-1;justify-self:center;margin-top:18px;font-size:13.5px;font-weight:600;color:rgba(255,255,255,.85)}
+
+.fb-goal{pointer-events:none;align-items:center;justify-content:center;gap:16px;background:radial-gradient(70% 40% at 50% 46%,rgba(23,18,58,.55),rgba(23,18,58,.88));animation:fb-fade .2s ease-out;overflow:hidden}
+.fb-goal .rays{position:absolute;left:50%;top:46%;width:560px;height:560px;margin:-280px;border-radius:50%;
+  background:repeating-conic-gradient(rgba(245,196,81,.28) 0 8deg,transparent 8deg 16deg);
+  -webkit-mask:radial-gradient(circle,#000 12%,transparent 62%);mask:radial-gradient(circle,#000 12%,transparent 62%);animation:fb-spin 8s linear infinite}
+@keyframes fb-spin{to{transform:rotate(360deg)}}
+.fb-goal .word{position:relative;font-family:var(--font-rokh);font-size:96px;line-height:110px;font-weight:900;color:var(--gold);text-shadow:0 6px 0 #a5781a,0 14px 30px rgba(0,0,0,.5);animation:fb-word .7s cubic-bezier(.2,1.6,.4,1) both}
+.fb-goal .word.sad{color:#fff;text-shadow:0 6px 0 rgba(0,0,0,.35),0 14px 30px rgba(0,0,0,.5)}
+@keyframes fb-word{from{transform:scale(.2) rotate(-20deg);opacity:0}to{transform:rotate(-6deg)}}
+.fb-goal .who{position:relative;display:flex;align-items:center;gap:12px;padding:8px 18px 8px 10px;border-radius:999px;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);animation:hk-rise .4s .3s both}
+.fb-goal .who .fd{position:relative}
+.fb-goal .who b{display:block;font-size:16px;font-weight:800}
+.fb-goal .who span{font-size:12px;color:rgba(255,255,255,.75)}
+.fb-goal .boxes{position:relative;display:flex;align-items:center;gap:14px;animation:hk-rise .4s .45s both}
+.fb-goal .boxes span.n{width:52px;height:60px;border-radius:14px;display:grid;place-items:center;font-size:34px;font-weight:800}
+.fb-goal .boxes span.t{font-size:14px;font-weight:800}
+.fb-goal .boxes .hot{box-shadow:0 0 0 4px rgba(245,196,81,.6)}
+.fb-cf{position:absolute;top:-20px;width:8px;height:14px;border-radius:2px;animation:fb-fall linear forwards}
+@keyframes fb-fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+/* نتیجه */
+.fb-res{display:grid;justify-items:center;gap:var(--space-2);text-align:center}
+.fb-res .ic{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:rgba(245,196,81,.16);box-shadow:inset 0 0 0 2px var(--gold);color:var(--gold)}
+.fb-res .ic.lost{background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 2px rgba(255,255,255,.3);color:#fff}
+.fb-res .ic svg{width:34px;height:34px}
+.fb-res h2{font-size:22px;line-height:30px;font-weight:800}
+.fb-res p{font-size:13.5px;color:var(--ink-muted)}
+.fb-res .final{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:18px;background:var(--surface-sunk)}
+.fb-res .final b{font-size:32px;font-weight:800}
+body.football .sheet{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.fb-goal .rays,.fb-pitch.myturn .fd.me.pulse,.fb-crowd.cheer{animation:none}}

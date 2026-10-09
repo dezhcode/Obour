@@ -100,7 +100,7 @@ const ERR = {
   need_players: 'بازی امتیازی بدون حریف واقعی شروع نمی‌شود', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
   plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
   rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
-  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_found: 'این میز پیدا نشد', bad_pack: 'این بسته در دسترس نیست',
+  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_pack: 'این بسته در دسترس نیست',
 };
 const errText = e => ERR[e && e.code] || ERR.server;
 async function api(name, { body, q } = {}) {
@@ -140,6 +140,20 @@ const liveLudo = {
   roll: (match, since) => api('ludo/roll', { body: { match, since } }),
   move: (match, k, since) => api('ludo/move', { body: { match, k, since } }),
   leave: match => api('ludo/leave', { body: { match } }),
+};
+const liveFootball = {
+  queueJoin: cfg => api('football/queue', { body: { cfg } }),
+  queueStatus: () => api('football/queue'),
+  queueLeave: () => api('football/queue/leave', { body: {} }),
+  queueBots: () => api('football/queue/bots', { body: {} }),
+  invite: cfg => api('football/invite', { body: { cfg } }),
+  join: code => api('football/join', { body: { code } }),
+  start: match => api('football/start', { body: { match } }),
+  match: (id, since = 0, chat = null) => api('football/match', { q: Object.assign(id ? { id, since } : { since }, chat == null ? {} : { chat }) }),
+  chat: (match, text) => api('football/chat', { body: { match, text } }),
+  setup: (match, team, fa, fd, since) => api('football/setup', { body: { match, team, fa, fd, since } }),
+  shot: (match, i, dx, dy, p, since) => api('football/shot', { body: { match, i, dx, dy, p, since } }),
+  leave: match => api('football/leave', { body: { match } }),
 };
 const liveHokm = {
   queueJoin: cfg => api('hokm/queue', { body: { cfg } }),
@@ -321,7 +335,7 @@ let samplesLoading = null;
 function loadSamples() {
   const a = ctx();
   if (!a || samplesLoading) return samplesLoading;
-  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'throw', 'flick', 'shuffle', 'collect'].map(async n => {
+  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'throw', 'flick', 'shuffle', 'collect', 'fb_kick', 'fb_clack', 'fb_wall', 'fb_whistle', 'fb_goal'].map(async n => {
     try {
       const r = await fetch('static/sfx/' + n + '.mp3');
       const b = await r.arrayBuffer();
@@ -346,6 +360,14 @@ sfx.card = {
   shuffle() { if (!sample('shuffle', { g: .9 })) for (let i = 0; i < 18; i++) noise(.02, { g: .2, f: 1800 + Math.random() * 1500, q: 1.5, at: i * .04 }); },
   collect() { sample('collect', { g: .85 }) || noise(.25, { g: .25, f: 1600, q: .8 }); },
   trump() { [659, 880, 1175].forEach((f, i) => tone(f, .22, { type: 'triangle', g: .16, at: i * .08 })); },
+};
+// فوتبال: g شدت برخورد (۰ تا ۱)
+sfx.fb = {
+  kick(g = 1) { sample('fb_kick', { g: .5 + g * .5 }) || (tone(200, .08, { g: .3, to: 120 }), noise(.02, { g: .3, f: 2600, q: 1.4 })); },
+  clack(g = 1, at = 0) { sample('fb_clack', { g: .25 + g * .75, at }) || noise(.03, { g: .2 + g * .3, f: 3200, q: 2, at }); },
+  wall(g = 1, at = 0) { sample('fb_wall', { g: .3 + g * .7, at }) || (noise(.08, { g: .25 + g * .3, f: 500, q: .8, at }), tone(118, .08, { g: .2, at })); },
+  whistle() { sample('fb_whistle', { g: .55 }) || (tone(2650, .16, { g: .12 }), tone(2650, .5, { g: .12, at: .25 })); },
+  goal() { sample('fb_goal', { g: .9 }) || noise(1.6, { g: .3, f: 1000, q: .6 }); },
 };
 function setSound(on) { S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
@@ -431,7 +453,7 @@ document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
 window.GC = { coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
-  get hokm() { return live ? liveHokm : GC.demo.hokm; }, loadSamples,
+  get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
   PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount };
 document.addEventListener('DOMContentLoaded', () => mount());

@@ -547,6 +547,112 @@ def test_queue_waits_for_full_table_and_bots_on_request():
     asyncio.run(run())
 
 
+def test_football_physics_and_rules():
+    from game_club import football as F
+    seats = [{"color": "0", "name": "a", "uid": 1}, {"color": "1", "name": "b", "bot": True}]
+    st = F.new_state(seats, 0.0, 20, False, 3, first=0)
+    assert st["phase"] == "setup" and len(st["pos"]) == 13
+    assert F.setup(st, "0", "nope", "132", "132", 1.0) == "bad_setup"
+    assert F.setup(st, "0", "eagles", "141", "123", 1.0) is None
+    assert st["phase"] == "play" and st["turn"] == 0
+    assert F.shot(st, 0, 4, 0, -1, 1, 1.0) == "not_ready"            # هنوز نمایش «مقابل» است
+    assert F.shot(st, 1, 4, 0, -1, 1, 99.0) == "not_your_turn"
+    assert F.shot(st, 0, 9, 0, -1, 1, 99.0) == "bad_shot"
+    # شوت مستقیم به دروازه بالا = گل صندلی ۰، بعد شروع با حریف
+    st["pos"][F.BALL] = [300.0, 120.0]
+    st["pos"][4] = [300.0, 200.0]
+    for k in range(6, 12):
+        st["pos"][k] = [40.0 + (k - 6) * 80, 980.0]
+    assert F.shot(st, 0, 4, 0, -1, 0.6, 99.0) is None
+    kinds = [e["t"] for e in st["events"][-3:]]
+    assert kinds == ["shot", "goal", "reset"] and st["score"] == [1, 0] and st["turn"] == 1
+    shot_e = st["events"][-3]
+    assert shot_e["frames"] and len(shot_e["frames"][0]) == 2 * len(shot_e["ids"])
+    # همه چیز داخل زمین یا تور می ماند و ربات بازی را تمام می کند
+    for _ in range(3):
+        st = F.new_state([{"color": "0", "name": "a", "bot": True}, {"color": "1", "name": "b", "bot": True}], 0.0, 20, False, 3)
+        now = 0.0
+        while not st["over"] and now < 3000:
+            now += 0.5
+            F.tick(st, now)
+            for x, y in st["pos"]:
+                assert -1 <= x <= F.W + 1 and -F.GOAL_D - 1 <= y <= F.H + F.GOAL_D + 1
+        assert st["over"] and max(st["score"]) == 3 and F.winners(st) == {F.SEATS[st["winner"]]}
+    # فقط فریم های آخرین شوت نگه داشته می شود
+    assert sum(1 for e in st["events"] if e.get("frames")) <= 1
+    # غیبت در بازی امتیازی: سه نوبت = باخت
+    st = F.new_state([{"color": "0", "name": "a", "uid": 1}, {"color": "1", "name": "b", "uid": 2}], 0.0, 20, True, 3, first=0)
+    now = F.SETUP_S + 1
+    F.tick(st, now)
+    assert st["phase"] == "play" and st["players"]["0"]["team"] and st["players"]["1"]["team"]
+    for _ in range(12):
+        now += 30
+        F.tick(st, now)
+        if st["over"]:
+            break
+    assert st["over"] and st["winner"] in (0, 1)
+
+
+def test_football_service_flow():
+    from game_club import service
+    from game_club.db import GCDatabase
+    tmp = tempfile.mkdtemp()
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        real = service.time.time
+        clock = [50_000.0]
+        service.time.time = lambda: clock[0]
+        try:
+            for tg in (1, 2):
+                await db.player(tg, f"p{tg}")
+                await db.credit(tg, 1000)
+            # تمرین با ربات
+            r = await service.queue_join(db, 1, {"game": "football", "mode": "free", "target": 3, "solo": True})
+            mid = r["match"]
+            v = await service.match_view(db, 1, mid)
+            assert v["game"]["phase"] == "setup" and v["cfg"]["players"] == 2
+            v = await service.act(db, 1, mid, "setup", data={"team": "sea", "fa": "123", "fd": "141"})
+            assert v["game"]["phase"] == "play"
+            assert (await service.my_tables(db, 1))[0]["score"] == [0, 0]
+            await service.leave_any(db, 1, mid)
+            assert (await db.get_match(mid))["status"] == "over"
+            # بازی امتیازی با دعوت: برنده کل ورودی ها را می برد
+            cfg = {"game": "football", "mode": "stake", "entry": 100, "target": 3}
+            inv = await service.invite_create(db, 1, cfg)
+            await service.invite_join(db, 2, inv["code"])
+            m = await db.get_match(inv["match"])
+            assert m["status"] == "playing"
+            for tg in (1, 2):
+                await service.act(db, tg, inv["match"], "setup", data={"team": "eagles", "fa": "132", "fd": "132"})
+            m = await db.get_match(inv["match"])
+            kits = {s: p["kit"] for s, p in m["state"]["players"].items()}
+            assert sorted(kits.values()) == ["away", "home"]                  # تیم یکسان: یکی لباس مهمان
+            for _ in range(400):
+                m = await db.get_match(inv["match"])
+                if m["status"] != "playing":
+                    break
+                st = m["state"]
+                clock[0] = max(clock[0], st["next_at"]) + 0.1
+                seat = st["turn"]
+                tg = [1, 2][seat] if (await db.match_players(inv["match"]))[0]["color"] == "0" else [2, 1][seat]
+                rows = {r["color"]: r["tg_id"] for r in await db.match_players(inv["match"])}
+                tg = rows[str(seat)]
+                bx, by = st["pos"][12]
+                x, y = st["pos"][seat * 6 + 4]
+                await service.act(db, tg, inv["match"], "shot", data={"i": 4, "dx": bx - x, "dy": by - y, "p": 0.9})
+            m = await db.get_match(inv["match"])
+            assert m["status"] == "over", m["state"]["score"]
+            pts = sorted([(await db.get_player(1))["points"], (await db.get_player(2))["points"]])
+            assert pts == [900, 1100], pts
+        finally:
+            service.time.time = real
+            await db.close()
+
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

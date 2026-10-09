@@ -17,7 +17,7 @@ import re
 import secrets
 import time
 
-from . import hokm, ludo
+from . import football, hokm, ludo
 from .config import gc
 from .db import GCDatabase, pic_url
 
@@ -28,11 +28,13 @@ _ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
 # هر بازی: موتور قواعد، نام فارسی و صفحه میز
-GAMES = {"ludo": (ludo, "منچ", "ludo.html"), "hokm": (hokm, "حکم", "hokm.html")}
+GAMES = {"ludo": (ludo, "منچ", "ludo.html"), "hokm": (hokm, "حکم", "hokm.html"),
+         "football": (football, "فوتبال", "football.html")}
 
 
 def game_of(cfg: dict) -> str:
-    return "hokm" if cfg.get("game") == "hokm" else "ludo"
+    g = cfg.get("game")
+    return g if g in GAMES else "ludo"
 
 
 def _eng(cfg: dict):
@@ -49,10 +51,17 @@ def _gpage(cfg: dict) -> str:
 
 def _seat_order(cfg: dict) -> tuple:
     """ترتیب صندلی ها؛ در حکم اولین مهمان میز دعوت یار سازنده می شود."""
-    return hokm.LOBBY_ORDER if game_of(cfg) == "hokm" else ludo.SEATS[cfg["players"]]
+    g = game_of(cfg)
+    if g == "hokm":
+        return hokm.LOBBY_ORDER
+    if g == "football":
+        return football.SEATS
+    return ludo.SEATS[cfg["players"]]
 
 
 def _current(st: dict) -> str | None:
+    if st.get("game") == "football":
+        return football.current(st)
     if st.get("game") == "hokm":
         return hokm.SEATS[st["hakem"] if st["phase"] == "trump" else st["turn"]] if st["phase"] in ("trump", "play") else None
     return ludo.current(st)
@@ -61,6 +70,8 @@ def _current(st: dict) -> str | None:
 def _winners(st: dict) -> set:
     if st.get("game") == "hokm":
         return hokm.winners(st)
+    if st.get("game") == "football":
+        return football.winners(st)
     return {st["winner"]} if st.get("winner") else set()
 
 
@@ -113,6 +124,20 @@ def norm_cfg(raw: dict) -> dict:
         else:
             entry = 0
         return {"game": "hokm", "mode": mode, "entry": entry, "players": 4, "target": target}
+    if raw.get("game") == "football":
+        try:
+            target = int(raw.get("target") or 3)
+            entry = int(raw.get("entry") or 0)
+        except (TypeError, ValueError):
+            raise GCError("bad_cfg") from None
+        if target not in (3, 5):
+            raise GCError("bad_cfg")
+        if mode == "stake":
+            if entry not in gc.entries:
+                raise GCError("bad_entry")
+        else:
+            entry = 0
+        return {"game": "football", "mode": mode, "entry": entry, "players": 2, "target": target}
     try:
         players = int(raw.get("players") or 2)
         pawns = int(raw.get("pawns") or 2)
@@ -130,8 +155,8 @@ def norm_cfg(raw: dict) -> dict:
 
 
 def cfg_key(cfg: dict) -> str:
-    if game_of(cfg) == "hokm":
-        return f"hokm:{cfg['mode']}:{cfg['entry']}:{cfg['target']}"
+    if game_of(cfg) in ("hokm", "football"):
+        return f"{game_of(cfg)}:{cfg['mode']}:{cfg['entry']}:{cfg['target']}"
     return f"{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg['pawns']}"
 
 
@@ -188,6 +213,8 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
             seats.append({"color": c, "uid": None, "name": "ربات " + names.pop(), "av": random.randint(1, 23), "bot": True})
     if game_of(cfg) == "hokm":
         state = hokm.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
+    elif game_of(cfg) == "football":
+        state = football.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
     else:
         first = random.choice([s["color"] for s in seats if not s["bot"]])
         state = ludo.new_state(seats, cfg["pawns"], time.time(), gc.turn_seconds, cfg["mode"] == "stake", first)
@@ -616,6 +643,10 @@ async def my_tables(db: GCDatabase, tg: int) -> list[dict]:
                              "pic": st["players"][c].get("pic", ""), "bot": st["players"][c]["bot"], "me": c == me}
                             for c in st["order"]]
             t["my_turn"] = _current(st) == me
+            if t["game"] == "football" and me is not None:
+                mine = int(me)
+                t["score"] = [st["score"][mine], st["score"][1 - mine]]
+                t["target"] = st["target"]
             if t["game"] == "hokm" and me is not None:
                 mine = int(me) % 2
                 t["score"] = [st["score"][mine], st["score"][1 - mine]]
@@ -636,12 +667,14 @@ async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
         return
     if await db.ping_count(f"turn:{m['id']}:{uid}:") >= 2:
         return
-    hk = st.get("game") == "hokm"
+    hk, fb = st.get("game") == "hokm", st.get("game") == "football"
     extra = (" در بازی امتیازی سه نوبت غیبت یعنی بیرون رفتن از بازی." if hk else " در بازی امتیازی سه نوبت غیبت یعنی باخت.") \
         if st.get("stake") else ""
-    what = ("حکم را انتخاب کن" if st["phase"] == "trump" else "برگت را بازی کن") if hk else "حرکت خودکار انجام می‌شود"
+    what = ("حکم را انتخاب کن" if st["phase"] == "trump" else "برگت را بازی کن") if hk \
+        else "شوتت را بزن، وگرنه نوبت به حریف می‌رسد" if fb else "حرکت خودکار انجام می‌شود"
     await _notify(db, uid, f"turn:{m['id']}:{uid}:{st.get('turn_id', 0)}",
-                  f"نوبت توست در {_gname(m['cfg'])}! {gc.turn_seconds} ثانیه وقت داری؛ {what}.{extra}", _gpage(m["cfg"]))
+                  f"نوبت توست در {_gname(m['cfg'])}! {st.get('turn_s', gc.turn_seconds)} ثانیه وقت داری؛ {what}.{extra}",
+                  _gpage(m["cfg"]))
 
 
 async def admin_close(db: GCDatabase, match_id: str) -> dict:
@@ -676,7 +709,8 @@ async def admin_close(db: GCDatabase, match_id: str) -> dict:
     return {"refunded": refunded}
 
 
-async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None = None, since: int = 0) -> dict:
+async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None = None, since: int = 0,
+              data: dict | None = None) -> dict:
     _, color = await _membership(db, tg, match_id)
     now = time.time()
 
@@ -698,6 +732,12 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
             err = hokm.choose_trump(st, int(color), kk, now)
         elif eng is hokm and action == "play":
             err = hokm.play(st, int(color), kk, now)
+        elif eng is football and action == "setup":
+            d = data or {}
+            err = football.setup(st, color, str(d.get("team") or ""), str(d.get("fa") or ""), str(d.get("fd") or ""), now)
+        elif eng is football and action == "shot":
+            d = data or {}
+            err = football.shot(st, int(color), d.get("i"), d.get("dx"), d.get("dy"), d.get("p"), now)
         else:
             err = "bad_action"
         if err is None and action != "leave":
