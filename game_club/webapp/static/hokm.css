@@ -105,8 +105,12 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 .hk-stack .hk-back.drop{animation:hk-drop .35s cubic-bezier(.2,.8,.3,1.2) both}
 @keyframes hk-drop{from{opacity:0;translate:0 -14px;scale:1.25}}
 /* بادبزن کوچک پشت ورق کنار هر حریف */
-.hk-fan{position:relative;width:56px;height:30px;margin-top:1px}
-.hk-fan .hk-back{font-size:20px;left:calc(50% - 10px);top:0;transform-origin:50% 130%;box-shadow:0 1px 2px rgba(0,0,0,.35)}
+.hk-fan{position:relative;pointer-events:none}
+.hk-fan .hk-back{box-shadow:0 1px 0 rgba(255,255,255,.35),0 2px 4px rgba(0,0,0,.4)}
+.hk-fan.top{width:96px;height:46px;margin-top:3px}
+.hk-fan.top .hk-back{font-size:28px;left:calc(50% - 14px);top:2px;transform-origin:50% 120%}
+.hk-fan.side{width:60px;height:86px;margin-top:4px}
+.hk-fan.side .hk-back{font-size:28px;left:calc(50% - 14px);top:calc(50% - 20px)}
 .hk-fly{position:fixed;inset:0;pointer-events:none;z-index:30}
 .hk-fly>*{position:fixed}
 
