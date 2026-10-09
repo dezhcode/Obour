@@ -71,14 +71,20 @@ function renderSeats(g) {
     el.dataset.seat = s;
     el.classList.toggle('out', !!p.out);
     el.innerHTML = `${hk ? `<span class="hk-crown" title="حاکم">${svgP(CROWN, '#3A2A00')}</span>` : ''}${face(p, turn ? 'var(--gold)' : partner ? '#9BE3B8' : '#FFFFFF', turn ? 'timer' : '')}
-      <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جایش' : FD(p.count) + ' برگ'].filter(Boolean).join('، ')}</em>${fanHtml(p.count)}`;
+      <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جایش' : FD(p.count) + ' برگ'].filter(Boolean).join('، ')}</em>${fanHtml(p.count, rel(s))}`;
   }
   for (const s of Object.keys(bubbles)) showBubble(s);
 }
-function fanHtml(n) {
-  n = Math.min(6, n || 0); if (!n) return '';
+// برگ های حریف ها: یار روبه رو یک بادبزن افقی زیر اسمش، حریف های چپ و راست یک ستون برگ
+// خوابیده که کمی به سمت وسط میز آمده (مثل وقتی برگ ها را جلویشان روی میز گذاشته اند)
+function fanHtml(n, r) {
+  n = Math.min(r === 2 ? 6 : 5, n || 0); if (!n) return '';
   const mid = (n - 1) / 2;
-  return `<span class="hk-fan" aria-hidden="true">${Array.from({ length: n }, (_, i) => backHtml('', `transform:translate(${((i - mid) * 5).toFixed(1)}px,0) rotate(${((i - mid) * 9).toFixed(1)}deg)`)).join('')}</span>`;
+  if (r === 2) return `<span class="hk-fan top" aria-hidden="true">${Array.from({ length: n }, (_, i) => backHtml('',
+    `transform:translate(${((i - mid) * 11).toFixed(1)}px,${(Math.abs(i - mid) * 1.6).toFixed(1)}px) rotate(${((i - mid) * 7).toFixed(1)}deg)`)).join('')}</span>`;
+  const dir = r === 3 ? 1 : -1;
+  return `<span class="hk-fan side ${r === 3 ? 'l' : 'r'}" aria-hidden="true">${Array.from({ length: n }, (_, i) => backHtml('',
+    `transform:translate(${(dir * (6 + (i % 2) * 1.5)).toFixed(1)}px,${((i - mid) * 9.5).toFixed(1)}px) rotate(${(90 + (i - mid) * 2.2 * dir).toFixed(1)}deg)`)).join('')}</span>`;
 }
 // دسته برگ های برده شده هر تیم: ضربدری روی هم، با شمار
 function renderStacks(tricks, drop = -1) {
