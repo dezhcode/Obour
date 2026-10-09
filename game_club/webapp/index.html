@@ -222,7 +222,7 @@ a.game:active{transform:scale(.985)}
     else {
       href = g.page;
       const score = t.score ? `<span class="tbl-score">ما ${FD(t.score[0])} <em>·</em> آنها ${FD(t.score[1])}</span> <em>تا ${FD(t.target)}</em>` : 'بازی در جریان است';
-      st = t.my_turn ? `<span class="live"></span><span class="myturn">نوبت توست!</span> ${t.score ? score : ''}` : `<span class="live"></span>${score}`;
+      st = t.my_turn ? `<span class="live"></span><span class="myturn">نوبت شماست!</span> ${t.score ? score : ''}` : `<span class="live"></span>${score}`;
       go = t.my_turn ? 'بازی کن' : 'برگرد';
     }
     return `<a class="tbl ${g.cls}${t.my_turn ? ' turn' : ''}" href="${href}" data-g="${t.game}" data-id="${t.id || ''}" data-k="${t.kind}">

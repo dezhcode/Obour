@@ -170,7 +170,7 @@ function renderMe(g) {
   if (g.over) t = 'بازی تمام شد';
   else if (g.phase === 'trump') { t = g.hakem === me ? 'تو حاکمی' : 'حاکم: ' + nameOf(g.hakem); sub = g.hakem === me ? 'حکم را انتخاب کن' : 'منتظر انتخاب حکم'; }
   else if (g.phase === 'play' && mine) {
-    t = 'نوبت توست';
+    t = 'نوبت شماست';
     if (g.led == null) sub = 'دور را تو شروع کن';
     else { const has = (g.hand || []).some(c => suit(c) === g.led); sub = `${SUIT_FA[g.led]} بازی شده؛ ` + (has ? `باید ${SUIT_FA[g.led]} بیاوری` : `${SUIT_FA[g.led]} نداری؛ حکم یا هر برگی`); }
   } else if (g.phase === 'play') { const q = g.players[g.turn] || {}; t = 'نوبت ' + nameOf(g.turn); sub = q.bot || q.out ? 'ربات فکر می‌کند…' : 'منتظر بازی…'; }
