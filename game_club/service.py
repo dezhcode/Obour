@@ -259,6 +259,7 @@ STYLE_ITEMS = {
     "cards:a": ("cards", "a", "ورق کلاسیک", 0),
     "cards:b": ("cards", "b", "ورق کافه شب", 300),
     "cards:c": ("cards", "c", "ورق Game Club", 300),
+    "cards:d": ("cards", "d", "ورق رنگ تمام", 300),
 }
 
 

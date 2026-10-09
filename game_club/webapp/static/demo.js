@@ -221,7 +221,7 @@ function demoTables() {
 
 /* ---------- داده نمایشی بقیه صفحه ها ---------- */
 const STYLE = [['table:a', 'table', 'a', 'میز کلاسیک', 0], ['table:b', 'table', 'b', 'میز کافه شب', 500], ['table:c', 'table', 'c', 'میز Game Club', 500],
-  ['cards:m', 'cards', 'm', 'ورق مدرن', 0], ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 300], ['cards:c', 'cards', 'c', 'ورق Game Club', 300]];
+  ['cards:m', 'cards', 'm', 'ورق مدرن', 0], ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 300], ['cards:c', 'cards', 'c', 'ورق Game Club', 300], ['cards:d', 'cards', 'd', 'ورق رنگ تمام', 300]];
 const data = {
   async me() {
     return { player: { name: 'بازیکن', av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: S.showSpend ? 1 : 0 },
