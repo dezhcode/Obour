@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import hashlib
+import gzip
 import hmac
 import json
 import logging
@@ -38,7 +39,7 @@ _CSP = (
 _RATE: dict[int, list[float]] = {}
 
 
-def _rate_ok(uid: int, limit: int = 240) -> bool:
+def _rate_ok(uid: int, limit: int = 300) -> bool:
     now = time.monotonic()
     hits = [t for t in _RATE.get(uid, []) if now - t < 60]
     ok = len(hits) < limit
@@ -61,9 +62,14 @@ def _send(start_response, status: str, body: bytes, ctype: str, extra: list | No
     return [body]
 
 
-def _json(start_response, status: str, data: dict):
-    return _send(start_response, status, json.dumps(data, ensure_ascii=False).encode("utf-8"),
-                 "application/json; charset=utf-8", [("Cache-Control", "no-store")])
+def _json(start_response, status: str, data: dict, environ: dict | None = None):
+    body = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    extra = [("Cache-Control", "no-store")]
+    # پاسخ بزرگ (مثلا مسیر یک شوت فوتبال) فشرده می رود تا روی اینترنت موبایل زودتر برسد
+    if environ is not None and len(body) > 1400 and "gzip" in (environ.get("HTTP_ACCEPT_ENCODING") or ""):
+        body = gzip.compress(body, compresslevel=5)
+        extra += [("Content-Encoding", "gzip"), ("Vary", "Accept-Encoding")]
+    return _send(start_response, status, body, "application/json; charset=utf-8", extra)
 
 
 def _body(environ: dict, limit: int = 8192) -> dict:
@@ -201,7 +207,7 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
         body = _body(environ) if method == "POST" else {}
         try:
             data = runtime.run(api_handle(name, method, user, _query(environ), body), timeout=45)
-            return _json(start_response, "200 OK", data)
+            return _json(start_response, "200 OK", data, environ)
         except GCError as e:
             return _json(start_response, "400 Bad Request", {"error": e.code, **e.extra})
         except Exception:  # noqa: BLE001
