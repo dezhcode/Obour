@@ -141,14 +141,22 @@ function renderMe(g) {
   const timer = (mine && g.phase === 'play') || (g.phase === 'trump' && g.hakem === me);
   $('meBar').innerHTML = `<div class="pill${timer ? ' mine' : ''}">${face(Object.assign({}, p, { name: p.name }), timer ? 'var(--gold)' : '#9BE3B8', timer ? 'timer' : '')}
     <span class="txt"><b>${t}${timer && g.deadline_ms ? '<span class="clock" id="clock"></span>' : ''}</b>${sub ? `<span>${sub}</span>` : ''}</span></div>`;
-  deadlineAt = g.deadline_ms ? Date.now() + g.deadline_ms : 0; turnMs = g.turn_ms || 20000; warned = false;
+  setDeadline(g.deadline_ms); turnMs = g.turn_ms || 20000;
 }
 function renderAll(g, anim = false) {
-  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); mount($('meBar'));
+  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); mount($('meBar')); tickTimer();
 }
 
 /* ---------- تایمر نوبت ---------- */
-setInterval(() => {
+// مهلت نوبت: پرسش های پی در پی سرور با تاخیر شبکه کمی جابه جایش می کنند؛ فقط تغییر
+// واقعی (نوبت تازه) را بپذیر تا حلقه زمان یکنواخت کم شود و هشدار یک بار بیاید
+function setDeadline(ms) {
+  const d = ms ? Date.now() + ms : 0;
+  if (!d) { deadlineAt = 0; return; }
+  if (!deadlineAt || Math.abs(d - deadlineAt) > 1500) warned = false;
+  if (!deadlineAt || Math.abs(d - deadlineAt) > 700) deadlineAt = d;
+}
+function tickTimer() {
   if (!snap || !snap.game) return;
   const g = snap.game, left = deadlineAt ? Math.max(0, deadlineAt - Date.now()) : 0;
   const frac = deadlineAt ? Math.min(1, left / turnMs) : 1;
@@ -156,7 +164,8 @@ setInterval(() => {
   const ck = $('clock'); if (ck) ck.textContent = FD(Math.ceil(left / 1000)) + ' ثانیه';
   const mineNow = (g.turn === me && g.phase === 'play') || (g.phase === 'trump' && g.hakem === me);
   if (mineNow && deadlineAt && frac < .25 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
-}, 200);
+}
+setInterval(tickTimer, 200);
 
 /* ---------- انیمیشن ها ---------- */
 function center(el) { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }

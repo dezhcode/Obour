@@ -31,18 +31,19 @@ MID = H / 2
 GOAL_W, GOAL_D = 220.0, 60.0
 GX0, GX1 = (W - GOAL_W) / 2, (W + GOAL_W) / 2
 DISC_R, BALL_R = 36.0, 18.0
-DISC_M, BALL_M = 1.0, 0.42
+DISC_M, BALL_M = 1.0, 0.3       # مهره سنگین، توپ سبک
 BALL = 12
 N = 13
-VMAX = 1900.0            # سرعت مهره با بیشترین قدرت (واحد بر ثانیه)
+VMAX = 2200.0            # سرعت مهره با بیشترین قدرت (واحد بر ثانیه)
 MIN_POWER = 0.06
 DT = 1 / 120
 FRAME_EVERY = 4          # ۳۰ فریم در ثانیه برای نمایش
 MAX_SIM = 9.0
 AFTER_GOAL = 0.5         # توپ بعد از گل کمی در تور می چرخد
-DRAG = (1.25, 0.85)      # (مهره، توپ) کاهش سرعت متناسب با سرعت
-FRIC = (150.0, 90.0)     # کاهش سرعت ثابت
-E_PAIR, E_DISC_WALL, E_BALL_WALL = 0.9, 0.7, 0.78
+# مهره ها وزن دارند: اصطکاک ثابت زیاد، پس کم سُر می خورند و قاطع می ایستند؛ توپ بیشتر می غلتد
+DRAG = (0.9, 0.55)       # (مهره، توپ) کاهش سرعت متناسب با سرعت
+FRIC = (330.0, 85.0)     # کاهش سرعت ثابت
+E_PAIR, E_DISC_WALL, E_BALL_WALL = 0.82, 0.5, 0.82
 STOP = 4.0
 
 SETUP_S = 20.0           # انتخاب تیم و چیدمان
@@ -101,7 +102,7 @@ def simulate(pos: list, vel: dict) -> dict:
     moved = set(moving)
     frames = [[x[:], y[:]]]
     goal, after, t, step = None, 0.0, 0.0, 0
-    hits = []   # [زمان، نوع، شدت] برای صدا: b توپ، d مهره، w دیواره
+    hits = []   # [زمان، نوع، شدت] برای صدا: b توپ، d مهره، w دیواره، p تیرک دروازه
     while moving and t < MAX_SIM:
         step += 1
         t += DT
@@ -126,7 +127,7 @@ def simulate(pos: list, vel: dict) -> dict:
                 inv = 1 / m[i] + 1 / m[j]
                 if rel < 0:
                     if rel < -120 and len(hits) < 24:
-                        hits.append([round(t, 2), "b" if BALL in (i, j) else "d", round(min(1.0, -rel / 1800), 2)])
+                        hits.append([round(t, 2), "b" if BALL in (i, j) else "d", round(min(1.0, -rel / 2000), 2)])
                     imp = -(1 + E_PAIR) * rel / inv
                     vx[i] -= imp / m[i] * nx
                     vy[i] -= imp / m[i] * ny
@@ -160,7 +161,9 @@ def simulate(pos: list, vel: dict) -> dict:
                 vn = vx[i] * nx + vy[i] * ny
                 if vn < 0:
                     if vn < -150 and len(hits) < 24:
-                        hits.append([round(t, 2), "w", round(min(1.0, -vn / 1800), 2)])
+                        post = (u == 0.0 or u == 1.0) and (abs(qx - GX0) < 1 or abs(qx - GX1) < 1) and \
+                            (abs(qy) < 1 or abs(qy - H) < 1)
+                        hits.append([round(t, 2), "p" if post else "w", round(min(1.0, -vn / 2000), 2)])
                     vx[i] -= (1 + e) * vn * nx
                     vy[i] -= (1 + e) * vn * ny
                 x[i] += nx * (r[i] - d)

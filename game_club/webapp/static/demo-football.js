@@ -6,9 +6,9 @@ const S = GC.S, save = GC.save, store = GC.store;
 const SEATS = ['0', '1'];
 const BOTS = ['سارا', 'امیر', 'نگار', 'رضا', 'مهسا', 'علی', 'پریا', 'کیان', 'هستی', 'سینا', 'آرش', 'یاسمن'];
 const W = 600, H = 1040, MID = H / 2, GOAL_W = 220, GOAL_D = 60, GX0 = (W - GOAL_W) / 2, GX1 = (W + GOAL_W) / 2;
-const DISC_R = 36, BALL_R = 18, DISC_M = 1, BALL_M = .42, BALL = 12, N = 13, VMAX = 1900, MIN_POWER = .06;
-const DT = 1 / 120, FRAME_EVERY = 4, MAX_SIM = 9, AFTER_GOAL = .5, DRAG = [1.25, .85], FRIC = [150, 90];
-const E_PAIR = .9, E_DISC_WALL = .7, E_BALL_WALL = .78, STOP = 4;
+const DISC_R = 36, BALL_R = 18, DISC_M = 1, BALL_M = .3, BALL = 12, N = 13, VMAX = 2200, MIN_POWER = .06;
+const DT = 1 / 120, FRAME_EVERY = 4, MAX_SIM = 9, AFTER_GOAL = .5, DRAG = [.9, .55], FRIC = [330, 85];
+const E_PAIR = .82, E_DISC_WALL = .5, E_BALL_WALL = .82, STOP = 4;
 const SETUP_S = 20, INTRO = 3.4, SHOT_PAUSE = .35, GOAL_PAUSE = 3.6, BOT_THINK = 1.1, TURN_S = 15;
 const TEAMS = ['eagles', 'lions', 'cheetahs', 'mountain', 'storm', 'sea'], FORMS = ['132', '123', '141', '1212'];
 const ATK = { 132: [[300, 42], [110, 230], [300, 210], [490, 230], [220, 400], [380, 400]], 123: [[300, 42], [200, 220], [400, 220], [110, 410], [300, 430], [490, 410]],
@@ -43,7 +43,7 @@ function simulate(pos, vel) {
         const d = Math.sqrt(d2), nx = dx / d, ny = dy / d;
         const rel = (vx[j] - vx[i]) * nx + (vy[j] - vy[i]) * ny, inv = 1 / m(i) + 1 / m(j);
         if (rel < 0) {
-          if (rel < -120 && hits.length < 24) hits.push([Math.round(t * 100) / 100, i === BALL || j === BALL ? 'b' : 'd', Math.min(1, -rel / 1800)]);
+          if (rel < -120 && hits.length < 24) hits.push([Math.round(t * 100) / 100, i === BALL || j === BALL ? 'b' : 'd', Math.min(1, -rel / 2000)]);
           const imp = -(1 + E_PAIR) * rel / inv;
           vx[i] -= imp / m(i) * nx; vy[i] -= imp / m(i) * ny; vx[j] += imp / m(j) * nx; vy[j] += imp / m(j) * ny;
         }
@@ -63,7 +63,11 @@ function simulate(pos, vel) {
         if (d2 >= ri * ri || d2 === 0) continue;
         const d = Math.sqrt(d2), nx = dx / d, ny = dy / d, vn = vx[i] * nx + vy[i] * ny;
         if (vn < 0) {
-          if (vn < -150 && hits.length < 24) hits.push([Math.round(t * 100) / 100, 'w', Math.min(1, -vn / 1800)]);
+          if (vn < -150 && hits.length < 24) {
+            const qx = ax + ex * u, qy = ay + ey * u;
+            const post = (u === 0 || u === 1) && (Math.abs(qx - GX0) < 1 || Math.abs(qx - GX1) < 1) && (Math.abs(qy) < 1 || Math.abs(qy - H) < 1);
+            hits.push([Math.round(t * 100) / 100, post ? 'p' : 'w', Math.min(1, -vn / 2000)]);
+          }
           vx[i] -= (1 + e) * vn * nx; vy[i] -= (1 + e) * vn * ny;
         }
         x[i] += nx * (ri - d); y[i] += ny * (ri - d);

@@ -16,7 +16,7 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-pl{display:flex;align-items:center;gap:7px;min-width:0;position:relative}
 .fb-pl.op{flex-direction:row-reverse;text-align:left}
 .fb-pl .avatar{--size:44px;flex:none}
-.fb-pl .avatar.timer{background:conic-gradient(var(--gold) calc(var(--t,1)*360deg),rgba(255,255,255,.2) 0)}
+.fb-pl .avatar.timer{background:conic-gradient(var(--gold) calc(var(--t,1)*360deg),rgba(255,255,255,.2) 0);transition:--t .25s linear}
 .fb-pl.me .avatar{--ring:var(--me)}
 .fb-pl .nm{display:grid;min-width:0;line-height:1.25}
 .fb-pl .nm b{font-size:13.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -38,6 +38,8 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 /* ورزشگاه: سکوها، تابلوی تبلیغات، زمین */
 .fb-arena{flex:1;min-height:0;position:relative;display:grid;place-items:center;direction:ltr}
 .fb-stadium{position:relative;display:flex;align-items:center;gap:4px}
+.fb-stadium.jolt{animation:fb-jolt .16s ease-out}
+@keyframes fb-jolt{30%{transform:translate(var(--j,2px),calc(var(--j,2px)*.6))}65%{transform:translate(calc(var(--j,2px)*-.6),calc(var(--j,2px)*-.3))}}
 .fb-crowd{width:15px;border-radius:5px 2px 2px 5px;align-self:stretch;margin-block:-10px;
   background:
     linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,0) 45%,rgba(255,255,255,.06) 85%,rgba(0,0,0,.2)),
@@ -67,10 +69,11 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
     0 0 0 4px #f4f6f8,0 0 0 5px #c3cad2,0 0 0 6.5px #7f8994,0 3px 0 6.5px #5e6872,0 16px 28px rgba(0,0,0,.45)}
 .fb-ln{position:absolute;border:0 solid rgba(255,255,255,.86);pointer-events:none;box-sizing:border-box;filter:drop-shadow(0 0 1px rgba(255,255,255,.35))}
 /* دروازه: تیرک و تیر افقی سفید با سایه، تور با عمق */
-.fb-net{position:absolute;pointer-events:none;z-index:1}
+/* تور و تیر دروازه روی مهره و توپ: هر چه وارد دروازه شود زیر تور دیده می شود */
+.fb-net{position:absolute;pointer-events:none;z-index:5}
 .fb-net .mesh{position:absolute;inset:0;border:2px solid rgba(235,240,245,.9);
   background:repeating-linear-gradient(90deg,rgba(255,255,255,.5) 0 1px,transparent 1px 5px),repeating-linear-gradient(0deg,rgba(255,255,255,.5) 0 1px,transparent 1px 5px),
-    linear-gradient(var(--deep,180deg),rgba(0,0,0,.42),rgba(0,0,0,.08));box-shadow:0 4px 8px rgba(0,0,0,.35)}
+    linear-gradient(var(--deep,180deg),rgba(0,0,0,.3),rgba(0,0,0,.04));box-shadow:0 4px 8px rgba(0,0,0,.35)}
 .fb-goal-top .mesh{border-bottom:0;border-radius:6px 6px 0 0;--deep:180deg}
 .fb-goal-bot .mesh{border-top:0;border-radius:0 0 6px 6px;--deep:0deg}
 .fb-net .bar{position:absolute;left:-3px;right:-3px;height:5px;border-radius:3px;background:linear-gradient(180deg,#fff,#cfd5dc);box-shadow:0 2px 3px rgba(0,0,0,.45)}

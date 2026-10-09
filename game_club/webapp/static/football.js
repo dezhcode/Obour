@@ -41,23 +41,65 @@ function emblem(team, kit) {
 }
 // مهره سه بعدی: لبه فلزی با ضخامت و سایه، نشان تیم فرورفته و براق (ظاهر در football.css)
 const discHtml = (team, kit, size, cls = '') => `<span class="fd ${cls}" style="width:${size}px;height:${size}px;--d:${size}px"><span class="in">${emblem(team, kit)}</span></span>`;
-// توپ: کره سایه دار با برق، نقش وصله ها هنگام حرکت می چرخد
+// توپ سه بعدی: الگوی واقعی توپ (بیست وجهی بریده: ۱۲ پنج ضلعی سیاه و درزها) با یک ماتریس
+// چرخش؛ هر جابه جایی توپ را حول محوری عمود بر جهت حرکت می غلتاند، پس به هر سمتی می چرخد
+const BALL3 = (() => {
+  const f = (1 + Math.sqrt(5)) / 2, V = [];
+  for (const a of [-1, 1]) for (const b of [-f, f]) V.push([0, a, b], [a, b, 0], [b, 0, a]);
+  const nrm = v => { const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; };
+  const near = (a, b) => Math.abs(Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) - 2) < 1e-6;
+  const third = (a, b) => nrm([(2 * a[0] + b[0]) / 3, (2 * a[1] + b[1]) / 3, (2 * a[2] + b[2]) / 3]);
+  const pents = V.map(v => {
+    const c = nrm(v), nb = V.filter(w => near(v, w)).map(w => third(v, w));
+    const u = nrm(Math.abs(c[2]) < .9 ? [-c[1], c[0], 0] : [0, -c[2], c[1]]);
+    const w = [c[1] * u[2] - c[2] * u[1], c[2] * u[0] - c[0] * u[2], c[0] * u[1] - c[1] * u[0]];
+    nb.sort((p, q) => Math.atan2(p[0] * w[0] + p[1] * w[1] + p[2] * w[2], p[0] * u[0] + p[1] * u[1] + p[2] * u[2]) - Math.atan2(q[0] * w[0] + q[1] * w[1] + q[2] * w[2], q[0] * u[0] + q[1] * u[1] + q[2] * u[2]));
+    return { c, pts: nb };
+  });
+  const seams = [];
+  V.forEach((a, i) => V.forEach((b, j) => { if (j > i && near(a, b)) seams.push([third(a, b), third(b, a)]); }));
+  return { pents, seams };
+})();
+let ballM = [[1, 0, 0], [0, 1, 0], [0, 0, 1]], ballAt = null, ballN = 0;
+const mul = (M, v) => [M[0][0] * v[0] + M[0][1] * v[1] + M[0][2] * v[2], M[1][0] * v[0] + M[1][1] * v[1] + M[1][2] * v[2], M[2][0] * v[0] + M[2][1] * v[1] + M[2][2] * v[2]];
+function rollBall(dx, dy) {
+  const d = Math.hypot(dx, dy); if (d < 1e-3) return;
+  const ax = -dy / d, ay = dx / d, t = d / BALL_R, c = Math.cos(t), sn = Math.sin(t), k = 1 - c;
+  const R = [[c + ax * ax * k, ax * ay * k, ay * sn], [ay * ax * k, c + ay * ay * k, -ax * sn], [-ay * sn, ax * sn, c]];
+  ballM = R.map(r => [0, 1, 2].map(j => r[0] * ballM[0][j] + r[1] * ballM[1][j] + r[2] * ballM[2][j]));
+  if (++ballN % 120 === 0) {   // جلوی انباشت خطای عددی
+    const n = v => { const l = Math.hypot(v[0], v[1], v[2]); return v.map(x => x / l); };
+    const a = n(ballM[0]), b0 = ballM[1], dt = a[0] * b0[0] + a[1] * b0[1] + a[2] * b0[2];
+    const b = n([b0[0] - dt * a[0], b0[1] - dt * a[1], b0[2] - dt * a[2]]);
+    ballM = [a, b, [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]];
+  }
+}
+function drawBall(el) {
+  const g = el && el.querySelector('.pat'); if (!g) return;
+  const R = 18.6, P = p => `${(p[0] * R).toFixed(2)},${(p[1] * R).toFixed(2)}`;
+  let out = '';
+  for (const [a, b] of BALL3.seams) {
+    const A = mul(ballM, a), B = mul(ballM, b);
+    if (A[2] > .02 && B[2] > .02) out += `<line x1="${(A[0] * R).toFixed(2)}" y1="${(A[1] * R).toFixed(2)}" x2="${(B[0] * R).toFixed(2)}" y2="${(B[1] * R).toFixed(2)}"/>`;
+  }
+  for (const pt of BALL3.pents) {
+    if (mul(ballM, pt.c)[2] < .08) continue;
+    out += `<polygon points="${pt.pts.map(q => P(mul(ballM, q))).join(' ')}"/>`;
+  }
+  g.innerHTML = out;
+}
 function ballSvg() {
   const id = 'b' + (++uid);
-  return `<svg viewBox="0 0 40 40"><defs><radialGradient id="${id}g" cx="38%" cy="32%" r="72%"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#eef0f3"/><stop offset="1" stop-color="#8f979f"/></radialGradient>
-    <radialGradient id="${id}s" cx="50%" cy="50%" r="50%"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient><clipPath id="${id}c"><circle cx="20" cy="20" r="18.6"/></clipPath></defs>
-    <circle cx="20" cy="20" r="19" fill="url(#${id}g)"/>
-    <g clip-path="url(#${id}c)"><g class="rot" style="transform-origin:20px 20px">
-      <path d="M20 13.2l6.4 4.7-2.5 7.5h-7.8l-2.5-7.5z" fill="#20242e"/>
-      <path d="M20 13.2V3.5M26.4 17.9l9.4-3M23.9 25.4l5.8 8M16.1 25.4l-5.8 8M13.6 17.9l-9.4-3" stroke="#20242e" stroke-width="1.6"/>
-      <path d="M16 1.5l8 0 3 5-7 3.5-7-3.5zM36.5 10l3 9-4 5-5-6.5 1-7zM33 32l-6 6.5-6-1.5 1.5-7 8-1.5zM7 32l6 6.5 6-1.5-1.5-7-8-1.5zM3.5 10l-3 9 4 5 5-6.5-1-7z" fill="#20242e"/>
-    </g></g>
-    <circle cx="20" cy="20" r="19" fill="url(#${id}s)"/><ellipse cx="14" cy="11.5" rx="6" ry="4" fill="#fff" opacity=".75" transform="rotate(-30 14 11.5)"/>
-    <circle cx="20" cy="20" r="18.6" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".8"/></svg>`;
+  return `<svg viewBox="-20 -20 40 40"><defs><radialGradient id="${id}g" cx="38%" cy="32%" r="72%"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#eef0f3"/><stop offset="1" stop-color="#9aa2aa"/></radialGradient>
+    <radialGradient id="${id}s" cx="50%" cy="50%" r="50%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".42"/></radialGradient>
+    <radialGradient id="${id}h" cx="34%" cy="28%" r="30%"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient><clipPath id="${id}c"><circle r="18.6"/></clipPath></defs>
+    <circle r="19" fill="url(#${id}g)"/>
+    <g clip-path="url(#${id}c)"><g class="pat" fill="#1d2129" stroke="#2a2f38" stroke-width=".7" stroke-linejoin="round"></g></g>
+    <circle r="19" fill="url(#${id}s)"/><circle r="19" fill="url(#${id}h)"/>
+    <circle r="18.7" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".7"/></svg>`;
 }
 
 let mid = store.get('fmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
-let spin = 0, spinAt = null;
 let s = .5, cur = [], els = [], teams = {}, deadlineAt = 0, readyAt = 0, turnMs = 15000, warned = false, kickedAt = 0, aim = null;
 const opp = () => (me === '0' ? '1' : '0');
 const flip = () => me === '1';
@@ -123,10 +165,10 @@ function setPos(i, p) {
   const [x, y] = toView(p), r = i === BALL ? BALL_R : DISC_R;
   el.style.transform = `translate(${((x - r) * s).toFixed(1)}px,${((y - r) * s).toFixed(1)}px)`;
   if (i === BALL) {
-    // غلتیدن: هر چه توپ جلوتر برود وصله ها بیشتر می چرخند
-    if (spinAt) spin += Math.hypot(x - spinAt[0], y - spinAt[1]) / BALL_R * 57.3 * (x >= spinAt[0] ? 1 : -1);
-    spinAt = [x, y];
-    const g = el.querySelector('.rot'); if (g) g.style.transform = `rotate(${spin.toFixed(1)}deg)`;
+    // غلتیدن واقعی در جهت حرکت (در مختصات نمایش، پس برای هر دو بازیکن درست است)
+    if (ballAt && Math.hypot(x - ballAt[0], y - ballAt[1]) < 400) rollBall(x - ballAt[0], y - ballAt[1]);
+    ballAt = [x, y];
+    drawBall(el);
   }
 }
 function setAll(pos) { pos.forEach((p, i) => setPos(i, p)); }
@@ -153,9 +195,9 @@ function renderStatus(g) {
   else if (g.phase === 'setup') st.textContent = 'انتخاب تیم و چیدمان…';
   else if (g.turn === me) st.innerHTML = `نوبت توست${g.deadline_ms ? '<em id="clock"></em>' : ''}`;
   else { const q = g.players[g.turn] || {}; st.innerHTML = `نوبت ${q.name || 'حریف'}<em>${q.bot || q.out ? 'فکر می‌کند…' : ''}</em>`; }
-  deadlineAt = g.deadline_ms ? Date.now() + g.deadline_ms : 0;
+  setDeadline(g.deadline_ms);
   readyAt = Date.now() + (g.ready_ms || 0);
-  turnMs = g.turn_ms || 15000; warned = false;
+  turnMs = g.turn_ms || 15000;
 }
 function syncTurn() {
   const g = snap && snap.game, on = !!(g && g.phase === 'play' && !g.over && g.turn === me);
@@ -163,15 +205,24 @@ function syncTurn() {
   const hint = $('hint'), n = store.get('fbHints', 0);
   hint.hidden = !(on && n < 6);
 }
-function renderAll(g) { renderHead(g); renderStatus(g); syncTurn(); mount($('head')); }
-setInterval(() => {
+function renderAll(g) { renderHead(g); renderStatus(g); syncTurn(); mount($('head')); tickTimer(); }
+// مهلت نوبت: پرسش های پی در پی سرور با تاخیر شبکه کمی جابه جایش می کنند؛ فقط تغییر
+// واقعی (نوبت تازه) را بپذیر تا حلقه زمان یکنواخت کم شود و هشدار یک بار بیاید
+function setDeadline(ms) {
+  const d = ms ? Date.now() + ms : 0;
+  if (!d) { deadlineAt = 0; return; }
+  if (!deadlineAt || Math.abs(d - deadlineAt) > 1500) warned = false;
+  if (!deadlineAt || Math.abs(d - deadlineAt) > 700) deadlineAt = d;
+}
+function tickTimer() {
   if (!snap || !snap.game) return;
   const g = snap.game, left = deadlineAt ? Math.max(0, deadlineAt - Date.now()) : 0, frac = deadlineAt ? Math.min(1, left / turnMs) : 1;
   document.querySelectorAll('.fb-pl .avatar').forEach(a => a.style.setProperty('--t', a.classList.contains('timer') ? frac : 1));
   const ck = $('clock'); if (ck) ck.textContent = FD(Math.ceil(left / 1000)) + ' ثانیه';
   if (g.turn === me && g.phase === 'play' && deadlineAt && frac < .3 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
   if (setupEl) tickSetup();
-}, 200);
+}
+setInterval(tickTimer, 200);
 
 /* ---------- نشانه گیری و شوت ---------- */
 const canShoot = () => snap && snap.status === 'playing' && snap.game.phase === 'play' && snap.game.turn === me && !busy && !acting && Date.now() >= readyAt - 250;
@@ -224,6 +275,11 @@ $('pitch').addEventListener('pointerup', () => {
 });
 
 /* ---------- انیمیشن ها ---------- */
+function jolt(g) {
+  const p = $('stadium'); p.style.setProperty('--j', (1 + g * 1.6).toFixed(1) + 'px');
+  p.classList.remove('jolt'); void p.offsetWidth; p.classList.add('jolt');
+  if (g > .8) haptic('light');
+}
 function playFrames(e) {
   return new Promise(done => {
     const F = e.frames, ids = e.ids, n = F.length, hits = (e.hits || []).slice(), t0 = performance.now();
@@ -232,7 +288,7 @@ function playFrames(e) {
     const put = (fr, j, id) => setPos(id, [fr[2 * j], fr[2 * j + 1]]);
     const step = t => {
       const el = Math.max(0, (t - t0) / 1000), f = el * 30;  // زمان rAF می تواند کمی قبل از t0 باشد
-      while (hits.length && hits[0][0] <= el) { const [, kd, g] = hits.shift(); if (kd === 'w') sfx.fb.wall(g); else sfx.fb.clack(g); }
+      while (hits.length && hits[0][0] <= el) { const [, kd, g] = hits.shift(); (kd === 'w' ? sfx.fb.wall : kd === 'p' ? sfx.fb.post : kd === 'b' ? sfx.fb.ball : sfx.fb.clack)(g); if (g > .55 && kd !== 'b') jolt(g); }
       if (f >= n - 1) { ids.forEach((id, j) => put(F[n - 1], j, id)); done(); return; }
       const a = Math.floor(f), u = f - a, A = F[a], B = F[a + 1];
       ids.forEach((id, j) => setPos(id, [A[2 * j] + (B[2 * j] - A[2 * j]) * u, A[2 * j + 1] + (B[2 * j + 1] - A[2 * j + 1]) * u]));
@@ -268,7 +324,7 @@ async function showGoal(e) {
   document.querySelectorAll('.fb-net').forEach(n => { n.classList.remove('shake'); void n.offsetWidth; });
   const goalNet = document.querySelector(scoredMe ? '.fb-goal-top' : '.fb-goal-bot'); if (goalNet) goalNet.classList.add('shake');
   document.querySelectorAll('.fb-crowd').forEach(c => { c.classList.remove('cheer'); void c.offsetWidth; c.classList.add('cheer'); });
-  sfx.fb.goal(); haptic(scoredMe ? 'success' : 'warning');
+  sfx.fb.goal(); sfx.fb.roar(); haptic(scoredMe ? 'success' : 'warning');
   await sleep(450);
   const t = teams[e.c] || {}, title = scoredMe ? (e.own ? 'گل به خودی حریف!' : 'تو گل زدی!') : (e.own ? 'گل به خودی!' : (by.name || 'حریف') + ' گل زد');
   const el = document.createElement('div'); el.className = 'fb-layer fb-goal'; el.setAttribute('role', 'status');
@@ -452,12 +508,12 @@ async function act(fn) {
   catch (e) { sfx.error(); haptic('error'); toast(errText(e)); if (snap && snap.game) { if (snap.game.phase === 'setup') { setupStep = 'form'; renderSetup(); } renderAll(snap.game); } }
   finally { acting = false; }
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); if (!overShown) sfx.fb.crowd(true); } else sfx.fb.crowd(false); });
 
 /* ---------- پایان، خروج ---------- */
 const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
 function over(v) {
-  endChat(); closeSetup();
+  endChat(); closeSetup(); sfx.fb.crowd(false);
   const g = v.game, r = v.result || {}, won = !!r.won;
   GC.guardClose(false); store.set('fmid', null);
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
@@ -510,9 +566,9 @@ $('exit').onclick = askExit;
 GC.back(askExit);
 const sndBtn = $('snd');
 const syncSnd = () => { sndBtn.innerHTML = icon(S.sound ? 'soundOn' : 'soundOff'); sndBtn.setAttribute('aria-pressed', String(!!S.sound)); sndBtn.setAttribute('aria-label', S.sound ? 'خاموش کردن صدا' : 'روشن کردن صدا'); };
-sndBtn.onclick = () => { setSound(!S.sound); syncSnd(); if (S.sound) GC.loadSamples(); };
+sndBtn.onclick = () => { setSound(!S.sound); syncSnd(); if (S.sound) { GC.loadSamples(); if (!overShown) sfx.fb.crowd(true); } };
 syncSnd();
-document.addEventListener('pointerdown', () => GC.loadSamples(), { once: true });
+document.addEventListener('pointerdown', () => { GC.loadSamples(); if (!overShown) sfx.fb.crowd(true); }, { once: true });
 window.addEventListener('resize', fit);
 try { Telegram.WebApp.onEvent('viewportChanged', fit); Telegram.WebApp.onEvent('fullscreenChanged', () => setTimeout(fit, 50)); } catch (e) {}
 

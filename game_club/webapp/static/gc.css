@@ -1,3 +1,4 @@
+@property --t{syntax:'<number>';inherits:true;initial-value:1}
 /* Game Club — components. همه رنگ ها و اندازه ها از tokens.css (ساخته شده از design/tokens.json) */
 
 /* ---------- تم تیره ----------
@@ -285,7 +286,7 @@ body.game .seat.right{padding-inline-start:12px}
 body.game .seat:not(.right){padding-inline-end:12px}
 body.game .seat.turn{border-color:var(--c);background:color-mix(in srgb,var(--c) 26%,transparent)}
 body.game .seat .avatar{--size:44px}
-body.game .avatar.timer{background:conic-gradient(var(--ring) calc(var(--t,1)*360deg),rgba(255,255,255,.18) 0)}
+body.game .avatar.timer{background:conic-gradient(var(--ring) calc(var(--t,1)*360deg),rgba(255,255,255,.18) 0);transition:--t .25s linear}
 body.game .prog i{background:rgba(255,255,255,.22)}
 body.game .prog i.done{background:var(--c)}
 body.game .die.ghost{--c:rgba(255,255,255,.14);--e:transparent}
