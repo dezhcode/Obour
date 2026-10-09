@@ -220,7 +220,7 @@ function renderStatus(g) {
   let html;
   if (g.over) html = 'پایان بازی';
   else if (g.phase === 'setup') html = 'انتخاب تیم و چیدمان…';
-  else if (g.turn === me) html = `نوبت توست${g.deadline_ms ? '<em id="clock"></em>' : ''}`;
+  else if (g.turn === me) html = `نوبت شماست${g.deadline_ms ? '<em id="clock"></em>' : ''}`;
   else { const q = g.players[g.turn] || {}; html = `نوبت ${q.name || 'حریف'}<em>${q.bot || q.out ? 'فکر می‌کند…' : ''}</em>`; }
   // هر پرسش سرور همین متن را می آورد؛ فقط وقتی عوض شده بنویس (وگرنه هر بار چیدمان و نقاشی دوباره)
   if (html !== st.dataset.k || !st.firstChild) { st.dataset.k = html; st.innerHTML = html; }
@@ -515,7 +515,7 @@ async function play(e) {
   if (e.t === 'pass') { await showPass(e); return; }
   if (e.t === 'goal') { await showGoal(e); return; }
   if (e.t === 'reset') { sfx.fb.whistle(); rot = []; els.forEach((el, i) => { if (i < 12) { const n = el.querySelector('.in svg'); if (n) n.style.transform = ''; } }); await glide(e.pos); return; }
-  if (e.t === 'timeout') { if (e.c === me) toast(snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی؛ بازی را باختی' : 'یک نوبت دیگر غیبت = باخت') : 'وقتت تمام شد؛ نوبت به حریف رسید'); else toast(`${nameOf(e.c)} شوت نزد؛ نوبت توست`); return; }
+  if (e.t === 'timeout') { if (e.c === me) toast(snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی؛ بازی را باختی' : 'یک نوبت دیگر غیبت = باخت') : 'وقتت تمام شد؛ نوبت به حریف رسید'); else toast(`${nameOf(e.c)} شوت نزد؛ نوبت شماست`); return; }
   if (e.t === 'leave' && e.c !== me) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}`); return; }
 }
 
