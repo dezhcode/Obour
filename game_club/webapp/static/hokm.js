@@ -607,7 +607,8 @@ async function apply(next, anim = true) {
     const dealt = evs.some(e => e.t === 'deal' || e.t === 'trump');
     for (const e of evs) { if (anim) await play(e); since = e.seq; }
     since = Math.max(since, g.seq);
-    pileShown = (g.trick || []).map(([i, c]) => [+i, c]);
+    // بعد از تمام شدن دور، سرور تا شروع دور بعد برگ ها را نگه می دارد؛ آن ها جمع شده اند و دوباره نشان داده نمی شوند
+    pileShown = g.phase === 'collect' ? [] : (g.trick || []).map(([i, c]) => [+i, c]);
     renderAll(g, dealt);
     if (next.status === 'over' && !overShown) { overShown = true; over(next); }
   } finally { busy = false; }
@@ -773,7 +774,7 @@ async function start() {
     poll();
     return;
   }
-  snap = first; since = g.seq; pileShown = (g.trick || []).map(([i, c]) => [+i, c]);
+  snap = first; since = g.seq; pileShown = g.phase === 'collect' ? [] : (g.trick || []).map(([i, c]) => [+i, c]);
   renderAll(g, true); mount(); fit();
   if (first.status === 'over') { overShown = true; over(first); return; }
   poll();

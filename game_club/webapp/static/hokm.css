@@ -83,7 +83,7 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 /* دست بادبزنی */
 .hk-hand{position:relative;flex:none;height:150px;direction:ltr}
 .hk-hand .hk-card{left:calc(50% - 32px);bottom:14px;transform-origin:50% 520px;transform:rotate(var(--a,0deg)) translate(var(--jx,0px),calc(var(--y,0px) + var(--jy,0px)));transition:transform .24s cubic-bezier(.2,.8,.3,1),filter .2s,box-shadow .2s}
-.hk-hand .hk-card.ok{--y:-24px;box-shadow:0 0 0 2.5px var(--gold),0 12px 20px rgba(0,0,0,.38);cursor:pointer}
+.hk-hand .hk-card.ok{--y:-24px;box-shadow:0 1px 0 rgba(0,0,0,.12),0 12px 20px rgba(0,0,0,.38);cursor:pointer}
 .hk-hand .hk-card.no{--y:10px;filter:brightness(.6) saturate(.6);box-shadow:0 1px 2px rgba(0,0,0,.3)}
 .hk-hand .hk-card.ok:active{--y:-30px}
 .hk-hand .hk-card.in{animation:hk-in .32s cubic-bezier(.2,.8,.3,1.2) both}
