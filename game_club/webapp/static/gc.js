@@ -219,6 +219,9 @@ const P = {
   up: '<path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/>',
   exit: '<path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14"/><path d="M10 16.5L5.5 12 10 7.5M5.5 12H15"/>',
   table: '<rect x="3" y="7" width="18" height="10" rx="5"/><path d="M8 17v3M16 17v3"/>',
+  pad: '<path d="M7 8h10a5 5 0 0 1 5 5v.5a3.5 3.5 0 0 1-6.3 2.1L14.5 14h-5l-1.2 1.6A3.5 3.5 0 0 1 2 13.5V13a5 5 0 0 1 5-5z"/><path d="M7 11v3M5.5 12.5h3M16.5 11.5h.01M18.5 13.5h.01"/>',
+  userAdd: '<circle cx="9" cy="8.5" r="3.5"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5M18 8v6M15 11h6"/>',
+  cards: '<rect x="3.5" y="6" width="10" height="14" rx="2" transform="rotate(-10 8.5 13)"/><rect x="10.5" y="4" width="10" height="14" rx="2" transform="rotate(8 15.5 11)"/>',
   chat: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4h0A2.5 2.5 0 0 1 4 13.5z"/><path d="M8.5 9.5h.01M12 9.5h.01M15.5 9.5h.01"/>',
 };
 const icon = (n, w = 2.2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`;
@@ -412,19 +415,48 @@ sfx.fb = {
 };
 function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
-/* ---------- ناوبری پایین (چهار بخش اصلی) ---------- */
-const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['wallet', 'wallet.html', 'کیف امتیاز', 'wallet'], ['shop', 'shop.html', 'فروشگاه', 'bag']];
+/* ---------- ناوبری پایین (پنج بخش؛ «بازی‌ها» برگهٔ انتخاب بازی را باز می کند) ---------- */
+const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['play', '', 'بازی‌ها', 'pad'],
+  ['wallet', 'wallet.html', 'کیف', 'wallet'], ['shop', 'shop.html', 'فروشگاه', 'bag']];
 function nav(active) {
   const n = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
-  n.innerHTML = `<div class="nav-in">${NAV.map(([id, href, label, ic]) => `<a href="${href}" aria-label="${label}"${id === active ? ' aria-current="page"' : ''}>${icon(ic)}<span class="sr">${label}</span></a>`).join('')}</div>`;
+  n.innerHTML = `<div class="nav-in">${NAV.map(([id, href, label, ic]) => href
+    ? `<a href="${href}"${id === active ? ' aria-current="page"' : ''}>${icon(ic)}<span>${label}</span></a>`
+    : `<button type="button" data-play aria-haspopup="dialog">${icon(ic)}<span>${label}</span></button>`).join('')}</div>`;
+  n.querySelector('[data-play]').onclick = quickPlay;
   document.body.appendChild(n);
+}
+/* تصویر کوچک هر بازی (همان اجزای واقعی بازی: ورق، مهره فلزی و زمین، صفحه منچ) */
+const GAME_ART = {
+  hokm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-14 22 36)"><rect x="6" y="10" width="30" height="42" rx="6" fill="#fff"/><path d="M21 20c4 5 8 7 8 11a4 4 0 0 1-6.5 3l1.5 5h-6l1.5-5a4 4 0 0 1-6.5-3c0-4 4-6 8-11z" fill="#1E2235"/></g><g transform="rotate(12 44 36)"><rect x="28" y="12" width="30" height="42" rx="6" fill="#fff"/><path d="M43 43c-7-5-10-8-10-11.5a4.5 4.5 0 0 1 10-2 4.5 4.5 0 0 1 10 2c0 3.5-3 6.5-10 11.5z" fill="#F25C6E"/></g></svg>',
+  football: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="4" width="52" height="56" rx="4" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/><path d="M6 32h52" stroke="#fff" stroke-width="2.5" opacity=".9"/><circle cx="32" cy="32" r="8" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/><circle cx="20" cy="44" r="7" fill="#DDE3EA"/><circle cx="20" cy="44" r="5" fill="#1E5BD8"/><circle cx="44" cy="20" r="7" fill="#DDE3EA"/><circle cx="44" cy="20" r="5" fill="#D7263D"/><circle cx="33" cy="33" r="4" fill="#fff" stroke="#1c1f2a" stroke-width="1.2"/></svg>',
+  ludo: () => boardArt(),
+  esm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>',
+};
+const GAMES = [
+  { id: 'hokm', name: 'حکم', sub: '۴ نفره · با یار، ناشناس یا ربات', href: 'hokm-lobby.html', tint: 't-felt' },
+  { id: 'football', name: 'فوتبال', sub: '۲ نفره · با دوست، ناشناس یا ربات', href: 'football-lobby.html', tint: 't-green' },
+  { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره · آنلاین، با دوست یا ربات', href: 'ludo-lobby.html', tint: 't-violet' },
+  { id: 'esm', name: 'اسم فامیل', sub: 'به‌زودی', tint: 't-orange', soon: true },
+];
+function quickPlay() {
+  sheet(`${sheetHead('بازی‌ها')}<div class="qp">${GAMES.map(g => g.soon
+    ? `<div class="soon"><span class="g-art ${g.tint}">${GAME_ART[g.id]()}</span><span><b>${g.name}</b><small>${g.sub}</small></span><span></span></div>`
+    : `<a href="${g.href}"><span class="g-art ${g.tint}">${GAME_ART[g.id]()}</span><span><b>${g.name}</b><small>${g.sub}</small></span><span class="go">${icon('fwd')}</span></a>`).join('')}</div>`);
+}
+/* سطح بازیکن از کارنامهٔ واقعی خودش: هر بازی ۱۰ و هر برد ۱۵ تجربه؛ سطح بعد هر بار ۵۰ تجربه گران تر */
+function level(p) {
+  const xp = (+(p && p.games) || 0) * 10 + (+(p && p.wins) || 0) * 15;
+  let lv = 1, base = 0, need = 100;
+  while (xp >= base + need) { base += need; lv++; need = 100 + (lv - 1) * 50; }
+  return { lv, xp, left: base + need - xp, frac: (xp - base) / need };
 }
 function mount(root = document) {
   root.querySelectorAll('[data-ic]').forEach(el => { el.innerHTML = icon(el.dataset.ic); });
   root.querySelectorAll('[data-coin]').forEach(el => { el.innerHTML = COIN; el.classList.add('coin'); });
   root.querySelectorAll('[data-bal]').forEach(el => { el.textContent = points == null ? (live ? '…' : fa(S.bal)) : fa(points); });
 }
-document.addEventListener('click', e => { if (e.target.closest('.btn,.chip,.seg button,.choice,.nav a,.icon-btn')) { sfx.tap(); haptic('select'); } }, true);
+document.addEventListener('click', e => { if (e.target.closest('.btn,.chip,.seg button,.choice,.nav a,.nav button,.icon-btn')) { sfx.tap(); haptic('select'); } }, true);
 
 /* ---------- آموزش بار اول منچ (قبل از نشستن سر میز، تا وقت نوبت نسوزد) ---------- */
 function coach(me = 'yellow') {
@@ -496,6 +528,6 @@ window.GC = { coach, tg, live, back, haptic, guardClose, portrait, openLink, sta
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount };
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();

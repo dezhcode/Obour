@@ -33,7 +33,7 @@
 .count{font-size:44px;line-height:52px;font-weight:900;text-align:center;color:var(--sky-deep)}
 /* پیش از شروع: انتخاب میز و ورق (مثل انتخاب تیم فوتبال)؛ قفل ها با قیمت، خرید همین جا */
 .hs-layer{--gold:#F5C451;--gold-ink:#3A2A00;position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;gap:12px;overflow-y:auto;color:#fff;
-  background:radial-gradient(120% 60% at 50% 0%,#3a2f78 0%,#231c4d 55%,#17123a 100%);
+  background:radial-gradient(120% 60% at 50% 0%,#1F4A37 0%,#10261E 55%,#0B1714 100%);
   padding:calc(10px + var(--sa-t,0px) + var(--csa-t,0px)) 16px calc(16px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));animation:hs-in .25s ease-out}
 @keyframes hs-in{from{opacity:0}}
 .hs-layer .top{display:flex;align-items:center;justify-content:space-between}
@@ -45,7 +45,7 @@
 .hs-layer .sub{margin:2px 0 0;font-size:13px;line-height:21px;color:rgba(255,255,255,.72)}
 .hs-pv{position:relative;flex:none;height:200px;border-radius:24px;overflow:hidden;box-shadow:var(--rim,none),inset 0 0 30px rgba(0,0,0,.4),0 10px 24px -10px rgba(0,0,0,.6)}
 .hs-pv .hk-card,.hs-pv .hk-back{font-size:58px;transition:transform .3s}
-.hs-sec{border-radius:22px;background:#2b2463;padding:12px 10px;display:flex;flex-direction:column;gap:10px}
+.hs-sec{border-radius:22px;background:#17302A;padding:12px 10px;display:flex;flex-direction:column;gap:10px}
 .hs-sec .h{display:flex;align-items:baseline;gap:8px;padding-inline:4px}
 .hs-sec .h b{font-size:16px;font-weight:800}
 .hs-sec .h span{font-size:12px;color:rgba(255,255,255,.6)}
@@ -54,18 +54,18 @@
 .hs-row.r4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .hs-t{display:flex;flex-direction:column;align-items:center;gap:5px;color:rgba(255,255,255,.6);font-size:12.5px;font-weight:800;min-width:0}
 .hs-t .sw{position:relative;width:100%;height:62px;border-radius:14px;overflow:hidden;box-sizing:border-box;border:2px solid rgba(255,255,255,.1);box-shadow:var(--rim,none);transition:border-color .15s,box-shadow .15s}
-.hs-t .sw.cs{height:76px;background:#1E2547}
+.hs-t .sw.cs{height:76px;background:#0F201B}
 .hs-t .sw .hk-card,.hs-t .sw .hk-back{font-size:34px}
 .hs-t small{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:800;color:var(--gold);min-height:16px}
 .hs-t small.own{color:rgba(255,255,255,.45);font-weight:600}
 .hs-t small .coin svg{width:13px;height:13px}
 .hs-t[aria-pressed="true"]{color:#fff}
 .hs-t[aria-pressed="true"] .sw{border-color:var(--gold);box-shadow:var(--rim,none),0 0 0 3px rgba(245,196,81,.25)}
-.hs-foot{position:sticky;bottom:0;z-index:2;display:grid;gap:8px;padding-top:10px;margin-top:auto;background:linear-gradient(rgba(23,18,58,0),#17123a 26px)}
+.hs-foot{position:sticky;bottom:0;z-index:2;display:grid;gap:8px;padding-top:10px;margin-top:auto;background:linear-gradient(rgba(11,23,20,0),#0B1714 26px)}
 .hs-go{flex:none;width:100%;min-height:54px;border-radius:27px;background:#3D7BFF;color:#fff;font-size:16px;font-weight:800;padding:0 18px;box-shadow:0 6px 0 #2557c4}
 .hs-go:active{transform:translateY(3px)}
 .hs-go.buy{background:var(--gold);color:var(--gold-ink);box-shadow:0 6px 0 #C08E1E}
-.hs-go:disabled{background:#3a3470;color:rgba(255,255,255,.7);box-shadow:none}
+.hs-go:disabled{background:#24423A;color:rgba(255,255,255,.7);box-shadow:none}
 .hs-note{font-size:12.5px;line-height:20px;text-align:center;color:rgba(255,255,255,.75);margin:0}
 </style>
 </head>
