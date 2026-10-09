@@ -74,15 +74,20 @@ function shot(st, i, k, dx, dy, power, t, autoP) {
   if (!autoP && t < st.next_at - .3) return 'not_ready';
   if (!(k >= 0 && k < 6)) return 'bad_shot';
   const ln = Math.sqrt(dx * dx + dy * dy); if (!(ln > 1e-6)) return 'bad_shot';
-  const res = simulate(st.pos, { [i * 6 + k]: FBPhysics.shotVel(dx, dy, power) });
+  const disc = i * 6 + k, pos0 = st.hold === disc ? FBPhysics.holdPos(st.pos, disc, dx, dy) : st.pos;
+  const held = pos0 !== st.pos ? [Math.round(pos0[BALL][0] * 10) / 10, Math.round(pos0[BALL][1] * 10) / 10] : null;
+  st.hold = null;
+  const res = simulate(pos0, { [disc]: FBPhysics.shotVel(dx, dy, power) });
   st.events.forEach(e => { if (e.t === 'shot') delete e.frames; });
   st.pos = res.pos; st.stats[i].shots++;
   const g = res.goal, pas = g == null ? FBPhysics.passOf(i, i * 6 + k, res) : null;
-  ev(st, { t: 'shot', c: SEATS[i], k, ids: res.ids, frames: res.frames, dur: res.dur, pos: res.pos, hits: res.hits, goal: g == null ? null : SEATS[g], auto: !!autoP });
+  ev(st, { t: 'shot', c: SEATS[i], k, ids: res.ids, frames: res.frames, dur: res.dur, pos: res.pos, hits: res.hits, goal: g == null ? null : SEATS[g], auto: !!autoP, hold: held });
   if (g == null) {
     if (pas != null && (st.streak || 0) < FBPhysics.MAX_PASS) {
       st.streak = (st.streak || 0) + 1; st.stats[i].passes = (st.stats[i].passes || 0) + 1;
-      ev(st, { t: 'pass', c: SEATS[i], d: pas, n: st.streak, left: FBPhysics.MAX_PASS - st.streak });
+      const ball = FBPhysics.catchPos(st.pos, i, pas);
+      if (ball) { st.pos = st.pos.map(p => p.slice()); st.pos[BALL] = ball; st.hold = pas; }
+      ev(st, { t: 'pass', c: SEATS[i], d: pas, n: st.streak, left: FBPhysics.MAX_PASS - st.streak, ball: st.pos[BALL] });
     } else { st.streak = 0; st.turn = 1 - i; }
     wait(st, t, res.dur + SHOT_PAUSE); return null;
   }
@@ -97,8 +102,8 @@ function shot(st, i, k, dx, dy, power, t, autoP) {
 function goalOf(i) { return i === 0 ? [W / 2, -GOAL_D / 2] : [W / 2, H + GOAL_D / 2]; }
 function rate(st, i, res, disc) {
   if (res.goal != null) return res.goal === i ? 1000 : -2000;
-  const bonus = (st.streak || 0) < FBPhysics.MAX_PASS && FBPhysics.passOf(i, disc, res) != null ? 160 : 0;
-  const [bx, by] = res.pos[BALL], [gx, gy] = goalOf(i), [ox, oy] = goalOf(1 - i);
+  const pas = (st.streak || 0) < FBPhysics.MAX_PASS ? FBPhysics.passOf(i, disc, res) : null, bonus = pas != null ? 160 : 0;
+  const [bx, by] = (pas != null && FBPhysics.catchPos(res.pos, i, pas)) || res.pos[BALL], [gx, gy] = goalOf(i), [ox, oy] = goalOf(1 - i);
   return -Math.hypot(bx - gx, by - gy) * .6 + Math.min(Math.hypot(bx - ox, by - oy), 500) * .4 + bonus;
 }
 function botShot(st, i) {
@@ -109,13 +114,16 @@ function botShot(st, i) {
     let ax = cx - dx0, ay = cy - dy0, dist = Math.hypot(ax, ay) || 1; ax /= dist; ay /= dist;
     const align = ax * ux + ay * uy;
     if (align < .15) { ax = bx - dx0; ay = by - dy0; dist = Math.hypot(ax, ay) || 1; ax /= dist; ay /= dist; }
-    cands.push([align * 2 - dist / 900, k, ax, ay, Math.min(1, Math.max(.5, .42 + dist / 1250))]);
+    let a2 = align, pw = Math.min(1, Math.max(.5, .42 + dist / 1250));
+    if (st.hold === i * 6 + k) { ax = gx - dx0; ay = gy - dy0; dist = Math.hypot(ax, ay) || 1; ax /= dist; ay /= dist; a2 = 1.5; pw = .9; }
+    cands.push([a2 * 2 - dist / 900, k, ax, ay, pw]);
   }
   cands.sort((a, b) => b[0] - a[0]);
   let best = null, bv = -1e9;
   for (const [, k, ax, ay, p] of cands.slice(0, 4)) {
     const a = (Math.random() - .5) * .09, dx = ax * Math.cos(a) - ay * Math.sin(a), dy = ax * Math.sin(a) + ay * Math.cos(a);
-    const v = rate(st, i, simulate(pos, { [i * 6 + k]: [dx * VMAX * p, dy * VMAX * p] }), i * 6 + k) + Math.random() * 30;
+    const p0 = st.hold === i * 6 + k ? FBPhysics.holdPos(pos, i * 6 + k, dx, dy) : pos;
+    const v = rate(st, i, simulate(p0, { [i * 6 + k]: [dx * VMAX * p, dy * VMAX * p] }), i * 6 + k) + Math.random() * 30;
     if (v > bv) { bv = v; best = [k, dx, dy, p]; }
   }
   return best;
@@ -127,7 +135,7 @@ function tick(st, t) {
     if (auto(st, i)) { if (t < st.next_at) break; const [k, dx, dy, pw] = botShot(st, i); shot(st, i, k, dx, dy, pw, t, true); continue; }
     if (t < st.deadline) break;
     p.misses++; ev(st, { t: 'timeout', c: s, n: p.misses });
-    st.turn = 1 - i; st.streak = 0; wait(st, t, SHOT_PAUSE);
+    st.turn = 1 - i; st.streak = 0; st.hold = null; wait(st, t, SHOT_PAUSE);
   }
 }
 function view(st, me, since) {
@@ -137,7 +145,7 @@ function view(st, me, since) {
     setup_ms: st.phase === 'setup' ? Math.max(0, Math.round((st.next_at - t) * 1000)) : 0,
     ready_ms: cur != null ? Math.max(0, Math.round((st.next_at - t) * 1000)) : 0,
     deadline_ms: cur == null || au ? 0 : Math.max(0, Math.round((st.deadline - t) * 1000)), turn_ms: st.turn_s * 1000,
-    events: st.events.filter(e => e.seq > since), seq: st.seq, over: st.over, winner: st.winner == null ? null : SEATS[st.winner], stats: st.stats[me], streak: st.streak || 0, started: st.started };
+    events: st.events.filter(e => e.seq > since), seq: st.seq, over: st.over, winner: st.winner == null ? null : SEATS[st.winner], stats: st.stats[me], streak: st.streak || 0, hold: st.hold == null ? null : st.hold, started: st.started };
 }
 
 /* ---------- API نمایشی (هم شکل liveFootball در gc.js) ---------- */

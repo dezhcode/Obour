@@ -48,6 +48,7 @@ BALL_SLIDE, SLIDE_V = 0.9, 700.0  # توپ تند اول روی چمن «سُر�
 MU_PAIR = 0.12           # اصطکاک لحظه برخورد: بخشی از سرعت کناری دو جسم گرفته می شود
 MU_WALL = (0.15, 0.08)   # اصطکاک کناری دیواره (مهره، توپ)
 MAX_PASS = 3             # پاس پشت سرهم که نوبت اضافه می دهد
+HOLD_GAP = DISC_R + BALL_R + 1.0  # فاصله مرکز توپ چسبیده تا مرکز مهره
 E_PAIR, E_BALL_DISC, E_DISC_WALL, E_BALL_WALL = 0.82, 0.68, 0.5, 0.65
 STOP = 4.0
 
@@ -231,6 +232,49 @@ def pass_of(i: int, disc: int, res: dict) -> int | None:
     return next((d for d in res["touch"] if i * 6 <= d < i * 6 + 6 and d != disc), None)
 
 
+# جهت های امتحانی برای جای توپ بعد از پاس، نسبت به رو به جلو (صاف، بعد کم کم کج تر)
+_C30, _S30 = 0.8660254037844386, 0.5
+CATCH_DIRS = ((0.0, -1.0), (_S30, -_C30), (-_S30, -_C30), (_C30, -_S30), (-_C30, -_S30), (1.0, 0.0), (-1.0, 0.0),
+              (_C30, _S30), (-_C30, _S30), (0.0, 1.0))
+
+
+def catch_pos(pos: list, i: int, d: int) -> list | None:
+    """پاس مثل آهنربا: توپ به مهره d می چسبد، درست جلوی آن رو به دروازه حریف (برای صاحبش صاف بالای مهره).
+    اگر جلویش جا نبود (دیواره یا مهره دیگر)، کمی کج تر؛ اگر هیچ جا نبود None."""
+    cx, cy = pos[d]
+    sg = 1.0 if i == 0 else -1.0     # صندلی ۰ رو به بالا حمله می کند، صندلی ۱ رو به پایین
+    for fx, fy in CATCH_DIRS:
+        bx, by = cx + fx * sg * HOLD_GAP, cy + fy * sg * HOLD_GAP
+        if _free(pos, d, bx, by):
+            return [round(bx, 1), round(by, 1)]
+    return None
+
+
+def _free(pos: list, d: int, bx: float, by: float) -> bool:
+    """جای توپ کنار مهره d آزاد است: داخل زمین و روی هیچ مهره دیگری نیست."""
+    if bx < BALL_R or bx > W - BALL_R or by < BALL_R or by > H - BALL_R:
+        return False
+    lim = (DISC_R + BALL_R + 0.5) * (DISC_R + BALL_R + 0.5)
+    for j in range(12):
+        if j != d:
+            dx, dy = pos[j][0] - bx, pos[j][1] - by
+            if dx * dx + dy * dy < lim:
+                return False
+    return True
+
+
+def hold_pos(pos: list, d: int, dx: float, dy: float) -> list:
+    """مهره ای که توپ را گرفته شوت می زند: اول زیر توپ می آید، یعنی توپ درست جلویش در جهت
+    شوت قرار می گیرد (اگر آنجا جا باشد) و بعد شوت حساب می شود. pos تازه برمی گردد."""
+    ln = math.sqrt(dx * dx + dy * dy)
+    bx, by = pos[d][0] + dx / ln * HOLD_GAP, pos[d][1] + dy / ln * HOLD_GAP
+    if not _free(pos, d, bx, by):
+        return pos
+    out = [p[:] for p in pos]
+    out[BALL] = [bx, by]
+    return out
+
+
 def formation(seat: int, form: str, attack: bool) -> list:
     pts = (ATK if attack else DEF).get(form) or ATK["132"]
     if seat == 0:
@@ -358,7 +402,10 @@ def shot(st: dict, i: int, k: int, dx: float, dy: float, power: float, now: floa
     power = min(1.0, max(MIN_POWER, power))
     v = VMAX * power / ln
     disc = i * 6 + k
-    res = simulate(st["pos"], {disc: (dx * v, dy * v)})
+    pos0 = hold_pos(st["pos"], disc, dx, dy) if st.get("hold") == disc else st["pos"]
+    held = [round(pos0[BALL][0], 1), round(pos0[BALL][1], 1)] if pos0 is not st["pos"] else None
+    st["hold"] = None
+    res = simulate(pos0, {disc: (dx * v, dy * v)})
     for e in st["events"]:
         if e.get("t") == "shot":
             e.pop("frames", None)
@@ -367,13 +414,18 @@ def shot(st: dict, i: int, k: int, dx: float, dy: float, power: float, now: floa
     g = res["goal"]
     pas = pass_of(i, disc, res) if g is None else None
     _event(st, t="shot", c=SEATS[i], k=k, ids=res["ids"], frames=res["frames"], dur=res["dur"], pos=res["pos"], hits=res["hits"],
-           goal=SEATS[g] if g is not None else None, auto=auto)
+           goal=SEATS[g] if g is not None else None, auto=auto, hold=held)
     if g is None:
         if pas is not None and st.get("streak", 0) < MAX_PASS:
             # پاس به یار: نوبت دوباره مال همین بازیکن است
             st["streak"] = st.get("streak", 0) + 1
             st["stats"][SEATS[i]]["passes"] = st["stats"][SEATS[i]].get("passes", 0) + 1
-            _event(st, t="pass", c=SEATS[i], d=pas, n=st["streak"], left=MAX_PASS - st["streak"])
+            ball = catch_pos(st["pos"], i, pas)
+            if ball is not None:
+                st["pos"] = [p[:] for p in st["pos"]]    # pos رویداد شوت (همان فهرست) دست نخورد
+                st["pos"][BALL] = ball
+                st["hold"] = pas                         # این مهره توپ را دارد تا شوت بعدی
+            _event(st, t="pass", c=SEATS[i], d=pas, n=st["streak"], left=MAX_PASS - st["streak"], ball=st["pos"][BALL])
         else:
             st["streak"] = 0
             st["turn"] = other(i)
@@ -418,8 +470,9 @@ def _goal_of(i: int) -> tuple[float, float]:
 def _rate(st: dict, i: int, res: dict, disc: int = -1) -> float:
     if res["goal"] is not None:
         return 1000.0 if res["goal"] == i else -2000.0
-    bonus = 160.0 if st.get("streak", 0) < MAX_PASS and pass_of(i, disc, res) is not None else 0.0
-    bx, by = res["pos"][BALL]
+    pas = pass_of(i, disc, res) if st.get("streak", 0) < MAX_PASS else None
+    bonus = 160.0 if pas is not None else 0.0
+    bx, by = (catch_pos(res["pos"], i, pas) if pas is not None else None) or res["pos"][BALL]
     gx, gy = _goal_of(i)
     near = -math.sqrt((bx - gx) ** 2 + (by - gy) ** 2)       # توپ نزدیک دروازه حریف بهتر
     ox, oy = _goal_of(other(i))
@@ -447,6 +500,11 @@ def bot_shot(st: dict, i: int) -> tuple[int, float, float, float]:
             dist = math.sqrt(ax * ax + ay * ay) or 1.0
             ax, ay = ax / dist, ay / dist
         power = min(1.0, max(0.5, 0.42 + dist / 1250))
+        if st.get("hold") == i * 6 + k:
+            # توپ دست این مهره است: مستقیم رو به دروازه، محکم
+            ax, ay = gx - dx0, gy - dy0
+            dist = math.sqrt(ax * ax + ay * ay) or 1.0
+            ax, ay, align, power = ax / dist, ay / dist, 1.5, 0.9
         cands.append((align * 2 - dist / 900, k, ax, ay, power))
     cands.sort(reverse=True)
     best, best_v = None, -1e9
@@ -454,7 +512,8 @@ def bot_shot(st: dict, i: int) -> tuple[int, float, float, float]:
         a = (_rng.random() - 0.5) * 0.09
         ca, sa = math.cos(a), math.sin(a)
         dx, dy = ax * ca - ay * sa, ax * sa + ay * ca
-        res = simulate(pos, {i * 6 + k: (dx * VMAX * power, dy * VMAX * power)})
+        p0 = hold_pos(pos, i * 6 + k, dx, dy) if st.get("hold") == i * 6 + k else pos
+        res = simulate(p0, {i * 6 + k: (dx * VMAX * power, dy * VMAX * power)})
         v = _rate(st, i, res, i * 6 + k) + _rng.random() * 30
         if v > best_v:
             best, best_v = (k, dx, dy, power), v
@@ -492,6 +551,7 @@ def tick(st: dict, now: float) -> bool:
             continue
         st["turn"] = other(i)
         st["streak"] = 0
+        st["hold"] = None
         _wait(st, now, SHOT_PAUSE)
     return changed
 
@@ -531,6 +591,6 @@ def view(st: dict, me: str | None, since: int, now: float) -> dict:
         "over": st["over"],
         "winner": SEATS[st["winner"]] if st["winner"] is not None else None,
         "stats": st["stats"].get(me) if me else None,
-        "streak": st.get("streak", 0),
+        "streak": st.get("streak", 0), "hold": st.get("hold"),
         "started": st["started"],
     }
