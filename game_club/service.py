@@ -210,7 +210,7 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
         if c not in used:
             if cfg["mode"] == "stake":
                 raise GCError("need_players")
-            seats.append({"color": c, "uid": None, "name": "ربات " + names.pop(), "av": random.randint(1, 23), "bot": True})
+            seats.append({"color": c, "uid": None, "name": names.pop(), "av": random.randint(1, 23), "bot": True})
     if game_of(cfg) == "hokm":
         state = hokm.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
     elif game_of(cfg) == "football":
@@ -247,6 +247,54 @@ async def mutate(db: GCDatabase, match_id: str, fn):
             return m, result
         await asyncio.sleep(0.03)
     raise GCError("busy")
+
+
+# ---------- فروشگاه ظاهر: میز و ورق حکم ----------
+# (نوع، طرح، نام، قیمت به امتیاز)؛ طرح A رایگان و پیش فرض است
+STYLE_ITEMS = {
+    "table:a": ("table", "a", "میز کلاسیک", 0),
+    "table:b": ("table", "b", "میز کافه شب", 500),
+    "table:c": ("table", "c", "میز Game Club", 500),
+    "cards:a": ("cards", "a", "ورق کلاسیک", 0),
+    "cards:b": ("cards", "b", "ورق کافه شب", 300),
+    "cards:c": ("cards", "c", "ورق Game Club", 300),
+}
+
+
+def style_of(player: dict) -> dict:
+    return {"table": player.get("table_skin") or "a", "cards": player.get("card_skin") or "a"}
+
+
+async def style_view(db: GCDatabase, tg: int) -> dict:
+    p = await db.get_player(tg) or {}
+    owned, cur = await db.owned_of(tg), style_of(p)
+    items = [{"id": k, "kind": kind, "look": look, "name": name, "price": price,
+              "owned": price == 0 or k in owned, "on": cur[kind] == look}
+             for k, (kind, look, name, price) in STYLE_ITEMS.items()]
+    return {"items": items, **cur, "points": p.get("points", 0)}
+
+
+async def style_buy(db: GCDatabase, tg: int, item: str, idem: str) -> dict:
+    """خرید یک میز یا ورق با امتیاز؛ بعد از خرید همان هم انتخاب می شود. همان idem دوباره = بی اثر."""
+    if item not in STYLE_ITEMS:
+        raise GCError("not_found")
+    kind, look, name, price = STYLE_ITEMS[item]
+    if price and item not in await db.owned_of(tg):
+        if not await spend(db, tg, price, "style", f"خرید {name}", item, idem):
+            raise GCError("insufficient")
+        await db.add_owned(tg, item)
+    await db.set_skin(tg, kind, look)
+    return await style_view(db, tg)
+
+
+async def style_use(db: GCDatabase, tg: int, item: str) -> dict:
+    if item not in STYLE_ITEMS:
+        raise GCError("not_found")
+    kind, look, _, price = STYLE_ITEMS[item]
+    if price and item not in await db.owned_of(tg):
+        raise GCError("not_owned")
+    await db.set_skin(tg, kind, look)
+    return await style_view(db, tg)
 
 
 async def settle(db: GCDatabase, m: dict) -> None:

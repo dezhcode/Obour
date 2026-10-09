@@ -94,6 +94,7 @@ function startParam() { try { return (tg && tg.initDataUnsafe && tg.initDataUnsa
 
 /* ---------- API سرور ---------- */
 const ERR = {
+  not_owned: 'اول این طرح را بخر',
   banned: 'حساب تو در Game Club مسدود شده است', maintenance: 'در حال به‌روزرسانی هستیم؛ چند دقیقه دیگر دوباره امتحان کن',
   insufficient: 'امتیاز کافی نیست؛ اول کیف را شارژ کن', obour_insufficient: 'موجودی کیف پول عبور کافی نیست',
   no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است', shop_off: 'خدمات عبور فعلا در دسترس نیست',
@@ -127,6 +128,9 @@ const liveData = {
   shop: () => api('shop'),
   buy: plan_id => api('shop/buy', { body: { plan_id, idem: idem() } }),
   transfer: points => api('shop/transfer', { body: { points, idem: idem() } }),
+  style: () => api('style'),
+  styleBuy: id => api('style/buy', { body: { id, idem: idem() } }),
+  styleUse: id => api('style/use', { body: { id } }),
 };
 const liveLudo = {
   queueJoin: cfg => api('ludo/queue', { body: { cfg } }),
@@ -336,7 +340,7 @@ let samplesLoading = null;
 function loadSamples() {
   const a = ctx();
   if (!a || samplesLoading) return samplesLoading;
-  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'throw', 'flick', 'shuffle', 'collect', 'fb_kick', 'fb_clack1', 'fb_clack2', 'fb_clack3', 'fb_ball1', 'fb_ball2', 'fb_wall', 'fb_post', 'fb_whistle', 'fb_goal', 'fb_crowd'].map(async n => {
+  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'slide1', 'slide2', 'square', 'flip', 'throw', 'flick', 'shuffle', 'collect', 'fb_kick', 'fb_clack1', 'fb_clack2', 'fb_clack3', 'fb_ball1', 'fb_ball2', 'fb_wall', 'fb_post', 'fb_whistle', 'fb_goal', 'fb_crowd'].map(async n => {
     try {
       const r = await fetch('static/sfx/' + n + '.mp3');
       const b = await r.arrayBuffer();
@@ -345,22 +349,31 @@ function loadSamples() {
   }));
   return samplesLoading;
 }
-function sample(n, { g = 1, rate = 1, at = 0, loop = false } = {}) {
+// pan: -۱ چپ تا ۱ راست (صدای ورق هر بازیکن از سمت خودش)
+function sample(n, { g = 1, rate = 1, at = 0, loop = false, pan = 0 } = {}) {
   const a = ctx(); if (!a) return true;
   const buf = SAMPLES[n];
   if (!buf) { loadSamples(); return false; }
   const s = a.createBufferSource(), v = a.createGain();
   s.buffer = buf; s.loop = loop; s.playbackRate.value = loop ? 1 : rate * (.94 + Math.random() * .12); v.gain.value = g;
-  s.connect(v); v.connect(master); s.start(a.currentTime + at);
+  s.connect(v);
+  if (pan && a.createStereoPanner) { const p = a.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); v.connect(p); p.connect(master); }
+  else v.connect(master);
+  s.start(a.currentTime + at);
   return loop ? { s, v } : true;
 }
+// ورق: g شدت (سرعت پرتاب)، pan سمت بازیکن. صداها از مدل فیزیکی ساخته شده اند (tools/card_sounds.py)
 sfx.card = {
-  place() { sample('place' + (1 + Math.floor(Math.random() * 3)), { g: 1 }) || (noise(.05, { g: .5, f: 1300, q: .8 }), tone(150, .05, { g: .2 })); },
-  throw() { sample('throw', { g: .8 }) || noise(.16, { g: .25, f: 2400, q: .9 }); },
-  flick(at = 0) { sample('flick', { g: .7, at }) || noise(.03, { g: .3, f: 2000, q: 1, at }); },
-  shuffle() { if (!sample('shuffle', { g: .9 })) for (let i = 0; i < 18; i++) noise(.02, { g: .2, f: 1800 + Math.random() * 1500, q: 1.5, at: i * .04 }); },
+  place(g = 1, pan = 0) { sample('place' + (1 + Math.floor(Math.random() * 3)), { g: .35 + .65 * g, rate: .96 + g * .08, pan }) || (noise(.05, { g: .5, f: 1300, q: .8 }), tone(150, .05, { g: .2 })); },
+  slide(g = .7, pan = 0) { sample('slide' + (1 + Math.floor(Math.random() * 2)), { g: .2 + .55 * g, at: .01, pan }); },
+  throw(pan = 0) { sample('throw', { g: .45, pan }) || noise(.16, { g: .15, f: 2400, q: .9 }); },
+  flick(at = 0, pan = 0) { sample('flick', { g: .7, at, pan }) || noise(.03, { g: .3, f: 2000, q: 1, at }); },
+  shuffle() { if (!sample('shuffle', { g: .95 })) for (let i = 0; i < 18; i++) noise(.02, { g: .2, f: 1800 + Math.random() * 1500, q: 1.5, at: i * .04 }); },
+  square(pan = 0) { sample('square', { g: .8, pan }) || noise(.04, { g: .3, f: 900, q: .8 }); },
   collect() { sample('collect', { g: .85 }) || noise(.25, { g: .25, f: 1600, q: .8 }); },
-  trump() { [659, 880, 1175].forEach((f, i) => tone(f, .22, { type: 'triangle', g: .16, at: i * .08 })); },
+  flip(pan = 0) { sample('flip', { g: .8, pan }) || noise(.08, { g: .2, f: 2200, q: 1 }); },
+  // اعلام حکم: برگ برمی گردد و محکم روی میز می خورد، با یک نُت آرام
+  trump() { sfx.card.flip(); setTimeout(() => sfx.card.place(1), 150); tone(523, .5, { type: 'sine', g: .05, at: .16 }); },
 };
 // فوتبال: g شدت برخورد (۰ تا ۱)؛ صدای ضعیف تر برای برخوردهای آرام، با کمی تفاوت هر بار
 let crowdLoop = null;
@@ -389,10 +402,10 @@ sfx.fb = {
 function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
 /* ---------- ناوبری پایین (چهار بخش اصلی) ---------- */
-const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['wallet', 'wallet.html', 'کیف امتیاز', 'wallet'], ['shop', 'shop.html', 'خدمات عبور', 'bag']];
+const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['wallet', 'wallet.html', 'کیف امتیاز', 'wallet'], ['shop', 'shop.html', 'فروشگاه', 'bag']];
 function nav(active) {
   const n = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
-  n.innerHTML = `<div class="nav-in">${NAV.filter(([id]) => id !== 'shop' || S.shopOn).map(([id, href, label, ic]) => `<a href="${href}" aria-label="${label}"${id === active ? ' aria-current="page"' : ''}>${icon(ic)}<span class="sr">${label}</span></a>`).join('')}</div>`;
+  n.innerHTML = `<div class="nav-in">${NAV.map(([id, href, label, ic]) => `<a href="${href}" aria-label="${label}"${id === active ? ' aria-current="page"' : ''}>${icon(ic)}<span class="sr">${label}</span></a>`).join('')}</div>`;
   document.body.appendChild(n);
 }
 function mount(root = document) {

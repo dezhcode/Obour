@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 GAMES = ("ludo", "hokm", "football")
 PAGES = {"": "خانه", "ludo-lobby.html": "منچ", "hokm-lobby.html": "حکم", "football-lobby.html": "فوتبال",
          "wallet.html": "کیف امتیاز", "leaderboard.html": "رده بندی"}
-KINDS = ("charge", "entry", "refund", "prize", "admin", "transfer", "shop", "gift")
+KINDS = ("charge", "entry", "refund", "prize", "admin", "transfer", "shop", "gift", "style")
 # تنظیمات قابل تغییر از پنل: (نوع، کمینه، بیشینه)
 SETTINGS = {
     "maintenance": ("bool", 0, 1),

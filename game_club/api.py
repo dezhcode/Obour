@@ -76,12 +76,19 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "active_game": await gdb.match_game(active) if active else None,
             "queue": bool(q_row and not q_row["claimed"]),
             "tables": await service.my_tables(gdb, tg),
-            "is_admin": admin.is_admin(tg), "banned": bool(player.get("banned")),
+            "is_admin": admin.is_admin(tg), "banned": bool(player.get("banned")), "style": service.style_of(player),
             "notice": gc.notice, "maintenance": gc.maintenance,
             "settings": {"stake": gc.stake_enabled, "shop": gc.shop_enabled, "entries": list(gc.entries), "packs": list(gc.charge_packs),
                          "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,
                          "bot": gc.username, "obour_bot": await ob.db.get_setting("bot_username", "")},
         }
+    # ---------- فروشگاه ظاهر (میز و ورق حکم) ----------
+    if name == "style" and method == "GET":
+        return await service.style_view(gdb, tg)
+    if name == "style/buy" and method == "POST":
+        return await service.style_buy(gdb, tg, str(body.get("id") or ""), _idem(body))
+    if name == "style/use" and method == "POST":
+        return await service.style_use(gdb, tg, str(body.get("id") or ""))
     if name == "settings" and method == "POST":
         for f in ("show_spend", "tutorial", "sound"):
             if f in body:

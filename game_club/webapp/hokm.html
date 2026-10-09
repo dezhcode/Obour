@@ -7,9 +7,10 @@
 <title>Game Club · حکم</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
+<link rel="stylesheet" href="static/cards.css">
 <link rel="stylesheet" href="static/hokm.css">
 </head>
-<body class="hokm">
+<body class="hokm tbl-a cards-a">
 <header class="appbar" id="appbar">
   <div class="appbar-cap"><span>حکم</span></div>
   <div class="appbar-in">
@@ -19,7 +20,9 @@
   </div>
 </header>
 <main class="hk-page">
-  <section class="hk-table" id="table" aria-label="میز حکم">
+  <section class="hk-table felt" id="table" aria-label="میز حکم">
+    <div class="hk-stack us" id="stackUs" aria-hidden="true"></div>
+    <div class="hk-stack them" id="stackThem" aria-hidden="true"></div>
     <div class="hk-seat" data-rel="2"></div>
     <div class="hk-seat" data-rel="3"></div>
     <div class="hk-seat" data-rel="1"></div>
@@ -33,6 +36,7 @@
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
 <script src="static/demo-hokm.js"></script>
+<script src="static/cards.js"></script>
 <script src="static/hokm.js"></script>
 </body>
 </html>

@@ -102,7 +102,7 @@ const err = code => { const e = new Error(code); e.code = code; return e; };
 const loadM = () => store.get('demo_match', null), saveM = m => store.set('demo_match', m);
 function makeMatch(cfg, guest) {
   const colors = SEATS[cfg.players], names = [...BOTS].sort(() => Math.random() - .5);
-  const seats = colors.map(c => c === 'yellow' ? { color: c, name: 'شما', av: 7 } : guest && c === 'red' ? { color: c, name: 'دوست شما', av: 11, bot: true } : { color: c, name: 'ربات ' + names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true });
+  const seats = colors.map(c => c === 'yellow' ? { color: c, name: 'شما', av: 7 } : guest && c === 'red' ? { color: c, name: 'دوست شما', av: 11, bot: true } : { color: c, name: names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true });
   const st = newState(seats, cfg.pawns, cfg.mode === 'stake', 'yellow');
   st.pot = cfg.mode === 'stake' ? cfg.entry * colors.length : 0;
   return { id: 'demo' + Date.now().toString(36), status: 'playing', cfg, state: st, settled: false };
@@ -220,12 +220,31 @@ function demoTables() {
 }
 
 /* ---------- داده نمایشی بقیه صفحه ها ---------- */
+const STYLE = [['table:a', 'table', 'a', 'میز کلاسیک', 0], ['table:b', 'table', 'b', 'میز کافه شب', 500], ['table:c', 'table', 'c', 'میز Game Club', 500],
+  ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 300], ['cards:c', 'cards', 'c', 'ورق Game Club', 300]];
 const data = {
   async me() {
     return { player: { name: 'بازیکن', av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: S.showSpend ? 1 : 0 },
       history: S.ledger.map(l => ({ kind: l.k, amount: l.a, note: l.t, created_at: Math.round(l.at / 1000) })),
       notify: Object.keys(S.notify).filter(k => S.notify[k]), obour: { linked: true, balance: 240000 }, active_match: await ludo.active(), tables: demoTables(),
+      style: Object.assign({ table: 'a', cards: 'a' }, S.style || {}),
       settings: { stake: true, shop: false, entries: [50, 100, 250, 500], packs: [250, 500, 1000, 2500], rate: GC.RATE, turn_s: 20, rake: 0, bot: '', obour_bot: '' } };
+  },
+  // فروشگاه ظاهر (همان کاتالوگ service.STYLE_ITEMS)
+  async style() {
+    const own = S.owned || [], cur = Object.assign({ table: 'a', cards: 'a' }, S.style || {});
+    return { items: STYLE.map(([id, kind, look, name, price]) => ({ id, kind, look, name, price, owned: !price || own.includes(id), on: cur[kind] === look })), ...cur, points: S.bal, sample: true };
+  },
+  async styleBuy(id) {
+    const it = STYLE.find(x => x[0] === id); if (!it) throw err('not_found');
+    const [, kind, look, name, price] = it; S.owned = S.owned || [];
+    if (price && !S.owned.includes(id)) { if (S.bal < price) throw err('insufficient'); S.bal -= price; GC.ledger('خرید ' + name, -price, 'style'); S.owned.push(id); }
+    S.style = Object.assign({ table: 'a', cards: 'a' }, S.style || {}, { [kind]: look }); save(); return data.style();
+  },
+  async styleUse(id) {
+    const it = STYLE.find(x => x[0] === id); if (!it) throw err('not_found');
+    const [, kind, look, , price] = it; if (price && !(S.owned || []).includes(id)) throw err('not_owned');
+    S.style = Object.assign({ table: 'a', cards: 'a' }, S.style || {}, { [kind]: look }); save(); return data.style();
   },
   async charge(points) { S.bal += points; GC.ledger('شارژ از کیف پول عبور', points, 'charge'); save(); return { ok: true, points }; },
   async notify(game) { S.notify[game] = !S.notify[game]; save(); return { on: S.notify[game] }; },

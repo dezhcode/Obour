@@ -796,6 +796,43 @@ def test_admin_panel():
     asyncio.run(run())
 
 
+def test_style_shop():
+    """میز و ورق حکم: A رایگان، بقیه با امتیاز؛ خرید یک بار، همان idem بی اثر، استفاده فقط از خریده شده."""
+    tmp = tempfile.mkdtemp()
+    from game_club import service
+    from game_club.db import GCDatabase
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        await db.player(5, "a")
+        await db.credit(5, 600)
+        v = await service.style_view(db, 5)
+        assert v["table"] == "a" and v["cards"] == "a"
+        assert {i["id"] for i in v["items"] if i["owned"]} == {"table:a", "cards:a"}
+        try:
+            await service.style_use(db, 5, "table:b")
+            raise AssertionError("used unowned")
+        except service.GCError as e:
+            assert e.code == "not_owned"
+        v = await service.style_buy(db, 5, "table:b", "idem-style-1")
+        assert v["table"] == "b" and v["points"] == 100
+        v = await service.style_buy(db, 5, "table:b", "idem-style-1")        # تکرار همان درخواست
+        assert v["points"] == 100
+        try:
+            await service.style_buy(db, 5, "cards:c", "idem-style-2")         # ۳۰۰ لازم است، ۱۰۰ دارد
+            raise AssertionError("bought without points")
+        except service.GCError as e:
+            assert e.code == "insufficient"
+        await service.style_use(db, 5, "table:a")
+        v = await service.style_use(db, 5, "table:b")
+        assert v["table"] == "b" and (await db.get_player(5))["points"] == 100
+        assert (await db.ledger_of(5))[0]["kind"] in ("style", "charge")
+        assert any(r["kind"] == "style" and r["amount"] == -500 for r in await db.ledger_of(5))
+        await db.close()
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
