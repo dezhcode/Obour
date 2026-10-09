@@ -103,9 +103,9 @@ a.game:active{transform:scale(.985)}
       <div class="game soon"><span class="g-art t-orange" id="esmArt"></span>
         <span class="g-txt"><b>اسم فامیل</b><small>به‌زودی</small></span>
         <button class="notify" data-notify="esm"></button></div>
-      <div class="game soon"><span class="g-art t-coral" id="hokmArt"></span>
-        <span class="g-txt"><b>حکم</b><small>به‌زودی</small></span>
-        <button class="notify" data-notify="hokm"></button></div>
+      <a class="game" href="hokm-lobby.html"><span class="g-art t-coral" id="hokmArt"></span>
+        <span class="g-txt"><b>حکم</b><small>۴ نفره · با یار، ناشناس یا ربات</small></span>
+        <span class="g-go">بازی<i data-ic="fwd"></i></span></a>
     </div>
   </section>
 
@@ -176,7 +176,7 @@ a.game:active{transform:scale(.985)}
       if (!me.obour.linked) $('linked').innerHTML = '<i style="background:var(--danger)"></i>هنوز در ربات عبور نیستی';
       stakeOn = me.settings.stake; renderMode();
       notify = me.notify || []; document.querySelectorAll('[data-notify]').forEach(b => b._sync());
-      if (me.active_match) { $('resume').hidden = false; $('playBtn').href = 'ludo.html'; $('playBtn').lastChild.textContent = 'ادامهٔ بازی'; GC.mount(); }
+      if (me.active_match) { $('resume').hidden = false; $('playBtn').href = me.active_game === 'hokm' ? 'hokm.html' : 'ludo.html'; $('playBtn').lastChild.textContent = 'ادامهٔ بازی'; GC.mount(); }
     } catch (e) { toast(errText(e)); }
     try {
       const lb = await GC.data.leaderboard('top', 'week');

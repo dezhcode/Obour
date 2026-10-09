@@ -31,8 +31,8 @@ def _obour():
     return runtime
 
 
-def invite_link(code: str) -> str:
-    return f"https://t.me/{gc.username}?start=ludo_{code}" if gc.username else ""
+def invite_link(code: str, game: str = "ludo") -> str:
+    return f"https://t.me/{gc.username}?start={game}_{code}" if gc.username else ""
 
 
 async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # noqa: ANN001
@@ -60,6 +60,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "notify": await gdb.notify_of(tg),
             "obour": {"linked": bool(ou), "balance": int(ou["balance"]) if ou else 0},
             "active_match": active,
+            "active_game": await gdb.match_game(active) if active else None,
             "queue": bool(q_row and not q_row["claimed"]),
             "settings": {"stake": gc.stake_enabled, "shop": gc.shop_enabled, "entries": list(gc.entries), "packs": list(gc.charge_packs),
                          "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,
@@ -93,38 +94,45 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         kind = "spend" if q.get("kind") == "spend" else "top"
         return await service.leaderboard(gdb, tg, kind, q.get("period") or "week")
 
-    # ---------- منچ ----------
-    if name == "ludo/queue":
-        if method == "POST":
-            return await service.queue_join(gdb, tg, body.get("cfg") or {})
-        return await service.queue_status(gdb, tg)
-    if name == "ludo/queue/leave" and method == "POST":
-        return await service.queue_leave(gdb, tg)
-    if name == "ludo/invite" and method == "POST":
-        out = await service.invite_create(gdb, tg, body.get("cfg") or {})
-        out["link"] = invite_link(out["code"])
-        return out
-    if name == "ludo/join" and method == "POST":
-        return await service.invite_join(gdb, tg, str(body.get("code") or ""))
-    if name == "ludo/start" and method == "POST":
-        await service.lobby_start(gdb, tg, str(body.get("match") or ""))
-        return {"ok": True}
-    if name == "ludo/match" and method == "GET":
-        mid = q.get("id") or await gdb.active_match_of(tg) or ""
-        if not mid:
-            raise GCError("not_found")
-        chat = q.get("chat")
-        out = await service.match_view(gdb, tg, mid, int(q.get("since") or 0),
-                                       int(chat) if str(chat or "").isdigit() else None)
-        if out.get("lobby"):
-            out["lobby"]["link"] = invite_link(out["lobby"]["code"] or "")
-        return out
-    if name in ("ludo/roll", "ludo/move") and method == "POST":
-        return await service.act(gdb, tg, str(body.get("match") or ""), name[5:], body.get("k"),
-                                 int(body.get("since") or 0))
-    if name == "ludo/chat" and method == "POST":
-        return await service.chat_send(gdb, tg, str(body.get("match") or ""), str(body.get("text") or ""))
-    if name == "ludo/leave" and method == "POST":
-        return await service.leave_any(gdb, tg, str(body.get("match") or ""))
+    # ---------- میزها: منچ (ludo/...) و حکم (hokm/...) با یک سرویس ----------
+    game, _, op = name.partition("/")
+    if game in ("ludo", "hokm") and op:
+        def cfg_in() -> dict:
+            c = body.get("cfg") or {}
+            return {**c, "game": game} if isinstance(c, dict) else {"game": game}
+
+        if op == "queue":
+            if method == "POST":
+                return await service.queue_join(gdb, tg, cfg_in())
+            return await service.queue_status(gdb, tg)
+        if op == "queue/leave" and method == "POST":
+            return await service.queue_leave(gdb, tg)
+        if op == "invite" and method == "POST":
+            out = await service.invite_create(gdb, tg, cfg_in())
+            out["link"] = invite_link(out["code"], game)
+            return out
+        if op == "join" and method == "POST":
+            return await service.invite_join(gdb, tg, str(body.get("code") or ""))
+        if op == "start" and method == "POST":
+            await service.lobby_start(gdb, tg, str(body.get("match") or ""))
+            return {"ok": True}
+        if op == "match" and method == "GET":
+            mid = q.get("id") or await gdb.active_match_of(tg) or ""
+            if not mid:
+                raise GCError("not_found")
+            chat = q.get("chat")
+            out = await service.match_view(gdb, tg, mid, int(q.get("since") or 0),
+                                           int(chat) if str(chat or "").isdigit() else None)
+            if out.get("lobby"):
+                out["lobby"]["link"] = invite_link(out["lobby"]["code"] or "", service.game_of(out["cfg"]))
+            return out
+        acts = ("roll", "move") if game == "ludo" else ("trump", "play")
+        if op in acts and method == "POST":
+            return await service.act(gdb, tg, str(body.get("match") or ""), op, body.get("k"),
+                                     int(body.get("since") or 0))
+        if op == "chat" and method == "POST":
+            return await service.chat_send(gdb, tg, str(body.get("match") or ""), str(body.get("text") or ""))
+        if op == "leave" and method == "POST":
+            return await service.leave_any(gdb, tg, str(body.get("match") or ""))
 
     raise GCError("not_found")

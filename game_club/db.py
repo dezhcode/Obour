@@ -338,9 +338,14 @@ class GCDatabase:
                            invite: str | None = None) -> None:
         now = int(time.time())
         await self.execute(
-            "INSERT INTO matches(id, status, cfg, state, version, host, invite, created_at, updated_at) "
-            "VALUES(?,?,?,?,0,?,?,?,?)",
-            (match_id, status, json.dumps(cfg), json.dumps(state, ensure_ascii=False), host, invite, now, now))
+            "INSERT INTO matches(id, game, status, cfg, state, version, host, invite, created_at, updated_at) "
+            "VALUES(?,?,?,?,?,0,?,?,?,?)",
+            (match_id, cfg.get("game") or "ludo", status, json.dumps(cfg), json.dumps(state, ensure_ascii=False),
+             host, invite, now, now))
+
+    async def match_game(self, match_id: str | None) -> str:
+        row = await self.one("SELECT game FROM matches WHERE id = ?", (match_id,)) if match_id else None
+        return (row or {}).get("game") or "ludo"
 
     async def save_match(self, match_id: str, version: int, status: str, state: dict) -> bool:
         """فقط اگر کسی در این فاصله ننوشته باشد ذخیره می شود.

@@ -3,7 +3,7 @@
 روی همان event loop عبور ساخته می شود (app.runtime) ولی Bot، Dispatcher
 و دیتابیس خودش را دارد. کار اصلی ربات باز کردن مینی اپ است:
   /start            خوش آمد + دکمه ورود
-  /start ludo_CODE  لینک دعوت دوست: دکمه مستقیم به همان میز
+  /start ludo_CODE  لینک دعوت دوست: دکمه مستقیم به همان میز (حکم: hokm_CODE)
   /start obour      آمده از کارت Game Club در مینی اپ عبور
   /points           موجودی امتیاز
   /help             قوانین کوتاه
@@ -100,19 +100,22 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         return
     await gdb.player(u.id, _name(message), u.username)
     arg = (command.args or "").strip()
-    if arg.startswith("ludo_"):
-        code = "".join(ch for ch in arg[5:].upper() if ch.isalnum())[:12]
+    game = arg.split("_", 1)[0]
+    if game in ("ludo", "hokm") and "_" in arg:
+        name = "منچ" if game == "ludo" else "حکم"
+        code = "".join(ch for ch in arg.split("_", 1)[1].upper() if ch.isalnum())[:12]
         m = await gdb.match_by_invite(code)
         if not m or m["status"] != "lobby":
-            await message.answer("این میز منچ دیگر باز نیست. خودت یک میز تازه بساز 👇",
-                                 reply_markup=open_kb("ludo-lobby.html", "میز تازهٔ منچ"))
+            await message.answer(f"این میز {name} دیگر باز نیست. خودت یک میز تازه بساز 👇",
+                                 reply_markup=open_kb(f"{game}-lobby.html", f"میز تازهٔ {name}"))
             return
         mode = "با امتیاز (ورودی " + f"{m['cfg']['entry']:,}" + ")" if m["cfg"]["mode"] == "stake" else "آزاد"
-        await message.answer(f"دوستت تو را به یک دست <b>منچ {mode}</b> دعوت کرده.\nبزن تا کنارش بنشینی:",
-                             reply_markup=open_kb(f"ludo-lobby.html?join={code}", "نشستن سر میز"))
+        who = "یار خودش در حکم" if game == "hokm" else "یک دست منچ"
+        await message.answer(f"دوستت تو را به {who} دعوت کرده (<b>{name} {mode}</b>).\nبزن تا کنارش بنشینی:",
+                             reply_markup=open_kb(f"{game}-lobby.html?join={code}", "نشستن سر میز"))
         return
     hello = ("به <b>Game Club</b> خوش آمدی!\n\n"
-             "منچ بازی کن، با دوستت یا با ناشناس. در بازی با امتیاز برنده همهٔ ورودی‌ها را می‌برد"
+             "منچ و حکم بازی کن، با دوستت یا با ناشناس. در بازی با امتیاز برنده همهٔ ورودی‌ها را می‌برد"
              + ("؛ امتیازت را می‌توانی در عبور خرج کنی: کانفیگ، تمدید و اشتراک هوش مصنوعی." if gc.shop_enabled else "."))
     if arg == "obour":
         hello += "\n\nحساب عبورت با همین تلگرام وصل است؛ شارژ از کیف پول عبور فوری است."

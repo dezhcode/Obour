@@ -100,7 +100,7 @@ const ERR = {
   need_players: 'بازی امتیازی بدون حریف واقعی شروع نمی‌شود', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
   plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
   rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
-  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', not_found: 'این میز پیدا نشد', bad_pack: 'این بسته در دسترس نیست',
+  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_found: 'این میز پیدا نشد', bad_pack: 'این بسته در دسترس نیست',
 };
 const errText = e => ERR[e && e.code] || ERR.server;
 async function api(name, { body, q } = {}) {
@@ -139,6 +139,19 @@ const liveLudo = {
   roll: (match, since) => api('ludo/roll', { body: { match, since } }),
   move: (match, k, since) => api('ludo/move', { body: { match, k, since } }),
   leave: match => api('ludo/leave', { body: { match } }),
+};
+const liveHokm = {
+  queueJoin: cfg => api('hokm/queue', { body: { cfg } }),
+  queueStatus: () => api('hokm/queue'),
+  queueLeave: () => api('hokm/queue/leave', { body: {} }),
+  invite: cfg => api('hokm/invite', { body: { cfg } }),
+  join: code => api('hokm/join', { body: { code } }),
+  start: match => api('hokm/start', { body: { match } }),
+  match: (id, since = 0, chat = null) => api('hokm/match', { q: Object.assign(id ? { id, since } : { since }, chat == null ? {} : { chat }) }),
+  chat: (match, text) => api('hokm/chat', { body: { match, text } }),
+  trump: (match, k, since) => api('hokm/trump', { body: { match, k, since } }),
+  play: (match, k, since) => api('hokm/play', { body: { match, k, since } }),
+  leave: match => api('hokm/leave', { body: { match } }),
 };
 /* موجودی که سربرگ ها نشان می دهند */
 let points = null;
@@ -299,6 +312,39 @@ const sfx = {
   lose() { [392, 349, 311, 262].forEach((f, i) => tone(f, .28, { type: 'triangle', g: .18, at: i * .2 })); },
   error() { tone(220, .14, { type: 'square', g: .08 }); tone(180, .2, { type: 'square', g: .08, at: .12 }); },
 };
+/* صدای ورق: فایل های کوچک ساخته شده با game_club/tools/card_sounds.py؛ تا بار نشده اند
+   (یا اگر بار نشدند) نسخه ساده با نویز ساخته می شود */
+const SAMPLES = {};
+let samplesLoading = null;
+function loadSamples() {
+  const a = ctx();
+  if (!a || samplesLoading) return samplesLoading;
+  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'throw', 'flick', 'shuffle', 'collect'].map(async n => {
+    try {
+      const r = await fetch('static/sfx/' + n + '.mp3');
+      const b = await r.arrayBuffer();
+      SAMPLES[n] = await new Promise((ok, no) => a.decodeAudioData(b, ok, no));
+    } catch (e) {}
+  }));
+  return samplesLoading;
+}
+function sample(n, { g = 1, rate = 1, at = 0 } = {}) {
+  const a = ctx(); if (!a) return true;
+  const buf = SAMPLES[n];
+  if (!buf) { loadSamples(); return false; }
+  const s = a.createBufferSource(), v = a.createGain();
+  s.buffer = buf; s.playbackRate.value = rate * (.94 + Math.random() * .12); v.gain.value = g;
+  s.connect(v); v.connect(master); s.start(a.currentTime + at);
+  return true;
+}
+sfx.card = {
+  place() { sample('place' + (1 + Math.floor(Math.random() * 3)), { g: 1 }) || (noise(.05, { g: .5, f: 1300, q: .8 }), tone(150, .05, { g: .2 })); },
+  throw() { sample('throw', { g: .8 }) || noise(.16, { g: .25, f: 2400, q: .9 }); },
+  flick(at = 0) { sample('flick', { g: .7, at }) || noise(.03, { g: .3, f: 2000, q: 1, at }); },
+  shuffle() { if (!sample('shuffle', { g: .9 })) for (let i = 0; i < 18; i++) noise(.02, { g: .2, f: 1800 + Math.random() * 1500, q: 1.5, at: i * .04 }); },
+  collect() { sample('collect', { g: .85 }) || noise(.25, { g: .25, f: 1600, q: .8 }); },
+  trump() { [659, 880, 1175].forEach((f, i) => tone(f, .22, { type: 'triangle', g: .16, at: i * .08 })); },
+};
 function setSound(on) { S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
 /* ---------- ناوبری پایین (چهار بخش اصلی) ---------- */
@@ -383,6 +429,7 @@ document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
 window.GC = { coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
+  get hokm() { return live ? liveHokm : GC.demo.hokm; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
   PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount };
 document.addEventListener('DOMContentLoaded', () => mount());

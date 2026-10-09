@@ -14,7 +14,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from game_club import ludo  # noqa: E402
+from game_club import hokm, ludo  # noqa: E402
 
 
 def _seats(n, bots=True):
@@ -335,6 +335,137 @@ def test_shop_off_by_default():
             raise AssertionError(name + " worked while the shop is off")
         except GCError as e:
             assert e.code == "shop_off", e.code
+
+
+# ---------- حکم ----------
+def _card(s, r):
+    """خال (۰ پیک، ۱ دل، ۲ خشت، ۳ گشنیز) و ارزش (۲ تا ۱۴)."""
+    return s * 13 + (r - 2)
+
+
+def test_hokm_rules():
+    """برنده دور، اجبار به خال شروع، کوت و چرخش حاکم."""
+    S, H, D, C = 0, 1, 2, 3
+    # بدون حکم در دور: بزرگ ترین دل برنده است؛ برگ خال دیگر حتی آس هم نمی برد
+    assert hokm.trick_winner([[0, _card(H, 10)], [1, _card(H, 13)], [2, _card(C, 14)], [3, _card(H, 3)]], S) == 1
+    # یک پیک کوچک (حکم) همه را می برد؛ دو حکم: بزرگ تر
+    assert hokm.trick_winner([[0, _card(H, 14)], [1, _card(S, 2)], [2, _card(H, 13)], [3, _card(D, 14)]], S) == 1
+    assert hokm.trick_winner([[0, _card(H, 14)], [1, _card(S, 2)], [2, _card(S, 9)], [3, _card(H, 3)]], S) == 2
+
+    seats = [{"color": s, "uid": i + 1, "name": s, "bot": False} for i, s in enumerate(hokm.SEATS)]
+    st = hokm.new_state(seats, 0.0, 20, False, 7, hakem=0)
+    assert st["phase"] == "trump" and all(len(st["hands"][s]) == 5 for s in hokm.SEATS)
+    assert hokm.play(st, 0, st["hands"]["0"][0], 2.0) == "not_play_phase"
+    assert hokm.choose_trump(st, 1, S, 2.0) == "not_your_turn"
+    assert hokm.choose_trump(st, 0, S, 2.0) is None
+    assert all(len(st["hands"][s]) == 13 for s in hokm.SEATS)
+    assert sum(len(st["hands"][s]) for s in hokm.SEATS) == 52 and len({c for s in hokm.SEATS for c in st["hands"][s]}) == 52
+    # اجبار خال: دست ها را خودمان می چینیم
+    st["hands"]["0"] = [_card(H, 9)]
+    st["hands"]["1"] = [_card(H, 4), _card(S, 14)]
+    assert hokm.play(st, 1, _card(H, 4), 2.0) == "not_your_turn"
+    assert hokm.play(st, 0, _card(H, 9), 2.0) is None
+    assert hokm.legal(st, 1) == [_card(H, 4)]
+    assert hokm.play(st, 1, _card(S, 14), 2.0) == "illegal_card"
+
+    # کوت: تیم حاکم (۰ و ۲) هفت به صفر می برد = ۲ امتیاز و حاکم می ماند
+    st = hokm.new_state(seats, 0.0, 20, False, 7, hakem=0)
+    st.update(phase="collect", trick=[[0, 0]], turn=0, tricks=[7, 0], next_at=0)
+    hokm._after_collect(st, 1.0)
+    assert st["score"] == [2, 0] and st["hakem"] == 0 and st["events"][-1]["kot"]
+    # تیم حاکم کوت می شود = ۳ امتیاز برای حریف و حکم به نفر بعدی می رسد
+    st = hokm.new_state(seats, 0.0, 20, False, 7, hakem=0)
+    st.update(phase="collect", trick=[[1, 0]], turn=1, tricks=[0, 7], next_at=0)
+    hokm._after_collect(st, 1.0)
+    assert st["score"] == [0, 3] and st["hakem"] == 1
+    # برد عادی ۷ به ۴ = ۱ امتیاز؛ رسیدن به هدف = پایان بازی
+    st = hokm.new_state(seats, 0.0, 20, False, 3, hakem=2)
+    st.update(phase="collect", trick=[[0, 0]], turn=0, tricks=[7, 4], score=[2, 1], next_at=0)
+    hokm._after_collect(st, 1.0)
+    assert st["over"] and st["winner"] == 0 and st["score"] == [3, 1]
+    assert hokm.winners(st) == {"0", "2"}
+
+
+def test_hokm_bot_games_finish():
+    for _ in range(40):
+        seats = [{"color": s, "uid": None, "name": s, "bot": True} for s in hokm.SEATS]
+        st = hokm.new_state(seats, 0.0, 20, False, random.choice((3, 7)))
+        t = 0.0
+        while not st["over"]:
+            t += 2.0
+            hokm.tick(st, t)
+            assert t < 20000
+        assert max(st["score"]) >= st["target"]
+
+
+def test_hokm_service_flow():
+    """تمرین با ربات تا آخر، و میز دعوت امتیازی: اولین مهمان یار سازنده است و جایزه بین دو برنده تقسیم می شود."""
+    tmp = tempfile.mkdtemp()
+    os.environ["GAME_CLUB_DB_PATH"] = os.path.join(tmp, "gc.db")
+    from game_club import service
+    from game_club.db import GCDatabase
+
+    clock = [1000.0]
+    real = service.time.time
+    service.time.time = lambda: clock[0]
+
+    async def play_out(db, tgs, mid):
+        for _ in range(3000):
+            clock[0] += 0.7
+            done = True
+            for tg in tgs:
+                v = await service.match_view(db, tg, mid, 0)
+                if v["status"] != "playing":
+                    continue
+                done = False
+                g = v["game"]
+                if g["turn"] != v["me"]:
+                    continue
+                if g["phase"] == "trump":
+                    await service.act(db, tg, mid, "trump", 1)
+                elif g["legal"]:
+                    await service.act(db, tg, mid, "play", g["legal"][-1])
+            if done:
+                return
+        raise AssertionError("game did not finish")
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        try:
+            for tg in (1, 2, 3, 4):
+                await db.player(tg, f"p{tg}")
+                await db.credit(tg, 1000)
+            r = await service.queue_join(db, 1, {"game": "hokm", "mode": "free", "target": 3, "solo": True})
+            assert r["state"] == "matched"
+            m = await db.get_match(r["match"])
+            assert m["cfg"]["game"] == "hokm" and await db.match_game(r["match"]) == "hokm"
+            v = await service.match_view(db, 1, r["match"], 0)
+            assert v["me"] == "0" and len(v["game"]["hand"]) == 5 and sum(p["bot"] for p in v["game"]["players"].values()) == 3
+            await play_out(db, [1], r["match"])
+            assert (await db.get_match(r["match"]))["status"] == "over"
+
+            cfg = {"game": "hokm", "mode": "stake", "entry": 100, "target": 3}
+            inv = await service.invite_create(db, 1, cfg)
+            for tg in (2, 3, 4):
+                await service.invite_join(db, tg, inv["code"])
+            rows = {r["tg_id"]: r["color"] for r in await db.match_players(inv["match"])}
+            assert rows == {1: "0", 2: "2", 3: "1", 4: "3"}, rows          # ۲ یار سازنده است
+            assert [(await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)] == [900] * 4
+            await play_out(db, [1, 2, 3, 4], inv["match"])
+            m = await db.get_match(inv["match"])
+            win = m["state"]["winner"]
+            pts = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)}
+            winners = {tg for tg, c in rows.items() if int(c) % 2 == win}
+            assert all(pts[tg] == 1100 for tg in winners) and all(pts[tg] == 900 for tg in pts if tg not in winners), pts
+            assert sum(pts.values()) == 4000
+            await service.settle(db, m)                                      # تسویه دوباره چیزی جابه جا نمی کند
+            assert {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)} == pts
+        finally:
+            await db.close()
+            service.time.time = real
+
+    asyncio.run(run())
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):

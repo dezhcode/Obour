@@ -17,6 +17,7 @@
 .steps li{display:grid;grid-template-columns:56px minmax(0,1fr);gap:var(--space-3);align-items:center}
 .steps .pic{width:56px;height:56px;border-radius:var(--radius-md);background:var(--surface-sunk);display:grid;place-items:center;overflow:hidden}
 .steps .pic svg{width:46px;height:46px}
+.steps .pic i svg{width:26px;height:26px;color:var(--sky-deep)}
 .steps b{display:block;font-weight:900;line-height:22px}
 .steps p{font-size:13px;line-height:21px;color:var(--ink-muted)}
 .club{display:grid;gap:var(--space-3);margin:0;padding:0;list-style:none}
@@ -40,6 +41,19 @@
       <div class="route"><div class="art" id="routeArt"></div>
         <p>تو همیشه <b>زرد</b> هستی، پایین سمت چپ. مهره‌هایت در جهت فلش‌ها دور صفحه می‌چرخند، وارد <b>راهروی زرد</b> می‌شوند و به مرکز می‌رسند. هر کس زودتر همهٔ مهره‌هایش را به مرکز برساند، برنده است.</p></div>
       <ol class="steps" id="steps"></ol>
+    </div>
+  </section>
+
+  <section aria-labelledby="hHokm" id="hokm">
+    <div class="sec-head"><h2 id="hHokm" class="on-ground">حکم را چطور بازی کنم؟</h2></div>
+    <div class="card">
+      <ol class="steps">
+        <li><span class="pic"><i data-ic="users"></i></span><div><b>دو تیم دونفره</b><p>یارت روبه‌رویت می‌نشیند و دو حریف دو طرفت. نوبت خلاف عقربه‌های ساعت می‌چرخد.</p></div></li>
+        <li><span class="pic"><i data-ic="spark"></i></span><div><b>حاکم و حکم</b><p>اول دست به هر نفر پنج برگ می‌رسد. حاکم از روی برگ‌هایش یک خال را «حکم» می‌کند و بعد بقیهٔ برگ‌ها پخش می‌شود.</p></div></li>
+        <li><span class="pic"><i data-ic="card"></i></span><div><b>از خال بیاور</b><p>هر دور را یک نفر شروع می‌کند. اگر از آن خال داری باید همان را بیاوری؛ اگر نداری، حکم بزن یا هر برگی.</p></div></li>
+        <li><span class="pic"><i data-ic="trophy"></i></span><div><b>برنده دور و دست</b><p>بزرگ‌ترین حکم، وگرنه بزرگ‌ترین برگِ خال شروع، دور را می‌برد. تیمی که زودتر هفت دور ببرد دست را برده.</p></div></li>
+        <li><span class="pic"><i data-ic="bolt"></i></span><div><b>کوت</b><p>اگر تیم دیگر هیچ دوری نبرده باشد کوت است: دو امتیاز، و اگر تیم حاکم کوت شود سه امتیاز. تیمی که اول به ۳ یا ۷ دست برسد بازی را می‌برد.</p></div></li>
+      </ol>
     </div>
   </section>
 
