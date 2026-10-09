@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from . import bridge, service
+from . import admin, bridge, service
 from .bot import gcrt
 from .config import gc
 from .db import pic_url
@@ -47,6 +47,19 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
     player = await gdb.player(tg, full or user.username or "بازیکن", user.username or None,
                               getattr(user, "photo_url", None))
     ob = _obour()
+    await admin.sync_settings(gdb)          # تنظیمات پنل مدیریت (هر ۱۰ ثانیه)
+    await admin.resume_if_needed(gdb)       # پیام همگانی نیمه کاره (هر دقیقه)
+
+    # ---------- پنل مدیریت ----------
+    if name == "admin" or name.startswith("admin/"):
+        return await admin.handle(name, method, tg, q, body, gdb)
+    # کاربر مسدود فقط صفحه خانه را می بیند (با پیام مسدودی)
+    if player.get("banned") and name != "me":
+        raise GCError("banned")
+    # تعمیرات: میز تازه ساخته نمی شود؛ بازی های در جریان ادامه دارند
+    if gc.maintenance and method == "POST" and not admin.is_admin(tg) and \
+            re.match(r"^(ludo|hokm|football)/(queue|queue/bots|invite|join)$", name):
+        raise GCError("maintenance")
 
     # ---------- خود من ----------
     if name == "me" and method == "GET":
@@ -63,6 +76,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "active_game": await gdb.match_game(active) if active else None,
             "queue": bool(q_row and not q_row["claimed"]),
             "tables": await service.my_tables(gdb, tg),
+            "is_admin": admin.is_admin(tg), "banned": bool(player.get("banned")),
+            "notice": gc.notice, "maintenance": gc.maintenance,
             "settings": {"stake": gc.stake_enabled, "shop": gc.shop_enabled, "entries": list(gc.entries), "packs": list(gc.charge_packs),
                          "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,
                          "bot": gc.username, "obour_bot": await ob.db.get_setting("bot_username", "")},

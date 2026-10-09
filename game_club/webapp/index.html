@@ -95,6 +95,13 @@ a.game:active{transform:scale(.985)}
 .sec-head h2{display:flex;align-items:center;gap:8px}
 .sec-head .tag{font-size:11px;padding:0 8px}
 .top3 .row{background:var(--surface-sunk)}
+.note-bar{display:flex;align-items:center;gap:var(--space-2);background:var(--coin-tint);color:var(--coin-text);border-radius:var(--radius-lg);padding:var(--space-3);font-weight:800;font-size:13.5px;line-height:22px}
+.note-bar svg{width:20px;height:20px;flex:none}
+.note-bar.bad{background:#FFE3E6;color:var(--danger)}
+.adm-link{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-3)}
+.adm-link .ic-box{background:var(--obour-night);color:var(--obour-aqua);font-size:20px}
+.adm-link b{display:block;font-weight:900}
+.adm-link small{display:block;font-size:12px;color:var(--ink-muted)}
 </style>
 </head>
 <body>
@@ -111,6 +118,8 @@ a.game:active{transform:scale(.985)}
   </div>
 </header>
 <main class="page home-page">
+  <div class="note-bar" id="noteBar" hidden><span id="noteIc"></span><span id="noteTx"></span></div>
+  <a class="card card-link adm-link" id="admLink" href="admin.html" hidden><span class="ic-box">⚙︎</span><span><b>پنل مدیریت</b><small>کاربران، میزها، پیام همگانی و تنظیمات</small></span><span aria-hidden="true">‹</span></a>
   <section id="tablesSec" aria-labelledby="hTables" hidden>
     <div class="sec-head"><h2 id="hTables">میزهای تو</h2></div>
     <div class="tables" id="tables" aria-live="polite"></div>
@@ -255,6 +264,11 @@ a.game:active{transform:scale(.985)}
       stakeOn = me.settings.stake; renderMode();
       notify = me.notify || []; document.querySelectorAll('[data-notify]').forEach(b => b._sync());
       renderTables(me.tables || []);
+      // اطلاعیه ادمین، حالت تعمیرات، حساب مسدود و ورود به پنل مدیریت
+      const note = me.banned ? 'حساب تو در Game Club مسدود شده است. برای پیگیری به پشتیبانی عبور پیام بده.'
+        : me.maintenance ? 'در حال به‌روزرسانی هستیم؛ تا چند دقیقه دیگر میز تازه ساخته نمی‌شود.' : (me.notice || '');
+      if (note) { $('noteTx').textContent = note; $('noteIc').innerHTML = icon(me.banned ? 'shield' : me.maintenance ? 'clock' : 'bell'); $('noteBar').hidden = false; $('noteBar').classList.toggle('bad', !!me.banned); }
+      $('admLink').hidden = !me.is_admin;
       setInterval(async () => { if (document.hidden) return; try { renderTables((await GC.data.me()).tables || []); } catch (e) {} }, 5000);
     } catch (e) { toast(errText(e)); }
     try {

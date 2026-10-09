@@ -26,7 +26,7 @@ from .config import gc
 log = logging.getLogger("gameclub.wsgi")
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webapp")
-PAGES = {"index.html", "wallet.html", "leaderboard.html", "shop.html", "help.html", "ludo-lobby.html", "ludo.html", "hokm-lobby.html", "hokm.html", "football-lobby.html", "football.html"}
+PAGES = {"index.html", "wallet.html", "leaderboard.html", "shop.html", "help.html", "ludo-lobby.html", "ludo.html", "hokm-lobby.html", "hokm.html", "football-lobby.html", "football.html", "admin.html"}
 
 # مثل مینی اپ عبور: فقط اسکریپت SDK تلگرام از بیرون، بقیه از خود سرور
 _CSP = (
@@ -204,7 +204,8 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
         if not _rate_ok(user.id):
             return _json(start_response, "429 Too Many Requests", {"error": "rate"})
         name = sub[5:].strip("/")
-        body = _body(environ) if method == "POST" else {}
+        # متن پیام همگانی پنل مدیریت بلندتر است
+        body = _body(environ, 32768 if name.startswith("admin") else 8192) if method == "POST" else {}
         try:
             data = runtime.run(api_handle(name, method, user, _query(environ), body), timeout=45)
             return _json(start_response, "200 OK", data, environ)

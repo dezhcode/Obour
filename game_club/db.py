@@ -130,6 +130,43 @@ CREATE TABLE IF NOT EXISTS locks (
   key TEXT PRIMARY KEY,
   expires_at REAL NOT NULL
 );
+
+-- پنل مدیریت: هر کار ادمین یک ردیف (چه کسی، چه کاری، روی چه کسی/میزی)
+CREATE TABLE IF NOT EXISTS admin_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  target TEXT NOT NULL DEFAULT '',
+  detail TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS admin_log_at ON admin_log(id);
+
+-- تنظیماتی که از پنل عوض می شوند و بر .env مقدم اند
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- پیام همگانی: متن از پنل یا کپی یک پیام از ربات؛ پیشرفت با cursor روی tg_id
+CREATE TABLE IF NOT EXISTS broadcasts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin INTEGER NOT NULL,
+  text TEXT NOT NULL DEFAULT '',
+  src_chat INTEGER,
+  src_msg INTEGER,
+  button TEXT NOT NULL DEFAULT '',
+  target TEXT NOT NULL DEFAULT 'all',
+  status TEXT NOT NULL DEFAULT 'active',
+  cursor INTEGER NOT NULL DEFAULT 0,
+  total INTEGER NOT NULL DEFAULT 0,
+  sent INTEGER NOT NULL DEFAULT 0,
+  failed INTEGER NOT NULL DEFAULT 0,
+  blocked INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  finished_at INTEGER
+);
 """
 
 
@@ -167,9 +204,11 @@ class GCDatabase:
         # ستون های تازه روی دیتابیس قدیمی: عکس پروفایل تلگرام و کلید آدرس عکس
         cur = await self._conn.execute("PRAGMA table_info(players)")
         have = {r[1] for r in await cur.fetchall()}
-        for col in ("photo", "pic"):
+        for col in ("photo", "pic", "ban_note"):
             if col not in have:
                 await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
+        if "banned" not in have:   # مسدود شده توسط ادمین
+            await self._conn.execute("ALTER TABLE players ADD COLUMN banned INTEGER NOT NULL DEFAULT 0")
         await self._conn.execute("CREATE INDEX IF NOT EXISTS players_pic ON players(pic)")
         # گفتگوی میزهایی که تمام یا بسته شده اند (مثلا از پیش از این نسخه) پاک می شود
         await self._conn.execute(
@@ -227,6 +266,9 @@ class GCDatabase:
             if time.monotonic() > end:
                 return False
             await asyncio.sleep(0.05)
+
+    async def extend_lock(self, key: str, ttl: float) -> None:
+        await self.execute("UPDATE locks SET expires_at = ? WHERE key = ?", (time.time() + ttl, key))
 
     async def unlock(self, key: str) -> None:
         await self.execute("DELETE FROM locks WHERE key = ?", (key,))
@@ -497,6 +539,167 @@ class GCDatabase:
             "prize": (await q("SELECT COALESCE(SUM(amount),0) AS n FROM ledger WHERE kind='prize' AND status='done' AND created_at >= ?", since))["n"],
             "shop": (await q("SELECT COALESCE(-SUM(amount),0) AS n FROM ledger WHERE kind IN ('shop','transfer') AND status='done' AND created_at >= ?", since))["n"],
         }
+
+    # ---------- پنل مدیریت ----------
+    async def admin_stats(self, now: int) -> dict:
+        """آمار صفحه اول پنل: امروز، ۷ روز و کل."""
+        q = lambda sql, *a: self.one(sql, a)  # noqa: E731
+        day, week = now - 86400, now - 7 * 86400
+        out = {"all": await self.stats(0), "day": await self.stats(day), "week": await self.stats(week)}
+        out["new_day"] = (await q("SELECT COUNT(*) AS n FROM players WHERE created_at >= ?", day))["n"]
+        out["new_week"] = (await q("SELECT COUNT(*) AS n FROM players WHERE created_at >= ?", week))["n"]
+        out["active_day"] = (await q("SELECT COUNT(*) AS n FROM players WHERE seen_at >= ?", day))["n"]
+        out["active_week"] = (await q("SELECT COUNT(*) AS n FROM players WHERE seen_at >= ?", week))["n"]
+        out["banned"] = (await q("SELECT COUNT(*) AS n FROM players WHERE banned = 1"))["n"]
+        out["online"] = (await q("SELECT COUNT(DISTINCT tg_id) AS n FROM presence WHERE seen >= ?", now - 60))["n"]
+        out["by_game"] = {r["game"]: r["n"] for r in await self.all(
+            "SELECT m.game AS game, COUNT(DISTINCT r.match_id) AS n FROM results r JOIN matches m ON m.id = r.match_id "
+            "WHERE r.created_at >= ? GROUP BY m.game", (week,))}
+        out["live_by_game"] = {r["game"]: r["n"] for r in await self.all(
+            "SELECT game, COUNT(*) AS n FROM matches WHERE status = 'playing' GROUP BY game")}
+        return out
+
+    async def admin_daily(self, now: int, days: int = 14) -> list[dict]:
+        """نمودار روزانه: بازی تمام شده، بازیکن تازه و شارژ هر روز (روز به وقت تهران تقریبی: UTC+3:30)."""
+        tz = 12600
+        start = (now + tz) // 86400 * 86400 - tz - (days - 1) * 86400
+        bucket = lambda col: f"CAST(({col} - {start}) / 86400 AS INTEGER)"  # noqa: E731
+        games = {r["d"]: r["n"] for r in await self.all(
+            f"SELECT {bucket('created_at')} AS d, COUNT(DISTINCT match_id) AS n FROM results WHERE created_at >= ? GROUP BY d", (start,))}
+        new = {r["d"]: r["n"] for r in await self.all(
+            f"SELECT {bucket('created_at')} AS d, COUNT(*) AS n FROM players WHERE created_at >= ? GROUP BY d", (start,))}
+        charge = {r["d"]: r["n"] for r in await self.all(
+            f"SELECT {bucket('created_at')} AS d, SUM(amount) AS n FROM ledger WHERE kind = 'charge' AND status = 'done' "
+            "AND created_at >= ? GROUP BY d", (start,))}
+        return [{"t": start + i * 86400, "games": games.get(i, 0), "new": new.get(i, 0), "charge": charge.get(i, 0) or 0}
+                for i in range(days)]
+
+    async def admin_players(self, q: str = "", sort: str = "recent", filt: str = "all",
+                            offset: int = 0, limit: int = 30) -> list[dict]:
+        where, args = [], []
+        q = (q or "").strip().lstrip("@")
+        if q:
+            if q.isdigit():
+                where.append("(tg_id = ? OR name LIKE ?)")
+                args += [int(q), f"%{q}%"]
+            else:
+                where.append("(name LIKE ? OR username LIKE ?)")
+                args += [f"%{q}%", f"%{q}%"]
+        if filt == "banned":
+            where.append("banned = 1")
+        elif filt == "active":
+            where.append("seen_at >= ?")
+            args.append(int(time.time()) - 7 * 86400)
+        elif filt == "rich":
+            where.append("points > 0")
+        order = {"recent": "seen_at DESC", "new": "created_at DESC", "points": "points DESC",
+                 "games": "games DESC", "wins": "wins DESC"}.get(sort, "seen_at DESC")
+        sql = ("SELECT tg_id, name, username, av, pic, points, games, wins, banned, created_at, seen_at FROM players"
+               + (" WHERE " + " AND ".join(where) if where else "") + f" ORDER BY {order}, tg_id LIMIT ? OFFSET ?")
+        return await self.all(sql, (*args, limit, offset))
+
+    async def set_ban(self, tg_id: int, banned: bool, note: str = "") -> bool:
+        return bool(await self.execute("UPDATE players SET banned = ?, ban_note = ? WHERE tg_id = ?",
+                                       (1 if banned else 0, note[:200] if banned else "", tg_id)))
+
+    async def ledger_of(self, tg_id: int, limit: int = 40) -> list[dict]:
+        return await self.all("SELECT id, kind, amount, note, status, created_at FROM ledger WHERE tg_id = ? "
+                              "ORDER BY id DESC LIMIT ?", (tg_id, limit))
+
+    async def ledger_recent(self, kind: str = "", offset: int = 0, limit: int = 40) -> list[dict]:
+        where, args = "", []
+        if kind:
+            where, args = "WHERE l.kind = ?", [kind]
+        return await self.all(
+            "SELECT l.id, l.tg_id, l.kind, l.amount, l.note, l.status, l.created_at, p.name FROM ledger l "
+            f"LEFT JOIN players p ON p.tg_id = l.tg_id {where} ORDER BY l.id DESC LIMIT ? OFFSET ?", (*args, limit, offset))
+
+    async def results_of(self, tg_id: int, limit: int = 15) -> list[dict]:
+        return await self.all(
+            "SELECT r.match_id, r.won, r.prize, r.created_at, m.game, m.cfg FROM results r "
+            "LEFT JOIN matches m ON m.id = r.match_id WHERE r.tg_id = ? ORDER BY r.created_at DESC LIMIT ?", (tg_id, limit))
+
+    async def matches_by_status(self, statuses: tuple[str, ...], offset: int = 0, limit: int = 30) -> list[dict]:
+        marks = ",".join("?" * len(statuses))
+        rows = await self.all(f"SELECT id FROM matches WHERE status IN ({marks}) ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+                              (*statuses, limit, offset))
+        out = []
+        for r in rows:
+            m = await self.get_match(r["id"])
+            if m:
+                out.append(m)
+        return out
+
+    async def match_players_named(self, match_id: str) -> list[dict]:
+        return await self.all(
+            "SELECT mp.tg_id, mp.color, mp.paid, mp.active, p.name, p.username FROM match_players mp "
+            "LEFT JOIN players p ON p.tg_id = mp.tg_id WHERE mp.match_id = ?", (match_id,))
+
+    async def log_admin(self, admin: int, action: str, target: str = "", detail: str = "") -> None:
+        await self.insert("INSERT INTO admin_log(admin, action, target, detail, created_at) VALUES(?,?,?,?,?)",
+                          (admin, action, str(target)[:80], str(detail)[:400], int(time.time())))
+
+    async def admin_log(self, offset: int = 0, limit: int = 40) -> list[dict]:
+        return await self.all("SELECT * FROM admin_log ORDER BY id DESC LIMIT ? OFFSET ?", (limit, offset))
+
+    async def settings_all(self) -> dict:
+        return {r["key"]: r["value"] for r in await self.all("SELECT key, value FROM settings")}
+
+    async def setting_put(self, key: str, value: str | None) -> None:
+        if value is None:
+            await self.execute("DELETE FROM settings WHERE key = ?", (key,))
+        else:
+            await self.execute("INSERT INTO settings(key, value, updated_at) VALUES(?,?,?) ON CONFLICT(key) "
+                               "DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+                               (key, value, int(time.time())))
+
+    # پیام همگانی
+    @staticmethod
+    def _bc_where(target: str) -> tuple[str, list]:
+        """شرط مخاطبان: all، seen:<ts> (فعال از آن زمان)، game:<name> (کسانی که آن بازی را کرده اند)، id:<tg>"""
+        kind, _, arg = (target or "all").partition(":")
+        if kind == "seen" and arg.isdigit():
+            return "banned = 0 AND seen_at >= ?", [int(arg)]
+        if kind == "game" and arg:
+            return ("banned = 0 AND tg_id IN (SELECT mp.tg_id FROM match_players mp JOIN matches m ON m.id = mp.match_id "
+                    "WHERE m.game = ?)", [arg])
+        if kind == "id" and arg.isdigit():
+            return "tg_id = ?", [int(arg)]
+        return "banned = 0", []
+
+    async def bc_count(self, target: str) -> int:
+        w, a = self._bc_where(target)
+        row = await self.one(f"SELECT COUNT(*) AS n FROM players WHERE {w}", tuple(a))
+        return int(row["n"]) if row else 0
+
+    async def bc_targets(self, target: str, after: int, limit: int) -> list[int]:
+        w, a = self._bc_where(target)
+        rows = await self.all(f"SELECT tg_id FROM players WHERE {w} AND tg_id > ? ORDER BY tg_id LIMIT ?", (*a, after, limit))
+        return [r["tg_id"] for r in rows]
+
+    async def bc_create(self, admin: int, target: str, text: str = "", button: str = "",
+                        src_chat: int | None = None, src_msg: int | None = None) -> int:
+        total = await self.bc_count(target)
+        return await self.insert(
+            "INSERT INTO broadcasts(admin, text, src_chat, src_msg, button, target, total, created_at) VALUES(?,?,?,?,?,?,?,?)",
+            (admin, text, src_chat, src_msg, button, target, total, int(time.time())))
+
+    async def bc_get(self, bid: int) -> dict | None:
+        return await self.one("SELECT * FROM broadcasts WHERE id = ?", (bid,))
+
+    async def bc_list(self, limit: int = 15) -> list[dict]:
+        return await self.all("SELECT * FROM broadcasts ORDER BY id DESC LIMIT ?", (limit,))
+
+    async def bc_active(self) -> list[dict]:
+        return await self.all("SELECT * FROM broadcasts WHERE status = 'active' ORDER BY id")
+
+    async def bc_progress(self, bid: int, cursor: int, sent: int, failed: int, blocked: int) -> None:
+        await self.execute("UPDATE broadcasts SET cursor = ?, sent = sent + ?, failed = failed + ?, blocked = blocked + ? "
+                           "WHERE id = ?", (cursor, sent, failed, blocked, bid))
+
+    async def bc_finish(self, bid: int, status: str) -> bool:
+        return bool(await self.execute("UPDATE broadcasts SET status = ?, finished_at = ? WHERE id = ? AND status = 'active'",
+                                       (status, int(time.time()), bid)))
 
     # ---------- خبرم کن ----------
     async def toggle_notify(self, tg_id: int, game: str) -> bool:
