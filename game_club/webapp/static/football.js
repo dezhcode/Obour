@@ -39,10 +39,25 @@ function emblem(team, kit) {
     default: return '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#8b93a3"/><circle cx="16" cy="16" r="6" fill="#c9ced6"/></svg>';
   }
 }
-const discHtml = (team, kit, size, cls = '') => `<span class="fd ${cls}" style="width:${size}px;height:${size}px;padding:${Math.round(size * .1)}px">${emblem(team, kit)}</span>`;
-const BALL_SVG = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#fff" stroke="#1c1f2a" stroke-width="1.2"/><path d="M12 7.2l3.3 2.4-1.3 3.9H10l-1.3-3.9z" fill="#1c1f2a"/><path d="M12 1.2v6M15.3 9.6l5.4-2M14 13.5l3.3 4.6M10 13.5l-3.3 4.6M8.7 9.6l-5.4-2" stroke="#1c1f2a" stroke-width="1.1"/></svg>';
+// مهره سه بعدی: لبه فلزی با ضخامت و سایه، نشان تیم فرورفته و براق (ظاهر در football.css)
+const discHtml = (team, kit, size, cls = '') => `<span class="fd ${cls}" style="width:${size}px;height:${size}px;--d:${size}px"><span class="in">${emblem(team, kit)}</span></span>`;
+// توپ: کره سایه دار با برق، نقش وصله ها هنگام حرکت می چرخد
+function ballSvg() {
+  const id = 'b' + (++uid);
+  return `<svg viewBox="0 0 40 40"><defs><radialGradient id="${id}g" cx="38%" cy="32%" r="72%"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#eef0f3"/><stop offset="1" stop-color="#8f979f"/></radialGradient>
+    <radialGradient id="${id}s" cx="50%" cy="50%" r="50%"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient><clipPath id="${id}c"><circle cx="20" cy="20" r="18.6"/></clipPath></defs>
+    <circle cx="20" cy="20" r="19" fill="url(#${id}g)"/>
+    <g clip-path="url(#${id}c)"><g class="rot" style="transform-origin:20px 20px">
+      <path d="M20 13.2l6.4 4.7-2.5 7.5h-7.8l-2.5-7.5z" fill="#20242e"/>
+      <path d="M20 13.2V3.5M26.4 17.9l9.4-3M23.9 25.4l5.8 8M16.1 25.4l-5.8 8M13.6 17.9l-9.4-3" stroke="#20242e" stroke-width="1.6"/>
+      <path d="M16 1.5l8 0 3 5-7 3.5-7-3.5zM36.5 10l3 9-4 5-5-6.5 1-7zM33 32l-6 6.5-6-1.5 1.5-7 8-1.5zM7 32l6 6.5 6-1.5-1.5-7-8-1.5zM3.5 10l-3 9 4 5 5-6.5-1-7z" fill="#20242e"/>
+    </g></g>
+    <circle cx="20" cy="20" r="19" fill="url(#${id}s)"/><ellipse cx="14" cy="11.5" rx="6" ry="4" fill="#fff" opacity=".75" transform="rotate(-30 14 11.5)"/>
+    <circle cx="20" cy="20" r="18.6" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".8"/></svg>`;
+}
 
 let mid = store.get('fmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
+let spin = 0, spinAt = null;
 let s = .5, cur = [], els = [], teams = {}, deadlineAt = 0, readyAt = 0, turnMs = 15000, warned = false, kickedAt = 0, aim = null;
 const opp = () => (me === '0' ? '1' : '0');
 const flip = () => me === '1';
@@ -54,7 +69,7 @@ const toView = ([x, y]) => flip() ? [W - x, H - y] : [x, y];
 /* ---------- زمین ---------- */
 function fit() {
   const r = $('arena').getBoundingClientRect();
-  const k = Math.min((r.width - 2 * 30 - 16) / W, (r.height - 14) / (H + GOAL_D * 1.7));
+  const k = Math.min((r.width - 2 * 36 - 10) / W, (r.height - 14) / (H + GOAL_D * 1.6));
   if (k > 0 && Math.abs(k - s) > .002) { s = k; build(); }
 }
 function line(st) { const d = document.createElement('div'); d.className = 'fb-ln'; d.style.cssText = st; return d; }
@@ -63,28 +78,43 @@ function build() {
   pitch.style.width = W * s + 'px'; pitch.style.height = H * s + 'px'; pitch.style.setProperty('--s', s);
   pitch.innerHTML = '';
   const px = v => (v * s).toFixed(1) + 'px';
-  const b = Math.max(1.5, 2 * s * 1.6) + 'px';
+  const b = Math.max(1.5, 2.2 * s * 1.5).toFixed(1) + 'px';
+  const arc = (cx, cy, r, clip) => line(`left:${px(cx - r)};top:${px(cy - r)};width:${px(2 * r)};height:${px(2 * r)};border-width:${b};border-radius:50%;clip-path:${clip}`);
+  const spot = (cx, cy) => line(`left:${px(cx) };top:${px(cy)};width:${px(9)};height:${px(9)};margin:${px(-4.5)} 0 0 ${px(-4.5)};border-radius:50%;background:rgba(255,255,255,.9)`);
+  const cut = ((130 - (105 - 72)) / 144 * 100).toFixed(1);
   pitch.append(
-    line(`left:0;right:0;top:${px(MID)};border-top-width:${b};transform:translateY(-50%)`),
-    line(`left:${px(W / 2 - 100)};top:${px(MID - 100)};width:${px(200)};height:${px(200)};border-width:${b};border-radius:50%`),
-    line(`left:${px(W / 2 - 5)};top:${px(MID - 5)};width:${px(10)};height:${px(10)};border-radius:50%;background:rgba(255,255,255,.85)`),
+    line(`left:${px(10)};right:${px(10)};top:0;bottom:0;border-width:${b}`),
+    line(`left:${px(10)};right:${px(10)};top:${px(MID)};border-top-width:${b};transform:translateY(-50%)`),
+    arc(W / 2, MID, 100, 'none'), spot(W / 2, MID),
     line(`left:${px(150)};top:0;width:${px(300)};height:${px(130)};border-width:0 ${b} ${b} ${b}`),
-    line(`left:${px(240)};top:${px(130)};width:${px(120)};height:${px(40)};border-width:0 ${b} ${b} ${b};border-radius:0 0 ${px(60)} ${px(60)}`),
+    line(`left:${px(215)};top:0;width:${px(170)};height:${px(55)};border-width:0 ${b} ${b} ${b}`),
+    spot(W / 2, 105), arc(W / 2, 105, 72, `inset(${cut}% 0 0 0)`),
     line(`left:${px(150)};bottom:0;width:${px(300)};height:${px(130)};border-width:${b} ${b} 0 ${b}`),
-    line(`left:${px(240)};bottom:${px(130)};width:${px(120)};height:${px(40)};border-width:${b} ${b} 0 ${b};border-radius:${px(60)} ${px(60)} 0 0`),
+    line(`left:${px(215)};bottom:0;width:${px(170)};height:${px(55)};border-width:${b} ${b} 0 ${b}`),
+    spot(W / 2, H - 105), arc(W / 2, H - 105, 72, `inset(0 0 ${cut}% 0)`),
+    arc(10, 0, 24, 'inset(50% 0 0 50%)'), arc(W - 10, 0, 24, 'inset(50% 50% 0 0)'),
+    arc(10, H, 24, 'inset(0 0 50% 50%)'), arc(W - 10, H, 24, 'inset(0 50% 50% 0)'),
   );
-  const net = (cls, top) => { const d = document.createElement('div'); d.className = 'fb-net ' + cls; d.style.cssText = `left:${px(GX0)};${top};width:${px(GOAL_W)};height:${px(GOAL_D)}`; pitch.appendChild(d); return d; };
-  net('top', `top:${px(-GOAL_D)}`); net('bot', `bottom:${px(-GOAL_D)}`);
+  const net = (cls, pos) => {
+    const d = document.createElement('div'); d.className = 'fb-net ' + cls;
+    d.style.cssText = `left:${px(GX0)};${pos};width:${px(GOAL_W)};height:${px(GOAL_D)}`;
+    d.innerHTML = '<i class="mesh"></i><i class="bar"></i><i class="post l"></i><i class="post r"></i>';
+    pitch.appendChild(d); return d;
+  };
+  net('fb-goal-top', `top:${px(-GOAL_D)}`); net('fb-goal-bot', `bottom:${px(-GOAL_D)}`);
+  const flag = (cls, col) => { const d = document.createElement('div'); d.className = 'fb-flag ' + cls; d.innerHTML = `<svg viewBox="0 0 14 22"><path d="M2 21V2" stroke="#e9edf1" stroke-width="1.6" stroke-linecap="round"/><path d="M2.6 2.5l9 3.2-9 3.3z" fill="${col}"/></svg>`; pitch.appendChild(d); };
+  flag('tl', '#E63946'); flag('tr', '#E63946'); flag('bl', '#2F80ED'); flag('br', '#2F80ED');
   els = [];
   for (let i = 0; i < 13; i++) {
     const w = document.createElement('div');
-    if (i === BALL) { w.innerHTML = `<span class="fb-ball" style="width:${px(2 * BALL_R)};height:${px(2 * BALL_R)}">${BALL_SVG}</span>`; }
+    if (i === BALL) { w.innerHTML = `<span class="fb-ball" style="width:${px(2 * BALL_R)};height:${px(2 * BALL_R)}">${ballSvg()}</span>`; }
     else { const t = teams[i < 6 ? '0' : '1'] || {}; w.innerHTML = discHtml(t.team, t.kit, 2 * DISC_R * s, mine(i) ? 'me pulse' : ''); }
     const el = w.firstElementChild; el.dataset.i = i; pitch.appendChild(el); els.push(el);
     if (cur[i]) setPos(i, cur[i]);
   }
+  // نشانه گیری زیر مهره ها و توپ کشیده می شود
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('fb-aim'); svg.id = 'aim';
-  svg.setAttribute('viewBox', `0 0 ${W * s} ${H * s}`); pitch.appendChild(svg);
+  svg.setAttribute('viewBox', `0 0 ${W * s} ${H * s}`); pitch.insertBefore(svg, els[0]);
   syncTurn();
 }
 function setPos(i, p) {
@@ -92,6 +122,12 @@ function setPos(i, p) {
   const el = els[i]; if (!el) return;
   const [x, y] = toView(p), r = i === BALL ? BALL_R : DISC_R;
   el.style.transform = `translate(${((x - r) * s).toFixed(1)}px,${((y - r) * s).toFixed(1)}px)`;
+  if (i === BALL) {
+    // غلتیدن: هر چه توپ جلوتر برود وصله ها بیشتر می چرخند
+    if (spinAt) spin += Math.hypot(x - spinAt[0], y - spinAt[1]) / BALL_R * 57.3 * (x >= spinAt[0] ? 1 : -1);
+    spinAt = [x, y];
+    const g = el.querySelector('.rot'); if (g) g.style.transform = `rotate(${spin.toFixed(1)}deg)`;
+  }
 }
 function setAll(pos) { pos.forEach((p, i) => setPos(i, p)); }
 function setTeams(t) {
@@ -147,13 +183,14 @@ function drawAim(dx, dy) {
   const ux = d ? -dx / d : 0, uy = d ? -dy / d : -1;
   const col = p < .5 ? '#ffffff' : p < .85 ? '#F5C451' : '#FF6B5A';
   const L = r + 10 + p * R * .95, ex = aim.cx + ux * L, ey = aim.cy + uy * L;
-  const sx = aim.cx + ux * (r + 6), sy = aim.cy + uy * (r + 6);
+  const sx = aim.cx + ux * r * .35, sy = aim.cy + uy * r * .35;  // از زیر مهره بیرون می آید
   const pl = Math.min(d, R), qx = aim.cx - ux * pl, qy = aim.cy - uy * pl;
   const ah = 9 + p * 5, bx = ex - ux * ah, by = ey - uy * ah;
   svg.innerHTML = `<circle cx="${aim.cx}" cy="${aim.cy}" r="${R}" fill="rgba(0,0,0,.18)" stroke="rgba(255,255,255,.25)" stroke-width="2"/>
     ${d > 4 ? `<line x1="${aim.cx}" y1="${aim.cy}" x2="${qx}" y2="${qy}" stroke="#fff" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" opacity=".85"/>
+    <g filter="drop-shadow(0 2px 2px rgba(0,0,0,.45))"><line x1="${sx}" y1="${sy}" x2="${bx}" y2="${by}" stroke="rgba(0,0,0,.35)" stroke-width="${8 + p * 3}" stroke-linecap="round"/>
     <line x1="${sx}" y1="${sy}" x2="${bx}" y2="${by}" stroke="${col}" stroke-width="${5 + p * 3}" stroke-linecap="round"/>
-    <path d="M${ex} ${ey}L${bx - uy * ah * .7} ${by + ux * ah * .7}L${bx + uy * ah * .7} ${by - ux * ah * .7}z" fill="${col}"/>` : ''}`;
+    <path d="M${ex} ${ey}L${bx - uy * ah * .75} ${by + ux * ah * .75}L${bx + uy * ah * .75} ${by - ux * ah * .75}z" fill="${col}" stroke="rgba(0,0,0,.35)" stroke-width="1.5" stroke-linejoin="round"/></g>` : ''}`;
   aim.p = p; aim.dx = ux; aim.dy = uy;
 }
 function endAim() { if (aim && els[aim.i]) els[aim.i].classList.remove('aim'); aim = null; const svg = $('aim'); if (svg) svg.innerHTML = ''; }
@@ -229,7 +266,7 @@ async function showGoal(e) {
   const scoredMe = e.c === me, sc = e.score;
   const by = P()[e.by] || {};
   document.querySelectorAll('.fb-net').forEach(n => { n.classList.remove('shake'); void n.offsetWidth; });
-  const goalNet = document.querySelector(scoredMe ? '.fb-net.top' : '.fb-net.bot'); if (goalNet) goalNet.classList.add('shake');
+  const goalNet = document.querySelector(scoredMe ? '.fb-goal-top' : '.fb-goal-bot'); if (goalNet) goalNet.classList.add('shake');
   document.querySelectorAll('.fb-crowd').forEach(c => { c.classList.remove('cheer'); void c.offsetWidth; c.classList.add('cheer'); });
   sfx.fb.goal(); haptic(scoredMe ? 'success' : 'warning');
   await sleep(450);
