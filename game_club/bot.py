@@ -98,7 +98,10 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
     u = message.from_user
     if not u:
         return
-    await gdb.player(u.id, _name(message), u.username)
+    me = await gdb.player(u.id, _name(message), u.username)
+    if me.get("banned"):
+        await message.answer("حساب تو در Game Club مسدود شده. اگر فکر می‌کنی اشتباه شده، به پشتیبانی عبور پیام بده.")
+        return
     arg = (command.args or "").strip()
     game = arg.split("_", 1)[0]
     if game in ("ludo", "hokm", "football") and "_" in arg:
@@ -205,6 +208,42 @@ async def on_close(message: Message, command: CommandObject, gdb: GCDatabase) ->
         await message.answer("میز باز با این شناسه پیدا نشد.")
         return
     await message.answer(f"میز {mid} بسته شد؛ {r['refunded']:,} امتیاز ورودی به بازیکن ها برگشت.")
+
+
+@router.message(Command("admin"))
+async def on_admin(message: Message) -> None:
+    """پنل مدیریت Game Club (فقط ادمین های عبور)."""
+    if not _is_admin(message):
+        await on_text(message)
+        return
+    kb = open_kb("admin.html", "پنل مدیریت Game Club")
+    await message.answer("<b>پنل مدیریت Game Club</b>\nکاربران، میزها، تراکنش‌ها، پیام همگانی و تنظیمات."
+                         if kb else "آدرس https مینی اپ تنظیم نشده.", reply_markup=kb)
+
+
+@router.message(Command("gcbc"))
+async def on_broadcast(message: Message, gdb: GCDatabase) -> None:
+    """پیام همگانی با هر نوع محتوا: روی یک پیام (عکس، ویدیو، متن...) ریپلای کن و بنویس /gcbc"""
+    if not _is_admin(message):
+        return
+    src = message.reply_to_message
+    if not src:
+        await message.answer("روی پیامی که می‌خواهی برای همه فرستاده شود ریپلای کن و بنویس <code>/gcbc</code>\n"
+                             "(برای فرستادن فقط به فعال‌های ۷ روز اخیر: <code>/gcbc 7</code>)")
+        return
+    import time as _t
+
+    from . import admin
+
+    days = (message.text or "").split()[1:2]
+    target = f"seen:{int(_t.time()) - int(days[0]) * 86400}" if days and days[0].isdigit() else "all"
+    bid = await gdb.bc_create(message.from_user.id, target, src_chat=src.chat.id, src_msg=src.message_id,
+                              button="|ورود به Game Club")
+    await gdb.log_admin(message.from_user.id, "broadcast", str(bid), f"{target} · copy")
+    b = await gdb.bc_get(bid)
+    admin.kick()
+    await message.answer(f"پیام همگانی شماره {bid} برای {b['total']:,} نفر شروع شد. پیشرفتش در پنل مدیریت (بخش پیام همگانی) دیده می‌شود.",
+                         reply_markup=open_kb("admin.html#bc", "دیدن پیشرفت"))
 
 
 @router.message(F.text)

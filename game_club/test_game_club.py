@@ -703,6 +703,99 @@ def test_football_service_flow():
     asyncio.run(run())
 
 
+def test_admin_panel():
+    """پنل مدیریت: فقط ادمین، آمار، جستجو، تغییر امتیاز، مسدود کردن، تنظیمات زنده و پیام همگانی."""
+    tmp = tempfile.mkdtemp()
+    from app.config import config as obour_cfg
+    from game_club import admin, service
+    from game_club.bot import gcrt
+    from game_club.config import gc
+    from game_club.db import GCDatabase
+
+    class FakeBot:
+        def __init__(self):
+            self.sent = []
+
+        async def send_message(self, tg, text, **kw):
+            if tg == 13:
+                from aiogram.exceptions import TelegramForbiddenError
+                from aiogram.methods import SendMessage
+                raise TelegramForbiddenError(method=SendMessage(chat_id=tg, text=text), message="blocked")
+            self.sent.append((tg, text))
+
+        async def copy_message(self, tg, chat, msg, **kw):
+            self.sent.append((tg, f"copy:{chat}:{msg}"))
+
+    async def run():
+        old_ids, old_db, old_bot = list(obour_cfg.admin_ids), gcrt.db, gcrt.bot
+        obour_cfg.admin_ids[:] = [99]
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        bot = FakeBot()
+        gcrt.db, gcrt.bot = db, bot
+        try:
+            for tg in (10, 11, 12, 13, 99):
+                await db.player(tg, f"user{tg}", f"u{tg}")
+            await db.credit(10, 300)
+            h = lambda name, method="GET", q=None, body=None, who=99: admin.handle(  # noqa: E731
+                name, method, who, q or {}, body or {}, db)
+            try:
+                await h("admin", who=10)
+                raise AssertionError("non-admin got in")
+            except service.GCError as e:
+                assert e.code == "not_found"
+            d = await h("admin")
+            assert d["stats"]["all"]["players"] == 5 and len(d["daily"]) == 14
+            assert [u["id"] for u in (await h("admin/users", q={"q": "u11"}))["users"]] == [11]
+            assert (await h("admin/users", q={"q": "10"}))["users"][0]["id"] == 10
+            # امتیاز: افزودن، کسر، تکرار همان درخواست بی اثر
+            r = await h("admin/points", "POST", body={"id": 10, "amount": 500, "note": "جبران", "idem": "abcdef123456"})
+            assert r["points"] == 800
+            try:
+                await h("admin/points", "POST", body={"id": 10, "amount": 500, "idem": "abcdef123456"})
+                raise AssertionError("idem ignored")
+            except service.GCError as e:
+                assert e.code == "done_before"
+            assert (await h("admin/points", "POST", body={"id": 10, "amount": -100, "idem": "zz12345678"}))["points"] == 700
+            u = await h("admin/user", q={"id": "10"})
+            assert u["user"]["points"] == 700 and u["ledger"][0]["kind"] == "admin"
+            # مسدود: از صف بیرون می رود؛ ادمین مسدود نمی شود
+            await service.queue_join(db, 11, {"mode": "free", "players": 2, "pawns": 2})
+            await h("admin/ban", "POST", body={"id": 11, "banned": True, "note": "تقلب"})
+            assert (await db.get_player(11))["banned"] == 1 and not await db.queue_row(11)
+            assert [x["id"] for x in (await h("admin/users", q={"f": "banned"}))["users"]] == [11]
+            try:
+                await h("admin/ban", "POST", body={"id": 99, "banned": True})
+                raise AssertionError("banned an admin")
+            except service.GCError:
+                pass
+            # تنظیمات زنده: بر .env مقدم و قابل برگشت
+            await h("admin/setting", "POST", body={"key": "maintenance", "value": True})
+            await h("admin/setting", "POST", body={"key": "turn_seconds", "value": 200})
+            assert gc.maintenance is True and gc.turn_seconds == 60
+            await h("admin/setting", "POST", body={"key": "maintenance", "value": None})
+            await h("admin/setting", "POST", body={"key": "turn_seconds", "value": None})
+            assert gc.maintenance is False and gc.turn_seconds == type(gc).turn_seconds
+            # پیام: HTML ساده می ماند، بقیه امن می شود
+            assert admin._clean_text("<b>سلام</b> <script>x</script> 2<3") == "<b>سلام</b> &lt;script&gt;x&lt;/script&gt; 2&lt;3"
+            # پیام همگانی: نسخه آزمایشی به خود ادمین، بعد همه (به جز مسدود)؛ ۱۳ ربات را بسته
+            r = await h("admin/broadcast", "POST", body={"text": "<b>جام</b> هفته", "target": "all", "button": "|بازی"})
+            assert r["total"] == 4 and bot.sent[0][0] == 99
+            await admin._running
+            b = await db.bc_get(r["id"])
+            assert b["status"] == "done" and b["sent"] == 3 and b["blocked"] == 1, dict(b)
+            assert sorted(t for t, _ in bot.sent[1:]) == [10, 12, 99]
+            assert (await h("admin/bc_count", q={"target": "game:ludo"}))["n"] == 0
+            log_actions = [x["action"] for x in (await h("admin/log"))["rows"]]
+            assert "broadcast" in log_actions and "ban" in log_actions and "points" in log_actions
+        finally:
+            obour_cfg.admin_ids[:] = old_ids
+            gcrt.db, gcrt.bot = old_db, old_bot
+            await admin.sync_settings(db, force=True)
+            await db.close()
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

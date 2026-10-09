@@ -40,6 +40,10 @@ class GCConfig:
     # (بازیکن صف آزاد می تواند خودش «شروع با ربات» را بزند). کلید قدیمی
     # GAME_CLUB_BOT_FILL_SECONDS عمدا خوانده نمی شود تا مقدار ۱۵ مانده در .env اثری نداشته باشد.
     bot_fill_seconds: int = max(0, _int_env("GAME_CLUB_QUEUE_AUTOBOT_SECONDS", "0"))
+    # این دو فقط از پنل مدیریت عوض می شوند (جدول settings):
+    # تعمیرات = بازی تازه شروع نمی شود (میزهای در جریان ادامه دارند)؛ اطلاعیه = نوار بالای صفحه خانه
+    maintenance: bool = False
+    notice: str = ""
 
     @property
     def enabled(self) -> bool:
