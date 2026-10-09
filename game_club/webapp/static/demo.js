@@ -147,7 +147,11 @@ const ludo = {
     if (!q) return m && m.status === 'playing' ? { state: 'matched', match: m.id } : { state: 'none' };
     const waited = (Date.now() - q.t0) / 1000;
     if (waited > 3.2) { const mm = makeMatch(q.cfg); saveM(mm); store.set('demo_q', null); return { state: 'matched', match: mm.id }; }
-    return { state: 'waiting', waited: Math.floor(waited), cfg: q.cfg, found: 1 + Math.min(q.cfg.players - 1, Math.floor(waited / 1.1)), need: q.cfg.players, bots_in: null };
+    return { state: 'waiting', waited: Math.floor(waited), cfg: q.cfg, found: 1 + Math.min(q.cfg.players - 1, Math.floor(waited / 1.1)), need: q.cfg.players, bots_in: null, can_bots: q.cfg.mode !== 'stake' };
+  },
+  async queueBots() {
+    const q = store.get('demo_q', null); if (!q) return ludo.queueStatus();
+    const mm = makeMatch(q.cfg); saveM(mm); store.set('demo_q', null); return { state: 'matched', match: mm.id };
   },
   async queueLeave() {
     const q = store.get('demo_q', null); store.set('demo_q', null);
@@ -197,12 +201,29 @@ const ludo = {
   async active() { const m = loadM(); return m && (m.status === 'playing' || m.status === 'lobby') ? m.id : null; },
 };
 
+/* میزهای باز برای صفحهٔ خانه (منچ و حکم نمایشی) */
+function demoTables() {
+  const out = [];
+  for (const [key, game, mine] of [['demo_hokm', 'hokm', '0'], ['demo_match', 'ludo', 'yellow']]) {
+    const m = store.get(key, null); if (!m) continue;
+    if (m.status === 'lobby') out.push({ kind: 'lobby', id: m.id, game, cfg: m.cfg, found: m.seats.length, need: m.cfg.players || 4, host: true, players: m.seats });
+    else if (m.status === 'playing' && !m.state.over) {
+      const st = m.state, t = { kind: 'playing', id: m.id, game, cfg: m.cfg, players: (st.order || Object.keys(st.players)).map(c => Object.assign({}, st.players[c], { me: String(c) === mine })) };
+      if (game === 'hokm') { t.score = [st.score[0], st.score[1]]; t.target = st.target; t.my_turn = (st.phase === 'trump' || st.phase === 'play') && String(st.phase === 'trump' ? st.hakem : st.turn) === '0'; }
+      else t.my_turn = st.order[st.turn] === 'yellow';
+      out.push(t);
+    }
+  }
+  for (const [key, game] of [['demo_hq', 'hokm'], ['demo_q', 'ludo']]) { const q = store.get(key, null); if (q) out.push({ kind: 'queue', game, cfg: q.cfg, found: 1, need: q.cfg.players || 4 }); }
+  return out;
+}
+
 /* ---------- داده نمایشی بقیه صفحه ها ---------- */
 const data = {
   async me() {
     return { player: { name: 'بازیکن', av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: S.showSpend ? 1 : 0 },
       history: S.ledger.map(l => ({ kind: l.k, amount: l.a, note: l.t, created_at: Math.round(l.at / 1000) })),
-      notify: Object.keys(S.notify).filter(k => S.notify[k]), obour: { linked: true, balance: 240000 }, active_match: await ludo.active(),
+      notify: Object.keys(S.notify).filter(k => S.notify[k]), obour: { linked: true, balance: 240000 }, active_match: await ludo.active(), tables: demoTables(),
       settings: { stake: true, shop: false, entries: [50, 100, 250, 500], packs: [250, 500, 1000, 2500], rate: GC.RATE, turn_s: 20, rake: 0, bot: '', obour_bot: '' } };
   },
   async charge(points) { S.bal += points; GC.ledger('شارژ از کیف پول عبور', points, 'charge'); save(); return { ok: true, points }; },

@@ -5,7 +5,7 @@
 const S = GC.S, save = GC.save, store = GC.store;
 const SEATS = ['0', '1', '2', '3'];
 const BOTS = ['سارا', 'امیر', 'نگار', 'رضا', 'مهسا', 'علی', 'پریا', 'کیان', 'هستی', 'سینا', 'آرش', 'یاسمن'];
-const DEAL = 1.8, DEAL2 = 1.6, THINK = .9, COLLECT = 1.5, HANDOVER = 3.6, TURN = 20;
+const GRACE = 2.5, HAKEM = 2.2, DEAL = 1.8, TRUMP_THINK = 2.4, DEAL2 = 4.0, THINK = .9, COLLECT = 1.5, HANDOVER = 3.6, TURN = 20;
 const suit = c => Math.floor(c / 13), rank = c => c % 13, team = i => i % 2, nxt = i => (i + 1) % 4;
 const now = () => Date.now() / 1000;
 const err = code => { const e = new Error(code); e.code = code; return e; };
@@ -13,19 +13,30 @@ const err = code => { const e = new Error(code); e.code = code; return e; };
 function ev(st, e) { e.seq = ++st.seq; st.events.push(e); if (st.events.length > 60) st.events = st.events.slice(-60); }
 function sortCards(cs, tr) { return cs.slice().sort((a, b) => ((tr != null && suit(a) === tr ? 0 : 1) - (tr != null && suit(b) === tr ? 0 : 1)) || suit(a) - suit(b) || rank(b) - rank(a)); }
 function wait(st, t, d) { st.turn_id = st.seq; st.next_at = t + d; st.deadline = t + d + TURN; }
-function startHand(st, t) {
+const drawTime = n => { const step = n > 14 ? .17 : n > 8 ? .23 : .30; return .7 + n * step + 2.8; };
+function drawHakem() {
+  const deck = [...Array(52).keys()];
+  for (let i = 51; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  let i = Math.floor(Math.random() * 4); const draw = [];
+  for (const c of deck) { draw.push([SEATS[i], c]); if (rank(c) === 12) return [i, draw]; i = nxt(i); }
+  return [i, draw];
+}
+function startHand(st, t, lead = HAKEM, draw = null) {
   const deck = [...Array(52).keys()];
   for (let i = 51; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
   SEATS.forEach((s, k) => { const p = deck.slice(k * 13, k * 13 + 13); st.hands[s] = sortCards(p.slice(0, 5)); st.rest[s] = p.slice(5); });
   Object.assign(st, { trump: null, phase: 'trump', tricks: [0, 0], trick: [], led: null, played: [], last_trick: null, turn: st.hakem });
-  ev(st, { t: 'deal', hakem: String(st.hakem), hand: st.hand_no }); wait(st, t, DEAL);
+  st.stats[SEATS[st.hakem]].hakem++;
+  ev(st, { t: 'hakem', c: SEATS[st.hakem], hand: st.hand_no, draw, prev: st.prev_hakem != null ? SEATS[st.prev_hakem] : null });
+  ev(st, { t: 'deal', hakem: String(st.hakem), hand: st.hand_no }); wait(st, t, lead + DEAL + (auto(st, st.hakem) ? TRUMP_THINK : 0));
 }
 function newState(seats, target) {
   const t = now(), players = {};
   seats.forEach(s => { players[s.color] = { name: s.name, av: s.av, pic: '', bot: !!s.bot, out: false, misses: 0 }; });
-  const st = { game: 'hokm', players, target, score: [0, 0], hand_no: 0, hakem: Math.floor(Math.random() * 4), hands: {}, rest: {},
+  const [hk, draw] = drawHakem();
+  const st = { game: 'hokm', players, target, score: [0, 0], hand_no: 0, hakem: hk, prev_hakem: null, hands: {}, rest: {},
     events: [], seq: 0, over: false, winner: null, started: t, stats: Object.fromEntries(SEATS.map(s => [s, { tricks: 0, hakem: 0 }])) };
-  startHand(st, t); return st;
+  startHand(st, t, GRACE + drawTime(draw.length), draw); return st;
 }
 const auto = (st, i) => st.players[SEATS[i]].bot || st.players[SEATS[i]].out;
 function legal(st, i) {
@@ -60,7 +71,7 @@ function afterCollect(st, t) {
   const lose = 1 - w, ht = team(st.hakem), kot = st.tricks[lose] === 0, pts = kot ? (lose === ht ? 3 : 2) : 1;
   st.score[w] += pts; ev(st, { t: 'hand', team: w, pts, kot, tricks: st.tricks.slice(), score: st.score.slice(), hakem: String(st.hakem) });
   if (st.score[w] >= st.target) { st.over = true; st.winner = w; st.phase = 'over'; ev(st, { t: 'win', team: w }); return; }
-  if (w !== ht) st.hakem = nxt(st.hakem);
+  st.prev_hakem = st.hakem; if (w !== ht) st.hakem = nxt(st.hakem);
   st.hand_no++; st.phase = 'handover'; st.next_at = st.deadline = t + HANDOVER;
 }
 function botTrump(st, i) {
@@ -159,7 +170,11 @@ const hokm = {
     if (!q) return m && m.status === 'playing' ? { state: 'matched', match: m.id } : { state: 'none' };
     const waited = (Date.now() - q.t0) / 1000;
     if (waited > 4) { const mm = makeMatch(q.cfg); saveM(mm); store.set('demo_hq', null); return { state: 'matched', match: mm.id }; }
-    return { state: 'waiting', waited: Math.floor(waited), cfg: Object.assign({ players: 4 }, q.cfg), found: 1 + Math.min(3, Math.floor(waited / 1.2)), need: 4, bots_in: null };
+    return { state: 'waiting', waited: Math.floor(waited), cfg: Object.assign({ players: 4 }, q.cfg), found: 1 + Math.min(3, Math.floor(waited / 1.2)), need: 4, bots_in: null, can_bots: q.cfg.mode !== 'stake' };
+  },
+  async queueBots() {
+    const q = store.get('demo_hq', null); if (!q) return hokm.queueStatus();
+    const mm = makeMatch(q.cfg); saveM(mm); store.set('demo_hq', null); return { state: 'matched', match: mm.id };
   },
   async queueLeave() {
     const q = store.get('demo_hq', null); store.set('demo_hq', null);

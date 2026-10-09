@@ -55,6 +55,34 @@ a.game:active{transform:scale(.985)}
 .t-orange{background:linear-gradient(150deg,#FFC27A,var(--tile-orange))}
 .t-coral{background:linear-gradient(150deg,#FF9AA2,var(--tile-coral))}
 
+/* میزهای باز من: بالای همه، فقط وقتی کاربر سر میزی است. لمس = برگشت به همان میز */
+.tables{display:grid;gap:var(--space-2)}
+.tbl{position:relative;display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-2);padding-inline-end:var(--space-3);
+  border-radius:var(--radius-xl);background:linear-gradient(135deg,rgba(124,102,242,.22),rgba(61,123,255,.08)) ,var(--surface);
+  box-shadow:var(--depth-sm),inset 0 0 0 1px rgba(164,147,255,.28);overflow:hidden;animation:tblIn .45s cubic-bezier(.2,.9,.3,1.2) both}
+.tbl:active{transform:scale(.985)}
+.tbl.t-hk{background:linear-gradient(135deg,rgba(46,184,120,.22),rgba(46,184,120,.05)),var(--surface);box-shadow:var(--depth-sm),inset 0 0 0 1px rgba(80,220,150,.28)}
+.tbl.turn{box-shadow:var(--depth-sm),inset 0 0 0 2px #F5C451}
+.tbl.turn::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(100deg,transparent 30%,rgba(245,196,81,.16) 50%,transparent 70%);background-size:250% 100%;animation:tblShine 2.4s linear infinite;pointer-events:none}
+.tbl .g-art{width:56px;height:56px;border-radius:16px}
+.tbl-txt{display:grid;gap:3px;min-width:0}
+.tbl-txt b{display:flex;align-items:center;gap:6px;font-family:var(--font-rokh);font-size:15.5px;line-height:22px;font-weight:900}
+.tbl-tag{font-family:var(--font-body);font-size:10.5px;line-height:16px;font-weight:800;padding:0 7px;border-radius:var(--radius-pill);background:var(--surface-sunk);color:var(--ink-muted)}
+.tbl-st{display:flex;align-items:center;gap:6px;font-size:12px;line-height:18px;color:var(--ink-muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbl-st .live{width:7px;height:7px;border-radius:50%;background:#7CFFB7;box-shadow:0 0 0 3px rgba(124,255,183,.2);flex:none;animation:tblPulse 1.4s ease-in-out infinite}
+.tbl-st .spinner{width:12px;height:12px;border-width:2px}
+.tbl-st .myturn{color:#F5C451;font-weight:900}
+.tbl-score{display:inline-flex;align-items:center;gap:4px;font-weight:900;color:var(--ink)}
+.tbl-score em{font-style:normal;color:var(--ink-muted);font-weight:700}
+.tbl-faces{display:flex;padding-inline-start:6px}
+.tbl-faces .avatar{--size:22px;margin-inline-start:-6px;--ring:var(--surface)}
+.tbl-go{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding-inline:14px;border-radius:var(--radius-pill);background:#F5C451;color:#3A2A00;font-size:13.5px;font-weight:900;box-shadow:0 6px 14px -4px rgba(245,196,81,.55)}
+.tbl-go svg{width:16px;height:16px}
+@keyframes tblIn{from{opacity:0;transform:translateY(10px) scale(.97)}}
+@keyframes tblShine{from{background-position:150% 0}to{background-position:-100% 0}}
+@keyframes tblPulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.tbl,.tbl.turn::before,.tbl-st .live{animation:none}}
+
 /* حالت بازی: سگمنت دوتایی و یک خط توضیح */
 .mode .seg{background:var(--surface-sunk)}
 .mode .seg button{padding:10px 6px}
@@ -81,9 +109,13 @@ a.game:active{transform:scale(.985)}
   </div>
 </header>
 <main class="page home-page">
+  <section id="tablesSec" aria-labelledby="hTables" hidden>
+    <div class="sec-head"><h2 id="hTables">میزهای تو</h2></div>
+    <div class="tables" id="tables" aria-live="polite"></div>
+  </section>
+
   <section class="hero" aria-label="منچ">
     <div class="txt">
-      <span class="kicker" id="resume" hidden><i></i>یک بازی نیمه‌تمام داری</span>
       <h1>منچ</h1>
       <p>با دوستت یا یک حریف ناشناس؛ برنده امتیاز می‌برد و با آن از عبور خدمات می‌گیرد.</p>
     </div>
@@ -138,13 +170,14 @@ a.game:active{transform:scale(.985)}
 <script src="static/demo.js"></script>
 <script>
 (() => {
-  const { S, save, fa, FD, toast, face, amount, icon, boardArt, errText } = GC;
+  const { S, save, fa, FD, toast, face, amount, icon, boardArt, errText, store } = GC;
   const $ = id => document.getElementById(id);
   GC.back(null);
   $('heroBoard').innerHTML = boardArt();
   $('ludoArt').innerHTML = boardArt();
   $('esmArt').innerHTML = '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>';
-  $('hokmArt').innerHTML = '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-14 22 36)"><rect x="6" y="10" width="30" height="42" rx="6" fill="#fff"/><path d="M21 20c4 5 8 7 8 11a4 4 0 0 1-6.5 3l1.5 5h-6l1.5-5a4 4 0 0 1-6.5-3c0-4 4-6 8-11z" fill="#1E2235"/></g><g transform="rotate(12 44 36)"><rect x="28" y="12" width="30" height="42" rx="6" fill="#fff"/><path d="M43 43c-7-5-10-8-10-11.5a4.5 4.5 0 0 1 10-2 4.5 4.5 0 0 1 10 2c0 3.5-3 6.5-10 11.5z" fill="#F25C6E"/></g></svg>';
+  const HOKM_ART = '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-14 22 36)"><rect x="6" y="10" width="30" height="42" rx="6" fill="#fff"/><path d="M21 20c4 5 8 7 8 11a4 4 0 0 1-6.5 3l1.5 5h-6l1.5-5a4 4 0 0 1-6.5-3c0-4 4-6 8-11z" fill="#1E2235"/></g><g transform="rotate(12 44 36)"><rect x="28" y="12" width="30" height="42" rx="6" fill="#fff"/><path d="M43 43c-7-5-10-8-10-11.5a4.5 4.5 0 0 1 10-2 4.5 4.5 0 0 1 10 2c0 3.5-3 6.5-10 11.5z" fill="#F25C6E"/></g></svg>';
+  $('hokmArt').innerHTML = HOKM_ART;
 
   const modes = $('modes'), ex = $('modeEx');
   let stakeOn = true;
@@ -157,6 +190,43 @@ a.game:active{transform:scale(.985)}
   }
   modes.addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b || b.disabled) return; S.mode = b.dataset.mode; save(); renderMode(); });
   renderMode();
+
+  /* ---------- میزهای باز من ---------- */
+  const GAME = { hokm: { name: 'حکم', page: 'hokm.html', key: 'hmid', cls: 't-hk', art: () => HOKM_ART, tint: 't-coral' },
+                 ludo: { name: 'منچ', page: 'ludo.html', key: 'mid', cls: '', art: () => boardArt(), tint: 't-violet' } };
+  let tablesSig = '';
+  function tableHtml(t) {
+    const g = GAME[t.game] || GAME.ludo, c = t.cfg || {};
+    const tag = c.mode === 'stake' ? `ورودی ${fa(c.entry)}` : 'آزاد';
+    const faces = (t.players || []).slice(0, 4).map(p => face(p)).join('');
+    let st, go = 'برگرد', href = t.game + '-lobby.html';
+    if (t.kind === 'queue') st = `<span class="spinner"></span>دنبال حریف · ${FD(t.found)} از ${FD(t.need)}`;
+    else if (t.kind === 'lobby') st = `<span class="spinner"></span>${t.host ? (t.game === 'hokm' && t.found < 2 ? 'منتظر یارت' : 'منتظر دوستانت') : 'منتظر بقیه'} · ${FD(t.found)} از ${FD(t.need)}`;
+    else {
+      href = g.page;
+      const score = t.score ? `<span class="tbl-score">ما ${FD(t.score[0])} <em>·</em> آنها ${FD(t.score[1])}</span> <em>تا ${FD(t.target)}</em>` : 'بازی در جریان است';
+      st = t.my_turn ? `<span class="live"></span><span class="myturn">نوبت توست!</span> ${t.score ? score : ''}` : `<span class="live"></span>${score}`;
+      go = t.my_turn ? 'بازی کن' : 'برگرد';
+    }
+    return `<a class="tbl ${g.cls}${t.my_turn ? ' turn' : ''}" href="${href}" data-g="${t.game}" data-id="${t.id || ''}" data-k="${t.kind}">
+      <span class="g-art ${g.tint}">${g.art()}</span>
+      <span class="tbl-txt"><b>${g.name}<span class="tbl-tag">${tag}</span></b><span class="tbl-st">${st}</span>${faces ? `<span class="tbl-faces">${faces}</span>` : ''}</span>
+      <span class="tbl-go">${go}<i data-ic="fwd"></i></span></a>`;
+  }
+  function renderTables(list) {
+    const sig = JSON.stringify(list);
+    if (sig === tablesSig) return;
+    tablesSig = sig;
+    $('tablesSec').hidden = !list.length;
+    $('tables').innerHTML = list.map(tableHtml).join('');
+    GC.mount();
+  }
+  $('tables').addEventListener('click', e => {
+    const a = e.target.closest('.tbl'); if (!a) return;
+    const g = GAME[a.dataset.g] || GAME.ludo;
+    if (a.dataset.k === 'playing' && a.dataset.id) store.set(g.key, a.dataset.id);
+    GC.haptic('light');
+  });
 
   let notify = [];
   document.querySelectorAll('[data-notify]').forEach(b => {
@@ -176,7 +246,8 @@ a.game:active{transform:scale(.985)}
       if (!me.obour.linked) $('linked').innerHTML = '<i style="background:var(--danger)"></i>هنوز در ربات عبور نیستی';
       stakeOn = me.settings.stake; renderMode();
       notify = me.notify || []; document.querySelectorAll('[data-notify]').forEach(b => b._sync());
-      if (me.active_match) { $('resume').hidden = false; $('playBtn').href = me.active_game === 'hokm' ? 'hokm.html' : 'ludo.html'; $('playBtn').lastChild.textContent = 'ادامهٔ بازی'; GC.mount(); }
+      renderTables(me.tables || []);
+      setInterval(async () => { if (document.hidden) return; try { renderTables((await GC.data.me()).tables || []); } catch (e) {} }, 5000);
     } catch (e) { toast(errText(e)); }
     try {
       const lb = await GC.data.leaderboard('top', 'week');

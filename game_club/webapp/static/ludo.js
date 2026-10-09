@@ -382,7 +382,10 @@ function askExit() {
       <p id="dD">${stake ? 'خروج یعنی باختِ همین دست؛ میز بدون تو ادامه می‌دهد.' : 'این دست برای تو تمام می‌شود و بقیه بدون تو ادامه می‌دهند.'}</p>
       <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ سر میز می‌مانم</button>
+      <p class="dlg-fine">میز در صفحهٔ خانه می‌ماند و با یک لمس برمی‌گردی. تا نیستی، نوبت‌هایت خودکار بازی می‌شود${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}.</p>
     </div>`, { center: true });
+  sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
     try { await GC.ludo.leave(mid); } catch (e) {}
     GC.guardClose(false); store.set('mid', null); location.href = 'index.html';

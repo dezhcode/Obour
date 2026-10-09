@@ -467,6 +467,86 @@ def test_hokm_service_flow():
 
     asyncio.run(run())
 
+def test_hakem_ace_draw_and_intro():
+    # اولین آس حاکم را تعیین می کند و پیش از پخش، رویداد hakem با همه برگ ها می آید
+    for _ in range(200):
+        i, draw = hokm.draw_hakem()
+        assert draw and hokm.rank(draw[-1][1]) == 12 and all(hokm.rank(c) != 12 for _, c in draw[:-1])
+        assert draw[-1][0] == hokm.SEATS[i]
+        assert all(draw[k + 1][0] == hokm.SEATS[(int(draw[k][0]) + 1) % 4] for k in range(len(draw) - 1))
+    seats = [{"color": s, "name": s, "bot": s != "0"} for s in hokm.SEATS]
+    st = hokm.new_state(seats, 1000.0, 20, False, 7)
+    kinds = [e["t"] for e in st["events"]]
+    assert kinds[:2] == ["hakem", "deal"], kinds
+    intro = st["events"][0]
+    assert intro["c"] == hokm.SEATS[st["hakem"]] and hokm.rank(intro["draw"][-1][1]) == 12
+    # ربات حاکم تا تمام شدن انیمیشن آس کشی و پخش و کمی فکر، حکم نمی کند
+    wait = hokm.START_GRACE + hokm.draw_time(len(intro["draw"])) + hokm.DEAL_ANIM
+    if st["hakem"] != 0:
+        assert st["next_at"] >= 1000.0 + wait + hokm.TRUMP_THINK - 1e-6
+        assert not hokm.tick(st, 1000.0 + wait) and st["phase"] == "trump"
+    # دست بعد: hakem بدون draw و با حاکم قبلی
+    st2 = hokm.new_state(seats, 0.0, 20, False, 7, hakem=1)
+    st2["prev_hakem"], st2["hand_no"] = 1, 1
+    hokm._start_hand(st2, 50.0)
+    e = [x for x in st2["events"] if x["t"] == "hakem"][-1]
+    assert e["draw"] is None and e["prev"] == "1" and e["hand"] == 1
+
+
+def test_queue_waits_for_full_table_and_bots_on_request():
+    tmp = tempfile.mkdtemp()
+    from game_club import service
+    from game_club.db import GCDatabase
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        real = service.time.time
+        clock = [10_000.0]
+        service.time.time = lambda: clock[0]
+        try:
+            for tg in (1, 2, 3):
+                await db.player(tg, f"p{tg}")
+            cfg = {"game": "hokm", "mode": "free", "target": 3}
+            assert (await service.queue_join(db, 1, cfg))["state"] == "waiting"
+            assert (await service.queue_join(db, 2, cfg))["state"] == "waiting"
+            clock[0] += 600                       # ده دقیقه بعد هم ربات خودکار نمی نشیند
+            st = await service.queue_status(db, 1)
+            assert st["state"] == "waiting" and st["bots_in"] is None and st["can_bots"] and st["found"] == 2
+            # میزهای باز در خانه: صف
+            tables = await service.my_tables(db, 2)
+            assert tables and tables[0]["kind"] == "queue" and tables[0]["game"] == "hokm"
+            # بازیکن ۱ نمی خواهد منتظر بماند: هر دو با دو ربات سر یک میز
+            r = await service.queue_bots(db, 1)
+            assert r["state"] == "matched"
+            r2 = await service.queue_status(db, 2)
+            assert r2 == {"state": "matched", "match": r["match"]}
+            m = await db.get_match(r["match"])
+            assert sum(1 for p in m["state"]["players"].values() if not p["bot"]) == 2
+            tables = await service.my_tables(db, 1)
+            assert [t["kind"] for t in tables] == ["playing"] and tables[0]["id"] == r["match"]
+            assert tables[0]["score"] == [0, 0] and len(tables[0]["players"]) == 4
+            # میز دعوت: در انتظار بقیه در خانه دیده می شود
+            inv = await service.invite_create(db, 3, cfg)
+            t3 = await service.my_tables(db, 3)
+            assert t3[0]["kind"] == "lobby" and t3[0]["id"] == inv["match"] and t3[0]["found"] == 1 and t3[0]["need"] == 4
+            # بازی امتیازی با ربات پر نمی شود
+            await db.credit(3, 500)
+            m3 = await db.get_match(inv["match"])
+            await service.lobby_leave(db, 3, m3)
+            await service.queue_join(db, 3, {"game": "hokm", "mode": "stake", "entry": 100, "target": 3})
+            try:
+                await service.queue_bots(db, 3)
+                raise AssertionError("stake queue must not take bots")
+            except service.GCError as e:
+                assert e.code == "need_players"
+        finally:
+            service.time.time = real
+            await db.close()
+
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
