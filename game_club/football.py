@@ -31,7 +31,7 @@ MID = H / 2
 GOAL_W, GOAL_D = 220.0, 60.0
 GX0, GX1 = (W - GOAL_W) / 2, (W + GOAL_W) / 2
 DISC_R, BALL_R = 36.0, 18.0
-DISC_M, BALL_M = 1.0, 0.3       # مهره سنگین، توپ سبک
+DISC_M, BALL_M = 1.0, 0.55      # مهره سنگین؛ توپ سبک تر ولی نه پَر
 BALL = 12
 N = 13
 VMAX = 2200.0            # سرعت مهره با بیشترین قدرت (واحد بر ثانیه)
@@ -41,9 +41,10 @@ FRAME_EVERY = 4          # ۳۰ فریم در ثانیه برای نمایش
 MAX_SIM = 9.0
 AFTER_GOAL = 0.5         # توپ بعد از گل کمی در تور می چرخد
 # مهره ها وزن دارند: اصطکاک ثابت زیاد، پس کم سُر می خورند و قاطع می ایستند؛ توپ بیشتر می غلتد
-DRAG = (0.9, 0.55)       # (مهره، توپ) کاهش سرعت متناسب با سرعت
-FRIC = (330.0, 85.0)     # کاهش سرعت ثابت
-E_PAIR, E_DISC_WALL, E_BALL_WALL = 0.82, 0.5, 0.82
+DRAG = (0.9, 1.3)        # (مهره، توپ) کاهش سرعت متناسب با سرعت
+FRIC = (360.0, 280.0)    # کاهش سرعت ثابت («جاذبه»: هر دو روی چمن می نشینند و زود آرام می شوند)
+BALL_VMAX = 1200.0       # توپ هر چقدر هم محکم زده شود از این تندتر نمی رود
+E_PAIR, E_BALL_DISC, E_DISC_WALL, E_BALL_WALL = 0.82, 0.68, 0.5, 0.65
 STOP = 4.0
 
 SETUP_S = 20.0           # انتخاب تیم و چیدمان
@@ -110,7 +111,8 @@ def simulate(pos: list, vel: dict) -> dict:
             x[i] += vx[i] * DT
             y[i] += vy[i] * DT
         # برخورد دو به دو (هر جفت یک بار)
-        for i in list(moving):
+        # ترتیب ثابت (مرتب) تا نسخه جاوااسکریپت دقیقا همین نتیجه را بدهد
+        for i in sorted(moving):
             for j in range(N):
                 if j == i or (j in moving and j < i):
                     continue
@@ -128,7 +130,7 @@ def simulate(pos: list, vel: dict) -> dict:
                 if rel < 0:
                     if rel < -120 and len(hits) < 24:
                         hits.append([round(t, 2), "b" if BALL in (i, j) else "d", round(min(1.0, -rel / 2000), 2)])
-                    imp = -(1 + E_PAIR) * rel / inv
+                    imp = -(1 + (E_BALL_DISC if BALL in (i, j) else E_PAIR)) * rel / inv
                     vx[i] -= imp / m[i] * nx
                     vy[i] -= imp / m[i] * ny
                     vx[j] += imp / m[j] * nx
@@ -141,6 +143,12 @@ def simulate(pos: list, vel: dict) -> dict:
                 y[j] += ny * over * kj
                 moving.add(j)
                 moved.add(j)
+        if BALL in moving:
+            sp2 = vx[BALL] * vx[BALL] + vy[BALL] * vy[BALL]
+            if sp2 > BALL_VMAX * BALL_VMAX:
+                f = BALL_VMAX / math.sqrt(sp2)
+                vx[BALL] *= f
+                vy[BALL] *= f
         # دیواره ها و تیرک ها
         for i in moving:
             e = E_BALL_WALL if kind[i] else E_DISC_WALL
@@ -169,7 +177,7 @@ def simulate(pos: list, vel: dict) -> dict:
                 x[i] += nx * (r[i] - d)
                 y[i] += ny * (r[i] - d)
         # اصطکاک
-        for i in list(moving):
+        for i in sorted(moving):
             sp = math.sqrt(vx[i] * vx[i] + vy[i] * vy[i])
             k = kind[i]
             ns = sp - (DRAG[k] * sp + FRIC[k]) * DT

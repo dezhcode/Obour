@@ -23,69 +23,8 @@ const err = code => { const e = new Error(code); e.code = code; return e; };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const r1 = v => Math.round(v * 10) / 10;
 
-function simulate(pos, vel) {
-  const x = pos.map(p => p[0]), y = pos.map(p => p[1]), vx = Array(N).fill(0), vy = Array(N).fill(0);
-  const r = i => i === BALL ? BALL_R : DISC_R, m = i => i === BALL ? BALL_M : DISC_M, kind = i => i === BALL ? 1 : 0;
-  const moving = new Set(), moved = new Set(), hits = [];
-  for (const [i, [a, b]] of Object.entries(vel)) { vx[i] = a; vy[i] = b; moving.add(+i); moved.add(+i); }
-  const frames = [[x.slice(), y.slice()]];
-  let goal = null, after = 0, t = 0, step = 0;
-  while (moving.size && t < MAX_SIM) {
-    step++; t += DT;
-    for (const i of moving) { x[i] += vx[i] * DT; y[i] += vy[i] * DT; }
-    for (const i of [...moving]) {
-      for (let j = 0; j < N; j++) {
-        if (j === i || (moving.has(j) && j < i)) continue;
-        const rr = r(i) + r(j), dx = x[j] - x[i], dy = y[j] - y[i];
-        if (dx > rr || dx < -rr || dy > rr || dy < -rr) continue;
-        const d2 = dx * dx + dy * dy;
-        if (d2 >= rr * rr || d2 === 0) continue;
-        const d = Math.sqrt(d2), nx = dx / d, ny = dy / d;
-        const rel = (vx[j] - vx[i]) * nx + (vy[j] - vy[i]) * ny, inv = 1 / m(i) + 1 / m(j);
-        if (rel < 0) {
-          if (rel < -120 && hits.length < 24) hits.push([Math.round(t * 100) / 100, i === BALL || j === BALL ? 'b' : 'd', Math.min(1, -rel / 2000)]);
-          const imp = -(1 + E_PAIR) * rel / inv;
-          vx[i] -= imp / m(i) * nx; vy[i] -= imp / m(i) * ny; vx[j] += imp / m(j) * nx; vy[j] += imp / m(j) * ny;
-        }
-        const over = rr - d, ki = (1 / m(i)) / inv, kj = (1 / m(j)) / inv;
-        x[i] -= nx * over * ki; y[i] -= ny * over * ki; x[j] += nx * over * kj; y[j] += ny * over * kj;
-        moving.add(j); moved.add(j);
-      }
-    }
-    for (const i of moving) {
-      const e = kind(i) ? E_BALL_WALL : E_DISC_WALL, ri = r(i);
-      for (const [[ax, ay], [bx, by]] of SEGS) {
-        const ex = bx - ax, ey = by - ay, ll = ex * ex + ey * ey;
-        let u = ((x[i] - ax) * ex + (y[i] - ay) * ey) / ll; u = u < 0 ? 0 : u > 1 ? 1 : u;
-        const dx = x[i] - (ax + ex * u), dy = y[i] - (ay + ey * u);
-        if (dx > ri || dx < -ri || dy > ri || dy < -ri) continue;
-        const d2 = dx * dx + dy * dy;
-        if (d2 >= ri * ri || d2 === 0) continue;
-        const d = Math.sqrt(d2), nx = dx / d, ny = dy / d, vn = vx[i] * nx + vy[i] * ny;
-        if (vn < 0) {
-          if (vn < -150 && hits.length < 24) {
-            const qx = ax + ex * u, qy = ay + ey * u;
-            const post = (u === 0 || u === 1) && (Math.abs(qx - GX0) < 1 || Math.abs(qx - GX1) < 1) && (Math.abs(qy) < 1 || Math.abs(qy - H) < 1);
-            hits.push([Math.round(t * 100) / 100, post ? 'p' : 'w', Math.min(1, -vn / 2000)]);
-          }
-          vx[i] -= (1 + e) * vn * nx; vy[i] -= (1 + e) * vn * ny;
-        }
-        x[i] += nx * (ri - d); y[i] += ny * (ri - d);
-      }
-    }
-    for (const i of [...moving]) {
-      const sp = Math.sqrt(vx[i] * vx[i] + vy[i] * vy[i]), k = kind(i), ns = sp - (DRAG[k] * sp + FRIC[k]) * DT;
-      if (ns <= STOP) { vx[i] = vy[i] = 0; moving.delete(i); } else { const f = ns / sp; vx[i] *= f; vy[i] *= f; }
-    }
-    if (goal == null) { if (y[BALL] < -BALL_R) goal = 0; else if (y[BALL] > H + BALL_R) goal = 1; }
-    else if ((after += DT) >= AFTER_GOAL) break;
-    if (step % FRAME_EVERY === 0) frames.push([x.slice(), y.slice()]);
-  }
-  frames.push([x.slice(), y.slice()]);
-  const ids = [...moved].sort((a, b) => a - b);
-  return { pos: x.map((v, i) => [r1(v), r1(y[i])]), ids, frames: frames.map(f => ids.flatMap(i => [Math.round(f[0][i]), Math.round(f[1][i])])),
-    dur: Math.round(frames.length * DT * FRAME_EVERY * 100) / 100, goal, hits };
-}
+// فیزیک مشترک با مینی اپ: static/football-physics.js (کپی دقیق سرور)
+const simulate = (pos, vel) => FBPhysics.simulate(pos, vel);
 
 function formation(seat, form, attack) {
   const pts = (attack ? ATK : DEF)[form] || ATK[132];
@@ -135,8 +74,7 @@ function shot(st, i, k, dx, dy, power, t, autoP) {
   if (!autoP && t < st.next_at - .3) return 'not_ready';
   if (!(k >= 0 && k < 6)) return 'bad_shot';
   const ln = Math.sqrt(dx * dx + dy * dy); if (!(ln > 1e-6)) return 'bad_shot';
-  power = Math.min(1, Math.max(MIN_POWER, power));
-  const v = VMAX * power / ln, res = simulate(st.pos, { [i * 6 + k]: [dx * v, dy * v] });
+  const res = simulate(st.pos, { [i * 6 + k]: FBPhysics.shotVel(dx, dy, power) });
   st.events.forEach(e => { if (e.t === 'shot') delete e.frames; });
   st.pos = res.pos; st.stats[i].shots++;
   const g = res.goal;

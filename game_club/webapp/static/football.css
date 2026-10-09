@@ -38,7 +38,7 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 /* ورزشگاه: سکوها، تابلوی تبلیغات، زمین */
 .fb-arena{flex:1;min-height:0;position:relative;display:grid;place-items:center;direction:ltr}
 .fb-stadium{position:relative;display:flex;align-items:center;gap:4px}
-.fb-stadium.jolt{animation:fb-jolt .16s ease-out}
+.fb-stadium.jolt{animation:fb-jolt .16s ease-out;will-change:transform}
 @keyframes fb-jolt{30%{transform:translate(var(--j,2px),calc(var(--j,2px)*.6))}65%{transform:translate(calc(var(--j,2px)*-.6),calc(var(--j,2px)*-.3))}}
 .fb-crowd{width:15px;border-radius:5px 2px 2px 5px;align-self:stretch;margin-block:-10px;
   background:
@@ -91,7 +91,7 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-flag.bl{left:-9px;bottom:-4px}.fb-flag.br{right:-9px;bottom:-4px;transform:scaleX(-1)}
 
 /* مهره سه بعدی: لبه فلزی پخ دار با ضخامت، نشان فرورفته با برق، سایه روی چمن */
-.fd{--d:40px;position:absolute;left:0;top:0;border-radius:50%;box-sizing:border-box;will-change:transform;z-index:2;
+.fd{--d:40px;position:absolute;left:0;top:0;border-radius:50%;box-sizing:border-box;will-change:transform;z-index:2;contain:layout style;
   padding:calc(var(--d)*.11);transition:box-shadow .2s,scale .15s;
   background:
     radial-gradient(circle,transparent 61%,rgba(0,0,0,.22) 64%,transparent 68%),
@@ -108,13 +108,16 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fd .in::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
   background:radial-gradient(ellipse 60% 45% at 34% 24%,rgba(255,255,255,.62),rgba(255,255,255,0) 70%),radial-gradient(circle,transparent 60%,rgba(0,0,0,.35) 100%);
   box-shadow:inset 0 calc(var(--d)*.05) calc(var(--d)*.08) rgba(0,0,0,.55)}
-.fb-pitch.myturn .fd.me{box-shadow:var(--bevel),0 0 0 calc(var(--d)*.06) rgba(150,225,255,.7),0 0 calc(var(--d)*.25) calc(var(--d)*.06) rgba(120,210,255,.5),var(--thick),var(--cast)}
-.fb-pitch.myturn .fd.me.pulse{animation:fb-glow 1.4s ease-in-out infinite}
-@keyframes fb-glow{50%{box-shadow:var(--bevel),0 0 0 calc(var(--d)*.08) rgba(150,225,255,.9),0 0 calc(var(--d)*.35) calc(var(--d)*.1) rgba(120,210,255,.65),var(--thick),var(--cast)}}
-.fd.aim{box-shadow:var(--bevel),0 0 0 calc(var(--d)*.08) var(--gold),0 0 calc(var(--d)*.4) calc(var(--d)*.12) rgba(245,196,81,.65),var(--thick),var(--cast)!important;animation:none!important}
-.fb-ball{position:absolute;left:0;top:0;border-radius:50%;will-change:transform;z-index:3;
-  filter:drop-shadow(.4px 1.2px .4px rgba(0,0,0,.6)) drop-shadow(.8px 1.6px 2px rgba(0,25,0,.3))}
-.fb-ball svg{display:block;width:100%;height:100%}
+.fd.me::before{content:"";position:absolute;inset:-4%;border-radius:50%;pointer-events:none;opacity:0;will-change:opacity;
+  box-shadow:0 0 0 calc(var(--d)*.06) rgba(150,225,255,.75),0 0 calc(var(--d)*.25) calc(var(--d)*.07) rgba(120,210,255,.5);transition:opacity .2s}
+.fb-pitch.myturn .fd.me::before{opacity:1}
+.fb-pitch.myturn .fd.me.pulse::before{animation:fb-glow 1.4s ease-in-out infinite}
+@keyframes fb-glow{50%{opacity:.45}}
+.fd.aim::before{opacity:1!important;animation:none!important;box-shadow:0 0 0 calc(var(--d)*.07) #fff,0 0 calc(var(--d)*.3) calc(var(--d)*.08) rgba(255,255,255,.55)}
+.fb-ball{position:absolute;left:0;top:0;border-radius:50%;will-change:transform;z-index:3}
+.fb-ball svg{position:relative;display:block;width:100%;height:100%}
+.fb-ball .sh{position:absolute;left:6%;top:16%;width:100%;height:100%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(0,0,0,.6),rgba(0,0,0,.35) 62%,rgba(0,20,0,.12) 85%,transparent)}
 .fb-aim{position:absolute;inset:0;overflow:visible;pointer-events:none;z-index:1}
 
 /* پایین: راهنما و گفتگو */
@@ -219,4 +222,4 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-res .final{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:18px;background:var(--surface-sunk)}
 .fb-res .final b{font-size:32px;font-weight:800}
 body.football .sheet{color:var(--ink)}
-@media (prefers-reduced-motion:reduce){.fb-goal .rays,.fb-pitch.myturn .fd.me.pulse,.fb-crowd.cheer{animation:none}}
+@media (prefers-reduced-motion:reduce){.fb-goal .rays,.fb-pitch.myturn .fd.me.pulse::before,.fb-crowd.cheer{animation:none}}
