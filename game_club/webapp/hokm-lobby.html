@@ -194,7 +194,7 @@
         const v = await GC.hokm.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);
         else if (v && v.status === 'playing') { store.set('hmid', v.id); $('resume').hidden = false; }
-      } else if (me.active_match && GC.live) { $('resume').hidden = false; $('resume').href = 'ludo.html'; $('resume').querySelector('.muted').textContent = 'یک بازی منچ نیمه‌تمام داری؛ اول آن را تمام کن.'; }
+      } else if (me.active_match && GC.live) { const o = { ludo: ['منچ', 'ludo.html'], football: ['فوتبال', 'football.html'] }[me.active_game] || ['منچ', 'ludo.html']; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یک بازی ${o[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
       else if (!GC.live && store.get('hmid', null)) {
         const v = await GC.hokm.match(store.get('hmid', null), 0).catch(() => null);
         if (v && v.status === 'playing') $('resume').hidden = false;

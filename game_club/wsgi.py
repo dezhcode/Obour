@@ -25,7 +25,7 @@ from .config import gc
 log = logging.getLogger("gameclub.wsgi")
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webapp")
-PAGES = {"index.html", "wallet.html", "leaderboard.html", "shop.html", "help.html", "ludo-lobby.html", "ludo.html", "hokm-lobby.html", "hokm.html"}
+PAGES = {"index.html", "wallet.html", "leaderboard.html", "shop.html", "help.html", "ludo-lobby.html", "ludo.html", "hokm-lobby.html", "hokm.html", "football-lobby.html", "football.html"}
 
 # مثل مینی اپ عبور: فقط اسکریپت SDK تلگرام از بیرون، بقیه از خود سرور
 _CSP = (
