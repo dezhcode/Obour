@@ -74,3 +74,25 @@
   repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),
   repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 1px,transparent 1px 3px),
   radial-gradient(ellipse 85% 65% at 50% 46%,var(--f1,#2F8F4E) 0%,var(--f2,#1E6B3A) 55%,var(--f3,#0F3F1D) 100%)}
+
+/* طرح «مدرن» (درشت خوان، رایگان): ورق سفید ساده، عدد بزرگ و خال زیرش بالا سمت چپ، نماد کم رنگ
+   خال در گوشه پایین و برای سرباز/بی بی/شاه یک نشان ساده؛ پشت ورق طلایی و سبز */
+.hk-card .jm{display:none}
+.cards-m .hk-card{--k:#1C2230;--rd:#D62839;background:#fff;background-image:none;border-radius:.156em;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.cards-m .hk-card .ix,.cards-m .hk-card .pp,.cards-m .hk-card .ct,.cards-m .hk-card .gloss{display:none}
+.cards-m .hk-card .jm{display:block}
+.cards-m .hk-card .jx{position:absolute;top:.078em;left:.03em;width:.375em;display:flex;flex-direction:column;align-items:center;gap:.047em}
+.cards-m .hk-card .jx b{font-family:var(--font-peyda,Tahoma),Tahoma,sans-serif;font-size:.36em;line-height:.95;font-weight:800;letter-spacing:-.03em}
+.cards-m .hk-card .jx b.w{font-size:.3em;letter-spacing:-.09em;line-height:1.14}
+.cards-m .hk-card .jx svg{width:.265em;height:.265em}
+.cards-m .hk-card .wm{position:absolute;right:-.125em;bottom:-.125em;width:.81em;height:.81em;opacity:.13}
+.cards-m .hk-card .wm svg,.cards-m .hk-card .em svg{display:block;width:100%;height:100%}
+.cards-m .hk-card .em{position:absolute;right:.094em;bottom:.094em;width:.5em;height:.5em;padding:.08em;box-sizing:border-box;border-radius:.156em;background:rgba(28,34,48,.08)}
+.cards-m .hk-card.red .em{background:rgba(214,40,57,.1)}
+.cards-m .hk-back{border:.0625em solid #fff;border-radius:.156em;background:linear-gradient(135deg,#F5C451 0 50%,#1A7A47 50% 100%);box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.cards-m .hk-back i{display:none}
+/* در دست، برگ های کم رنگ (غیرقابل بازی) باریک روی هم می افتند؛ شاخصشان کوچک تر تا کامل دیده شود */
+.cards-m .hk-hand .hk-card.no .jx{left:.012em;width:.27em;gap:.03em}
+.cards-m .hk-hand .hk-card.no .jx b{font-size:.25em}
+.cards-m .hk-hand .hk-card.no .jx b.w{font-size:.21em}
+.cards-m .hk-hand .hk-card.no .jx svg{width:.19em;height:.19em}
