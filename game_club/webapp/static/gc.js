@@ -340,7 +340,7 @@ let samplesLoading = null;
 function loadSamples() {
   const a = ctx();
   if (!a || samplesLoading) return samplesLoading;
-  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'slide1', 'slide2', 'square', 'flip', 'throw', 'flick', 'shuffle', 'collect', 'fb_kick', 'fb_clack1', 'fb_clack2', 'fb_clack3', 'fb_ball1', 'fb_ball2', 'fb_wall', 'fb_post', 'fb_whistle', 'fb_goal', 'fb_crowd'].map(async n => {
+  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'place_soft1', 'place_soft2', 'place_soft3', 'place_hard1', 'place_hard2', 'place_hard3', 'slide_soft', 'slide_hard', 'slide1', 'slide2', 'square', 'flip', 'throw', 'flick', 'shuffle', 'collect', 'fb_kick', 'fb_clack1', 'fb_clack2', 'fb_clack3', 'fb_ball1', 'fb_ball2', 'fb_wall', 'fb_post', 'fb_whistle', 'fb_goal', 'fb_crowd'].map(async n => {
     try {
       const r = await fetch('static/sfx/' + n + '.mp3');
       const b = await r.arrayBuffer();
@@ -364,8 +364,19 @@ function sample(n, { g = 1, rate = 1, at = 0, loop = false, pan = 0 } = {}) {
 }
 // ورق: g شدت (سرعت پرتاب)، pan سمت بازیکن. صداها از مدل فیزیکی ساخته شده اند (tools/card_sounds.py)
 sfx.card = {
-  place(g = 1, pan = 0) { sample('place' + (1 + Math.floor(Math.random() * 3)), { g: .35 + .65 * g, rate: .96 + g * .08, pan }) || (noise(.05, { g: .5, f: 1300, q: .8 }), tone(150, .05, { g: .2 })); },
-  slide(g = .7, pan = 0) { sample('slide' + (1 + Math.floor(Math.random() * 2)), { g: .2 + .55 * g, at: .01, pan }); },
+  // g = شدت پرتاب (۰ آرام تا ۱ محکم): صدای آرام و محکم با هم مخلوط می شوند؛ سطح خود فایل ها واقعی است
+  place(g = .6, pan = 0, at = 0) {
+    g = Math.max(0, Math.min(1, g));
+    const n = 1 + Math.floor(Math.random() * 3), rate = .97 + g * .06;
+    const ok = sample('place_soft' + n, { g: 1.15 * (1 - g) + .1, rate, pan, at });
+    if (g > .25) sample('place_hard' + n, { g: Math.pow((g - .25) / .75, 1.2) * 1.05, rate, pan, at });
+    if (!ok) { noise(.05, { g: .2 + .4 * g, f: 1100 + 900 * g, q: .8, at }); tone(150 - 30 * g, .05, { g: .1 + .2 * g, at }); }
+  },
+  slide(g = .6, pan = 0, at = .01) {
+    g = Math.max(0, Math.min(1, g));
+    sample('slide_soft', { g: .9 * (1 - g) + .15, pan, at });
+    if (g > .35) sample('slide_hard', { g: (g - .35) / .65 * .9, pan, at });
+  },
   throw(pan = 0) { sample('throw', { g: .45, pan }) || noise(.16, { g: .15, f: 2400, q: .9 }); },
   flick(at = 0, pan = 0) { sample('flick', { g: .7, at, pan }) || noise(.03, { g: .3, f: 2000, q: 1, at }); },
   shuffle() { if (!sample('shuffle', { g: .95 })) for (let i = 0; i < 18; i++) noise(.02, { g: .2, f: 1800 + Math.random() * 1500, q: 1.5, at: i * .04 }); },
