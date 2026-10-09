@@ -111,8 +111,21 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 /* دست بادبزنی */
 .hk-hand{position:relative;flex:none;height:150px;direction:ltr}
 .hk-hand .hk-card{left:calc(50% - 32px);bottom:14px;transform-origin:50% 520px;transform:rotate(var(--a,0deg)) translate(var(--jx,0px),calc(var(--y,0px) + var(--jy,0px)));transition:transform .24s cubic-bezier(.2,.8,.3,1),filter .2s,box-shadow .2s}
-.hk-hand .hk-card.ok{--y:-24px;box-shadow:0 1px 0 rgba(0,0,0,.12),0 12px 20px rgba(0,0,0,.38);cursor:pointer}
-.hk-hand .hk-card.no{--y:10px;filter:brightness(.6) saturate(.6);box-shadow:0 1px 2px rgba(0,0,0,.3)}
+/* سایه واقعی برگ های دست: نور از بالا راست، پس هر برگ روی برگ زیری (سمت چپش) سه لایه سایه
+   می اندازد: خط تماس تیز و تیره درست کنار لبه، نیم سایه نرم، و سایه پخش محیطی. هر چه برگ بالاتر
+   باشد (قابل بازی، در حال کشیدن) سایه دورتر، پخش تر و کم رنگ تر از لبه می شود؛ برگ های پایین
+   (غیرقابل بازی) سایه کوتاه و تیره تر. --cin لبه داخلی هر طرح را نگه می دارد. */
+.hk-hand .hk-card{--cin:inset 0 0 0 .5px rgba(0,0,0,.16);
+  box-shadow:var(--cin),-.5px 0 .5px rgba(0,0,0,.34),-2px 2px 4px rgba(0,0,0,.24),-7px 9px 14px -3px rgba(0,0,0,.24)}
+.hk-hand .hk-card.ok{--y:-24px;cursor:pointer;
+  box-shadow:var(--cin),-.5px 0 .5px rgba(0,0,0,.26),-3px 5px 8px rgba(0,0,0,.22),-11px 18px 24px -4px rgba(0,0,0,.34),0 26px 30px -14px rgba(0,0,0,.35)}
+.hk-hand .hk-card.no{--y:10px;filter:brightness(.6) saturate(.6);
+  box-shadow:var(--cin),-.5px 0 .5px rgba(0,0,0,.4),-1.5px 1.5px 2.5px rgba(0,0,0,.28),-4px 5px 8px -2px rgba(0,0,0,.2)}
+.hk-hand .hk-card.drag{box-shadow:var(--cin),-1px 1px 1px rgba(0,0,0,.18),-6px 12px 16px rgba(0,0,0,.2),-18px 34px 40px -6px rgba(0,0,0,.36)!important}
+/* نور روی خود برگ: لبه بالا کمی روشن تر، پایین (نزدیک دست) کمی در سایه */
+.hk-hand .hk-card::after{content:"";position:absolute;inset:0;z-index:5;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,0) 20%,rgba(0,0,0,0) 58%,rgba(0,0,0,.13) 100%)}
+.cards-d .hk-hand .hk-card{--cin:inset 0 0 0 .03em rgba(255,255,255,.9)}
 .hk-hand .hk-card.ok:active{--y:-30px}
 .hk-hand .hk-card.in{animation:hk-in .32s cubic-bezier(.2,.8,.3,1.2) both}
 @keyframes hk-in{0%{opacity:0;transform:rotate(var(--a,0deg)) translateY(60px) rotateY(90deg)}45%{opacity:1;transform:rotate(var(--a,0deg)) translateY(10px) rotateY(90deg)}}
