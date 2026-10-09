@@ -94,19 +94,23 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
     radial-gradient(circle,transparent 61%,rgba(0,0,0,.22) 64%,transparent 68%),
     conic-gradient(from 215deg,#ffffff,#aab2bb 55deg,#eef1f4 115deg,#7a848f 190deg,#d9dee3 250deg,#9aa3ad 310deg,#ffffff);
   --bevel:inset 0 calc(var(--d)*.045) calc(var(--d)*.03) rgba(255,255,255,.95),inset 0 calc(var(--d)*-.05) calc(var(--d)*.05) rgba(0,0,0,.4);
-  --thick:0 calc(var(--d)*.03) 0 #a2aab3,0 calc(var(--d)*.06) 0 #7c858e,0 calc(var(--d)*.09) 0 #5d6670,0 calc(var(--d)*.1) 0 #4a525b;
-  --cast:calc(var(--d)*.06) calc(var(--d)*.2) calc(var(--d)*.16) rgba(0,0,0,.45);
+  --thick:0 calc(var(--d)*.025) 0 #a2aab3,0 calc(var(--d)*.05) 0 #7c858e,0 calc(var(--d)*.07) 0 #59626b;
+  /* مهره روی چمن نشسته است: سایه تماسی تیره درست زیر لبه، بعد هاله کوتاه و نرم؛ بدون فاصله */
+  --cast:calc(var(--d)*.015) calc(var(--d)*.075) calc(var(--d)*.02) rgba(0,0,0,.6),
+    calc(var(--d)*.025) calc(var(--d)*.09) calc(var(--d)*.07) rgba(0,0,0,.38),
+    calc(var(--d)*.04) calc(var(--d)*.1) calc(var(--d)*.16) rgba(0,25,0,.22);
   box-shadow:var(--bevel),var(--thick),var(--cast)}
 .fd .in{position:relative;display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1.5px rgba(30,36,44,.6)}
 .fd .in svg{display:block;width:100%;height:100%}
 .fd .in::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
   background:radial-gradient(ellipse 60% 45% at 34% 24%,rgba(255,255,255,.62),rgba(255,255,255,0) 70%),radial-gradient(circle,transparent 60%,rgba(0,0,0,.35) 100%);
   box-shadow:inset 0 calc(var(--d)*.05) calc(var(--d)*.08) rgba(0,0,0,.55)}
-.fb-pitch.myturn .fd.me{box-shadow:var(--bevel),0 0 0 calc(var(--d)*.07) rgba(130,220,255,.6),0 0 calc(var(--d)*.35) calc(var(--d)*.12) rgba(120,210,255,.55),var(--thick),var(--cast)}
+.fb-pitch.myturn .fd.me{box-shadow:var(--bevel),0 0 0 calc(var(--d)*.06) rgba(150,225,255,.7),0 0 calc(var(--d)*.25) calc(var(--d)*.06) rgba(120,210,255,.5),var(--thick),var(--cast)}
 .fb-pitch.myturn .fd.me.pulse{animation:fb-glow 1.4s ease-in-out infinite}
-@keyframes fb-glow{50%{box-shadow:var(--bevel),0 0 0 calc(var(--d)*.1) rgba(130,220,255,.8),0 0 calc(var(--d)*.5) calc(var(--d)*.18) rgba(120,210,255,.7),var(--thick),var(--cast)}}
-.fd.aim{scale:1.08;box-shadow:var(--bevel),0 0 0 calc(var(--d)*.08) var(--gold),0 0 calc(var(--d)*.45) calc(var(--d)*.15) rgba(245,196,81,.7),var(--thick),0 calc(var(--d)*.3) calc(var(--d)*.25) rgba(0,0,0,.45)!important;animation:none!important}
-.fb-ball{position:absolute;left:0;top:0;border-radius:50%;will-change:transform;z-index:3;filter:drop-shadow(1px 3px 1.5px rgba(0,0,0,.5))}
+@keyframes fb-glow{50%{box-shadow:var(--bevel),0 0 0 calc(var(--d)*.08) rgba(150,225,255,.9),0 0 calc(var(--d)*.35) calc(var(--d)*.1) rgba(120,210,255,.65),var(--thick),var(--cast)}}
+.fd.aim{box-shadow:var(--bevel),0 0 0 calc(var(--d)*.08) var(--gold),0 0 calc(var(--d)*.4) calc(var(--d)*.12) rgba(245,196,81,.65),var(--thick),var(--cast)!important;animation:none!important}
+.fb-ball{position:absolute;left:0;top:0;border-radius:50%;will-change:transform;z-index:3;
+  filter:drop-shadow(.4px 1.2px .4px rgba(0,0,0,.6)) drop-shadow(.8px 1.6px 2px rgba(0,25,0,.3))}
 .fb-ball svg{display:block;width:100%;height:100%}
 .fb-aim{position:absolute;inset:0;overflow:visible;pointer-events:none;z-index:1}
 
