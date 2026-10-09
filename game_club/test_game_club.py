@@ -809,7 +809,9 @@ def test_style_shop():
         await db.credit(5, 600)
         v = await service.style_view(db, 5)
         assert v["table"] == "a" and v["cards"] == "a"
-        assert {i["id"] for i in v["items"] if i["owned"]} == {"table:a", "cards:a"}
+        assert {i["id"] for i in v["items"] if i["owned"]} == {"table:a", "cards:a", "cards:m"}
+        v = await service.style_use(db, 5, "cards:m")                        # مدرن رایگان است
+        assert v["cards"] == "m"
         try:
             await service.style_use(db, 5, "table:b")
             raise AssertionError("used unowned")
