@@ -136,18 +136,23 @@ function renderHand(g, anim = false) {
   const hand = $('hand');
   const cards = order(g.hand || [], g.trump), n = cards.length;
   const mine = g.turn === me && g.phase === 'play', ok = new Set(mine ? g.legal : []);
-  // نوبت من: برگ هایی که می شود انداخت جدا از بقیه (با فاصله) و بالاتر؛ بقیه پایین تر و کم رنگ
-  const split = mine && ok.size > 0 && ok.size < n, GAP = 1.8;
-  let acc = 0, gaps = 0;
-  const pos = cards.map((c, i) => { if (i && split && ok.has(c) !== ok.has(cards[i - 1])) { acc += GAP; gaps++; } return acc++; });
+  // نوبت من: برگ هایی که می شود انداخت جدا از بقیه، با فاصلهٔ بیشتر (هر کدام کامل دیده و زده شود)
+  // و بالاتر؛ بقیه فشرده تر، پایین تر و کم رنگ
+  const split = mine && ok.size > 0 && ok.size < n, GAP = 1.1;
+  const wt = c => (split ? (ok.has(c) ? 2.2 : .75) : 1);
+  let acc = 0;
+  const pos = cards.map((c, i) => {
+    if (i) { acc += (wt(c) + wt(cards[i - 1])) / 2; if (split && ok.has(c) !== ok.has(cards[i - 1])) acc += GAP; }
+    return acc;
+  });
   const total = n > 1 ? pos[n - 1] : 0;
-  // کل بادبزن حدود ۳۱ درجه تا با ۱۳ برگ هم در عرض گوشی جا شود (با فاصله گروه ها کمی بازتر)
-  const step = total ? Math.min(6.5, (30 + gaps * 3) / total) : 0;
+  // کل بادبزن حدود ۳۱ درجه تا با ۱۳ برگ هم در عرض گوشی جا شود
+  const step = total ? Math.min(split ? 9 : 6.5, (split ? 33 : 31) / total) : 0;
   const fresh = anim ? cards.filter(c => !handShown.includes(c)) : [];
   hand.innerHTML = cards.map((c, i) => {
     // دست آدم دقیق نمی چیند: هر برگ کمی کج تر یا جابه جا (ثابت برای هر برگ تا با هر رسم نلرزد)
-    const a = (total / 2 - pos[i]) * step + (hash01(c, 21) * 2 - 1) * 1.4;
-    const jx = (hash01(c, 22) * 2 - 1) * 2.5, jy = (hash01(c, 23) * 2 - 1) * 3.5;
+    const a = (total / 2 - pos[i]) * step + (hash01(c, 21) * 2 - 1) * .5;
+    const jx = (hash01(c, 22) * 2 - 1) * 1, jy = (hash01(c, 23) * 2 - 1) * 1.6;
     const cls = [mine ? (ok.has(c) ? 'ok' : 'no') : '', fresh.includes(c) ? 'in' : ''].filter(Boolean).join(' ');
     return cardHtml(c, cls, `--a:${a.toFixed(2)}deg;--jx:${jx.toFixed(1)}px;--jy:${jy.toFixed(1)}px;z-index:${n - i};animation-delay:${fresh.indexOf(c) * 45}ms`);
   }).join('');
