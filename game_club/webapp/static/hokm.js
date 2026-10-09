@@ -48,15 +48,20 @@ const nameOf = s => s === me ? 'تو' : (P()[s] ? P()[s].name : 'بازیکن');
 const seatEl = s => s === me ? document.querySelector('#meBar .avatar') : document.querySelector(`.hk-seat[data-rel="${rel(s)}"] .avatar`);
 // جای هر برگ در توده وسط میز: کمی به سمت کسی که انداخته (بالا یار، راست نفر بعد، چپ نفر قبل، پایین خودم)
 const SLOT = { 2: [71, 26, -5], 3: [36, 64, -13], 1: [106, 60, 13], 0: [72, 104, 4] };
-const slotOf = (s, c) => { const [x, y, r] = SLOT[rel(String(s))]; return [x, y, r + ((c * 37) % 7) - 3]; };
+// عدد شبه تصادفی ثابت از روی برگ و بازیکن (همه همان را می بینند، با هر بار رسم هم عوض نمی شود)
+const hash01 = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+const slotOf = (s, c) => {
+  const [x, y, r] = SLOT[rel(String(s))], k = +s * 53 + c;
+  return [x + (hash01(k, 1) * 2 - 1) * 24, y + (hash01(k, 2) * 2 - 1) * 20, r + (hash01(k, 3) * 2 - 1) * 24];
+};
 
 /* ---------- نمایش ---------- */
 function renderScore(g) {
   const us = teamUs(), tr = g.trump;
   $('score').innerHTML = `
-    <div class="tm us"><span>شما</span><b>${FD(g.score[us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[us])} برگ</em></div>
+    <div class="tm us"><span>شما</span><b>${FD(g.score[us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[us])} دست</em></div>
     <div class="hk-trump"><span class="disc${tr == null ? ' unset' : ''}" id="trumpDisc">${tr == null ? '؟' : suitSvg(tr)}</span><small>${tr == null ? 'حکم' : 'حکم ' + SUIT_FA[tr]}</small></div>
-    <div class="tm"><span>حریف</span><b>${FD(g.score[1 - us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[1 - us])} برگ</em></div>`;
+    <div class="tm"><span>حریف</span><b>${FD(g.score[1 - us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[1 - us])} دست</em></div>`;
 }
 function renderSeats(g) {
   for (const s of g.order) {
@@ -82,7 +87,7 @@ function renderStacks(tricks, drop = -1) {
     if (!el) return;
     el.innerHTML = Array.from({ length: n }, (_, i) => backHtml(d && i === n - 1 ? 'drop' : '',
       `transform:translate(${(i * .8).toFixed(1)}px,${(-i * 1.4).toFixed(1)}px) rotate(${(i % 2 ? 90 : 0) + ((i * 37) % 9) - 4}deg);z-index:${i + 1}`)).join('')
-      + (n ? `<span class="n">${FD(n)} برگ</span>` : '');
+      + (n ? `<span class="n">${FD(n)} دست</span>` : '');
   });
 }
 function renderPile(g) {
@@ -93,8 +98,8 @@ function renderPile(g) {
   let tip = '';
   if (w != null && pileShown.length < 4) tip = `<span class="hk-tip">فعلا برگ ${nameOf(String(w))} بالاست</span>`;
   pile.innerHTML = tip + pileShown.map(([i, c], k) => {
-    const [x, y, r] = slotOf(i, c), win = w === i;
-    return cardHtml(c, win ? 'win' : '', `left:${x}px;top:${y}px;z-index:${k + 1};transform:rotate(${r}deg)`).replace('</div>', win ? `<span class="crown">${svgP(CROWN, '#3A2A00')}</span></div>` : '</div>');
+    const [x, y, r] = slotOf(i, c);
+    return cardHtml(c, '', `left:${x}px;top:${y}px;z-index:${k + 1};transform:rotate(${r}deg)`);
   }).join('');
 }
 function renderPick(g) {
@@ -110,8 +115,8 @@ function renderPick(g) {
     return;
   }
   if (pile.querySelector('.hk-pick')) { pile.querySelectorAll('[data-suit]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.suit === pick))); syncPickBtn(); return; }
-  pile.innerHTML = `<section class="hk-pick" aria-labelledby="pickT" style="position:absolute;left:1px;top:0">
-    <span class="pick-cr">${svgP(CROWN, '#3A2A00')}</span><h2 id="pickT">تو حاکمی؛ حکم کن!</h2><p>به پنج برگ اولت نگاه کن و خال حکم را بزن</p>
+  pile.innerHTML = `<section class="hk-pick" aria-labelledby="pickT" style="position:absolute;left:1px;top:50%;translate:0 -56%">
+    <span class="pick-cr">${svgP(CROWN, '#3A2A00')}</span><h2 id="pickT">تو حاکمی؛ حکم کن!</h2><p>از روی پنج برگ اولت خال حکم را بزن</p>
     <div class="suits">${[0, 1, 3, 2].map(s => `<button data-suit="${s}" aria-pressed="${s === pick}" style="color:${red(s) ? '#D62839' : '#1C2230'}">${svgP(SP[s])}${SUIT_FA[s]}</button>`).join('')}</div>
     <button class="btn ok" id="pickOk" disabled>یک خال را بزن</button></section>`;
   pile.querySelectorAll('[data-suit]').forEach(b => b.onclick = () => { pick = +b.dataset.suit; haptic('select'); renderPick(g); });
@@ -204,7 +209,9 @@ async function throwCard(s, c, from) {
   $('fly').appendChild(el);
   const dx = ox - tx, dy = oy - ty, dist = Math.hypot(dx, dy) || 1;
   const dur = Math.max(380, Math.min(580, 300 + dist * .55));
-  const slide = 9 + ((c * 13) % 9), sx = dx / dist * slide, sy = dy / dist * slide;
+  // روی ماهوت کمی سُر می خورد؛ اگر روی برگ دیگری بنشیند خیلی کم
+  const onCard = pileShown.some(([i2, c2]) => { const [x2, y2] = slotOf(i2, c2); return Math.abs(x2 - x) < 52 && Math.abs(y2 - y) < 72; });
+  const slide = onCard ? 3 + hash01(c, 7) * 3 : 6 + hash01(c, 8) * 5, sx = dx / dist * slide, sy = dy / dist * slide;
   const r0 = mine ? r - 10 : R === 1 ? 78 : R === 3 ? -78 : 172;
   // کج شدن در هوا: پرتاب از پایین یا بالا حول محور افقی، از کنارها حول محور عمودی
   const rx = R === 0 ? 30 : R === 2 ? -26 : 0, ry = R === 1 ? -26 : R === 3 ? 26 : 0;
@@ -453,8 +460,8 @@ async function play(e) {
   if (e.t === 'trick') {
     await collectTrick(e.c, e.tricks);
     const us = teamUs();
-    $('score').querySelectorAll('.tm em')[0].textContent = FD(e.tricks[us]) + ' برگ';
-    $('score').querySelectorAll('.tm em')[1].textContent = FD(e.tricks[1 - us]) + ' برگ';
+    $('score').querySelectorAll('.tm em')[0].textContent = FD(e.tricks[us]) + ' دست';
+    $('score').querySelectorAll('.tm em')[1].textContent = FD(e.tricks[1 - us]) + ' دست';
     return;
   }
   if (e.t === 'hand') { if (e.score[e.team] < g.target) await handResult(e); return; }
@@ -473,7 +480,7 @@ async function handResult(e) {
   sheet(`<div class="hk-res" role="status">
       <span class="ic${won ? '' : ' lost'}">${svgP(CROWN)}</span>
       <h2>${won ? 'این دست مال شما شد' : 'این دست را باختید'}</h2>${kot}
-      <div class="hk-tricks"><div><b>${FD(e.tricks[us])}</b><span>برگ ما</span></div><div><b>${FD(e.tricks[1 - us])}</b><span>برگ حریف</span></div></div>
+      <div class="hk-tricks"><div><b>${FD(e.tricks[us])}</b><span>دست ما</span></div><div><b>${FD(e.tricks[1 - us])}</b><span>دست حریف</span></div></div>
       ${bars(e.score, g.target)}
       <p>حاکم دست بعد: <b>${nameOf(nh)}</b></p></div>`, { center: true, dismiss: false });
   await sleep(3000);
@@ -639,7 +646,7 @@ function over(v) {
       <div class="hk-tricks"><div><b>${FD(g.score[us])}</b><span>دست ما</span></div><div><b>${FD(g.score[1 - us])}</b><span>دست حریف</span></div></div>
       ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>سهم تو از جایزه به کیف امتیازت اضافه شد.</p>` : ended ? '<p>ورودی‌ها برگشت.</p>' : `<p>ورودی این بازی (${fa(r.lost || v.cfg.entry)} امتیاز) را باختی.</p>`)
         : `<p>${won ? 'بازی آزاد بود و جایزه نداشت.' : 'بازی آزاد بود؛ چیزی از دست ندادی.'}</p>`}
-      <div class="facts"><div><b>${FD(st.tricks)}</b><span>دور بردی</span></div><div><b>${FD(st.hakem)}</b><span>بار حاکم شدی</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
+      <div class="facts"><div><b>${FD(st.tricks)}</b><span>دست بردی</span></div><div><b>${FD(st.hakem)}</b><span>بار حاکم شدی</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
     </div>
     <a class="btn btn-block" href="hokm-lobby.html">یک بازی دیگر</a>
     <a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
