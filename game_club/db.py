@@ -381,6 +381,13 @@ class GCDatabase:
             "ORDER BY m.created_at DESC LIMIT 1", (tg_id,))
         return row["match_id"] if row else None
 
+    async def active_matches_of(self, tg_id: int) -> list[str]:
+        rows = await self.all(
+            "SELECT mp.match_id FROM match_players mp JOIN matches m ON m.id = mp.match_id "
+            "WHERE mp.tg_id = ? AND mp.active = 1 AND m.status IN ('lobby','playing') "
+            "ORDER BY m.created_at DESC LIMIT 5", (tg_id,))
+        return [r["match_id"] for r in rows]
+
     async def deactivate(self, match_id: str, tg_id: int | None = None) -> None:
         if tg_id is None:
             await self.execute("UPDATE match_players SET active = 0 WHERE match_id = ?", (match_id,))

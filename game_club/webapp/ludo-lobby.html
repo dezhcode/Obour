@@ -126,8 +126,11 @@
       shown = String(st.found);
       const sh = sheet(`${sheetHead('پیدا کردن حریف')}${seatsHtml(list)}
         <div class="wait-line"><span class="spinner"></span><span id="ql">${line}</span></div>
-        <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · جایزه ${fa(c.entry * c.players)} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگر تا ${FD(st.bots_in)} ثانیهٔ دیگر کسی نیاید، جای خالی را ربات پر می‌کند` : 'بازی آزاد'} · ناشناس می‌مانی</p>
+        <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · جایزه ${fa(c.entry * c.players)} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگر تا ${FD(st.bots_in)} ثانیهٔ دیگر کسی نیاید، جای خالی را ربات پر می‌کند` : 'بازی وقتی شروع می‌شود که میز کامل شود'} · ناشناس می‌مانی</p>
+        ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مانم؛ جای خالی را ربات پر کند</button>' : ''}
         <button class="btn btn-light btn-block" id="qc">انصراف${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
+      const qb = sh.querySelector('#qb');
+      if (qb) qb.onclick = async () => { qb.disabled = true; try { const r = await GC.ludo.queueBots(); if (r.state === 'matched') { token = null; sfx.turn(); haptic('success'); return go(r.match); } } catch (e) { toast(errText(e)); } qb.disabled = false; };
       sh.querySelector('#qc').onclick = async () => { token = null; try { await GC.ludo.queueLeave(); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
       }
       await sleep(1500); if (token !== t) return;

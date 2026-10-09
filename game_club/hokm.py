@@ -6,6 +6,8 @@
 
 قواعد (حکم ایرانی، دو تیم دونفره):
 - صندلی ها ۰ تا ۳ به ترتیب نوبت (خلاف عقربه ساعت)؛ ۰ و ۲ یک تیم، ۱ و ۳ تیم دیگر
+- حاکم دست اول به رسم قدیم تعیین می شود: برگ ها رو باز یکی یکی دور میز پخش
+  می شوند و اولین کسی که آس بگیرد حاکم است (رویداد hakem با draw)
 - اول دست به هر نفر ۵ برگ داده می شود؛ حاکم از روی برگ هایش حکم (خال برتر) را
   انتخاب می کند و بعد ۸ برگ دیگر به هر نفر می رسد
 - حاکم دور اول را شروع می کند. هر کس باید از خال شروع شده بیاید؛ اگر نداشت
@@ -29,8 +31,12 @@ LOBBY_ORDER = ("0", "2", "1", "3")
 SUITS = 4
 HAND_TRICKS = 7
 MAX_EVENTS = 60
+# زمان ها با انیمیشن مینی اپ هماهنگ اند تا هر کس ببیند حاکم کیست و حکم چه شد
+START_GRACE = 2.5    # تا بازیکن ها از شمارش معکوس لابی به میز برسند
+HAKEM_ANIM = 2.2     # اعلام حاکم در دست های بعد
 DEAL_ANIM = 1.8      # پخش پنج برگ اول
-DEAL2_ANIM = 1.6     # پخش هشت برگ بعدی
+TRUMP_THINK = 2.4    # ربات حاکم کمی فکر می کند تا بقیه «در حال انتخاب حکم» را ببینند
+DEAL2_ANIM = 4.0     # نمایش حکم انتخاب شده و پخش هشت برگ بعدی
 BOT_THINK = 0.9
 COLLECT = 1.5        # برگ های یک دور این مدت روی میز می مانند
 HANDOVER = 3.6       # نمایش نتیجه دست
@@ -54,21 +60,43 @@ def nxt(i: int) -> int:
     return (i + 1) % 4
 
 
+def draw_time(n: int) -> float:
+    """مدت انیمیشن «آس کشی» برای n برگ (همان گام های hokm.js)."""
+    step = .17 if n > 14 else .23 if n > 8 else .30
+    return .7 + n * step + 2.8
+
+
+def draw_hakem() -> tuple[int, list[list]]:
+    """برگ ها رو باز، از یک نفر تصادفی دور میز؛ اولین آس حاکم را تعیین می کند."""
+    deck = list(range(52))
+    _rng.shuffle(deck)
+    i, draw = _rng.randrange(4), []
+    for c in deck:
+        draw.append([SEATS[i], c])
+        if rank(c) == 12:
+            return i, draw
+        i = nxt(i)
+    return i, draw  # دست نیافتنی: چهار آس در دسته هست
+
+
 # ---------- ساخت ----------
 def new_state(seats: list[dict], now: float, turn_s: int, stake: bool, target: int, hakem: int | None = None) -> dict:
     """seats: [{color: "0".."3", uid, name, av, pic, bot}]"""
+    draw = None
+    if hakem not in range(4):
+        hakem, draw = draw_hakem()
     players = {s["color"]: {"uid": s.get("uid"), "name": s["name"], "av": s.get("av", 1), "pic": s.get("pic", ""),
                             "bot": bool(s.get("bot")), "out": False, "misses": 0} for s in seats}
     st = {
         "game": "hokm", "order": list(SEATS), "players": players, "target": target, "score": [0, 0],
-        "hand_no": 0, "hakem": hakem if hakem in range(4) else _rng.randrange(4), "trump": None,
+        "hand_no": 0, "hakem": hakem, "prev_hakem": None, "trump": None,
         "phase": "trump", "hands": {s: [] for s in SEATS}, "rest": {s: [] for s in SEATS},
         "tricks": [0, 0], "trick": [], "led": None, "turn": 0, "played": [], "last_trick": None,
         "next_at": now, "deadline": now, "turn_s": turn_s, "stake": stake,
         "events": [], "seq": 0, "turn_id": 0, "winner": None, "over": False, "started": now,
         "stats": {s: {"tricks": 0, "hakem": 0} for s in SEATS},
     }
-    _start_hand(st, now)
+    _start_hand(st, now, START_GRACE + (draw_time(len(draw)) if draw else HAKEM_ANIM), draw)
     return st
 
 
@@ -85,7 +113,7 @@ def _sort(cards: list[int], trump: int | None = None) -> list[int]:
     return sorted(cards, key=lambda c: (0 if trump is not None and suit(c) == trump else 1, suit(c), -rank(c)))
 
 
-def _start_hand(st: dict, now: float) -> None:
+def _start_hand(st: dict, now: float, lead: float = HAKEM_ANIM, draw: list | None = None) -> None:
     deck = list(range(52))
     _rng.shuffle(deck)
     for k, s in enumerate(SEATS):
@@ -95,8 +123,11 @@ def _start_hand(st: dict, now: float) -> None:
     st.update(trump=None, phase="trump", tricks=[0, 0], trick=[], led=None, played=[], last_trick=None,
               turn=st["hakem"])
     st["stats"][SEATS[st["hakem"]]]["hakem"] += 1
-    _event(st, t="deal", hakem=str(st["hakem"]), hand=st["hand_no"])
-    _wait(st, now, DEAL_ANIM)
+    prev = st.get("prev_hakem")
+    _event(st, t="hakem", c=SEATS[st["hakem"]], hand=st["hand_no"], draw=draw,
+           prev=SEATS[prev] if prev is not None else None)
+    _event(st, t="deal", hakem=SEATS[st["hakem"]], hand=st["hand_no"])
+    _wait(st, now, lead + DEAL_ANIM + (TRUMP_THINK if _auto(st, st["hakem"]) else 0))
 
 
 def _wait(st: dict, now: float, delay: float) -> None:
@@ -203,6 +234,7 @@ def _after_collect(st: dict, now: float) -> None:
     if st["score"][w] >= st["target"]:
         _finish(st, w)
         return
+    st["prev_hakem"] = st["hakem"]
     if w != hakem_team:
         st["hakem"] = nxt(st["hakem"])
     st["hand_no"] += 1

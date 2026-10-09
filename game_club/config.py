@@ -36,7 +36,10 @@ class GCConfig:
     rake_percent: int = min(30, max(0, _int_env("GAME_CLUB_RAKE", "0")))
     turn_seconds: int = min(60, max(8, _int_env("GAME_CLUB_TURN_SECONDS", "20")))
     # چند ثانیه صبر در صف بازی آزاد قبل از پر کردن جای خالی با ربات
-    bot_fill_seconds: int = max(3, _int_env("GAME_CLUB_BOT_FILL_SECONDS", "15"))
+    # ۰ = صف ناشناس هیچ وقت خودکار با ربات پر نمی شود؛ میز وقتی کامل شد شروع می شود
+    # (بازیکن صف آزاد می تواند خودش «شروع با ربات» را بزند). کلید قدیمی
+    # GAME_CLUB_BOT_FILL_SECONDS عمدا خوانده نمی شود تا مقدار ۱۵ مانده در .env اثری نداشته باشد.
+    bot_fill_seconds: int = max(0, _int_env("GAME_CLUB_QUEUE_AUTOBOT_SECONDS", "0"))
 
     @property
     def enabled(self) -> bool:

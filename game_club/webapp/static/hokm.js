@@ -84,12 +84,18 @@ function renderPile(g) {
 function renderPick(g) {
   const pile = $('pile');
   if (g.hakem !== me) {
-    pile.innerHTML = `<div class="hk-wait" style="position:absolute;inset:0;justify-content:center"><span class="spinner"></span><span>${nameOf(g.hakem)} حاکم است<br>و دارد حکم را انتخاب می‌کند…</span></div>`;
+    if (pile.querySelector(`.hk-choosing[data-h="${g.hakem}"]`)) return;
+    const hp = g.players[g.hakem] || {};
+    pile.innerHTML = `<div class="hk-choosing" data-h="${g.hakem}" role="status">
+      <div class="hk-orbit"><span class="ring">${[0, 1, 2, 3].map(k => `<span class="o${k}">${suitSvg(k)}</span>`).join('')}</span>
+        <span class="who">${face(hp, '#F5C451')}<i class="cr">${svgP(CROWN, '#3A2A00')}</i></span></div>
+      <b>${nameOf(g.hakem)} دارد حکم می‌کند<span class="hk-dots"></span></b>
+      <small>${hp.team === teamUs() ? 'یارت' : 'حریف'} از روی پنج برگ اولش خال حکم را انتخاب می‌کند</small></div>`;
     return;
   }
   if (pile.querySelector('.hk-pick')) { pile.querySelectorAll('[data-suit]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.suit === pick))); syncPickBtn(); return; }
   pile.innerHTML = `<section class="hk-pick" aria-labelledby="pickT" style="position:absolute;left:1px;top:0">
-    <h2 id="pickT">حکم را انتخاب کن</h2><p>تو حاکمی؛ به پنج برگ اولت نگاه کن</p>
+    <span class="pick-cr">${svgP(CROWN, '#3A2A00')}</span><h2 id="pickT">تو حاکمی؛ حکم کن!</h2><p>به پنج برگ اولت نگاه کن و خال حکم را بزن</p>
     <div class="suits">${[0, 1, 3, 2].map(s => `<button data-suit="${s}" aria-pressed="${s === pick}" style="color:${red(s) ? '#D62839' : '#1C2230'}">${svgP(SP[s])}${SUIT_FA[s]}</button>`).join('')}</div>
     <button class="btn ok" id="pickOk" disabled>یک خال را بزن</button></section>`;
   pile.querySelectorAll('[data-suit]').forEach(b => b.onclick = () => { pick = +b.dataset.suit; haptic('select'); renderPick(g); });
@@ -220,26 +226,143 @@ async function dealAnim(rounds, first) {
   }
   await sleep(220);
 }
-async function trumpReveal(s) {
-  const pile = $('pile');
-  pile.innerHTML = `<div class="hk-wait" style="position:absolute;inset:0;justify-content:center"><span class="hk-trump"><span class="disc pop" style="width:84px;height:84px">${suitSvg(s).replace('<svg', '<svg style="width:48px;height:48px"')}</span></span><b style="font-size:18px">حکم ${SUIT_FA[s]}</b></div>`;
-  sfx.card.trump();
-  await sleep(950);
+/* حکم اعلام شد: خال از جای حاکم به وسط میز می پرد، با پرتو و حلقه، بعد به جای
+   حکم در سربرگ می نشیند */
+async function trumpReveal(s, c) {
+  const pile = $('pile'), k = pileScale();
+  pile.innerHTML = `<div class="hk-reveal" role="status"><span class="rays"></span><span class="big" id="bigDisc">${suitSvg(s)}</span>
+    <b>حکم: ${SUIT_FA[s]}</b><small>${c === me ? 'تو حکم کردی' : (nameOf(c) + ' حکم کرد')}</small></div>`;
+  const big = $('bigDisc'), from = seatEl(c);
+  bar(`حکم: ${SUIT_FA[s]}`, 'هشت برگ بعدی پخش می‌شود…', c);
+  sfx.card.trump(); haptic('success');
+  if (from) {
+    const [fx, fy] = center(from), [bx, by] = center(big);
+    big.animate([{ transform: `translate(${(fx - bx) / k}px,${(fy - by) / k}px) scale(.3) rotate(-200deg)`, opacity: .3 },
+      { transform: 'translate(0,0) scale(1.22) rotate(12deg)', opacity: 1, offset: .72 }, { transform: 'none' }],
+    { duration: 700, easing: 'cubic-bezier(.2,.8,.3,1)' });
+  }
+  await sleep(1550);
+  const disc = $('trumpDisc');
+  if (disc) {
+    const [dx, dy] = center(disc), [bx, by] = center(big);
+    await big.animate([{ transform: 'none' }, { transform: `translate(${(dx - bx) / k}px,${(dy - by) / k}px) scale(.35)`, opacity: .9 }],
+      { duration: 460, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' }).finished.catch(() => {});
+  }
+  renderScore(Object.assign({}, snap.game, { trump: s }));
+  const d2 = $('trumpDisc'); if (d2) d2.classList.add('pop');
+  sfx.card.place();
+  pile.innerHTML = '';
+}
+
+/* ---------- انتخاب حاکم ---------- */
+// جای برگ های «آس کشی» جلوی هر بازیکن (مختصات داخل توده وسط)
+const DRAW_AT = { 2: [71, 2, -4], 0: [71, 144, 3], 3: [2, 73, -8], 1: [140, 73, 8] };
+function pileEl(html) { const w = document.createElement('div'); w.innerHTML = html; const el = w.firstElementChild; $('pile').appendChild(el); return el; }
+function bar(t, sub, who) {
+  const p = P()[who || me] || {};
+  $('meBar').innerHTML = `<div class="pill">${face(p, '#9BE3B8')}<span class="txt"><b>${t}</b>${sub ? `<span>${sub}</span>` : ''}</span></div>`;
+  deadlineAt = 0;
+}
+async function flipTo(el, c, rot, ms) {
+  el.style.transform = `rotate(${rot}deg) scaleX(0)`;
+  await el.animate([{ transform: `rotate(${rot}deg) scaleX(1)` }, { transform: `rotate(${rot}deg) scaleX(0)` }], { duration: ms * .45, easing: 'ease-in' }).finished.catch(() => {});
+  const f = pileEl(cardHtml(c, 'drawn', `left:${el.style.left};top:${el.style.top};z-index:${el.style.zIndex};transform:rotate(${rot}deg)`));
+  el.remove();
+  await f.animate([{ transform: `rotate(${rot}deg) scaleX(0)` }, { transform: `rotate(${rot}deg) scaleX(1.08)`, offset: .7 }, { transform: `rotate(${rot}deg) scaleX(1)` }], { duration: ms * .55, easing: 'ease-out' }).finished.catch(() => {});
+  return f;
+}
+async function sweepPile() {
+  const els = [...$('pile').querySelectorAll('.hk-card,.hk-back')];
+  if (!els.length) return;
+  sfx.card.collect();
+  await Promise.all(els.map(el => {
+    const x = parseFloat(el.style.left) || 71, y = parseFloat(el.style.top) || 73;
+    return el.animate([{ transform: el.style.transform || 'none', opacity: 1 }, { transform: `translate(${71 - x}px,${73 - y}px) rotate(0deg) scale(.8)`, opacity: 0 }],
+      { duration: 380, easing: 'cubic-bezier(.5,0,.7,1)', fill: 'forwards' }).finished.catch(() => {});
+  }));
+  $('pile').innerHTML = '';
+}
+function crownStage(s, kick, sub) {
+  const p = P()[s] || {};
+  return pileEl(`<div class="hk-stage" role="status"><div class="hk-crowned">${kick ? `<span class="kick">${kick}</span>` : ''}
+    <span class="who">${face(p, '#F5C451')}<i class="cr">${svgP(CROWN, '#3A2A00')}</i></span>
+    <b>${s === me ? 'تو حاکم شدی!' : nameOf(s) + ' حاکم شد'}</b>${sub ? `<small>${sub}</small>` : ''}</div></div>`);
+}
+async function crownTo(s, from) {
+  const t = seatEl(s); if (!t) return;
+  const [tx, ty] = center(t), [fx, fy] = from ? center(from) : center($('pile'));
+  const el = document.createElement('div'); el.className = 'hk-flycrown'; el.innerHTML = svgP(CROWN, '#3A2A00');
+  el.style.left = (tx - 16) + 'px'; el.style.top = (ty - 16) + 'px';
+  $('fly').appendChild(el);
+  await el.animate([{ transform: `translate(${fx - tx}px,${fy - ty}px) scale(1.7)`, opacity: 0 },
+    { transform: `translate(${(fx - tx) / 2}px,${(fy - ty) / 2 - 70}px) scale(1.35) rotate(-18deg)`, opacity: 1, offset: .5 },
+    { transform: 'translate(0,-30px) scale(.75)', opacity: 1 }], { duration: 720, easing: 'cubic-bezier(.3,.6,.4,1)' }).finished.catch(() => {});
+  el.remove(); sfx.coin(); haptic(s === me ? 'success' : 'light');
+}
+// دست اول: برگ ها رو باز دور میز می روند تا اولین آس بیاید
+async function aceDraw(e) {
+  bar('انتخاب حاکم', 'برگ‌ها رو باز پخش می‌شود؛ اولین آس حاکم است');
+  $('pile').innerHTML = '<div class="hk-back deck" style="left:71px;top:73px;z-index:1"></div>';
+  sfx.card.shuffle(); haptic('light');
+  await sleep(700);
+  const n = e.draw.length, step = n > 14 ? 170 : n > 8 ? 230 : 300, cnt = {};
+  let z = 2, last = null;
+  for (const [s, c] of e.draw) {
+    const r = rel(s), m = cnt[s] = (cnt[s] || 0) + 1, [x0, y0, a0] = DRAW_AT[r];
+    const x = x0 + (r === 3 ? m * 3 : r === 1 ? -m * 3 : (m % 3 - 1) * 5), y = y0 + (r === 2 ? m * 2 : r === 0 ? -m * 2 : (m % 3 - 1) * 4);
+    const rot = a0 + ((c * 37) % 9) - 4;
+    const b = pileEl(`<div class="hk-back" style="left:${x}px;top:${y}px;z-index:${++z};transform:rotate(${rot}deg)"></div>`);
+    sfx.card.flick();
+    await b.animate([{ transform: `translate(${71 - x}px,${73 - y}px) rotate(0deg) scale(.92)` }, { transform: `rotate(${rot}deg)` }],
+      { duration: step * .5, easing: 'cubic-bezier(.2,.7,.3,1)' }).finished.catch(() => {});
+    last = await flipTo(b, c, rot, step * .4);
+    if (rank(c) !== 12) { sfx.card.place(); last.classList.add('dim'); await sleep(step * .1); }
+  }
+  const deck = $('pile').querySelector('.deck'); if (deck) deck.remove();
+  last.classList.add('ace'); last.style.zIndex = 40;
+  sfx.card.trump(); haptic('success');
+  bar(e.c === me ? 'آس آمد؛ تو حاکمی!' : 'آس آمد!', `آس ${SUIT_FA[suit(last.dataset.card)]} برای ${nameOf(e.c)}`);
+  await sleep(650);
+  crownStage(e.c, 'اولین آس', `آس ${SUIT_FA[suit(+last.dataset.card)]}`);
+  await sleep(1100);
+  await crownTo(e.c, last);
+  await sweepPile();
+}
+// دست های بعد: حاکم ماند یا به نفر بعد رسید
+async function hakemAnnounce(e) {
+  $('pile').innerHTML = '';
+  const kept = e.prev != null && e.prev === e.c, moved = e.prev != null && e.prev !== e.c;
+  bar(`دست ${FD((e.hand || 0) + 1)}`, kept ? 'تیم حاکم برد؛ حاکم همان می‌ماند' : moved ? 'تیم حاکم باخت؛ حکم به نفر بعد رسید' : 'حاکم این دست');
+  sfx.turn();
+  crownStage(e.c, `دست ${FD((e.hand || 0) + 1)}`, kept ? 'باز هم حاکم است' : moved ? `حاکمی از ${nameOf(e.prev)} به او رسید` : '');
+  await sleep(1250);
+  await crownTo(e.c, moved ? seatEl(e.prev) : $('pile'));
+  $('pile').innerHTML = '';
+}
+async function hakemIntro(e) {
+  const g = snap.game;
+  pileShown = []; handShown = []; pick = null;
+  $('hand').innerHTML = '';
+  renderScore(Object.assign({}, g, { trump: null, tricks: [0, 0] }));
+  renderSeats(Object.assign({}, g, { hakem: e.draw ? null : e.prev, turn: null }));
+  if (e.draw && e.draw.length) await aceDraw(e); else await hakemAnnounce(e);
+  renderSeats(Object.assign({}, g, { hakem: e.c, turn: null }));
 }
 
 /* ---------- پخش رویدادها ---------- */
 async function play(e) {
   const g = snap.game;
+  if (e.t === 'hakem') { await hakemIntro(e); return; }
   if (e.t === 'deal') {
     pileShown = []; handShown = [];
     $('hand').innerHTML = ''; $('pile').innerHTML = '';
     renderSeats(Object.assign({}, g, { hakem: e.hakem, turn: null }));
-    toast(e.hakem === me ? 'تو حاکم این دستی' : `حاکم این دست: ${nameOf(e.hakem)}`);
+    bar(e.hakem === me ? 'تو حاکمی' : 'حاکم: ' + nameOf(e.hakem), 'پنج برگ اول پخش می‌شود…');
     await dealAnim(5, true);
     return;
   }
   if (e.t === 'trump') {
-    await trumpReveal(e.suit);
+    await trumpReveal(e.suit, e.c);
     if (e.auto && e.c === me) toast('وقتت تمام شد؛ حکم خودکار انتخاب شد');
     pick = null;
     await dealAnim(4, false);
@@ -445,7 +568,10 @@ function askExit() {
       <p id="dD">ربات جای تو کنار یارت بازی می‌کند${stake ? '؛ اگر تیمتان ببرد سهمی به تو نمی‌رسد' : ''}.</p>
       <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ سر میز می‌مانم</button>
+      <p class="dlg-fine">میز در صفحهٔ خانه می‌ماند و با یک لمس برمی‌گردی. تا نیستی، نوبت‌هایت خودکار بازی می‌شود${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی بیرون رفتن از بازی' : ''}.</p>
     </div>`, { center: true });
+  sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
     try { await GC.hokm.leave(mid); } catch (e) {}
     GC.guardClose(false); store.set('hmid', null); location.href = 'index.html';
@@ -482,6 +608,18 @@ async function start() {
   if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   const g = first.game;
+  const evs = (g.events || []).slice().sort((a, b) => a.seq - b.seq);
+  const intro = [...evs].reverse().find(e => e.t === 'hakem');
+  if (first.status === 'playing' && intro && !evs.some(e => e.seq > intro.seq && e.t === 'play')) {
+    // هنوز هیچ برگی در این دست بازی نشده: انتخاب حاکم و حکم را از اول ببیند
+    snap = first; since = intro.seq - 1; pileShown = [];
+    renderScore(Object.assign({}, g, { trump: null })); renderSeats(Object.assign({}, g, { hakem: null, turn: null }));
+    $('hand').innerHTML = ''; $('pile').innerHTML = ''; bar('میز آماده است', 'الان حاکم انتخاب می‌شود…');
+    mount(); fit();
+    await apply(first);
+    poll();
+    return;
+  }
   snap = first; since = g.seq; pileShown = (g.trick || []).map(([i, c]) => [+i, c]);
   renderAll(g, true); mount(); fit();
   if (first.status === 'over') { overShown = true; over(first); return; }

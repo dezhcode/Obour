@@ -62,6 +62,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "active_match": active,
             "active_game": await gdb.match_game(active) if active else None,
             "queue": bool(q_row and not q_row["claimed"]),
+            "tables": await service.my_tables(gdb, tg),
             "settings": {"stake": gc.stake_enabled, "shop": gc.shop_enabled, "entries": list(gc.entries), "packs": list(gc.charge_packs),
                          "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,
                          "bot": gc.username, "obour_bot": await ob.db.get_setting("bot_username", "")},
@@ -105,6 +106,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             if method == "POST":
                 return await service.queue_join(gdb, tg, cfg_in())
             return await service.queue_status(gdb, tg)
+        if op == "queue/bots" and method == "POST":
+            return await service.queue_bots(gdb, tg)
         if op == "queue/leave" and method == "POST":
             return await service.queue_leave(gdb, tg)
         if op == "invite" and method == "POST":

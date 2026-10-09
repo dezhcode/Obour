@@ -314,7 +314,8 @@ async def try_match(db: GCDatabase, cfg: dict) -> None:
         while len(rows) >= n:
             group, rows = rows[:n], rows[n:]
             await _from_queue(db, cfg, group)
-        if rows and cfg["mode"] == "free" and time.time() - rows[0]["created_at"] >= gc.bot_fill_seconds:
+        if rows and cfg["mode"] == "free" and gc.bot_fill_seconds and \
+                time.time() - rows[0]["created_at"] >= gc.bot_fill_seconds:
             await _from_queue(db, cfg, rows)
     finally:
         await db.unlock("mm:" + key)
@@ -344,7 +345,31 @@ async def queue_status(db: GCDatabase, tg: int) -> dict:
     cfg = json.loads(row["cfg"])
     return {"state": "waiting", "waited": int(time.time() - row["created_at"]), "cfg": cfg,
             "found": len(waiting), "need": cfg["players"],
-            "bots_in": max(0, gc.bot_fill_seconds - int(time.time() - row["created_at"])) if cfg["mode"] == "free" else None}
+            "bots_in": max(0, gc.bot_fill_seconds - int(time.time() - row["created_at"]))
+            if cfg["mode"] == "free" and gc.bot_fill_seconds else None,
+            "can_bots": cfg["mode"] == "free"}
+
+
+async def queue_bots(db: GCDatabase, tg: int) -> dict:
+    """صف آزاد: بازیکن نمی خواهد منتظر بماند؛ هر که الان در صف است با ربات ها سر یک میز."""
+    row = await db.queue_row(tg)
+    if not row or row["claimed"]:
+        return await queue_status(db, tg)
+    cfg = json.loads(row["cfg"])
+    if cfg["mode"] != "free":
+        raise GCError("need_players")
+    key = cfg_key(cfg)
+    if not await db.lock("mm:" + key):
+        raise GCError("busy")
+    try:
+        rows = await db.queue_waiting(key)
+        mine = [r for r in rows if r["tg_id"] == tg]
+        if mine:
+            others = [r for r in rows if r["tg_id"] != tg][:cfg["players"] - 1]
+            await _from_queue(db, cfg, mine + others)
+    finally:
+        await db.unlock("mm:" + key)
+    return await queue_status(db, tg)
 
 
 async def queue_leave(db: GCDatabase, tg: int) -> dict:
@@ -560,6 +585,42 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, cha
         won = color in _winners(st)
         out["result"] = {"won": won, "prize": prize_shares(st, rows).get(tg, 0),
                          "lost": next((r["paid"] for r in rows if r["tg_id"] == tg), 0) if not won else 0}
+    return out
+
+
+async def my_tables(db: GCDatabase, tg: int) -> list[dict]:
+    """میزهای باز کاربر برای صفحهٔ خانه: صف، میز دعوت در انتظار، بازی در جریان."""
+    out = []
+    q = await db.queue_row(tg)
+    if q and not q["claimed"]:
+        cfg = json.loads(q["cfg"])
+        out.append({"kind": "queue", "game": game_of(cfg), "cfg": cfg,
+                    "found": len(await db.queue_waiting(q["cfg_key"])), "need": cfg["players"]})
+    for mid in await db.active_matches_of(tg):
+        m = await db.get_match(mid)
+        if not m:
+            continue
+        cfg, st = m["cfg"], m["state"]
+        rows = await db.match_players(mid)
+        me = _color_of(rows, tg)
+        t = {"kind": m["status"], "id": mid, "game": game_of(cfg), "cfg": cfg}
+        if m["status"] == "lobby":
+            seats = st.get("seats", [])
+            t.update(found=len(seats), need=cfg["players"], host=m["host"] == tg,
+                     players=[{"name": x["name"], "av": x["av"], "pic": x.get("pic", ""), "me": x["tg"] == tg}
+                              for x in seats])
+        else:
+            if st.get("over"):
+                continue
+            t["players"] = [{"name": st["players"][c]["name"], "av": st["players"][c]["av"],
+                             "pic": st["players"][c].get("pic", ""), "bot": st["players"][c]["bot"], "me": c == me}
+                            for c in st["order"]]
+            t["my_turn"] = _current(st) == me
+            if t["game"] == "hokm" and me is not None:
+                mine = int(me) % 2
+                t["score"] = [st["score"][mine], st["score"][1 - mine]]
+                t["target"] = st["target"]
+        out.append(t)
     return out
 
 

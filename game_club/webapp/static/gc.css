@@ -163,6 +163,8 @@ h1,h2,h3,p{margin:0}
 .dlg-acts{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);width:100%;margin-top:var(--space-3)}
 .dlg-acts.one{grid-template-columns:1fr}
 .dlg-acts .btn{min-height:48px;font-size:15px;padding-inline:var(--space-3)}
+.dlg-home{width:100%;min-height:46px;margin-top:var(--space-2);font-size:14.5px}
+.dlg-fine{font-size:12px;line-height:19px;color:var(--ink-muted);text-align:center;margin-top:var(--space-2)}
 .btn-danger-soft{--bg:rgba(255,107,122,.16);--fg:var(--danger);--edge:transparent;box-shadow:none}
 .sheet>*{min-width:0}
 .grab{width:44px;height:5px;border-radius:5px;background:var(--line);justify-self:center}
