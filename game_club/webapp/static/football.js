@@ -76,17 +76,23 @@ function rollBall(dx, dy) {
 }
 function drawBall(el) {
   const g = el && el.querySelector('.pat'); if (!g) return;
-  const R = 18.6, P = p => `${(p[0] * R).toFixed(2)},${(p[1] * R).toFixed(2)}`;
-  let out = '';
-  for (const [a, b] of BALL3.seams) {
-    const A = mul(ballM, a), B = mul(ballM, b);
-    if (A[2] > .02 && B[2] > .02) out += `<line x1="${(A[0] * R).toFixed(2)}" y1="${(A[1] * R).toFixed(2)}" x2="${(B[0] * R).toFixed(2)}" y2="${(B[1] * R).toFixed(2)}"/>`;
+  if (!g.firstChild) {
+    const ns = 'http://www.w3.org/2000/svg';
+    BALL3.seams.forEach(() => g.appendChild(document.createElementNS(ns, 'line')));
+    BALL3.pents.forEach(() => g.appendChild(document.createElementNS(ns, 'polygon')));
   }
-  for (const pt of BALL3.pents) {
-    if (mul(ballM, pt.c)[2] < .08) continue;
-    out += `<polygon points="${pt.pts.map(q => P(mul(ballM, q))).join(' ')}"/>`;
-  }
-  g.innerHTML = out;
+  const R = 18.6, kids = g.childNodes, n = BALL3.seams.length;
+  BALL3.seams.forEach(([a, b], i) => {
+    const A = mul(ballM, a), B = mul(ballM, b), l = kids[i];
+    if (A[2] > .02 && B[2] > .02) { l.setAttribute('x1', (A[0] * R).toFixed(2)); l.setAttribute('y1', (A[1] * R).toFixed(2)); l.setAttribute('x2', (B[0] * R).toFixed(2)); l.setAttribute('y2', (B[1] * R).toFixed(2)); l.style.display = ''; }
+    else l.style.display = 'none';
+  });
+  BALL3.pents.forEach((pt, i) => {
+    const poly = kids[n + i];
+    if (mul(ballM, pt.c)[2] < .08) { poly.style.display = 'none'; return; }
+    poly.setAttribute('points', pt.pts.map(q => { const v = mul(ballM, q); return `${(v[0] * R).toFixed(2)},${(v[1] * R).toFixed(2)}`; }).join(' '));
+    poly.style.display = '';
+  });
 }
 function ballSvg() {
   const id = 'b' + (++uid);
@@ -99,6 +105,7 @@ function ballSvg() {
     <circle r="18.7" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".7"/></svg>`;
 }
 
+let pred = null;
 let mid = store.get('fmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
 let s = .5, cur = [], els = [], teams = {}, deadlineAt = 0, readyAt = 0, turnMs = 15000, warned = false, kickedAt = 0, aim = null;
 const opp = () => (me === '0' ? '1' : '0');
@@ -149,7 +156,7 @@ function build() {
   els = [];
   for (let i = 0; i < 13; i++) {
     const w = document.createElement('div');
-    if (i === BALL) { w.innerHTML = `<span class="fb-ball" style="width:${px(2 * BALL_R)};height:${px(2 * BALL_R)}">${ballSvg()}</span>`; }
+    if (i === BALL) { w.innerHTML = `<span class="fb-ball" style="width:${px(2 * BALL_R)};height:${px(2 * BALL_R)}"><i class="sh"></i>${ballSvg()}</span>`; }
     else { const t = teams[i < 6 ? '0' : '1'] || {}; w.innerHTML = discHtml(t.team, t.kit, 2 * DISC_R * s, mine(i) ? 'me pulse' : ''); }
     const el = w.firstElementChild; el.dataset.i = i; pitch.appendChild(el); els.push(el);
     if (cur[i]) setPos(i, cur[i]);
@@ -163,7 +170,7 @@ function setPos(i, p) {
   cur[i] = p;
   const el = els[i]; if (!el) return;
   const [x, y] = toView(p), r = i === BALL ? BALL_R : DISC_R;
-  el.style.transform = `translate(${((x - r) * s).toFixed(1)}px,${((y - r) * s).toFixed(1)}px)`;
+  el.style.transform = `translate3d(${((x - r) * s).toFixed(1)}px,${((y - r) * s).toFixed(1)}px,0)`;
   if (i === BALL) {
     // غلتیدن واقعی در جهت حرکت (در مختصات نمایش، پس برای هر دو بازیکن درست است)
     if (ballAt && Math.hypot(x - ballAt[0], y - ballAt[1]) < 400) rollBall(x - ballAt[0], y - ballAt[1]);
@@ -178,8 +185,12 @@ function setTeams(t) {
 }
 
 /* ---------- سربرگ و وضعیت ---------- */
+let headKey = '';
 function renderHead(g) {
   const pm = g.players[me] || {}, po = g.players[opp()] || {};
+  const key = JSON.stringify([pm.name, pm.pic, po.name, po.pic, po.out, teams, g.score, g.target, g.phase, g.over, g.turn, me]);
+  if (key === headKey && $('head').firstElementChild) return;
+  headKey = key;
   const tm = TEAM[(teams[me] || pm).team], to = TEAM[(teams[opp()] || po).team];
   const turn = g.phase === 'play' && !g.over;
   $('head').innerHTML = `
@@ -228,23 +239,35 @@ setInterval(tickTimer, 200);
 const canShoot = () => snap && snap.status === 'playing' && snap.game.phase === 'play' && snap.game.turn === me && !busy && !acting && Date.now() >= readyAt - 250;
 const maxDrag = () => Math.max(84, DISC_R * s * 4.6);
 function local(ev) { const r = $('pitch').getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; }
+let aimRaf = 0, aimDX = 0, aimDY = 0;
 function drawAim(dx, dy) {
+  aimDX = dx; aimDY = dy;
+  if (!aimRaf) aimRaf = requestAnimationFrame(() => { aimRaf = 0; paintAim(aimDX, aimDY); });
+}
+// فلش سفید پهن شونده با سر مثلثی؛ نوکش هیچ وقت از دایره قدرت بیرون نمی زند. کمان سفید لبه دایره = قدرت
+function paintAim(dx, dy) {
   const svg = $('aim'); if (!svg || !aim) return;
-  const R = maxDrag(), d = Math.hypot(dx, dy), p = Math.min(1, d / R), r = DISC_R * s;
-  const ux = d ? -dx / d : 0, uy = d ? -dy / d : -1;
-  const col = p < .5 ? '#ffffff' : p < .85 ? '#F5C451' : '#FF6B5A';
-  const L = r + 10 + p * R * .95, ex = aim.cx + ux * L, ey = aim.cy + uy * L;
-  const sx = aim.cx + ux * r * .35, sy = aim.cy + uy * r * .35;  // از زیر مهره بیرون می آید
-  const pl = Math.min(d, R), qx = aim.cx - ux * pl, qy = aim.cy - uy * pl;
-  const ah = 9 + p * 5, bx = ex - ux * ah, by = ey - uy * ah;
-  svg.innerHTML = `<circle cx="${aim.cx}" cy="${aim.cy}" r="${R}" fill="rgba(0,0,0,.18)" stroke="rgba(255,255,255,.25)" stroke-width="2"/>
-    ${d > 4 ? `<line x1="${aim.cx}" y1="${aim.cy}" x2="${qx}" y2="${qy}" stroke="#fff" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round" opacity=".85"/>
-    <g filter="drop-shadow(0 2px 2px rgba(0,0,0,.45))"><line x1="${sx}" y1="${sy}" x2="${bx}" y2="${by}" stroke="rgba(0,0,0,.35)" stroke-width="${8 + p * 3}" stroke-linecap="round"/>
-    <line x1="${sx}" y1="${sy}" x2="${bx}" y2="${by}" stroke="${col}" stroke-width="${5 + p * 3}" stroke-linecap="round"/>
-    <path d="M${ex} ${ey}L${bx - uy * ah * .75} ${by + ux * ah * .75}L${bx + uy * ah * .75} ${by - ux * ah * .75}z" fill="${col}" stroke="rgba(0,0,0,.35)" stroke-width="1.5" stroke-linejoin="round"/></g>` : ''}`;
+  const R = maxDrag(), d = Math.hypot(dx, dy), p = Math.min(1, d / R), r = DISC_R * s, cx = aim.cx, cy = aim.cy;
+  const ux = d ? -dx / d : 0, uy = d ? -dy / d : -1, px = -uy, py = ux;
+  const f = n => n.toFixed(1);
+  let body = '';
+  if (d > 4) {
+    const s0 = r * .3, tip = r * .75 + p * (R - 5 - r * .75), ah = Math.min(R * .24, 11 + p * 9), hw = ah * .8;
+    const w0 = 3, w1 = 6 + p * 5, neck = tip - ah;
+    const P = (t, w) => `${f(cx + ux * t + px * w)},${f(cy + uy * t + py * w)}`;
+    const arrow = `${P(s0, w0)} ${P(neck, w1)} ${P(neck, hw)} ${P(tip, 0)} ${P(neck, -hw)} ${P(neck, -w1)} ${P(s0, -w0)}`;
+    const pl = Math.min(d, R) - 2, dots = [];
+    for (let t = r + 6; t < pl; t += 9) dots.push(`<circle cx="${f(cx - ux * t)}" cy="${f(cy - uy * t)}" r="${f(1.6 + (t / R) * 1.2)}"/>`);
+    const arc = Math.PI * R * p, ang = Math.atan2(uy, ux) * 180 / Math.PI - (arc / R) * 90 / Math.PI;
+    body = `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R - 1.5)}" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="${f(arc)} ${f(2 * Math.PI * R)}" transform="rotate(${f(ang)} ${f(cx)} ${f(cy)})" opacity=".9"/>
+      <g fill="rgba(255,255,255,.75)">${dots.join('')}</g>
+      <polygon points="${arrow}" fill="rgba(0,0,0,.28)" transform="translate(1.2 2)"/>
+      <polygon points="${arrow}" fill="#fff" stroke="rgba(30,40,50,.25)" stroke-width="1" stroke-linejoin="round"/>`;
+  }
+  svg.innerHTML = `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="rgba(0,0,0,.24)" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>${body}`;
   aim.p = p; aim.dx = ux; aim.dy = uy;
 }
-function endAim() { if (aim && els[aim.i]) els[aim.i].classList.remove('aim'); aim = null; const svg = $('aim'); if (svg) svg.innerHTML = ''; }
+function endAim() { if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; } if (aim && els[aim.i]) els[aim.i].classList.remove('aim'); aim = null; const svg = $('aim'); if (svg) svg.innerHTML = ''; }
 $('pitch').addEventListener('pointerdown', ev => {
   if (!canShoot()) return;
   const [px, py] = local(ev);
@@ -261,17 +284,25 @@ $('pitch').addEventListener('pointerdown', ev => {
   try { $('pitch').setPointerCapture(ev.pointerId); } catch (e) {}
   drawAim(0, 0); ev.preventDefault();
 });
-$('pitch').addEventListener('pointermove', ev => { if (!aim) return; const [px, py] = local(ev); drawAim(px - aim.cx, py - aim.cy); });
+$('pitch').addEventListener('pointermove', ev => { if (!aim) return; const [px, py] = local(ev); drawAim(px - aim.cx, py - aim.cy); }, { passive: true });
 $('pitch').addEventListener('pointercancel', endAim);
 $('pitch').addEventListener('pointerup', () => {
   if (!aim) return;
+  if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; paintAim(aimDX, aimDY); }
   const a = aim; endAim();
   if (a.p < .1 || !canShoot()) return;
   const k = a.i % 6, dx = flip() ? -a.dx : a.dx, dy = flip() ? -a.dy : a.dy;
   store.set('fbHints', store.get('fbHints', 0) + 1);
   kickedAt = Date.now(); sfx.fb.kick(a.p); haptic('medium');
   $('pitch').classList.remove('myturn');
-  act(() => GC.football.shot(mid, k, Math.round(dx * 10000) / 10000, Math.round(dy * 10000) / 10000, Math.round(a.p * 1000) / 1000, since));
+  const wdx = Math.round(dx * 10000) / 10000, wdy = Math.round(dy * 10000) / 10000, wp = Math.round(a.p * 1000) / 1000;
+  // همان فیزیک سرور همین جا اجرا می شود تا شوت بی تاخیر دیده شود؛ جواب سرور فقط تایید یا اصلاحش است
+  const PH = window.FBPhysics, g = snap.game, v = PH && PH.shotVel(wdx, wdy, wp);
+  if (v && g.pos && g.pos.length === 13) {
+    const res = PH.simulate(g.pos, { [(+me) * 6 + k]: v });
+    pred = { pos: res.pos, done: playFrames({ frames: res.frames, ids: res.ids, hits: res.hits, c: me }) };
+  }
+  act(() => GC.football.shot(mid, k, wdx, wdy, wp, since));
 });
 
 /* ---------- انیمیشن ها ---------- */
@@ -400,7 +431,11 @@ async function play(e) {
   if (e.t === 'ready') { if (setupStep === 'wait') renderSetup(); return; }
   if (e.t === 'start') { closeSetup(); setTeams(e.teams); setAll(e.pos); renderHead(snap.game); $('status').textContent = 'شروع بازی…'; await showVS(e); return; }
   if (e.t === 'shot') {
-    if (e.frames && e.frames.length) await playFrames(e); else setAll(e.pos);
+    if (pred && e.c === me && !e.auto) {
+      const p = pred; pred = null; await p.done;
+      const off = e.pos.some((q, i) => !p.pos[i] || Math.hypot(q[0] - p.pos[i][0], q[1] - p.pos[i][1]) > 2);
+      if (off) await glide(e.pos, 300); else setAll(e.pos);
+    } else if (e.frames && e.frames.length) await playFrames(e); else setAll(e.pos);
     if (e.auto && e.c === me) toast('وقتت تمام شد؛ یک شوت خودکار زده شد');
     return;
   }
@@ -505,7 +540,9 @@ async function act(fn) {
   if (acting) return;
   acting = true;
   try { const res = await fn(); acting = false; await apply(res); }
-  catch (e) { sfx.error(); haptic('error'); toast(errText(e)); if (snap && snap.game) { if (snap.game.phase === 'setup') { setupStep = 'form'; renderSetup(); } renderAll(snap.game); } }
+  catch (e) {
+    if (pred) { const p = pred; pred = null; await p.done; if (snap && snap.game) await glide(snap.game.pos, 350); }
+    sfx.error(); haptic('error'); toast(errText(e)); if (snap && snap.game) { if (snap.game.phase === 'setup') { setupStep = 'form'; renderSetup(); } renderAll(snap.game); } }
   finally { acting = false; }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); if (!overShown) sfx.fb.crowd(true); } else sfx.fb.crowd(false); });
