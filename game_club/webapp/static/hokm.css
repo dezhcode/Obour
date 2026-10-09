@@ -203,3 +203,127 @@ body.hokm .sheet{color:var(--ink)}
 .hk-reveal b{position:relative;margin-top:8px;font-size:23px;line-height:30px;font-weight:800;color:#FFE08F;text-shadow:0 2px 8px rgba(0,0,0,.45);animation:hk-rise .5s .3s both}
 .hk-reveal small{position:relative;font-size:12px;color:rgba(255,255,255,.88);animation:hk-rise .5s .4s both}
 @media (prefers-reduced-motion:reduce){.hk-orbit .ring,.hk-orbit .ring>span,.hk-crowned::before,.hk-reveal .rays,.who .cr,.hk-pick .pick-cr{animation:none}}
+
+/* ---------- صفحه پایان بازی ---------- */
+.hk-end{position:fixed;inset:0;z-index:70;overflow:hidden auto;color:#fff;display:flex;justify-content:center;
+  background:radial-gradient(90% 55% at 50% 18%,var(--glow,rgba(245,196,81,.32)),transparent 70%),
+    radial-gradient(130% 90% at 50% 40%,var(--f2,#1E6B3A) 0%,var(--f3,#0F3F1D) 62%,#06140b 100%);
+  animation:hke-in .35s ease-out both}
+.hk-end.lose{--glow:rgba(140,170,255,.16)}
+.hk-end.lose::before{content:"";position:absolute;inset:0;background:rgba(10,14,30,.38);pointer-events:none}
+.hk-end.draw{--glow:rgba(255,255,255,.14)}
+@keyframes hke-in{from{opacity:0}}
+.hk-end .e-in{position:relative;z-index:2;width:100%;max-width:440px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;
+  padding:calc(24px + var(--sa-t,0px) + var(--csa-t,0px)) 18px calc(18px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)))}
+.hk-end .e-in>*{animation:hke-up .5s cubic-bezier(.2,.8,.3,1) both}
+.hk-end .e-in>:nth-child(2){animation-delay:.18s}.hk-end .e-in>:nth-child(3){animation-delay:.3s}.hk-end .e-in>:nth-child(4){animation-delay:.4s}.hk-end .e-in>:nth-child(5){animation-delay:.5s}
+@keyframes hke-up{from{opacity:0;transform:translateY(18px)}}
+/* نور چرخان پشت مدال */
+.hk-end .e-rays{position:absolute;left:50%;top:calc(96px + var(--sa-t,0px) + var(--csa-t,0px));width:760px;height:760px;margin:-380px 0 0 -380px;z-index:1;pointer-events:none;opacity:.55;
+  background:repeating-conic-gradient(from 0deg,rgba(255,226,154,.22) 0 9deg,transparent 9deg 24deg);
+  -webkit-mask:radial-gradient(circle,#000 0,rgba(0,0,0,.6) 28%,transparent 62%);mask:radial-gradient(circle,#000 0,rgba(0,0,0,.6) 28%,transparent 62%);
+  animation:hke-spin 26s linear infinite}
+@keyframes hke-spin{to{transform:rotate(360deg)}}
+/* ریزش خال ها */
+.hk-end .e-cf{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+.hk-end .e-cf i{position:absolute;top:-30px;opacity:0;animation:hke-fall var(--cft) cubic-bezier(.35,.1,.6,1) var(--d) 2 both}
+.hk-end .e-cf svg{display:block;width:100%;height:100%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
+@keyframes hke-fall{0%{opacity:0;transform:translate(0,0) rotate(var(--r))}8%{opacity:1}
+  50%{transform:translate(var(--w),55vh) rotate(calc(var(--r) + 200deg))}100%{opacity:.9;transform:translate(calc(var(--w) * -.4),110vh) rotate(calc(var(--r) + 420deg))}}
+/* سر صفحه */
+.hk-end .e-hd{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px}
+.hk-end .e-medal{width:104px;height:104px;border-radius:50%;display:grid;place-items:center;margin-bottom:6px;
+  background:radial-gradient(circle at 35% 30%,#FFF1BF 0,#F5C451 38%,#C9901F 100%);box-shadow:0 0 0 5px rgba(255,226,154,.25),0 0 0 11px rgba(255,226,154,.1),0 16px 30px rgba(0,0,0,.45);
+  animation:hke-pop .7s cubic-bezier(.2,1.6,.4,1) .05s both}
+.hk-end .e-medal>span{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;color:#7A5200;background:radial-gradient(circle at 50% 40%,#FFE7A0,#EDB43C);box-shadow:inset 0 2px 4px rgba(255,255,255,.6),inset 0 -3px 6px rgba(120,70,0,.35)}
+.hk-end .e-medal svg{width:44px;height:44px;filter:drop-shadow(0 1px 0 rgba(255,255,255,.5))}
+.hk-end.lose .e-medal,.hk-end.draw .e-medal{background:radial-gradient(circle at 35% 30%,#E7ECF7 0,#9AA6C2 45%,#5D6886 100%);box-shadow:0 0 0 5px rgba(255,255,255,.08),0 16px 30px rgba(0,0,0,.45)}
+.hk-end.lose .e-medal>span,.hk-end.draw .e-medal>span{color:#3B4562;background:radial-gradient(circle at 50% 40%,#F1F4FA,#B9C3DA)}
+@keyframes hke-pop{0%{transform:scale(.2) rotate(-25deg);opacity:0}100%{transform:none;opacity:1}}
+.hk-end .e-kick{font-size:12px;font-weight:700;letter-spacing:.02em;color:rgba(255,255,255,.65)}
+.hk-end h1{margin:0;font-family:var(--font-rokh);font-size:40px;line-height:50px;font-weight:900;text-shadow:0 3px 0 rgba(0,0,0,.18),0 10px 26px rgba(0,0,0,.35)}
+.hk-end.win h1{background:linear-gradient(180deg,#FFF7DA 0%,#FFD66B 55%,#F2A922 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
+.hk-end .e-hd p{font-size:14px;line-height:22px;color:rgba(255,255,255,.82);max-width:300px}
+/* دو تیم */
+.hk-end .e-teams{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px}
+.hk-end .e-tm{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px 8px 12px;border-radius:22px;
+  background:rgba(0,0,0,.26);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);min-width:0}
+.hk-end .e-tm.e-won{background:linear-gradient(180deg,rgba(245,196,81,.24),rgba(245,196,81,.06));box-shadow:inset 0 0 0 2px rgba(245,196,81,.75),0 12px 26px -10px rgba(245,196,81,.45)}
+.hk-end .e-rib{position:absolute;top:-11px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:4px;padding:2px 10px 2px 8px;border-radius:999px;
+  background:#F5C451;color:#3A2A00;font-size:11.5px;font-weight:800;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.3)}
+.hk-end .e-rib svg{width:13px;height:13px}
+.hk-end .e-duo{display:flex;direction:ltr}
+.hk-end .e-duo .avatar{--size:46px;padding:3px}
+.hk-end .e-duo .avatar+.avatar{margin-left:-12px}
+.hk-end .e-sc{font-family:var(--font-rokh);font-size:44px;line-height:50px;font-weight:900;margin-top:8px}
+.hk-end .e-tm:not(.e-won) .e-sc{color:rgba(255,255,255,.72)}
+.hk-end .e-nm{font-size:12px;font-weight:700;color:rgba(255,255,255,.75);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hk-end .e-vs{font-size:13px;font-weight:800;color:rgba(255,255,255,.55)}
+/* جایزه */
+.hk-end .e-rw{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:20px;background:rgba(0,0,0,.24);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.hk-end .e-rw>span:last-child{display:flex;flex-direction:column;min-width:0}
+.hk-end .e-rw b{font-size:17px;font-weight:900}
+.hk-end .e-rw small{font-size:12px;color:rgba(255,255,255,.7)}
+.hk-end .e-rw .e-ic{width:44px;height:44px;flex:none;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.1)}
+.hk-end .e-rw .e-ic svg{width:22px;height:22px}
+.hk-end .e-rw.e-gold{background:linear-gradient(90deg,rgba(245,196,81,.28),rgba(245,196,81,.08));box-shadow:inset 0 0 0 1.5px rgba(245,196,81,.6)}
+.hk-end .e-rw.e-gold b{font-family:var(--font-rokh);font-size:26px;line-height:32px;color:#FFE29A;direction:ltr;text-align:right}
+.hk-end .e-coin{flex:none;animation:hke-coin 1.2s cubic-bezier(.3,1.4,.5,1) .7s both}
+.hk-end .e-coin .coin{display:block;width:46px;height:46px}
+.hk-end .e-coin svg{display:block;width:46px;height:46px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+@keyframes hke-coin{0%{transform:rotateY(0) scale(.3);opacity:0}60%{transform:rotateY(540deg) scale(1.1);opacity:1}100%{transform:rotateY(720deg) scale(1)}}
+.hk-end .e-rw.e-dim b{color:#FFB3BB}
+/* آمار */
+.hk-end .e-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.hk-end .e-stats>div{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:18px;background:rgba(255,255,255,.07)}
+.hk-end .e-stats .e-ic{color:rgba(255,226,154,.9)}
+.hk-end .e-stats .e-ic svg{width:18px;height:18px;display:block}
+.hk-end .e-stats b{font-size:19px;font-weight:900;line-height:26px}
+.hk-end .e-stats small{font-size:11px;color:rgba(255,255,255,.65)}
+/* دکمه ها */
+.hk-end .e-acts{display:grid;gap:10px;margin-top:4px}
+.hk-end .e-go{display:grid;place-items:center;min-height:56px;border-radius:28px;font-size:17px;font-weight:900;color:#3A2A00;text-decoration:none;
+  background:linear-gradient(180deg,#FFD978,#F5B83A);box-shadow:0 6px 0 #B9821A,0 14px 24px -8px rgba(245,184,58,.6)}
+.hk-end .e-go:active{transform:translateY(3px);box-shadow:0 3px 0 #B9821A}
+.hk-end.lose .e-go,.hk-end.draw .e-go{color:#fff;background:linear-gradient(180deg,#5C93FF,#2F6CF0);box-shadow:0 6px 0 #2150B8,0 14px 24px -8px rgba(47,108,240,.6)}
+.hk-end.lose .e-go:active,.hk-end.draw .e-go:active{box-shadow:0 3px 0 #2150B8}
+.hk-end .e-home{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:25px;color:#fff;text-decoration:none;font-size:15px;font-weight:800;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.hk-end .e-home svg{width:20px;height:20px}
+@media (prefers-reduced-motion:reduce){.hk-end .e-rays{animation:none}.hk-end .e-in>*,.hk-end .e-medal,.hk-end .e-coin{animation:none}}
+
+/* ---------- برگه خروج ---------- */
+.hk-exit{position:fixed;inset:0;z-index:65;display:flex;align-items:flex-end;justify-content:center;background:rgba(4,10,8,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:hke-in .2s ease-out both}
+.hk-exit.out{animation:hkx-out .2s ease-in both}
+@keyframes hkx-out{to{opacity:0}}
+.hk-exit .x-sh{width:100%;max-width:480px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:#fff;
+  padding:10px 18px calc(18px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));border-radius:28px 28px 0 0;
+  background:radial-gradient(120% 70% at 50% 0%,var(--f2,#1E6B3A),var(--f3,#0F3F1D) 75%);box-shadow:0 -1px 0 rgba(255,255,255,.14),0 -20px 40px rgba(0,0,0,.4);
+  animation:hkx-up .32s cubic-bezier(.2,.9,.3,1) both}
+.hk-exit.out .x-sh{animation:hkx-down .2s ease-in both}
+@keyframes hkx-up{from{transform:translateY(100%)}}
+@keyframes hkx-down{to{transform:translateY(100%)}}
+.hk-exit .x-grab{width:42px;height:5px;border-radius:3px;background:rgba(255,255,255,.3);margin-bottom:6px}
+.hk-exit .x-swap{display:flex;align-items:center;gap:10px;direction:rtl}
+.hk-exit .x-swap .avatar{--size:58px;padding:3px}
+.hk-exit .x-arr{display:flex;gap:5px;direction:rtl}
+.hk-exit .x-arr i{width:7px;height:7px;border-radius:50%;background:#F5C451;animation:hkx-dot 1.2s ease-in-out infinite}
+.hk-exit .x-arr i:nth-child(2){animation-delay:.15s}.hk-exit .x-arr i:nth-child(3){animation-delay:.3s}
+@keyframes hkx-dot{0%,100%{opacity:.25;transform:scale(.8)}40%{opacity:1;transform:scale(1.15)}}
+.hk-exit h2{margin:4px 0 0;font-family:var(--font-rokh);font-size:23px;line-height:32px;font-weight:900}
+.hk-exit p{font-size:13.5px;line-height:22px;color:rgba(255,255,255,.8);max-width:310px}
+.hk-exit .x-opts{display:grid;gap:8px;width:100%;margin-top:4px}
+.hk-exit .x-opt{display:flex;align-items:center;gap:12px;width:100%;padding:12px 12px;border-radius:18px;text-align:start;color:#fff;background:rgba(0,0,0,.24);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);transition:background .15s,box-shadow .15s}
+.hk-exit .x-opt:active{transform:scale(.985)}
+.hk-exit .x-opt>span:last-child{display:flex;flex-direction:column;min-width:0}
+.hk-exit .x-opt b{font-size:15px;font-weight:800}
+.hk-exit .x-opt small{font-size:12px;line-height:18px;color:rgba(255,255,255,.68)}
+.hk-exit .x-opt .x-ic{width:42px;height:42px;flex:none;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.12)}
+.hk-exit .x-opt .x-ic svg{width:21px;height:21px}
+.hk-exit .x-opt.x-bad .x-ic{background:rgba(255,90,106,.2);color:#FF8F9B}
+.hk-exit .x-opt.x-bad b{color:#FFB3BB}
+.hk-exit .x-opt.x-bad.x-arm{background:rgba(214,52,71,.35);box-shadow:inset 0 0 0 1.5px #FF6B7A;animation:hkx-shake .3s}
+.hk-exit .x-opt.x-bad.x-arm b{color:#fff}
+@keyframes hkx-shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.hk-exit .x-stay{width:100%;min-height:54px;margin-top:4px;border-radius:27px;font-size:16px;font-weight:900;color:#3A2A00;background:linear-gradient(180deg,#FFD978,#F5B83A);box-shadow:0 5px 0 #B9821A}
+.hk-exit .x-stay:active{transform:translateY(3px);box-shadow:0 2px 0 #B9821A}
+.hk-exit .x-fine{font-size:11.5px;line-height:18px;color:rgba(255,255,255,.55)}

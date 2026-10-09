@@ -680,6 +680,25 @@ $('hand').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key ===
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 
 /* ---------- پایان، خروج ---------- */
+// صفحه پایان: تمام صفحه روی رنگ میز خود بازیکن. برد: نور طلایی چرخان، ریزش خال ها و مدال تاج؛
+// باخت: آرام و سرد. دو تیم با چهره ها، امتیاز و جایزه با شمارش بالا می آیند.
+const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+function countUp(root) {
+  root.querySelectorAll('[data-n]').forEach(el => {
+    const to = +el.dataset.n, pre = el.dataset.pre || '', dur = 900, t0 = performance.now() + (+el.dataset.at || 0);
+    if (reduced() || !to) { el.textContent = pre + FD(to); return; }
+    el.textContent = pre + FD(0);
+    const step = t => { const k = Math.min(1, Math.max(0, (t - t0) / dur)), e = 1 - Math.pow(1 - k, 3); el.textContent = pre + FD(Math.round(to * e)); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+}
+function confetti(n = 34) {
+  const cols = ['#F5C451', '#FFFFFF', '#E0263E', '#FFE29A', '#9BE3B8'];
+  return `<div class="e-cf" aria-hidden="true">${Array.from({ length: n }, (_, i) => {
+    const x = (i * 37 + 11) % 100, d = (i * 0.23) % 2.6, dur = 3.2 + (i * 7 % 10) / 5, sz = 12 + (i * 5 % 4) * 3, r = (i * 53) % 360, sway = ((i % 2) ? 1 : -1) * (14 + i % 5 * 6);
+    return `<i style="left:${x}%;--d:${d.toFixed(2)}s;--cft:${dur.toFixed(2)}s;--r:${r}deg;--w:${sway}px;width:${sz}px;height:${sz}px;color:${cols[i % cols.length]}">${svgP(SP[i % 4])}</i>`;
+  }).join('')}</div>`;
+}
 function over(v) {
   endChat();
   const g = v.game, r = v.result || {}, won = !!r.won, us = teamUs();
@@ -687,16 +706,49 @@ function over(v) {
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
   const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { tricks: 0, hakem: 0 };
   const stake = v.cfg.mode === 'stake', ended = g.winner == null;
-  sheet(`<div class="hk-res">
-      <span class="ic${won ? '' : ' lost'}">${svgP(CROWN)}</span>
-      <h2>${ended ? 'بازی تمام شد' : won ? 'بردید!' : 'این بازی را باختید'}</h2>
-      <div class="hk-tricks"><div><b>${FD(g.score[us])}</b><span>دست ما</span></div><div><b>${FD(g.score[1 - us])}</b><span>دست حریف</span></div></div>
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>سهم تو از جایزه به کیف امتیازت اضافه شد.</p>` : ended ? '<p>ورودی‌ها برگشت.</p>' : `<p>ورودی این بازی (${fa(r.lost || v.cfg.entry)} امتیاز) را باختی.</p>`)
-        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت.' : 'بازی آزاد بود؛ چیزی از دست ندادی.'}</p>`}
-      <div class="facts"><div><b>${FD(st.tricks)}</b><span>دست بردی</span></div><div><b>${FD(st.hakem)}</b><span>بار حاکم شدی</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
-    </div>
-    <a class="btn btn-block" href="hokm-lobby.html">یک بازی دیگر</a>
-    <a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+  const P = g.players || {}, seat = k => String((+me + k) % 4), pa = P[seat(2)] || {}, o1 = P[seat(1)] || {}, o2 = P[seat(3)] || {};
+  const oppsLeft = o1.out && o2.out, mine = g.score[us], theirs = g.score[1 - us];
+  const kind = ended ? 'draw' : won ? 'win' : 'lose';
+  const title = ended ? 'بازی تمام شد' : won ? (oppsLeft ? 'حریف‌ها رفتند؛ بردید!' : 'بردید!') : 'این بار نشد';
+  const line = ended ? 'بازی پیش از رسیدن به امتیاز آخر بسته شد.'
+    : won ? `شما و ${pa.name || 'یارت'} با ${FD(mine)} به ${FD(theirs)} بردید.` : `${o1.name || 'حریف'} و ${o2.name || 'یارش'} با ${FD(theirs)} به ${FD(mine)} بردند.`;
+  const team = (cls, a, b, names, score, win) => `<div class="e-tm ${cls}${win ? ' e-won' : ''}">
+      ${win ? `<span class="e-rib">${svgP(CROWN)}برنده</span>` : ''}
+      <span class="e-duo">${face(a, cls === 'us' ? '#9BE3B8' : '#FFFFFF')}${face(b, cls === 'us' ? '#9BE3B8' : '#FFFFFF')}</span>
+      <b class="e-sc" data-n="${score}" data-at="350">${FD(score)}</b><span class="e-nm">${names}</span></div>`;
+  const reward = stake
+    ? (won ? `<div class="e-rw e-gold"><span class="e-coin">${GC.coin()}</span><span><b data-n="${r.prize || 0}" data-pre="+" data-at="700">+${fa(r.prize || 0)}</b><small>جایزه به کیف امتیازت اضافه شد</small></span></div>`
+      : ended ? `<div class="e-rw"><span class="e-ic">${icon('wallet')}</span><span><b>ورودی برگشت</b><small>${fa(v.cfg.entry)} امتیاز به کیفت برگشت</small></span></div>`
+      : `<div class="e-rw e-dim"><span class="e-ic">${icon('wallet')}</span><span><b>−${fa(r.lost || v.cfg.entry)} امتیاز</b><small>ورودی این بازی؛ دست بعد جبران کن</small></span></div>`)
+    : `<div class="e-rw"><span class="e-ic">${icon('users')}</span><span><b>بازی آزاد</b><small>${won ? 'جایزه نداشت؛ ولی برد برد است!' : 'چیزی از دست ندادی'}</small></span></div>`;
+  const el = document.createElement('div');
+  el.className = 'hk-end ' + kind; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'endT');
+  el.innerHTML = `${kind === 'win' ? `<div class="e-rays" aria-hidden="true"></div>${reduced() ? '' : confetti()}` : ''}
+    <div class="e-in">
+      <div class="e-hd">
+        <span class="e-medal" aria-hidden="true"><span>${svgP(kind === 'lose' ? SP[0] : CROWN)}</span></span>
+        <small class="e-kick">پایان بازی · تا ${FD(g.target)} امتیاز</small>
+        <h1 id="endT">${title}</h1><p>${line}</p>
+      </div>
+      <div class="e-teams">
+        ${team('us', Object.assign({}, P[me], { name: 'شما' }), pa, `شما و ${pa.name || 'یار'}`, mine, !ended && won)}
+        <span class="e-vs">به</span>
+        ${team('them', o1, o2, `${o1.name || 'حریف'} و ${o2.name || 'حریف'}`, theirs, !ended && !won)}
+      </div>
+      ${reward}
+      <div class="e-stats">
+        <div><span class="e-ic">${svgP(SP[3])}</span><b data-n="${st.tricks}" data-at="900">${FD(st.tricks)}</b><small>دست بردی</small></div>
+        <div><span class="e-ic">${svgP(CROWN)}</span><b data-n="${st.hakem}" data-at="900">${FD(st.hakem)}</b><small>بار حاکم شدی</small></div>
+        <div><span class="e-ic">${icon('clock')}</span><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><small>مدت بازی</small></div>
+      </div>
+      <div class="e-acts">
+        <a class="e-go" href="hokm-lobby.html">${won ? 'یک بازی دیگر' : 'دوباره بازی کن'}</a>
+        <a class="e-home" href="index.html">${icon('home')}خانه</a>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  countUp(el);
+  if (kind === 'win' && stake && r.prize) setTimeout(() => { sfx.coin(); haptic('success'); }, 1500);
   GC.refreshMe().catch(() => {});
 }
 function cancelled() {
@@ -712,23 +764,42 @@ function noMatch() {
       <h2 id="dT">میزی پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز سر میزی ننشسته‌ای.</p>
       <div class="dlg-acts"><a class="btn" href="hokm-lobby.html">یک میز بساز</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
 }
+// خروج: برگه تیره به رنگ میز؛ «تو ← ربات» نشان می دهد چه می شود، دو راه روشن و ادامه بازی
+let exitEl = null;
+function closeExit() { if (!exitEl) return; const el = exitEl; exitEl = null; el.classList.add('out'); setTimeout(() => el.remove(), 220); }
 function askExit() {
+  if (exitEl) { closeExit(); return; }
   if (!snap || snap.status === 'over') { location.href = 'index.html'; return; }
-  const stake = snap.cfg.mode === 'stake';
-  const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
-      <span class="dlg-ic warn">${icon('exit')}</span>
-      <h2 id="dT">از بازی بیرون می‌روی؟</h2>
-      <p id="dD">ربات جای تو کنار یارت بازی می‌کند${stake ? '؛ اگر تیمتان ببرد سهمی به تو نمی‌رسد' : ''}.</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
-      <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
-      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ سر میز می‌مانم</button>
-      <p class="dlg-fine">میز در صفحهٔ خانه می‌ماند و با یک لمس برمی‌گردی. تا نیستی، نوبت‌هایت خودکار بازی می‌شود${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی بیرون رفتن از بازی' : ''}.</p>
-    </div>`, { center: true });
-  sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
-  sh.querySelector('#leave').onclick = async () => {
+  const stake = snap.cfg.mode === 'stake', g = snap.game, P = g.players || {}, pa = P[String((+me + 2) % 4)] || {};
+  haptic('light');
+  exitEl = document.createElement('div'); exitEl.className = 'hk-exit';
+  exitEl.innerHTML = `<div class="x-sh" role="alertdialog" aria-modal="true" aria-labelledby="exT" aria-describedby="exD">
+      <span class="x-grab" aria-hidden="true"></span>
+      <div class="x-swap" aria-hidden="true">${face(Object.assign({}, P[me], { name: 'شما' }), '#9BE3B8')}<span class="x-arr"><i></i><i></i><i></i></span>${face({ bot: true, av: 9 }, 'var(--gold)')}</div>
+      <h2 id="exT">از بازی بیرون می‌روی؟</h2>
+      <p id="exD">اگر بروی، ربات جای تو کنار ${pa.name || 'یارت'} بازی می‌کند.</p>
+      <div class="x-opts">
+        <button class="x-opt" id="exHome"><span class="x-ic">${icon('home')}</span><span><b>فعلا برو خانه</b><small>سر میز می‌مانی و از صفحهٔ خانه با یک لمس برمی‌گردی</small></span></button>
+        <button class="x-opt x-bad" id="exLeave"><span class="x-ic">${icon('exit')}</span><span><b>ترک بازی</b><small>${stake ? `ورودی ${fa(snap.cfg.entry)} امتیاز برنمی‌گردد و از جایزه سهمی نداری` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</small></span></button>
+      </div>
+      <button class="x-stay" id="exStay">ادامهٔ بازی</button>
+      <p class="x-fine">تا نیستی نوبت‌هایت خودکار بازی می‌شود${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی بیرون رفتن از بازی' : ''}.</p>
+    </div>`;
+  document.body.appendChild(exitEl);
+  const el = exitEl;
+  el.addEventListener('click', e => { if (e.target === el) closeExit(); });
+  el.querySelector('#exStay').onclick = () => { sfx.tap(); closeExit(); };
+  el.querySelector('#exHome').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
+  let armed = 0;
+  el.querySelector('#exLeave').onclick = async ev => {
+    const b = ev.currentTarget;
+    // بازی امتیازی: یک لمس دیگر برای اطمینان
+    if (stake && Date.now() - armed > 3000) { armed = Date.now(); b.classList.add('x-arm'); b.querySelector('b').textContent = 'مطمئنی؟ دوباره بزن'; haptic('warning'); setTimeout(() => { if (b.isConnected && Date.now() - armed >= 2900) { b.classList.remove('x-arm'); b.querySelector('b').textContent = 'ترک بازی'; } }, 3000); return; }
+    b.disabled = true;
     try { await GC.hokm.leave(mid); } catch (e) {}
     GC.guardClose(false); store.set('hmid', null); location.href = 'index.html';
   };
+  setTimeout(() => { const f = el.querySelector('#exStay'); if (f) f.focus({ preventScroll: true }); }, 50);
 }
 $('exit').onclick = askExit;
 GC.back(askExit);
