@@ -105,7 +105,7 @@ function ballSvg() {
     <circle r="18.7" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".7"/></svg>`;
 }
 
-let pred = null;
+let pred = null, halos = [], rot = [];
 let mid = store.get('fmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
 let s = .5, cur = [], els = [], teams = {}, deadlineAt = 0, readyAt = 0, turnMs = 15000, warned = false, kickedAt = 0, aim = null;
 const opp = () => (me === '0' ? '1' : '0');
@@ -153,24 +153,34 @@ function build() {
   net('fb-goal-top', `top:${px(-GOAL_D)}`); net('fb-goal-bot', `bottom:${px(-GOAL_D)}`);
   const flag = (cls, col) => { const d = document.createElement('div'); d.className = 'fb-flag ' + cls; d.innerHTML = `<svg viewBox="0 0 14 22"><path d="M2 21V2" stroke="#e9edf1" stroke-width="1.6" stroke-linecap="round"/><path d="M2.6 2.5l9 3.2-9 3.3z" fill="${col}"/></svg>`; pitch.appendChild(d); };
   flag('tl', '#E63946'); flag('tr', '#E63946'); flag('bl', '#2F80ED'); flag('br', '#2F80ED');
-  els = [];
+  els = []; halos = [];
+  // حلقه نوبت مهره های خودم در لایه ای زیر همه مهره ها، تا روی مهره کناری نیفتد
+  for (let i = 0; i < 12; i++) {
+    if (!mine(i)) { halos.push(null); continue; }
+    const h = document.createElement('i'); h.className = 'fb-halo'; h.style.width = h.style.height = px(2 * DISC_R); pitch.appendChild(h); halos.push(h);
+  }
   for (let i = 0; i < 13; i++) {
     const w = document.createElement('div');
     if (i === BALL) { w.innerHTML = `<span class="fb-ball" style="width:${px(2 * BALL_R)};height:${px(2 * BALL_R)}"><i class="sh"></i>${ballSvg()}</span>`; }
     else { const t = teams[i < 6 ? '0' : '1'] || {}; w.innerHTML = discHtml(t.team, t.kit, 2 * DISC_R * s, mine(i) ? 'me pulse' : ''); }
     const el = w.firstElementChild; el.dataset.i = i; pitch.appendChild(el); els.push(el);
+    if (i < 12 && rot[i]) el.querySelector('.in svg').style.transform = `rotate(${rot[i]}deg)`;
     if (cur[i]) setPos(i, cur[i]);
   }
   // نشانه گیری زیر مهره ها و توپ کشیده می شود
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.classList.add('fb-aim'); svg.id = 'aim';
-  svg.setAttribute('viewBox', `0 0 ${W * s} ${H * s}`); pitch.insertBefore(svg, els[0]);
+  svg.setAttribute('viewBox', `0 0 ${W * s} ${H * s}`); pitch.insertBefore(svg, halos.find(Boolean) || els[0]);
   syncTurn();
 }
 function setPos(i, p) {
   cur[i] = p;
   const el = els[i]; if (!el) return;
   const [x, y] = toView(p), r = i === BALL ? BALL_R : DISC_R;
-  el.style.transform = `translate3d(${((x - r) * s).toFixed(1)}px,${((y - r) * s).toFixed(1)}px,0)`;
+  const tf = `translate3d(${((x - r) * s).toFixed(1)}px,${((y - r) * s).toFixed(1)}px,0)`;
+  el.style.transform = tf;
+  // همه روی یک سطح: هر چه پایین تر روی صفحه، روی بقیه کشیده می شود (لبه و سایه اش زیر همسایه نمی رود)
+  el.style.zIndex = 10 + Math.round(y + r);
+  if (halos[i]) halos[i].style.transform = tf;
   if (i === BALL) {
     // غلتیدن واقعی در جهت حرکت (در مختصات نمایش، پس برای هر دو بازیکن درست است)
     if (ballAt && Math.hypot(x - ballAt[0], y - ballAt[1]) < 400) rollBall(x - ballAt[0], y - ballAt[1]);
@@ -267,7 +277,7 @@ function paintAim(dx, dy) {
   svg.innerHTML = `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="rgba(0,0,0,.24)" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>${body}`;
   aim.p = p; aim.dx = ux; aim.dy = uy;
 }
-function endAim() { if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; } if (aim && els[aim.i]) els[aim.i].classList.remove('aim'); aim = null; const svg = $('aim'); if (svg) svg.innerHTML = ''; }
+function endAim() { if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; } if (aim && halos[aim.i]) halos[aim.i].classList.remove('aim'); if (aim && els[aim.i]) els[aim.i].classList.remove('aim'); aim = null; const svg = $('aim'); if (svg) svg.innerHTML = ''; }
 $('pitch').addEventListener('pointerdown', ev => {
   if (!canShoot()) return;
   const [px, py] = local(ev);
@@ -280,7 +290,7 @@ $('pitch').addEventListener('pointerdown', ev => {
   if (best == null) return;
   const [x, y] = toView(cur[best]);
   aim = { i: best, cx: x * s, cy: y * s, p: 0, dx: 0, dy: -1 };
-  els[best].classList.add('aim'); haptic('select');
+  els[best].classList.add('aim'); if (halos[best]) halos[best].classList.add('aim'); haptic('select');
   try { $('pitch').setPointerCapture(ev.pointerId); } catch (e) {}
   drawAim(0, 0); ev.preventDefault();
 });
@@ -306,6 +316,24 @@ $('pitch').addEventListener('pointerup', () => {
 });
 
 /* ---------- انیمیشن ها ---------- */
+async function showPass(e) {
+  const el = els[e.d], b = cur[BALL], d = cur[e.d];
+  if (el && b && d) {
+    const [bx, by] = toView(b), [dx, dy] = toView(d);
+    const to = Math.atan2(bx - dx, -(by - dy)) * 180 / Math.PI;   // نشان مهره رو به توپ
+    const from = rot[e.d] || 0, end = to + 360 * Math.sign(to - from || 1);
+    rot[e.d] = ((to % 360) + 360) % 360;
+    el.querySelector('.in svg').animate([{ transform: `rotate(${from}deg)` }, { transform: `rotate(${end}deg)` }], { duration: 650, easing: 'cubic-bezier(.2,.8,.3,1)' });
+    el.querySelector('.in svg').style.transform = `rotate(${rot[e.d]}deg)`;
+    const tag = document.createElement('span'); tag.className = 'fb-passtag'; tag.textContent = 'پاس!';
+    const [x, y] = toView(d); tag.style.left = (x * s) + 'px'; tag.style.top = ((y - DISC_R) * s) + 'px';
+    $('pitch').appendChild(tag); setTimeout(() => tag.remove(), 1500);
+  }
+  sfx.fb.pass(); haptic(e.c === me ? 'success' : 'light');
+  const st = $('status');
+  if (st) { st.classList.toggle('mine', e.c === me); st.innerHTML = e.c === me ? `پاس! یک شوت دیگر<em>${e.left ? FD(e.left) + ' پاس دیگر' : 'آخرین'}</em>` : `${nameOf(e.c)} پاس داد؛ دوباره شوت می‌زند`; }
+  await sleep(650);
+}
 function jolt(g) {
   const p = $('stadium'); p.style.setProperty('--j', (1 + g * 1.6).toFixed(1) + 'px');
   p.classList.remove('jolt'); void p.offsetWidth; p.classList.add('jolt');
@@ -439,8 +467,9 @@ async function play(e) {
     if (e.auto && e.c === me) toast('وقتت تمام شد؛ یک شوت خودکار زده شد');
     return;
   }
+  if (e.t === 'pass') { await showPass(e); return; }
   if (e.t === 'goal') { await showGoal(e); return; }
-  if (e.t === 'reset') { sfx.fb.whistle(); await glide(e.pos); return; }
+  if (e.t === 'reset') { sfx.fb.whistle(); rot = []; els.forEach((el, i) => { if (i < 12) { const n = el.querySelector('.in svg'); if (n) n.style.transform = ''; } }); await glide(e.pos); return; }
   if (e.t === 'timeout') { if (e.c === me) toast(snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی؛ بازی را باختی' : 'یک نوبت دیگر غیبت = باخت') : 'وقتت تمام شد؛ نوبت به حریف رسید'); else toast(`${nameOf(e.c)} شوت نزد؛ نوبت توست`); return; }
   if (e.t === 'leave' && e.c !== me) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}`); return; }
 }
@@ -527,14 +556,19 @@ async function apply(next, anim = true) {
     if (next.status === 'over' && !overShown) { overShown = true; over(next); }
   } finally { busy = false; }
 }
+// وقتی منتظر شوت حریفیم تندتر می پرسیم تا شوتش زودتر دیده شود؛ وقت خودم یا بیکاری آرام تر
+function pollMs() {
+  const g = snap && snap.game;
+  return g && g.phase === 'play' && !g.over && g.turn && g.turn !== me ? 450 : POLL_MS;
+}
 async function poll() {
   clearTimeout(pollT);
-  if (document.hidden || overShown) { pollT = setTimeout(poll, POLL_MS); return; }
+  if (document.hidden || overShown) { pollT = setTimeout(poll, pollMs()); return; }
   if (!busy && !acting) {
     try { await apply(await GC.football.match(mid, since, chatId)); }
     catch (e) { if (e.code === 'not_found') return noMatch(); }
   }
-  pollT = setTimeout(poll, POLL_MS);
+  pollT = setTimeout(poll, pollMs());
 }
 async function act(fn) {
   if (acting) return;

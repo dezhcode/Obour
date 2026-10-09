@@ -454,8 +454,14 @@ class GCDatabase:
 
     # ---------- حضور و اعلان ----------
     async def touch(self, match_id: str, tg_id: int) -> None:
-        """ثبت حضور؛ برای کم کردن نوشتن، حداکثر هر ۳ ثانیه یک بار."""
+        """ثبت حضور؛ برای کم کردن نوشتن، حداکثر هر ۳ ثانیه یک بار (حافظه پروسه جلوی پرسش های اضافه را می گیرد)."""
         now = time.time()
+        memo = self.__dict__.setdefault("_touched", {})
+        if now - memo.get((match_id, tg_id), 0) < 3:
+            return
+        memo[(match_id, tg_id)] = now
+        if len(memo) > 5000:
+            memo.clear()
         await self.execute(
             "INSERT INTO presence(match_id, tg_id, seen) VALUES(?,?,?) "
             "ON CONFLICT(match_id, tg_id) DO UPDATE SET seen = excluded.seen WHERE seen < excluded.seen - 3",

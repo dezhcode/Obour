@@ -44,6 +44,10 @@ AFTER_GOAL = 0.5         # توپ بعد از گل کمی در تور می چر�
 DRAG = (0.9, 1.3)        # (مهره، توپ) کاهش سرعت متناسب با سرعت
 FRIC = (360.0, 280.0)    # کاهش سرعت ثابت («جاذبه»: هر دو روی چمن می نشینند و زود آرام می شوند)
 BALL_VMAX = 1200.0       # توپ هر چقدر هم محکم زده شود از این تندتر نمی رود
+BALL_SLIDE, SLIDE_V = 0.9, 700.0  # توپ تند اول روی چمن «سُر» می خورد (اصطکاک بیشتر) و بعد نرم می غلتد
+MU_PAIR = 0.12           # اصطکاک لحظه برخورد: بخشی از سرعت کناری دو جسم گرفته می شود
+MU_WALL = (0.15, 0.08)   # اصطکاک کناری دیواره (مهره، توپ)
+MAX_PASS = 3             # پاس پشت سرهم که نوبت اضافه می دهد
 E_PAIR, E_BALL_DISC, E_DISC_WALL, E_BALL_WALL = 0.82, 0.68, 0.5, 0.65
 STOP = 4.0
 
@@ -104,6 +108,7 @@ def simulate(pos: list, vel: dict) -> dict:
     frames = [[x[:], y[:]]]
     goal, after, t, step = None, 0.0, 0.0, 0
     hits = []   # [زمان، نوع، شدت] برای صدا: b توپ، d مهره، w دیواره، p تیرک دروازه
+    touch = []  # مهره هایی که توپ (تندتر از خودشان) به آن ها خورده، به ترتیب: برای تشخیص پاس
     while moving and t < MAX_SIM:
         step += 1
         t += DT
@@ -130,11 +135,22 @@ def simulate(pos: list, vel: dict) -> dict:
                 if rel < 0:
                     if rel < -120 and len(hits) < 24:
                         hits.append([round(t, 2), "b" if BALL in (i, j) else "d", round(min(1.0, -rel / 2000), 2)])
+                    if BALL in (i, j):
+                        o = j if i == BALL else i
+                        if vx[BALL] * vx[BALL] + vy[BALL] * vy[BALL] > vx[o] * vx[o] + vy[o] * vy[o] and o not in touch:
+                            touch.append(o)
                     imp = -(1 + (E_BALL_DISC if BALL in (i, j) else E_PAIR)) * rel / inv
                     vx[i] -= imp / m[i] * nx
                     vy[i] -= imp / m[i] * ny
                     vx[j] += imp / m[j] * nx
                     vy[j] += imp / m[j] * ny
+                    tx, ty = -ny, nx
+                    vt = (vx[j] - vx[i]) * tx + (vy[j] - vy[i]) * ty
+                    jt = -MU_PAIR * vt / inv
+                    vx[i] -= jt / m[i] * tx
+                    vy[i] -= jt / m[i] * ty
+                    vx[j] += jt / m[j] * tx
+                    vy[j] += jt / m[j] * ty
                 over = rr - d
                 ki, kj = (1 / m[i]) / inv, (1 / m[j]) / inv
                 x[i] -= nx * over * ki
@@ -174,13 +190,17 @@ def simulate(pos: list, vel: dict) -> dict:
                         hits.append([round(t, 2), "p" if post else "w", round(min(1.0, -vn / 2000), 2)])
                     vx[i] -= (1 + e) * vn * nx
                     vy[i] -= (1 + e) * vn * ny
+                    vt = vx[i] * -ny + vy[i] * nx
+                    vx[i] -= MU_WALL[kind[i]] * vt * -ny
+                    vy[i] -= MU_WALL[kind[i]] * vt * nx
                 x[i] += nx * (r[i] - d)
                 y[i] += ny * (r[i] - d)
         # اصطکاک
         for i in sorted(moving):
             sp = math.sqrt(vx[i] * vx[i] + vy[i] * vy[i])
             k = kind[i]
-            ns = sp - (DRAG[k] * sp + FRIC[k]) * DT
+            dg = DRAG[k] + (BALL_SLIDE if k == 1 and sp > SLIDE_V else 0.0)
+            ns = sp - (dg * sp + FRIC[k]) * DT
             if ns <= STOP:
                 vx[i] = vy[i] = 0.0
                 moving.discard(i)
@@ -203,7 +223,12 @@ def simulate(pos: list, vel: dict) -> dict:
     ids = sorted(moved)
     out_frames = [[v for i in ids for v in (round(f[0][i]), round(f[1][i]))] for f in frames]
     return {"pos": [[round(x[i], 1), round(y[i], 1)] for i in range(N)], "ids": ids, "frames": out_frames,
-            "dur": round(len(frames) / (1 / (DT * FRAME_EVERY)), 2), "goal": goal, "hits": hits}
+            "dur": round(len(frames) / (1 / (DT * FRAME_EVERY)), 2), "goal": goal, "hits": hits, "touch": touch}
+
+
+def pass_of(i: int, disc: int, res: dict) -> int | None:
+    """پاس: توپ بعد از شوت به یکی دیگر از مهره های خودی خورده باشد (نه خود شوت زننده)."""
+    return next((d for d in res["touch"] if i * 6 <= d < i * 6 + 6 and d != disc), None)
 
 
 def formation(seat: int, form: str, attack: bool) -> list:
@@ -242,7 +267,7 @@ def new_state(seats: list[dict], now: float, turn_s: int, stake: bool, target: i
         "phase": "setup", "turn": 0, "kick": first if first in (0, 1) else _rng.randrange(2),
         "pos": [], "next_at": now + SETUP_S, "deadline": now + SETUP_S, "turn_s": min(int(turn_s), TURN_S),
         "stake": stake, "events": [], "seq": 0, "turn_id": 0, "winner": None, "over": False, "started": now,
-        "stats": {s: {"shots": 0, "goals": 0} for s in SEATS},
+        "stats": {s: {"shots": 0, "goals": 0, "passes": 0} for s in SEATS}, "streak": 0,
     }
     st["pos"] = kickoff_pos(st)
     _event(st, t="setup")
@@ -340,12 +365,21 @@ def shot(st: dict, i: int, k: int, dx: float, dy: float, power: float, now: floa
     st["pos"] = res["pos"]
     st["stats"][SEATS[i]]["shots"] += 1
     g = res["goal"]
+    pas = pass_of(i, disc, res) if g is None else None
     _event(st, t="shot", c=SEATS[i], k=k, ids=res["ids"], frames=res["frames"], dur=res["dur"], pos=res["pos"], hits=res["hits"],
            goal=SEATS[g] if g is not None else None, auto=auto)
     if g is None:
-        st["turn"] = other(i)
+        if pas is not None and st.get("streak", 0) < MAX_PASS:
+            # پاس به یار: نوبت دوباره مال همین بازیکن است
+            st["streak"] = st.get("streak", 0) + 1
+            st["stats"][SEATS[i]]["passes"] = st["stats"][SEATS[i]].get("passes", 0) + 1
+            _event(st, t="pass", c=SEATS[i], d=pas, n=st["streak"], left=MAX_PASS - st["streak"])
+        else:
+            st["streak"] = 0
+            st["turn"] = other(i)
         _wait(st, now, res["dur"] + SHOT_PAUSE)
         return None
+    st["streak"] = 0
     st["score"][g] += 1
     st["stats"][SEATS[g]]["goals"] += 1 if g == i else 0
     _event(st, t="goal", c=SEATS[g], by=SEATS[i], own=g != i, score=list(st["score"]))
@@ -381,15 +415,16 @@ def _goal_of(i: int) -> tuple[float, float]:
     return (W / 2, -GOAL_D / 2) if i == 0 else (W / 2, H + GOAL_D / 2)
 
 
-def _rate(st: dict, i: int, res: dict) -> float:
+def _rate(st: dict, i: int, res: dict, disc: int = -1) -> float:
     if res["goal"] is not None:
         return 1000.0 if res["goal"] == i else -2000.0
+    bonus = 160.0 if st.get("streak", 0) < MAX_PASS and pass_of(i, disc, res) is not None else 0.0
     bx, by = res["pos"][BALL]
     gx, gy = _goal_of(i)
     near = -math.sqrt((bx - gx) ** 2 + (by - gy) ** 2)       # توپ نزدیک دروازه حریف بهتر
     ox, oy = _goal_of(other(i))
     danger = math.sqrt((bx - ox) ** 2 + (by - oy) ** 2)       # و دور از دروازه خودی
-    return near * 0.6 + min(danger, 500) * 0.4
+    return near * 0.6 + min(danger, 500) * 0.4 + bonus
 
 
 def bot_shot(st: dict, i: int) -> tuple[int, float, float, float]:
@@ -420,7 +455,7 @@ def bot_shot(st: dict, i: int) -> tuple[int, float, float, float]:
         ca, sa = math.cos(a), math.sin(a)
         dx, dy = ax * ca - ay * sa, ax * sa + ay * ca
         res = simulate(pos, {i * 6 + k: (dx * VMAX * power, dy * VMAX * power)})
-        v = _rate(st, i, res) + _rng.random() * 30
+        v = _rate(st, i, res, i * 6 + k) + _rng.random() * 30
         if v > best_v:
             best, best_v = (k, dx, dy, power), v
     return best
@@ -456,6 +491,7 @@ def tick(st: dict, now: float) -> bool:
             leave(st, s, now, "timeout")
             continue
         st["turn"] = other(i)
+        st["streak"] = 0
         _wait(st, now, SHOT_PAUSE)
     return changed
 
@@ -495,5 +531,6 @@ def view(st: dict, me: str | None, since: int, now: float) -> dict:
         "over": st["over"],
         "winner": SEATS[st["winner"]] if st["winner"] is not None else None,
         "stats": st["stats"].get(me) if me else None,
+        "streak": st.get("streak", 0),
         "started": st["started"],
     }

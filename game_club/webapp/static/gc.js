@@ -381,6 +381,8 @@ sfx.fb = {
     if (r && r.s) { crowdLoop = r; r.v.gain.setTargetAtTime(.2, a.currentTime, .8); }
     else if (!r) setTimeout(() => sfx.fb.crowd(true), 600);
   },
+  // پاس به یار: دو نت شاد و تشویق کوتاه جمعیت
+  pass() { tone(988, .1, { type: 'triangle', g: .14 }); tone(1480, .2, { type: 'triangle', g: .12, at: .08 }); if (crowdLoop) { const t = crowdLoop.s.context.currentTime, v = crowdLoop.v.gain; v.cancelScheduledValues(t); v.setTargetAtTime(.32, t, .1); v.setTargetAtTime(.2, t + .9, .5); } },
   roar() { if (crowdLoop) { const t = crowdLoop.s.context.currentTime, g = crowdLoop.v.gain; g.cancelScheduledValues(t); g.setTargetAtTime(.5, t, .15); g.setTargetAtTime(.2, t + 2.2, .8); } },
 };
 function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }

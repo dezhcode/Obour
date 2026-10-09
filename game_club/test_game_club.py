@@ -593,6 +593,34 @@ def test_football_physics_and_rules():
     assert st["over"] and st["winner"] in (0, 1)
 
 
+def test_football_pass_gives_extra_turn():
+    from game_club import football as F
+    st = F.new_state([{"color": "0", "name": "a", "uid": 1}, {"color": "1", "name": "b", "uid": 2}], 0.0, 20, False, 3, first=0)
+    F.setup(st, "0", "eagles", "132", "132", 1.0)
+    F.setup(st, "1", "lions", "132", "132", 1.0)
+    park = [[40.0 + k * 50, 520.0] for k in range(12)]
+
+    def lineup():
+        st["pos"] = [p[:] for p in park] + [[300.0, 820.0]]
+        st["pos"][0] = [300.0, 900.0]          # شوت زننده پشت توپ
+        st["pos"][1] = [300.0, 640.0]          # یار جلوتر در مسیر توپ
+        for k in range(6, 12):
+            st["pos"][k] = [60.0 + (k - 6) * 96, 120.0]
+        st["next_at"] = 0
+    for n in range(1, F.MAX_PASS + 1):
+        lineup()
+        assert F.shot(st, 0, 0, 0, -1, .5, 100.0 * n) is None
+        assert st["turn"] == 0 and st["streak"] == n, (n, st["turn"], st["streak"])
+        e = [x for x in st["events"] if x["t"] == "pass"][-1]
+        assert e["d"] == 1 and e["n"] == n
+    lineup()                                   # پاس چهارم: نوبت دیگر اضافه نمی شود
+    F.shot(st, 0, 0, 0, -1, .5, 900.0)
+    assert st["turn"] == 1 and st["streak"] == 0 and st["stats"]["0"]["passes"] == F.MAX_PASS
+    # برخورد مهره خودم (نه توپ) به یار پاس نیست
+    res = F.simulate([[300.0, 900.0], [300.0, 760.0]] + [[40.0 + k * 50, 300.0] for k in range(10)] + [[500.0, 600.0]], {0: (0, -1500)})
+    assert F.pass_of(0, 0, res) is None
+
+
 def test_football_service_flow():
     from game_club import service
     from game_club.db import GCDatabase
