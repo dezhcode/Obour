@@ -63,13 +63,13 @@ function body(c) {
   }).join('')}</span>`;
 }
 // طرح «مدرن» (درشت خوان): شاخص بزرگ، نماد کم رنگ خال در گوشه و نشان سرباز/بی بی/شاه؛
-// فقط با کلاس cards-m دیده می شود (بقیه طرح ها این لایه را پنهان می کنند)
+// با کلاس cards-m (مدرن) و cards-d (رنگ تمام) دیده می شود؛ بقیه طرح ها این لایه را پنهان می کنند
 const EMB = {
   11: 'M3 7.5l4.6 4.2L12 4.5l4.4 7.2L21 7.5l-1.7 9H4.7zM4.7 18h14.6v2H4.7z',
   10: 'M12 3.6a1.7 1.7 0 1 1 0 3.4 1.7 1.7 0 0 1 0-3.4zM5.2 6.6a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm13.6 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM5.6 16.5l-.6-5.4 3.9 2.9L12 8.6l3.1 5.4 3.9-2.9-.6 5.4zM5.6 18h12.8v2H5.6z',
   9: 'M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z',
 };
-const jumbo = (s, r) => `<span class="jm"><span class="jx"><b${r === 8 ? ' class="w"' : ''}>${RANKS[r]}</b>${svg(SP[s])}</span>${EMB[r] ? `<span class="em">${svg(EMB[r])}</span>` : `<span class="wm">${svg(SP[s])}</span>`}</span>`;
+const jumbo = (s, r) => `<span class="jm r${r}"><span class="jx"><b${r === 8 ? ' class="w"' : ''}>${RANKS[r]}</b>${svg(SP[s])}</span>${EMB[r] ? `<span class="em">${svg(EMB[r])}</span>` : `<span class="wm">${svg(SP[s])}</span>`}</span>`;
 // روی ورق c (۰ تا ۵۱: خال * ۱۳ + ارزش، ارزش ۱۲ = آس)
 function face(c, cls = '', style = '') {
   const s = suit(c), r = rank(c), ix = `<b>${RANKS[r]}</b>${svg(SP[s])}`;

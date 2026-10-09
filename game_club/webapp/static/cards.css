@@ -96,3 +96,27 @@
 .cards-m .hk-hand .hk-card.no .jx b{font-size:.25em}
 .cards-m .hk-hand .hk-card.no .jx b.w{font-size:.21em}
 .cards-m .hk-hand .hk-card.no .jx svg{width:.19em;height:.19em}
+
+/* طرح «رنگ تمام» (فروشگاه): کل ورق رنگی، قرمزها مرجانی و مشکی ها سرمه ای، نوشته سفید و درشت،
+   خال بزرگ کم رنگ در گوشه پایین (آس: خال کامل، سرباز/بی بی/شاه: نشان روی دایره)؛ پشت ورق زرد راه راه.
+   از همان لایه درشت خوان (.jm) طرح مدرن استفاده می کند */
+.cards-d .hk-card{color:#FFFFFF;background:linear-gradient(155deg,#323B5E 0%,#141A2E 100%);border-radius:.157em;
+  box-shadow:inset 0 0 0 .03em rgba(255,255,255,.9),0 3px 8px rgba(0,0,0,.35)}
+.cards-d .hk-card.red{color:#FFFFFF;background:linear-gradient(155deg,#FF6E6E 0%,#E0304A 100%)}
+.cards-d .hk-card::before{content:"";position:absolute;left:-30%;top:-40%;width:90%;height:70%;border-radius:50%;background:rgba(255,255,255,.12);pointer-events:none}
+.cards-d .hk-card .ix,.cards-d .hk-card .pp,.cards-d .hk-card .ct,.cards-d .hk-card .gloss{display:none}
+.cards-d .hk-card .jm{display:block}
+.cards-d .hk-card .jx{position:absolute;top:.1em;left:.1em;width:.314em;display:flex;flex-direction:column;align-items:center;gap:.043em}
+.cards-d .hk-card .jx b{font-family:var(--font-peyda,Tahoma),Tahoma,sans-serif;font-size:.314em;line-height:.95;font-weight:800;letter-spacing:-.03em}
+.cards-d .hk-card .jx svg{width:.2em;height:.2em}
+.cards-d .hk-card .wm{position:absolute;right:-.171em;bottom:-.2em;width:.857em;height:.857em;opacity:.3}
+.cards-d .hk-card .jm.r12 .wm{right:.114em;bottom:.143em;width:.571em;height:.571em;opacity:1}
+.cards-d .hk-card .em{position:absolute;right:.114em;bottom:.129em;width:.486em;height:.486em;padding:.1em;box-sizing:border-box;border-radius:50%;background:rgba(255,255,255,.2)}
+.cards-d .hk-card .wm svg,.cards-d .hk-card .em svg{display:block;width:100%;height:100%}
+.cards-d .hk-back{border:.045em solid #FFFFFF;border-radius:.157em;background:repeating-linear-gradient(-45deg,rgba(0,0,0,.13) 0 .07em,transparent .07em .14em),#FFC93C;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.cards-d .hk-back i{inset:auto;left:50%;top:50%;width:.4em;height:.4em;margin:-.2em 0 0 -.2em;border:0;border-radius:50%;background:#1B2340;box-shadow:0 0 0 .03em #FFFFFF}
+.cards-d .hk-back i::after{display:none}
+.cards-d .hk-hand .hk-card.no .jx{left:.06em;width:.27em;gap:.03em}
+.cards-d .hk-hand .hk-card.no .jx b{font-size:.25em}
+.cards-d .hk-hand .hk-card.no .jx svg{width:.17em;height:.17em}
+.cards-d .hk-card .jx b.w{font-size:.27em;letter-spacing:-.08em;line-height:1.1}
