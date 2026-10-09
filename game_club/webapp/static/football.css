@@ -58,7 +58,7 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-ads.r{margin-inline:3px 0}
 .fb-ads.r span{transform:none;color:#F5C451;text-shadow:0 0 4px rgba(245,196,81,.8)}
 /* چمن: راه‌راه چمن‌زنی، دانه و رگه، نور از بالا و تاریکی لبه ها */
-.fb-pitch{position:relative;border-radius:2px;
+.fb-pitch{position:relative;isolation:isolate;z-index:0;border-radius:2px;
   background:
     radial-gradient(130% 60% at 50% -5%,rgba(255,252,220,.16),transparent 60%),
     radial-gradient(150% 110% at 50% 50%,transparent 58%,rgba(0,20,0,.32) 100%),
@@ -111,9 +111,8 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 /* هاله نوبت: لایه جدا زیر همه مهره ها؛ فقط شفافیتش تغییر می کند */
 .fb-halo{position:absolute;left:0;top:0;border-radius:50%;pointer-events:none;z-index:2;opacity:0;will-change:transform,opacity;transition:opacity .2s;
   box-shadow:0 0 0 3px rgba(150,225,255,.75),0 0 12px 4px rgba(120,210,255,.5)}
-.fb-pitch.myturn .fb-halo{opacity:1;animation:fb-glow 1.4s ease-in-out infinite}
-.fb-halo.aim{opacity:1!important;animation:none!important;box-shadow:0 0 0 3.5px #fff,0 0 14px 5px rgba(255,255,255,.55)}
-@keyframes fb-glow{50%{opacity:.45}}
+.fb-pitch.myturn .fb-halo{opacity:.85}
+.fb-halo.aim{opacity:1!important;box-shadow:0 0 0 3.5px #fff,0 0 14px 5px rgba(255,255,255,.55)}
 .fd .in svg{transform-origin:50% 50%}
 .fb-passtag{position:absolute;z-index:3100;transform:translate(-50%,-120%);padding:2px 10px;border-radius:999px;background:#fff;color:#1B5E20;font-size:12.5px;font-weight:800;
   box-shadow:0 4px 10px rgba(0,0,0,.35);pointer-events:none;animation:fb-passup 1.5s ease-out forwards}
@@ -143,7 +142,7 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 /* لایه های تمام صفحه: انتخاب تیم، «مقابل»، گل */
 .fb-layer{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;color:#fff}
 .fb-setup{background:radial-gradient(120% 60% at 50% 0%,#3a2f78 0%,#231c4d 55%,#17123a 100%);
-  padding:max(14px,var(--sa-t,0px)) 16px calc(16px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));gap:12px;overflow-y:auto;animation:fb-fade .25s ease-out}
+  padding:calc(10px + var(--sa-t,0px) + var(--csa-t,0px)) 16px calc(16px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));gap:12px;overflow-y:auto;animation:fb-fade .25s ease-out}
 @keyframes fb-fade{from{opacity:0}}
 .fb-setup .top{display:flex;align-items:center;justify-content:space-between}
 .fb-cd{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.25);font-size:13px;font-weight:600}
@@ -227,4 +226,4 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-res .final{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:18px;background:var(--surface-sunk)}
 .fb-res .final b{font-size:32px;font-weight:800}
 body.football .sheet{color:var(--ink)}
-@media (prefers-reduced-motion:reduce){.fb-goal .rays,.fb-pitch.myturn .fb-halo,.fb-crowd.cheer,.fb-passtag{animation:none}}
+@media (prefers-reduced-motion:reduce){.fb-goal .rays,.fb-crowd.cheer,.fb-passtag{animation:none}}

@@ -98,7 +98,30 @@ function shotVel(dx, dy, power) {
 }
 // پاس: توپ بعد از شوت به یکی دیگر از مهره های خودی خورده باشد
 const passOf = (i, disc, res) => { const d = res.touch.find(d => d >= i * 6 && d < i * 6 + 6 && d !== disc); return d == null ? null : d; };
-const api = { simulate, shotVel, passOf, MAX_PASS: 3, W, H, GOAL_W, GOAL_D, GX0, GX1, DISC_R, BALL_R, BALL, VMAX, MIN_POWER };
+// پاس مثل آهنربا: توپ جلوی گیرنده رو به دروازه حریف می چسبد (مثل catch_pos پایتون)
+const C30 = 0.8660254037844386, S30 = .5, HOLD_GAP = DISC_R + BALL_R + 1;
+const CATCH_DIRS = [[0, -1], [S30, -C30], [-S30, -C30], [C30, -S30], [-C30, -S30], [1, 0], [-1, 0], [C30, S30], [-C30, S30], [0, 1]];
+function free(pos, d, bx, by) {
+  if (bx < BALL_R || bx > W - BALL_R || by < BALL_R || by > H - BALL_R) return false;
+  const lim = (DISC_R + BALL_R + .5) * (DISC_R + BALL_R + .5);
+  for (let j = 0; j < 12; j++) { if (j === d) continue; const dx = pos[j][0] - bx, dy = pos[j][1] - by; if (dx * dx + dy * dy < lim) return false; }
+  return true;
+}
+function catchPos(pos, i, d) {
+  const [cx, cy] = pos[d], sg = i === 0 ? 1 : -1;
+  for (const [fx, fy] of CATCH_DIRS) {
+    const bx = cx + fx * sg * HOLD_GAP, by = cy + fy * sg * HOLD_GAP;
+    if (free(pos, d, bx, by)) return [Math.round(bx * 10) / 10, Math.round(by * 10) / 10];
+  }
+  return null;
+}
+// مهره ای که توپ را دارد: توپ قبل از شوت درست جلویش در جهت شوت (مثل hold_pos پایتون)؛ جا نبود همان pos
+function holdPos(pos, d, dx, dy) {
+  const ln = Math.sqrt(dx * dx + dy * dy), bx = pos[d][0] + dx / ln * HOLD_GAP, by = pos[d][1] + dy / ln * HOLD_GAP;
+  if (!free(pos, d, bx, by)) return pos;
+  const out = pos.map(p => p.slice()); out[BALL] = [bx, by]; return out;
+}
+const api = { simulate, shotVel, passOf, catchPos, holdPos, HOLD_GAP, MAX_PASS: 3, W, H, GOAL_W, GOAL_D, GX0, GX1, DISC_R, BALL_R, BALL, VMAX, MIN_POWER };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 if (root) root.FBPhysics = api;
 })(typeof window !== 'undefined' ? window : null);

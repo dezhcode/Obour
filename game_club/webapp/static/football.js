@@ -7,7 +7,7 @@
 (() => {
 const { S, fa, FD, store, face, icon, sheet, sheetHead, toast, sleep, sfx, haptic, errText, setSound, amount, mount } = GC;
 const $ = id => document.getElementById(id);
-const POLL_MS = 900;
+const POLL_MS = 1000;
 const W = 600, H = 1040, MID = H / 2, GOAL_W = 220, GOAL_D = 60, GX0 = (W - GOAL_W) / 2, DISC_R = 36, BALL_R = 18, BALL = 12;
 const STAR = 'M16 7.5l2.5 5.2 5.7.8-4.1 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4.1-4 5.7-.8z';
 const TEAM = {
@@ -153,7 +153,7 @@ function build() {
   net('fb-goal-top', `top:${px(-GOAL_D)}`); net('fb-goal-bot', `bottom:${px(-GOAL_D)}`);
   const flag = (cls, col) => { const d = document.createElement('div'); d.className = 'fb-flag ' + cls; d.innerHTML = `<svg viewBox="0 0 14 22"><path d="M2 21V2" stroke="#e9edf1" stroke-width="1.6" stroke-linecap="round"/><path d="M2.6 2.5l9 3.2-9 3.3z" fill="${col}"/></svg>`; pitch.appendChild(d); };
   flag('tl', '#E63946'); flag('tr', '#E63946'); flag('bl', '#2F80ED'); flag('br', '#2F80ED');
-  els = []; halos = [];
+  els = []; halos = []; lastTf = []; lastZ = [];
   // حلقه نوبت مهره های خودم در لایه ای زیر همه مهره ها، تا روی مهره کناری نیفتد
   for (let i = 0; i < 12; i++) {
     if (!mine(i)) { halos.push(null); continue; }
@@ -172,14 +172,19 @@ function build() {
   svg.setAttribute('viewBox', `0 0 ${W * s} ${H * s}`); pitch.insertBefore(svg, halos.find(Boolean) || els[0]);
   syncTurn();
 }
-function setPos(i, p) {
+// آخرین transform و z هر جسم: چیزی که عوض نشده دوباره نوشته نمی شود (هر نوشتن یعنی کار اضافه برای مرورگر)
+let lastTf = [], lastZ = [];
+function setPos(i, p, z = true) {
   cur[i] = p;
   const el = els[i]; if (!el) return;
   const [x, y] = toView(p), r = i === BALL ? BALL_R : DISC_R;
   const tf = `translate3d(${((x - r) * s).toFixed(1)}px,${((y - r) * s).toFixed(1)}px,0)`;
+  if (tf === lastTf[i]) return;
+  lastTf[i] = tf;
   el.style.transform = tf;
-  // همه روی یک سطح: هر چه پایین تر روی صفحه، روی بقیه کشیده می شود (لبه و سایه اش زیر همسایه نمی رود)
-  el.style.zIndex = 10 + Math.round(y + r);
+  // همه روی یک سطح: هر چه پایین تر روی صفحه، روی بقیه کشیده می شود (لبه و سایه اش زیر همسایه نمی رود).
+  // پله های ۴ واحدی و فقط وقتی عوض شود؛ وسط انیمیشن هم کمتر (چیدن دوباره لایه ها گران است)
+  if (z) { const zi = 10 + Math.round((y + r) / 4); if (zi !== lastZ[i]) { lastZ[i] = zi; el.style.zIndex = zi; } }
   if (halos[i]) halos[i].style.transform = tf;
   if (i === BALL) {
     // غلتیدن واقعی در جهت حرکت (در مختصات نمایش، پس برای هر دو بازیکن درست است)
@@ -212,10 +217,13 @@ function renderHead(g) {
 function renderStatus(g) {
   const st = $('status');
   st.classList.toggle('mine', g.phase === 'play' && g.turn === me);
-  if (g.over) st.textContent = 'پایان بازی';
-  else if (g.phase === 'setup') st.textContent = 'انتخاب تیم و چیدمان…';
-  else if (g.turn === me) st.innerHTML = `نوبت توست${g.deadline_ms ? '<em id="clock"></em>' : ''}`;
-  else { const q = g.players[g.turn] || {}; st.innerHTML = `نوبت ${q.name || 'حریف'}<em>${q.bot || q.out ? 'فکر می‌کند…' : ''}</em>`; }
+  let html;
+  if (g.over) html = 'پایان بازی';
+  else if (g.phase === 'setup') html = 'انتخاب تیم و چیدمان…';
+  else if (g.turn === me) html = `نوبت توست${g.deadline_ms ? '<em id="clock"></em>' : ''}`;
+  else { const q = g.players[g.turn] || {}; html = `نوبت ${q.name || 'حریف'}<em>${q.bot || q.out ? 'فکر می‌کند…' : ''}</em>`; }
+  // هر پرسش سرور همین متن را می آورد؛ فقط وقتی عوض شده بنویس (وگرنه هر بار چیدمان و نقاشی دوباره)
+  if (html !== st.dataset.k || !st.firstChild) { st.dataset.k = html; st.innerHTML = html; }
   setDeadline(g.deadline_ms);
   readyAt = Date.now() + (g.ready_ms || 0);
   turnMs = g.turn_ms || 15000;
@@ -276,8 +284,18 @@ function paintAim(dx, dy) {
   }
   svg.innerHTML = `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="rgba(0,0,0,.24)" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>${body}`;
   aim.p = p; aim.dx = ux; aim.dy = uy;
+  if (aim.hold) holdAim(d > 4 ? ux : 0, d > 4 ? uy : 0);
 }
-function endAim() { if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; } if (aim && halos[aim.i]) halos[aim.i].classList.remove('aim'); if (aim && els[aim.i]) els[aim.i].classList.remove('aim'); aim = null; const svg = $('aim'); if (svg) svg.innerHTML = ''; }
+// توپ دست این مهره است: موقع نشانه گیری مهره زیر توپ می آید (توپ دور مهره به سمت شوت می چرخد)
+function holdAim(ux, uy) {
+  const g = snap && snap.game, PH = window.FBPhysics; if (!g || !PH || !aim) return;
+  let b = g.pos[BALL];
+  if (ux || uy) { const q = PH.holdPos(g.pos, aim.i, flip() ? -ux : ux, flip() ? -uy : uy); b = q[BALL]; }
+  setPos(BALL, b);
+  const svg = els[aim.i] && els[aim.i].querySelector('.in svg');
+  if (svg && (ux || uy)) { rot[aim.i] = Math.atan2(ux, -uy) * 180 / Math.PI; svg.style.transform = `rotate(${rot[aim.i].toFixed(1)}deg)`; }
+}
+function endAim() { if (aim && aim.hold && snap && snap.game && !aim.shot) setPos(BALL, snap.game.pos[BALL]); if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; } if (aim && halos[aim.i]) halos[aim.i].classList.remove('aim'); if (aim && els[aim.i]) els[aim.i].classList.remove('aim'); aim = null; const svg = $('aim'); if (svg) svg.innerHTML = ''; }
 $('pitch').addEventListener('pointerdown', ev => {
   if (!canShoot()) return;
   const [px, py] = local(ev);
@@ -289,7 +307,7 @@ $('pitch').addEventListener('pointerdown', ev => {
   }
   if (best == null) return;
   const [x, y] = toView(cur[best]);
-  aim = { i: best, cx: x * s, cy: y * s, p: 0, dx: 0, dy: -1 };
+  aim = { i: best, cx: x * s, cy: y * s, p: 0, dx: 0, dy: -1, hold: snap.game.hold === best };
   els[best].classList.add('aim'); if (halos[best]) halos[best].classList.add('aim'); haptic('select');
   try { $('pitch').setPointerCapture(ev.pointerId); } catch (e) {}
   drawAim(0, 0); ev.preventDefault();
@@ -299,8 +317,8 @@ $('pitch').addEventListener('pointercancel', endAim);
 $('pitch').addEventListener('pointerup', () => {
   if (!aim) return;
   if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; paintAim(aimDX, aimDY); }
-  const a = aim; endAim();
-  if (a.p < .1 || !canShoot()) return;
+  const a = aim; a.shot = a.p >= .1 && canShoot(); endAim();
+  if (!a.shot) return;
   const k = a.i % 6, dx = flip() ? -a.dx : a.dx, dy = flip() ? -a.dy : a.dy;
   store.set('fbHints', store.get('fbHints', 0) + 1);
   kickedAt = Date.now(); sfx.fb.kick(a.p); haptic('medium');
@@ -309,30 +327,51 @@ $('pitch').addEventListener('pointerup', () => {
   // همان فیزیک سرور همین جا اجرا می شود تا شوت بی تاخیر دیده شود؛ جواب سرور فقط تایید یا اصلاحش است
   const PH = window.FBPhysics, g = snap.game, v = PH && PH.shotVel(wdx, wdy, wp);
   if (v && g.pos && g.pos.length === 13) {
-    const res = PH.simulate(g.pos, { [(+me) * 6 + k]: v });
+    const disc = (+me) * 6 + k, pos0 = g.hold === disc ? PH.holdPos(g.pos, disc, wdx, wdy) : g.pos;
+    const res = PH.simulate(pos0, { [disc]: v });
     pred = { pos: res.pos, done: playFrames({ frames: res.frames, ids: res.ids, hits: res.hits, c: me }) };
   }
   act(() => GC.football.shot(mid, k, wdx, wdy, wp, since));
 });
 
 /* ---------- انیمیشن ها ---------- */
+// پاس: توپ مثل آهنربا به سمت یار کشیده می شود و جلویش می چسبد؛ مهره همزمان رو به توپ می چرخد
+function magnet(to) {
+  return new Promise(done => {
+    const from = cur[BALL].slice(), dist = Math.hypot(to[0] - from[0], to[1] - from[1]);
+    if (dist < 1) { done(); return; }
+    const ms = Math.max(260, Math.min(620, dist * 1.3)), t0 = performance.now();
+    const step = t => {
+      const u = Math.max(0, Math.min(1, (t - t0) / ms)), k = u * u * (2.2 - 1.2 * u);  // آرام شروع، تند و چسبنده تمام
+      setPos(BALL, [from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k], u >= 1 || (u * 20 | 0) % 2 === 0);
+      if (u < 1) requestAnimationFrame(step); else done();
+    };
+    requestAnimationFrame(step);
+  });
+}
 async function showPass(e) {
-  const el = els[e.d], b = cur[BALL], d = cur[e.d];
-  if (el && b && d) {
-    const [bx, by] = toView(b), [dx, dy] = toView(d);
+  const el = els[e.d], d = cur[e.d], target = e.ball || cur[BALL];
+  sfx.fb.pass(); haptic(e.c === me ? 'success' : 'light');
+  const st = $('status');
+  if (st) { st.classList.toggle('mine', e.c === me); st.dataset.k = ''; st.innerHTML = e.c === me ? `پاس! توپ دست مهره‌ات است<em>${e.left ? FD(e.left) + ' پاس دیگر' : 'آخرین'}</em>` : `${nameOf(e.c)} پاس داد؛ دوباره شوت می‌زند`; }
+  if (el && target && d) {
+    const [bx, by] = toView(target), [dx, dy] = toView(d);
     const to = Math.atan2(bx - dx, -(by - dy)) * 180 / Math.PI;   // نشان مهره رو به توپ
     const from = rot[e.d] || 0, end = to + 360 * Math.sign(to - from || 1);
     rot[e.d] = ((to % 360) + 360) % 360;
-    el.querySelector('.in svg').animate([{ transform: `rotate(${from}deg)` }, { transform: `rotate(${end}deg)` }], { duration: 650, easing: 'cubic-bezier(.2,.8,.3,1)' });
-    el.querySelector('.in svg').style.transform = `rotate(${rot[e.d]}deg)`;
+    const svg = el.querySelector('.in svg');
+    svg.animate([{ transform: `rotate(${from}deg)` }, { transform: `rotate(${end}deg)` }], { duration: 650, easing: 'cubic-bezier(.2,.8,.3,1)' });
+    svg.style.transform = `rotate(${rot[e.d]}deg)`;
+    if (e.ball && cur[BALL]) {
+      await magnet(e.ball);
+      sfx.fb.ball(.35);
+      el.querySelector('.in').animate([{ transform: 'scale(1)' }, { transform: 'scale(.9)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' });
+    }
     const tag = document.createElement('span'); tag.className = 'fb-passtag'; tag.textContent = 'پاس!';
     const [x, y] = toView(d); tag.style.left = (x * s) + 'px'; tag.style.top = ((y - DISC_R) * s) + 'px';
     $('pitch').appendChild(tag); setTimeout(() => tag.remove(), 1500);
   }
-  sfx.fb.pass(); haptic(e.c === me ? 'success' : 'light');
-  const st = $('status');
-  if (st) { st.classList.toggle('mine', e.c === me); st.innerHTML = e.c === me ? `پاس! یک شوت دیگر<em>${e.left ? FD(e.left) + ' پاس دیگر' : 'آخرین'}</em>` : `${nameOf(e.c)} پاس داد؛ دوباره شوت می‌زند`; }
-  await sleep(650);
+  await sleep(380);
 }
 function jolt(g) {
   const p = $('stadium'); p.style.setProperty('--j', (1 + g * 1.6).toFixed(1) + 'px');
@@ -345,12 +384,13 @@ function playFrames(e) {
     if (!(e.c === me && Date.now() - kickedAt < 4000)) sfx.fb.kick(.8);
     kickedAt = 0;
     const put = (fr, j, id) => setPos(id, [fr[2 * j], fr[2 * j + 1]]);
+    let lastA = -1;
     const step = t => {
       const el = Math.max(0, (t - t0) / 1000), f = el * 30;  // زمان rAF می تواند کمی قبل از t0 باشد
       while (hits.length && hits[0][0] <= el) { const [, kd, g] = hits.shift(); (kd === 'w' ? sfx.fb.wall : kd === 'p' ? sfx.fb.post : kd === 'b' ? sfx.fb.ball : sfx.fb.clack)(g); if (g > .55 && kd !== 'b') jolt(g); }
       if (f >= n - 1) { ids.forEach((id, j) => put(F[n - 1], j, id)); done(); return; }
-      const a = Math.floor(f), u = f - a, A = F[a], B = F[a + 1];
-      ids.forEach((id, j) => setPos(id, [A[2 * j] + (B[2 * j] - A[2 * j]) * u, A[2 * j + 1] + (B[2 * j + 1] - A[2 * j + 1]) * u]));
+      const a = Math.floor(f), u = f - a, A = F[a], B = F[a + 1], z = a !== lastA; lastA = a;
+      ids.forEach((id, j) => setPos(id, [A[2 * j] + (B[2 * j] - A[2 * j]) * u, A[2 * j + 1] + (B[2 * j + 1] - A[2 * j + 1]) * u], z));
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
@@ -359,9 +399,11 @@ function playFrames(e) {
 function glide(pos, ms = 700) {
   return new Promise(done => {
     const from = cur.map(p => p.slice()), t0 = performance.now();
+    let n = 0;
     const step = t => {
       const u = Math.max(0, Math.min(1, (t - t0) / ms)), k = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
-      pos.forEach((p, i) => { const a = from[i] || p; setPos(i, [a[0] + (p[0] - a[0]) * k, a[1] + (p[1] - a[1]) * k]); });
+      const z = u >= 1 || ++n % 3 === 0;
+      pos.forEach((p, i) => { const a = from[i] || p; setPos(i, [a[0] + (p[0] - a[0]) * k, a[1] + (p[1] - a[1]) * k], z); });
       if (u < 1) requestAnimationFrame(step); else done();
     };
     requestAnimationFrame(step);
@@ -457,13 +499,16 @@ function renderSetup() {
 /* ---------- پخش رویدادها ---------- */
 async function play(e) {
   if (e.t === 'ready') { if (setupStep === 'wait') renderSetup(); return; }
-  if (e.t === 'start') { closeSetup(); setTeams(e.teams); setAll(e.pos); renderHead(snap.game); $('status').textContent = 'شروع بازی…'; await showVS(e); return; }
+  if (e.t === 'start') { closeSetup(); setTeams(e.teams); setAll(e.pos); renderHead(snap.game); $('status').dataset.k = ''; $('status').textContent = 'شروع بازی…'; await showVS(e); return; }
   if (e.t === 'shot') {
     if (pred && e.c === me && !e.auto) {
       const p = pred; pred = null; await p.done;
       const off = e.pos.some((q, i) => !p.pos[i] || Math.hypot(q[0] - p.pos[i][0], q[1] - p.pos[i][1]) > 2);
       if (off) await glide(e.pos, 300); else setAll(e.pos);
-    } else if (e.frames && e.frames.length) await playFrames(e); else setAll(e.pos);
+    } else if (e.frames && e.frames.length) {
+      if (e.hold && cur[BALL]) { const q = cur.map(p => p.slice()); q[BALL] = e.hold; await glide(q, 200); }
+      await playFrames(e);
+    } else setAll(e.pos);
     if (e.auto && e.c === me) toast('وقتت تمام شد؛ یک شوت خودکار زده شد');
     return;
   }
@@ -552,14 +597,17 @@ async function apply(next, anim = true) {
     const tt = {}; for (const c of ['0', '1']) if (g.players[c] && g.players[c].team && g.phase !== 'setup') tt[c] = { team: g.players[c].team, kit: g.players[c].kit };
     if (JSON.stringify(tt) !== JSON.stringify(teams)) setTeams(tt);
     setAll(g.pos);
+    if (aim) drawAim(aimDX, aimDY);          // توپِ چسبیده هنگام نشانه گیری سر جایش بماند
     renderAll(g);
     if (next.status === 'over' && !overShown) { overShown = true; over(next); }
   } finally { busy = false; }
 }
-// وقتی منتظر شوت حریفیم تندتر می پرسیم تا شوتش زودتر دیده شود؛ وقت خودم یا بیکاری آرام تر
+// وقتی منتظر شوت حریفیم کمی تندتر می پرسیم؛ در نوبت خودم شوت را خودم می فرستم و جوابش همان لحظه
+// می آید، پس آرام تر (پرسش کمتر = بار کمتر روی سرور و گوشی)
 function pollMs() {
   const g = snap && snap.game;
-  return g && g.phase === 'play' && !g.over && g.turn && g.turn !== me ? 450 : POLL_MS;
+  if (!g || g.phase !== 'play' || g.over) return POLL_MS;
+  return g.turn && g.turn !== me ? 700 : 1500;
 }
 async function poll() {
   clearTimeout(pollT);

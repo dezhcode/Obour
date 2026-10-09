@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import random
 import sys
@@ -613,12 +614,33 @@ def test_football_pass_gives_extra_turn():
         assert st["turn"] == 0 and st["streak"] == n, (n, st["turn"], st["streak"])
         e = [x for x in st["events"] if x["t"] == "pass"][-1]
         assert e["d"] == 1 and e["n"] == n
+        # توپ به گیرنده چسبیده: درست جلوی آن رو به دروازه حریف، و رویداد شوت جای قبلی را نگه داشته
+        dx, dy = st["pos"][1]
+        assert e["ball"] == st["pos"][F.BALL] == [dx, round(dy - F.DISC_R - F.BALL_R - 1, 1)]
+        sh = [x for x in st["events"] if x["t"] == "shot"][-1]
+        assert sh["pos"][F.BALL] != e["ball"]
+        assert st["hold"] == 1 and F.view(st, "0", 0, 0.0)["hold"] == 1
+    # مهره ای که توپ را دارد به هر طرف شوت بزند، اول زیر توپ می آید: توپ در جهت شوت جلویش است
+    st["next_at"] = 0
+    dx, dy = st["pos"][1]
+    assert F.shot(st, 0, 1, 1, 0, .4, 950.0) is None
+    sh = [x for x in st["events"] if x["t"] == "shot"][-1]
+    assert sh["hold"] == [round(dx + F.HOLD_GAP, 1), dy] and st["hold"] is None
+    assert F.BALL in sh["ids"] and sh["pos"][F.BALL][0] > dx + F.HOLD_GAP
+    st["turn"], st["streak"] = 0, F.MAX_PASS     # پاس ها به سقف رسیده
     lineup()                                   # پاس چهارم: نوبت دیگر اضافه نمی شود
     F.shot(st, 0, 0, 0, -1, .5, 900.0)
     assert st["turn"] == 1 and st["streak"] == 0 and st["stats"]["0"]["passes"] == F.MAX_PASS
     # برخورد مهره خودم (نه توپ) به یار پاس نیست
     res = F.simulate([[300.0, 900.0], [300.0, 760.0]] + [[40.0 + k * 50, 300.0] for k in range(10)] + [[500.0, 600.0]], {0: (0, -1500)})
     assert F.pass_of(0, 0, res) is None
+    # جلوی گیرنده دیواره است: توپ کج تر می چسبد؛ صندلی ۱ رو به پایین
+    pos = [[40.0 + k * 50, 520.0] for k in range(12)] + [[300.0, 500.0]]
+    pos[1] = [300.0, 30.0]
+    b = F.catch_pos(pos, 0, 1)
+    assert b and b[1] >= F.BALL_R and abs(math.hypot(b[0] - 300.0, b[1] - 30.0) - (F.DISC_R + F.BALL_R + 1)) < .2
+    pos[7] = [300.0, 300.0]
+    assert F.catch_pos(pos, 1, 7) == [300.0, 355.0]
 
 
 def test_football_service_flow():
