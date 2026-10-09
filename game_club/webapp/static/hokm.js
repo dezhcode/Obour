@@ -544,7 +544,7 @@ function showBubble(s) {
   if (Date.now() > b.until) { delete bubbles[s]; return; }
   seat.querySelectorAll('.bubble').forEach(x => x.remove());
   const el = document.createElement('div'); el.className = 'bubble'; el.textContent = b.text; el.setAttribute('aria-hidden', 'true');
-  el.style.cssText = s === me ? 'bottom:calc(100% + 6px);inset-inline-start:auto;left:50%;transform:translateX(-50%)' : 'top:calc(100% + 4px);inset-inline-start:auto;left:50%;transform:translateX(-50%)';
+  el.style.cssText = s === me ? 'bottom:calc(100% + 6px);inset-inline-start:auto;left:auto;right:6px' : 'top:calc(100% + 4px);inset-inline-start:auto;left:50%;transform:translateX(-50%)';
   seat.style.position = 'relative'; seat.appendChild(el);
 }
 function bubble(m) {

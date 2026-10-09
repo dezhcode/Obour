@@ -68,7 +68,8 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 .hk-pick .ok{width:100%;min-height:42px;--bg:var(--gold);--fg:var(--gold-ink);--edge:rgba(0,0,0,.3);font-size:15px}
 
 /* نوار من: نوبت، زمان، راهنما */
-.hk-me{grid-column:1/4;grid-row:3;display:flex;justify-content:center;direction:rtl;min-height:52px}
+/* سمت راست، چسبیده به دیواره میز (کنار صندلی خودم)؛ سمت چپ برای دسته دست ها و گفتگو آزاد می ماند */
+.hk-me{grid-column:1/4;grid-row:3;display:flex;justify-content:flex-start;align-items:flex-end;direction:rtl;min-height:52px;margin-inline-start:-2px}
 .hk-me .pill{display:flex;align-items:center;gap:10px;padding:5px 16px 5px 5px;border-radius:999px;background:rgba(0,0,0,.28);color:#fff;box-shadow:none;font-weight:400;font-size:14px;max-width:calc(100% - 64px)}
 .hk-me .pill.mine{box-shadow:inset 0 0 0 1.5px rgba(245,196,81,.7)}
 .hk-me .avatar{--size:44px;padding:3px}
@@ -107,7 +108,7 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 /* بادبزن کوچک پشت ورق کنار هر حریف */
 .hk-fan{position:relative;pointer-events:none}
 .hk-fan .hk-back{box-shadow:0 1px 0 rgba(255,255,255,.35),0 2px 4px rgba(0,0,0,.4)}
-.hk-fan.top{width:96px;height:46px;margin-top:3px}
+.hk-fan.top{width:96px;height:46px;margin-top:3px;transform:rotate(180deg)}  /* رو به خود یار: پایه بادبزن سمت او */
 .hk-fan.top .hk-back{font-size:28px;left:calc(50% - 14px);top:2px;transform-origin:50% 120%}
 .hk-fan.side{width:60px;height:86px;margin-top:4px}
 .hk-fan.side .hk-back{font-size:28px;left:calc(50% - 14px);top:calc(50% - 20px)}
