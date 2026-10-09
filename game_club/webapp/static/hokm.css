@@ -67,19 +67,46 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 .hk-pick .suits button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--gold)}
 .hk-pick .ok{width:100%;min-height:42px;--bg:var(--gold);--fg:var(--gold-ink);--edge:rgba(0,0,0,.3);font-size:15px}
 
-/* نوار من: نوبت، زمان، راهنما */
-/* سمت راست، چسبیده به دیواره میز (کنار صندلی خودم)؛ سمت چپ برای دسته دست ها و گفتگو آزاد می ماند */
-.hk-me{grid-column:1/4;grid-row:3;display:flex;justify-content:flex-start;align-items:flex-end;direction:rtl;min-height:52px;margin-inline-start:-2px}
-.hk-me .pill{display:flex;align-items:center;gap:10px;padding:5px 16px 5px 5px;border-radius:999px;background:rgba(0,0,0,.28);color:#fff;box-shadow:none;font-weight:400;font-size:14px;max-width:calc(100% - 64px)}
-.hk-me .pill.mine{box-shadow:inset 0 0 0 1.5px rgba(245,196,81,.7)}
-.hk-me .avatar{--size:44px;padding:3px}
-.hk-me .txt{display:flex;flex-direction:column;line-height:1.35;min-width:0}
-.hk-me .txt b{font-size:14px;font-weight:800;white-space:nowrap}
-.hk-me .txt span{font-size:11.5px;color:rgba(255,255,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hk-me .clock{margin-inline-start:6px;padding:1px 8px;border-radius:999px;background:var(--gold);color:var(--gold-ink);font-size:11.5px}
-.hk-chat{position:absolute;left:10px;bottom:12px;width:46px;height:46px;z-index:3}
-.hk-chat svg{width:22px;height:22px}
+/* نوار من: نوبت، زمان، راهنما. پایین سمت راست با فاصله ثابت از دیواره میز؛ سمت چپ همان ردیف
+   دکمه «چت کن» است و جایش از پیش کنار گذاشته شده تا روی هم نیفتند (در هر عرضی) */
+.hk-table{--wall:6px}
+.tbl-b .hk-table,.hk-table.tbl-b{--wall:13px}
+.hk-me{grid-column:1/4;grid-row:3;display:flex;justify-content:flex-start;align-items:center;direction:rtl;min-width:0;min-height:56px;
+  padding-inline-start:var(--wall);padding-inline-end:calc(var(--wall) + var(--chat-w,112px) + 10px);padding-bottom:4px}
+.hk-mb{position:relative;display:flex;align-items:center;gap:10px;direction:rtl;min-width:0;max-width:100%;box-sizing:border-box;
+  padding:6px;padding-inline-end:18px;border-radius:999px;color:#fff;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px rgba(255,255,255,.09);transition:box-shadow .2s,background .2s}
+.hk-mb.solo{padding-inline-start:18px;min-height:44px}
+.hk-mb.mine{background:rgba(0,0,0,.38);box-shadow:inset 0 0 0 1.5px rgba(245,196,81,.75),0 0 18px -4px rgba(245,196,81,.45)}
+.hk-mb .avatar{--size:44px;padding:3px;flex:none}
+.hk-mb .txt{display:flex;flex-direction:column;gap:1px;min-width:0;text-align:start}
+.hk-mb .txt b{display:block;font-size:14.5px;line-height:20px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hk-mb .txt>span{font-size:12px;line-height:17px;color:rgba(255,255,255,.78);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* زمان نوبت: نشان کوچک روی لبه بالای جعبه (جای افقی نمی گیرد) */
+.hk-mb .clock{position:absolute;top:-10px;inset-inline-end:16px;padding:0 9px;border-radius:999px;background:var(--gold);color:var(--gold-ink);font-size:11.5px;line-height:20px;font-weight:800;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.hk-mb .clock:empty{display:none}
+/* دکمه گفتگو: آیکون و «چت کن»، هم ردیف و هم قد نوار من، با همان فاصله از دیواره */
+.hk-chat{position:absolute;left:calc(8px + var(--wall));bottom:22px;z-index:3;width:auto;height:44px;padding:0 12px 0 16px;border-radius:22px;
+  display:flex;align-items:center;gap:6px;direction:rtl;font-size:13.5px;font-weight:800;white-space:nowrap;box-shadow:0 6px 14px rgba(43,110,242,.35)}
+.hk-chat>i{display:grid}
+.hk-chat svg{width:20px;height:20px}
 .hk-chat .badge{box-shadow:0 0 0 2px var(--felt)}
+/* حباب گفتگو روی میز (دم رو به گوینده) */
+.hk-bubbles{position:absolute;inset:0;z-index:40;pointer-events:none}
+.hk-bub{position:absolute;max-width:min(220px,62%);box-sizing:border-box;padding:7px 12px 8px;border-radius:16px;background:#fff;color:#1E2235;direction:rtl;text-align:right;
+  font-size:13.5px;line-height:20px;font-weight:700;overflow-wrap:anywhere;box-shadow:0 10px 24px rgba(0,0,0,.32);animation:hk-bub-in .28s cubic-bezier(.2,1.5,.4,1) both}
+.hk-bub b{display:block;font-size:11px;line-height:15px;font-weight:800;color:#2B6EF2}
+.hk-bub.me{background:#FFE7A3;color:#3A2A00}
+.hk-bub::after{content:"";position:absolute;width:12px;height:12px;background:inherit;transform:rotate(45deg);border-radius:2px}
+.hk-bub[data-tail="br"]{transform-origin:100% 100%}
+.hk-bub[data-tail="br"]::after{bottom:-5px;right:18px}
+.hk-bub[data-tail="bl"]{transform-origin:0 100%}
+.hk-bub[data-tail="bl"]::after{bottom:-5px;left:18px}
+.hk-bub[data-tail="r"]{transform-origin:100% 0;max-width:min(170px,40%)}
+.hk-bub[data-tail="r"]::after{top:16px;right:-5px}
+.hk-bub.bye{animation:hk-bub-out .25s ease-in both}
+@keyframes hk-bub-in{from{opacity:0;scale:.6}}
+@keyframes hk-bub-out{to{opacity:0;scale:.85}}
+@media (max-width:330px){.hk-table{--chat-w:44px}.hk-chat .lb{display:none}.hk-chat{padding:0;width:44px;justify-content:center}}
 
 /* دست بادبزنی */
 .hk-hand{position:relative;flex:none;height:150px;direction:ltr}
@@ -99,7 +126,7 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 .hk-thrown .air{position:absolute;inset:4px;border-radius:8px;background:rgba(0,0,0,.6);filter:blur(10px);opacity:0}
 /* دسته برگ های برده شده هر تیم (روی هم، ضربدری مثل بازی واقعی) */
 .hk-stack{position:absolute;width:60px;height:60px;z-index:1;pointer-events:none}
-.hk-stack.us{left:12px;bottom:66px}
+.hk-stack.us{left:12px;bottom:76px}
 .hk-stack.them{right:12px;top:12px}
 .hk-stack .hk-back{font-size:30px;left:15px;top:9px}
 .hk-stack .n{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);z-index:30;padding:0 7px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:800;line-height:18px;white-space:nowrap}

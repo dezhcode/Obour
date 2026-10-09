@@ -73,7 +73,6 @@ function renderSeats(g) {
     el.innerHTML = `${hk ? `<span class="hk-crown" title="حاکم">${svgP(CROWN, '#3A2A00')}</span>` : ''}${face(p, turn ? 'var(--gold)' : partner ? '#9BE3B8' : '#FFFFFF', turn ? 'timer' : '')}
       <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جایش' : FD(p.count) + ' برگ'].filter(Boolean).join('، ')}</em>${fanHtml(p.count, rel(s))}`;
   }
-  for (const s of Object.keys(bubbles)) showBubble(s);
 }
 // برگ های حریف ها: یار روبه رو یک بادبزن افقی زیر اسمش، حریف های چپ و راست یک ستون برگ
 // خوابیده که کمی به سمت وسط میز آمده (مثل وقتی برگ ها را جلویشان روی میز گذاشته اند)
@@ -178,12 +177,12 @@ function renderMe(g) {
   else if (g.phase === 'collect') { t = 'دور تمام شد'; }
   else { t = 'دست بعد…'; sub = 'ورق‌ها بُر می‌خورد'; }
   const timer = (mine && g.phase === 'play') || (g.phase === 'trump' && g.hakem === me);
-  $('meBar').innerHTML = `<div class="pill${timer ? ' mine' : ''}">${face(Object.assign({}, p, { name: p.name }), timer ? 'var(--gold)' : '#9BE3B8', timer ? 'timer' : '')}
+  $('meBar').innerHTML = `<div class="hk-mb${timer ? ' mine' : ''}">${face(Object.assign({}, p, { name: p.name }), timer ? 'var(--gold)' : '#9BE3B8', timer ? 'timer' : '')}
     <span class="txt"><b>${t}${timer && g.deadline_ms ? '<span class="clock" id="clock"></span>' : ''}</b>${sub ? `<span>${sub}</span>` : ''}</span></div>`;
   setDeadline(g.deadline_ms); turnMs = g.turn_ms || 20000;
 }
 function renderAll(g, anim = false) {
-  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); renderStacks(g.tricks); mount($('meBar')); tickTimer();
+  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); renderStacks(g.tricks); mount($('meBar')); tickTimer(); placeBubbles();
 }
 
 /* ---------- تایمر نوبت ---------- */
@@ -387,7 +386,7 @@ const DRAW_AT = { 2: [71, 2, -4], 0: [71, 144, 3], 3: [2, 73, -8], 1: [140, 73, 
 function pileEl(html) { const w = document.createElement('div'); w.innerHTML = html; const el = w.firstElementChild; $('pile').appendChild(el); return el; }
 function bar(t, sub, who) {
   const p = P()[who || me] || {};
-  $('meBar').innerHTML = `<div class="pill">${face(p, '#9BE3B8')}<span class="txt"><b>${t}</b>${sub ? `<span>${sub}</span>` : ''}</span></div>`;
+  $('meBar').innerHTML = `<div class="hk-mb">${face(p, '#9BE3B8')}<span class="txt"><b>${t}</b>${sub ? `<span>${sub}</span>` : ''}</span></div>`;
   deadlineAt = 0;
 }
 async function flipTo(el, c, rot, ms) {
@@ -537,21 +536,45 @@ async function handResult(e) {
 const QUICK = ['سلام!', 'خوش‌بازی!', 'آفرین یار', 'حکم خوبی بود', 'زود باش', 'یک دست دیگه؟'];
 const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 let chatId = 0, chatLog = [], unread = 0, chatSheet = null, sending = false;
+// حباب گفتگو: لایه جدا روی میز (با رندر دوباره صندلی ها و نوار من پاک نمی شود)، با دم رو به
+// چهره گوینده؛ ماندنش به اندازه طول پیام است و هر حباب مستقل از بقیه می رود
 const bubbles = {};
-function showBubble(s) {
-  const b = bubbles[s], seat = s === me ? $('meBar') : document.querySelector(`.hk-seat[data-seat="${s}"]`);
-  if (!b || !seat) return;
-  if (Date.now() > b.until) { delete bubbles[s]; return; }
-  seat.querySelectorAll('.bubble').forEach(x => x.remove());
-  const el = document.createElement('div'); el.className = 'bubble'; el.textContent = b.text; el.setAttribute('aria-hidden', 'true');
-  el.style.cssText = s === me ? 'bottom:calc(100% + 6px);inset-inline-start:auto;left:auto;right:6px' : 'top:calc(100% + 4px);inset-inline-start:auto;left:50%;transform:translateX(-50%)';
-  seat.style.position = 'relative'; seat.appendChild(el);
+const bubbleMs = t => Math.min(9000, Math.max(4500, 3200 + String(t).length * 90));
+function bubbleLayer() {
+  let L = $('bubbles');
+  if (!L) { L = document.createElement('div'); L.id = 'bubbles'; L.className = 'hk-bubbles'; L.setAttribute('aria-hidden', 'true'); $('table').appendChild(L); }
+  return L;
+}
+function placeBubble(s) {
+  const b = bubbles[s]; if (!b || !b.el) return;
+  const av = seatEl(s), tb = $('table'); if (!av || !tb) return;
+  const a = av.getBoundingClientRect(), t = tb.getBoundingClientRect(), r = s === me ? 0 : rel(s), st = b.el.style;
+  st.left = st.right = st.top = st.bottom = ''; st.transform = '';
+  // من و حریف های کناری: بالای چهره؛ یار روبه رو: کنار چهره (اسم و برگ هایش پیدا بماند)
+  if (r === 2) { st.top = (a.top - t.top + 4) + 'px'; st.right = (t.right - a.left + 10) + 'px'; b.el.dataset.tail = 'r'; }
+  else if (r === 3) { st.bottom = (t.bottom - a.top + 8) + 'px'; st.left = Math.max(6, a.left - t.left) + 'px'; b.el.dataset.tail = 'bl'; }
+  else { st.bottom = (t.bottom - a.top + 8) + 'px'; st.right = Math.max(6, t.right - a.right) + 'px'; b.el.dataset.tail = 'br'; }
+}
+function placeBubbles() { for (const s of Object.keys(bubbles)) placeBubble(s); }
+function dropBubble(s) {
+  const b = bubbles[s]; if (!b) return;
+  delete bubbles[s]; clearTimeout(b.timer);
+  if (b.el) { b.el.classList.add('bye'); setTimeout(() => b.el.remove(), 260); }
+}
+function armBubble(s) {
+  const b = bubbles[s]; if (!b) return;
+  clearTimeout(b.timer); b.timer = setTimeout(() => dropBubble(s), Math.max(0, b.until - Date.now()));
 }
 function bubble(m) {
-  bubbles[m.color] = { text: m.text, until: Date.now() + 4200 };
-  showBubble(m.color);
-  setTimeout(() => { if (bubbles[m.color] && Date.now() >= bubbles[m.color].until) { delete bubbles[m.color]; document.querySelectorAll('.bubble').forEach(x => x.remove()); } }, 4300);
+  const s = m.color, old = bubbles[s];
+  if (old) { clearTimeout(old.timer); if (old.el) old.el.remove(); }
+  const el = document.createElement('div'); el.className = 'hk-bub' + (s === me ? ' me' : '');
+  el.innerHTML = `${s === me ? '' : `<b>${esc(nameOf(s))}</b>`}<span>${esc(m.text)}</span>`;
+  bubbleLayer().appendChild(el);
+  bubbles[s] = { el, until: Date.now() + bubbleMs(m.text) };
+  placeBubble(s); armBubble(s);
 }
+addEventListener('resize', placeBubbles);
 function badge() {
   const b = $('chatBadge'); b.hidden = !unread; b.textContent = unread > 9 ? '+۹' : FD(unread);
   $('chatBtn').setAttribute('aria-label', unread ? `گفتگوی میز، ${FD(unread)} پیام تازه` : 'گفتگوی میز');
@@ -587,7 +610,7 @@ function openChat() {
   const sh = sheet(`${sheetHead('گفتگوی میز')}<div class="chat-log" id="chatLog" aria-live="polite"></div>
     <div class="quick">${QUICK.map(q => `<button class="chip sm" data-q>${q}</button>`).join('')}</div>
     <form class="chat-form" id="chatForm"><button class="send" aria-label="فرستادن">${icon('up', 2.6)}</button><input id="chatTxt" maxlength="140" placeholder="یه چیزی بگو…" autocomplete="off" enterkeyhint="send" aria-label="پیام به میز"></form>`,
-  { onClose: () => { chatSheet = null; } });
+  { onClose: () => { chatSheet = null; for (const k of Object.keys(bubbles)) { bubbles[k].until = Math.max(bubbles[k].until, Date.now() + 3500); armBubble(k); } } });
   chatSheet = sh; renderChat();
   sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => send(b.textContent); });
   const input = sh.querySelector('#chatTxt');
@@ -596,8 +619,7 @@ function openChat() {
 $('chatBtn').onclick = openChat;
 function endChat() {
   chatLog = []; unread = 0; chatSheet = null;
-  for (const s of Object.keys(bubbles)) delete bubbles[s];
-  document.querySelectorAll('.bubble').forEach(x => x.remove());
+  for (const s of Object.keys(bubbles)) dropBubble(s);
   $('chatBtn').hidden = true;
 }
 
@@ -828,7 +850,7 @@ function applyStyle(st) {
 async function start() {
   GC.portrait(true);
   GC.data.me().then(m => applyStyle(m && m.style)).catch(() => {});
-  $('meBar').innerHTML = '<div class="pill"><span class="txt"><b>در حال وصل شدن…</b></span></div>';
+  $('meBar').innerHTML = '<div class="hk-mb solo"><span class="txt"><b>در حال وصل شدن…</b></span></div>';
   fit();
   let first;
   try { first = await GC.hokm.match(mid, 0, 0); }
