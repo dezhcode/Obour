@@ -7,6 +7,7 @@
 <title>Game Club · میز حکم</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
+<link rel="stylesheet" href="static/cards.css">
 <style>
 /* لابی حکم: نوع بازی، ورودی، طول بازی، خلاصه و سه راه شروع. صف و دعوت در برگه */
 .q{display:grid;gap:var(--space-2)}
@@ -30,6 +31,42 @@
 .resume{display:grid;gap:4px;justify-items:start}
 .resume b{font-size:18px;font-weight:900}
 .count{font-size:44px;line-height:52px;font-weight:900;text-align:center;color:var(--sky-deep)}
+/* پیش از شروع: انتخاب میز و ورق (مثل انتخاب تیم فوتبال)؛ قفل ها با قیمت، خرید همین جا */
+.hs-layer{--gold:#F5C451;--gold-ink:#3A2A00;position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;gap:12px;overflow-y:auto;color:#fff;
+  background:radial-gradient(120% 60% at 50% 0%,#3a2f78 0%,#231c4d 55%,#17123a 100%);
+  padding:calc(10px + var(--sa-t,0px) + var(--csa-t,0px)) 16px calc(16px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));animation:hs-in .25s ease-out}
+@keyframes hs-in{from{opacity:0}}
+.hs-layer .top{display:flex;align-items:center;justify-content:space-between}
+.hs-ib{width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.3)}
+.hs-ib svg{width:20px;height:20px}
+.hs-bal{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.25);font-weight:800;font-size:14px}
+.hs-bal .coin svg{width:18px;height:18px}
+.hs-layer h1{margin:0;font-size:24px;font-weight:800}
+.hs-layer .sub{margin:2px 0 0;font-size:13px;line-height:21px;color:rgba(255,255,255,.72)}
+.hs-pv{position:relative;flex:none;height:200px;border-radius:24px;overflow:hidden;box-shadow:var(--rim,none),inset 0 0 30px rgba(0,0,0,.4),0 10px 24px -10px rgba(0,0,0,.6)}
+.hs-pv .hk-card,.hs-pv .hk-back{font-size:58px;transition:transform .3s}
+.hs-sec{border-radius:22px;background:#2b2463;padding:12px 10px;display:flex;flex-direction:column;gap:10px}
+.hs-sec .h{display:flex;align-items:baseline;gap:8px;padding-inline:4px}
+.hs-sec .h b{font-size:16px;font-weight:800}
+.hs-sec .h span{font-size:12px;color:rgba(255,255,255,.6)}
+.hs-row{display:grid;gap:8px}
+.hs-row.r3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.hs-row.r4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.hs-t{display:flex;flex-direction:column;align-items:center;gap:5px;color:rgba(255,255,255,.6);font-size:12.5px;font-weight:800;min-width:0}
+.hs-t .sw{position:relative;width:100%;height:62px;border-radius:14px;overflow:hidden;box-sizing:border-box;border:2px solid rgba(255,255,255,.1);box-shadow:var(--rim,none);transition:border-color .15s,box-shadow .15s}
+.hs-t .sw.cs{height:76px;background:#1E2547}
+.hs-t .sw .hk-card,.hs-t .sw .hk-back{font-size:34px}
+.hs-t small{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:800;color:var(--gold);min-height:16px}
+.hs-t small.own{color:rgba(255,255,255,.45);font-weight:600}
+.hs-t small .coin svg{width:13px;height:13px}
+.hs-t[aria-pressed="true"]{color:#fff}
+.hs-t[aria-pressed="true"] .sw{border-color:var(--gold);box-shadow:var(--rim,none),0 0 0 3px rgba(245,196,81,.25)}
+.hs-foot{position:sticky;bottom:0;z-index:2;display:grid;gap:8px;padding-top:10px;margin-top:auto;background:linear-gradient(rgba(23,18,58,0),#17123a 26px)}
+.hs-go{flex:none;width:100%;min-height:54px;border-radius:27px;background:#3D7BFF;color:#fff;font-size:16px;font-weight:800;padding:0 18px;box-shadow:0 6px 0 #2557c4}
+.hs-go:active{transform:translateY(3px)}
+.hs-go.buy{background:var(--gold);color:var(--gold-ink);box-shadow:0 6px 0 #C08E1E}
+.hs-go:disabled{background:#3a3470;color:rgba(255,255,255,.7);box-shadow:none}
+.hs-note{font-size:12.5px;line-height:20px;text-align:center;color:rgba(255,255,255,.75);margin:0}
 </style>
 </head>
 <body>
@@ -71,6 +108,7 @@
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
 <script src="static/demo-hokm.js"></script>
+<script src="static/cards.js"></script>
 <script>
 (() => {
   const { S, save, fa, FD, store, amount, face, icon, sheet, sheetHead, toast, sfx, haptic, sleep, errText, mount } = GC;
@@ -171,17 +209,67 @@
     }
   }
 
+  /* ---------- پیش از شروع: میز و ورق خودت (مثل انتخاب تیم در فوتبال) ---------- */
+  const C = GCCards;
+  const GO = { online: 'پیدا کردن حریف', invite: 'ساختن میز و دعوت یار', bot: 'شروع تمرین', join: 'نشستن سر میز' };
+  // یک دست وسط میز با دسته ورق کنار آن؛ با هر انتخاب همین صحنه با میز و ورق تازه دیده می شود
+  const scene = () => C.back('', 'left:7%;top:30%;transform:rotate(-8deg)') + C.back('', 'left:8%;top:28%;transform:rotate(-4deg)')
+    + C.face(48, '', 'left:33%;top:12%;transform:rotate(-16deg)') + C.face(36, '', 'left:47%;top:30%;transform:rotate(11deg)')
+    + C.face(24, '', 'left:61%;top:10%;transform:rotate(-5deg)') + C.face(12, '', 'left:72%;top:28%;transform:rotate(18deg)');
+  async function setup(how, run) {
+    let sty;
+    try { sty = await GC.data.style(); } catch (e) { return run(); }
+    const pick = { table: sty.table, cards: sty.cards };
+    const find = (k, look) => sty.items.find(i => i.kind === k && i.look === look);
+    const el = document.createElement('div'); el.className = 'hs-layer'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'انتخاب میز و ورق');
+    document.body.appendChild(el);
+    const tile = (i, k) => `<button class="hs-t" data-k="${k}" data-look="${i.look}" aria-pressed="${pick[k] === i.look}">
+      ${k === 'table' ? `<span class="sw felt tbl-${i.look}"></span>` : `<span class="sw cs cards-${i.look}">${C.back('', 'left:12%;top:16%;transform:rotate(-10deg)')}${C.face(12, '', 'left:44%;top:10%;transform:rotate(7deg)')}</span>`}
+      ${i.name.replace(/^(میز|ورق) /, '')}${i.owned ? `<small class="own">${i.price ? 'خریده‌ای' : 'رایگان'}</small>` : `<small>${GC.coin()}${fa(i.price)}</small>`}</button>`;
+    function draw() {
+      const need = ['table', 'cards'].map(k => find(k, pick[k])).filter(i => i && !i.owned);
+      const cost = need.reduce((a, i) => a + i.price, 0), short = cost > GC.points;
+      el.innerHTML = `<div class="top"><button class="hs-ib" id="hsX" aria-label="برگشت">${icon('back')}</button><span class="hs-bal">${GC.coin()}${fa(GC.points)}</span></div>
+        <div><h1>میز و ورقت را انتخاب کن</h1><p class="sub">سر میز هر کس همان میز و ورقی را می‌بیند که خودش انتخاب کرده.</p></div>
+        <div class="hs-pv felt tbl-${pick.table} cards-${pick.cards}">${scene()}</div>
+        <section class="hs-sec"><div class="h"><b>میز</b><span>${find('table', pick.table).name}</span></div>
+          <div class="hs-row r3">${sty.items.filter(i => i.kind === 'table').map(i => tile(i, 'table')).join('')}</div></section>
+        <section class="hs-sec"><div class="h"><b>ورق</b><span>${find('cards', pick.cards).name}</span></div>
+          <div class="hs-row r4">${sty.items.filter(i => i.kind === 'cards').map(i => tile(i, 'cards')).join('')}</div></section>
+        <div class="hs-foot">${cost ? `<p class="hs-note">${need.map(i => i.name).join(' و ')} را نداری؛ یک بار بخری برای همیشه مال توست.</p>` : ''}
+        <button class="hs-go${cost && !short ? ' buy' : ''}" id="hsGo"${short ? ' disabled' : ''}>${!cost ? 'همین · ' + GO[how] : short ? fa(cost - GC.points) + ' امتیاز کم داری' : `خرید با ${fa(cost)} امتیاز و ${GO[how]}`}</button></div>`;
+      el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { pick[b.dataset.k] = b.dataset.look; sfx.tap(); haptic('select'); draw(); });
+      el.querySelector('#hsX').onclick = () => { el.remove(); };
+      el.querySelector('#hsGo').onclick = async ev => {
+        ev.currentTarget.disabled = true;
+        try {
+          for (const k of ['table', 'cards']) {
+            const i = find(k, pick[k]);
+            if (!i.owned) { await GC.data.styleBuy(i.id); sfx.coin(); haptic('success'); }
+            else if (pick[k] !== sty[k]) await GC.data.styleUse(i.id);
+          }
+          if (cost) await GC.refreshMe();
+        } catch (err) { sfx.error(); haptic('error'); toast(errText(err)); try { sty = await GC.data.style(); } catch (e) {} draw(); return; }
+        el.remove(); render(); run();
+      };
+      mount(el);
+    }
+    draw();
+  }
+
   document.querySelector('.go').addEventListener('click', async e => {
     const b = e.target.closest('[data-how]'); if (!b || b.disabled) return;
     const how = b.dataset.how, c = reqCfg();
     if (how === 'bot') { c.mode = 'free'; c.entry = 0; c.solo = true; }
     if (c.mode === 'stake' && GC.points < c.entry) { sfx.error(); haptic('error'); toast(errText({ code: 'insufficient' })); return; }
-    b.disabled = true;
-    try {
-      if (how === 'invite') { const r = await GC.hokm.invite(c); await GC.refreshMe(); lobbyLoop(r.match); }
-      else { const r = await GC.hokm.queueJoin(c); await GC.refreshMe(); queueLoop(r); }
-    } catch (err) { sfx.error(); haptic('error'); toast(errText(err)); }
-    b.disabled = false; render();
+    setup(how, async () => {
+      b.disabled = true;
+      try {
+        if (how === 'invite') { const r = await GC.hokm.invite(c); await GC.refreshMe(); lobbyLoop(r.match); }
+        else { const r = await GC.hokm.queueJoin(c); await GC.refreshMe(); queueLoop(r); }
+      } catch (err) { sfx.error(); haptic('error'); toast(errText(err)); }
+      b.disabled = false; render();
+    });
   });
 
   (async () => {
@@ -200,8 +288,10 @@
         if (v && v.status === 'playing') $('resume').hidden = false;
       } else if (me.queue) queueLoop(await GC.hokm.queueStatus());
       else if (code) {
-        try { const r = await GC.hokm.join(code); await GC.refreshMe(); lobbyLoop(r.match); }
-        catch (err) { toast(errText(err)); }
+        setup('join', async () => {
+          try { const r = await GC.hokm.join(code); await GC.refreshMe(); lobbyLoop(r.match); }
+          catch (err) { toast(errText(err)); }
+        });
       }
     } catch (e) { toast(errText(e)); }
     render();
