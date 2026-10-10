@@ -139,23 +139,24 @@ h1,h2,h3,p{margin:0}
 .switch[aria-checked="true"]::after{inset-inline-start:23px}
 
 /* ---------- ناوبری پایین ---------- */
-/* پنج بخش با نوشته؛ بخش فعلی یک قرص طلایی با آیکون و نامش که با باز شدن صفحه پهن می شود.
-   به پایین صفحه چسبیده و فاصله امن پایین گوشی را دارد تا محتوا زیرش پنهان نشود */
+/* پنج بخش با نوشته؛ بخش فعلی آیکون و نامش کنار هم روی یک قرص طلایی است. قرص یک لایهٔ جداست که
+   هنگام رفتن به بخش دیگر فقط با transform سر می خورد (gc.js: setActive) تا روی هر گوشی روان بماند.
+   به پایین صفحه چسبیده و فاصلهٔ امن پایین گوشی را دارد تا محتوا زیرش پنهان نشود */
 .nav{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);display:flex;justify-content:center;pointer-events:none}
-.nav-in{pointer-events:auto;display:flex;align-items:center;gap:4px;width:100%;max-width:480px;
+.nav-in{position:relative;pointer-events:auto;display:flex;align-items:center;gap:4px;width:100%;max-width:480px;
   padding:10px 10px calc(10px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));
   background:rgba(16,33,27,.96);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-  border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -12px 24px rgba(0,0,0,.35)}
-.nav-in>a,.nav-in>button{position:relative;flex:1 1 0;min-width:0;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
-  border-radius:24px;color:#8FA39A;font-size:10.5px;line-height:14px;font-weight:600;white-space:nowrap;
-  transition:flex-grow .3s cubic-bezier(.2,.8,.3,1),background .2s,color .2s}
+  border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -12px 24px rgba(0,0,0,.35);contain:layout paint}
+.nav-pill{position:absolute;top:10px;left:0;width:0;height:48px;border-radius:24px;background:var(--gold);box-shadow:0 6px 14px rgba(245,196,81,.3);
+  transform-origin:0 50%;pointer-events:none;will-change:transform;opacity:0}
+.nav-in>a,.nav-in>button{position:relative;z-index:1;flex:1 1 0;min-width:0;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  border-radius:24px;color:#8FA39A;font-size:10.5px;line-height:14px;font-weight:600;white-space:nowrap;transition:color .2s;-webkit-tap-highlight-color:transparent}
 .nav-in svg{width:23px;height:23px;flex:none}
-.nav-in>[aria-current="page"]{flex-grow:1.9;flex-direction:row;gap:7px;background:var(--gold);color:var(--gold-ink);font-size:14px;font-weight:900;
-  box-shadow:0 6px 14px rgba(245,196,81,.3);animation:nav-pill .35s cubic-bezier(.2,.8,.3,1)}
+.nav-in>[aria-current="page"]{flex-grow:1.9;flex-direction:row;gap:7px;color:var(--gold-ink);font-size:14px;font-weight:900}
 .nav-in>[aria-current="page"] svg{width:22px;height:22px}
-.nav-in>a:active,.nav-in>button:active{transform:scale(.95)}
-@keyframes nav-pill{from{flex-grow:1;background:transparent;color:#8FA39A}}
-@media (prefers-reduced-motion:reduce){.nav-in>[aria-current="page"]{animation:none}}
+.nav-in>a:active,.nav-in>button:active{opacity:.75}
+/* هر بخش اصلی (خانه، رده بندی، کیف، فروشگاه) یک لایه است؛ فقط یکی دیده می شود */
+.view[hidden]{display:none!important}
 /* رنگ زمینهٔ تصویر کوچک هر بازی */
 .t-felt{background:radial-gradient(circle at 50% 35%,#2F8F4E,#1E6B3A 60%,#0F3F1D)}
 .t-violet{background:linear-gradient(150deg,#A493FF,var(--violet))}
