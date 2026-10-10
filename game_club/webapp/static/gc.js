@@ -65,13 +65,22 @@ if (!live) {
     }
   } catch (e) {}
 }
-/* دکمه برگشت بومی تلگرام؛ دکمه برگشت داخل صفحه فقط بیرون از تلگرام دیده می شود */
+/* دکمه برگشت بومی تلگرام؛ دکمه برگشت داخل صفحه فقط بیرون از تلگرام دیده می شود.
+   هر بار فقط یک کار به دکمه وصل است (کار قبلی جدا می شود)؛ برگشت به یکی از چهار بخش اصلی
+   صفحه را دوباره بار نمی کند (پایین: «بخش های اصلی») */
+let backFn = null;
 function back(href) {
+  if (mountingView) { views[mountingView].back = href; return; }
+  if (curView && views[curView]) views[curView].back = href;
+  applyBack(href);
+}
+function applyBack(href) {
   if (!live || !ver('6.1')) return;
   try {
+    if (backFn) { tg.BackButton.offClick(backFn); backFn = null; }
     if (!href) { tg.BackButton.hide(); return; }
-    tg.BackButton.show();
-    tg.BackButton.onClick(() => { typeof href === 'function' ? href() : (location.href = href); });
+    backFn = () => { typeof href === 'function' ? href() : go(href); };
+    tg.BackButton.onClick(backFn); tg.BackButton.show();
   } catch (e) {}
 }
 function haptic(kind) {
@@ -418,14 +427,152 @@ function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; sa
 /* ---------- ناوبری پایین (پنج بخش؛ «بازی‌ها» برگهٔ انتخاب بازی را باز می کند) ---------- */
 const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['play', '', 'بازی‌ها', 'pad'],
   ['wallet', 'wallet.html', 'کیف', 'wallet'], ['shop', 'shop.html', 'فروشگاه', 'bag']];
+let navEl = null;
 function nav(active) {
-  const n = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
-  n.innerHTML = `<div class="nav-in">${NAV.map(([id, href, label, ic]) => href
-    ? `<a href="${href}"${id === active ? ' aria-current="page"' : ''}>${icon(ic)}<span>${label}</span></a>`
-    : `<button type="button" data-play aria-haspopup="dialog">${icon(ic)}<span>${label}</span></button>`).join('')}</div>`;
+  if (mountingView) return;
+  if (navEl) { setActive(active, false); return; }
+  const n = navEl = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
+  n.innerHTML = `<div class="nav-in"><span class="nav-pill" aria-hidden="true"></span>${NAV.map(([id, href, label, ic]) => href
+    ? `<a href="${href}" data-id="${id}">${icon(ic)}<span>${label}</span></a>`
+    : `<button type="button" data-id="${id}" data-play aria-haspopup="dialog">${icon(ic)}<span>${label}</span></button>`).join('')}</div>`;
   n.querySelector('[data-play]').onclick = quickPlay;
+  // دانلود زودهنگام: با لمس دکمه، صفحهٔ آن بخش همان لحظه گرفته می شود
+  n.addEventListener('pointerdown', e => { const a = e.target.closest('a[href]'); if (a) fetchPage(a.getAttribute('href')); }, { passive: true });
   document.body.appendChild(n);
+  initShell(active);
+  setActive(active, false);
+  addEventListener('resize', placePill);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(placePill);
 }
+const EASE = 'cubic-bezier(.22,.9,.3,1)', NAV_MS = 340;
+const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+function placePill() {
+  if (!navEl) return;
+  const pill = navEl.querySelector('.nav-pill'), cur = navEl.querySelector('.nav-in>[aria-current]');
+  if (!cur) { pill.style.opacity = '0'; return; }
+  pill.style.opacity = '1'; pill.style.left = cur.offsetLeft + 'px'; pill.style.width = cur.offsetWidth + 'px';
+}
+/* جابه جایی قرص طلایی: فقط transform (روی پردازندهٔ گرافیکی، بدون چیدمان دوباره در هر فریم).
+   روش FLIP: جای قبلی هر دکمه و قرص اندازه گرفته می شود، چیدمان تازه یک باره اعمال می شود و بعد
+   هر چیز از جای قبلی اش به جای تازه سر می خورد */
+function setActive(id, animate) {
+  if (!navEl) return;
+  const nin = navEl.querySelector('.nav-in'), pill = nin.querySelector('.nav-pill');
+  const items = [...nin.querySelectorAll(':scope>a,:scope>button')];
+  const anim = animate && !reduced() && nin.querySelector('[aria-current]');
+  const first = anim ? items.map(el => el.getBoundingClientRect().left) : null, p0 = anim ? pill.getBoundingClientRect() : null;
+  items.forEach(el => el.dataset.id === id ? el.setAttribute('aria-current', 'page') : el.removeAttribute('aria-current'));
+  placePill();
+  if (!anim) return;
+  const opt = { duration: NAV_MS, easing: EASE };
+  items.forEach((el, i) => { const dx = first[i] - el.getBoundingClientRect().left; if (Math.abs(dx) > .5) el.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], opt); });
+  const p1 = pill.getBoundingClientRect();
+  if (p1.width) pill.animate([{ transform: `translateX(${p0.left - p1.left}px) scaleX(${p0.width / p1.width})` }, { transform: 'none' }], opt);
+  // نام بخش تازه وقتی قرص به آن رسید پیدا می شود
+  const lab = nin.querySelector('[aria-current]>span');
+  if (lab) lab.animate([{ opacity: 0 }, { opacity: 0, offset: .45 }, { opacity: 1 }], opt);
+}
+
+/* ---------- بخش های اصلی (خانه، رده بندی، کیف، فروشگاه) در یک صفحه ----------
+   هر بخش یک بار ساخته می شود و در حافظه می ماند؛ رفتن بین آنها صفحه را دوباره بار نمی کند،
+   فقط بخش تازه نشان داده می شود و داده هایش (موجودی، تاریخچه، رده بندی…) تازه می شود.
+   بخشی که هنوز ساخته نشده یک بار گرفته و ساخته می شود (صفحه اش از قبل در پس زمینه گرفته شده). */
+const TABS = { 'index.html': 'home', 'leaderboard.html': 'leaderboard', 'wallet.html': 'wallet', 'shop.html': 'shop' };
+const views = {}, pages = {};
+let curView = null, mountingView = null, switching = null, prebuilding = false;
+const building = {};
+function tabFile(href) {
+  try {
+    const u = new URL(href, location.href);
+    if (u.origin !== location.origin || u.search) return null;
+    const f = u.pathname.split('/').pop() || 'index.html';
+    return TABS[f] ? f : null;
+  } catch (e) { return null; }
+}
+function fetchPage(href) {
+  const f = tabFile(href); if (!f || views[TABS[f]]) return null;
+  return pages[f] || (pages[f] = fetch(f, { credentials: 'same-origin' }).then(r => { if (!r.ok) throw new Error('page'); return r.text(); }).catch(e => { delete pages[f]; throw e; }));
+}
+function initShell(active) {
+  const file = Object.keys(TABS).find(f => TABS[f] === active);
+  if (!file || curView) return;
+  const v = document.createElement('div'); v.className = 'view'; v.dataset.view = active;
+  document.querySelectorAll('body>header.appbar,body>main').forEach(el => v.appendChild(el));
+  document.body.insertBefore(v, document.body.firstChild);
+  views[active] = { el: v, file, back: null, title: document.title, show: [], scroll: 0 };
+  curView = active;
+  try { history.replaceState({ view: active }, '', location.href); } catch (e) {}
+  // بقیهٔ بخش ها وقتی برنامه بیکار است گرفته می شوند (فقط متن صفحه؛ ساختن و داده وقتی لازم شد)
+  // بقیهٔ بخش ها وقتی برنامه بیکار است یکی یکی گرفته و ساخته می شوند، بدون گرفتن داده؛
+  // داده ها بار اولی که آن بخش دیده شود گرفته می شوند. پس رفتن به هر بخش فقط نشان دادن است
+  const later = window.requestIdleCallback ? fn => requestIdleCallback(fn, { timeout: 2500 }) : fn => setTimeout(fn, 900);
+  const rest = Object.keys(TABS).filter(f => f !== file);
+  const next = () => { const f = rest.shift(); if (!f) return; ensureView(TABS[f], true).catch(() => {}).then(() => later(next)); };
+  later(next);
+}
+function ensureView(name, pre = false) {
+  if (views[name]) return Promise.resolve();
+  return building[name] || (building[name] = mountView(name, pre).finally(() => { delete building[name]; }));
+}
+function loadScript(src) {
+  return new Promise((ok, bad) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = bad; document.head.appendChild(s); });
+}
+async function mountView(name, pre = false) {
+  const file = Object.keys(TABS).find(f => TABS[f] === name);
+  const doc = new DOMParser().parseFromString(await (pages[file] || fetchPage(file)), 'text/html');
+  for (const l of doc.querySelectorAll('link[rel="stylesheet"]')) {
+    const href = l.getAttribute('href');
+    if (!document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) await new Promise(ok => { const n = document.createElement('link'); n.rel = 'stylesheet'; n.href = href; n.onload = n.onerror = ok; document.head.appendChild(n); });
+  }
+  doc.head.querySelectorAll('style').forEach(st => { const n = document.createElement('style'); n.dataset.view = name; n.textContent = st.textContent; document.head.appendChild(n); });
+  for (const sc of doc.querySelectorAll('script[src]')) {
+    const src = sc.getAttribute('src');
+    if (/telegram-web-app|static\/gc\.js|static\/demo\.js/.test(src) || document.querySelector(`script[src="${src}"]`)) continue;
+    await loadScript(src);
+  }
+  const v = document.createElement('div'); v.className = 'view'; v.dataset.view = name; v.hidden = true;
+  doc.querySelectorAll('body>header.appbar,body>main').forEach(el => v.appendChild(document.importNode(el, true)));
+  document.body.insertBefore(v, navEl);
+  views[name] = { el: v, file, back: null, title: doc.title, show: [], scroll: 0 };
+  mountingView = name; prebuilding = pre;
+  try {
+    doc.querySelectorAll('script:not([src])').forEach(sc => { const n = document.createElement('script'); n.textContent = sc.textContent; document.body.appendChild(n); n.remove(); });
+  } finally { mountingView = null; prebuilding = false; }
+  mount(v);
+}
+async function showView(name, push = true) {
+  if (!views[curView]) return;
+  if (name === curView) { scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' }); return; }
+  const prev = views[curView];
+  prev.scroll = scrollY;
+  setActive(name, true);
+  curView = name;
+  const my = switching = {};
+  // اول قرص راه بیفتد (روی پردازندهٔ گرافیکی)، بعد کار سنگین تر عوض کردن بخش
+  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+  try { if (!views[name]) await ensureView(name); else views[name].show.forEach(fn => { try { fn(); } catch (e) {} }); }
+  catch (e) { location.href = Object.keys(TABS).find(f => TABS[f] === name); return; }
+  if (switching !== my) return;
+  const v = views[name];
+  Object.values(views).forEach(x => { x.el.hidden = x !== v; });
+  scrollTo(0, v.scroll);
+  if (!reduced()) v.el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: EASE });
+  document.title = v.title;
+  applyBack(v.back);
+  if (push) try { history.pushState({ view: name }, '', v.file); } catch (e) {}
+}
+function go(href) { const f = tabFile(href); if (f && curView) showView(TABS[f]); else location.href = href; }
+function onShow(fn) { const k = mountingView || curView; if (k && views[k]) views[k].show.push(fn); }
+/* بار دادهٔ هر بخش: همین حالا (اگر بخش دیده می شود) و هر بار که دوباره دیده شود */
+function page(load) { onShow(load); if (!prebuilding) load(); }
+const isActive = id => !curView || curView === id;
+document.addEventListener('click', e => {
+  if (!curView || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  const a = e.target.closest('a[href]'); if (!a || a.target) return;
+  const f = tabFile(a.getAttribute('href')); if (!f) return;
+  e.preventDefault(); close(); showView(TABS[f]);
+});
+addEventListener('popstate', e => { const id = e.state && e.state.view; if (id && curView) showView(id, false); });
 /* تصویر کوچک هر بازی (همان اجزای واقعی بازی: ورق، مهره فلزی و زمین، صفحه منچ) */
 const GAME_ART = {
   hokm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-14 22 36)"><rect x="6" y="10" width="30" height="42" rx="6" fill="#fff"/><path d="M21 20c4 5 8 7 8 11a4 4 0 0 1-6.5 3l1.5 5h-6l1.5-5a4 4 0 0 1-6.5-3c0-4 4-6 8-11z" fill="#1E2235"/></g><g transform="rotate(12 44 36)"><rect x="28" y="12" width="30" height="42" rx="6" fill="#fff"/><path d="M43 43c-7-5-10-8-10-11.5a4.5 4.5 0 0 1 10-2 4.5 4.5 0 0 1 10 2c0 3.5-3 6.5-10 11.5z" fill="#F25C6E"/></g></svg>',
@@ -528,6 +675,6 @@ window.GC = { coach, tg, live, back, haptic, guardClose, portrait, openLink, sta
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level };
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();

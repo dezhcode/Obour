@@ -105,7 +105,7 @@ html:not(.shop-on) .bal-actions{grid-template-columns:1fr}
       catch (err) { b.disabled = false; sfx.error(); haptic('error'); toast(errText(err)); }
     });
   };
-  load(); GC.nav('wallet'); mount();
+  GC.page(load); GC.nav('wallet'); mount();
 })();
 </script>
 </body>

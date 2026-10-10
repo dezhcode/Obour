@@ -83,7 +83,8 @@
   $('tab').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { tab = b.dataset.v; render(); } };
   $('per').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { per = b.dataset.v; render(); } };
   $('sw').onclick = async () => { showSpend = !showSpend; try { await GC.data.setFlag('show_spend', showSpend); } catch (e) { showSpend = !showSpend; toast(errText(e)); } render(); };
-  (async () => { try { const me = await GC.refreshMe(); myP = me.player; showSpend = !!me.player.show_spend; } catch (e) {} render(); })();
+  const load = async () => { try { const me = await GC.refreshMe(); myP = me.player; showSpend = !!me.player.show_spend; } catch (e) {} render(); };
+  GC.page(load);
   GC.nav('leaderboard'); GC.mount();
 })();
 </script>

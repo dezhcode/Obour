@@ -46,7 +46,7 @@
 <main class="page">
   <section aria-labelledby="hTbl">
     <div class="sec-head"><h2 id="hTbl" class="on-ground">میز حکم</h2></div>
-    <div class="sk-grid" id="tables"><p class="hint" style="color:var(--ink)">در حال بارگذاری…</p></div>
+    <div class="sk-grid" id="skinTables"><p class="hint" style="color:var(--ink)">در حال بارگذاری…</p></div>
   </section>
   <section aria-labelledby="hCards">
     <div class="sec-head"><h2 id="hCards" class="on-ground">ورق حکم</h2></div>
@@ -93,8 +93,8 @@
   }
   async function loadStyle() {
     try { st = await GC.data.style(); }
-    catch (e) { $('tables').innerHTML = `<p class="hint">${errText(e)}</p>`; return; }
-    $('tables').innerHTML = st.items.filter(i => i.kind === 'table').map(item).join('');
+    catch (e) { $('skinTables').innerHTML = `<p class="hint">${errText(e)}</p>`; return; }
+    $('skinTables').innerHTML = st.items.filter(i => i.kind === 'table').map(item).join('');
     $('cards').innerHTML = st.items.filter(i => i.kind === 'cards').map(item).join('');
     mount();
   }
@@ -171,12 +171,13 @@
     };
   };
 
-  (async () => {
+  async function load() {
     let me = null;
     try { me = await GC.refreshMe(); } catch (e) {}
     await loadStyle();
     if (me && me.settings && me.settings.shop) loadObour();
-  })();
+  }
+  GC.page(load);
   GC.nav('shop'); mount();
 })();
 </script>

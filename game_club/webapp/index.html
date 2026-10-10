@@ -354,7 +354,8 @@ a.gt:active{transform:scale(.98)}
   };
 
   renderAll();
-  (async () => {
+  let polling = false;
+  async function load() {
     try {
       me = await GC.refreshMe();
       style = Object.assign({ table: 'a', cards: 'a' }, me.style || {});
@@ -365,7 +366,7 @@ a.gt:active{transform:scale(.98)}
         : me.maintenance ? 'در حال به‌روزرسانی هستیم؛ تا چند دقیقه دیگر میز تازه ساخته نمی‌شود.' : (me.notice || '');
       if (note) { $('noteTx').textContent = note; $('noteIc').innerHTML = icon(me.banned ? 'shield' : me.maintenance ? 'clock' : 'bell'); $('noteBar').hidden = false; $('noteBar').classList.toggle('bad', !!me.banned); }
       $('admLink').hidden = !me.is_admin;
-      setInterval(async () => { if (document.hidden) return; try { const m = await GC.data.me(); me = Object.assign(me, m); setTables(m.tables || []); } catch (e) {} }, 5000);
+      if (!polling) { polling = true; setInterval(async () => { if (document.hidden || !GC.isActive('home')) return; try { const m = await GC.data.me(); me = Object.assign(me, m); setTables(m.tables || []); } catch (e) {} }, 5000); }
     } catch (e) { toast(errText(e)); }
     try {
       const lb = await GC.data.leaderboard('top', 'week'), i = lb.rows.findIndex(r => r.me), mine = lb.mine || {};
@@ -379,7 +380,8 @@ a.gt:active{transform:scale(.98)}
         || '<li class="hint">فعلا پلنی برای فروش نیست.</li>';
     } catch (e) { $('shopTeaser').innerHTML = `<li class="hint">${errText(e)}</li>`; }
     GC.mount();
-  })();
+  }
+  GC.page(load);
   GC.nav('home'); GC.mount();
 })();
 </script>
