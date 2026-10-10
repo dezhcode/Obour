@@ -330,7 +330,7 @@ async def settle(db: GCDatabase, m: dict) -> None:
             text = f"{name} را بردی! {share:,} امتیاز جایزه به کیفت اضافه شد." if cfg["mode"] == "stake" and share else f"{name} را بردی!"
         else:
             text = f"بازی {name} تمام شد و این بار باختی." if winners else f"بازی {name} تمام شد."
-        await _notify(db, r["tg_id"], f"over:{m['id']}:{r['tg_id']}", text, "wallet.html" if won and share else "index.html")
+        await _notify(db, r["tg_id"], f"over:{m['id']}:{r['tg_id']}", text, "shop.html" if won and share else "index.html")
 
 
 def prize_shares(st: dict, rows: list[dict]) -> dict:

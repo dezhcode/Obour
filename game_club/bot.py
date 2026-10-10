@@ -132,7 +132,7 @@ async def on_points(message: Message, gdb: GCDatabase) -> None:
         return
     p = await gdb.player(u.id, _name(message), u.username)
     await message.answer(f"موجودی امتیازت: <b>{p['points']:,}</b>\nبرد: {p['wins']:,} از {p['games']:,} بازی",
-                         reply_markup=open_kb("wallet.html", "کیف امتیاز"))
+                         reply_markup=open_kb("shop.html", "کیف امتیاز"))
 
 
 @router.message(Command("help"))

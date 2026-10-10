@@ -246,6 +246,13 @@ const data = {
     const [, kind, look, , price] = it; if (price && !(S.owned || []).includes(id)) throw err('not_owned');
     S.style = Object.assign({ table: 'a', cards: 'a' }, S.style || {}, { [kind]: look }); save(); return data.style();
   },
+  // پروفایل نمونه بیرون از تلگرام (کارنامهٔ واقعی هر بازی از سرور می آید)
+  async profile() {
+    const t = Date.now() / 1000;
+    return { sample: true, games: [{ game: 'hokm', games: 14, wins: 9, prize: 600 }, { game: 'football', games: 6, wins: 2, prize: 0 }, { game: 'ludo', games: Math.max(3, S.games), wins: Math.max(1, S.wins), prize: S.won || 0 }],
+      recent: [{ game: 'hokm', won: true, prize: 200, at: t - 3600, mode: 'stake', entry: 100 }, { game: 'football', won: false, prize: 0, at: t - 7200, mode: 'free', entry: 0 },
+        { game: 'hokm', won: true, prize: 0, at: t - 90000, mode: 'free', entry: 0 }, { game: 'ludo', won: false, prize: 0, at: t - 100000, mode: 'stake', entry: 50 }] };
+  },
   async charge(points) { S.bal += points; GC.ledger('شارژ از کیف پول عبور', points, 'charge'); save(); return { ok: true, points }; },
   async notify(game) { S.notify[game] = !S.notify[game]; save(); return { on: S.notify[game] }; },
   async setFlag(f, v) { if (f === 'show_spend') { S.showSpend = !!v; save(); } return { ok: true }; },

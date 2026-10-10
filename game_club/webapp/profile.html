@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<title>Game Club · پروفایل</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<link rel="stylesheet" href="static/cards.css">
+<style>
+/* پروفایل: عکس با حلقهٔ سطح، کارنامهٔ کلی، کارنامهٔ هر بازی، آخرین بازی ها، نشان ها (از کارنامهٔ
+   واقعی)، میز و ورق من و تنظیمات. همه چیز از سرور می آید؛ نشان ها از همان عددها حساب می شوند. */
+.pf-head{display:grid;justify-items:center;gap:6px;text-align:center;padding-top:var(--space-2)}
+.pf-ring{position:relative;width:108px;height:108px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--gold) calc(var(--p,0)*1%),rgba(255,255,255,.12) 0)}
+.pf-ring .avatar{--size:94px;--ring:var(--ground)}
+.pf-ring b{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);height:26px;padding:0 12px;border-radius:13px;background:var(--gold);color:var(--gold-ink);font-size:13px;line-height:26px;font-weight:900;white-space:nowrap;box-shadow:0 0 0 3px var(--ground)}
+.pf-head h1{margin-top:10px;font-size:24px;line-height:34px;font-weight:900}
+.pf-head p{font-size:13px;color:var(--ink-muted)}
+.pf-lv{width:min(260px,80%);height:8px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
+.pf-lv i{display:block;height:100%;border-radius:4px;background:var(--gold)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
+.kpi{display:grid;justify-items:center;gap:2px;padding:12px 4px;border-radius:18px;background:var(--surface);text-align:center}
+.kpi b{font-family:var(--font-rokh);font-size:20px;line-height:28px;font-weight:900}
+.kpi span{font-size:11.5px;color:var(--ink-muted)}
+.kpi .win{color:var(--success)}.kpi .gold{color:var(--gold)}
+.gtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border-radius:16px;background:var(--surface-sunk)}
+.gtabs button{min-height:44px;border-radius:12px;font-weight:800;font-size:14px;color:var(--ink-muted)}
+.gtabs button[aria-selected="true"]{background:var(--gold);color:var(--gold-ink)}
+.gstat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2);margin-top:var(--space-2)}
+.recent{display:grid;padding:4px 14px;border-radius:var(--radius-xl);background:var(--surface)}
+.rg{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:10px 0}
+.rg+.rg{border-top:1px solid var(--line)}
+.rg .g-art{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;overflow:hidden}
+.rg .g-art svg{display:block;width:76%;height:76%}
+.rg .t{min-width:0;display:grid}
+.rg .t b{display:flex;align-items:center;gap:6px;font-size:14px;line-height:21px;font-weight:800}
+.rg .t small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.res{font-size:11.5px;line-height:20px;font-weight:800;padding:0 8px;border-radius:10px}
+.res.w{background:var(--success-tint);color:var(--success)}
+.res.l{background:rgba(255,107,122,.14);color:var(--danger)}
+.rg .v{font-weight:900;font-size:14px}
+.badges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
+.pbdg{display:grid;justify-items:center;gap:6px;text-align:center;font-size:11.5px;line-height:16px;font-weight:700;color:var(--ink)}
+.pbdg .m{width:54px;height:54px;border-radius:17px;display:grid;place-items:center}
+.pbdg .m svg{width:24px;height:24px}
+.pbdg small{font-size:11px;color:var(--ink-muted);font-weight:600}
+.pbdg.off .m{background:var(--surface)!important;color:#5E7169!important}
+.pbdg.off{color:var(--ink-muted)}
+.my-style{display:grid;grid-template-columns:96px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:10px;border-radius:var(--radius-xl);background:var(--surface)}
+.my-style .pv{position:relative;height:72px;border-radius:14px;overflow:hidden;box-shadow:var(--rim,none)}
+.my-style .pv .hk-card,.my-style .pv .hk-back{font-size:30px}
+.my-style b{display:block;font-weight:900;font-size:14px}
+.my-style small{display:block;font-size:12px;color:var(--ink-muted)}
+.sets{display:grid;padding:4px 14px;border-radius:var(--radius-xl);background:var(--surface)}
+.set{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:56px}
+.set+.set{border-top:1px solid var(--line)}
+.set b{display:block;font-weight:800;font-size:14px}
+.set small{display:block;font-size:12px;line-height:18px;color:var(--ink-muted)}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-cap"><span>پروفایل</span></div>
+  <div class="appbar-in">
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>پروفایل</h1></div>
+    <span class="tag tag-sample" id="pfSample" hidden>داده‌ها نمونه‌اند</span>
+  </div>
+</header>
+<main class="page">
+  <section class="pf-head" aria-label="من">
+    <span class="pf-ring" id="ring" style="--p:0"><span id="av"></span><b id="lvTag">سطح ۱</b></span>
+    <h1 id="name">…</h1>
+    <span class="pf-lv" aria-hidden="true"><i id="lvBar" style="width:0"></i></span>
+    <p id="lvTxt">&nbsp;</p>
+  </section>
+
+  <section class="kpis" aria-label="کارنامهٔ کلی">
+    <div class="kpi"><b id="kGames">…</b><span>بازی</span></div>
+    <div class="kpi"><b class="win" id="kWins">…</b><span>برد</span></div>
+    <div class="kpi"><b class="gold" id="kRate">…</b><span>درصد برد</span></div>
+    <div class="kpi"><b id="kPts">…</b><span>امتیاز</span></div>
+  </section>
+
+  <section aria-labelledby="hGame">
+    <div class="sec-head"><h2 id="hGame">کارنامهٔ هر بازی</h2></div>
+    <div class="gtabs" role="tablist" id="gtabs"></div>
+    <div class="gstat" id="gstat"></div>
+  </section>
+
+  <section aria-labelledby="hRecent">
+    <div class="sec-head"><h2 id="hRecent">آخرین بازی‌ها</h2></div>
+    <div class="recent" id="recent"><p class="hint" style="padding:12px 0">در حال بارگذاری…</p></div>
+  </section>
+
+  <section aria-labelledby="hBadge">
+    <div class="sec-head"><h2 id="hBadge">نشان‌ها</h2><span class="aside" id="badgeN"></span></div>
+    <div class="badges" id="badges"></div>
+  </section>
+
+  <section aria-labelledby="hMine">
+    <div class="sec-head"><h2 id="hMine">میز و ورق من</h2></div>
+    <a class="my-style" href="shop.html" id="myStyle"><span class="pv felt tbl-a cards-a" id="minePv"></span><span><b id="mineT">…</b><small id="mineC">…</small></span><i data-ic="fwd"></i></a>
+  </section>
+
+  <section aria-labelledby="hSet">
+    <div class="sec-head"><h2 id="hSet">تنظیمات</h2></div>
+    <div class="sets">
+      <div class="set"><span><b>صدای بازی</b><small>صدای ورق، تاس، توپ و جمعیت</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
+      <div class="set"><span><b>نمایش من در فهرست خرج</b><small>در رده‌بندی «بیشترین خرج» دیده شوی</small></span><button class="switch" role="switch" id="swSpend" aria-label="نمایش من در فهرست خرج"></button></div>
+    </div>
+  </section>
+</main>
+<script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/cards.js"></script>
+<script>
+(() => {
+  const { fa, FD, face, icon, amount, toast, errText, S, setSound } = GC;
+  const C = window.GCCards;
+  const $ = id => document.getElementById(id);
+  GC.back('index.html');
+  let me = null, pf = null, tab = 'hokm';
+  const NAME = { hokm: 'حکم', football: 'فوتبال', ludo: 'منچ' };
+  const pct = (w, g) => g ? FD(Math.round(w * 100 / g)) + '٪' : '—';
+  const ago = t => { const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
+
+  function renderMe() {
+    const p = me.player, L = GC.level(p);
+    $('av').innerHTML = face(p, 'var(--ground)');
+    $('ring').style.setProperty('--p', Math.round(L.frac * 100));
+    $('lvTag').textContent = 'سطح ' + FD(L.lv);
+    $('name').textContent = p.name || 'بازیکن';
+    $('lvBar').style.width = Math.round(L.frac * 100) + '%';
+    $('lvTxt').textContent = `${FD(L.left)} تجربه تا سطح ${FD(L.lv + 1)} · هر بازی ۱۰ و هر برد ۱۵`;
+    $('kGames').textContent = fa(p.games); $('kWins').textContent = fa(p.wins);
+    $('kRate').textContent = pct(p.wins, p.games); $('kPts').textContent = fa(p.points);
+    const st = Object.assign({ table: 'a', cards: 'a' }, me.style || {});
+    $('minePv').className = `pv felt tbl-${st.table} cards-${st.cards}`;
+    $('minePv').innerHTML = C.back('', 'left:10%;top:16%;transform:rotate(-10deg)') + C.face(12, '', 'left:36%;top:10%;transform:rotate(-2deg)') + C.face(24, '', 'left:58%;top:14%;transform:rotate(10deg)');
+    const T = { a: 'میز کلاسیک', b: 'میز کافه شب', c: 'میز Game Club' }, K = { m: 'ورق مدرن', a: 'ورق کلاسیک', b: 'ورق کافه شب', c: 'ورق Game Club', d: 'ورق رنگ تمام' };
+    $('mineT').textContent = T[st.table] || 'میز'; $('mineC').textContent = (K[st.cards] || 'ورق') + ' · عوض کردن در فروشگاه';
+    $('swSound').setAttribute('aria-checked', String(!!S.sound));
+    $('swSpend').setAttribute('aria-checked', String(!!p.show_spend));
+  }
+  function stat(g) { return pf && pf.games.find(x => x.game === g) || { games: 0, wins: 0, prize: 0 }; }
+  function renderGames() {
+    $('gtabs').innerHTML = ['hokm', 'football', 'ludo'].map(g => `<button role="tab" data-g="${g}" aria-selected="${g === tab}">${NAME[g]}</button>`).join('');
+    const s = stat(tab);
+    $('gstat').innerHTML = `<div class="kpi"><b>${fa(s.games)}</b><span>بازی</span></div><div class="kpi"><b class="win">${fa(s.wins)}</b><span>برد</span></div>
+      <div class="kpi"><b>${fa(s.games - s.wins)}</b><span>باخت</span></div><div class="kpi"><b class="gold">${pct(s.wins, s.games)}</b><span>درصد برد</span></div>`;
+  }
+  $('gtabs').onclick = e => { const b = e.target.closest('[data-g]'); if (b) { tab = b.dataset.g; GC.haptic('select'); renderGames(); } };
+  function renderRecent() {
+    const art = g => { const x = GC.GAMES.find(y => y.id === g) || GC.GAMES[2]; return `<span class="g-art ${x.tint}">${GC.GAME_ART[x.id]()}</span>`; };
+    $('recent').innerHTML = pf.recent.length ? pf.recent.map(r => `<div class="rg">${art(r.game)}
+        <span class="t"><b>${NAME[r.game] || ''}<span class="res ${r.won ? 'w' : 'l'}">${r.won ? 'برد' : 'باخت'}</span></b><small>${r.mode === 'stake' ? 'ورودی ' + fa(r.entry) : 'آزاد'} · ${ago(r.at)}</small></span>
+        <span class="v ${r.prize ? '' : 'muted'}">${r.prize ? amount(r.prize) : '—'}</span></div>`).join('')
+      : `<div style="display:grid;justify-items:center;gap:10px;padding:16px 0;text-align:center"><p class="hint">هنوز بازی‌ای را تمام نکرده‌ای.</p><a class="btn btn-gold btn-sm" href="hokm-lobby.html">اولین بازی را شروع کن</a></div>`;
+  }
+  // نشان ها از کارنامهٔ واقعی؛ هر کدام با پیشرفتش
+  function renderBadges() {
+    const p = me.player, L = GC.level(p), played = new Set(pf.games.filter(g => g.games).map(g => g.game));
+    const prize = pf.games.reduce((a, g) => a + g.prize, 0);
+    const B = [
+      ['اولین برد', 'trophy', '#F5C451', '#3A2A00', p.wins >= 1, `${fa(Math.min(p.wins, 1))} از ۱`],
+      ['۱۰ برد', 'bolt', '#FF8A95', '#3A0A10', p.wins >= 10, `${fa(Math.min(p.wins, 10))} از ۱۰`],
+      ['۵۰ بازی', 'dice', '#7FAEFF', '#0B2251', p.games >= 50, `${fa(Math.min(p.games, 50))} از ۵۰`],
+      ['همه‌کاره', 'pad', '#5FE39A', '#08331B', played.size >= 3, `${fa(played.size)} از ۳ بازی`],
+      ['سطح ۵', 'spark', '#C9B8FF', '#22124F', L.lv >= 5, `سطح ${fa(L.lv)}`],
+      ['جایزه‌بگیر', 'wallet', '#FFD25E', '#3A2A00', prize > 0, prize ? amount(prize) : 'برد امتیازی'],
+    ];
+    $('badgeN').textContent = `${FD(B.filter(b => b[4]).length)} از ${FD(B.length)}`;
+    $('badges').innerHTML = B.map(([t, ic, bg, fg, on, sub]) => `<div class="pbdg${on ? '' : ' off'}"><span class="m" style="background:${bg};color:${fg}">${icon(on ? ic : 'shield')}</span>${t}<small>${on ? 'گرفتی' : sub}</small></div>`).join('');
+  }
+  $('swSound').onclick = () => { setSound(!S.sound); $('swSound').setAttribute('aria-checked', String(!!S.sound)); GC.data.setFlag('sound', S.sound).catch(() => {}); };
+  $('swSpend').onclick = async () => {
+    const on = $('swSpend').getAttribute('aria-checked') !== 'true';
+    $('swSpend').setAttribute('aria-checked', String(on));
+    try { await GC.data.setFlag('show_spend', on); if (me) me.player.show_spend = on ? 1 : 0; } catch (e) { $('swSpend').setAttribute('aria-checked', String(!on)); toast(errText(e)); }
+  };
+
+  async function load() {
+    try {
+      [me, pf] = await Promise.all([GC.refreshMe(), GC.data.profile()]);
+      $('pfSample').hidden = !pf.sample;
+      renderMe(); renderGames(); renderRecent(); renderBadges(); GC.mount();
+    } catch (e) { toast(errText(e)); }
+  }
+  renderGames();
+  GC.page(load);
+  GC.nav('profile'); GC.mount();
+})();
+</script>
+</body>
+</html>

@@ -4,12 +4,48 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
-<title>Game Club · فروشگاه</title>
+<title>Game Club · فروشگاه و کیف</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
 <link rel="stylesheet" href="static/cards.css">
 <style>
-/* فروشگاه: میز و ورق حکم (همیشه)، خدمات عبور (فقط وقتی روشن است) */
+/* فروشگاه و کیف: کارت موجودی و کارهای کیف (شارژ، انتقال، تاریخچه)، میز و ورق حکم، خدمات عبور
+   (فقط وقتی روشن است)، تاریخچهٔ امتیاز به تفکیک روز و قانون امتیاز */
+.wcard{position:relative;overflow:hidden;display:grid;gap:18px;padding:18px 18px 20px;border-radius:26px;background:var(--gold);color:var(--gold-ink)}
+.wcard::before,.wcard::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.wcard::before{left:-60px;top:-80px;width:220px;height:220px;border:26px solid rgba(255,255,255,.2)}
+.wcard::after{left:50px;bottom:-110px;width:210px;height:210px;border:18px solid rgba(255,255,255,.13)}
+.wc-top{position:relative;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:800}
+.wc-top .coin{width:30px;height:30px}
+.wc-mid{position:relative;display:grid}
+.wc-mid small{font-size:12.5px;font-weight:700;opacity:.8}
+.wc-mid b{font-family:var(--font-rokh);font-size:42px;line-height:52px;font-weight:900}
+.wacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
+html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.wact{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12.5px;line-height:18px;font-weight:800;color:var(--ink)}
+.wact .ic{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--surface)}
+.wact .ic svg{width:24px;height:24px}
+.wact.gold .ic{background:var(--gold);color:var(--gold-ink)}
+.wact:active .ic{transform:scale(.95)}
+.hist{display:grid;gap:2px;padding:6px 14px;border-radius:var(--radius-xl);background:var(--surface)}
+.hist .day{font-size:12px;font-weight:700;color:var(--ink-muted);padding:8px 2px 2px}
+.tx{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:10px 0}
+.tx+.tx{border-top:1px solid var(--line)}
+.tx .ic-box{width:42px;height:42px;border-radius:14px}
+.tx .ic-box svg{width:21px;height:21px}
+.tx .name{font-weight:800;font-size:14px;line-height:21px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx .meta{display:block;font-size:12px;line-height:18px;font-weight:500;color:var(--ink-muted)}
+.tx .v{font-weight:900;font-size:15px}
+.plus-a{color:var(--success)}.minus-a{color:var(--danger)}
+.rules{background:var(--surface);border-radius:var(--radius-xl);padding:var(--space-3) var(--space-4)}
+.rules summary{display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-weight:900;list-style:none;min-height:40px}
+.rules summary::-webkit-details-marker{display:none}
+.rules summary svg{width:18px;height:18px;transition:transform .2s}
+.rules[open] summary svg{transform:rotate(-90deg)}
+.rules ul{display:grid;gap:var(--space-2);margin:var(--space-2) 0 var(--space-1);padding:0;list-style:none}
+.rules li{display:flex;gap:var(--space-2);align-items:flex-start;font-size:13.5px;line-height:22px}
+.rules li svg{width:18px;height:18px;flex:none;margin-top:2px;color:var(--success)}
+.pkg{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--space-3);align-items:center}
 .sk-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
 .sk{display:flex;flex-direction:column;gap:6px;padding:6px 6px 8px;border-radius:var(--radius-lg);background:var(--surface);box-shadow:var(--depth-sm);text-align:center;border:2px solid transparent}
 .sk.on{border-color:var(--sky)}
@@ -37,13 +73,25 @@
 </head>
 <body>
 <header class="appbar">
-  <div class="appbar-cap"><span>فروشگاه</span></div>
+  <div class="appbar-cap"><span>فروشگاه و کیف</span></div>
   <div class="appbar-in">
-    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>فروشگاه</h1></div>
-    <a class="pill" href="wallet.html" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span><span class="plus"><i data-ic="plus"></i></span></a>
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>فروشگاه و کیف</h1></div>
+    <a class="icon-btn" href="help.html" aria-label="راهنما"><i data-ic="help"></i></a>
   </div>
 </header>
 <main class="page">
+  <section class="stack" id="wallet" aria-label="کیف امتیاز">
+    <div class="wcard">
+      <div class="wc-top"><span>کیف امتیاز Game Club</span><span data-coin></span></div>
+      <div class="wc-mid"><small>موجودی</small><b data-bal>…</b><small id="worth">&nbsp;</small></div>
+    </div>
+    <div class="wacts">
+      <button class="wact gold" id="charge"><span class="ic"><i data-ic="plus"></i></span>شارژ</button>
+      <button class="wact shop-only" id="toObour"><span class="ic" style="color:var(--obour-aqua)"><i data-ic="send"></i></span>انتقال به عبور</button>
+      <button class="wact" id="toHist"><span class="ic"><i data-ic="clock"></i></span>تاریخچه</button>
+    </div>
+  </section>
+
   <section aria-labelledby="hTbl">
     <div class="sec-head"><h2 id="hTbl" class="on-ground">میز حکم</h2></div>
     <div class="sk-grid" id="skinTables"><p class="hint" style="color:var(--ink)">در حال بارگذاری…</p></div>
@@ -66,6 +114,21 @@
     </section>
   </section>
   <p class="hint" style="color:var(--ink)" id="sampleNote" hidden>پیش‌نمایش است؛ قیمت‌ها نمونه‌اند.</p>
+
+  <section aria-labelledby="hHist" id="histSec">
+    <div class="sec-head"><h2 id="hHist" class="on-ground">تاریخچهٔ امتیاز</h2></div>
+    <div class="hist" id="hist"><p class="hint">در حال بارگذاری…</p></div>
+  </section>
+
+  <details class="rules">
+    <summary>قانون امتیاز<i data-ic="fwd"></i></summary>
+    <ul>
+      <li><i data-ic="check"></i><span>هر امتیاز معادل <b id="rate">…</b> تومان از کیف پول عبور است.</span></li>
+      <li class="shop-only"><i data-ic="check"></i><span>امتیاز فقط برای خدمات عبور خرج می‌شود و به پول نقد برنمی‌گردد.</span></li>
+      <li><i data-ic="check"></i><span>ورودی بازی امتیازی تا پایان بازی قفل می‌ماند و یک‌جا به برنده می‌رسد.</span></li>
+      <li><i data-ic="check"></i><span>اگر بازی شروع نشود یا ناتمام بماند، ورودی برمی‌گردد.</span></li>
+    </ul>
+  </details>
 </main>
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
@@ -76,6 +139,43 @@
   const C = GCCards;
   const $ = id => document.getElementById(id);
   GC.back('index.html');
+
+  /* ---------- کیف امتیاز: موجودی، شارژ، تاریخچه ---------- */
+  let me = null;
+  const KIND = { gift: ['spark', 'var(--coin-tint)', 'var(--coin-text)', 'هدیه'], charge: ['plus', 'var(--success-tint)', 'var(--success)', 'شارژ'], entry: ['dice', 'var(--sky-tint)', 'var(--sky-deep)', 'ورودی'], refund: ['back', 'var(--sky-tint)', 'var(--sky-deep)', 'بازگشت'], prize: ['trophy', 'var(--coin-tint)', 'var(--coin-text)', 'جایزه'], shop: ['bag', 'var(--obour-night)', 'var(--obour-aqua)', 'خرید'], transfer: ['send', 'var(--obour-night)', 'var(--obour-aqua)', 'انتقال'], admin: ['shield', 'var(--sky-tint)', 'var(--sky-deep)', 'پشتیبانی'], style: ['cards', 'var(--coin-tint)', 'var(--coin-text)', 'خرید میز و ورق'] };
+  const dayOf = t => { const d = new Date(t * 1000), n = new Date(); const k = x => x.toDateString(); if (k(d) === k(n)) return 'امروز'; n.setDate(n.getDate() - 1); if (k(d) === k(n)) return 'دیروز'; try { return d.toLocaleDateString('fa-IR', { day: 'numeric', month: 'long' }); } catch (e) { return ''; } };
+  const clock = t => { try { return new Date(t * 1000).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+  function renderWallet() {
+    const rate = me.settings.rate;
+    $('worth').textContent = 'ارزش در عبور: ' + fa(me.player.points * rate) + ' تومان';
+    $('rate').textContent = fa(rate);
+    let last = '';
+    $('hist').innerHTML = me.history.length ? me.history.map(l => {
+      const [ic, bg, fg, lab] = KIND[l.kind] || KIND.gift, day = dayOf(l.created_at), head = day !== last ? `<p class="day">${day}</p>` : '';
+      last = day;
+      return `${head}<div class="tx"><span class="ic-box" style="background:${bg};color:${fg}">${icon(ic)}</span><span class="name">${l.note || lab}<span class="meta">${clock(l.created_at)}${l.status === 'pending' ? ' · در حال انجام' : ''}</span></span><span class="v ${l.amount >= 0 ? 'plus-a' : 'minus-a'}" dir="ltr">${l.amount >= 0 ? '+' : '−'}${fa(Math.abs(l.amount))}</span></div>`;
+    }).join('') : '<p class="hint" style="padding:12px 0">هنوز تراکنشی نداری. با شارژ از کیف پول عبور شروع کن.</p>';
+    mount();
+  }
+  function charge() {
+    if (!me) return;
+    const rate = me.settings.rate, packs = me.settings.packs;
+    const sh = sheet(`${sheetHead('شارژ از کیف پول عبور')}
+      <div class="pot"><span>موجودی کیف پول عبور</span><b>${me.obour.linked ? fa(me.obour.balance) + ' تومان' : 'وصل نیست'}</b></div>
+      <ul class="list">${packs.map((p, i) => `<li class="row pkg"><span class="ic-box" style="background:var(--coin-tint)">${GC.coin()}</span><span class="name">${fa(p)} امتیاز<span class="meta">${fa(p * rate)} تومان از کیف عبور</span></span><button class="btn btn-sm" data-i="${i}"${me.obour.balance < p * rate ? ' disabled' : ''}>شارژ</button></li>`).join('')}</ul>
+      <p class="hint">کیف عبور کم است؟ اول در ربات عبور شارژش کن (کارت‌به‌کارت، تتر یا استارز).</p>
+      <button class="btn btn-light btn-block" id="obourBot">${icon('wallet')}شارژ کیف پول عبور</button>`);
+    sh.querySelector('#obourBot').onclick = () => { const b = me.settings.obour_bot; b ? GC.openLink('https://t.me/' + b) : toast('ربات عبور در دسترس نیست'); };
+    sh.addEventListener('click', async e => {
+      const b = e.target.closest('[data-i]'); if (!b || b.disabled) return;
+      b.disabled = true;
+      try { const r = await GC.data.charge(packs[+b.dataset.i]); sfx.coin(); haptic('success'); GC.close(); toast('+' + fa(r.points) + ' امتیاز اضافه شد'); load(); }
+      catch (err) { b.disabled = false; sfx.error(); haptic('error'); toast(errText(err)); }
+    });
+  }
+  $('charge').onclick = charge;
+  $('toHist').onclick = () => $('histSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('toObour').onclick = () => $('transfer').click();
 
   /* ---------- میز و ورق حکم ---------- */
   let st = null;
@@ -112,9 +212,10 @@
     const sh = sheet(`${sheetHead(it.name)}
       ${it.kind === 'table' ? tablePv(it.look, 'big-pv') : cardsPv(it.look, 'big-pv')}
       <div class="receipt"><div><span>هزینه</span>${amount(it.price)}</div><div><span>موجودی بعد از خرید</span>${amount(Math.max(0, GC.points - it.price), 'ink')}</div><div><span>مدت</span><b>برای همیشه</b></div></div>
-      ${short ? `<p class="need" style="text-align:center">${fa(it.price - GC.points)} امتیاز کم داری</p><a class="btn btn-block" href="wallet.html">${icon('plus')}شارژ کیف امتیاز</a>`
+      ${short ? `<p class="need" style="text-align:center">${fa(it.price - GC.points)} امتیاز کم داری</p><button class="btn btn-block" id="needCharge">${icon('plus')}شارژ کیف امتیاز</button>`
         : `<button class="btn btn-block" id="ok">${icon('check')}خرید و استفاده</button>`}
       <button class="btn btn-light btn-block" data-close>انصراف</button>`);
+    const nc = sh.querySelector('#needCharge'); if (nc) nc.onclick = () => { GC.close(); charge(); };
     const ok = sh.querySelector('#ok');
     if (ok) ok.onclick = async () => {
       ok.disabled = true;
@@ -172,8 +273,7 @@
   };
 
   async function load() {
-    let me = null;
-    try { me = await GC.refreshMe(); } catch (e) {}
+    try { me = await GC.refreshMe(); renderWallet(); } catch (e) { $('hist').innerHTML = `<p class="hint">${errText(e)}</p>`; }
     await loadStyle();
     if (me && me.settings && me.settings.shop) loadObour();
   }
