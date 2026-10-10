@@ -376,6 +376,19 @@ class GCDatabase:
             "SELECT kind, amount, note, status, created_at FROM ledger WHERE tg_id = ? AND status != 'failed' "
             "ORDER BY id DESC LIMIT ?", (tg_id, limit))
 
+    # ---------- پروفایل ----------
+    async def game_stats(self, tg_id: int) -> list[dict]:
+        """کارنامهٔ هر بازی: تعداد بازی، برد و جایزه (فقط بازی های تمام شده)."""
+        return await self.all(
+            "SELECT m.game AS game, COUNT(*) AS games, COALESCE(SUM(r.won), 0) AS wins, COALESCE(SUM(r.prize), 0) AS prize "
+            "FROM results r JOIN matches m ON m.id = r.match_id WHERE r.tg_id = ? GROUP BY m.game", (tg_id,))
+
+    async def recent_games(self, tg_id: int, limit: int = 10) -> list[dict]:
+        return await self.all(
+            "SELECT m.game AS game, r.won AS won, r.prize AS prize, r.created_at AS at, m.cfg AS cfg "
+            "FROM results r JOIN matches m ON m.id = r.match_id WHERE r.tg_id = ? ORDER BY r.created_at DESC LIMIT ?",
+            (tg_id, limit))
+
     # ---------- میز ----------
     async def get_match(self, match_id: str) -> dict | None:
         row = await self.one("SELECT * FROM matches WHERE id = ?", (match_id,))

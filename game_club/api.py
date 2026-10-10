@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import json
 import re
 
 from . import admin, bridge, service
@@ -82,6 +83,19 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
                          "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,
                          "bot": gc.username, "obour_bot": await ob.db.get_setting("bot_username", "")},
         }
+    # ---------- پروفایل: کارنامهٔ هر بازی و آخرین بازی ها ----------
+    if name == "profile" and method == "GET":
+        recent = []
+        for r in await gdb.recent_games(tg):
+            try:
+                cfg = json.loads(r["cfg"] or "{}")
+            except ValueError:
+                cfg = {}
+            recent.append({"game": r["game"], "won": bool(r["won"]), "prize": int(r["prize"] or 0), "at": int(r["at"]),
+                           "mode": cfg.get("mode", "free"), "entry": int(cfg.get("entry") or 0)})
+        return {"games": [{"game": g["game"], "games": int(g["games"]), "wins": int(g["wins"]), "prize": int(g["prize"])}
+                          for g in await gdb.game_stats(tg)],
+                "recent": recent}
     # ---------- فروشگاه ظاهر (میز و ورق حکم) ----------
     if name == "style" and method == "GET":
         return await service.style_view(gdb, tg)

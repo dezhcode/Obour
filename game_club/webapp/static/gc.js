@@ -140,6 +140,7 @@ const liveData = {
   style: () => api('style'),
   styleBuy: id => api('style/buy', { body: { id, idem: idem() } }),
   styleUse: id => api('style/use', { body: { id } }),
+  profile: () => api('profile'),
 };
 const liveLudo = {
   queueJoin: cfg => api('ludo/queue', { body: { cfg } }),
@@ -228,6 +229,7 @@ const P = {
   up: '<path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/>',
   exit: '<path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14"/><path d="M10 16.5L5.5 12 10 7.5M5.5 12H15"/>',
   table: '<rect x="3" y="7" width="18" height="10" rx="5"/><path d="M8 17v3M16 17v3"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 20.5c.8-4.2 4-6.5 8-6.5s7.2 2.3 8 6.5"/>',
   pad: '<path d="M7 8h10a5 5 0 0 1 5 5v.5a3.5 3.5 0 0 1-6.3 2.1L14.5 14h-5l-1.2 1.6A3.5 3.5 0 0 1 2 13.5V13a5 5 0 0 1 5-5z"/><path d="M7 11v3M5.5 12.5h3M16.5 11.5h.01M18.5 13.5h.01"/>',
   userAdd: '<circle cx="9" cy="8.5" r="3.5"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5M18 8v6M15 11h6"/>',
   cards: '<rect x="3.5" y="6" width="10" height="14" rx="2" transform="rotate(-10 8.5 13)"/><rect x="10.5" y="4" width="10" height="14" rx="2" transform="rotate(8 15.5 11)"/>',
@@ -426,7 +428,7 @@ function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; sa
 
 /* ---------- ناوبری پایین (پنج بخش؛ «بازی‌ها» برگهٔ انتخاب بازی را باز می کند) ---------- */
 const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['play', '', 'بازی‌ها', 'pad'],
-  ['wallet', 'wallet.html', 'کیف', 'wallet'], ['shop', 'shop.html', 'فروشگاه', 'bag']];
+  ['profile', 'profile.html', 'پروفایل', 'user'], ['shop', 'shop.html', 'فروشگاه', 'bag']];
 let navEl = null;
 function nav(active) {
   if (mountingView) return;
@@ -477,7 +479,7 @@ function setActive(id, animate) {
    هر بخش یک بار ساخته می شود و در حافظه می ماند؛ رفتن بین آنها صفحه را دوباره بار نمی کند،
    فقط بخش تازه نشان داده می شود و داده هایش (موجودی، تاریخچه، رده بندی…) تازه می شود.
    بخشی که هنوز ساخته نشده یک بار گرفته و ساخته می شود (صفحه اش از قبل در پس زمینه گرفته شده). */
-const TABS = { 'index.html': 'home', 'leaderboard.html': 'leaderboard', 'wallet.html': 'wallet', 'shop.html': 'shop' };
+const TABS = { 'index.html': 'home', 'leaderboard.html': 'leaderboard', 'profile.html': 'profile', 'shop.html': 'shop' };
 const views = {}, pages = {};
 let curView = null, mountingView = null, switching = null, prebuilding = false;
 const building = {};

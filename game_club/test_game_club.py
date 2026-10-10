@@ -211,7 +211,7 @@ def test_notify_and_admin_close():
         assert 1 <= len(turn_pings) <= 2, sent
         # نتیجه برای غایب: هر دو بازیکن غایب اند و هر کدام زودتر سه نوبت جا بیندازد می بازد،
         # پس بازیکن ۲ یا خبر باخت (index) می گیرد یا خبر برد (wallet)
-        assert any(x[0] == 2 and x[2] in ("index.html", "wallet.html") and "منچ" in x[1] for x in sent), sent
+        assert any(x[0] == 2 and x[2] in ("index.html", "shop.html") and "منچ" in x[1] for x in sent), sent
         # بستن میز دعوت توسط ادمین = بازگشت ورودی
         before = (await db.get_player(1))["points"]
         inv = await service.invite_create(db, 1, cfg)
@@ -834,6 +834,36 @@ def test_style_shop():
         await db.close()
     asyncio.run(run())
 
+
+
+def test_profile_stats():
+    """پروفایل: کارنامهٔ هر بازی و آخرین بازی ها از جدول نتیجه ها (فقط بازی های تمام شده)."""
+    import json as _json
+    tmp = tempfile.mkdtemp()
+    from game_club.db import GCDatabase
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        try:
+            await db.player(5, "a")
+            now = 1_700_000_000
+            for i, (game, won, prize, mode) in enumerate([("hokm", 1, 200, "stake"), ("hokm", 0, 0, "free"), ("football", 1, 0, "free")]):
+                await db.execute("INSERT INTO matches(id, game, status, cfg, state, created_at, updated_at) VALUES(?,?,?,?,?,?,?)",
+                                 (f"m{i}", game, "over", _json.dumps({"mode": mode, "entry": 100 if mode == "stake" else 0}), "{}", now + i, now + i))
+                await db.add_result(f"m{i}", 5, bool(won), prize)
+            g = {r["game"]: r for r in await db.game_stats(5)}
+            assert g["hokm"]["games"] == 2 and g["hokm"]["wins"] == 1 and g["hokm"]["prize"] == 200
+            assert g["football"]["games"] == 1 and g["football"]["wins"] == 1
+            rec = await db.recent_games(5)
+            assert [r["game"] for r in rec] == ["football", "hokm", "hokm"]           # تازه ترین اول
+            assert _json.loads(rec[2]["cfg"])["entry"] == 100
+            p = await db.get_player(5)
+            assert p["games"] == 3 and p["wins"] == 2
+        finally:
+            await db.close()
+
+    asyncio.run(run())
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
