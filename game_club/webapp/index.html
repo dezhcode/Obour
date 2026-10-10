@@ -34,16 +34,16 @@
 
 /* ---------- کارت بزرگ بالا ---------- */
 .hero{position:relative;min-height:178px;border-radius:26px;overflow:hidden;padding:var(--space-4);display:flex;flex-direction:column;justify-content:space-between;gap:var(--space-3);
-  box-shadow:inset 0 0 0 1px rgba(245,196,81,.35),0 14px 30px rgba(0,0,0,.4)}
-.hero.felt{box-shadow:var(--rim,none),inset 0 0 0 1px rgba(245,196,81,.35),inset 0 0 30px rgba(0,0,0,.35),0 14px 30px rgba(0,0,0,.4)}
+  box-shadow:inset 0 0 0 1px rgba(245,196,81,.35)}
+.hero.felt{box-shadow:var(--rim,none),inset 0 0 0 1px rgba(245,196,81,.35),inset 0 0 30px rgba(0,0,0,.35)}
 .hero .txt{position:relative;z-index:2;display:grid;gap:3px;max-width:58%}
 .hero .kick{justify-self:start;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;background:rgba(0,0,0,.3);font-size:11.5px;font-weight:700}
-.hero .kick i{width:7px;height:7px;border-radius:50%;background:#3DDC84;box-shadow:0 0 0 3px rgba(61,220,132,.2)}
+.hero .kick i{width:7px;height:7px;border-radius:50%;background:#3DDC84}
 .hero h1{font-size:24px;line-height:34px;font-weight:900}
 .hero p{font-size:12.5px;line-height:20px;color:rgba(255,255,255,.85)}
 .hero .acts{position:relative;z-index:2;display:flex;gap:var(--space-2)}
-.hero .go{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 18px;border-radius:23px;background:var(--gold);color:var(--gold-ink);font-size:15px;font-weight:900;box-shadow:0 5px 0 #B9821A}
-.hero .go:active{transform:translateY(2px);box-shadow:0 3px 0 #B9821A}
+.hero .go{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 18px;border-radius:23px;background:var(--gold);color:var(--gold-ink);font-size:15px;font-weight:900}
+.hero .go:active{transform:scale(.97)}
 .hero .go svg{width:18px;height:18px}
 .hero .glass{display:inline-flex;align-items:center;height:46px;padding:0 16px;border-radius:23px;background:rgba(0,0,0,.25);color:#fff;font-size:14px;font-weight:800;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
 .hero .art{position:absolute;inset-inline-end:8px;top:10px;width:150px;height:130px;z-index:1;pointer-events:none}
@@ -60,9 +60,9 @@
 
 /* ---------- کاشی بازی ها با اجزای واقعی ---------- */
 .games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.gt{position:relative;display:flex;flex-direction:column;justify-content:flex-end;height:156px;padding:12px;border-radius:22px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 10px 20px -10px rgba(0,0,0,.6)}
+.gt{position:relative;display:flex;flex-direction:column;justify-content:flex-end;height:156px;padding:12px;border-radius:22px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
 a.gt:active{transform:scale(.98)}
-.gt>b{position:relative;z-index:2;font-family:var(--font-rokh);font-size:17px;line-height:24px;font-weight:900;text-shadow:0 1px 4px rgba(0,0,0,.4)}
+.gt>b{position:relative;z-index:2;font-family:var(--font-rokh);font-size:17px;line-height:24px;font-weight:900}
 .gt>small{position:relative;z-index:2;font-size:11px;line-height:16px;color:rgba(255,255,255,.85)}
 .gt::after{content:"";position:absolute;inset:auto 0 0;height:62%;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.45));z-index:1;pointer-events:none}
 .gt .bdg{position:absolute;top:10px;right:10px;z-index:3;height:20px;padding:0 8px;border-radius:10px;font-size:10.5px;line-height:20px;font-weight:800}
@@ -97,7 +97,7 @@ a.gt:active{transform:scale(.98)}
 .ra-ludo .pw svg{display:block;width:100%}
 /* اسم فامیل */
 .ra-esm{display:flex;justify-content:flex-start;gap:6px;padding:48px 12px 0}
-.ra-esm span{width:38px;height:40px;border-radius:12px;display:grid;place-items:center;font-family:var(--font-rokh);font-size:22px;font-weight:900;box-shadow:0 6px 12px rgba(0,0,0,.3)}
+.ra-esm span{width:38px;height:40px;border-radius:12px;display:grid;place-items:center;font-family:var(--font-rokh);font-size:22px;font-weight:900}
 
 /* ---------- رده‌بندی هفته ---------- */
 .rank-card{display:flex;align-items:center;gap:var(--space-3);padding:12px 14px;border-radius:20px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
