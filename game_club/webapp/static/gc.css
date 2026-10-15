@@ -10,6 +10,9 @@
   --ink:#F3F1E8;--ink-muted:#9DB0A8;--night:#07110E;
   --sky:#3D7BFF;--sky-deep:#9BBBFF;--sky-tint:rgba(61,123,255,.18);--violet-tint:rgba(124,102,242,.2);
   --gold:#F5C451;--gold-ink:#3A2A00;
+  /* تنها رنگ تاکید: همه دکمه های اصلی، انتخاب ها، سوییچ ها و تمرکز طلایی اند (آبی فقط برای رنگ تیم) */
+  --acc:#F5C451;--acc-deep:#F7CF6A;--acc-ink:#3A2A00;--acc-tint:rgba(245,196,81,.15);
+  --game-bg:#12291F;--game-deep:#0A1914;--game-glass:rgba(255,255,255,.08);--game-ink:#D3E2DA;
   --coin-tint:rgba(255,201,60,.14);--coin-text:#FFD25E;
   --success:#3DD68C;--success-tint:rgba(61,214,140,.16);--danger:#FF6B7A;
   --depth-sm:none;--depth-md:none;--lift:none;--press:none;--press-sm:none;
@@ -27,7 +30,7 @@ h1,h2,h3,.wordmark,.sheet-head h2,.t-display,.t-title,.t-heading,.t-subhead,.app
 button,input{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;padding:0}
 a{color:inherit;text-decoration:none}
-:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 i[data-ic]{display:inline-grid;place-items:center;line-height:0;font-style:normal}
 .icon-btn>i,.chat-btn>i{display:grid}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -52,7 +55,7 @@ h1,h2,h3,p{margin:0}
 .icon-btn[aria-pressed="false"]{color:var(--ink-muted)}
 
 /* ---------- دکمه ---------- */
-.btn{--bg:var(--sky);--fg:var(--on-fill);--edge:var(--sky-deep);
+.btn{--bg:var(--acc);--fg:var(--acc-ink);--edge:var(--acc-deep);
   display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);min-height:52px;padding-inline:var(--space-5);
   border-radius:var(--radius-pill);background:var(--bg);color:var(--fg);font-size:16px;line-height:24px;font-weight:900;
   box-shadow:none;transition:transform .08s,background .15s;text-align:center}
@@ -60,11 +63,12 @@ h1,h2,h3,p{margin:0}
 .btn:disabled,.btn[aria-disabled="true"]{--bg:var(--surface-sunk);--fg:var(--ink-muted);--edge:transparent;cursor:not-allowed;transform:none;box-shadow:none}
 .btn svg{width:20px;height:20px;flex:none}
 .btn-gold{--bg:var(--coin);--fg:var(--coin-ink);--edge:var(--coin-deep)}
-.btn-success{--bg:var(--success);--edge:var(--success)}
-.btn-violet{--bg:var(--violet);--edge:var(--violet)}
-.btn-danger{--bg:var(--danger);--edge:var(--danger)}
-.btn-light{--bg:var(--surface);--fg:var(--ink);--edge:rgba(0,0,0,.35)}
-.btn-soft{--bg:var(--sky-tint);--fg:var(--sky-deep);--edge:transparent}
+.btn-success{--fg:var(--on-fill);--bg:var(--success);--edge:var(--success)}
+.btn-violet{--fg:var(--on-fill);--bg:var(--violet);--edge:var(--violet)}
+.btn-danger{--fg:var(--on-fill);--bg:var(--danger);--edge:var(--danger)}
+/* دکمه دوم: روی کارت هم دیده می شود (زمینه نیمه شفاف + خط نازک داخلی، بدون سایه) */
+.btn.btn-light{--bg:rgba(255,255,255,.07);--fg:var(--ink);--edge:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+.btn-soft{--bg:var(--acc-tint);--fg:var(--acc-deep);--edge:transparent}
 .btn-sm{min-height:38px;padding-inline:var(--space-4);font-size:14px;box-shadow:var(--press-sm)}
 .btn-block{width:100%}
 
@@ -74,7 +78,7 @@ h1,h2,h3,p{margin:0}
 .card-link:active{transform:scale(.985)}
 .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-3);margin-block-end:var(--space-3)}
 .sec-head h2{font-size:17px;line-height:26px;font-weight:900}
-.sec-head a,.sec-head .aside{font-size:13px;line-height:20px;font-weight:800;color:var(--sky-deep)}
+.sec-head a,.sec-head .aside{font-size:13px;line-height:20px;font-weight:800;color:var(--acc-deep)}
 
 /* ---------- سکه و مبلغ ---------- */
 .coin{display:inline-block;width:1.25em;height:1.25em;vertical-align:-.28em;flex:none}
@@ -82,8 +86,8 @@ h1,h2,h3,p{margin:0}
 .amount{display:inline-flex;align-items:center;gap:var(--space-1);font-weight:900;color:var(--coin-text)}
 .amount.lg{font-size:22px;line-height:28px}
 .amount.ink{color:var(--ink)}
-.pill{display:inline-flex;align-items:center;gap:var(--space-2);background:var(--surface);color:var(--ink);border-radius:var(--radius-pill);padding:4px 6px 4px 14px;box-shadow:var(--depth-sm);font-weight:900;font-size:16px}
-.pill .plus{width:30px;height:30px;border-radius:50%;background:var(--sky);color:var(--on-fill);display:grid;place-items:center}
+.pill{display:inline-flex;min-height:44px;align-items:center;gap:var(--space-2);background:var(--surface);color:var(--ink);border-radius:var(--radius-pill);padding:4px 6px 4px 14px;box-shadow:var(--depth-sm);font-weight:900;font-size:16px}
+.pill .plus{width:30px;height:30px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center}
 .pill .plus svg{width:16px;height:16px}
 
 /* ---------- برچسب ---------- */
@@ -102,16 +106,17 @@ h1,h2,h3,p{margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
 .chip{display:inline-flex;align-items:center;gap:var(--space-1);min-height:40px;padding-inline:var(--space-3);border-radius:var(--radius-md);background:var(--surface-sunk);font-weight:900;border:2px solid transparent}
 .chip{border-radius:var(--radius-pill)}
-.chip[aria-pressed="true"]{background:var(--sky);border-color:var(--sky);color:var(--on-fill)}
-.chip.sm{min-height:30px;font-size:12.5px;font-weight:800;border-radius:var(--radius-pill);padding-inline:var(--space-3)}
-.chip.sm[aria-pressed="true"]{background:var(--sky);color:var(--on-fill);border-color:var(--sky)}
+.chip[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.chip.sm{position:relative;min-height:36px;font-size:12.5px;font-weight:800;border-radius:var(--radius-pill);padding-inline:var(--space-3)}
+.chip.sm::after{content:"";position:absolute;inset:-4px 0}
+.chip.sm[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
 
 /* کارت انتخابی (حالت بازی) */
 .choice{display:grid;gap:2px;text-align:start;background:var(--surface-sunk);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4);border:2px solid transparent}
 .choice b{font-size:16px;line-height:24px;font-weight:900}
 .choice span{font-size:12.5px;line-height:20px;color:var(--ink-muted)}
-.choice[aria-pressed="true"]{border-color:var(--sky);background:var(--sky-tint)}
-.choice[aria-pressed="true"] b{color:var(--sky-deep)}
+.choice[aria-pressed="true"]{border-color:var(--acc);background:var(--acc-tint)}
+.choice[aria-pressed="true"] b{color:var(--acc-deep)}
 .choice-row{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)}
 
 /* ---------- آواتار ---------- */
@@ -127,7 +132,7 @@ h1,h2,h3,p{margin:0}
 .row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:var(--surface-sunk);min-height:58px}
 .row .name{font-weight:800;line-height:22px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row .meta{display:block;font-size:12px;line-height:18px;font-weight:500;color:var(--ink-muted)}
-.row.me{background:var(--sky-tint);outline:2px dashed var(--sky);outline-offset:-2px}
+.row.me{background:var(--acc-tint);outline:2px dashed var(--acc);outline-offset:-2px}
 .rank{width:26px;text-align:center;font-weight:900;color:var(--ink-muted)}
 .ic-box{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--surface);flex:none}
 .ic-box svg{width:24px;height:24px}
@@ -135,7 +140,7 @@ h1,h2,h3,p{margin:0}
 /* ---------- سوییچ ---------- */
 .switch{position:relative;width:48px;height:28px;border-radius:var(--radius-pill);background:var(--line);flex:none;transition:background .15s}
 .switch::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);box-shadow:var(--depth-sm);transition:inset-inline-start .15s}
-.switch[aria-checked="true"]{background:var(--sky)}
+.switch[aria-checked="true"]{background:var(--acc)}
 .switch[aria-checked="true"]::after{inset-inline-start:23px}
 
 /* ---------- ناوبری پایین ---------- */
@@ -183,7 +188,7 @@ h1,h2,h3,p{margin:0}
 /* پنجره تایید (خروج، میز بسته شد، میز پیدا نشد): آیکن، عنوان، توضیح کوتاه، دو دکمه کنار هم.
    کار امن (ادامه) دکمه اصلی و اول است؛ کار پرخطر (خروج) دکمه کم رنگ قرمز */
 .dlg{display:grid;justify-items:center;text-align:center;gap:var(--space-2)}
-.dlg-ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;margin-bottom:var(--space-1);background:var(--sky-tint);color:var(--sky-deep)}
+.dlg-ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;margin-bottom:var(--space-1);background:var(--acc-tint);color:var(--acc-deep)}
 .dlg-ic svg{width:30px;height:30px}
 .dlg-ic.warn{background:rgba(255,107,122,.16);color:var(--danger)}
 .dlg h2{font-size:21px;line-height:30px;font-weight:900}
@@ -302,7 +307,7 @@ h1,h2,h3,p{margin:0}
    منچ مدرن: همان چیدمان (نوار نوبت، صندلی ها، صفحه، داک تاس) روی میز تیره،
    کارت های شیشه ای و عکس تلگرام بازیکن ها؛ مثل صفحه بازی پلاتو
    =================================================================== */
-body.game{color:var(--on-fill);background:radial-gradient(120% 70% at 50% 42%,#4C4466,var(--game-bg) 60%,#2F2944) fixed}
+body.game{color:var(--on-fill);background:radial-gradient(120% 70% at 50% 42%,#1F4A37,var(--game-bg) 60%,#0B1714) fixed}
 body.game .appbar{background:transparent;color:var(--on-fill)}
 body.game .icon-btn{background:var(--game-glass);color:var(--on-fill);box-shadow:none}
 body.game .icon-btn[aria-pressed="false"]{color:var(--game-ink);opacity:.8}
@@ -334,7 +339,7 @@ body.game .yard.turn::before{animation:yard-ring 1.1s ease-in-out infinite}
 body.game .home{border-radius:8px}
 body.game .feed1{color:var(--on-fill)}
 body.game .feed1 span{background:var(--game-glass)}
-body.game .dock{background:rgba(58,51,80,.72);color:var(--on-fill);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);border-radius:var(--radius-xl)}
+body.game .dock{background:rgba(16,38,30,.74);color:var(--on-fill);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);border-radius:var(--radius-xl)}
 body.game .dock-txt span{color:var(--game-ink)}
 body.game .sheet{color:var(--ink)}
 body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-fill)}
@@ -354,7 +359,7 @@ body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-f
 @keyframes blocked{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%)}}
 
 /* گفتگوی سر میز */
-.chat-btn{position:relative;width:56px;height:56px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--sky);color:var(--on-fill)}
+.chat-btn{position:relative;width:56px;height:56px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:var(--acc-ink)}
 .chat-btn svg{width:24px;height:24px}
 .chat-btn .badge{position:absolute;top:-2px;inset-inline-end:-2px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--danger);color:var(--on-fill);font-size:11px;font-weight:900;line-height:20px;text-align:center;box-shadow:0 0 0 2px var(--game-bg)}
 .seat{position:relative}
@@ -370,13 +375,13 @@ body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-f
 .msg .bub b{font-size:11.5px;line-height:16px;font-weight:800;color:var(--ink-muted)}
 .msg .bub span{font-size:14px;line-height:22px;overflow-wrap:anywhere}
 .msg.mine{justify-self:start;flex-direction:row}
-.msg.mine .bub{background:var(--sky);color:var(--on-fill);border-radius:18px 18px 6px 18px}
+.msg.mine .bub{background:var(--acc);color:var(--acc-ink);border-radius:18px 18px 6px 18px}
 .msg.mine .bub b{color:rgba(255,255,255,.8)}
 .quick{display:flex;gap:var(--space-2);overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-.quick .chip{flex:none;background:var(--sky-tint);color:var(--sky-deep)}
+.quick .chip{flex:none;background:var(--acc-tint);color:var(--acc-deep)}
 .chat-form{display:flex;align-items:center;gap:var(--space-2);background:var(--surface-sunk);border-radius:var(--radius-pill);padding:5px 5px 5px 16px}
 .chat-form input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px}
-.chat-form .send{width:42px;height:42px;flex:none;border-radius:50%;background:var(--sky);color:var(--on-fill);display:grid;place-items:center}
+.chat-form .send{width:42px;height:42px;flex:none;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center}
 .chat-form .send svg{width:22px;height:22px}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -413,7 +418,7 @@ body.game .page{gap:var(--space-2);padding-block:var(--space-2) var(--space-2);p
 .feed1 i{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
 .feed1 span{background:var(--game-glass);border-radius:var(--radius-pill);padding:2px 12px;animation:toast-in .2s ease-out}
 .wait-line{display:flex;align-items:center;justify-content:center;gap:var(--space-2);font-weight:800}
-.spinner{width:18px;height:18px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--sky);animation:spin .8s linear infinite}
+.spinner{width:18px;height:18px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--acc);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* شبیه سازی تمام صفحه تلگرام در پیش نمایش (فقط حالت نمایشی، #fs) */

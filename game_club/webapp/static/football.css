@@ -141,7 +141,7 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 
 /* لایه های تمام صفحه: انتخاب تیم، «مقابل»، گل */
 .fb-layer{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;color:#fff}
-.fb-setup{background:radial-gradient(120% 60% at 50% 0%,#3a2f78 0%,#231c4d 55%,#17123a 100%);
+.fb-setup{background:radial-gradient(120% 60% at 50% 0%,#1F4A37 0%,#10261E 55%,#0B1714 100%);
   padding:calc(10px + var(--sa-t,0px) + var(--csa-t,0px)) 16px calc(16px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));gap:12px;overflow-y:auto;animation:fb-fade .25s ease-out}
 @keyframes fb-fade{from{opacity:0}}
 .fb-setup .top{display:flex;align-items:center;justify-content:space-between}
@@ -150,8 +150,8 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-setup h1{margin:0;font-size:24px;font-weight:800}
 .fb-setup .sub{margin:2px 0 0;font-size:13px;line-height:21px;color:rgba(255,255,255,.72)}
 .fb-teams{display:flex;flex-direction:column;gap:8px}
-.fb-team{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:10px 14px;border-radius:18px;background:#2b2463;border:2px solid transparent;color:#fff;text-align:start;width:100%;box-sizing:border-box}
-.fb-team[aria-pressed="true"]{border-color:var(--gold);background:#352c78}
+.fb-team{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:10px 14px;border-radius:18px;background:#17302A;border:2px solid transparent;color:#fff;text-align:start;width:100%;box-sizing:border-box}
+.fb-team[aria-pressed="true"]{border-color:var(--gold);background:#1F4A37}
 .fb-team b{font-size:15px;font-weight:800}
 .fb-team small{display:block;font-size:11.5px;color:rgba(255,255,255,.6);font-weight:600}
 .fb-kit{display:grid;justify-items:center;gap:3px;font-size:10.5px;color:rgba(255,255,255,.6);font-weight:600}
@@ -159,7 +159,7 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:4px;border-radius:16px;background:rgba(0,0,0,.25)}
 .fb-tabs button{height:40px;border-radius:12px;color:rgba(255,255,255,.55);font-size:14px;font-weight:800}
 .fb-tabs button[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink)}
-.fb-forms{border-radius:22px;background:#2b2463;padding:14px 10px;display:flex;flex-direction:column;gap:10px}
+.fb-forms{border-radius:22px;background:#17302A;padding:14px 10px;display:flex;flex-direction:column;gap:10px}
 .fb-forms .h{display:flex;align-items:center;gap:8px;padding-inline:4px}
 .fb-forms .h b{font-size:16px;font-weight:800}
 .fb-forms .h span{font-size:12px;color:rgba(255,255,255,.6)}
@@ -174,15 +174,15 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-mini i{position:absolute;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#3D7BFF;box-shadow:0 0 0 2px #fff,0 2px 3px rgba(0,0,0,.4);z-index:1}
 .fb-opt[aria-pressed="true"]{color:#fff}
 .fb-opt[aria-pressed="true"] .fb-mini{opacity:1;border-color:var(--gold)}
-.fb-go{height:54px;border-radius:27px;background:#3D7BFF;color:#fff;font-size:16px;font-weight:800;flex:none;width:100%}
-.fb-setup .fb-go{position:sticky;bottom:0;z-index:2;box-shadow:0 -14px 24px 6px #17123a}
+.fb-go{height:54px;border-radius:27px;background:#F5C451;color:#3A2A00;font-size:16px;font-weight:800;flex:none;width:100%}
+.fb-setup .fb-go{position:sticky;bottom:0;z-index:2;box-shadow:0 -14px 24px 6px #0B1714}
 .fb-go:active{transform:scale(.97)}
 .fb-wait{flex:1;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center}
 .fb-wait b{font-size:18px;font-weight:800}
 .fb-wait span{font-size:13px;color:rgba(255,255,255,.7)}
 
 .fb-vs{pointer-events:none;align-items:stretch;justify-content:center;background:rgba(10,12,30,.6);animation:fb-fade .3s ease-out}
-.fb-vs .band{background:linear-gradient(180deg,rgba(23,18,58,0),#17123a 16%,#17123a 84%,rgba(23,18,58,0));padding:46px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px;animation:fb-band .5s cubic-bezier(.2,1.2,.4,1) both}
+.fb-vs .band{background:linear-gradient(180deg,rgba(11,23,20,0),#0B1714 16%,#0B1714 84%,rgba(11,23,20,0));padding:46px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px;animation:fb-band .5s cubic-bezier(.2,1.2,.4,1) both}
 @keyframes fb-band{from{transform:scaleY(.2);opacity:0}}
 .fb-vs .side{display:grid;justify-items:center;gap:8px;text-align:center}
 .fb-vs .side small{font-size:12px;font-weight:800;color:var(--gold)}
@@ -197,7 +197,7 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 @keyframes fb-pop{from{transform:scale(0) rotate(-40deg)}}
 .fb-vs .info{grid-column:1/-1;justify-self:center;margin-top:18px;font-size:13.5px;font-weight:600;color:rgba(255,255,255,.85)}
 
-.fb-goal{pointer-events:none;align-items:center;justify-content:center;gap:16px;background:radial-gradient(70% 40% at 50% 46%,rgba(23,18,58,.55),rgba(23,18,58,.88));animation:fb-fade .2s ease-out;overflow:hidden}
+.fb-goal{pointer-events:none;align-items:center;justify-content:center;gap:16px;background:radial-gradient(70% 40% at 50% 46%,rgba(11,23,20,.55),rgba(11,23,20,.88));animation:fb-fade .2s ease-out;overflow:hidden}
 .fb-goal .rays{position:absolute;left:50%;top:46%;width:560px;height:560px;margin:-280px;border-radius:50%;
   background:repeating-conic-gradient(rgba(245,196,81,.28) 0 8deg,transparent 8deg 16deg);
   -webkit-mask:radial-gradient(circle,#000 12%,transparent 62%);mask:radial-gradient(circle,#000 12%,transparent 62%);animation:fb-spin 8s linear infinite}

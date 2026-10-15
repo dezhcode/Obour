@@ -39,8 +39,8 @@ const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
 if (live) {
   try { tg.ready(); tg.expand(); } catch (e) {}
   // رنگ نوار تلگرام با زمینه صفحه یکی است تا درز دیده نشود؛ همه صفحه ها تیره اند
-  try { tg.setHeaderColor('#3A3350'); tg.setBackgroundColor('#3A3350'); } catch (e) {}
-  try { ver('7.10') && tg.setBottomBarColor('#2B2540'); } catch (e) {}
+  try { tg.setHeaderColor('#0C1915'); tg.setBackgroundColor('#0C1915'); } catch (e) {}
+  try { ver('7.10') && tg.setBottomBarColor('#08120F'); } catch (e) {}
   // کشیدن عمودی (مثلا هنگام بازی) نباید مینی اپ را ببندد
   try { ver('7.7') && tg.disableVerticalSwipes(); } catch (e) {}
   ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged', 'fullscreenFailed']
@@ -256,7 +256,8 @@ const avatarEl = (seed, ring, extra = '') => `<span class="avatar ${extra}" styl
 /* ---------- عکس پروفایل تلگرام ----------
    p: {name, av, pic, bot}. pic آدرس عکس است (photo_url تلگرام یا pic/<key> که سرور
    از ربات می گیرد). اگر عکس نبود یا باز نشد، حرف اول نام روی رنگ ثابت آن بازیکن. */
-const FACE_BG = ['#8E7CF8', '#4DA8FF', '#FF7A85', '#3DD08E', '#FFA552', '#3FC7D9', '#F07CC4'];
+// رنگ های سیر تا حرف سفید روی آن ها خوانا باشد (کنتراست ≥ ۴.۵)
+const FACE_BG = ['#5B4BC4', '#2563C9', '#C2414E', '#1A7A53', '#A6560F', '#147C8C', '#A8407E'];
 const escAttr = v => String(v || '').replace(/[&"'<>]/g, ch => ({ '&': '&amp;', '"': '&quot;', "'": '&#39;', '<': '&lt;', '>': '&gt;' }[ch]));
 function initial(name) { const m = String(name || '').trim().match(/[\p{L}\p{N}]/u); return m ? m[0] : '؟'; }
 function face(p, ring, extra = '') {
@@ -659,7 +660,7 @@ const LUDO = {
 function boardArt() {
   const L = LUDO, startOf = {};
   for (const c of L.ORDER) startOf[L.SEAT[c].start] = c;
-  let g = '<rect x="-.5" y="-.5" width="16" height="16" rx="1.4" fill="#2B2540"/>';
+  let g = '<rect x="-.5" y="-.5" width="16" height="16" rx="1.4" fill="#0A1914"/>';
   for (const c of L.ORDER) {
     const [x, y] = L.SEAT[c].yard;
     g += `<rect x="${x + .55}" y="${y + .55}" width="4.9" height="4.9" rx="1.2" fill="${COL[c].hex}"/>`;

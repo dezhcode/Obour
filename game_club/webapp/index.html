@@ -56,16 +56,16 @@
 .qa .ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center}
 .qa .ic svg{width:22px;height:22px}
 .qa b{font-size:12.5px;line-height:18px;font-weight:800}
-.qa small{font-size:10.5px;line-height:15px;color:var(--ink-muted)}
+.qa small{font-size:11.5px;line-height:16px;color:var(--ink-muted)}
 
 /* ---------- کاشی بازی ها با اجزای واقعی ---------- */
 .games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .gt{position:relative;display:flex;flex-direction:column;justify-content:flex-end;height:156px;padding:12px;border-radius:22px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
 a.gt:active{transform:scale(.98)}
 .gt>b{position:relative;z-index:2;font-family:var(--font-rokh);font-size:17px;line-height:24px;font-weight:900}
-.gt>small{position:relative;z-index:2;font-size:11px;line-height:16px;color:rgba(255,255,255,.85)}
+.gt>small{position:relative;z-index:2;font-size:11.5px;line-height:16px;color:rgba(255,255,255,.85)}
 .gt::after{content:"";position:absolute;inset:auto 0 0;height:62%;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.45));z-index:1;pointer-events:none}
-.gt .bdg{position:absolute;top:10px;right:10px;z-index:3;height:20px;padding:0 8px;border-radius:10px;font-size:10.5px;line-height:20px;font-weight:800}
+.gt .bdg{position:absolute;top:10px;right:10px;z-index:3;height:22px;padding:0 8px;border-radius:11px;font-size:11.5px;line-height:22px;font-weight:800}
 .bdg.hot{background:var(--gold);color:var(--gold-ink)}
 .bdg.new{background:#4D8DFF;color:#fff}
 .bdg.open{background:#3DDC84;color:#08331B}
@@ -73,7 +73,8 @@ a.gt:active{transform:scale(.98)}
 .gt .ra{position:absolute;inset:0;z-index:0}
 .gt.soon{background:var(--surface)}
 .gt .notify{position:absolute;left:10px;top:10px;z-index:3}
-.notify{display:inline-flex;align-items:center;gap:4px;min-height:32px;padding-inline:10px;border-radius:var(--radius-pill);background:rgba(255,255,255,.12);color:var(--ink);font-size:11.5px;font-weight:800;white-space:nowrap}
+.notify{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding-inline:12px;position:relative;border-radius:var(--radius-pill);background:rgba(255,255,255,.12);color:var(--ink);font-size:11.5px;font-weight:800;white-space:nowrap}
+.notify::after{content:"";position:absolute;inset:-4px -2px}
 .notify svg{width:14px;height:14px}
 .notify.on{background:var(--success-tint);color:var(--success)}
 /* حکم: ماهوت و ورق خود بازیکن */
@@ -121,12 +122,12 @@ a.gt:active{transform:scale(.98)}
 .tbl .g-art svg{display:block;width:76%;height:76%}
 .tbl-txt{display:grid;gap:2px;min-width:0}
 .tbl-txt b{display:flex;align-items:center;gap:6px;font-family:var(--font-rokh);font-size:15px;line-height:22px;font-weight:900}
-.tbl-tag{font-family:var(--font-peyda);font-size:10.5px;line-height:16px;font-weight:800;padding:0 7px;border-radius:var(--radius-pill);background:var(--surface-sunk);color:var(--ink-muted)}
+.tbl-tag{font-family:var(--font-peyda);font-size:11.5px;line-height:16px;font-weight:800;padding:0 7px;border-radius:var(--radius-pill);background:var(--surface-sunk);color:var(--ink-muted)}
 .tbl-st{display:flex;align-items:center;gap:6px;font-size:12px;line-height:18px;color:var(--ink-muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tbl-st .live{width:7px;height:7px;border-radius:50%;background:#3DDC84;flex:none}
 .tbl-st .spinner{width:12px;height:12px;border-width:2px}
 .tbl-st .myturn{color:var(--gold);font-weight:900}
-.tbl-go{display:inline-flex;align-items:center;gap:4px;min-height:34px;padding-inline:12px;border-radius:var(--radius-pill);background:var(--gold);color:var(--gold-ink);font-size:13px;font-weight:900}
+.tbl-go{display:inline-flex;align-items:center;gap:4px;min-height:40px;padding-inline:12px;border-radius:var(--radius-pill);background:var(--gold);color:var(--gold-ink);font-size:13px;font-weight:900}
 .tbl-go svg{width:15px;height:15px}
 @keyframes tblIn{from{opacity:0;transform:translateY(10px) scale(.97)}}
 @media (prefers-reduced-motion:reduce){.tbl{animation:none}}
