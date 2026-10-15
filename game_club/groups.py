@@ -23,21 +23,15 @@ from aiogram.types import (
     EphemeralMessageParameters,
     InlineQueryResultArticle,
     InputRichBlockButtons,
-    InputRichBlockFooter,
-    InputRichBlockList,
-    InputRichBlockListItem,
     InputRichBlockParagraph,
-    InputRichBlockSectionHeading,
     InputRichMessage,
     InputRichMessageContent,
     Message,
     RichMessageButton,
-    RichTextBold,
-    RichTextTextMention,
-    User,
 )
 
 from . import service
+from . import style as st
 from .config import gc
 from .db import GCDatabase
 from .service import GCError
@@ -95,33 +89,32 @@ def watch_link(game: str, match_id: str) -> str:
     return f"https://t.me/{gc.username}?startapp=w_{game}_{match_id}" if gc.username else ""
 
 
-# ---------- اجزای پیام غنی ----------
-def mention(tg: int, name: str) -> RichTextTextMention:
-    return RichTextTextMention(text=name or "بازیکن", user=User(id=int(tg), is_bot=False, first_name=name or "بازیکن"))
+# ---------- اجزای پیام غنی (قالب متنی عبور در یک پاراگراف + ردیف دکمه های داخل پیام) ----------
+OPT_ICON = {"target": "time", "players": "users", "pawns": "ludo"}
 
 
-def _p(*parts) -> InputRichBlockParagraph:  # noqa: ANN002
-    return InputRichBlockParagraph(text=list(parts))
+def who(tg: int, name: str) -> list:
+    return [st.FSI, st.M(tg, name), st.PDI]
 
 
-def _h(text: str, size: int = 2) -> InputRichBlockSectionHeading:
-    return InputRichBlockSectionHeading(text=text, size=size)
+def _para(parts: list) -> InputRichBlockParagraph:
+    return InputRichBlockParagraph(text=st.to_rich(parts))
 
 
-def _b(text: str, style: str | None = None, **kw) -> RichMessageButton:
-    return RichMessageButton(text=text, style=style, **kw)
+def _bt(key: str | None, label: str, style: str | None = None, **kw) -> RichMessageButton:
+    return st.rich_button(key, label, style, **kw)
 
 
-def _row(*buttons: RichMessageButton) -> InputRichBlockButtons:
-    return InputRichBlockButtons(buttons=list(buttons), align="center")
-
-
-def _list(items: list) -> InputRichBlockList:
-    return InputRichBlockList(items=[InputRichBlockListItem(blocks=[_p(*(x if isinstance(x, list) else [x]))]) for x in items])
+def _row(*btns: RichMessageButton) -> InputRichBlockButtons:
+    return InputRichBlockButtons(buttons=list(btns), align="center")
 
 
 def _rm(blocks: list) -> InputRichMessage:
     return InputRichMessage(blocks=blocks, is_rtl=True)
+
+
+def card(parts: list, *rows: InputRichBlockButtons) -> InputRichMessage:
+    return _rm([_para(parts), *rows])
 
 
 def plain(rm: InputRichMessage) -> str:
@@ -132,7 +125,7 @@ def plain(rm: InputRichMessage) -> str:
         if isinstance(x, list):
             return "".join(walk(y) for y in x)
         if isinstance(x, dict):
-            return " ".join(walk(v) for k, v in x.items() if k in ("text", "blocks", "items", "buttons"))
+            return " ".join(walk(v) for k, v in x.items() if k in ("text", "blocks", "items", "buttons", "alternative_text"))
         return ""
     return walk(rm.model_dump(exclude_none=True).get("blocks", []))
 
@@ -159,27 +152,33 @@ async def _seats(db: GCDatabase, m: dict) -> list[dict]:
     return out
 
 
+def _player_line(s: dict) -> list:
+    return ["• ", st.E("robot"), " ", st.iso(s["name"])] if s.get("bot") else ["• ", *who(s["tg"], s["name"])]
+
+
 async def setup_card(db: GCDatabase, d: dict) -> InputRichMessage:
     """کارت تنظیم میز: فقط سازنده حالت را عوض می کند و میز را باز می کند."""
-    g, cfg, tok = GAMES[d["game"]], cfg_of(d["game"], d["cfg"]), d["token"]
+    game, tok = d["game"], d["token"]
+    g, cfg = GAMES[game], cfg_of(game, d["cfg"])
     host = await db.get_player(d["host"]) or {}
-    blocks = [_h(f"{g['icon']} میز {g['name']}"),
-              _p("سازنده: ", mention(d["host"], host.get("name") or "بازیکن")),
-              _p("حالت بازی را انتخاب کن و «باز کردن میز» را بزن تا بقیه بنشینند.")]
+    head = st.frame(game, f"میز {g['name']}", "تنظیم میز", [
+        ["سازنده: ", *who(d["host"], host.get("name") or "بازیکن")],
+        "حالت بازی رو انتخاب کن و «باز کردن میز» رو بزن تا بقیه بشینن.",
+    ], foot=("gear", "حالت فعلی", summary(game, cfg)))
+    blocks = [_para(head)]
     for key, label, opts in g["opts"]:
-        blocks.append(_p(RichTextBold(text=label)))
-        blocks.append(_row(*[_b(("✓ " if cfg[key] == v else "") + lab, "primary" if cfg[key] == v else None,
-                                callback_data=f"gs:{key}={v}:{tok}") for v, lab in opts]))
-    blocks.append(_row(_b("باز کردن میز", "success", callback_data=f"gs:open:{tok}"),
-                       _b("لغو", "danger", callback_data=f"gs:cancel:{tok}")))
-    blocks.append(InputRichBlockFooter(text=f"{summary(d['game'], cfg)} · فقط سازنده تنظیم می‌کند"))
+        blocks.append(_para([st.E(OPT_ICON.get(key, "gear")), " ", st.B(label)]))
+        blocks.append(_row(*[_bt("selected" if cfg[key] == v else None, lab, "primary" if cfg[key] == v else None,
+                                 callback_data=f"gs:{key}={v}:{tok}") for v, lab in opts]))
+    blocks.append(_row(_bt("play", "باز کردن میز", "success", callback_data=f"gs:open:{tok}"),
+                       _bt("cancel", "لغو", "danger", callback_data=f"gs:cancel:{tok}")))
     return _rm(blocks)
 
 
-def closed_card(game: str, text: str = "هر وقت خواستید میز تازه بسازید.") -> InputRichMessage:
+def closed_card(game: str, text: str = "میز بسته شد.") -> InputRichMessage:
     g = GAMES[game]
-    return _rm([_h(f"{g['icon']} میز {g['name']} بسته شد"), _p(text),
-                _row(_b(f"میز تازهٔ {g['name']}", "success", callback_data=f"gt:new:{game}"))])
+    return card(st.frame(game, f"میز {g['name']}", "بسته شد", [text], foot=(None, None, "هر وقت خواستید میز تازه بسازید.")),
+                _row(_bt("new", f"میز تازهٔ {g['name']}", "success", callback_data=f"gt:new:{game}")))
 
 
 async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
@@ -190,33 +189,37 @@ async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
     if m["status"] == "lobby":
         host = next((s for s in seats if s.get("tg") == row["host"]), None)
         free = need - len(seats)
-        items = [mention(s["tg"], s["name"]) for s in seats] + ["⬜ جای خالی"] * free
-        kb = [_row(_b("بنشین", "success", callback_data=f"gt:join:{mid}"), _b("بلند شو", "danger", callback_data=f"gt:leave:{mid}"))]
+        lines = [["سازنده: ", *(who(host["tg"], host["name"]) if host else ["—"])], "",
+                 [st.E("users"), " ", st.B(f"سر میز ({fd(len(seats))} از {fd(need)})")]]
+        lines += [[f"{fd(i + 1)}. ", *who(s["tg"], s["name"])] for i, s in enumerate(seats)]
+        lines += [[f"{fd(i + 1)}. ", st.E("empty"), " جای خالی"] for i in range(len(seats), need)]
+        foot = ("seat", "جای خالی", f"{fd(free)} صندلی مونده؛ «بنشین» رو بزن") if free else ("party", "میز پر شد", "الان بازی شروع می‌شه")
+        rows = [_row(_bt("seat", "بنشین", "success", callback_data=f"gt:join:{mid}"),
+                     _bt("leave", "بلند شو", "danger", callback_data=f"gt:leave:{mid}"))]
         if free:
-            kb.append(_row(_b("شروع؛ جای خالی را ربات پر کند", "primary", callback_data=f"gt:start:{mid}")))
-        return _rm([_h(f"{g['icon']} میز {g['name']}"), _p(summary(game, cfg)),
-                    _p("سازنده: ", mention(row["host"], host["name"]) if host else "—"),
-                    _p(RichTextBold(text=f"سر میز ({fd(len(seats))} از {fd(need)}):")), _list(items),
-                    _p(f"{fd(free)} جای خالی مانده؛ «بنشین» را بزن." if free else "میز پر شد!"), *kb])
-    players = [mention(s["tg"], s["name"]) if not s.get("bot") else f"🤖 {s['name']}" for s in seats]
+            rows.append(_row(_bt("robot", "شروع؛ جای خالی با ربات", "primary", callback_data=f"gt:start:{mid}")))
+        return card(st.frame(game, f"میز {g['name']}", summary(game, cfg), lines, foot), *rows)
+    players = [[st.E("users"), " ", st.B("بازیکن‌ها")], *[_player_line(s) for s in seats]]
     if m["status"] == "playing":
         link = watch_link(game, mid)
-        return _rm([_h(f"{g['icon']} بازی {g['name']} شروع شد"), _p(summary(game, cfg)),
-                    _p(RichTextBold(text="بازیکن‌ها:")), _list(players),
-                    *([_row(_b("👀 دیدن بازی", "primary", url=link))] if link else []),
-                    InputRichBlockFooter(text="اعضای گروه بازی را زنده می‌بینند؛ بازیکن‌ها با همین دکمه وارد بازی می‌شوند.")])
-    again = _row(_b(f"میز تازهٔ {g['name']}", "success", callback_data=f"gt:new:{game}"))
+        return card(st.frame(game, f"بازی {g['name']}", f"شروع شد · {summary(game, cfg)}", players,
+                             foot=("watch", "تماشا", "اعضای گروه بازی رو زنده می‌بینن")),
+                    *([_row(_bt("watch", "دیدن بازی", "primary", url=link))] if link else []))
     if m["status"] == "cancelled":
         return closed_card(game)
-    st = m["state"]
-    win_colors = service._winners(st)
-    winners = [mention(s["tg"], s["name"]) if not s.get("bot") else s["name"] for s in seats if s.get("color") in win_colors]
-    sc = st.get("score")
-    res = ["🏆 برنده: "] + [x for i, w in enumerate(winners) for x in ([" و "] if i else []) + [w]] if winners else ["بازی بدون برنده تمام شد."]
-    blocks = [_h(f"{g['icon']} بازی {g['name']} تمام شد"), _p(*res)]
+    state = m["state"]
+    win_colors = service._winners(state)
+    winners = [s for s in seats if s.get("color") in win_colors]
+    res: list = [st.E("trophy"), " برنده: "]
+    for i, s in enumerate(winners):
+        res += ([" و "] if i else []) + (who(s["tg"], s["name"]) if not s.get("bot") else [st.iso(s["name"])])
+    lines = [res if winners else "بازی بدون برنده تموم شد."]
+    sc = state.get("score")
     if isinstance(sc, list) and len(sc) == 2:
-        blocks.append(_p(f"نتیجه: {fd(sc[0])} – {fd(sc[1])}"))
-    return _rm(blocks + [_p(RichTextBold(text="بازیکن‌ها:")), _list(players), again])
+        lines.append([st.E("score"), f" نتیجه: {fd(sc[0])} – {fd(sc[1])}"])
+    return card(st.frame(game, f"بازی {g['name']}", "تموم شد", lines + [""] + players,
+                         foot=(None, None, "یه دست دیگه؟ میز تازه بساز.")),
+                _row(_bt("new", f"میز تازهٔ {g['name']}", "success", callback_data=f"gt:new:{game}")))
 
 
 # ---------- به روز کردن کارت (از دکمه ها یا هر تغییری در سرویس) ----------
@@ -278,16 +281,18 @@ async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
         # ۱) پیوی ربات (اگر کاربر قبلا ربات را استارت کرده باشد)
         try:
             from .bot import open_kb
-            await _bot.send_message(tg, f"{g['icon']} بازی <b>{g['name']}</b> در «{_esc(title)}» شروع شد! بزن تا وارد شوی:",
-                                    reply_markup=open_kb(f"{row['game']}.html", "ورود به بازی"))
+            text = st.to_html(st.frame(row["game"], f"بازی {g['name']}", "شروع شد", [
+                ["بازی توی «", st.iso(title), "» شروع شد؛ بقیه منتظرتن."]], foot=("play", "ورود", "دکمهٔ زیر رو بزن")))
+            await _bot.send_message(tg, text, reply_markup=open_kb(f"{row['game']}.html", "ورود به بازی", "play"))
         except Exception:  # noqa: BLE001
             pass
         # ۲) پیام فقط-برای-او داخل همان گروه (Ephemeral Messages)؛ کارت اینلاین چت را نمی شناسد
         if not row["chat_id"]:
             continue
         try:
-            rm = _rm([_p(mention(tg, s["name"]), f"، بازی {g['name']} شروع شد!"),
-                      *([_row(_b("ورود به بازی", "primary", url=link))] if link else [])])
+            rm = card(st.frame(row["game"], f"بازی {g['name']}", "شروع شد", [[*who(tg, s["name"]), "، میز پر شد و بازی شروع شد!"]],
+                               foot=("play", "ورود", "فقط تو این پیام رو می‌بینی")),
+                      *([_row(_bt("play", "ورود به بازی", "primary", url=link))] if link else []))
             await _send(row["chat_id"], rm, ephemeral_message_parameters=EphemeralMessageParameters(receiver_user_id=tg))
         except Exception:  # noqa: BLE001
             log.debug("پیام ephemeral نرفت", exc_info=True)
@@ -302,7 +307,7 @@ async def expire(db: GCDatabase) -> None:
     before = int(time.time()) - OPEN_TTL
     for d in await db.stale_drafts(before):
         if await db.claim_draft(d["token"], "closed"):
-            await _edit(_where(d), closed_card(d["game"], "کسی میز را باز نکرد؛ هر وقت خواستید دوباره بسازید."))
+            await _edit(_where(d), closed_card(d["game"], "کسی میز رو باز نکرد."))
     for row in await db.stale_group_tables(before):
         m = await db.get_match(row["match_id"])
         if m and m["status"] == "lobby":
@@ -378,9 +383,10 @@ async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
 
 @router.message(GROUP, Command("play", "start"))
 async def on_play(message: Message) -> None:
-    await _send(message.chat.id, _rm([_h("Game Club"), _p("چه بازی‌ای بازی کنیم؟ هر کس بزند میز را تنظیم می‌کند و خودش اول می‌نشیند."),
-                                      _row(*[_b(f"{g['icon']} {g['name']}", "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}")
-                                             for k, g in GAMES.items()])]))
+    await _send(message.chat.id, card(
+        st.frame("brand", "Game Club", "بازی در گروه", ["چی بازی کنیم؟ هر کس بزنه، میز رو تنظیم می‌کنه و خودش اول می‌شینه."],
+                 foot=("group", "بازی‌ها", "حکم، منچ و فوتبال؛ همه آزاد و بدون امتیاز")),
+        _row(*[_bt(k, g["name"], "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}") for k, g in GAMES.items()])))
 
 
 async def _draft_err(cq: CallbackQuery, text: str) -> None:
@@ -402,7 +408,7 @@ async def on_setup(cq: CallbackQuery, gdb: GCDatabase) -> None:
         d["inline_message_id"] = cq.inline_message_id
     if act == "cancel":
         if await gdb.claim_draft(token, "closed"):
-            await _edit(_where(d), closed_card(d["game"], "سازنده میز را لغو کرد."))
+            await _edit(_where(d), closed_card(d["game"], "سازنده میز رو لغو کرد."))
         await cq.answer("لغو شد")
         return
     if act == "open":
