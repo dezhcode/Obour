@@ -221,14 +221,22 @@ CREATE TABLE IF NOT EXISTS group_tables (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS group_tables_chat ON group_tables(chat_id, game, status);
--- کارت اینلاینی که هنوز میزش ساخته نشده (اولین لمس دکمه میز را می سازد)
-CREATE TABLE IF NOT EXISTS inline_tokens (
+-- کارت «تنظیم میز» در گروه یا اینلاین: سازنده حالت بازی را انتخاب می کند و با «باز کردن میز»
+-- میز واقعی ساخته می شود (status: setup، open، closed)
+CREATE TABLE IF NOT EXISTS group_drafts (
   token TEXT PRIMARY KEY,
   host INTEGER NOT NULL,
   game TEXT NOT NULL,
+  cfg TEXT NOT NULL DEFAULT '{}',
+  chat_id INTEGER NOT NULL DEFAULT 0,
+  chat_title TEXT NOT NULL DEFAULT '',
+  message_id INTEGER NOT NULL DEFAULT 0,
+  inline_message_id TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'setup',
   match_id TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS group_drafts_chat ON group_drafts(chat_id, game, status);
 CREATE INDEX IF NOT EXISTS dms_sender ON dms(sender, created_at);
 -- آخرین پیامی که tg_id از other خوانده
 CREATE TABLE IF NOT EXISTS dm_read (
@@ -477,18 +485,44 @@ class GCDatabase:
     async def set_group_inline(self, match_id: str, inline_message_id: str) -> None:
         await self.execute("UPDATE group_tables SET inline_message_id = ? WHERE match_id = ?", (inline_message_id, match_id))
 
-    async def new_inline_token(self, host: int, game: str) -> str:
+    # ---------- کارت تنظیم میز ----------
+    async def new_draft(self, host: int, game: str, cfg: dict, chat_id: int = 0, title: str = "") -> str:
         now = int(time.time())
-        await self.execute("DELETE FROM inline_tokens WHERE created_at < ? AND match_id = ''", (now - 7 * 86400,))
+        # کارت های اینلاینی که هیچ وقت فرستاده نشدند (هر حرف تایپ شده یکی می سازد) بعد از یک روز، بقیه بعد از یک هفته
+        await self.execute("DELETE FROM group_drafts WHERE status != 'open' AND (created_at < ? OR (created_at < ? "
+                           "AND message_id = 0 AND inline_message_id = ''))", (now - 7 * 86400, now - 86400))
         token = secrets.token_urlsafe(9)
-        await self.execute("INSERT INTO inline_tokens(token, host, game, created_at) VALUES(?,?,?,?)", (token, host, game, now))
+        await self.execute("INSERT INTO group_drafts(token, host, game, cfg, chat_id, chat_title, created_at) VALUES(?,?,?,?,?,?,?)",
+                           (token, host, game, json.dumps(cfg), chat_id, (title or "")[:120], now))
         return token
 
-    async def inline_token(self, token: str) -> dict | None:
-        return await self.one("SELECT * FROM inline_tokens WHERE token = ?", (str(token)[:40],))
+    async def draft(self, token: str) -> dict | None:
+        r = await self.one("SELECT * FROM group_drafts WHERE token = ?", (str(token)[:40],))
+        if r:
+            r["cfg"] = json.loads(r["cfg"] or "{}")
+        return r
 
-    async def set_inline_match(self, token: str, match_id: str) -> None:
-        await self.execute("UPDATE inline_tokens SET match_id = ? WHERE token = ?", (match_id, token))
+    async def set_draft(self, token: str, **kw) -> None:
+        ok = {"cfg", "chat_id", "chat_title", "message_id", "inline_message_id", "match_id"}
+        cols = [k for k in kw if k in ok]
+        if cols:
+            vals = [json.dumps(kw[k]) if k == "cfg" else kw[k] for k in cols]
+            await self.execute(f"UPDATE group_drafts SET {', '.join(c + ' = ?' for c in cols)} WHERE token = ?", (*vals, token))
+
+    async def claim_draft(self, token: str, status: str) -> bool:
+        """setup → open یا closed؛ فقط یک بار (دو لمس هم زمان دو میز نمی سازد)."""
+        return bool(await self.execute("UPDATE group_drafts SET status = ? WHERE token = ? AND status = 'setup'", (status, token)))
+
+    async def unclaim_draft(self, token: str) -> None:
+        await self.execute("UPDATE group_drafts SET status = 'setup' WHERE token = ? AND match_id = ''", (token,))
+
+    async def setup_draft_in(self, chat_id: int, game: str, after: int) -> dict | None:
+        return await self.one("SELECT * FROM group_drafts WHERE chat_id = ? AND game = ? AND status = 'setup' AND created_at >= ?",
+                              (chat_id, game, after))
+
+    async def stale_drafts(self, before: int) -> list[dict]:
+        return await self.all("SELECT * FROM group_drafts WHERE status = 'setup' AND created_at < ? "
+                              "AND (message_id > 0 OR inline_message_id != '')", (before,))
 
     async def stale_group_tables(self, before: int) -> list[dict]:
         return await self.all("SELECT g.* FROM group_tables g JOIN matches m ON m.id = g.match_id "

@@ -111,6 +111,7 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 /* دست بادبزنی */
 .hk-hand{position:relative;flex:none;height:150px;direction:ltr}
 .hk-hand .hk-card{left:calc(50% - 32px);bottom:14px;transform-origin:50% 520px;transform:rotate(var(--a,0deg)) translate(var(--jx,0px),calc(var(--y,0px) + var(--jy,0px)));transition:transform .24s cubic-bezier(.2,.8,.3,1),filter .2s,box-shadow .2s}
+.hk-hand .hk-back{left:calc(50% - 32px);bottom:14px;transform-origin:50% 520px}
 /* سایه واقعی برگ های دست: نور از بالا راست، پس هر برگ روی برگ زیری (سمت چپش) سه لایه سایه
    می اندازد: خط تماس تیز و تیره درست کنار لبه، نیم سایه نرم، و سایه پخش محیطی. هر چه برگ بالاتر
    باشد (قابل بازی، در حال کشیدن) سایه دورتر، پخش تر و کم رنگ تر از لبه می شود؛ برگ های پایین

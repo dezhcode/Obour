@@ -14,7 +14,10 @@ const ROT = { yellow: 0, green: 90, red: 180, blue: 270 };
 const BASE = { blue: 0, red: 1, green: 2, yellow: 3 };
 const POLL_MS = 900, STEP_MS = 150;
 
-let mid = store.get('mid', null);
+// تماشاگر (از کارت میز گروه): ?watch=شناسه؛ اگر خودش سر میز باشد همان بازیکن است
+const watchMid = GC.watchId();
+let WATCH = false;
+let mid = watchMid || store.get('mid', null);
 let me = 'yellow', rot = 0, since = 0, snap = null, shown = {}, els = {}, busy = false, acting = false, overShown = false;
 let deadlineAt = 0, turnMs = 20000, warned = false, pollT = null;
 
@@ -132,7 +135,7 @@ function renderTurn(g) {
   else if (mine && g.phase === 'move') {
     dock(FD(g.dice) + ' آوردی', 'مهره‌ای را که بالا و پایین می‌پرد بزن؛ دایرهٔ خط‌چین مقصدش است', 'pick');
     showHints(g.dice, g.movable);
-  } else dock('نوبت ' + nameOf(g.turn), g.players[g.turn] && g.players[g.turn].bot ? 'ربات فکر می‌کند…' : 'منتظر حرکت حریف…', 'wait');
+  } else dock('نوبت ' + nameOf(g.turn), g.players[g.turn] && g.players[g.turn].bot ? 'ربات فکر می‌کند…' : WATCH ? 'منتظر حرکت…' : 'منتظر حرکت حریف…', 'wait');
   setDeadline(g.deadline_ms); turnMs = g.turn_ms || 20000; tickTimer();
 }
 function clearHints() {
@@ -352,6 +355,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 
 /* ---------- پایان، خروج ---------- */
 function over(v) {
+  if (WATCH) { const w = v.game.winner; sfx.win(); GC.watchOver('ludo', 'بازی تمام شد', w ? nameOf(w) + ' برد.' : 'بازی بدون برنده تمام شد.'); return; }
   endChat();
   const g = v.game, r = v.result || {}, w = g.winner, won = w === me;
   GC.guardClose(false); store.set('mid', null);
@@ -371,19 +375,21 @@ function over(v) {
 }
 function cancelled() {
   if (overShown) return;
+  if (WATCH) { overShown = true; GC.watchOver('ludo', 'این میز بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
   overShown = true; endChat(); GC.guardClose(false); store.set('mid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
       <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میز را بست و ورودی همه به کیف امتیازشان برگشت.</p>
       <div class="dlg-acts"><a class="btn" href="ludo-lobby.html">میز تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
+  if (watchMid) { GC.watchOver('ludo', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
   store.set('mid', null);
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
       <h2 id="dT">میزی پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز سر میزی ننشسته‌ای.</p>
       <div class="dlg-acts"><a class="btn" href="ludo-lobby.html">یک میز بساز</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
 }
 function askExit() {
-  if (!snap || snap.status === 'over') { location.href = 'index.html'; return; }
+  if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake';
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
@@ -437,16 +443,19 @@ async function start() {
   let first;
   try { first = await GC.ludo.match(mid, 0, 0); }
   catch (e) { return e.code === 'not_found' ? noMatch() : (toast(errText(e)), setTimeout(start, 2500)); }
-  if (first.status === 'lobby') { location.href = 'ludo-lobby.html'; return; }
+  WATCH = !!first.watch;
+  if (first.status === 'lobby') { if (watchMid) return noMatch(); location.href = 'ludo-lobby.html'; return; }
   if (first.status === 'cancelled') return cancelled();
-  mid = first.id; store.set('mid', mid); me = first.me; setRotation();
+  mid = first.id; me = first.me; setRotation();
   const g = first.game;
   $('myDie').className = 'die c-' + me + ' ghost';
+  // تماشاگر: صفحه از دید اولین رنگ؛ بعد از چرخاندن، «من» هیچ رنگی نیست تا نوبت و دکمه ها مال کسی نشود
+  if (WATCH) { me = 'watch'; GC.watchPill(); } else store.set('mid', mid);
   if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   snap = first; since = g.seq; shown = clone(g.pawns); ensurePawns(g); layout(); renderSeats(g); renderTurn(g); mount(); fitBoard();
   if (first.status === 'over') { overShown = true; over(first); return; }
-  if (!S.tutorial) await GC.coach(me);
+  if (!S.tutorial && !WATCH) await GC.coach(me);
   poll();
 }
 start();

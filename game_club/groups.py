@@ -1,10 +1,14 @@
-"""بازی در گروه های تلگرام: ربات یک «کارت میز» در گروه می فرستد و هر کس دکمهٔ «بنشین» را بزند سر میز می نشیند.
+"""بازی در گروه های تلگرام: ربات یک «کارت میز» در گروه می فرستد؛ دکمه ها داخل خود پیام اند
+(پیام غنی Bot API 10.3 با بلوک دکمه)، نه کیبورد شیشه ای زیر پیام.
 
-- /hokm، /ludo، /football (یا /play برای انتخاب بازی) در گروه میز آزاد می سازد؛ سازنده خودش می نشیند.
-- با هر نشستن یا بلند شدن، متن کارت عوض می شود: چه کسانی نشسته اند (با منشن) و چند جای خالی مانده.
-- وقتی میز پر شد یا سازنده «شروع» را زد، کارت «بازی شروع شد» می شود با دکمهٔ ورود به مینی اپ،
-  به هر بازیکن در پیوی ربات پیام می رود و در خود گروه هم یک پیام فقط-برای-او (ephemeral).
+- /hokm، /ludo، /football (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
+  (طول بازی، تعداد بازیکن، مدل) را انتخاب می کند و «باز کردن میز» را می زند؛ سازنده خودش می نشیند.
+- با هر نشستن یا بلند شدن، کارت عوض می شود: چه کسانی نشسته اند (با منشن) و چند جای خالی مانده.
+- وقتی میز پر شد یا سازنده «شروع» را زد، دکمه های میز می روند و کارت «بازی شروع شد» می شود با اسم
+  بازی، بازیکن ها و دکمهٔ «دیدن بازی» تا اعضای گروه بازی را زنده ببینند. به هر بازیکن در پیوی ربات
+  و در خود گروه (پیام فقط-برای-او) خبر می رود.
 - آخر بازی کارت نتیجه را نشان می دهد با دکمهٔ «میز تازه». میزی که ۱۵ دقیقه شروع نشود بسته می شود.
+- همین کارت با @ربات hokm در هر چتی (حالت اینلاین) یا از مینی اپ («فرستادن به گروه») هم فرستاده می شود.
 میزهای گروه همیشه آزاد اند (بدون امتیاز) تا با یک لمس اتفاقی از کسی امتیاز کم نشود.
 """
 from __future__ import annotations
@@ -14,7 +18,24 @@ import time
 
 from aiogram import Bot, F, Router
 from aiogram.filters import Command
-from aiogram.types import CallbackQuery, EphemeralMessageParameters, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import (
+    CallbackQuery,
+    EphemeralMessageParameters,
+    InlineQueryResultArticle,
+    InputRichBlockButtons,
+    InputRichBlockFooter,
+    InputRichBlockList,
+    InputRichBlockListItem,
+    InputRichBlockParagraph,
+    InputRichBlockSectionHeading,
+    InputRichMessage,
+    InputRichMessageContent,
+    Message,
+    RichMessageButton,
+    RichTextBold,
+    RichTextTextMention,
+    User,
+)
 
 from . import service
 from .config import gc
@@ -25,32 +46,106 @@ log = logging.getLogger(__name__)
 router = Router(name="gameclub-groups")
 GROUP = F.chat.type.in_({"group", "supergroup"})
 
+# opts: (کلید، عنوان، [(مقدار، برچسب)]) — همان حالت هایی که میز خصوصی مینی اپ دارد
 GAMES = {
-    "hokm": {"name": "حکم", "icon": "🃏", "cfg": {"game": "hokm", "mode": "free", "entry": 0, "target": 7}, "len": "تا ۷ دست"},
-    "ludo": {"name": "منچ", "icon": "🎲", "cfg": {"mode": "free", "entry": 0, "players": 4, "pawns": 2}, "len": "۴ نفره · ۲ مهره"},
-    "football": {"name": "فوتبال", "icon": "⚽", "cfg": {"game": "football", "mode": "free", "entry": 0, "target": 3}, "len": "تا ۳ گل"},
+    "hokm": {"name": "حکم", "icon": "🃏", "base": {"game": "hokm", "mode": "free", "entry": 0},
+             "opts": [("target", "طول بازی", [(3, "۳ دست · سریع"), (7, "۷ دست · کامل")])], "def": {"target": 7}},
+    "ludo": {"name": "منچ", "icon": "🎲", "base": {"mode": "free", "entry": 0},
+             "opts": [("players", "تعداد بازیکن", [(2, "۲ نفره"), (4, "۴ نفره")]),
+                      ("pawns", "مدل بازی", [(2, "سریع · ۲ مهره"), (4, "کلاسیک · ۴ مهره")])],
+             "def": {"players": 4, "pawns": 2}},
+    "football": {"name": "فوتبال", "icon": "⚽", "base": {"game": "football", "mode": "free", "entry": 0},
+                 "opts": [("target", "تا چند گل", [(3, "۳ گل · سریع"), (5, "۵ گل · کامل")])], "def": {"target": 3}},
 }
-OPEN_TTL = 15 * 60       # میزی که این مدت شروع نشود بسته می شود
+OPEN_TTL = 15 * 60       # میز یا کارت تنظیمی که این مدت شروع نشود بسته می شود
 FD = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 fd = lambda n: str(n).translate(FD)  # noqa: E731
 
 
-def mention(tg: int, name: str) -> str:
-    # یوزرنیم ها فقط a-z، عدد و _ هستند؛ امن برای HTML
-    return f'<a href="tg://user?id={int(tg)}">{name}</a>'
+def cfg_of(game: str, picks: dict) -> dict:
+    """تنظیم بازی از انتخاب های سازنده؛ فقط مقدارهای مجاز، بقیه پیش فرض."""
+    g = GAMES[game]
+    out = dict(g["base"])
+    for key, _, opts in g["opts"]:
+        v = picks.get(key)
+        out[key] = v if v in [o[0] for o in opts] else g["def"][key]
+    return out
+
+
+def need_of(game: str, cfg: dict) -> int:
+    return int(cfg.get("players") or 0) if game == "ludo" else 4 if game == "hokm" else 2
+
+
+def summary(game: str, cfg: dict) -> str:
+    n = fd(need_of(game, cfg))
+    if game == "hokm":
+        return f"آزاد · {n} نفره · تا {fd(cfg.get('target', 7))} دست"
+    if game == "ludo":
+        return f"آزاد · {n} نفره · {'کلاسیک' if cfg.get('pawns') == 4 else 'سریع'} ({fd(cfg.get('pawns', 2))} مهره)"
+    return f"آزاد · {n} نفره · تا {fd(cfg.get('target', 3))} گل"
 
 
 def app_link(game: str, code: str) -> str:
     """لینک مستقیم مینی اپ اصلی ربات (Main Mini App) که مستقیم سر همین میز باز می شود."""
-    return f"https://t.me/{gc.username}?startapp={game}_{code}" if gc.username else ""
+    return f"https://t.me/{gc.username}?startapp={game}_{code}" if gc.username and code else ""
 
 
-def _btn(text: str, style: str | None = None, **kw) -> InlineKeyboardButton:
-    # رنگ دکمه (Bot API فوریه ۲۰۲۶)؛ تلگرام های قدیمی همان دکمهٔ ساده را نشان می دهند
-    return InlineKeyboardButton(text=text, style=style, **kw)
+def watch_link(game: str, match_id: str) -> str:
+    """«دیدن بازی»: صفحهٔ بازی در حالت تماشا (بازیکن خودِ میز با همین لینک بازی خودش را باز می کند)."""
+    return f"https://t.me/{gc.username}?startapp=w_{game}_{match_id}" if gc.username else ""
 
 
-# ---------- ساختن کارت ----------
+# ---------- اجزای پیام غنی ----------
+def mention(tg: int, name: str) -> RichTextTextMention:
+    return RichTextTextMention(text=name or "بازیکن", user=User(id=int(tg), is_bot=False, first_name=name or "بازیکن"))
+
+
+def _p(*parts) -> InputRichBlockParagraph:  # noqa: ANN002
+    return InputRichBlockParagraph(text=list(parts))
+
+
+def _h(text: str, size: int = 2) -> InputRichBlockSectionHeading:
+    return InputRichBlockSectionHeading(text=text, size=size)
+
+
+def _b(text: str, style: str | None = None, **kw) -> RichMessageButton:
+    return RichMessageButton(text=text, style=style, **kw)
+
+
+def _row(*buttons: RichMessageButton) -> InputRichBlockButtons:
+    return InputRichBlockButtons(buttons=list(buttons), align="center")
+
+
+def _list(items: list) -> InputRichBlockList:
+    return InputRichBlockList(items=[InputRichBlockListItem(blocks=[_p(*(x if isinstance(x, list) else [x]))]) for x in items])
+
+
+def _rm(blocks: list) -> InputRichMessage:
+    return InputRichMessage(blocks=blocks, is_rtl=True)
+
+
+def plain(rm: InputRichMessage) -> str:
+    """متن ساده پیام غنی (برای آزمون ها و لاگ)."""
+    def walk(x) -> str:  # noqa: ANN001
+        if isinstance(x, str):
+            return x
+        if isinstance(x, list):
+            return "".join(walk(y) for y in x)
+        if isinstance(x, dict):
+            return " ".join(walk(v) for k, v in x.items() if k in ("text", "blocks", "items", "buttons"))
+        return ""
+    return walk(rm.model_dump(exclude_none=True).get("blocks", []))
+
+
+def buttons(rm: InputRichMessage) -> list[RichMessageButton]:
+    out = []
+    for b in rm.blocks or []:
+        if isinstance(b, InputRichBlockButtons):
+            out += b.buttons
+    return out
+
+
+# ---------- کارت ها ----------
 async def _seats(db: GCDatabase, m: dict) -> list[dict]:
     """صندلی های پرشده به ترتیب نشستن: {tg, name} یا ربات {name, bot}."""
     if m["status"] == "lobby":
@@ -64,45 +159,64 @@ async def _seats(db: GCDatabase, m: dict) -> list[dict]:
     return out
 
 
-async def render(db: GCDatabase, m: dict, row: dict, ns: str = "gt") -> tuple[str, InlineKeyboardMarkup | None]:
-    """ns: پیشوند دکمه ها؛ gt برای میز ساخته شده، gi برای کارت اینلاینی که هنوز میزش ساخته نشده (شناسه = توکن)."""
-    g = GAMES[row["game"]]
+async def setup_card(db: GCDatabase, d: dict) -> InputRichMessage:
+    """کارت تنظیم میز: فقط سازنده حالت را عوض می کند و میز را باز می کند."""
+    g, cfg, tok = GAMES[d["game"]], cfg_of(d["game"], d["cfg"]), d["token"]
+    host = await db.get_player(d["host"]) or {}
+    blocks = [_h(f"{g['icon']} میز {g['name']}"),
+              _p("سازنده: ", mention(d["host"], host.get("name") or "بازیکن")),
+              _p("حالت بازی را انتخاب کن و «باز کردن میز» را بزن تا بقیه بنشینند.")]
+    for key, label, opts in g["opts"]:
+        blocks.append(_p(RichTextBold(text=label)))
+        blocks.append(_row(*[_b(("✓ " if cfg[key] == v else "") + lab, "primary" if cfg[key] == v else None,
+                                callback_data=f"gs:{key}={v}:{tok}") for v, lab in opts]))
+    blocks.append(_row(_b("باز کردن میز", "success", callback_data=f"gs:open:{tok}"),
+                       _b("لغو", "danger", callback_data=f"gs:cancel:{tok}")))
+    blocks.append(InputRichBlockFooter(text=f"{summary(d['game'], cfg)} · فقط سازنده تنظیم می‌کند"))
+    return _rm(blocks)
+
+
+def closed_card(game: str, text: str = "هر وقت خواستید میز تازه بسازید.") -> InputRichMessage:
+    g = GAMES[game]
+    return _rm([_h(f"{g['icon']} میز {g['name']} بسته شد"), _p(text),
+                _row(_b(f"میز تازهٔ {g['name']}", "success", callback_data=f"gt:new:{game}"))])
+
+
+async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
+    g, game = GAMES[row["game"]], row["game"]
     cfg, mid = m["cfg"], m["id"]
-    need = int(cfg.get("players") or (4 if row["game"] == "hokm" else 2))
+    need = need_of(game, cfg)
     seats = await _seats(db, m)
-    host = next((s for s in seats if s.get("tg") == row["host"]), None)
-    head = f"{g['icon']} <b>میز {g['name']}</b> · آزاد · {g['len']}"
     if m["status"] == "lobby":
-        lines = [f"{fd(i + 1)}. {mention(s['tg'], s['name'])}" for i, s in enumerate(seats)]
-        lines += [f"{fd(i + 1)}. ⬜ جای خالی" for i in range(len(seats), need)]
+        host = next((s for s in seats if s.get("tg") == row["host"]), None)
         free = need - len(seats)
-        text = (f"{head}\nسازنده: {mention(row['host'], host['name']) if host else '—'}\n\n"
-                f"<b>سر میز ({fd(len(seats))} از {fd(need)}):</b>\n" + "\n".join(lines) + "\n\n"
-                + (f"{fd(free)} جای خالی مانده؛ «بنشین» را بزن." if free else "میز پر شد!"))
-        kb = [[_btn("بنشین", "success", callback_data=f"{ns}:join:{mid}"), _btn("بلند شو", "danger", callback_data=f"{ns}:leave:{mid}")]]
-        if len(seats) < need:
-            kb.append([_btn("شروع؛ جای خالی را ربات پر کند", "primary", callback_data=f"{ns}:start:{mid}")])
-        return text, InlineKeyboardMarkup(inline_keyboard=kb)
-    humans = [mention(s["tg"], s["name"]) for s in seats if not s.get("bot")]
-    bots = [s["name"] for s in seats if s.get("bot")]
-    who = "، ".join(humans) + (f" و ربات‌ها: {'، '.join(bots)}" if bots else "")
+        items = [mention(s["tg"], s["name"]) for s in seats] + ["⬜ جای خالی"] * free
+        kb = [_row(_b("بنشین", "success", callback_data=f"gt:join:{mid}"), _b("بلند شو", "danger", callback_data=f"gt:leave:{mid}"))]
+        if free:
+            kb.append(_row(_b("شروع؛ جای خالی را ربات پر کند", "primary", callback_data=f"gt:start:{mid}")))
+        return _rm([_h(f"{g['icon']} میز {g['name']}"), _p(summary(game, cfg)),
+                    _p("سازنده: ", mention(row["host"], host["name"]) if host else "—"),
+                    _p(RichTextBold(text=f"سر میز ({fd(len(seats))} از {fd(need)}):")), _list(items),
+                    _p(f"{fd(free)} جای خالی مانده؛ «بنشین» را بزن." if free else "میز پر شد!"), *kb])
+    players = [mention(s["tg"], s["name"]) if not s.get("bot") else f"🤖 {s['name']}" for s in seats]
     if m["status"] == "playing":
-        text = f"{g['icon']} <b>بازی {g['name']} شروع شد!</b>\n\nبازیکن‌ها: {who}\n\nهر کس سر میز است «ورود به بازی» را بزند."
-        link = app_link(row["game"], m.get("invite") or "")
-        kb = [[_btn("ورود به بازی", "primary", url=link)]] if link else []
-        return text, InlineKeyboardMarkup(inline_keyboard=kb) if kb else None
-    # کارت اینلاین (فرستاده با @ربات یا از مینی اپ) چت را نمی شناسد؛ میز تازه در همان پیام ساخته می شود
-    again_ns = "gi" if row.get("inline_message_id") else "gt"
-    again = InlineKeyboardMarkup(inline_keyboard=[[_btn(f"میز تازهٔ {g['name']}", "success", callback_data=f"{again_ns}:new:{row['game']}")]])
+        link = watch_link(game, mid)
+        return _rm([_h(f"{g['icon']} بازی {g['name']} شروع شد"), _p(summary(game, cfg)),
+                    _p(RichTextBold(text="بازیکن‌ها:")), _list(players),
+                    *([_row(_b("👀 دیدن بازی", "primary", url=link))] if link else []),
+                    InputRichBlockFooter(text="اعضای گروه بازی را زنده می‌بینند؛ بازیکن‌ها با همین دکمه وارد بازی می‌شوند.")])
+    again = _row(_b(f"میز تازهٔ {g['name']}", "success", callback_data=f"gt:new:{game}"))
     if m["status"] == "cancelled":
-        return f"{g['icon']} <b>میز {g['name']} بسته شد.</b>\nهر وقت خواستید میز تازه بسازید.", again
+        return closed_card(game)
     st = m["state"]
     win_colors = service._winners(st)
     winners = [mention(s["tg"], s["name"]) if not s.get("bot") else s["name"] for s in seats if s.get("color") in win_colors]
     sc = st.get("score")
-    score = f"\nنتیجه: {fd(sc[0])} – {fd(sc[1])}" if isinstance(sc, list) and len(sc) == 2 else ""
-    res = f"🏆 برنده: {' و '.join(winners)}" if winners else "بازی بدون برنده تمام شد."
-    return f"{g['icon']} <b>بازی {g['name']} تمام شد</b>\n\n{res}{score}\n\nبازیکن‌ها: {who}", again
+    res = ["🏆 برنده: "] + [x for i, w in enumerate(winners) for x in ([" و "] if i else []) + [w]] if winners else ["بازی بدون برنده تمام شد."]
+    blocks = [_h(f"{g['icon']} بازی {g['name']} تمام شد"), _p(*res)]
+    if isinstance(sc, list) and len(sc) == 2:
+        blocks.append(_p(f"نتیجه: {fd(sc[0])} – {fd(sc[1])}"))
+    return _rm(blocks + [_p(RichTextBold(text="بازیکن‌ها:")), _list(players), again])
 
 
 # ---------- به روز کردن کارت (از دکمه ها یا هر تغییری در سرویس) ----------
@@ -116,6 +230,29 @@ def install(bot: Bot, db: GCDatabase) -> None:
     service.table_hook = refresh
 
 
+def _where(row: dict) -> dict | None:
+    if row.get("inline_message_id"):
+        return {"inline_message_id": row["inline_message_id"]}
+    if row.get("message_id"):
+        return {"chat_id": row["chat_id"], "message_id": row["message_id"]}
+    return None
+
+
+async def _edit(where: dict | None, rm: InputRichMessage) -> None:
+    if not where or not _bot:
+        return
+    try:
+        await _bot.edit_message_text(rich_message=rm, parse_mode=None, link_preview_options=None,
+                                     disable_web_page_preview=None, **where)
+    except Exception as e:  # noqa: BLE001  (مثلا «message is not modified» یا پیام پاک شده)
+        if "not modified" not in str(e):
+            log.debug("کارت میز گروه به روز نشد", exc_info=True)
+
+
+async def _send(chat_id: int, rm: InputRichMessage, **kw):  # noqa: ANN202
+    return await _bot.send_rich_message(chat_id=chat_id, rich_message=rm, **kw)
+
+
 async def refresh(db: GCDatabase, match_id: str) -> None:
     row = await db.group_table(match_id)
     if not row or not _bot:
@@ -124,15 +261,7 @@ async def refresh(db: GCDatabase, match_id: str) -> None:
     if not m:
         return
     status = {"lobby": "open", "playing": "playing", "over": "over", "cancelled": "closed"}.get(m["status"], "closed")
-    text, kb = await render(db, m, row)
-    if row["message_id"] or row.get("inline_message_id"):
-        try:
-            where = {"inline_message_id": row["inline_message_id"]} if row.get("inline_message_id") else \
-                {"chat_id": row["chat_id"], "message_id": row["message_id"]}
-            await _bot.edit_message_text(text, reply_markup=kb, disable_web_page_preview=True, **where)
-        except Exception as e:  # noqa: BLE001  (مثلا «message is not modified» یا پیام پاک شده)
-            if "not modified" not in str(e):
-                log.debug("کارت میز گروه به روز نشد", exc_info=True)
+    await _edit(_where(row), await render(db, m, row))
     # فقط بار اول که میز شروع می شود (یک پروسه برنده می شود) به بازیکن ها خبر می دهیم
     if status != row["status"] and await db.set_group_status(match_id, row["status"], status) and status == "playing":
         await _announce_start(db, m, row)
@@ -149,7 +278,7 @@ async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
         # ۱) پیوی ربات (اگر کاربر قبلا ربات را استارت کرده باشد)
         try:
             from .bot import open_kb
-            await _bot.send_message(tg, f"{g['icon']} بازی <b>{g['name']}</b> در گروه «{_esc(title)}» شروع شد! بزن تا وارد شوی:",
+            await _bot.send_message(tg, f"{g['icon']} بازی <b>{g['name']}</b> در «{_esc(title)}» شروع شد! بزن تا وارد شوی:",
                                     reply_markup=open_kb(f"{row['game']}.html", "ورود به بازی"))
         except Exception:  # noqa: BLE001
             pass
@@ -157,9 +286,9 @@ async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
         if not row["chat_id"]:
             continue
         try:
-            kb = InlineKeyboardMarkup(inline_keyboard=[[_btn("ورود به بازی", "primary", url=link)]]) if link else None
-            await _bot.send_message(row["chat_id"], f"{mention(tg, s['name'])}، بازی {g['name']} شروع شد! «ورود به بازی» را بزن.",
-                                    reply_markup=kb, ephemeral_message_parameters=EphemeralMessageParameters(receiver_user_id=tg))
+            rm = _rm([_p(mention(tg, s["name"]), f"، بازی {g['name']} شروع شد!"),
+                      *([_row(_b("ورود به بازی", "primary", url=link))] if link else [])])
+            await _send(row["chat_id"], rm, ephemeral_message_parameters=EphemeralMessageParameters(receiver_user_id=tg))
         except Exception:  # noqa: BLE001
             log.debug("پیام ephemeral نرفت", exc_info=True)
 
@@ -169,8 +298,12 @@ def _esc(s: str) -> str:
 
 
 async def expire(db: GCDatabase) -> None:
-    """میزهای گروهی که مدتی شروع نشده اند بسته می شوند (سازنده بلند می شود = میز لغو)."""
-    for row in await db.stale_group_tables(int(time.time()) - OPEN_TTL):
+    """کارت تنظیم یا میزی که مدتی شروع نشده بسته می شود (سازنده بلند می شود = میز لغو)."""
+    before = int(time.time()) - OPEN_TTL
+    for d in await db.stale_drafts(before):
+        if await db.claim_draft(d["token"], "closed"):
+            await _edit(_where(d), closed_card(d["game"], "کسی میز را باز نکرد؛ هر وقت خواستید دوباره بسازید."))
+    for row in await db.stale_group_tables(before):
         m = await db.get_match(row["match_id"])
         if m and m["status"] == "lobby":
             try:
@@ -180,7 +313,7 @@ async def expire(db: GCDatabase) -> None:
         await refresh(db, row["match_id"])
 
 
-# ---------- دستورها و دکمه ها ----------
+# ---------- ساختن و باز کردن میز ----------
 def _name(u) -> str:  # noqa: ANN001
     return " ".join(x for x in (u.first_name, u.last_name) if x).strip() or u.username or "بازیکن"
 
@@ -194,23 +327,42 @@ async def _ephemeral(message: Message, text: str) -> None:
 
 
 async def create(db: GCDatabase, bot: Bot, chat, user, game: str) -> str | None:  # noqa: ANN001
-    """میز تازه در گروه؛ None یعنی ساخته شد، وگرنه متن خطا برای همان کاربر."""
+    """کارت تنظیم میز تازه در گروه؛ None یعنی فرستاده شد، وگرنه متن خطا برای همان کاربر."""
     await expire(db)
     me = await db.player(user.id, _name(user), user.username)
     if me.get("banned"):
         return "حساب تو در Game Club مسدود شده است."
+    name = GAMES[game]["name"]
     if await db.open_group_table(chat.id, game):
-        return f"یک میز {GAMES[game]['name']} همین الان در این گروه باز است؛ روی همان «بنشین» را بزن."
+        return f"یک میز {name} همین الان در این گروه باز است؛ روی همان «بنشین» را بزن."
+    if await db.setup_draft_in(chat.id, game, int(time.time()) - OPEN_TTL):
+        return f"یک میز {name} همین الان در حال تنظیم است؛ صبر کن سازنده‌اش بازش کند."
+    token = await db.new_draft(user.id, game, dict(GAMES[game]["def"]), chat.id, getattr(chat, "title", "") or "")
+    sent = await _send(chat.id, await setup_card(db, await db.draft(token)))
+    await db.set_draft(token, message_id=sent.message_id)
+    return None
+
+
+async def open_table(db: GCDatabase, d: dict) -> str | None:
+    """«باز کردن میز»: میز واقعی با تنظیم انتخاب شده؛ همان پیام کارت میز می شود."""
+    name = GAMES[d["game"]]["name"]
+    if d["chat_id"] and await db.open_group_table(d["chat_id"], d["game"]):
+        return f"یک میز {name} همین الان در این گروه باز است."
+    if not await db.claim_draft(d["token"], "open"):
+        return "این کارت دیگر فعال نیست."
     try:
-        r = await service.invite_create(db, user.id, dict(GAMES[game]["cfg"]))
+        r = await service.invite_create(db, d["host"], cfg_of(d["game"], d["cfg"]))
     except GCError as e:
+        await db.unclaim_draft(d["token"])
         return {"in_match": "تو الان سر یک میز دیگر هستی؛ اول آن را تمام کن."}.get(e.code, "میز ساخته نشد؛ دوباره امتحان کن.")
-    await db.add_group_table(r["match"], chat.id, getattr(chat, "title", "") or "", game, user.id)
-    m = await db.get_match(r["match"])
-    row = await db.group_table(r["match"])
-    text, kb = await render(db, m, row)
-    sent = await bot.send_message(chat.id, text, reply_markup=kb, disable_web_page_preview=True)
-    await db.set_group_message(r["match"], sent.message_id)
+    mid = r["match"]
+    await db.add_group_table(mid, d["chat_id"], d["chat_title"], d["game"], d["host"])
+    if d["message_id"]:
+        await db.set_group_message(mid, d["message_id"])
+    if d["inline_message_id"]:
+        await db.set_group_inline(mid, d["inline_message_id"])
+    await db.set_draft(d["token"], match_id=mid)
+    await refresh(db, mid)
     return None
 
 
@@ -226,30 +378,50 @@ async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
 
 @router.message(GROUP, Command("play", "start"))
 async def on_play(message: Message) -> None:
-    kb = InlineKeyboardMarkup(inline_keyboard=[[_btn(f"{g['icon']} {g['name']}", "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}")]
-                                               for k, g in GAMES.items()])
-    await message.answer("<b>Game Club</b>\nچه بازی‌ای بازی کنیم؟ هر کس بزند میز را می‌سازد و خودش اول می‌نشیند.", reply_markup=kb)
+    await _send(message.chat.id, _rm([_h("Game Club"), _p("چه بازی‌ای بازی کنیم؟ هر کس بزند میز را تنظیم می‌کند و خودش اول می‌نشیند."),
+                                      _row(*[_b(f"{g['icon']} {g['name']}", "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}")
+                                             for k, g in GAMES.items()])]))
 
 
-@router.callback_query(F.data.startswith("gt:"))
-async def on_button(cq: CallbackQuery, gdb: GCDatabase, bot: Bot) -> None:
-    parts = (cq.data or "").split(":", 2)
-    act, arg = (parts + ["", ""])[1:3]
-    u = cq.from_user
-    msg = cq.message
-    if act == "new":
-        if arg not in GAMES or not msg:
-            await cq.answer()
-            return
-        err = await create(gdb, bot, msg.chat, u, arg)
-        await cq.answer(err or f"میز {GAMES[arg]['name']} ساخته شد و نشستی!", show_alert=bool(err))
+async def _draft_err(cq: CallbackQuery, text: str) -> None:
+    await cq.answer(text, show_alert=True)
+
+
+@router.callback_query(F.data.startswith("gs:"))
+async def on_setup(cq: CallbackQuery, gdb: GCDatabase) -> None:
+    """دکمه های کارت تنظیم: gs:<کلید=مقدار|open|cancel>:<توکن>"""
+    act, _, token = (cq.data or "")[3:].partition(":")
+    d = await gdb.draft(token)
+    if not d or d["status"] != "setup":
+        return await _draft_err(cq, "این کارت دیگر فعال نیست.")
+    if cq.from_user.id != d["host"]:
+        return await _draft_err(cq, "فقط سازندهٔ میز تنظیمش می‌کند؛ وقتی باز شد «بنشین» را بزن.")
+    # کارت اینلاین یا فرستاده از مینی اپ: شناسهٔ پیام از همین لمس معلوم می شود
+    if cq.inline_message_id and not d["inline_message_id"]:
+        await gdb.set_draft(token, inline_message_id=cq.inline_message_id)
+        d["inline_message_id"] = cq.inline_message_id
+    if act == "cancel":
+        if await gdb.claim_draft(token, "closed"):
+            await _edit(_where(d), closed_card(d["game"], "سازنده میز را لغو کرد."))
+        await cq.answer("لغو شد")
         return
-    await expire(gdb)
-    await _act(cq, gdb, act, arg)
+    if act == "open":
+        err = await open_table(gdb, d)
+        await cq.answer(err or "میز باز شد و نشستی! حالا بقیه «بنشین» را بزنند.", show_alert=bool(err))
+        return
+    key, _, val = act.partition("=")
+    opts = {k: [o[0] for o in o_] for k, _, o_ in GAMES[d["game"]]["opts"]}
+    if key not in opts or not val.isdigit() or int(val) not in opts[key]:
+        await cq.answer()
+        return
+    d["cfg"] = {**cfg_of(d["game"], d["cfg"]), key: int(val)}
+    await gdb.set_draft(token, cfg={k: d["cfg"][k] for k in opts})
+    await cq.answer()
+    await _edit(_where(d), await setup_card(gdb, d))
 
 
 async def _act(cq: CallbackQuery, gdb: GCDatabase, act: str, match_id: str) -> None:
-    """بنشین، بلند شو و شروع روی میزی که ساخته شده (گروهی یا اینلاین)."""
+    """بنشین، بلند شو و شروع روی میزی که باز شده (گروهی یا اینلاین)."""
     u = cq.from_user
     row = await gdb.group_table(match_id)
     m = await gdb.get_match(match_id) if row else None
@@ -287,30 +459,51 @@ async def _act(cq: CallbackQuery, gdb: GCDatabase, act: str, match_id: str) -> N
     await refresh(gdb, m["id"])
 
 
+@router.callback_query(F.data.startswith("gt:"))
+async def on_button(cq: CallbackQuery, gdb: GCDatabase, bot: Bot) -> None:
+    act, _, arg = (cq.data or "")[3:].partition(":")
+    u = cq.from_user
+    if act == "new":
+        if arg not in GAMES:
+            await cq.answer()
+            return
+        if cq.inline_message_id:   # کارت اینلاین: کارت تنظیم تازه در همان پیام، با کسی که دکمه را زد
+            me = await gdb.player(u.id, _name(u), u.username)
+            if me.get("banned"):
+                return await _draft_err(cq, "حساب تو در Game Club مسدود شده است.")
+            token = await gdb.new_draft(u.id, arg, dict(GAMES[arg]["def"]))
+            await gdb.set_draft(token, inline_message_id=cq.inline_message_id)
+            await cq.answer("حالت بازی را انتخاب کن و میز را باز کن.")
+            await _edit({"inline_message_id": cq.inline_message_id}, await setup_card(gdb, await gdb.draft(token)))
+            return
+        if not cq.message:
+            await cq.answer()
+            return
+        err = await create(gdb, bot, cq.message.chat, u, arg)
+        await cq.answer(err or "حالت بازی را انتخاب کن و میز را باز کن.", show_alert=bool(err))
+        return
+    await expire(gdb)
+    await _act(cq, gdb, act, arg)
+
+
+@router.callback_query(F.data.startswith("gi:"))
+async def on_old_inline(cq: CallbackQuery) -> None:
+    """کارت های اینلاین نسخهٔ قبل."""
+    await cq.answer("این کارت قدیمی است؛ یک میز تازه بساز.", show_alert=True)
+
+
 # ---------- حالت اینلاین (@ربات hokm در هر چتی) و «فرستادن به گروه» از مینی اپ ----------
-# کارت اینلاین اول فقط یک توکن است (سازنده + بازی). میز واقعی با اولین لمس دکمه (یا انتخاب نتیجهٔ
-# اینلاین اگر inline feedback روشن باشد) ساخته می شود؛ تا آن موقع هیچ میزی بی دلیل باز نمی ماند.
 INLINE_ALIASES = {"hokm": ("hokm", "حکم", "hk"), "ludo": ("ludo", "منچ", "mench"), "football": ("football", "فوتبال", "fb", "soccer")}
 
 
-async def inline_card(db: GCDatabase, host: int, game: str) -> tuple[str, str, InlineKeyboardMarkup]:
-    """توکن تازه و کارت میز (فقط سازنده نشسته)."""
-    token = await db.new_inline_token(host, game)
-    p = await db.get_player(host) or {}
-    fake = {"id": token, "status": "lobby", "cfg": dict(GAMES[game]["cfg"]),
-            "state": {"seats": [{"tg": host, "name": p.get("name") or "بازیکن"}]}}
-    text, kb = await render(db, fake, {"game": game, "host": host}, ns="gi")
-    return token, text, kb
-
-
-def _article(game: str, token: str, text: str, kb: InlineKeyboardMarkup):  # noqa: ANN202
-    from aiogram.types import InlineQueryResultArticle, InputTextMessageContent, LinkPreviewOptions
+async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArticle:
+    """کارت تنظیم میز به شکل نتیجهٔ اینلاین؛ سازنده همان کسی است که فرستاده."""
     g = GAMES[game]
+    token = await db.new_draft(host, game, dict(g["def"]))
     return InlineQueryResultArticle(
-        id=token, title=f"{g['icon']} میز {g['name']} بساز", description=f"آزاد · {g['len']} · دوستانت با «بنشین» سر میز می‌آیند",
-        input_message_content=InputTextMessageContent(message_text=text, parse_mode="HTML",
-                                                      link_preview_options=LinkPreviewOptions(is_disabled=True)),
-        reply_markup=kb)
+        id=token, title=f"{g['icon']} میز {g['name']} بساز",
+        description=f"{summary(game, cfg_of(game, g['def']))} · حالت را خودت انتخاب می‌کنی",
+        input_message_content=InputRichMessageContent(rich_message=await setup_card(db, await db.draft(token))))
 
 
 @router.inline_query()
@@ -322,87 +515,23 @@ async def on_inline(iq, gdb: GCDatabase) -> None:  # noqa: ANN001
         return
     q = (iq.query or "").strip().lower()
     games = [k for k, al in INLINE_ALIASES.items() if not q or any(a.startswith(q) or q.startswith(a) for a in al)] or list(GAMES)
-    results = []
-    for game in games:
-        token, text, kb = await inline_card(gdb, u.id, game)
-        results.append(_article(game, token, text, kb))
-    await iq.answer(results, cache_time=0, is_personal=True)
-
-
-async def materialize(db: GCDatabase, token: str, inline_message_id: str) -> str:
-    """توکن کارت اینلاین → میز واقعی (یک بار). خروجی: شناسهٔ میز؛ خطا با GCError."""
-    tok = await db.inline_token(token)
-    if not tok:
-        raise GCError("not_found")
-    if tok["match_id"]:
-        if inline_message_id and not (await db.group_table(tok["match_id"]) or {}).get("inline_message_id"):
-            await db.set_group_inline(tok["match_id"], inline_message_id)
-        return tok["match_id"]
-    if not await db.lock("gi:" + token, ttl=10, wait=5):
-        raise GCError("busy")
-    try:
-        tok = await db.inline_token(token)
-        if tok["match_id"]:
-            return tok["match_id"]
-        r = await service.invite_create(db, tok["host"], dict(GAMES[tok["game"]]["cfg"]))
-        await db.add_group_table(r["match"], 0, "", tok["game"], tok["host"])
-        await db.set_group_inline(r["match"], inline_message_id or "")
-        await db.set_inline_match(token, r["match"])
-        return r["match"]
-    finally:
-        await db.unlock("gi:" + token)
+    await iq.answer([await _article(gdb, u.id, g) for g in games], cache_time=0, is_personal=True)
 
 
 @router.chosen_inline_result()
 async def on_chosen(cr, gdb: GCDatabase) -> None:  # noqa: ANN001
-    """اگر inline feedback در BotFather روشن باشد، میز همان لحظهٔ فرستادن ساخته می شود."""
-    if not cr.inline_message_id:
-        return
-    try:
-        mid = await materialize(gdb, cr.result_id, cr.inline_message_id)
-        await refresh(gdb, mid)
-    except GCError:
-        pass
-
-
-@router.callback_query(F.data.startswith("gi:"))
-async def on_inline_button(cq: CallbackQuery, gdb: GCDatabase) -> None:
-    parts = (cq.data or "").split(":", 2)
-    act, arg = (parts + ["", ""])[1:3]
-    u = cq.from_user
-    await gdb.player(u.id, _name(u), u.username)
-    if act == "new":   # میز تازه در همان پیام اینلاین، با کسی که دکمه را زد به عنوان سازنده
-        if arg not in GAMES or not cq.inline_message_id:
-            await cq.answer()
-            return
-        token, text, kb = await inline_card(gdb, u.id, arg)
-        try:
-            mid = await materialize(gdb, token, cq.inline_message_id)
-        except GCError as e:
-            await cq.answer("تو الان سر یک میز دیگر هستی." if e.code == "in_match" else "نشد؛ دوباره امتحان کن.", show_alert=True)
-            return
-        await cq.answer(f"میز {GAMES[arg]['name']} ساخته شد و نشستی!")
-        await refresh(gdb, mid)
-        return
-    await expire(gdb)
-    try:
-        mid = await materialize(gdb, arg, cq.inline_message_id or "")
-    except GCError as e:
-        msg = {"in_match": "سازندهٔ این میز الان سر یک میز دیگر است؛ از او بخواه میز تازه بسازد.",
-               "busy": "یک لحظه بعد دوباره بزن."}.get(e.code, "این میز دیگر نیست.")
-        await cq.answer(msg, show_alert=True)
-        return
-    await _act(cq, gdb, act, mid)
+    """اگر inline feedback در BotFather روشن باشد، شناسهٔ پیام از همان لحظه معلوم است (برای بستن کارت کهنه)."""
+    if cr.inline_message_id and await gdb.draft(cr.result_id):
+        await gdb.set_draft(cr.result_id, inline_message_id=cr.inline_message_id)
 
 
 async def prepare_share(db: GCDatabase, tg: int, game: str) -> str:
-    """کارت میز آماده برای Telegram.WebApp.shareMessage (کاربر خودش گروه یا چت را انتخاب می کند)."""
+    """کارت تنظیم میز آماده برای Telegram.WebApp.shareMessage (کاربر خودش گروه یا چت را انتخاب می کند)."""
     if game not in GAMES:
         raise GCError("bad_game")
     if not _bot:
         raise GCError("no_bot")
-    token, text, kb = await inline_card(db, tg, game)
-    prepared = await _bot.save_prepared_inline_message(user_id=tg, result=_article(game, token, text, kb),
+    prepared = await _bot.save_prepared_inline_message(user_id=tg, result=await _article(db, tg, game),
                                                        allow_user_chats=True, allow_group_chats=True,
                                                        allow_bot_chats=False, allow_channel_chats=False)
     return prepared.id

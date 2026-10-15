@@ -1060,72 +1060,149 @@ def test_friends_and_dm():
     asyncio.run(run())
 
 
+class _FakeGroupBot:
+    """ربات ساختگی برای آزمون کارت های گروه (پیام غنی)."""
+    def __init__(self):
+        from types import SimpleNamespace as NS
+        self.NS, self.sent, self.dms, self.edits, self.prepared, self.n = NS, [], [], [], [], 100
+
+    async def send_message(self, chat_id, text, reply_markup=None, **kw):
+        self.dms.append((chat_id, text))
+        return self.NS(message_id=1)
+
+    async def send_rich_message(self, chat_id, rich_message, **kw):
+        self.n += 1
+        self.sent.append((chat_id, rich_message, kw.get("ephemeral_message_parameters")))
+        return self.NS(message_id=self.n)
+
+    async def edit_message_text(self, text=None, chat_id=None, message_id=None, inline_message_id=None, rich_message=None, **kw):
+        assert rich_message is not None and text is None and kw.get("reply_markup") is None
+        self.edits.append((inline_message_id or (chat_id, message_id), rich_message))
+
+    async def save_prepared_inline_message(self, user_id, result, **kw):
+        self.prepared.append((user_id, result, kw))
+        return self.NS(id="prep1", expiration_date=0)
+
+
+class _CQ:
+    def __init__(self, uid, data, imid=None, chat=None):
+        from types import SimpleNamespace as NS
+        self.from_user = NS(id=uid, first_name=f"u{uid}", last_name=None, username=None)
+        self.data, self.inline_message_id, self.answers = data, imid, []
+        self.message = NS(chat=chat, message_id=0) if chat else None
+
+    async def answer(self, text=None, show_alert=False, **kw):
+        self.answers.append(text)
+
+
 def test_group_tables():
-    """میز گروه: کارت با منشن و جای خالی، به روز شدن با هر نشستن، شروع با پر شدن، پیام پیوی و ephemeral، نتیجه، بستن میز کهنه."""
+    """میز گروه: کارت تنظیم (فقط سازنده)، باز کردن، نشستن با منشن، شروع بدون دکمهٔ نشستن و با «دیدن بازی»،
+    تماشای بازی برای عضو گروه، پیام پیوی و ephemeral، نتیجه، بستن کارت و میز کهنه. هیچ کیبورد شیشه ای نیست."""
     from types import SimpleNamespace as NS
     tmp = tempfile.mkdtemp()
     from game_club import groups, service
     from game_club.db import GCDatabase
-
-    class FakeBot:
-        def __init__(self):
-            self.sent, self.edits, self.n = [], [], 100
-
-        async def send_message(self, chat_id, text, reply_markup=None, **kw):
-            self.n += 1
-            self.sent.append((chat_id, text, kw.get("ephemeral_message_parameters"), reply_markup))
-            return NS(message_id=self.n)
-
-        async def edit_message_text(self, text, chat_id=None, message_id=None, reply_markup=None, **kw):
-            self.edits.append((chat_id, message_id, text, reply_markup))
+    P, B = groups.plain, groups.buttons
 
     async def run():
         db = GCDatabase(os.path.join(tmp, "gc.db"))
         await db.connect()
-        bot = FakeBot()
+        bot = _FakeGroupBot()
         groups.install(bot, db)
+        old_user, groups.gc.username = groups.gc.username, "gcbot"
         try:
             chat = NS(id=-1001, title="گروه دوستان")
             users = [NS(id=i, first_name=f"u{i}", last_name=None, username=None) for i in (11, 12, 13, 14)]
             assert await groups.create(db, bot, chat, users[0], "hokm") is None
-            card = bot.sent[-1]
-            assert card[0] == -1001 and "tg://user?id=11" in card[1] and "۳ جای خالی" in card[1]
-            assert [b.style for b in card[3].inline_keyboard[0]] == ["success", "danger"]
-            # میز دوم حکم در همان گروه ساخته نمی شود
-            assert "باز است" in await groups.create(db, bot, chat, users[1], "hokm")
+            cid, card, _ = bot.sent[-1]
+            assert cid == -1001 and "حالت بازی" in P(card) and "✓ ۷ دست" in P(card)
+            token = next(b.callback_data for b in B(card) if b.callback_data.startswith("gs:open:"))[8:]
+            assert {b.callback_data for b in B(card)} >= {f"gs:target=3:{token}", f"gs:cancel:{token}"}
+            assert '"id":11' in card.model_dump_json()           # منشن سازنده
+            # میز دوم حکم هم زمان تنظیم نمی شود؛ غیر سازنده نمی تواند تنظیم کند
+            assert "در حال تنظیم" in await groups.create(db, bot, chat, users[1], "hokm")
+            cq = _CQ(12, f"gs:target=3:{token}", chat=chat)
+            await groups.on_setup(cq, gdb=db)
+            assert "فقط سازنده" in cq.answers[-1] and (await db.draft(token))["cfg"] == {"target": 7}
+            await groups.on_setup(_CQ(11, f"gs:target=3:{token}", chat=chat), gdb=db)
+            assert (await db.draft(token))["cfg"] == {"target": 3} and "✓ ۳ دست" in P(bot.edits[-1][1])
+            # باز کردن: همان پیام کارت میز می شود
+            await groups.on_setup(_CQ(11, f"gs:open:{token}", chat=chat), gdb=db)
             row = await db.open_group_table(-1001, "hokm")
             m = await db.get_match(row["match_id"])
-            for u in users[1:3]:
-                await db.player(u.id, u.first_name)
-                await service.invite_join(db, u.id, m["invite"])
-            last = bot.edits[-1][2]
-            assert "tg://user?id=13" in last and "۱ جای خالی" in last and "(۳ از ۴)" in last
-            # نفر چهارم: میز پر و بازی شروع می شود
-            await db.player(14, "u14")
-            await service.invite_join(db, 14, m["invite"])
+            assert m["cfg"]["target"] == 3 and row["message_id"] == 101 and (await db.draft(token))["status"] == "open"
+            where, rm = bot.edits[-1]
+            assert where == (-1001, 101) and "۳ جای خالی" in P(rm) and "تا ۳ دست" in P(rm)
+            assert [b.style for b in B(rm)[:2]] == ["success", "danger"] and B(rm)[0].callback_data == f"gt:join:{m['id']}"
+            assert "باز است" in await groups.create(db, bot, chat, users[1], "hokm")
+            # نشستن با دکمهٔ داخل پیام
+            for u in (12, 13):
+                await groups.on_button(_CQ(u, f"gt:join:{m['id']}", chat=chat), gdb=db, bot=bot)
+            last = bot.edits[-1][1]
+            assert '"id":13' in last.model_dump_json() and "۱ جای خالی" in P(last) and "(۳ از ۴)" in P(last)
+            cq = _CQ(13, f"gt:join:{m['id']}", chat=chat)
+            await groups.on_button(cq, gdb=db, bot=bot)
+            assert "نشسته" in cq.answers[-1]
+            # نفر چهارم: میز پر و بازی شروع؛ دکمه های میز می روند و فقط «دیدن بازی» می ماند
+            await groups.on_button(_CQ(14, f"gt:join:{m['id']}", chat=chat), gdb=db, bot=bot)
             m = await db.get_match(m["id"])
             assert m["status"] == "playing"
-            assert "شروع شد" in bot.edits[-1][2] and (await db.group_table(m["id"]))["status"] == "playing"
-            dms = [s for s in bot.sent if s[0] in (11, 12, 13, 14)]
+            rm = bot.edits[-1][1]
+            assert "شروع شد" in P(rm) and "حکم" in P(rm) and '"id":14' in rm.model_dump_json()
+            assert [(b.text, b.url) for b in B(rm)] == [("👀 دیدن بازی", f"https://t.me/gcbot?startapp=w_hokm_{m['id']}")]
+            assert (await db.group_table(m["id"]))["status"] == "playing"
+            assert {d[0] for d in bot.dms} == {11, 12, 13, 14}
             eph = [s for s in bot.sent if s[2] is not None]
-            assert len(dms) == 4 and len(eph) == 4 and {e[2].receiver_user_id for e in eph} == {11, 12, 13, 14}
+            assert len(eph) == 4 and {e[2].receiver_user_id for e in eph} == {11, 12, 13, 14}
             # تکرار به روزرسانی دوباره خبر شروع نمی فرستد
             n = len(bot.sent)
             await groups.refresh(db, m["id"])
             assert len(bot.sent) == n
+            # تماشا: عضو گروه که سر میز نیست، بازی را می بیند ولی برگ کسی را نه
+            await db.player(99, "watcher")
+            v = await service.match_view(db, 99, m["id"])
+            assert v["watch"] and v["me"] == v["game"]["order"][0] and v["game"]["hand"] == [] and "chat" not in v
+            assert all(not p["me"] for p in v["game"]["players"].values())
+            v2 = await service.match_view(db, 11, m["id"])     # بازیکن با همان لینک بازی خودش را می بیند
+            assert not v2.get("watch") and v2["game"]["hand"]
+            # میز خصوصی (نه گروهی) را غریبه نمی بیند
+            await db.player(98, "x")
+            priv = await service.invite_create(db, 98, {"game": "hokm", "mode": "free", "entry": 0, "target": 3})
+            try:
+                await service.match_view(db, 99, priv["match"])
+                raise AssertionError("میز خصوصی دیده شد")
+            except service.GCError as e:
+                assert e.code == "not_found"
             # پایان: کارت نتیجه با دکمهٔ میز تازه
             for u in users:
                 await service.leave_any(db, u.id, m["id"])
             m = await db.get_match(m["id"])
             if m["status"] == "over":
-                assert "تمام شد" in bot.edits[-1][2] and bot.edits[-1][3].inline_keyboard[0][0].callback_data == "gt:new:hokm"
-            # میز منچی که کسی نیامد بعد از ۱۵ دقیقه بسته می شود
+                assert "تمام شد" in P(bot.edits[-1][1]) and B(bot.edits[-1][1])[0].callback_data == "gt:new:hokm"
+            # کارت تنظیمی که کسی بازش نکرد بعد از ۱۵ دقیقه بسته می شود
             assert await groups.create(db, bot, chat, NS(id=21, first_name="x", last_name=None, username=None), "ludo") is None
-            row = await db.open_group_table(-1001, "ludo")
+            tok = next(b.callback_data for b in B(bot.sent[-1][1]) if b.callback_data.startswith("gs:open:"))[8:]
+            await db.execute("UPDATE group_drafts SET created_at = created_at - 3600 WHERE token = ?", (tok,))
+            await groups.expire(db)
+            assert (await db.draft(tok))["status"] == "closed" and "بسته شد" in P(bot.edits[-1][1])
+            cq = _CQ(21, f"gs:open:{tok}", chat=chat)
+            await groups.on_setup(cq, gdb=db)
+            assert "فعال نیست" in cq.answers[-1]
+            # میز فوتبالی که باز شد ولی کسی نیامد هم بسته می شود
+            assert await groups.create(db, bot, chat, NS(id=22, first_name="y", last_name=None, username=None), "football") is None
+            tok = next(b.callback_data for b in B(bot.sent[-1][1]) if b.callback_data.startswith("gs:open:"))[8:]
+            await groups.on_setup(_CQ(22, f"gs:open:{tok}", chat=chat), gdb=db)
+            row = await db.open_group_table(-1001, "football")
             await db.execute("UPDATE group_tables SET created_at = created_at - 3600 WHERE match_id = ?", (row["match_id"],))
             await groups.expire(db)
-            assert (await db.get_match(row["match_id"]))["status"] == "cancelled" and "بسته شد" in bot.edits[-1][2]
+            assert (await db.get_match(row["match_id"]))["status"] == "cancelled" and "بسته شد" in P(bot.edits[-1][1])
+            # لغو کارت تنظیم با سازنده
+            assert await groups.create(db, bot, chat, NS(id=23, first_name="z", last_name=None, username=None), "ludo") is None
+            tok = next(b.callback_data for b in B(bot.sent[-1][1]) if b.callback_data.startswith("gs:open:"))[8:]
+            await groups.on_setup(_CQ(23, f"gs:cancel:{tok}", chat=chat), gdb=db)
+            assert (await db.draft(tok))["status"] == "closed" and "لغو" in P(bot.edits[-1][1])
         finally:
+            groups.gc.username = old_user
             service.table_hook = None
             await db.close()
 
@@ -1133,39 +1210,17 @@ def test_group_tables():
 
 
 def test_inline_tables():
-    """حالت اینلاین و «فرستادن به گروه»: کارت با توکن، ساخت میز با اولین لمس (فقط یک بار)، نشستن، ویرایش با inline_message_id."""
+    """حالت اینلاین و «فرستادن به گروه»: کارت تنظیم با توکن، تنظیم و باز کردن فقط با سازنده، نشستن، ویرایش با inline_message_id."""
     from types import SimpleNamespace as NS
     tmp = tempfile.mkdtemp()
     from game_club import groups, service
     from game_club.db import GCDatabase
-
-    class FakeBot:
-        def __init__(self):
-            self.sent, self.edits, self.prepared = [], [], []
-
-        async def send_message(self, chat_id, text, reply_markup=None, **kw):
-            self.sent.append((chat_id, text, kw.get("ephemeral_message_parameters"), reply_markup))
-            return NS(message_id=1)
-
-        async def edit_message_text(self, text, chat_id=None, message_id=None, inline_message_id=None, reply_markup=None, **kw):
-            self.edits.append((inline_message_id, text, reply_markup))
-
-        async def save_prepared_inline_message(self, user_id, result, **kw):
-            self.prepared.append((user_id, result, kw))
-            return NS(id="prep1", expiration_date=0)
-
-    class CQ:
-        def __init__(self, uid, data, imid="IM1"):
-            self.from_user = NS(id=uid, first_name=f"u{uid}", last_name=None, username=None)
-            self.data, self.inline_message_id, self.answers = data, imid, []
-
-        async def answer(self, text=None, show_alert=False, **kw):
-            self.answers.append(text)
+    P, B = groups.plain, groups.buttons
 
     async def run():
         db = GCDatabase(os.path.join(tmp, "gc.db"))
         await db.connect()
-        bot = FakeBot()
+        bot = _FakeGroupBot()
         groups.install(bot, db)
         try:
             # @ربات منچ → فقط کارت منچ؛ بدون متن هر سه بازی
@@ -1177,43 +1232,51 @@ def test_inline_tables():
             iq.answer = answer
             await groups.on_inline(iq, gdb=db)
             res, kw = got[-1]
-            assert len(res) == 1 and kw["is_personal"] and "tg://user?id=31" in res[0].input_message_content.message_text
+            assert len(res) == 1 and kw["is_personal"] and res[0].reply_markup is None
+            rm = res[0].input_message_content.rich_message
             token = res[0].id
-            assert res[0].reply_markup.inline_keyboard[0][0].callback_data == f"gi:join:{token}"
+            assert "حالت بازی" in P(rm) and f"gs:open:{token}" in [b.callback_data for b in B(rm)]
             iq.query = ""
             await groups.on_inline(iq, gdb=db)
             assert len(got[-1][0]) == 3
-            # هنوز میزی ساخته نشده
-            assert not (await db.inline_token(token))["match_id"]
-            # اولین لمس «بنشین»: میز ساخته می شود، سازنده و این کاربر سر میزند، کارت با inline_message_id ویرایش می شود
-            await groups.on_inline_button(CQ(32, f"gi:join:{token}"), gdb=db)
-            mid = (await db.inline_token(token))["match_id"]
+            # فقط سازنده تنظیم می کند؛ شناسهٔ پیام اینلاین از همین لمس ثبت می شود
+            cq = _CQ(32, f"gs:open:{token}", imid="IM1")
+            await groups.on_setup(cq, gdb=db)
+            assert "فقط سازنده" in cq.answers[-1] and (await db.draft(token))["status"] == "setup"
+            await groups.on_setup(_CQ(31, f"gs:players=2:{token}", imid="IM1"), gdb=db)
+            d = await db.draft(token)
+            assert d["inline_message_id"] == "IM1" and d["cfg"]["players"] == 2
+            assert bot.edits[-1][0] == "IM1" and "✓ ۲ نفره" in P(bot.edits[-1][1])
+            # مقدار غیرمجاز نادیده گرفته می شود
+            await groups.on_setup(_CQ(31, f"gs:players=9:{token}", imid="IM1"), gdb=db)
+            assert (await db.draft(token))["cfg"]["players"] == 2
+            await groups.on_setup(_CQ(31, f"gs:open:{token}", imid="IM1"), gdb=db)
+            mid = (await db.draft(token))["match_id"]
             assert mid and (await db.group_table(mid))["inline_message_id"] == "IM1"
             m = await db.get_match(mid)
-            assert [s["tg"] for s in m["state"]["seats"]] == [31, 32]
-            assert bot.edits[-1][0] == "IM1" and "tg://user?id=32" in bot.edits[-1][1]
-            assert bot.edits[-1][2].inline_keyboard[0][0].callback_data == f"gt:join:{mid}"
-            # لمس دوباره روی همان توکن میز دوم نمی سازد
-            cq = CQ(32, f"gi:join:{token}")
-            await groups.on_inline_button(cq, gdb=db)
-            assert (await db.inline_token(token))["match_id"] == mid and "نشسته" in cq.answers[-1]
-            # شروع با ربات: بازی شروع می شود؛ پیام پیوی می رود ولی ephemeral نه (چت معلوم نیست)
-            await groups.on_inline_button(CQ(31, f"gi:start:{token}"), gdb=db)
-            assert (await db.get_match(mid))["status"] == "playing" and "شروع شد" in bot.edits[-1][1]
-            assert {s[0] for s in bot.sent} == {31, 32} and all(s[2] is None for s in bot.sent)
-            # پایان: دکمهٔ میز تازه برای کارت اینلاین پیشوند gi دارد و همان پیام را میز تازه می کند
+            assert m["cfg"]["players"] == 2 and [s["tg"] for s in m["state"]["seats"]] == [31]
+            assert bot.edits[-1][0] == "IM1" and B(bot.edits[-1][1])[0].callback_data == f"gt:join:{mid}"
+            # لمس دوباره «باز کردن» میز دوم نمی سازد
+            cq = _CQ(31, f"gs:open:{token}", imid="IM1")
+            await groups.on_setup(cq, gdb=db)
+            assert "فعال نیست" in cq.answers[-1]
+            # نفر دوم می نشیند: میز ۲ نفره پر و بازی شروع می شود؛ پیوی می رود، ephemeral نه (چت معلوم نیست)
+            await groups.on_button(_CQ(32, f"gt:join:{mid}", imid="IM1"), gdb=db, bot=bot)
+            assert (await db.get_match(mid))["status"] == "playing" and "شروع شد" in P(bot.edits[-1][1])
+            assert {d[0] for d in bot.dms} == {31, 32} and not bot.sent
+            # پایان: «میز تازه» در همان پیام اینلاین کارت تنظیم تازه می سازد با کسی که زد
             for u in (31, 32):
                 await service.leave_any(db, u, mid)
             if (await db.get_match(mid))["status"] == "over":
-                assert bot.edits[-1][2].inline_keyboard[0][0].callback_data == "gi:new:ludo"
-                await groups.on_inline_button(CQ(32, "gi:new:ludo"), gdb=db)
-                row = await db.one("SELECT * FROM group_tables WHERE match_id != ?", (mid,))
-                assert row["inline_message_id"] == "IM1" and row["host"] == 32 and row["game"] == "ludo"
-            # فرستادن از مینی اپ: پیام آماده با کارت همین بازی
+                assert B(bot.edits[-1][1])[0].callback_data == "gt:new:ludo"
+                await groups.on_button(_CQ(33, "gt:new:ludo", imid="IM1"), gdb=db, bot=bot)
+                d = await db.one("SELECT * FROM group_drafts WHERE host = 33")
+                assert d["inline_message_id"] == "IM1" and d["status"] == "setup" and "حالت بازی" in P(bot.edits[-1][1])
+            # فرستادن از مینی اپ: پیام آماده با کارت تنظیم همین بازی
             pid = await groups.prepare_share(db, 33, "football")
             uid, art, kw = bot.prepared[-1]
             assert pid == "prep1" and uid == 33 and kw["allow_group_chats"] and not kw["allow_channel_chats"]
-            assert (await db.inline_token(art.id))["game"] == "football"
+            assert (await db.draft(art.id))["game"] == "football" and art.input_message_content.rich_message.blocks
             try:
                 await groups.prepare_share(db, 33, "chess")
                 raise AssertionError("بازی ناشناخته")

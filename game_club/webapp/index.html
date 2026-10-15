@@ -228,6 +228,9 @@ a.gt:active{transform:scale(.98)}
   const sp = GC.startParam(), spm = sp.match(/^(hokm|ludo|football)_([A-Za-z0-9]{4,12})$/);
   let spSeen = false; try { spSeen = sessionStorage.getItem('gc_sp') === sp; sessionStorage.setItem('gc_sp', sp); } catch (e) {}
   if (spm && !spSeen) { location.replace(`${spm[1]}-lobby.html?join=${spm[2]}`); return; }
+  // دکمهٔ «دیدن بازی» کارت گروه: startapp=w_hokm_MATCHID ← صفحهٔ بازی در حالت تماشا (اگر خودش بازیکن باشد، بازی خودش)
+  const spw = sp.match(/^w_(hokm|ludo|football)_([A-Za-z0-9]{6,16})$/);
+  if (spw && !spSeen) { location.replace(`${spw[1]}.html?watch=${spw[2]}`); return; }
   let me = null, style = { table: 'a', cards: 'a' }, notify = [], tables = [];
 
   /* ---------- اجزای واقعی هر بازی (برای کاشی ها و کارت بالا) ---------- */
