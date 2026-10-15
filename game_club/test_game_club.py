@@ -1515,6 +1515,19 @@ def test_emoji_admin_and_tone():
             cq = CQ("ge:r:hokm")
             await gbot.on_emoji_button(cq, gdb=db)
             assert not emo.custom_id("hokm") and "ge:e:hokm" in datas(cq.views[-1][1])
+            # /start و /help: راهنمای بازی در گروه با @آیدی ربات (نه /hokm) و دکمهٔ انتخاب گروه
+            old_user, gbot.gc.username = gbot.gc.username, "gcbot"
+            try:
+                m = Msg("/help")
+                await gbot.on_help(m)
+                m2 = Msg("/start")
+                m2.from_user = NS(id=5, first_name="x", last_name=None, username=None)
+                await gbot.on_start(m2, command=NS(args=None), gdb=db)
+            finally:
+                gbot.gc.username = old_user
+            for text, kb in (m.out[-1], m2.out[-1]):
+                assert "@gcbot" in text and "/hokm" not in text and not persian.search(text)
+                assert kb.inline_keyboard[0][0].switch_inline_query_chosen_chat.allow_group_chats
             # پیام های ربات: عددها لاتین
             await db.player(1, "a")
             await db.player(2, "b")
