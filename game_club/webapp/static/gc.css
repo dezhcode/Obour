@@ -163,6 +163,9 @@ h1,h2,h3,p{margin:0}
 .nav-badge{position:absolute;top:4px;left:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#FF6B7A;color:#2A0B0F;font-size:11px;line-height:18px;font-weight:900;text-align:center;box-shadow:0 0 0 2px rgba(16,33,27,.97)}
 .nav-play .np{width:60px;height:60px;margin-top:-26px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--gold-ink);box-shadow:0 0 0 6px rgba(16,33,27,.97);transition:box-shadow .2s}
 .nav-play .np svg{width:30px;height:30px}
+/* آیکن فایلی (static/icons): شکلش از فایل، رنگش از جای خودش */
+.ic-file{display:block;width:24px;height:24px;background:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
+.nav-play .np .ic-file{width:34px;height:34px}
 .nav-in>.nav-play[aria-current="page"] .np{box-shadow:0 0 0 6px rgba(16,33,27,.97),0 0 0 9px rgba(245,196,81,.35)}
 .nav-in>.nav-play[aria-current="page"]{color:var(--gold-ink)}
 /* هر بخش اصلی (خانه، رده بندی، کیف، فروشگاه) یک لایه است؛ فقط یکی دیده می شود */
