@@ -7,6 +7,7 @@
   /start obour      آمده از کارت Game Club در مینی اپ عبور
   /points           موجودی امتیاز
   /help             قوانین کوتاه
+در گروه ها (groups.py): /hokm، /ludo، /football یا /play میز آزاد با کارت و دکمهٔ «بنشین» می سازد.
 ادمین ها (ADMIN_IDS عبور):
   /gcstats                  آمار امروز و همه
   /gcpoints <tg_id> <مقدار>  افزودن یا کسر امتیاز (منفی = کسر)
@@ -23,6 +24,8 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
     BotCommand,
+    BotCommandScopeAllGroupChats,
+    BotCommandScopeAllPrivateChats,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     MenuButtonWebApp,
@@ -61,7 +64,12 @@ class GCRuntime:
                                default=DefaultBotProperties(parse_mode=ParseMode.HTML))
                 dp = Dispatcher()
                 dp["gdb"] = db
+                from . import groups
+
+                dp.include_router(groups.router)     # اول گروه ها؛ بعد دستورهای پیوی
                 dp.include_router(router)
+                groups.install(self.bot, db)
+                asyncio.get_running_loop().create_task(_heal_webhook(self.bot))
                 self.dp = dp
                 from . import service
 
@@ -246,7 +254,7 @@ async def on_broadcast(message: Message, gdb: GCDatabase) -> None:
                          reply_markup=open_kb("admin.html#bc", "دیدن پیشرفت"))
 
 
-@router.message(F.text)
+@router.message(F.chat.type == "private", F.text)
 async def on_text(message: Message) -> None:
     await message.answer("برای بازی، Game Club را باز کن 👇", reply_markup=open_kb())
 
@@ -254,15 +262,32 @@ async def on_text(message: Message) -> None:
 COMMANDS = [BotCommand(command="start", description="ورود به Game Club"),
             BotCommand(command="points", description="موجودی امتیاز"),
             BotCommand(command="help", description="قوانین")]
+GROUP_COMMANDS = [BotCommand(command="hokm", description="میز حکم در همین گروه"),
+                  BotCommand(command="ludo", description="میز منچ در همین گروه"),
+                  BotCommand(command="football", description="میز فوتبال در همین گروه"),
+                  BotCommand(command="play", description="انتخاب بازی")]
+UPDATES = ["message", "callback_query"]
 
 
-async def setup(bot: Bot) -> str:
+async def _heal_webhook(bot: Bot) -> None:
+    """بعد از به روزرسانی: اگر وبهوک هنوز دکمه ها (callback_query) را نمی گیرد، دوباره ثبتش کن."""
+    try:
+        info = await bot.get_webhook_info()
+        if info.url and set(UPDATES) - set(info.allowed_updates or ["message"]):
+            await setup(bot, drop=False)
+            log.info("وبهوک Game Club برای دکمه های گروه به روز شد")
+    except Exception:  # noqa: BLE001
+        log.debug("بررسی وبهوک نشد", exc_info=True)
+
+
+async def setup(bot: Bot, drop: bool = True) -> str:
     """وبهوک، فهرست دستورها و دکمه منو. از مسیر /gc/setwebhook صدا زده می شود."""
     if not gc.webhook_secret:
         raise RuntimeError("GAME_CLUB_WEBHOOK_SECRET در .env تنظیم نشده")
     await bot.set_webhook(url=gc.webhook_url, secret_token=gc.webhook_secret,
-                          drop_pending_updates=True, allowed_updates=["message"])
-    await bot.set_my_commands(COMMANDS)
+                          drop_pending_updates=drop, allowed_updates=UPDATES)
+    await bot.set_my_commands(COMMANDS, scope=BotCommandScopeAllPrivateChats())
+    await bot.set_my_commands(GROUP_COMMANDS, scope=BotCommandScopeAllGroupChats())
     note = "menu: off (https لازم است)"
     if gc.webapp_url:
         await bot.set_chat_menu_button(menu_button=MenuButtonWebApp(text="بازی", web_app=WebAppInfo(url=gc.webapp_url)))

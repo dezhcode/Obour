@@ -1060,6 +1060,78 @@ def test_friends_and_dm():
     asyncio.run(run())
 
 
+def test_group_tables():
+    """میز گروه: کارت با منشن و جای خالی، به روز شدن با هر نشستن، شروع با پر شدن، پیام پیوی و ephemeral، نتیجه، بستن میز کهنه."""
+    from types import SimpleNamespace as NS
+    tmp = tempfile.mkdtemp()
+    from game_club import groups, service
+    from game_club.db import GCDatabase
+
+    class FakeBot:
+        def __init__(self):
+            self.sent, self.edits, self.n = [], [], 100
+
+        async def send_message(self, chat_id, text, reply_markup=None, **kw):
+            self.n += 1
+            self.sent.append((chat_id, text, kw.get("ephemeral_message_parameters"), reply_markup))
+            return NS(message_id=self.n)
+
+        async def edit_message_text(self, text, chat_id=None, message_id=None, reply_markup=None, **kw):
+            self.edits.append((chat_id, message_id, text, reply_markup))
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        bot = FakeBot()
+        groups.install(bot, db)
+        try:
+            chat = NS(id=-1001, title="گروه دوستان")
+            users = [NS(id=i, first_name=f"u{i}", last_name=None, username=None) for i in (11, 12, 13, 14)]
+            assert await groups.create(db, bot, chat, users[0], "hokm") is None
+            card = bot.sent[-1]
+            assert card[0] == -1001 and "tg://user?id=11" in card[1] and "۳ جای خالی" in card[1]
+            assert [b.style for b in card[3].inline_keyboard[0]] == ["success", "danger"]
+            # میز دوم حکم در همان گروه ساخته نمی شود
+            assert "باز است" in await groups.create(db, bot, chat, users[1], "hokm")
+            row = await db.open_group_table(-1001, "hokm")
+            m = await db.get_match(row["match_id"])
+            for u in users[1:3]:
+                await db.player(u.id, u.first_name)
+                await service.invite_join(db, u.id, m["invite"])
+            last = bot.edits[-1][2]
+            assert "tg://user?id=13" in last and "۱ جای خالی" in last and "(۳ از ۴)" in last
+            # نفر چهارم: میز پر و بازی شروع می شود
+            await db.player(14, "u14")
+            await service.invite_join(db, 14, m["invite"])
+            m = await db.get_match(m["id"])
+            assert m["status"] == "playing"
+            assert "شروع شد" in bot.edits[-1][2] and (await db.group_table(m["id"]))["status"] == "playing"
+            dms = [s for s in bot.sent if s[0] in (11, 12, 13, 14)]
+            eph = [s for s in bot.sent if s[2] is not None]
+            assert len(dms) == 4 and len(eph) == 4 and {e[2].receiver_user_id for e in eph} == {11, 12, 13, 14}
+            # تکرار به روزرسانی دوباره خبر شروع نمی فرستد
+            n = len(bot.sent)
+            await groups.refresh(db, m["id"])
+            assert len(bot.sent) == n
+            # پایان: کارت نتیجه با دکمهٔ میز تازه
+            for u in users:
+                await service.leave_any(db, u.id, m["id"])
+            m = await db.get_match(m["id"])
+            if m["status"] == "over":
+                assert "تمام شد" in bot.edits[-1][2] and bot.edits[-1][3].inline_keyboard[0][0].callback_data == "gt:new:hokm"
+            # میز منچی که کسی نیامد بعد از ۱۵ دقیقه بسته می شود
+            assert await groups.create(db, bot, chat, NS(id=21, first_name="x", last_name=None, username=None), "ludo") is None
+            row = await db.open_group_table(-1001, "ludo")
+            await db.execute("UPDATE group_tables SET created_at = created_at - 3600 WHERE match_id = ?", (row["match_id"],))
+            await groups.expire(db)
+            assert (await db.get_match(row["match_id"]))["status"] == "cancelled" and "بسته شد" in bot.edits[-1][2]
+        finally:
+            service.table_hook = None
+            await db.close()
+
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

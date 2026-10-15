@@ -208,6 +208,19 @@ CREATE TABLE IF NOT EXISTS dms (
   created_at REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS dms_pair ON dms(a, b, id);
+-- میزی که در یک گروه تلگرام ساخته شده و کارتش در آن گروه است؛ status: open، playing، over، closed
+CREATE TABLE IF NOT EXISTS group_tables (
+  match_id TEXT PRIMARY KEY,
+  chat_id INTEGER NOT NULL,
+  chat_title TEXT NOT NULL DEFAULT '',
+  message_id INTEGER NOT NULL DEFAULT 0,
+  game TEXT NOT NULL,
+  host INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS group_tables_chat ON group_tables(chat_id, game, status);
 CREATE INDEX IF NOT EXISTS dms_sender ON dms(sender, created_at);
 -- آخرین پیامی که tg_id از other خوانده
 CREATE TABLE IF NOT EXISTS dm_read (
@@ -428,6 +441,31 @@ class GCDatabase:
             return "name_taken"
         return ""
 
+
+    # ---------- میزهای گروه تلگرام ----------
+    async def add_group_table(self, match_id: str, chat_id: int, title: str, game: str, host: int) -> None:
+        now = int(time.time())
+        await self.execute("INSERT INTO group_tables(match_id, chat_id, chat_title, game, host, created_at, updated_at) "
+                           "VALUES(?,?,?,?,?,?,?)", (match_id, chat_id, title[:120], game, host, now, now))
+
+    async def group_table(self, match_id: str) -> dict | None:
+        return await self.one("SELECT * FROM group_tables WHERE match_id = ?", (match_id,))
+
+    async def open_group_table(self, chat_id: int, game: str) -> dict | None:
+        return await self.one("SELECT g.* FROM group_tables g JOIN matches m ON m.id = g.match_id "
+                              "WHERE g.chat_id = ? AND g.game = ? AND m.status = 'lobby'", (chat_id, game))
+
+    async def set_group_message(self, match_id: str, message_id: int) -> None:
+        await self.execute("UPDATE group_tables SET message_id = ? WHERE match_id = ?", (message_id, match_id))
+
+    async def set_group_status(self, match_id: str, old: str, new: str) -> bool:
+        """فقط یک پروسه تغییر وضعیت را می برد (مثلا فقط یک بار خبر «شروع شد» می رود)."""
+        return bool(await self.execute("UPDATE group_tables SET status = ?, updated_at = ? WHERE match_id = ? AND status = ?",
+                                       (new, int(time.time()), match_id, old)))
+
+    async def stale_group_tables(self, before: int) -> list[dict]:
+        return await self.all("SELECT g.* FROM group_tables g JOIN matches m ON m.id = g.match_id "
+                              "WHERE m.status = 'lobby' AND g.created_at < ?", (before,))
 
     # ---------- دوستان و پیام خصوصی ----------
     @staticmethod

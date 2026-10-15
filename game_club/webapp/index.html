@@ -224,6 +224,10 @@ a.gt:active{transform:scale(.98)}
   const C = window.GCCards;
   const $ = id => document.getElementById(id);
   GC.back(null);
+  // آمده از لینک میز گروه تلگرام (t.me/<bot>?startapp=hokm_CODE): مستقیم سر همان میز، فقط یک بار در هر نشست
+  const sp = GC.startParam(), spm = sp.match(/^(hokm|ludo|football)_([A-Za-z0-9]{4,12})$/);
+  let spSeen = false; try { spSeen = sessionStorage.getItem('gc_sp') === sp; sessionStorage.setItem('gc_sp', sp); } catch (e) {}
+  if (spm && !spSeen) { location.replace(`${spm[1]}-lobby.html?join=${spm[2]}`); return; }
   let me = null, style = { table: 'a', cards: 'a' }, notify = [], tables = [];
 
   /* ---------- اجزای واقعی هر بازی (برای کاشی ها و کارت بالا) ---------- */
