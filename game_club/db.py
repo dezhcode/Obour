@@ -1054,7 +1054,30 @@ class GCDatabase:
         return await self.one("SELECT * FROM broadcasts WHERE id = ?", (bid,))
 
     async def bc_list(self, limit: int = 15) -> list[dict]:
-        return await self.all("SELECT * FROM broadcasts ORDER BY id DESC LIMIT ?", (limit,))
+        return await self.all("SELECT * FROM broadcasts WHERE status NOT IN ('draft', 'deleted') ORDER BY id DESC LIMIT ?", (limit,))
+
+    # پیش نویس پیام همگانی در ربات: target تا لحظهٔ ارسال کلید فرم است (all، active7، game:hokm ...)
+    async def bc_draft(self, admin: int, src_chat: int, src_msg: int, button: str, target: str) -> int:
+        return await self.insert(
+            "INSERT INTO broadcasts(admin, src_chat, src_msg, button, target, status, total, created_at) VALUES(?,?,?,?,?,'draft',0,?)",
+            (admin, src_chat, src_msg, button, target, int(time.time())))
+
+    async def bc_set_draft(self, bid: int, **kw) -> bool:
+        cols = [k for k in kw if k in ("button", "target")]
+        if not cols:
+            return False
+        return bool(await self.execute(f"UPDATE broadcasts SET {', '.join(c + ' = ?' for c in cols)} WHERE id = ? AND status = 'draft'",
+                                       (*[kw[c] for c in cols], bid)))
+
+    async def bc_launch(self, bid: int, target: str) -> int:
+        """پیش نویس -> در حال ارسال (فقط یک بار). خروجی: تعداد گیرنده، یا ۰ اگر قبلا رفته بود."""
+        total = await self.bc_count(target)
+        ok = await self.execute("UPDATE broadcasts SET status = 'active', target = ?, total = ?, created_at = ? WHERE id = ? AND status = 'draft'",
+                                (target, total, int(time.time()), bid))
+        return total if ok else 0
+
+    async def bc_drop_draft(self, bid: int) -> bool:
+        return bool(await self.execute("UPDATE broadcasts SET status = 'deleted' WHERE id = ? AND status = 'draft'", (bid,)))
 
     async def bc_active(self) -> list[dict]:
         return await self.all("SELECT * FROM broadcasts WHERE status = 'active' ORDER BY id")

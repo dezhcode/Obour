@@ -728,6 +728,10 @@ def test_admin_panel():
             self.sent.append((tg, text))
 
         async def copy_message(self, tg, chat, msg, **kw):
+            if tg == 13:
+                from aiogram.exceptions import TelegramForbiddenError
+                from aiogram.methods import CopyMessage
+                raise TelegramForbiddenError(method=CopyMessage(chat_id=tg, from_chat_id=chat, message_id=msg), message="blocked")
             self.sent.append((tg, f"copy:{chat}:{msg}"))
 
     async def run():
@@ -782,16 +786,18 @@ def test_admin_panel():
             assert gc.maintenance is False and gc.turn_seconds == type(gc).turn_seconds
             # پیام: HTML ساده می ماند، بقیه امن می شود
             assert admin._clean_text("<b>سلام</b> <script>x</script> 2<3") == "<b>سلام</b> &lt;script&gt;x&lt;/script&gt; 2&lt;3"
-            # پیام همگانی: نسخه آزمایشی به خود ادمین، بعد همه (به جز مسدود)؛ ۱۳ ربات را بسته
-            r = await h("admin/broadcast", "POST", body={"text": "<b>جام</b> هفته", "target": "all", "button": "|بازی"})
-            assert r["total"] == 4 and bot.sent[0][0] == 99
+            # پیام همگانی (پیش نویس از ربات): همه به جز مسدود؛ ۱۳ ربات را بسته. پنل فقط آمار را می بیند
+            bid = await db.bc_draft(99, 99, 7, "|بازی|brand", "all")
+            assert await db.bc_launch(bid, admin._target("all", 99)) == 4
+            admin.kick()
             await admin._running
-            b = await db.bc_get(r["id"])
+            b = await db.bc_get(bid)
             assert b["status"] == "done" and b["sent"] == 3 and b["blocked"] == 1, dict(b)
-            assert sorted(t for t, _ in bot.sent[1:]) == [10, 12, 99]
-            assert (await h("admin/bc_count", q={"target": "game:ludo"}))["n"] == 0
+            assert sorted(t for t, _ in bot.sent) == [10, 12, 99] and all(x == "copy:99:7" for _, x in bot.sent)
+            st = (await h("admin/broadcasts"))["summary"]
+            assert st["sent"] == 3 and st["blocked"] == 1 and st["count"] == 1
             log_actions = [x["action"] for x in (await h("admin/log"))["rows"]]
-            assert "broadcast" in log_actions and "ban" in log_actions and "points" in log_actions
+            assert "ban" in log_actions and "points" in log_actions
         finally:
             obour_cfg.admin_ids[:] = old_ids
             gcrt.db, gcrt.bot = old_db, old_bot
@@ -1178,7 +1184,8 @@ def test_group_tables():
                 await service.leave_any(db, u.id, m["id"])
             m = await db.get_match(m["id"])
             if m["status"] == "over":
-                assert "تموم شد" in P(bot.edits[-1][1]) and B(bot.edits[-1][1])[0].callback_data == "gt:new:hokm"
+                # پایان: فقط اطلاعات میز، بدون دکمه
+                assert "تموم شد" in P(bot.edits[-1][1]) and "مدت بازی" in P(bot.edits[-1][1]) and not B(bot.edits[-1][1])
             # کارت تنظیمی که کسی بازش نکرد بعد از ۱۵ دقیقه بسته می شود
             assert await groups.create(db, bot, chat, NS(id=21, first_name="x", last_name=None, username=None), "ludo") is None
             tok = next(b.callback_data for b in B(bot.sent[-1][1]) if b.callback_data.startswith("gs:open:"))[8:]
@@ -1268,7 +1275,8 @@ def test_inline_tables():
             for u in (31, 32):
                 await service.leave_any(db, u, mid)
             if (await db.get_match(mid))["status"] == "over":
-                assert B(bot.edits[-1][1])[0].callback_data == "gt:new:ludo"
+                assert not B(bot.edits[-1][1]) and "تموم شد" in P(bot.edits[-1][1])
+                # «میز تازه» (کارت بسته شده) در همان پیام اینلاین کارت تنظیم تازه می سازد
                 await groups.on_button(_CQ(33, "gt:new:ludo", imid="IM1"), gdb=db, bot=bot)
                 d = await db.one("SELECT * FROM group_drafts WHERE host = 33")
                 assert d["inline_message_id"] == "IM1" and d["status"] == "setup" and "حالت بازی" in P(bot.edits[-1][1])
@@ -1368,6 +1376,61 @@ def test_emoji_and_style():
             emo.load_rows({})
             mock.patch.stopall()
             service.table_hook = None
+            await db.close()
+
+    asyncio.run(run())
+
+
+def test_broadcast_from_bot():
+    """پیام همگانی فقط از ربات: پیش نویس، دکمه ها با ایموجی پریمیوم، گیرنده ها، ارسال یک باره؛ پنل فقط آمار."""
+    tmp = tempfile.mkdtemp()
+    from game_club import admin, bot as gbot
+    from game_club.db import GCDatabase
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        try:
+            for i in (1, 2, 3):
+                await db.player(i, f"p{i}")
+            bid = await db.bc_draft(1, 1, 50, "|ورود به Game Club|brand", "all")
+            # پیش نویس نه فرستاده می شود نه در آمار پنل است
+            assert not await db.bc_active() and not await db.bc_list()
+            text, kb = await gbot._bc_panel(db, bid, 1)
+            assert "پیش‌نویس" in text and "3 نفر" in text.replace("\u2068", "").replace("\u2069", "")
+            datas = [b.callback_data for r in kb.inline_keyboard for b in r]
+            assert f"bc:t:{bid}:active7" in datas and f"bc:send:{bid}" in datas and f"bc:b:{bid}" in datas
+            # دکمه ها از متن ادمین: ایموجی پریمیوم اول خط آیکن می شود؛ خط بد کنار می رود؛ حداکثر ۳
+            lines, bad = gbot.parse_button_lines('<tg-emoji emoji-id="777">🃏</tg-emoji> بازی حکم | حکم\nخانه رو ببین | خانه\nبد | جایی\na | منچ\nb | فوتبال')
+            assert lines == ["hokm-lobby.html|بازی حکم|777", "|خانه رو ببین|", "ludo-lobby.html|a|"] and bad == ["بد | جایی"]
+            assert await db.bc_set_draft(bid, button="\n".join(lines), target="game:hokm")
+            assert admin.parse_buttons((await db.bc_get(bid))["button"])[0] == ("hokm-lobby.html", "بازی حکم", "777")
+            from game_club import emoji as emo
+            assert emo.button("بازی حکم", "777") == {"text": "بازی حکم", "icon_custom_emoji_id": "777"}
+            # ارسال: فقط یک بار
+            assert await db.bc_launch(bid, admin._target("all", 1)) == 3
+            assert await db.bc_launch(bid, "all") == 0 and not await db.bc_set_draft(bid, target="me")
+            assert [b["id"] for b in await db.bc_active()] == [bid]
+            # پنل: فقط آمار (مسیر فرستادن نیست)
+            from unittest import mock
+
+            async def noop(_db):
+                return None
+            mock.patch.object(admin, "is_admin", return_value=True).start()
+            mock.patch.object(admin, "resume_if_needed", noop).start()
+            r = await admin.handle("admin/broadcasts", "GET", 1, {}, {}, db)
+            assert r["summary"]["count"] == 1 and r["list"][0]["target"] == "همه" and r["list"][0]["buttons"][0] == "بازی حکم"
+            try:
+                await admin.handle("admin/broadcast", "POST", 1, {}, {"text": "x"}, db)
+                raise AssertionError("ارسال از پنل نباید باشد")
+            except admin.GCError as e:
+                assert e.code == "not_found"
+            # لغو پیش نویس
+            b2 = await db.bc_draft(1, 1, 51, "", "all")
+            assert await db.bc_drop_draft(b2) and not await db.bc_drop_draft(b2) and len(await db.bc_list()) == 1
+        finally:
+            from unittest import mock
+            mock.patch.stopall()
             await db.close()
 
     asyncio.run(run())

@@ -24,6 +24,7 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
     BotCommand,
+    CallbackQuery,
     BotCommandScopeAllGroupChats,
     BotCommandScopeAllPrivateChats,
     InlineKeyboardButton,
@@ -273,6 +274,44 @@ async def on_admin(message: Message) -> None:
         foot=("brand", "ایموجی پریمیوم", "/gcemoji")) if kb else "آدرس https مینی اپ تنظیم نشده.", reply_markup=kb)
 
 
+# ---------- پیام همگانی (فقط از ربات؛ مینی اپ فقط آمار را نشان می دهد) ----------
+# ۱) پیام را (متن، عکس، ویدیو... با ایموجی پریمیوم) در ربات بفرست و رویش ریپلای کن: /gcbc
+# ۲) در کارت کنترل: گیرنده ها، دکمه ها (تا ۳ تا، با ایموجی پریمیوم)، نسخهٔ آزمایشی و ارسال با تایید
+# پیش نویس در دیتابیس است (status=draft)؛ پس اگر پروسه عوض شد چیزی گم نمی شود.
+PAGE_ALIAS = {"خانه": "", "home": "", "حکم": "hokm-lobby.html", "منچ": "ludo-lobby.html", "فوتبال": "football-lobby.html",
+              "بازی‌ها": "games.html", "بازی ها": "games.html", "بازیها": "games.html", "دوستان": "friends.html",
+              "پروفایل": "profile.html", "فروشگاه": "shop.html", "کیف": "shop.html"}
+PAGE_FA = {"": "خانه", "hokm-lobby.html": "حکم", "ludo-lobby.html": "منچ", "football-lobby.html": "فوتبال",
+           "games.html": "بازی‌ها", "friends.html": "دوستان", "profile.html": "پروفایل", "shop.html": "فروشگاه"}
+_BC_WAIT = "bcwait:"   # setting: ادمین دارد دکمه های کدام پیش نویس را می فرستد
+
+
+def _ib(text: str, data: str, key: str | None = None) -> InlineKeyboardButton:
+    return st.kb_button(text, key, callback_data=data)
+
+
+async def _bc_panel(gdb: GCDatabase, bid: int, admin_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
+    from . import admin
+
+    b = await gdb.bc_get(bid)
+    if not b or b["status"] != "draft":
+        return _h("megaphone", "پیام همگانی", f"شماره {bid}", ["این پیش‌نویس دیگه فعال نیست."]), None
+    n = await gdb.bc_count(admin._target(b["target"], admin_id))
+    btns = admin.parse_buttons(b["button"])
+    lines = ["پیامی که روش ریپلای کردی همون‌طور برای همه می‌ره؛ با عکس، متن و ایموجی‌های پریمیومش.", "",
+             [st.E("link"), " ", st.B("دکمه‌ها")]]
+    lines += [["• ", st.Raw(emo.html_of(k) + " ") if k in emo.CATALOG else "", label, " ← ", PAGE_FA.get(page, "خانه")]
+              for page, label, k in btns] or ["بدون دکمه"]
+    text = _h("megaphone", "پیام همگانی", f"پیش‌نویس {bid}", lines,
+              foot=("users", "گیرنده‌ها", [admin.target_label(b["target"]), " · ", st.num(n), " نفر"]))
+    tk = [_ib(("✅ " if b["target"] == k else "") + t, f"bc:t:{bid}:{k}") for k, t in admin.TARGET_KEYS]
+    rows = [tk[:3], tk[3:6], tk[6:],
+            [_ib("✏️ دکمه‌ها", f"bc:b:{bid}"), _ib("🧪 نسخهٔ آزمایشی", f"bc:test:{bid}")],
+            [_ib(f"ارسال برای {n:,} نفر", f"bc:send:{bid}", "megaphone")],
+            [_ib("لغو پیش‌نویس", f"bc:del:{bid}", "cancel")]]
+    return text, InlineKeyboardMarkup(inline_keyboard=[r for r in rows if r])
+
+
 @router.message(Command("gcbc"))
 async def on_broadcast(message: Message, gdb: GCDatabase) -> None:
     """پیام همگانی با هر نوع محتوا: روی یک پیام (عکس، ویدیو، متن...) ریپلای کن و بنویس /gcbc"""
@@ -280,25 +319,136 @@ async def on_broadcast(message: Message, gdb: GCDatabase) -> None:
         return
     src = message.reply_to_message
     if not src:
-        await message.answer(_h("megaphone", "پیام همگانی", "با ریپلای", [
-            "روی پیامی که می‌خوای برای همه بره ریپلای کن و بنویس /gcbc",
-            "فقط برای فعال‌های ۷ روز اخیر: /gcbc 7", "",
-            "ایموجی‌های پریمیوم خود پیام همون‌طور می‌رن."], foot=(None, None, "دکمه‌ها رو از پنل مدیریت هم می‌شه چید.")))
+        await message.answer(_h("megaphone", "پیام همگانی", "از همین ربات", [
+            "۱. پیامت رو همین‌جا بفرست؛ متن، عکس، ویدیو، با ایموجی پریمیوم",
+            "۲. روی همون پیام ریپلای کن و بنویس /gcbc",
+            "۳. گیرنده‌ها و دکمه‌ها رو انتخاب کن، آزمایشی ببین و بفرست"],
+            foot=("chart", "آمار", "پیشرفت و آمار ارسال‌ها توی پنل مدیریت")))
         return
-    import time as _t
+    days = (message.text or "").split()[1:2]
+    target = {"7": "active7", "30": "active30"}.get(days[0] if days else "", "all")
+    bid = await gdb.bc_draft(message.from_user.id, src.chat.id, src.message_id, "|ورود به Game Club|brand", target)
+    text, kb = await _bc_panel(gdb, bid, message.from_user.id)
+    await message.answer(text, reply_markup=kb, reply_to_message_id=src.message_id)
+
+
+@router.callback_query(F.data.startswith("bc:"))
+async def on_bc_button(cq: CallbackQuery, gdb: GCDatabase, bot: Bot) -> None:
+    from app.config import config as obour_cfg
 
     from . import admin
 
-    days = (message.text or "").split()[1:2]
-    target = f"seen:{int(_t.time()) - int(days[0]) * 86400}" if days and days[0].isdigit() else "all"
-    bid = await gdb.bc_create(message.from_user.id, target, src_chat=src.chat.id, src_msg=src.message_id,
-                              button="|ورود به Game Club|brand")
-    await gdb.log_admin(message.from_user.id, "broadcast", str(bid), f"{target} · copy")
+    if cq.from_user.id not in obour_cfg.admin_ids:
+        await cq.answer()
+        return
+    parts = (cq.data or "").split(":", 3)
+    act, bid = parts[1], int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 0
+    me = cq.from_user.id
     b = await gdb.bc_get(bid)
-    admin.kick()
-    await message.answer(_h("megaphone", "پیام همگانی", f"شماره {bid}", ["ارسال شروع شد."],
-                            foot=("users", "گیرنده‌ها", [st.num(b["total"]), " نفر"])),
-                         reply_markup=open_kb("admin.html#bc", "دیدن پیشرفت", "chart"))
+    if not b or b["status"] != "draft":
+        await cq.answer("این پیش‌نویس دیگه فعال نیست.", show_alert=True)
+        return
+
+    async def redraw() -> None:
+        text, kb = await _bc_panel(gdb, bid, me)
+        try:
+            await cq.message.edit_text(text, reply_markup=kb)
+        except Exception:  # noqa: BLE001  (not modified)
+            pass
+
+    if act == "t" and len(parts) == 4 and parts[3] in dict(admin.TARGET_KEYS):
+        await gdb.bc_set_draft(bid, target=parts[3])
+        await cq.answer(admin.target_label(parts[3]))
+        await redraw()
+    elif act == "b":
+        await gdb.setting_put(_BC_WAIT + str(me), str(bid))
+        await cq.answer()
+        await cq.message.answer(_h("link", "دکمه‌های پیام", f"پیش‌نویس {bid}", [
+            "هر خط یه دکمه (حداکثر ۳ تا): متن دکمه | صفحه", "",
+            "🃏 بازی حکم | حکم", "🎮 ورود به Game Club | خانه", "",
+            "صفحه‌ها: " + "، ".join(PAGE_FA.values()),
+            "ایموجی اول هر خط اگه پریمیوم باشه، آیکن پریمیوم دکمه می‌شه."],
+            foot=(None, None, "بدون دکمه: فقط بفرست -")))
+    elif act == "test":
+        r = await admin._send(bot, me, "", b["button"], (b["src_chat"], b["src_msg"]))
+        await cq.answer("نسخهٔ آزمایشی برات رسید." if r == "ok" else "نرسید؛ پیام اصلی پاک نشده؟", show_alert=r != "ok")
+    elif act == "send":
+        n = await gdb.bc_count(admin._target(b["target"], me))
+        await cq.answer()
+        await cq.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [_ib(f"بله، برای {n:,} نفر بفرست", f"bc:go:{bid}", "ok")], [_ib("برگشت", f"bc:back:{bid}")]]))
+    elif act == "back":
+        await cq.answer()
+        await redraw()
+    elif act == "go":
+        target = admin._target(b["target"], me)
+        total = await gdb.bc_launch(bid, target)
+        if not total:
+            await cq.answer("گیرنده‌ای نداره یا قبلا فرستاده شده.", show_alert=True)
+            return
+        await gdb.log_admin(me, "broadcast", str(bid), f"{target} · copy")
+        admin.kick()
+        await cq.answer("ارسال شروع شد")
+        await cq.message.edit_text(_h("megaphone", "پیام همگانی", f"شماره {bid}", ["ارسال شروع شد؛ حدود ۲۰ پیام در ثانیه."],
+                                      foot=("users", "گیرنده‌ها", [st.num(total), " نفر"])),
+                                   reply_markup=open_kb("admin.html#bc", "دیدن آمار", "chart"))
+    elif act == "del":
+        await gdb.bc_drop_draft(bid)
+        await cq.answer("لغو شد")
+        await cq.message.edit_text(_h("megaphone", "پیام همگانی", f"پیش‌نویس {bid}", ["لغو شد."]))
+    else:
+        await cq.answer()
+
+
+def parse_button_lines(html_text: str) -> tuple[list[str], list[str]]:
+    """متن ادمین (HTML با tg-emoji) -> خط های «صفحه|متن|آیدی ایموجی» و خط های نامعتبر."""
+    import html as _html
+    import re
+
+    ok, bad = [], []
+    for raw in html_text.splitlines():
+        if not raw.strip():
+            continue
+        m = re.match(r'\s*<tg-emoji emoji-id="(\d+)">[^<]*</tg-emoji>\s*', raw)
+        icon = m.group(1) if m else ""
+        line = _html.unescape(re.sub(r"<[^>]+>", "", raw[m.end():] if m else raw))
+        label, sep, page = line.rpartition("|")
+        page = " ".join(page.replace("\u200c", " ").split())
+        label = " ".join(label.replace("|", " ").split())[:40]
+        if not sep or not label or page not in PAGE_ALIAS:
+            bad.append(_html.unescape(re.sub(r"<[^>]+>", "", raw)).strip())
+            continue
+        ok.append(f"{PAGE_ALIAS[page]}|{label}|{icon}")
+    return ok[:3], bad
+
+
+@router.message(F.chat.type == "private", F.text)
+async def on_bc_buttons(message: Message, gdb: GCDatabase) -> None:
+    """ادمینی که «دکمه ها» را زده: پیام بعدی اش دکمه های پیش نویس است."""
+    from aiogram.dispatcher.event.bases import SkipHandler
+
+    if not _is_admin(message) or (message.text or "").startswith("/"):
+        raise SkipHandler
+    key = _BC_WAIT + str(message.from_user.id)
+    bid = (await gdb.settings_all()).get(key)
+    if not bid or not str(bid).isdigit():
+        raise SkipHandler
+    if (message.text or "").strip() in ("-", "—", "بدون دکمه"):
+        lines, bad = [], []
+    else:
+        lines, bad = parse_button_lines(message.html_text)
+        if not lines:
+            await message.answer("هیچ خط درستی پیدا نشد. شکلش این‌طوریه: <code>🃏 بازی حکم | حکم</code>\n"
+                                 "صفحه‌ها: " + "، ".join(PAGE_FA.values()))
+            return
+    await gdb.setting_put(key, None)
+    if not await gdb.bc_set_draft(int(bid), button="\n".join(lines)):
+        await message.answer("این پیش‌نویس دیگه فعال نیست.")
+        return
+    text, kb = await _bc_panel(gdb, int(bid), message.from_user.id)
+    if bad:
+        text = "این خط‌ها کنار گذاشته شد: " + "، ".join(emo.esc(x) for x in bad) + "\n\n" + text
+    await message.answer(text, reply_markup=kb)
 
 
 # ---------- ایموجی های پریمیوم ----------

@@ -95,7 +95,8 @@ def parse_buttons(raw: str) -> list[tuple[str, str, str]]:
         if page not in PAGES:
             continue
         label = " ".join(label.split())[:40] or "ورود به Game Club"
-        out.append((page, label, key if key in emo.CATALOG else ""))
+        key = key.strip()
+        out.append((page, label, key if key in emo.CATALOG or (key.isdigit() and len(key) < 25) else ""))
     return out[:BC_BUTTONS]
 
 
@@ -290,12 +291,14 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
             return {"rows": rows, "more": len(rows) == 40}
         if path == "broadcasts":
             await resume_if_needed(db)
-            return {"list": [dict(b) for b in await db.bc_list()], "pages": PAGES, "games": GAMES,
-                    "emojis": emo.listing(), "max_buttons": BC_BUTTONS}
+            # فقط آمار؛ فرستادن از ربات است (/gcbc)
+            rows = [bc_view(b) for b in await db.bc_list(30)]
+            done = [b for b in rows if b["status"] != "active"]
+            sent, blocked = sum(b["sent"] for b in rows), sum(b["blocked"] for b in rows)
+            return {"list": rows, "summary": {"count": len(rows), "active": len(rows) - len(done), "sent": sent, "blocked": blocked,
+                                              "failed": sum(b["failed"] for b in rows), "total": sum(b["total"] for b in rows)}}
         if path == "emoji":
             return {"emojis": emo.listing(), "obour": len(emo.from_obour())}
-        if path == "bc_count":
-            return {"n": await db.bc_count(_target(q.get("target", "all"), admin))}
         if path == "settings":
             return {"settings": _settings_view(await db.settings_all())}
         if path == "log":
@@ -346,22 +349,6 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
         r = await service.admin_close(db, mid)
         await db.log_admin(admin, "close", mid, f"refund {r['refunded']}")
         return {"ok": True, **r}
-    if path == "broadcast":
-        text = _clean_text(body.get("text", ""))
-        button = "\n".join("|".join(b) for b in parse_buttons(body.get("button") or ""))
-        target = _target(body.get("target", "all"), admin)
-        g = await gcrt.ensure()
-        if not text or g.bot is None:
-            raise GCError("bad_input")
-        # اول یک نسخه برای خود ادمین: هم پیش نمایش است و هم HTML خراب را همین جا می گیرد
-        if await _send(g.bot, admin, text, button) != "ok":
-            raise GCError("bad_text")
-        if body.get("test"):
-            return {"ok": True, "test": True}
-        bid = await db.bc_create(admin, target, text=text, button=button)
-        await db.log_admin(admin, "broadcast", str(bid), f"{target} · {text[:80]}")
-        kick()
-        return {"ok": True, "id": bid, "total": (await db.bc_get(bid))["total"]}
     if path == "broadcast/cancel":
         bid = _int(body.get("id"))
         if not await db.bc_finish(bid, "cancelled"):
@@ -405,6 +392,28 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
         await db.log_admin(admin, "setting", key, "reset" if val is None else str(getattr(gc, key))[:120])
         return {"ok": True, "settings": _settings_view(await db.settings_all())}
     raise GCError("not_found")
+
+
+TARGET_KEYS = [("all", "همه"), ("active7", "فعال ۷ روز"), ("active30", "فعال ۳۰ روز"), ("game:hokm", "بازیکنان حکم"),
+               ("game:ludo", "بازیکنان منچ"), ("game:football", "بازیکنان فوتبال"), ("me", "فقط خودم")]
+
+
+def target_label(t: str) -> str:
+    """برچسب گیرنده ها، هم برای کلید فرم و هم برای مقدار ذخیره شده."""
+    t = str(t or "all")
+    if t.startswith("seen:"):
+        days = round((time.time() - int(t[5:] or 0)) / 86400)
+        return f"فعال {days} روز اخیر" if days > 0 else "فعال ها"
+    if t.startswith("id:"):
+        return "فقط خودم"
+    return dict(TARGET_KEYS).get(t, "همه")
+
+
+def bc_view(b: dict) -> dict:
+    return {"id": b["id"], "status": b["status"], "total": b["total"], "sent": b["sent"], "failed": b["failed"],
+            "blocked": b["blocked"], "created_at": b["created_at"], "finished_at": b.get("finished_at"),
+            "copy": bool(b["src_msg"]), "text": re.sub(r"<[^>]+>", "", b["text"] or "")[:200], "target": target_label(b["target"]),
+            "buttons": [label for _, label, _ in parse_buttons(b["button"])]}
 
 
 def _target(t: str, admin: int) -> str:
