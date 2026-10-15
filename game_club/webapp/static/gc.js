@@ -151,6 +151,7 @@ const liveData = {
   nameCheck: n => api('name/check', { q: { n } }),
   setName: name => api('name', { body: { name } }),
   nameSeen: () => api('name/seen', { body: {} }),
+  saveProfile: body => api('settings', { body }),
 };
 const liveLudo = {
   queueJoin: cfg => api('ludo/queue', { body: { cfg } }),
@@ -231,6 +232,7 @@ const P = {
   shield: '<path d="M12 3l8 3v6c0 4.6-3.4 8.2-8 9-4.6-.8-8-4.4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   card: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18M7 15h4"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  sliders: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/>',
   send: '<path d="M21 4L10 14M21 4l-6.5 17-4.5-7-7-4.5z"/>',
@@ -639,7 +641,11 @@ async function showView(name, push = true) {
   applyBack(v.back);
   if (push) try { history.pushState({ view: name }, '', v.file); } catch (e) {}
 }
-function go(href) { const f = tabFile(href); if (f && curView) showView(TABS[f]); else location.href = href; }
+// هش لینک (مثلا shop.html#charge) برای همان بخش نگه داشته می شود تا کار خواسته شده را انجام دهد
+const hashOf = href => { try { const h = new URL(href, location.href).hash; return /tgWebApp/.test(h) ? '' : h; } catch (e) { return ''; } };
+let wantHash = { v: TABS[location.pathname.split('/').pop() || 'index.html'], h: hashOf(location.href) };
+function takeHash() { if (!wantHash || wantHash.v !== (curView || wantHash.v)) return ''; const h = wantHash.h; wantHash = null; return h; }
+function go(href) { const f = tabFile(href); wantHash = { v: f && TABS[f], h: hashOf(href) }; if (f && curView) showView(TABS[f]); else location.href = href; }
 function onShow(fn) { const k = mountingView || curView; if (k && views[k]) views[k].show.push(fn); }
 /* بار دادهٔ هر بخش: همین حالا (اگر بخش دیده می شود) و هر بار که دوباره دیده شود */
 function page(load) { onShow(load); if (!prebuilding) load(); }
@@ -648,7 +654,7 @@ document.addEventListener('click', e => {
   if (!curView || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey) return;
   const a = e.target.closest('a[href]'); if (!a || a.target) return;
   const f = tabFile(a.getAttribute('href')); if (!f) return;
-  e.preventDefault(); close(); showView(TABS[f]);
+  e.preventDefault(); close(); wantHash = { v: TABS[f], h: hashOf(a.getAttribute('href')) }; showView(TABS[f]);
 });
 addEventListener('popstate', e => { const id = e.state && e.state.view; if (id && curView) showView(id, false); });
 /* تصویر کوچک هر بازی (همان اجزای واقعی بازی: ورق، مهره فلزی و زمین، صفحه منچ) */
@@ -753,6 +759,6 @@ window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, gu
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go };
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();

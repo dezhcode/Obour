@@ -224,7 +224,7 @@ const STYLE = [['table:a', 'table', 'a', 'میز کلاسیک', 0], ['table:b', 
   ['cards:m', 'cards', 'm', 'ورق مدرن', 0], ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 300], ['cards:c', 'cards', 'c', 'ورق Game Club', 300], ['cards:d', 'cards', 'd', 'ورق رنگ تمام', 300]];
 const data = {
   async me() {
-    return { player: { name: S.uname || 'lucky_falcon', name_next: S.unameAt ? S.unameAt + 30 * 86400 : 0, name_hint: !S.unameSeen && !S.unameAt,
+    return { covers: [{ id: 'gc', name: 'Game Club' }], player: { bio: S.bio || '', cover: S.cover || 'gc', name: S.uname || 'lucky_falcon', name_next: S.unameAt ? S.unameAt + 30 * 86400 : 0, name_hint: !S.unameSeen && !S.unameAt,
         joined: Math.round(Date.now() / 1000) - 42 * 86400, av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: S.showSpend ? 1 : 0 },
       history: S.ledger.map(l => ({ kind: l.k, amount: l.a, note: l.t, created_at: Math.round(l.at / 1000) })),
       notify: Object.keys(S.notify).filter(k => S.notify[k]), obour: { linked: true, balance: 240000 }, active_match: await ludo.active(), tables: demoTables(),
@@ -268,6 +268,7 @@ const data = {
     S.uname = r.name; S.unameAt = now; S.unameSeen = true; save();
     return { name: S.uname, name_next: now + 30 * 86400, name_hint: false };
   },
+  async saveProfile(b) { if ('bio' in b) S.bio = String(b.bio || '').replace(/[<>&"'`\\]/g, '').trim().slice(0, 80); if ('cover' in b) S.cover = b.cover; save(); return { ok: true, bio: S.bio || '', cover: S.cover || 'gc' }; },
   async nameSeen() { S.unameSeen = true; save(); return { ok: true }; },
   async charge(points) { S.bal += points; GC.ledger('شارژ از کیف پول عبور', points, 'charge'); save(); return { ok: true, points }; },
   async notify(game) { S.notify[game] = !S.notify[game]; save(); return { on: S.notify[game] }; },

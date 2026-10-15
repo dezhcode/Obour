@@ -214,12 +214,14 @@ class GCDatabase:
         # ستون های تازه روی دیتابیس قدیمی: عکس پروفایل تلگرام و کلید آدرس عکس
         cur = await self._conn.execute("PRAGMA table_info(players)")
         have = {r[1] for r in await cur.fetchall()}
-        for col in ("photo", "pic", "ban_note", "table_skin", "card_skin"):
+        for col in ("photo", "pic", "ban_note", "table_skin", "card_skin", "bio"):
             if col not in have:
                 await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
         if "banned" not in have:   # مسدود شده توسط ادمین
             await self._conn.execute("ALTER TABLE players ADD COLUMN banned INTEGER NOT NULL DEFAULT 0")
         # یوزرنیم: ستون name از این نسخه یوزرنیم یکتای بازی است و اسم تلگرام فقط در tg_name (برای ادمین) می ماند
+        if "cover" not in have:     # کاور پروفایل (طرح های service.COVERS)
+            await self._conn.execute("ALTER TABLE players ADD COLUMN cover TEXT NOT NULL DEFAULT 'gc'")
         if "tg_name" not in have:
             await self._conn.execute("ALTER TABLE players ADD COLUMN tg_name TEXT NOT NULL DEFAULT ''")
         for col in ("nick_ok", "uname_at", "uname_seen"):
@@ -419,6 +421,12 @@ class GCDatabase:
         if field not in ("show_spend", "tutorial", "sound"):
             raise ValueError(field)
         await self.execute(f"UPDATE players SET {field} = ? WHERE tg_id = ?", (value, tg_id))
+
+    async def set_profile(self, tg_id: int, *, cover: str | None = None, bio: str | None = None) -> None:
+        if cover is not None:
+            await self.execute("UPDATE players SET cover = ? WHERE tg_id = ?", (cover, tg_id))
+        if bio is not None:
+            await self.execute("UPDATE players SET bio = ? WHERE tg_id = ?", (_UNSAFE.sub("", bio.replace("\n", " ")).strip()[:80], tg_id))
 
     # ---------- امتیاز ----------
     async def debit(self, tg_id: int, amount: int) -> bool:
