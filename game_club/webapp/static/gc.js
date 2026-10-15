@@ -528,6 +528,9 @@ sfx.fb = {
 function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
 /* ---------- ناوبری پایین: پنج بخش فقط با آیکون؛ «بازی‌ها» دکمهٔ گرد طلایی وسط است ---------- */
+// آیکن های فایلی از static/icons (راهنما: static/icons/README.md). به شکل ماسک کشیده می شوند تا رنگ را از جای خودشان بگیرند
+const ICON_FILES = { navGames: 'static/icons/nav-games.svg' };
+const fileIcon = key => `<i class="ic-file" aria-hidden="true" style="-webkit-mask-image:url('${ICON_FILES[key]}');mask-image:url('${ICON_FILES[key]}')"></i>`;
 const NAV = [['home', 'index.html', 'خانه', 'home'], ['friends', 'friends.html', 'دوستان', 'users'], ['games', 'games.html', 'بازی‌ها', 'pad'],
   ['shop', 'shop.html', 'فروشگاه', 'bag'], ['profile', 'profile.html', 'پروفایل', 'user']];
 // عدد روی آیکون دوستان: درخواست های تازه + پیام های نخوانده
@@ -543,7 +546,7 @@ function nav(active) {
   if (navEl) { setActive(active, false); return; }
   const n = navEl = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
   n.innerHTML = `<div class="nav-in"><span class="nav-pill" aria-hidden="true"></span>${NAV.map(([id, href, label, ic]) =>
-    `<a href="${href}" data-id="${id}" aria-label="${label}"${id === 'games' ? ' class="nav-play"' : ''}>${id === 'games' ? `<span class="np">${icon(ic)}</span>` : icon(ic)}${id === 'friends' ? '<span class="nav-badge" hidden></span>' : ''}</a>`).join('')}</div>`;
+    `<a href="${href}" data-id="${id}" aria-label="${label}"${id === 'games' ? ' class="nav-play"' : ''}>${id === 'games' ? `<span class="np">${fileIcon('navGames')}</span>` : icon(ic)}${id === 'friends' ? '<span class="nav-badge" hidden></span>' : ''}</a>`).join('')}</div>`;
   // دانلود زودهنگام: با لمس دکمه، صفحهٔ آن بخش همان لحظه گرفته می شود
   n.addEventListener('pointerdown', e => { const a = e.target.closest('a[href]'); if (a) fetchPage(a.getAttribute('href')); }, { passive: true });
   document.body.appendChild(n);
@@ -801,6 +804,6 @@ window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, gu
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, watchId, watchPill, watchOver };
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();
