@@ -18,7 +18,13 @@ import html
 
 from . import emoji as emo
 
-RLM, FSI, PDI = "‏", "⁨", "⁩"
+RLM, FSI, PDI = "\u200f", "\u2068", "\u2069"
+# همهٔ عددهای پیام های ربات لاتین اند (۱۲ -> 12)، هر جا که نوشته شده باشند
+LATIN = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+
+def en(s: str) -> str:
+    return str(s).translate(LATIN)
 
 
 class E:
@@ -88,7 +94,7 @@ def to_html(parts: list) -> str:
     out = []
     for p in parts:
         if isinstance(p, str):
-            out.append(html.escape(p, quote=False))
+            out.append(html.escape(en(p), quote=False))
         elif isinstance(p, E):
             out.append(emo.html_of(p.key))
         elif isinstance(p, B):
@@ -96,7 +102,7 @@ def to_html(parts: list) -> str:
         elif isinstance(p, M):
             out.append(f'<a href="tg://user?id={p.tg}">{html.escape(p.name, quote=False)}</a>')
         elif isinstance(p, Raw):
-            out.append(p.text)
+            out.append(en(p.text))
     return "".join(out)
 
 
@@ -114,7 +120,7 @@ def to_rich(parts: list) -> list:
 
     for p in parts:
         if isinstance(p, str):
-            put(p)
+            put(en(p))
         elif isinstance(p, E):
             put(emo.rich_of(p.key))
         elif isinstance(p, B):
@@ -125,7 +131,7 @@ def to_rich(parts: list) -> list:
         elif isinstance(p, Raw):
             import re
 
-            put(html.unescape(re.sub(r"<[^>]+>", "", p.text)))
+            put(en(html.unescape(re.sub(r"<[^>]+>", "", p.text))))
     return out
 
 
@@ -134,7 +140,7 @@ def plain(parts: list) -> str:
     out = []
     for p in parts:
         if isinstance(p, str):
-            out.append(p)
+            out.append(en(p))
         elif isinstance(p, E):
             out.append(emo.default(p.key))
         elif isinstance(p, B):
@@ -150,12 +156,12 @@ def kb_button(label: str, key: str | None = None, **kw):  # noqa: ANN201
     """دکمهٔ شیشه ای (پیوی) با آیکن پریمیوم اگر تنظیم شده."""
     from aiogram.types import InlineKeyboardButton
 
-    return InlineKeyboardButton(**emo.button(label, key), **kw)
+    return InlineKeyboardButton(**emo.button(en(label), key), **kw)
 
 
 def rich_button(key: str | None, label: str, style: str | None = None, **kw):  # noqa: ANN201
     """دکمهٔ داخل پیام غنی (گروه و اینلاین)، با ایموجی پریمیوم در متنش."""
     from aiogram.types import RichMessageButton
 
-    text = to_rich([E(key), " ", label]) if key else [label]
+    text = to_rich([E(key), " ", label]) if key else [en(label)]
     return RichMessageButton(text=text[0] if len(text) == 1 else text, style=style, **kw)

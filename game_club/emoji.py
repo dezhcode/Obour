@@ -59,6 +59,14 @@ CATALOG: dict[str, tuple[str, str]] = {
     "ok": ("✔️", "انجام شد"),
 }
 
+# دسته ها برای صفحهٔ مدیریت ایموجی در ربات (مثل عبور: دسته -> فهرست -> ایموجی)
+CATEGORIES: dict[str, list[str]] = {
+    "بازی‌ها": ["brand", "hokm", "ludo", "football", "group", "trophy", "score", "time"],
+    "میز و دکمه‌ها": ["seat", "leave", "robot", "watch", "crown", "users", "empty", "gear", "play", "new", "cancel", "selected"],
+    "امتیاز و اعلان": ["coin", "star", "fire", "turn", "bell", "chat", "friend", "gift", "party", "link"],
+    "عمومی": ["hello", "help", "shop", "home", "megaphone", "chart", "ban", "warn", "ok"],
+}
+
 _cache: dict[str, str] = {}
 
 

@@ -346,9 +346,9 @@ async def settle(db: GCDatabase, m: dict) -> None:
         won = r["color"] in winners
         share = shares.get(r["tg_id"], 0)
         if won:
-            text = f"{name} را بردی! {share:,} امتیاز جایزه به کیفت اضافه شد." if cfg["mode"] == "stake" and share else f"{name} را بردی!"
+            text = f"{name} رو بردی! 🎉 {share:,} امتیاز جایزه ریخت تو کیفت؛ دمت گرم!" if cfg["mode"] == "stake" and share else f"{name} رو بردی! 🎉 حریفا هنوز تو شوکن."
         else:
-            text = f"بازی {name} تمام شد و این بار باختی." if winners else f"بازی {name} تمام شد."
+            text = f"بازی {name} تموم شد و این دفعه نشد. عیب نداره، دست بعد مال توئه 😉" if winners else f"بازی {name} تموم شد."
         await _notify(db, r["tg_id"], f"over:{m['id']}:{r['tg_id']}", text, "shop.html" if won and share else "index.html")
     await _hook(db, m["id"])
 
@@ -549,7 +549,7 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
         await db.add_match_player(m["id"], tg, color, paid)
         host = m["host"]
         if host and host != tg and await _away(db, m["id"], host, time.time()):
-            await _notify(db, host, f"join:{m['id']}:{tg}", f"{info['name']} سر میز {_gname(cfg)} تو نشست!",
+            await _notify(db, host, f"join:{m['id']}:{tg}", f"{info['name']} سر میز {_gname(cfg)} نشست! زود بیا که منتظرن 😄",
                           _gpage(cfg).replace(".html", "-lobby.html"))
         if len(mm["state"]["seats"]) == cfg["players"]:
             await _lobby_go(db, mm)
@@ -763,12 +763,12 @@ async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
     if await db.ping_count(f"turn:{m['id']}:{uid}:") >= 2:
         return
     hk, fb = st.get("game") == "hokm", st.get("game") == "football"
-    extra = (" در بازی امتیازی سه نوبت غیبت یعنی بیرون رفتن از بازی." if hk else " در بازی امتیازی سه نوبت غیبت یعنی باخت.") \
+    extra = (" تو بازی امتیازی 3 بار غیبت یعنی بیرون رفتن از بازی." if hk else " تو بازی امتیازی 3 بار غیبت یعنی باخت.") \
         if st.get("stake") else ""
-    what = ("حکم را انتخاب کن" if st["phase"] == "trump" else "برگت را بازی کن") if hk \
-        else "شوتت را بزن، وگرنه نوبت به حریف می‌رسد" if fb else "حرکت خودکار انجام می‌شود"
+    what = ("حکم رو انتخاب کن" if st["phase"] == "trump" else "برگت رو بنداز") if hk \
+        else "شوتت رو بزن، وگرنه توپ می‌ره دست حریف" if fb else "وگرنه ربات جات تاس می‌ریزه 🎲"
     await _notify(db, uid, f"turn:{m['id']}:{uid}:{st.get('turn_id', 0)}",
-                  f"نوبت توست در {_gname(m['cfg'])}! {st.get('turn_s', gc.turn_seconds)} ثانیه وقت داری؛ {what}.{extra}",
+                  f"نوبت توئه توی {_gname(m['cfg'])}! {st.get('turn_s', gc.turn_seconds)} ثانیه وقت داری؛ {what}.{extra}",
                   _gpage(m["cfg"]))
 
 

@@ -106,13 +106,13 @@ gcrt = GCRuntime()
 
 # نوع اعلان -> (ایموجی، زیرعنوان، متن دکمه)
 NOTICE = {
-    "turn": ("turn", "نوبت توئه", "برگرد سر بازی"),
+    "turn": ("turn", "نوبت توئه!", "برگرد سر بازی"),
     "join": ("seat", "یکی سر میزت نشست", "برو سر میز"),
     "over": ("trophy", "نتیجهٔ بازی", "باز کردن Game Club"),
-    "freq": ("friend", "درخواست دوستی", "دیدن درخواست"),
-    "facc": ("friend", "دوستی تازه", "دیدن دوستان"),
-    "dm": ("chat", "پیام تازه", "خواندن پیام"),
-    "dminv": ("link", "دعوت به بازی", "نشستن سر میز"),
+    "freq": ("friend", "درخواست دوستی", "ببین کیه"),
+    "facc": ("friend", "رفیق تازه", "دیدن رفیقا"),
+    "dm": ("chat", "پیام تازه", "بخونش"),
+    "dminv": ("link", "دعوت به بازی", "بشین سر میز"),
 }
 
 
@@ -146,7 +146,8 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
     me = await gdb.player(u.id, _name(message), u.username)
     if me.get("banned"):
         await message.answer(_h("ban", "Game Club", "حساب مسدود", [
-            "حساب تو در Game Club مسدود شده."], foot=(None, None, "اگه فکر می‌کنی اشتباه شده، به پشتیبانی عبور پیام بده.")))
+            "حسابت توی Game Club مسدود شده 🚫"],
+            foot=(None, None, "اگه فکر می‌کنی اشتباه شده، به پشتیبانی عبور پیام بده؛ آدمای خوبی‌ان 😄")))
         return
     arg = (command.args or "").strip()
     game = arg.split("_", 1)[0]
@@ -155,22 +156,22 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         code = "".join(ch for ch in arg.split("_", 1)[1].upper() if ch.isalnum())[:12]
         m = await gdb.match_by_invite(code)
         if not m or m["status"] != "lobby":
-            await message.answer(_h(game, f"میز {name}", "دیگه باز نیست", [
-                "این میز بسته شده یا بازی‌اش شروع شده."], foot=(None, None, "خودت یه میز تازه بساز 👇")),
+            await message.answer(_h(game, f"میز {name}", "دیر رسیدی 😅", [
+                "این میز یا جمع شده یا بازیش شروع شده."], foot=(None, None, "عیب نداره؛ خودت یه میز تازه بچین 👇")),
                 reply_markup=open_kb(f"{game}-lobby.html", f"میز تازهٔ {name}", "new"))
             return
         stake = m["cfg"]["mode"] == "stake"
-        who = {"hokm": "یار خودش توی حکم", "football": "یه بازی فوتبال", "ludo": "یه دست منچ"}[game]
-        await message.answer(_h(game, f"میز {name}", "دعوت دوستت", [
-            f"دوستت تو رو به {who} دعوت کرده."],
-            foot=("coin", "نوع میز", ["با امتیاز · ورودی ", st.num(m["cfg"]["entry"])] if stake else "آزاد · بدون امتیاز")),
-            reply_markup=open_kb(f"{game}-lobby.html?join={code}", "نشستن سر میز", "seat"))
+        who = {"hokm": "یه دست حکم (یار خودش!)", "football": "یه بازی فوتبال", "ludo": "یه دست منچ"}[game]
+        await message.answer(_h(game, f"میز {name}", "دعوتت کردن!", [
+            f"رفیقت تو رو به {who} دعوت کرده؛ منتظره بشینی کنارش 😎"],
+            foot=("coin", "نوع میز", ["با امتیاز · ورودی ", st.num(m["cfg"]["entry"])] if stake else "آزاد · مجانی")),
+            reply_markup=open_kb(f"{game}-lobby.html?join={code}", "بشین سر میز", "seat"))
         return
-    lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), "، بازی با منه."], "",
+    lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), "، خوش اومدی! اینجا کسی حوصله‌ش سر نمی‌ره 😎"], "",
              [st.E("hokm"), " حکم  ", st.E("ludo"), " منچ  ", st.E("football"), " فوتبال"],
-             "با دوستات یا با ناشناس؛ توی گروه هم با /hokm میز بساز."]
+             "با رفیقات یا با ناشناس؛ توی گروه هم با /hokm یه میز بچین."]
     if arg == "obour":
-        lines += ["", "حساب عبورت با همین تلگرام وصله؛ شارژ از کیف پول عبور فوریه."]
+        lines += ["", "حساب عبورت به همین تلگرام وصله؛ شارژ از کیف عبور یه ثانیه‌ست ⚡"]
     await message.answer(_h("hello", "Game Club", "منوی اصلی", lines, foot=("coin", "امتیاز", [st.num(me["points"]), " امتیاز"])),
                          reply_markup=open_kb())
 
@@ -181,8 +182,11 @@ async def on_points(message: Message, gdb: GCDatabase) -> None:
     if not u:
         return
     p = await gdb.player(u.id, _name(message), u.username)
+    rate = round(p["wins"] * 100 / p["games"]) if p["games"] else 0
+    vibe = ("هنوز بازی نکردی؛ زمین منتظرته!" if not p["games"] else "داری می‌ترکونی 🔥" if rate >= 60
+            else "بد نیست؛ یه کم دیگه تمرین 😉" if rate >= 35 else "شانس با تو قهره؛ ولی آشتی می‌کنه 😄")
     await message.answer(_h("coin", "کیف امتیاز", "Game Club", [
-        [st.E("trophy"), " برد: ", st.num(p["wins"]), " از ", st.num(p["games"]), " بازی"]],
+        [st.E("trophy"), " برد: ", st.num(p["wins"]), " از ", st.num(p["games"]), " بازی"], vibe],
         foot=("coin", "موجودی", [st.num(p["points"]), " امتیاز"])),
         reply_markup=open_kb("shop.html", "کیف امتیاز", "coin"))
 
@@ -190,11 +194,11 @@ async def on_points(message: Message, gdb: GCDatabase) -> None:
 @router.message(Command("help"))
 async def on_help(message: Message) -> None:
     await message.answer(_h("help", "قوانین کوتاه", "Game Club", [
-        "• بازی آزاد: بدون امتیاز، برای سرگرمی",
-        "• بازی با امتیاز: همه ورودی یکسان می‌دن، برنده همه رو می‌بره",
-        "• تاس و ورق روی سرور پخش می‌شه؛ هر نوبت ۲۰ ثانیه وقت داری",
+        "• بازی آزاد: مجانی، فقط برای کل‌کل 😄",
+        "• بازی با امتیاز: همه یه ورودی می‌دن، برنده همه رو می‌بره",
+        f"• تاس و ورق روی سرور پخش می‌شه؛ هر نوبت {gc.turn_seconds} ثانیه وقت داری",
         "• توی گروه: /hokm، /ludo یا /football",
-    ], foot=(None, None, "امتیاز فقط توی خدمات عبور خرج می‌شه و نقد نمی‌شه.")),
+    ], foot=(None, None, "امتیاز فقط توی خدمات عبور خرج می‌شه، نقد نمی‌شه 😉")),
         reply_markup=open_kb("help.html", "راهنمای کامل", "help"))
 
 
@@ -216,12 +220,12 @@ async def on_stats(message: Message, gdb: GCDatabase) -> None:
     n = st.num
     await message.answer(_h("chart", "آمار Game Club", "امروز و کل", [
         ["بازیکن: ", n(allt["players"]), " · امتیاز در گردش: ", n(allt["points"])],
-        ["الان: ", n(allt["playing"]), " میز در بازی، ", n(allt["lobby"]), " میز دعوت، ", n(allt["queue"]), " نفر در صف"], "",
-        [st.B("۲۴ ساعت گذشته")],
-        ["بازی تمام شده: ", n(day["games"])],
+        ["الان: ", n(allt["playing"]), " میز در بازی، ", n(allt["lobby"]), " میز دعوت، ", n(allt["queue"]), " نفر تو صف"], "",
+        [st.B("24 ساعت گذشته")],
+        ["بازی تموم‌شده: ", n(day["games"])],
         ["شارژ: ", n(day["charge"]), " امتیاز (", n(day["charge"] * gc.point_toman), " تومان)"],
         ["ورودی: ", n(day["entry"]), " · جایزه: ", n(day["prize"])],
-    ], foot=("coin", "خرج در عبور", [n(day["shop"]), " امتیاز"])))
+    ], foot=("coin", "خرج تو عبور", [n(day["shop"]), " امتیاز"])))
 
 
 @router.message(Command("gcpoints"))
@@ -230,11 +234,11 @@ async def on_points_admin(message: Message, command: CommandObject, gdb: GCDatab
         return
     parts = (command.args or "").split()
     if len(parts) != 2 or not parts[0].isdigit() or not parts[1].lstrip("-").isdigit() or int(parts[1]) == 0:
-        await message.answer("شکل درست: <code>/gcpoints 123456789 500</code> (منفی برای کسر)")
+        await message.answer("شکل درستش اینه: <code>/gcpoints 123456789 500</code> (منفی برای کم کردن)")
         return
     tg, amount = int(parts[0]), int(parts[1])
     if not await gdb.get_player(tg):
-        await message.answer("این کاربر هنوز Game Club را باز نکرده.")
+        await message.answer("این بنده خدا هنوز Game Club رو باز نکرده.")
         return
     from . import service
 
@@ -243,7 +247,7 @@ async def on_points_admin(message: Message, command: CommandObject, gdb: GCDatab
           else await service.spend(gdb, tg, -amount, "admin", "تنظیم دستی پشتیبانی", "admin", idem))
     p = await gdb.get_player(tg)
     await message.answer(_h("ok" if ok else "warn", "تغییر امتیاز", st.iso(tg), [
-        "انجام شد." if ok else "انجام نشد (موجودی کافی نیست؟)"], foot=("coin", "موجودی فعلی", [st.num(p["points"]), " امتیاز"])))
+        "انجام شد ✅" if ok else "نشد؛ موجودیش کافی نیست؟"], foot=("coin", "موجودی الان", [st.num(p["points"]), " امتیاز"])))
     log.warning("ادمین %s امتیاز %s را %+d کرد (ok=%s)", message.from_user.id, tg, amount, ok)
 
 
@@ -257,7 +261,7 @@ async def on_close(message: Message, command: CommandObject, gdb: GCDatabase) ->
     try:
         r = await service.admin_close(gdb, mid)
     except service.GCError:
-        await message.answer("میز باز با این شناسه پیدا نشد.")
+        await message.answer("میز بازی با این شناسه پیدا نشد 🤔")
         return
     await message.answer(_h("ok", "میز بسته شد", st.iso(mid), [], foot=("coin", "ورودی برگشتی", [st.num(r["refunded"]), " امتیاز"])))
 
@@ -268,10 +272,180 @@ async def on_admin(message: Message) -> None:
     if not _is_admin(message):
         await on_text(message)
         return
-    kb = open_kb("admin.html", "پنل مدیریت Game Club", "gear")
+    rows = []
+    if gc.webapp_url:
+        rows.append([st.kb_button("پنل مدیریت (مینی اپ)", "gear", web_app=WebAppInfo(url=gc.webapp_url + "admin.html"))])
+    rows.append([_ib("ایموجی‌های پریمیوم", "ge:h", "brand"), _ib("پیام همگانی", "bc:help", "megaphone")])
     await message.answer(_h("gear", "پنل مدیریت", "Game Club", [
-        "کاربران، میزها، تراکنش‌ها، پیام همگانی، ایموجی‌ها و تنظیمات."],
-        foot=("brand", "ایموجی پریمیوم", "/gcemoji")) if kb else "آدرس https مینی اپ تنظیم نشده.", reply_markup=kb)
+        "کاربرا، میزها، تراکنش‌ها، آمار پیام همگانی و تنظیمات توی مینی اپ.",
+        "ایموجی‌ها و پیام همگانی همین‌جا توی ربات."], foot=(None, None, "از کجا شروع کنیم؟ 👇")),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+
+
+def _ib(text: str, data: str, key: str | None = None, style: str | None = None) -> InlineKeyboardButton:
+    return st.kb_button(text, key, callback_data=data, **({"style": style} if style else {}))
+
+
+# ---------- ایموجی های پریمیوم (دقیقا مثل عبور: دسته -> فهرست -> ایموجی -> فرستادن ایموجی پریمیوم) ----------
+_EMO_WAIT = "emowait:"   # setting: ادمین منتظر فرستادن ایموجی پریمیوم برای این کلید است ("*" = چندتا با هم)
+EMOJI_PAGE = 8
+_CATS = list(emo.CATEGORIES)
+
+
+def _done(keys) -> int:  # noqa: ANN001
+    return sum(1 for k in keys if emo.custom_id(k))
+
+
+def _emo_home() -> tuple[str, InlineKeyboardMarkup]:
+    text = _h("brand", "ایموجی‌های پریمیوم", [st.num(_done(emo.CATALOG)), " از ", st.num(len(emo.CATALOG)), " پریمیوم شده"], [
+        "ایموجی هر بخش ربات رو می‌تونی با یه ایموجی پریمیوم عوض کنی؛ از کارت‌های گروه تا دکمه‌ها و پیام همگانی ✨",
+        "", "صاحب ربات باید Telegram Premium داشته باشه، وگرنه همون ایموجی معمولی دیده می‌شه."],
+        foot=(None, None, "یه دسته رو انتخاب کن 👇"))
+    rows = [[_ib(f"{c} ({_done(ks)}/{len(ks)})", f"ge:c:{i}:0")] for i, (c, ks) in enumerate(emo.CATEGORIES.items())]
+    rows.append([_ib("📥 چندتا با هم", "ge:b"), _ib("🔁 کپی از عبور", "ge:o")])
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def _emo_list(ci: int, page: int) -> tuple[str, InlineKeyboardMarkup]:
+    ci = max(0, min(ci, len(_CATS) - 1))
+    cat = _CATS[ci]
+    keys = emo.CATEGORIES[cat]
+    pages = max(1, (len(keys) + EMOJI_PAGE - 1) // EMOJI_PAGE)
+    page = max(0, min(page, pages - 1))
+    text = _h("brand", cat, [st.num(_done(keys)), " از ", st.num(len(keys)), " پریمیوم شده · صفحه ", st.num(page + 1), " از ", st.num(pages)],
+              ["روی هر کدوم بزنی، عوضش می‌کنی."], foot=(None, None, "✨ یعنی پریمیومش تنظیم شده."))
+    rows = [[st.kb_button(f"{emo.default(k)} {emo.CATALOG[k][1]}{' ✨' if emo.custom_id(k) else ''}", k, callback_data=f"ge:e:{k}")]
+            for k in keys[page * EMOJI_PAGE:(page + 1) * EMOJI_PAGE]]
+    nav = ([_ib("⬅️ قبلی", f"ge:c:{ci}:{page - 1}")] if page > 0 else []) + \
+          ([_ib("بعدی ➡️", f"ge:c:{ci}:{page + 1}")] if page < pages - 1 else [])
+    if nav:
+        rows.append(nav)
+    rows.append([_ib("🔙 دسته‌ها", "ge:h")])
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def _cat_of(key: str) -> tuple[int, int]:
+    for i, ks in enumerate(emo.CATEGORIES.values()):
+        if key in ks:
+            return i, ks.index(key) // EMOJI_PAGE
+    return 0, 0
+
+
+def _emo_edit(key: str) -> tuple[str, InlineKeyboardMarkup]:
+    ci, page = _cat_of(key)
+    text = _h(key, emo.CATALOG[key][1], ["ایموجی فعلی ", st.E(key)], [
+        "حالا یه ایموجی پریمیوم بفرست تا جاش بشینه.", "",
+        st.Raw("<blockquote>فقط ایموجی پریمیوم (متحرک) قبوله؛ ایموجی معمولی که فرقی نمی‌کنه 😄 "
+               "اگه پریمیوم نداری، از یه کانال ایموجی فوروارد کن.</blockquote>")])
+    rows = ([[_ib("↩️ برگرد به معمولی", f"ge:r:{key}", style="danger")]] if emo.custom_id(key) else []) + \
+        [[_ib("🔙 برگشت", f"ge:c:{ci}:{page}")]]
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _emo_wait(gdb: GCDatabase, admin_id: int, key: str | None) -> None:
+    await gdb.setting_put(_EMO_WAIT + str(admin_id), key)
+
+
+@router.message(Command("gcemoji"))
+async def on_emoji(message: Message, gdb: GCDatabase) -> None:
+    if not _is_admin(message):
+        await on_text(message)
+        return
+    await emo.load(gdb)
+    await _emo_wait(gdb, message.from_user.id, None)
+    text, kb = _emo_home()
+    await message.answer(text, reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("ge:"))
+async def on_emoji_button(cq: CallbackQuery, gdb: GCDatabase) -> None:
+    from app.config import config as obour_cfg
+
+    if cq.from_user.id not in obour_cfg.admin_ids:
+        await cq.answer()
+        return
+    parts = (cq.data or "").split(":")
+    act, me = parts[1], cq.from_user.id
+    await emo.load(gdb)
+
+    async def show(view: tuple[str, InlineKeyboardMarkup]) -> None:
+        try:
+            await cq.message.edit_text(view[0], reply_markup=view[1])
+        except Exception:  # noqa: BLE001  (not modified)
+            pass
+
+    if act == "h":
+        await _emo_wait(gdb, me, None)
+        await cq.answer()
+        await show(_emo_home())
+    elif act == "c" and len(parts) == 4 and parts[2].isdigit() and parts[3].lstrip("-").isdigit():
+        await _emo_wait(gdb, me, None)
+        await cq.answer()
+        await show(_emo_list(int(parts[2]), int(parts[3])))
+    elif act == "e" and len(parts) == 3 and parts[2] in emo.CATALOG:
+        await _emo_wait(gdb, me, parts[2])
+        await cq.answer()
+        await show(_emo_edit(parts[2]))
+    elif act == "r" and len(parts) == 3 and parts[2] in emo.CATALOG:
+        await emo.reset(gdb, parts[2])
+        await _emo_wait(gdb, me, None)
+        await gdb.log_admin(me, "setting", "emoji", f"reset {parts[2]}")
+        await cq.answer("برگشت به معمولی ↩️")
+        await show(_emo_list(*_cat_of(parts[2])))
+    elif act == "o":
+        pairs = emo.from_obour()
+        for k, eid in pairs:
+            await emo.set_emoji(gdb, k, eid)
+        await gdb.log_admin(me, "setting", "emoji", f"obour {len(pairs)}")
+        await cq.answer(f"{len(pairs)} ایموجی از عبور کپی شد" if pairs else "توی عبور ایموجی هم‌شکلی تنظیم نشده", show_alert=not pairs)
+        await show(_emo_home())
+    elif act == "b":
+        await _emo_wait(gdb, me, "*")
+        await cq.answer()
+        await show((_h("brand", "چندتا با هم", "ایموجی‌های پریمیوم", [
+            "یه پیام پر از ایموجی پریمیوم بفرست؛ هر کدوم که شکل معمولیش توی فهرست ربات باشه، خودش جاش می‌شینه 🪄"],
+            foot=(None, None, "مثلا پریمیوم‌های 🃏🎲⚽🏆 رو پشت هم بفرست")),
+            InlineKeyboardMarkup(inline_keyboard=[[_ib("🔙 دسته‌ها", "ge:h")]])))
+    else:
+        await cq.answer()
+
+
+@router.message(F.chat.type == "private", F.text)
+async def on_emoji_input(message: Message, gdb: GCDatabase) -> None:
+    """ادمینی که یک ایموجی (یا «چندتا با هم») را انتخاب کرده: پیام بعدی اش ایموجی پریمیوم است."""
+    from aiogram.dispatcher.event.bases import SkipHandler
+
+    if not _is_admin(message) or (message.text or "").startswith("/"):
+        raise SkipHandler
+    key = (await gdb.settings_all()).get(_EMO_WAIT + str(message.from_user.id))
+    if not key:
+        raise SkipHandler
+    me = message.from_user.id
+    if key == "*":
+        pairs = emo.from_message(message.text or "", message.entities)
+        if not pairs:
+            await message.answer("هیچ ایموجی پریمیومی که شکل معمولیش توی فهرست باشه پیدا نکردم 🤔 یه بار دیگه بفرست.")
+            return
+        for k, eid in pairs:
+            await emo.set_emoji(gdb, k, eid)
+        await _emo_wait(gdb, me, None)
+        await gdb.log_admin(me, "setting", "emoji", " ".join(k for k, _ in pairs)[:120])
+        text, kb = _emo_home()
+        await message.answer(f"✅ {len(pairs)} ایموجی عوض شد: {' '.join(emo.html_of(k) for k, _ in pairs)}\n\n" + text, reply_markup=kb)
+        return
+    if key not in emo.CATALOG:
+        await _emo_wait(gdb, me, None)
+        raise SkipHandler
+    eid = emo.first_custom(message.entities)
+    if not eid:
+        await message.answer("این ایموجی پریمیوم نیست 🙂\n\nیه ایموجی متحرک (پریمیوم) بفرست. اگه پریمیوم نداری، "
+                             "می‌تونی از کانال‌های ایموجی یکی رو فوروارد کنی.")
+        return
+    await emo.set_emoji(gdb, key, eid)
+    await _emo_wait(gdb, me, None)
+    await gdb.log_admin(me, "setting", "emoji", key)
+    text, kb = _emo_list(*_cat_of(key))
+    await message.answer(f"✅ ایموجی <b>{emo.CATALOG[key][1]}</b> عوض شد.\n\nنمونه: {emo.html_of(key)}\n\n" + text, reply_markup=kb)
 
 
 # ---------- پیام همگانی (فقط از ربات؛ مینی اپ فقط آمار را نشان می دهد) ----------
@@ -286,30 +460,34 @@ PAGE_FA = {"": "خانه", "hokm-lobby.html": "حکم", "ludo-lobby.html": "من
 _BC_WAIT = "bcwait:"   # setting: ادمین دارد دکمه های کدام پیش نویس را می فرستد
 
 
-def _ib(text: str, data: str, key: str | None = None) -> InlineKeyboardButton:
-    return st.kb_button(text, key, callback_data=data)
-
-
 async def _bc_panel(gdb: GCDatabase, bid: int, admin_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
     from . import admin
 
     b = await gdb.bc_get(bid)
     if not b or b["status"] != "draft":
-        return _h("megaphone", "پیام همگانی", f"شماره {bid}", ["این پیش‌نویس دیگه فعال نیست."]), None
+        return _h("megaphone", "پیام همگانی", f"شماره {bid}", ["این پیش‌نویس دیگه از کار افتاده."]), None
     n = await gdb.bc_count(admin._target(b["target"], admin_id))
     btns = admin.parse_buttons(b["button"])
-    lines = ["پیامی که روش ریپلای کردی همون‌طور برای همه می‌ره؛ با عکس، متن و ایموجی‌های پریمیومش.", "",
+    lines = ["پیامی که روش ریپلای کردی عینا برای همه می‌ره؛ با عکس، متن و ایموجی‌های پریمیومش 📬", "",
              [st.E("link"), " ", st.B("دکمه‌ها")]]
     lines += [["• ", st.Raw(emo.html_of(k) + " ") if k in emo.CATALOG else "", label, " ← ", PAGE_FA.get(page, "خانه")]
-              for page, label, k in btns] or ["بدون دکمه"]
+              for page, label, k in btns] or ["بدون دکمه؛ ساده و بی‌آلایش 😄"]
     text = _h("megaphone", "پیام همگانی", f"پیش‌نویس {bid}", lines,
               foot=("users", "گیرنده‌ها", [admin.target_label(b["target"]), " · ", st.num(n), " نفر"]))
     tk = [_ib(("✅ " if b["target"] == k else "") + t, f"bc:t:{bid}:{k}") for k, t in admin.TARGET_KEYS]
     rows = [tk[:3], tk[3:6], tk[6:],
             [_ib("✏️ دکمه‌ها", f"bc:b:{bid}"), _ib("🧪 نسخهٔ آزمایشی", f"bc:test:{bid}")],
-            [_ib(f"ارسال برای {n:,} نفر", f"bc:send:{bid}", "megaphone")],
-            [_ib("لغو پیش‌نویس", f"bc:del:{bid}", "cancel")]]
+            [_ib(f"ارسال برای {n:,} نفر", f"bc:send:{bid}", "megaphone", "success")],
+            [_ib("بیخیال پیش‌نویس", f"bc:del:{bid}", "cancel")]]
     return text, InlineKeyboardMarkup(inline_keyboard=[r for r in rows if r])
+
+
+def _bc_help() -> str:
+    return _h("megaphone", "پیام همگانی", "از همین ربات", [
+        "1. پیامت رو همین‌جا بفرست؛ متن، عکس یا ویدیو، با ایموجی پریمیوم",
+        "2. روی همون پیام ریپلای کن و بنویس /gcbc",
+        "3. گیرنده‌ها و دکمه‌ها رو بچین، یه نسخهٔ آزمایشی ببین و بفرست 🚀"],
+        foot=("chart", "آمار", "پیشرفت و آمار ارسال‌ها توی پنل مدیریت (مینی اپ)"))
 
 
 @router.message(Command("gcbc"))
@@ -319,11 +497,7 @@ async def on_broadcast(message: Message, gdb: GCDatabase) -> None:
         return
     src = message.reply_to_message
     if not src:
-        await message.answer(_h("megaphone", "پیام همگانی", "از همین ربات", [
-            "۱. پیامت رو همین‌جا بفرست؛ متن، عکس، ویدیو، با ایموجی پریمیوم",
-            "۲. روی همون پیام ریپلای کن و بنویس /gcbc",
-            "۳. گیرنده‌ها و دکمه‌ها رو انتخاب کن، آزمایشی ببین و بفرست"],
-            foot=("chart", "آمار", "پیشرفت و آمار ارسال‌ها توی پنل مدیریت")))
+        await message.answer(_bc_help())
         return
     days = (message.text or "").split()[1:2]
     target = {"7": "active7", "30": "active30"}.get(days[0] if days else "", "all")
@@ -342,11 +516,15 @@ async def on_bc_button(cq: CallbackQuery, gdb: GCDatabase, bot: Bot) -> None:
         await cq.answer()
         return
     parts = (cq.data or "").split(":", 3)
+    if parts[1:2] == ["help"]:
+        await cq.answer()
+        await cq.message.answer(_bc_help())
+        return
     act, bid = parts[1], int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 0
     me = cq.from_user.id
     b = await gdb.bc_get(bid)
     if not b or b["status"] != "draft":
-        await cq.answer("این پیش‌نویس دیگه فعال نیست.", show_alert=True)
+        await cq.answer("این پیش‌نویس دیگه از کار افتاده.", show_alert=True)
         return
 
     async def redraw() -> None:
@@ -364,19 +542,19 @@ async def on_bc_button(cq: CallbackQuery, gdb: GCDatabase, bot: Bot) -> None:
         await gdb.setting_put(_BC_WAIT + str(me), str(bid))
         await cq.answer()
         await cq.message.answer(_h("link", "دکمه‌های پیام", f"پیش‌نویس {bid}", [
-            "هر خط یه دکمه (حداکثر ۳ تا): متن دکمه | صفحه", "",
+            "هر خط یه دکمه (حداکثر 3 تا): متن دکمه | صفحه", "",
             "🃏 بازی حکم | حکم", "🎮 ورود به Game Club | خانه", "",
             "صفحه‌ها: " + "، ".join(PAGE_FA.values()),
             "ایموجی اول هر خط اگه پریمیوم باشه، آیکن پریمیوم دکمه می‌شه."],
-            foot=(None, None, "بدون دکمه: فقط بفرست -")))
+            foot=(None, None, "بدون دکمه؟ فقط یه - بفرست")))
     elif act == "test":
         r = await admin._send(bot, me, "", b["button"], (b["src_chat"], b["src_msg"]))
-        await cq.answer("نسخهٔ آزمایشی برات رسید." if r == "ok" else "نرسید؛ پیام اصلی پاک نشده؟", show_alert=r != "ok")
+        await cq.answer("نسخهٔ آزمایشی برات رسید؛ یه نگاه بنداز 👀" if r == "ok" else "نرسید؛ پیام اصلی رو پاک نکردی؟", show_alert=r != "ok")
     elif act == "send":
         n = await gdb.bc_count(admin._target(b["target"], me))
         await cq.answer()
         await cq.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [_ib(f"بله، برای {n:,} نفر بفرست", f"bc:go:{bid}", "ok")], [_ib("برگشت", f"bc:back:{bid}")]]))
+            [_ib(f"آره، برای {n:,} نفر بفرست", f"bc:go:{bid}", "ok", "success")], [_ib("صبر کن، برگرد", f"bc:back:{bid}")]]))
     elif act == "back":
         await cq.answer()
         await redraw()
@@ -384,18 +562,18 @@ async def on_bc_button(cq: CallbackQuery, gdb: GCDatabase, bot: Bot) -> None:
         target = admin._target(b["target"], me)
         total = await gdb.bc_launch(bid, target)
         if not total:
-            await cq.answer("گیرنده‌ای نداره یا قبلا فرستاده شده.", show_alert=True)
+            await cq.answer("یا گیرنده نداره یا قبلا رفته 🤔", show_alert=True)
             return
         await gdb.log_admin(me, "broadcast", str(bid), f"{target} · copy")
         admin.kick()
-        await cq.answer("ارسال شروع شد")
-        await cq.message.edit_text(_h("megaphone", "پیام همگانی", f"شماره {bid}", ["ارسال شروع شد؛ حدود ۲۰ پیام در ثانیه."],
+        await cq.answer("رفت که بره! 🚀")
+        await cq.message.edit_text(_h("megaphone", "پیام همگانی", f"شماره {bid}", ["ارسال شروع شد؛ حدود 20 پیام در ثانیه می‌ره."],
                                       foot=("users", "گیرنده‌ها", [st.num(total), " نفر"])),
                                    reply_markup=open_kb("admin.html#bc", "دیدن آمار", "chart"))
     elif act == "del":
         await gdb.bc_drop_draft(bid)
-        await cq.answer("لغو شد")
-        await cq.message.edit_text(_h("megaphone", "پیام همگانی", f"پیش‌نویس {bid}", ["لغو شد."]))
+        await cq.answer("بیخیالش شدیم")
+        await cq.message.edit_text(_h("megaphone", "پیام همگانی", f"پیش‌نویس {bid}", ["بیخیالش شدیم؛ چیزی برای کسی نرفت."]))
     else:
         await cq.answer()
 
@@ -438,12 +616,12 @@ async def on_bc_buttons(message: Message, gdb: GCDatabase) -> None:
     else:
         lines, bad = parse_button_lines(message.html_text)
         if not lines:
-            await message.answer("هیچ خط درستی پیدا نشد. شکلش این‌طوریه: <code>🃏 بازی حکم | حکم</code>\n"
+            await message.answer("هیچ خط درستی پیدا نکردم 🤔 شکلش این‌طوریه: <code>🃏 بازی حکم | حکم</code>\n"
                                  "صفحه‌ها: " + "، ".join(PAGE_FA.values()))
             return
     await gdb.setting_put(key, None)
     if not await gdb.bc_set_draft(int(bid), button="\n".join(lines)):
-        await message.answer("این پیش‌نویس دیگه فعال نیست.")
+        await message.answer("این پیش‌نویس دیگه از کار افتاده.")
         return
     text, kb = await _bc_panel(gdb, int(bid), message.from_user.id)
     if bad:
@@ -451,78 +629,10 @@ async def on_bc_buttons(message: Message, gdb: GCDatabase) -> None:
     await message.answer(text, reply_markup=kb)
 
 
-# ---------- ایموجی های پریمیوم ----------
-# ادمین یک پیام با ایموجی های پریمیوم می فرستد: هر کدام که ایموجی جایگزینش در کاتالوگ است
-# برای همان کلید ثبت می شود. /gcemoji <کلید> فقط همان کلید را با اولین ایموجی پریمیوم پیام بعد.
-_emoji_wait: dict[int, tuple[str, float]] = {}
-
-
-def _emoji_page() -> str:
-    rows = [[st.E(x["key"]) if x["id"] else x["emoji"], " ", x["title"], " · ", st.iso(x["key"]),
-             " ✓" if x["id"] else ""] for x in emo.listing()]
-    done = sum(1 for x in emo.listing() if x["id"])
-    return _h("brand", "ایموجی‌های پریمیوم", "Game Club", [
-        "یه پیام با ایموجی‌های پریمیوم بفرست؛ هر کدوم که شکل معمولیش توی فهرست زیر باشه، جاش می‌شینه.",
-        "یه کلید خاص: /gcemoji hokm و بعد ایموجی رو بفرست",
-        "کپی از عبور: /gcemoji obour",
-        "برگرداندن: /gcemoji reset hokm", "", *rows],
-        foot=("selected", "تنظیم شده", [st.num(done), " از ", st.num(len(emo.CATALOG))]))
-
-
-@router.message(Command("gcemoji"))
-async def on_emoji(message: Message, command: CommandObject, gdb: GCDatabase) -> None:
-    if not _is_admin(message):
-        await on_text(message)
-        return
-    import time as _t
-
-    await emo.load(gdb)
-    args = (command.args or "").split()
-    if args[:1] == ["obour"]:
-        pairs = emo.from_obour()
-        for k, eid in pairs:
-            await emo.set_emoji(gdb, k, eid)
-        await gdb.log_admin(message.from_user.id, "setting", "emoji", f"obour {len(pairs)}")
-        await message.answer(f"{len(pairs)} ایموجی از عبور کپی شد.\n\n" + _emoji_page())
-        return
-    if args[:1] == ["reset"] and len(args) == 2 and args[1] in emo.CATALOG:
-        await emo.reset(gdb, args[1])
-        await message.answer(_emoji_page())
-        return
-    if len(args) == 1 and args[0] in emo.CATALOG:
-        _emoji_wait[message.from_user.id] = (args[0], _t.time() + 300)
-        await message.answer(f"حالا ایموجی پریمیوم «{emo.CATALOG[args[0]][1]}» ({emo.default(args[0])}) رو بفرست.")
-        return
-    await message.answer(_emoji_page())
-
-
-@router.message(F.chat.type == "private", F.entities)
-async def on_custom_emoji(message: Message, gdb: GCDatabase) -> None:
-    """پیام ادمین با ایموجی پریمیوم: ثبت برای کلیدها؛ بقیه پیام ها مثل همیشه."""
-    if not _is_admin(message) or not any(e.type == "custom_emoji" for e in message.entities or []):
-        await on_text(message)
-        return
-    import time as _t
-
-    want = _emoji_wait.pop(message.from_user.id, None)
-    if want and want[1] > _t.time():
-        eid = emo.first_custom(message.entities)
-        pairs = [(want[0], eid)] if eid else []
-    else:
-        pairs = emo.from_message(message.text or "", message.entities)
-    for k, eid in pairs:
-        await emo.set_emoji(gdb, k, eid)
-    if pairs:
-        await gdb.log_admin(message.from_user.id, "setting", "emoji", " ".join(k for k, _ in pairs))
-    await message.answer((f"{len(pairs)} ایموجی ثبت شد: {' '.join(emo.html_of(k) for k, _ in pairs)}\n\n" if pairs else
-                          "ایموجی پریمیومی که شکل معمولیش توی فهرست باشه پیدا نشد. برای یه کلید خاص: /gcemoji hokm\n\n")
-                         + _emoji_page())
-
-
 @router.message(F.chat.type == "private", F.text)
 async def on_text(message: Message) -> None:
-    await message.answer(_h("brand", "Game Club", "بازی", ["برای بازی، Game Club رو باز کن."],
-                            foot=(None, None, "یا توی گروهت بنویس /hokm")), reply_markup=open_kb())
+    await message.answer(_h("brand", "Game Club", "بزن بریم", ["برای بازی، Game Club رو باز کن 👇"],
+                            foot=(None, None, "یا توی گروهت بنویس /hokm و یه میز بچین")), reply_markup=open_kb())
 
 
 COMMANDS = [BotCommand(command="start", description="ورود به Game Club"),
