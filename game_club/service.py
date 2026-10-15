@@ -836,3 +836,18 @@ async def leaderboard(db: GCDatabase, tg: int, kind: str, period: str) -> dict:
         "mine": {"value": int(mine.get("value") or 0), "wins": int(mine.get("wins") or 0),
                  "games": int(mine.get("games") or 0), "visible": kind == "top" or bool(me.get("show_spend"))},
     }
+
+
+async def game_leaderboard(db: GCDatabase, tg: int, game: str, period: str) -> dict:
+    """رده بندی هر بازی جدا (صفحهٔ همان بازی): بیشترین برد در این بازه."""
+    if game not in ("ludo", "hokm", "football"):
+        raise GCError("bad_game")
+    span = PERIODS.get(period, PERIODS["week"])
+    since = int(time.time() - span) if span else 0
+    rows = await db.game_board(game, since)
+    return {
+        "game": game, "period": period,
+        "rows": [{"name": r["name"] or "بازیکن", "av": r["av"], "pic": pic_url(r), "wins": int(r["wins"] or 0),
+                  "games": int(r["games"] or 0), "value": int(r["value"] or 0), "me": r["tg_id"] == tg} for r in rows],
+        "mine": await db.game_rank(tg, game, since),
+    }

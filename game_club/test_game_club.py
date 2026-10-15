@@ -919,6 +919,42 @@ def test_usernames():
     asyncio.run(run())
 
 
+def test_game_board():
+    """رده بندی هر بازی جدا: فقط برد همان بازی، ترتیب برد و جایزه، و جایگاه من."""
+    import json as _json
+    tmp = tempfile.mkdtemp()
+    from game_club import service
+    from game_club.db import GCDatabase
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        try:
+            for tg in (1, 2, 3):
+                await db.player(tg, f"p{tg}")
+            now = int(time.time())
+            rows = [("hokm", 1, 1, 0), ("hokm", 1, 1, 200), ("hokm", 2, 1, 0), ("hokm", 3, 0, 0), ("ludo", 3, 1, 0), ("ludo", 3, 1, 0)]
+            for i, (game, tg, won, prize) in enumerate(rows):
+                await db.execute("INSERT INTO matches(id, game, status, cfg, state, created_at, updated_at) VALUES(?,?,?,?,?,?,?)",
+                                 (f"m{i}", game, "over", _json.dumps({"mode": "free"}), "{}", now, now))
+                await db.add_result(f"m{i}", tg, bool(won), prize)
+            b = await service.game_leaderboard(db, 2, "hokm", "week")
+            assert [r["wins"] for r in b["rows"]] == [2, 1] and b["rows"][1]["me"], b
+            assert b["mine"]["rank"] == 2 and b["mine"]["wins"] == 1
+            assert (await service.game_leaderboard(db, 3, "hokm", "all"))["mine"]["rank"] == 0   # بدون برد در حکم
+            lb = await service.game_leaderboard(db, 3, "ludo", "month")
+            assert len(lb["rows"]) == 1 and lb["mine"]["rank"] == 1 and lb["mine"]["games"] == 2
+            try:
+                await service.game_leaderboard(db, 1, "chess", "week")
+                raise AssertionError("bad game")
+            except service.GCError as e:
+                assert e.code == "bad_game"
+        finally:
+            await db.close()
+
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

@@ -277,6 +277,14 @@ const data = {
     const rows = GC.LB[kind].map(([p, w, v]) => ({ name: GC.PEOPLE[p][0], av: GC.PEOPLE[p][1], wins: Math.round(w * K), value: Math.round(v * K / 50) * 50, me: false }));
     return { kind, period, rows, sample: true, mine: { value: kind === 'top' ? S.won : S.spent, wins: S.wins, games: S.games, visible: kind === 'top' || !!S.showSpend } };
   },
+  // رده بندی هر بازی (نمونه): برنده های این بازی با یوزرنیم
+  async gameBoard(game, period) {
+    const K = { week: 1, month: 3.5, all: 9 }[period] || 1, base = { hokm: 41, ludo: 33, football: 26 }[game] || 30;
+    const names = ['kian_r', 'sara_m', 'amirali', 'negar_x', 'reza_gm', 'mahsa', 'pouya_k', 'leila_m', 'arash_dev', 'sina_h'];
+    const rows = names.map((n, i) => ({ name: n, av: (i * 5) % 23 + 1, wins: Math.max(1, Math.round((base - i * 3.4) * K)), games: Math.round((base - i * 3.4) * K * 1.7) + 3, value: 0, me: false }));
+    const mine = game === 'hokm' ? { wins: Math.round(9 * K), games: Math.round(14 * K), value: 0, rank: 12 } : game === 'football' ? { wins: 2, games: 6, value: 0, rank: 23 } : { wins: 0, games: 0, value: 0, rank: 0 };
+    return { game, period, rows, mine, sample: true };
+  },
   async shop() { if (!S.shopOn) throw err('shop_off'); return { plans: GC.SHOP.filter(s => s.cat === 'net').map((s, i) => ({ id: i + 1, title: s.t, gb: [10, 30][i], days: 30, price: s.p * GC.RATE, points: s.p })), rate: GC.RATE, obour: { linked: true, balance: 240000 }, sample: true }; },
   async buy(planId) { if (!S.shopOn) throw err('shop_off'); const p = (await data.shop()).plans.find(x => x.id === planId); if (S.bal < p.points) throw err('insufficient'); S.bal -= p.points; S.spent += p.points; GC.ledger('خرید: ' + p.title, -p.points, 'shop'); save(); return { ok: true, title: p.title }; },
   async transfer(points) { if (!S.shopOn) throw err('shop_off'); if (S.bal < points) throw err('insufficient'); S.bal -= points; S.spent += points; GC.ledger('انتقال به کیف پول عبور', -points, 'transfer'); save(); return { ok: true, points, toman: points * GC.RATE }; },

@@ -140,6 +140,7 @@ const liveData = {
   notify: game => api('notify', { body: { game } }),
   setFlag: (f, v) => api('settings', { body: { [f]: v ? 1 : 0 } }),
   leaderboard: (kind, period) => api('leaderboard', { q: { kind, period } }),
+  gameBoard: (game, period) => api('leaderboard', { q: { game, period } }),
   shop: () => api('shop'),
   buy: plan_id => api('shop/buy', { body: { plan_id, idem: idem() } }),
   transfer: points => api('shop/transfer', { body: { points, idem: idem() } }),
@@ -234,6 +235,7 @@ const P = {
   copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/>',
   send: '<path d="M21 4L10 14M21 4l-6.5 17-4.5-7-7-4.5z"/>',
   bell: '<path d="M6 10a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 15 6 10zM10 20a2 2 0 0 0 4 0"/>',
+  ball: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8.2l3.3 2.4-1.3 3.9h-4l-1.3-3.9zM12 3.5v4.7M20.2 9.6l-4.9 1M17 19.3l-3-4.8M7 19.3l3-4.8M3.8 9.6l4.9 1"/>',
   dice: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 15.5h.01M12 12h.01M15.5 8.5h.01M8.5 15.5h.01"/>',
   arrowUp: '<path d="M7 14l5-5 5 5"/>',
   up: '<path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/>',
@@ -505,18 +507,16 @@ sfx.fb = {
 };
 function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
-/* ---------- ناوبری پایین (پنج بخش؛ «بازی‌ها» برگهٔ انتخاب بازی را باز می کند) ---------- */
-const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['play', '', 'بازی‌ها', 'pad'],
-  ['profile', 'profile.html', 'پروفایل', 'user'], ['shop', 'shop.html', 'فروشگاه', 'bag']];
+/* ---------- ناوبری پایین: پنج بخش فقط با آیکون؛ «بازی‌ها» دکمهٔ گرد طلایی وسط است ---------- */
+const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['games', 'games.html', 'بازی‌ها', 'pad'],
+  ['shop', 'shop.html', 'فروشگاه', 'bag'], ['profile', 'profile.html', 'پروفایل', 'user']];
 let navEl = null;
 function nav(active) {
   if (mountingView) return;
   if (navEl) { setActive(active, false); return; }
   const n = navEl = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
-  n.innerHTML = `<div class="nav-in"><span class="nav-pill" aria-hidden="true"></span>${NAV.map(([id, href, label, ic]) => href
-    ? `<a href="${href}" data-id="${id}">${icon(ic)}<span>${label}</span></a>`
-    : `<button type="button" data-id="${id}" data-play aria-haspopup="dialog">${icon(ic)}<span>${label}</span></button>`).join('')}</div>`;
-  n.querySelector('[data-play]').onclick = quickPlay;
+  n.innerHTML = `<div class="nav-in"><span class="nav-pill" aria-hidden="true"></span>${NAV.map(([id, href, label, ic]) =>
+    `<a href="${href}" data-id="${id}" aria-label="${label}"${id === 'games' ? ' class="nav-play"' : ''}>${id === 'games' ? `<span class="np">${icon(ic)}</span>` : icon(ic)}</a>`).join('')}</div>`;
   // دانلود زودهنگام: با لمس دکمه، صفحهٔ آن بخش همان لحظه گرفته می شود
   n.addEventListener('pointerdown', e => { const a = e.target.closest('a[href]'); if (a) fetchPage(a.getAttribute('href')); }, { passive: true });
   document.body.appendChild(n);
@@ -530,7 +530,7 @@ const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce
 function placePill() {
   if (!navEl) return;
   const pill = navEl.querySelector('.nav-pill'), cur = navEl.querySelector('.nav-in>[aria-current]');
-  if (!cur) { pill.style.opacity = '0'; return; }
+  if (!cur || cur.classList.contains('nav-play')) { pill.style.opacity = '0'; return; }
   pill.style.opacity = '1'; pill.style.left = cur.offsetLeft + 'px'; pill.style.width = cur.offsetWidth + 'px';
 }
 /* جابه جایی قرص طلایی: فقط transform (روی پردازندهٔ گرافیکی، بدون چیدمان دوباره در هر فریم).
@@ -548,17 +548,14 @@ function setActive(id, animate) {
   const opt = { duration: NAV_MS, easing: EASE };
   items.forEach((el, i) => { const dx = first[i] - el.getBoundingClientRect().left; if (Math.abs(dx) > .5) el.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], opt); });
   const p1 = pill.getBoundingClientRect();
-  if (p1.width) pill.animate([{ transform: `translateX(${p0.left - p1.left}px) scaleX(${p0.width / p1.width})` }, { transform: 'none' }], opt);
-  // نام بخش تازه وقتی قرص به آن رسید پیدا می شود
-  const lab = nin.querySelector('[aria-current]>span');
-  if (lab) lab.animate([{ opacity: 0 }, { opacity: 0, offset: .45 }, { opacity: 1 }], opt);
+  if (p1.width && p0.width && pill.style.opacity !== '0') pill.animate([{ transform: `translateX(${p0.left - p1.left}px) scaleX(${p0.width / p1.width})` }, { transform: 'none' }], opt);
 }
 
 /* ---------- بخش های اصلی (خانه، رده بندی، کیف، فروشگاه) در یک صفحه ----------
    هر بخش یک بار ساخته می شود و در حافظه می ماند؛ رفتن بین آنها صفحه را دوباره بار نمی کند،
    فقط بخش تازه نشان داده می شود و داده هایش (موجودی، تاریخچه، رده بندی…) تازه می شود.
    بخشی که هنوز ساخته نشده یک بار گرفته و ساخته می شود (صفحه اش از قبل در پس زمینه گرفته شده). */
-const TABS = { 'index.html': 'home', 'leaderboard.html': 'leaderboard', 'profile.html': 'profile', 'shop.html': 'shop' };
+const TABS = { 'index.html': 'home', 'leaderboard.html': 'leaderboard', 'games.html': 'games', 'profile.html': 'profile', 'shop.html': 'shop' };
 const views = {}, pages = {};
 let curView = null, mountingView = null, switching = null, prebuilding = false;
 const building = {};
@@ -662,10 +659,10 @@ const GAME_ART = {
   esm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>',
 };
 const GAMES = [
-  { id: 'hokm', name: 'حکم', sub: '۴ نفره · با یار، ناشناس یا ربات', href: 'hokm-lobby.html', tint: 't-felt' },
-  { id: 'football', name: 'فوتبال', sub: '۲ نفره · با دوست، ناشناس یا ربات', href: 'football-lobby.html', tint: 't-green' },
-  { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره · آنلاین، با دوست یا ربات', href: 'ludo-lobby.html', tint: 't-violet' },
-  { id: 'esm', name: 'اسم فامیل', sub: 'به‌زودی', tint: 't-orange', soon: true },
+  { id: 'hokm', name: 'حکم', sub: '۴ نفره · با یار، ناشناس یا ربات', href: 'hokm-lobby.html', tint: 't-felt', cat: 'card', tag: 'محبوب' },
+  { id: 'football', name: 'فوتبال', sub: '۲ نفره · نوبتی', href: 'football-lobby.html', tint: 't-green', cat: 'sport', tag: 'تازه' },
+  { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره', href: 'ludo-lobby.html', tint: 't-violet', cat: 'board' },
+  { id: 'esm', name: 'اسم فامیل', sub: 'به‌زودی', tint: 't-orange', cat: 'word', soon: true },
 ];
 function quickPlay() {
   sheet(`${sheetHead('بازی‌ها')}<div class="qp">${GAMES.map(g => g.soon

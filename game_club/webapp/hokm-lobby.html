@@ -8,19 +8,9 @@
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
 <link rel="stylesheet" href="static/cards.css">
+<link rel="stylesheet" href="static/preview.css">
 <style>
-/* لابی حکم: نوع بازی، ورودی، طول بازی، خلاصه و سه راه شروع. صف و دعوت در برگه */
-.q{display:grid;gap:var(--space-2)}
-.q-h{display:flex;align-items:center;gap:var(--space-2);font-weight:900}
-.q-h i{width:24px;height:24px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font-style:normal;font-size:13px;flex:none}
-.summary{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2)}
-.sum{background:var(--surface-sunk);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3)}
-.sum span{display:block;font-size:12px;color:var(--ink-muted)}
-.sum b{font-weight:900}
-.go{display:grid;gap:var(--space-2)}
-.go small{display:block;font-size:12px;line-height:16px;font-weight:600;opacity:.85}
-.go .btn{flex-direction:row;justify-content:flex-start;text-align:start;min-height:64px}
-.go .btn>span{display:grid}
+/* صفحهٔ حکم: چیدمان در static/gamepage.js؛ اینجا فقط صف، دعوت و انتخاب میز و ورق پیش از شروع */
 .seatline{display:flex;justify-content:center;gap:var(--space-4)}
 .seatw{display:grid;justify-items:center;gap:4px;font-size:12.5px;font-weight:800}
 .seatw .avatar{--size:60px}
@@ -74,71 +64,30 @@
   <div class="appbar-cap"><span>میز حکم</span></div>
   <div class="appbar-in">
     <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>حکم</h1></div>
-    <div class="top-l">
-      <a class="icon-btn" href="help.html#hokm" aria-label="راهنمای حکم"><i data-ic="help"></i></a>
-      <a class="pill" href="shop.html#wallet" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span></a>
-    </div>
+    <a class="pill" href="shop.html#wallet" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span></a>
   </div>
 </header>
 <main class="page no-nav">
+  <div class="gp" id="gp"></div>
   <a class="card card-link resume" id="resume" href="hokm.html" hidden><span class="tag tag-live">بازی نیمه‌تمام</span><b>برگرد سر میز</b><span class="muted">بازی‌ات هنوز ادامه دارد؛ یارت منتظر توست.</span></a>
 
-  <section class="card stack" aria-label="تنظیم بازی">
-    <div class="q"><div class="q-h"><i>۱</i>نوع بازی</div>
-      <div class="choice-row" id="mode">
-        <button class="choice" data-v="free"><b>آزاد</b><span>بدون امتیاز و جایزه</span></button>
-        <button class="choice" data-v="stake"><b>با امتیاز</b><span>تیم برنده همهٔ ورودی‌ها را می‌برد</span></button>
-      </div></div>
-    <div class="q" id="entryQ"><div class="q-h"><i>۲</i>ورودی هر نفر</div><div class="chips" id="entry"></div></div>
-    <div class="q"><div class="q-h"><i id="nP">۳</i>طول بازی</div>
-      <div class="seg" id="target"><button data-v="3">۳ دست<small>سریع · حدود ۱۰ دقیقه</small></button><button data-v="7">۷ دست<small>کامل · حدود ۲۵ دقیقه</small></button></div></div>
-    <p class="hint" style="text-align:start">چهار نفر، دو تیم دونفره؛ یارت روبه‌رویت می‌نشیند. حاکم از روی پنج برگ اول حکم را انتخاب می‌کند.</p>
-  </section>
-
-  <section class="card stack" aria-label="شروع">
-    <div class="summary" id="summary"></div>
-    <div class="go">
-      <button class="btn" data-how="online"><i data-ic="users"></i><span>بازی با ناشناس<small>سه بازیکن واقعی پیدا می‌کنیم</small></span></button>
-      <button class="btn btn-light" data-how="invite"><i data-ic="link"></i><span>بازی با یار<small>دوستت را دعوت کن تا هم‌تیمی‌ات شود</small></span></button>
-      <button class="btn btn-light" data-how="bot"><i data-ic="bot"></i><span>تمرین با ربات<small>همیشه آزاد و بدون امتیاز</small></span></button>
-    </div>
-    <p class="hint" id="bal"></p>
-  </section>
 </main>
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
 <script src="static/demo-hokm.js"></script>
 <script src="static/cards.js"></script>
+<script src="static/preview.js"></script>
+<script src="static/gamepage.js"></script>
 <script>
 (() => {
   const { S, save, fa, FD, store, amount, face, icon, sheet, sheetHead, toast, sfx, haptic, sleep, errText, mount } = GC;
   const $ = id => document.getElementById(id);
   GC.back('index.html');
-  const cfg = Object.assign({ entry: 100, target: 7 }, store.get('hokmCfg', {}));
-  let settings = { stake: true, entries: [50, 100, 250, 500] }, token = null;
-
-  function render() {
-    if (!settings.stake) S.mode = 'free';
-    const stake = S.mode === 'stake';
-    if (!settings.entries.includes(cfg.entry)) cfg.entry = settings.entries[0];
-    $('mode').querySelectorAll('[data-v]').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.v === S.mode)); if (b.dataset.v === 'stake') b.disabled = !settings.stake; });
-    $('entryQ').hidden = !stake;
-    $('nP').textContent = stake ? '۳' : '۲';
-    $('entry').innerHTML = settings.entries.map(v => `<button class="chip" data-v="${v}" aria-pressed="${cfg.entry === v}"${GC.points < v ? ' disabled' : ''}>${GC.coin()}${fa(v)}</button>`).join('');
-    $('target').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.v === cfg.target)));
-    $('summary').innerHTML = stake
-      ? `<div class="sum"><span>ورودی تو</span>${amount(cfg.entry)}</div><div class="sum" style="background:var(--coin-tint)"><span>جایزهٔ هر برنده</span>${amount(cfg.entry * 2)}</div>`
-      : `<div class="sum"><span>نوع</span><b>آزاد، بدون جایزه</b></div><div class="sum"><span>بازی</span><b>۴ نفره، تا ${FD(cfg.target)} دست</b></div>`;
-    $('bal').textContent = 'موجودی تو: ' + fa(GC.points) + ' امتیاز';
-    store.set('hokmCfg', cfg); save(); mount();
-  }
-  $('mode').onclick = e => { const b = e.target.closest('[data-v]'); if (b && !b.disabled) { S.mode = b.dataset.v; render(); } };
-  $('entry').onclick = e => { const b = e.target.closest('[data-v]'); if (b && !b.disabled) { cfg.entry = +b.dataset.v; render(); } };
-  $('target').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { cfg.target = +b.dataset.v; render(); } };
+  let token = null, gp = null;
+  const render = () => { if (gp) gp.refresh(); };
 
   // صندلی ها به ترتیب: تو، یارت، دو حریف
   const seatsHtml = list => `<div class="seatline">${list.map((p, i) => p ? `<div class="seatw">${face(p, i < 2 ? '#F5C451' : 'var(--sky)')}${p.name}<small class="muted" style="font-size:11.5px">${i === 0 ? 'تو' : i === 1 ? 'یار' : 'حریف'}</small></div>` : `<div class="seatw"><span class="wait">؟</span>${i === 1 ? 'یار' : 'حریف'}</div>`).join('')}</div>`;
-  const reqCfg = () => ({ game: 'hokm', mode: S.mode, entry: S.mode === 'stake' ? cfg.entry : 0, target: cfg.target });
   async function go(mid) {
     token = null; store.set('hmid', mid);
     for (let n = 3; n >= 1; n--) {
@@ -257,25 +206,43 @@
     draw();
   }
 
-  document.querySelector('.go').addEventListener('click', async e => {
-    const b = e.target.closest('[data-how]'); if (!b || b.disabled) return;
-    const how = b.dataset.how, c = reqCfg();
+  /* ---------- صفحهٔ بازی: صف های آماده، میز خصوصی، رده بندی و آموزش ---------- */
+  function play(how, cfg, btn) {
+    const c = Object.assign({ game: 'hokm' }, cfg);
     if (how === 'bot') { c.mode = 'free'; c.entry = 0; c.solo = true; }
     if (c.mode === 'stake' && GC.points < c.entry) { sfx.error(); haptic('error'); toast(errText({ code: 'insufficient' })); return; }
     setup(how, async () => {
-      b.disabled = true;
+      if (btn) btn.disabled = true;
       try {
         if (how === 'invite') { const r = await GC.hokm.invite(c); await GC.refreshMe(); lobbyLoop(r.match); }
         else { const r = await GC.hokm.queueJoin(c); await GC.refreshMe(); queueLoop(r); }
       } catch (err) { sfx.error(); haptic('error'); toast(errText(err)); }
-      b.disabled = false; render();
+      if (btn) btn.disabled = false; render();
     });
+  }
+  gp = GCGame.build({
+    game: 'hokm', title: 'حکم', shop: true, help: 'help.html#hokm',
+    privateSub: 'یارت را خودت دعوت کن؛ نفرهای بعدی حریف می‌شوند',
+    privateFields: [{ key: 'target', label: 'طول بازی', opts: [[3, '۳ دست', 'سریع · ۱۰ دقیقه'], [7, '۷ دست', 'کامل · ۲۵ دقیقه']] }],
+    privateDefaults: () => Object.assign({ target: 7 }, store.get('hokmPriv', {})),
+    queues: s => [
+      { title: 'بازی سریع', sub: 'آزاد · ۴ نفره · ۳ دست', ic: icon('bolt'), hot: true, how: 'online', cfg: { mode: 'free', entry: 0, target: 3 } },
+      { title: 'بازی کامل', sub: 'آزاد · ۴ نفره · ۷ دست', ic: icon('cards'), how: 'online', cfg: { mode: 'free', entry: 0, target: 7 } },
+      ...(s.stake ? s.entries.map(v => ({ title: `ورودی ${fa(v)}`, sub: `با امتیاز · ۷ دست · هر برنده ${fa(v * 2)} می‌برد`, ic: GC.coin(), coin: true, how: 'online', cfg: { mode: 'stake', entry: v, target: 7 } })) : []),
+      { title: 'تمرین با ربات', sub: 'همیشه آزاد، بدون انتظار', ic: icon('bot'), how: 'bot', cfg: { mode: 'free', entry: 0, target: 3 } },
+    ],
+    rules: [['دو تیم دونفره.', 'یارت روبه‌رویت می‌نشیند و با هم امتیاز می‌گیرید.'],
+      ['حاکم', 'با دیدن پنج برگ اول، خال حکم را انتخاب می‌کند.'],
+      ['هم‌خال بازی کن.', 'اگر از خال شروع‌شده نداری، می‌توانی حکم بزنی یا برگ دیگری بیندازی.'],
+      ['هر دست', 'را بالاترین برگِ خال شروع یا بالاترین حکم می‌برد.'],
+      ['هر تیم', 'که ۷ دست ببرد، آن دور را برده؛ بازی تا ۳ یا ۷ دور ادامه دارد.']],
+    play: (how, cfg, btn) => { if (how === 'invite') store.set('hokmPriv', { target: cfg.target }); play(how, cfg, btn); },
   });
 
   (async () => {
     try {
       const me = await GC.refreshMe();
-      settings = me.settings;
+      gp.load(me);
       const url = new URL(location.href);
       const code = (url.searchParams.get('join') || '').trim() || (GC.startParam().startsWith('hokm_') ? GC.startParam().slice(5) : '');
       if (me.active_match && (me.active_game || 'hokm') === 'hokm' && GC.live) {
