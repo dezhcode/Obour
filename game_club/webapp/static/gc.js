@@ -164,6 +164,7 @@ const liveData = {
   dm: (u, since = 0) => api('dm', { q: { u, since } }),
   dmSend: (uid, text) => api('dm', { body: { uid, text } }),
   dmInvite: (uid, game) => api('dm/invite', { body: { uid, game } }),
+  groupShare: game => api('group/share', { body: { game } }),
 };
 const liveLudo = {
   queueJoin: cfg => api('ludo/queue', { body: { cfg } }),
