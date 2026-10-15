@@ -94,7 +94,7 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 .hk-bubbles{position:absolute;inset:0;z-index:40;pointer-events:none}
 .hk-bub{position:absolute;max-width:min(220px,62%);box-sizing:border-box;padding:7px 12px 8px;border-radius:16px;background:#fff;color:#1E2235;direction:rtl;text-align:right;
   font-size:13.5px;line-height:20px;font-weight:700;overflow-wrap:anywhere;animation:hk-bub-in .28s cubic-bezier(.2,1.5,.4,1) both}
-.hk-bub b{display:block;font-size:11px;line-height:15px;font-weight:800;color:#2B6EF2}
+.hk-bub b{display:block;font-size:11px;line-height:15px;font-weight:800;color:#1E6B4F}
 .hk-bub.me{background:#FFE7A3;color:#3A2A00}
 .hk-bub::after{content:"";position:absolute;width:12px;height:12px;background:inherit;transform:rotate(45deg);border-radius:2px}
 .hk-bub[data-tail="br"]{transform-origin:100% 100%}
@@ -325,7 +325,7 @@ body.hokm .sheet{color:var(--ink)}
 .hk-end .e-go{display:grid;place-items:center;min-height:56px;border-radius:28px;font-size:17px;font-weight:900;color:#3A2A00;text-decoration:none;
   background:#F5C451;box-shadow:none}
 .hk-end .e-go:active{transform:scale(.97)}
-.hk-end.lose .e-go,.hk-end.draw .e-go{color:#fff;background:#3D7BFF;box-shadow:none}
+.hk-end.lose .e-go,.hk-end.draw .e-go{color:#3A2A00;background:#F5C451;box-shadow:none}
 
 .hk-end .e-home{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:25px;color:#fff;text-decoration:none;font-size:15px;font-weight:800;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
 .hk-end .e-home svg{width:20px;height:20px}
