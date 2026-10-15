@@ -232,7 +232,7 @@ $('view').addEventListener('click', e => {
 
 /* ---------- کاربران ---------- */
 let uq = { q: '', f: 'all', sort: 'recent' }, uPage = 0, uList = [], uMore = false, uTimer = 0;
-const userRow = u => `<li class="row" data-user="${u.id}">${face(u, u.banned ? 'var(--danger)' : 'var(--sky)')}<span class="name">${esc(u.name || 'بی‌نام')}${u.banned ? ' <span class="tag ban">مسدود</span>' : ''}<span class="meta" dir="auto">${u.username ? '@' + esc(u.username) + ' · ' : ''}${when(u.seen)}</span></span><span class="end">${fa(u.points)}<small>${fa(u.games)} بازی</small></span></li>`;
+const userRow = u => `<li class="row" data-user="${u.id}">${face(u, u.banned ? 'var(--danger)' : 'var(--sky)')}<span class="name">${esc(u.name || 'بی‌نام')}${u.banned ? ' <span class="tag ban">مسدود</span>' : ''}<span class="meta" dir="auto">${u.tg_name ? esc(u.tg_name) + ' · ' : ''}${u.username ? '@' + esc(u.username) + ' · ' : ''}${when(u.seen)}</span></span><span class="end">${fa(u.points)}<small>${fa(u.games)} بازی</small></span></li>`;
 PAGES.users = async () => {
   view(`
     <label class="search">${ic('search')}<input id="uq" type="search" placeholder="نام، @یوزرنیم یا آیدی عددی" value="${esc(uq.q)}" enterkeyhint="search" autocomplete="off"></label>
@@ -263,7 +263,7 @@ PAGES.user = async id => {
     <section class="card prof">
       ${face(u, u.banned ? 'var(--danger)' : 'var(--sky)')}
       <h2>${esc(u.name || 'بی‌نام')} ${u.banned ? '<span class="tag ban">مسدود</span>' : ''}${u.admin ? '<span class="tag t-live">ادمین</span>' : ''}</h2>
-      <span class="id" id="cid" title="کپی آیدی">${u.username ? '@' + esc(u.username) + ' · ' : ''}${u.id}</span>
+      <span class="id" id="cid" title="کپی آیدی">${u.tg_name ? 'تلگرام: ' + esc(u.tg_name) + ' · ' : ''}${u.username ? '@' + esc(u.username) + ' · ' : ''}${u.id}</span>
       <span class="muted" style="font-size:12.5px">عضویت ${date(u.created)} · آخرین بازدید ${when(u.seen)}</span>
       ${u.banned && u.ban_note ? `<div class="warn" style="width:100%">${ic('ban')}دلیل مسدودی: ${esc(u.ban_note)}</div>` : ''}
       <div class="facts"><div><b>${fa(u.points)}</b><span>امتیاز</span></div><div><b>${fa(u.games)}</b><span>بازی</span></div><div><b>${fa(u.wins)}</b><span>برد</span></div><div><b>${fa(rate)}٪</b><span>درصد برد</span></div></div>

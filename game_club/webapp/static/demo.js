@@ -6,7 +6,7 @@
 const { TRACK, ORDER } = GC.LUDO;
 const START = { blue: 0, red: 13, green: 26, yellow: 39 }, SAFE = new Set(GC.LUDO.SAFE), FIN = 56, YARD = -1;
 const SEATS = { 2: ['yellow', 'red'], 4: ['blue', 'red', 'green', 'yellow'] };
-const BOTS = ['سارا', 'امیر', 'نگار', 'رضا', 'مهسا', 'علی', 'پریا', 'کیان', 'هستی', 'سینا', 'آرش', 'یاسمن'];
+const BOTS = ['lucky_falcon', 'brave_tiger', 'swift_panda', 'calm_otter', 'jolly_ace', 'witty_fox', 'royal_queen', 'cosmic_ninja', 'misty_raven', 'golden_comet', 'keen_hawk', 'sunny_mango'];
 const now = () => Date.now() / 1000;
 const die = () => 1 + Math.floor(Math.random() * 6);
 const ti = (c, p) => p >= 0 && p <= 50 ? (START[c] + p) % 52 : -1;
@@ -224,7 +224,8 @@ const STYLE = [['table:a', 'table', 'a', 'میز کلاسیک', 0], ['table:b', 
   ['cards:m', 'cards', 'm', 'ورق مدرن', 0], ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 300], ['cards:c', 'cards', 'c', 'ورق Game Club', 300], ['cards:d', 'cards', 'd', 'ورق رنگ تمام', 300]];
 const data = {
   async me() {
-    return { player: { name: 'بازیکن', av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: S.showSpend ? 1 : 0 },
+    return { player: { name: S.uname || 'lucky_falcon', name_next: S.unameAt ? S.unameAt + 30 * 86400 : 0, name_hint: !S.unameSeen && !S.unameAt,
+        joined: Math.round(Date.now() / 1000) - 42 * 86400, av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: S.showSpend ? 1 : 0 },
       history: S.ledger.map(l => ({ kind: l.k, amount: l.a, note: l.t, created_at: Math.round(l.at / 1000) })),
       notify: Object.keys(S.notify).filter(k => S.notify[k]), obour: { linked: true, balance: 240000 }, active_match: await ludo.active(), tables: demoTables(),
       style: Object.assign({ table: 'a', cards: 'a' }, S.style || {}),
@@ -253,6 +254,21 @@ const data = {
       recent: [{ game: 'hokm', won: true, prize: 200, at: t - 3600, mode: 'stake', entry: 100 }, { game: 'football', won: false, prize: 0, at: t - 7200, mode: 'free', entry: 0 },
         { game: 'hokm', won: true, prize: 0, at: t - 90000, mode: 'free', entry: 0 }, { game: 'ludo', won: false, prize: 0, at: t - 100000, mode: 'stake', entry: 50 }] };
   },
+  // یوزرنیم نمونه: همان قاعده ها؛ چند اسم «گرفته شده» برای دیدن پیام و پیشنهادها
+  async nameCheck(n) {
+    n = GC.normName(n); const bad = GC.nameProblem(n), TAKEN = ['sara_m', 'kian_r', 'negar_x', 'admin', 'obour', 'gameclub'];
+    if (bad) return { name: n, ok: false, error: bad };
+    if (TAKEN.includes(n) && n !== (S.uname || 'lucky_falcon')) return { name: n, ok: false, error: 'name_taken', suggest: [n + '_gc', 'the_' + n, n + '_play'].filter(x => x.length <= 16) };
+    return { name: n, ok: true };
+  },
+  async setName(n) {
+    const r = await data.nameCheck(n); if (!r.ok) throw err(r.error);
+    const now = Math.round(Date.now() / 1000);
+    if (S.unameAt && now < S.unameAt + 30 * 86400) throw err('name_wait:' + Math.ceil((S.unameAt + 30 * 86400 - now) / 86400));
+    S.uname = r.name; S.unameAt = now; S.unameSeen = true; save();
+    return { name: S.uname, name_next: now + 30 * 86400, name_hint: false };
+  },
+  async nameSeen() { S.unameSeen = true; save(); return { ok: true }; },
   async charge(points) { S.bal += points; GC.ledger('شارژ از کیف پول عبور', points, 'charge'); save(); return { ok: true, points }; },
   async notify(game) { S.notify[game] = !S.notify[game]; save(); return { on: S.notify[game] }; },
   async setFlag(f, v) { if (f === 'show_spend') { S.showSpend = !!v; save(); } return { ok: true }; },

@@ -17,13 +17,12 @@ import re
 import secrets
 import time
 
-from . import football, hokm, ludo
+from . import football, hokm, ludo, names
 from .config import gc
 from .db import GCDatabase, pic_url
 
 log = logging.getLogger("gameclub.service")
 
-BOT_NAMES = ("سارا", "امیر", "نگار", "رضا", "مهسا", "علی", "پریا", "کیان", "هستی", "سینا", "آرش", "یاسمن")
 _ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
@@ -205,12 +204,15 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
         info = await _seat_info(db, h["tg"])
         seats.append({"color": c, "uid": h["tg"], "name": info["name"], "av": info["av"], "pic": info["pic"],
                       "bot": False, "paid": h["paid"]})
-    names = random.sample(BOT_NAMES, len(BOT_NAMES))
+    # ربات ها هم یوزرنیمی از همان نوع بازیکن ها دارند تا سر میز یکدست باشند
+    bot_names = {s["name"] for s in seats}
     for c in colors:
         if c not in used:
             if cfg["mode"] == "stake":
                 raise GCError("need_players")
-            seats.append({"color": c, "uid": None, "name": names.pop(), "av": random.randint(1, 23), "bot": True})
+            bn = next(n for n in names.random_candidates() if n not in bot_names)
+            bot_names.add(bn)
+            seats.append({"color": c, "uid": None, "name": bn, "av": random.randint(1, 23), "bot": True})
     if game_of(cfg) == "hokm":
         state = hokm.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
     elif game_of(cfg) == "football":

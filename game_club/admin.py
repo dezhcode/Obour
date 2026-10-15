@@ -183,7 +183,7 @@ async def resume_if_needed(db: GCDatabase) -> None:
 
 # ---------- خلاصه ها ----------
 def _player_row(p: dict) -> dict:
-    return {"id": p["tg_id"], "name": p["name"], "username": p.get("username") or "", "av": p["av"], "pic": pic_url(p),
+    return {"id": p["tg_id"], "name": p["name"], "tg_name": p.get("tg_name") or "", "username": p.get("username") or "", "av": p["av"], "pic": pic_url(p),
             "points": p["points"], "games": p["games"], "wins": p["wins"], "banned": bool(p.get("banned")),
             "created": p["created_at"], "seen": p["seen_at"]}
 

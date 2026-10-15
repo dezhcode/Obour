@@ -12,6 +12,7 @@ import os
 import random
 import sys
 import tempfile
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -252,7 +253,8 @@ def test_telegram_profile():
         db = GCDatabase(os.path.join(tmp, "gc.db"))
         await db.connect()
         p = await db.player(77, u.full_name, u.username, u.photo_url)
-        assert p["name"] == "علی bرضایی/b" and pic_url(p) == user["photo_url"]   # نویسه های HTML حذف می شوند
+        assert p["tg_name"] == "علی bرضایی/b" and pic_url(p) == user["photo_url"]   # نویسه های HTML حذف می شوند
+        assert p["name"] != p["tg_name"] and p["name"].isascii()                   # همه جا یوزرنیم بازی دیده می شود
         assert len(p["pic"]) >= 8 and await db.player_by_pic(p["pic"])
         p2 = await db.player(78, "سارا", None, "")                                # عکس پنهان: آدرس /gc/pic
         assert pic_url(p2) == "pic/" + p2["pic"]
@@ -260,7 +262,7 @@ def test_telegram_profile():
         try:
             r = await service.invite_create(db, 77, {"mode": "free", "entry": 0, "players": 2, "pawns": 2})
             lobby = (await service.match_view(db, 77, r["match"]))["lobby"]["seats"]
-            assert [x["pic"] for x in lobby] == [user["photo_url"]]
+            assert [x["pic"] for x in lobby] == [user["photo_url"]] and lobby[0]["name"] == p["name"]
             await service.invite_join(db, 78, r["code"])                       # میز دو نفره پر شد و شروع می شود
             game = (await service.match_view(db, 78, r["match"]))["game"]
             assert {x["pic"] for x in game["players"].values()} == {user["photo_url"], "pic/" + p2["pic"]}
@@ -301,7 +303,7 @@ def test_table_chat():
             await service.chat_send(db, 2, mid, "x" * 500)
             v = await service.match_view(db, 2, mid, 0, 0)
             assert [m["text"] for m in v["chat"]] == ["سلام <b>خوش‌بازی</b>", "x" * 140]   # متن خام؛ مینی اپ با textContent نشان می دهد
-            assert [m["me"] for m in v["chat"]] == [False, True] and v["chat"][0]["name"] == "علی"
+            assert [m["me"] for m in v["chat"]] == [False, True] and v["chat"][0]["name"] == (await db.get_player(1))["name"]
             assert (await service.match_view(db, 2, mid, 0, v["chat"][-1]["id"]))["chat"] == []
             assert "chat" not in await service.match_view(db, 2, mid, 0)
             # پایان بازی: گفتگوی میز پاک می شود و دیگر پیامی پذیرفته نمی شود
@@ -864,6 +866,58 @@ def test_profile_stats():
             await db.close()
 
     asyncio.run(run())
+
+def test_usernames():
+    """یوزرنیم: اسم تصادفی یکتا برای کاربر تازه، تبدیل کاربرهای قدیمی، قاعده ها، یکتایی و فاصلهٔ ۳۰ روزه."""
+    import aiosqlite
+    tmp = tempfile.mkdtemp()
+    from game_club import names
+    from game_club.db import GCDatabase
+
+    path = os.path.join(tmp, "gc.db")
+
+    async def old_db():
+        # دیتابیس نسخهٔ قبل: اسم تلگرام در name، دو نفر هم اسم
+        async with aiosqlite.connect(path) as c:
+            await c.execute("CREATE TABLE players (tg_id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT '', username TEXT,"
+                            " av INTEGER NOT NULL DEFAULT 0, points INTEGER NOT NULL DEFAULT 0, games INTEGER NOT NULL DEFAULT 0,"
+                            " wins INTEGER NOT NULL DEFAULT 0, show_spend INTEGER NOT NULL DEFAULT 0, tutorial INTEGER NOT NULL DEFAULT 0,"
+                            " sound INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL, seen_at INTEGER NOT NULL)")
+            for tg in (1, 2):
+                await c.execute("INSERT INTO players(tg_id, name, created_at, seen_at) VALUES(?, 'علی', 1, 1)", (tg,))
+            await c.commit()
+
+    async def run():
+        await old_db()
+        db = GCDatabase(path)
+        await db.connect()
+        try:
+            a, b = await db.get_player(1), await db.get_player(2)
+            assert a["tg_name"] == "علی" and b["tg_name"] == "علی"
+            assert a["name"] != b["name"] and names.problem(a["name"]) is None and names.problem(b["name"]) is None
+            # کاربر تازه: اسم تلگرام فقط در tg_name؛ name یوزرنیم تصادفی معتبر
+            c = await db.player(3, "سارا", "sara_tg")
+            assert c["tg_name"] == "سارا" and names.problem(c["name"]) is None and c["name"] != "سارا"
+            c2 = await db.player(3, "سارا جان", "sara_tg")
+            assert c2["name"] == c["name"] and c2["tg_name"] == "سارا جان"      # ورود دوباره یوزرنیم را عوض نمی کند
+            # قاعده ها
+            for bad, code in (("ab", "name_short"), ("9lives", "name_start"), ("ali-x", "name_chars"), ("#abc", "name_start"), ("ab#c", "name_chars"),
+                              ("admin", "name_reserved"), ("a" * 17, "name_long")):
+                assert await db.set_name(3, bad) == code, bad
+            assert await db.set_name(3, "@Sara_99") == ""                       # @ و حرف بزرگ نرمال می شود
+            assert (await db.get_player(3))["name"] == "sara_99"
+            # یکتا
+            assert await db.set_name(1, "SARA_99") == "name_taken"
+            # دومین تغییر تا ۳۰ روز ممکن نیست؛ بعدش آزاد
+            assert (await db.set_name(3, "sara_new")).startswith("name_wait:")
+            later = int(time.time()) + names.RENAME_DAYS * 86400 + 5
+            assert await db.set_name(3, "sara_new", now=later) == ""
+            assert await db.name_taken("sara_new") and not await db.name_taken("sara_99")
+        finally:
+            await db.close()
+
+    asyncio.run(run())
+
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):

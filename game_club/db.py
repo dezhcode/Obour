@@ -17,6 +17,8 @@ import time
 
 import aiosqlite
 
+from . import names
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS players (
   tg_id INTEGER PRIMARY KEY,
@@ -217,10 +219,49 @@ class GCDatabase:
                 await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
         if "banned" not in have:   # مسدود شده توسط ادمین
             await self._conn.execute("ALTER TABLE players ADD COLUMN banned INTEGER NOT NULL DEFAULT 0")
+        # یوزرنیم: ستون name از این نسخه یوزرنیم یکتای بازی است و اسم تلگرام فقط در tg_name (برای ادمین) می ماند
+        if "tg_name" not in have:
+            await self._conn.execute("ALTER TABLE players ADD COLUMN tg_name TEXT NOT NULL DEFAULT ''")
+        for col in ("nick_ok", "uname_at", "uname_seen"):
+            if col not in have:
+                await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} INTEGER NOT NULL DEFAULT 0")
+        await self._conn.commit()
+        await self._migrate_names()
         await self._conn.execute("CREATE INDEX IF NOT EXISTS players_pic ON players(pic)")
         # گفتگوی میزهایی که تمام یا بسته شده اند (مثلا از پیش از این نسخه) پاک می شود
         await self._conn.execute(
             "DELETE FROM chat WHERE match_id NOT IN (SELECT id FROM matches WHERE status IN ('lobby','playing'))")
+        await self._conn.commit()
+
+    async def _migrate_names(self) -> None:
+        """بازیکن های قدیمی (اسم تلگرام در name) یک یوزرنیم تصادفی یکتا می گیرند؛ بعد name یکتا می شود.
+
+        چند پروسه ممکن است همزمان اجرا کنند: هر ردیف فقط با nick_ok=0 عوض می شود و برخورد اسم
+        (IntegrityError بعد از ساخته شدن ایندکس در پروسهٔ دیگر) با اسم بعدی تکرار می شود.
+        """
+        assert self._conn
+        cur = await self._conn.execute("SELECT tg_id, name FROM players WHERE nick_ok = 0")
+        rows = await cur.fetchall()
+        if rows:
+            cur = await self._conn.execute("SELECT name FROM players WHERE nick_ok = 1")
+            used = {r[0] for r in await cur.fetchall()}
+            for tg_id, old in rows:
+                for cand in names.random_candidates():
+                    if cand in used:
+                        continue
+                    try:
+                        await self._conn.execute(
+                            "UPDATE players SET tg_name = CASE WHEN tg_name = '' THEN ? ELSE tg_name END, "
+                            "name = ?, nick_ok = 1 WHERE tg_id = ? AND nick_ok = 0", (old or "", cand, tg_id))
+                    except aiosqlite.IntegrityError:
+                        continue
+                    used.add(cand)
+                    break
+            await self._conn.commit()
+        try:
+            await self._conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS players_name_u ON players(name)")
+        except aiosqlite.IntegrityError:   # پروسهٔ دیگری هنوز وسط کار است؛ دفعهٔ بعد ساخته می شود
+            pass
         await self._conn.commit()
 
     async def close(self) -> None:
@@ -284,27 +325,67 @@ class GCDatabase:
     # ---------- بازیکن ----------
     async def player(self, tg_id: int, name: str = "", username: str | None = None,
                      photo: str | None = None) -> dict:
-        """ساخت یا به روز کردن بازیکن با نام و عکس پروفایل تلگرام.
+        """ساخت یا به روز کردن بازیکن با اسم و عکس پروفایل تلگرام.
 
-        نام در صفحه بقیه بازیکن ها نشان داده می شود؛ نویسه هایی که در HTML معنی
-        دارند همین جا حذف می شوند (جلوگیری از XSS). photo=None یعنی عکس دست نخورد
-        (مثلا پیام ربات که photo_url ندارد)؛ رشته خالی یعنی کاربر عکسش را پنهان کرده.
+        اسم تلگرام فقط در tg_name ذخیره می شود (برای پنل مدیریت)؛ جای دیگری نشان داده نمی شود.
+        بازیکن تازه یک یوزرنیم تصادفی یکتا در name می گیرد و بعد خودش می تواند عوضش کند.
+        نویسه هایی که در HTML معنی دارند همین جا حذف می شوند (جلوگیری از XSS). photo=None یعنی
+        عکس دست نخورد (مثلا پیام ربات که photo_url ندارد)؛ رشته خالی یعنی کاربر عکسش را پنهان کرده.
         pic کلید تصادفی آدرس /gc/pic/<pic> است تا آیدی تلگرام کسی در آدرس عکس نیاید.
         """
-        name = _clean(name)
+        tg_name = _clean(name)
         username = _clean(username or "") or None
         now = int(time.time())
-        await self.execute(
-            "INSERT OR IGNORE INTO players(tg_id, name, username, av, pic, created_at, seen_at) VALUES(?,?,?,?,?,?,?)",
-            (tg_id, name[:40], username, tg_id % 23 + 1, secrets.token_urlsafe(9), now, now),
-        )
-        if name:
-            await self.execute("UPDATE players SET name=?, username=?, seen_at=? WHERE tg_id=?",
-                               (name[:40], username, now, tg_id))
+        row = await self.one("SELECT tg_id FROM players WHERE tg_id = ?", (tg_id,))
+        if not row:
+            for cand in names.random_candidates():
+                # INSERT OR IGNORE با برخورد یوزرنیم هم چیزی نمی نویسد؛ با اسم بعدی دوباره
+                await self.execute(
+                    "INSERT OR IGNORE INTO players(tg_id, name, tg_name, username, av, pic, nick_ok, created_at, seen_at) "
+                    "VALUES(?,?,?,?,?,?,1,?,?)",
+                    (tg_id, cand, tg_name, username, tg_id % 23 + 1, secrets.token_urlsafe(9), now, now))
+                if await self.one("SELECT tg_id FROM players WHERE tg_id = ?", (tg_id,)):
+                    break
+        if tg_name:
+            await self.execute("UPDATE players SET tg_name=?, username=?, seen_at=? WHERE tg_id=?",
+                               (tg_name, username, now, tg_id))
+        else:
+            await self.execute("UPDATE players SET seen_at=? WHERE tg_id=?", (now, tg_id))
         if photo is not None:
             await self.execute("UPDATE players SET photo=? WHERE tg_id=?", (photo[:400], tg_id))
         await self.execute("UPDATE players SET pic=? WHERE tg_id=? AND pic=''", (secrets.token_urlsafe(9), tg_id))
         return await self.one("SELECT * FROM players WHERE tg_id = ?", (tg_id,))  # type: ignore[return-value]
+
+    # ---------- یوزرنیم ----------
+    async def name_taken(self, name: str, tg_id: int = 0) -> bool:
+        return bool(await self.one("SELECT 1 FROM players WHERE name = ? AND tg_id != ?", (name, tg_id)))
+
+    async def set_name(self, tg_id: int, name: str, now: int | None = None) -> str:
+        """یوزرنیم تازه؛ قاعده ها در names.py. بار اول آزاد، بعد هر RENAME_DAYS روز یک بار.
+
+        خروجی "" یعنی ثبت شد؛ وگرنه کد خطا (name_taken، name_wait:<روز>، name_short و ...).
+        """
+        now = now or int(time.time())
+        p = await self.one("SELECT name, uname_at FROM players WHERE tg_id = ?", (tg_id,))
+        if not p:
+            return "no_player"
+        name = names.normalize(name)
+        if name == p["name"]:
+            return ""
+        bad = names.problem(name)
+        if bad:
+            return bad
+        wait = int(p["uname_at"] or 0) + names.RENAME_DAYS * 86400 - now
+        if p["uname_at"] and wait > 0:
+            return f"name_wait:{(wait + 86399) // 86400}"
+        if await self.name_taken(name, tg_id):
+            return "name_taken"
+        try:
+            await self.execute("UPDATE players SET name = ?, uname_at = ?, uname_seen = 1 WHERE tg_id = ?",
+                               (name, now, tg_id))
+        except aiosqlite.IntegrityError:
+            return "name_taken"
+        return ""
 
     # ---------- گفتگو ----------
     async def add_chat(self, match_id: str, tg_id: int, color: str, text: str) -> int:
@@ -615,8 +696,8 @@ class GCDatabase:
                 where.append("(tg_id = ? OR name LIKE ?)")
                 args += [int(q), f"%{q}%"]
             else:
-                where.append("(name LIKE ? OR username LIKE ?)")
-                args += [f"%{q}%", f"%{q}%"]
+                where.append("(name LIKE ? OR username LIKE ? OR tg_name LIKE ?)")
+                args += [f"%{q}%", f"%{q}%", f"%{q}%"]
         if filt == "banned":
             where.append("banned = 1")
         elif filt == "active":
@@ -626,7 +707,7 @@ class GCDatabase:
             where.append("points > 0")
         order = {"recent": "seen_at DESC", "new": "created_at DESC", "points": "points DESC",
                  "games": "games DESC", "wins": "wins DESC"}.get(sort, "seen_at DESC")
-        sql = ("SELECT tg_id, name, username, av, pic, points, games, wins, banned, created_at, seen_at FROM players"
+        sql = ("SELECT tg_id, name, tg_name, username, av, pic, points, games, wins, banned, created_at, seen_at FROM players"
                + (" WHERE " + " AND ".join(where) if where else "") + f" ORDER BY {order}, tg_id LIMIT ? OFFSET ?")
         return await self.all(sql, (*args, limit, offset))
 
