@@ -104,6 +104,8 @@ function startParam() { try { return (tg && tg.initDataUnsafe && tg.initDataUnsa
 /* ---------- API سرور ---------- */
 const ERR = {
   not_owned: 'اول این طرح را بخر',
+  name_short: 'یوزرنیم دست‌کم ۳ نویسه است', name_long: 'یوزرنیم حداکثر ۱۶ نویسه است', name_start: 'یوزرنیم باید با حرف انگلیسی شروع شود',
+  name_chars: 'فقط حروف انگلیسی، عدد و _ مجاز است', name_reserved: 'این یوزرنیم را نمی‌شود انتخاب کرد', name_taken: 'این یوزرنیم را کس دیگری برداشته',
   banned: 'حساب تو در Game Club مسدود شده است', maintenance: 'در حال به‌روزرسانی هستیم؛ چند دقیقه دیگر دوباره امتحان کن',
   insufficient: 'امتیاز کافی نیست؛ اول کیف را شارژ کن', obour_insufficient: 'موجودی کیف پول عبور کافی نیست',
   no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است', shop_off: 'خدمات عبور فعلا در دسترس نیست',
@@ -113,7 +115,11 @@ const ERR = {
   rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
   not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_pack: 'این بسته در دسترس نیست',
 };
-const errText = e => ERR[e && e.code] || ERR.server;
+const errText = e => {
+  const c = String((e && e.code) || '');
+  if (c.startsWith('name_wait:')) return `یوزرنیم را ${FD(c.split(':')[1])} روز دیگر می‌توانی عوض کنی`;
+  return ERR[c] || ERR.server;
+};
 async function api(name, { body, q } = {}) {
   let r;
   try {
@@ -141,6 +147,9 @@ const liveData = {
   styleBuy: id => api('style/buy', { body: { id, idem: idem() } }),
   styleUse: id => api('style/use', { body: { id } }),
   profile: () => api('profile'),
+  nameCheck: n => api('name/check', { q: { n } }),
+  setName: name => api('name', { body: { name } }),
+  nameSeen: () => api('name/seen', { body: {} }),
 };
 const liveLudo = {
   queueJoin: cfg => api('ludo/queue', { body: { cfg } }),
@@ -221,6 +230,7 @@ const P = {
   shield: '<path d="M12 3l8 3v6c0 4.6-3.4 8.2-8 9-4.6-.8-8-4.4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   card: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18M7 15h4"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/>',
   send: '<path d="M21 4L10 14M21 4l-6.5 17-4.5-7-7-4.5z"/>',
   bell: '<path d="M6 10a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 15 6 10zM10 20a2 2 0 0 0 4 0"/>',
@@ -259,7 +269,7 @@ const avatarEl = (seed, ring, extra = '') => `<span class="avatar ${extra}" styl
 // رنگ های سیر تا حرف سفید روی آن ها خوانا باشد (کنتراست ≥ ۴.۵)
 const FACE_BG = ['#5B4BC4', '#2563C9', '#C2414E', '#1A7A53', '#A6560F', '#147C8C', '#A8407E'];
 const escAttr = v => String(v || '').replace(/[&"'<>]/g, ch => ({ '&': '&amp;', '"': '&quot;', "'": '&#39;', '<': '&lt;', '>': '&gt;' }[ch]));
-function initial(name) { const m = String(name || '').trim().match(/[\p{L}\p{N}]/u); return m ? m[0] : '؟'; }
+function initial(name) { const m = String(name || '').trim().match(/[\p{L}\p{N}]/u); return m ? m[0].toUpperCase() : '؟'; }
 function face(p, ring, extra = '') {
   p = p || {};
   const seed = Math.abs(+p.av || 1);
@@ -306,6 +316,74 @@ function sheet(html, { center = false, dismiss = true, onClose } = {}) {
 }
 function close() { if (layer) layer.innerHTML = ''; }
 const sheetHead = t => `<div class="sheet-head"><h2>${t}</h2><button class="close" data-close aria-label="بستن">${icon('close', 2.6)}</button></div>`;
+
+/* ---------- یوزرنیم: همان قاعده های names.py ---------- */
+const NAME_MIN = 3, NAME_MAX = 16;
+function nameProblem(n) {
+  if (n.length < NAME_MIN) return 'name_short';
+  if (n.length > NAME_MAX) return 'name_long';
+  if (!/^[a-z]/.test(n)) return 'name_start';
+  if (!/^[a-z][a-z0-9_]+$/.test(n)) return 'name_chars';
+  return null;
+}
+const normName = s => String(s || '').trim().replace(/^@+/, '').toLowerCase();
+// برگهٔ تغییر یوزرنیم؛ me = خروجی me().player. done(name) بعد از ثبت
+function editName(me, done) {
+  const cur = me.name || '', next = +me.name_next || 0, now = Date.now() / 1000;
+  const wait = next > now ? Math.ceil((next - now) / 86400) : 0;
+  const sh = sheet(`${sheetHead('یوزرنیم')}
+    <p class="un-lead">اسم تو در بازی‌ها، رده‌بندی و بین دوستان. دوستانت با همین پیدایت می‌کنند.</p>
+    <label class="un-box" dir="ltr"><input id="unIn" value="${cur}" maxlength="${NAME_MAX + 4}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="unMsg"${wait ? ' disabled' : ''}><span id="unN" class="un-n"></span></label>
+    <p class="un-msg" id="unMsg" role="status"></p>
+    <div class="un-sug" id="unSug" hidden></div>
+    <ul class="un-rules" id="unRules"></ul>
+    <button class="btn btn-block" id="unGo" disabled>${wait ? `${FD(wait)} روز دیگر می‌توانی عوضش کنی` : 'ثبت یوزرنیم'}</button>
+    <p class="un-note">${me.name_next ? 'هر ۳۰ روز یک بار می‌شود یوزرنیم را عوض کرد.' : 'اولین تغییر آزاد است؛ بعد از آن هر ۳۰ روز یک بار.'}</p>`);
+  const inp = sh.querySelector('#unIn'), msg = sh.querySelector('#unMsg'), go = sh.querySelector('#unGo'),
+    sug = sh.querySelector('#unSug'), rules = sh.querySelector('#unRules'), cnt = sh.querySelector('#unN');
+  let seq = 0, timer = 0, okName = '';
+  const RULES = [['len', 'از ۳ تا ۱۶ نویسه'], ['chars', 'اول حرف انگلیسی؛ بعد حرف، عدد یا _'], ['free', 'کسی برش نداشته باشد']];
+  function paint(st) {
+    rules.innerHTML = RULES.map(([k, txt]) => `<li class="${st[k] === true ? 'ok' : st[k] === false ? 'bad' : ''}"><i>${st[k] === true ? icon('check', 3) : st[k] === false ? icon('close', 3) : ''}</i>${txt}</li>`).join('');
+  }
+  function check() {
+    const n = normName(inp.value);
+    if (inp.value !== n && document.activeElement === inp) { const p = inp.selectionStart; inp.value = n; try { inp.setSelectionRange(p, p); } catch (e) {} }
+    cnt.textContent = FD(n.length) + '/' + FD(NAME_MAX);
+    okName = ''; go.disabled = true; sug.hidden = true;
+    const bad = nameProblem(n);
+    const st = { len: n.length ? (n.length >= NAME_MIN && n.length <= NAME_MAX) : null,
+      chars: n.length ? !(bad === 'name_start' || bad === 'name_chars') : null, free: null };
+    sh.classList.remove('un-good', 'un-err');
+    if (!n) { msg.textContent = ''; paint(st); return; }
+    if (n === cur) { msg.textContent = 'یوزرنیم فعلی تو'; st.free = true; paint(st); return; }
+    if (bad) { msg.textContent = ERR[bad]; sh.classList.add('un-err'); paint(st); return; }
+    msg.textContent = 'در حال بررسی…'; paint(st);
+    const my = ++seq; clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try {
+        const r = await GC.data.nameCheck(n);
+        if (my !== seq) return;
+        if (r.ok) { okName = n; st.free = true; msg.innerHTML = `<bdi class="uname">${n}</bdi> آزاد است`; sh.classList.add('un-good'); go.disabled = !!wait; }
+        else {
+          st.free = r.error === 'name_taken' ? false : null; msg.textContent = ERR[r.error] || ERR.server; sh.classList.add('un-err');
+          if (r.suggest && r.suggest.length) { sug.hidden = false; sug.innerHTML = '<span>پیشنهاد:</span>' + r.suggest.map(s => `<button class="chip sm" data-s="${s}" dir="ltr">${s}</button>`).join(''); }
+        }
+        paint(st);
+      } catch (e) { if (my === seq) msg.textContent = errText(e); }
+    }, 350);
+  }
+  inp.addEventListener('input', check);
+  sug.addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (b) { inp.value = b.dataset.s; check(); inp.focus(); } });
+  go.addEventListener('click', async () => {
+    if (!okName) return;
+    go.disabled = true;
+    try { const r = await GC.data.setName(okName); close(); haptic('success'); toast('یوزرنیمت شد ' + r.name); done && done(r); }
+    catch (e) { toast(errText(e)); go.disabled = false; }
+  });
+  check();
+  if (!wait) setTimeout(() => { inp.focus(); inp.select(); }, 80);
+}
 
 /* ---------- صدا: همه با Web Audio ساخته می شوند، بدون فایل ---------- */
 let ac = null, master = null;
@@ -674,7 +752,7 @@ function boardArt() {
 const RATE = 100; // هر امتیاز چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
-window.GC = { coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
+window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },

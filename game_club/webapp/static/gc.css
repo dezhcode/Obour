@@ -429,3 +429,26 @@ body.game .page{gap:var(--space-2);padding-block:var(--space-2) var(--space-2);p
 body.game .appbar-in{gap:var(--space-2)}
 body.game .appbar .turnbar{padding-inline-end:10px}
 body.game .appbar .turnbar .time{width:44px}
+
+/* ---------- برگهٔ یوزرنیم ---------- */
+.un-lead{font-size:14px;line-height:23px;color:var(--ink-muted)}
+.un-box{display:flex;align-items:center;gap:8px;height:56px;padding:0 16px;border-radius:28px;background:var(--surface-sunk);box-shadow:inset 0 0 0 2px var(--line)}
+.un-good .un-box{box-shadow:inset 0 0 0 2px var(--success)}
+.un-err .un-box{box-shadow:inset 0 0 0 2px var(--danger)}
+.un-box input{flex:1;min-width:0;border:0;outline:0;background:none;font-size:18px;font-weight:700;direction:ltr;text-align:left;font-family:var(--font-peyda)}
+.un-box input:disabled{opacity:.6}
+.un-n{font-size:12px;font-weight:700;color:var(--ink-muted)}
+.un-msg{min-height:22px;margin-top:-10px;font-size:13.5px;line-height:22px;font-weight:700;color:var(--ink-muted)}
+.un-good .un-msg{color:var(--success)}
+.un-err .un-msg{color:#FF8A96}
+.un-sug{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:-8px}
+.un-sug>span{font-size:12.5px;color:var(--ink-muted)}
+.un-rules{list-style:none;margin:0;padding:14px;border-radius:var(--radius-md);background:var(--surface-sunk);display:grid;gap:8px}
+.un-rules li{display:flex;align-items:center;gap:10px;font-size:13.5px;line-height:22px;color:var(--ink-muted)}
+.un-rules i{width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 0 2px rgba(255,255,255,.22)}
+.un-rules i svg{width:13px;height:13px}
+.un-rules .ok{color:var(--ink)}.un-rules .ok i{background:var(--success);color:#0B2A1C;box-shadow:none}
+.un-rules .bad{color:#FF8A96}.un-rules .bad i{background:var(--danger);color:#2A0B0F;box-shadow:none}
+.un-note{margin-top:-8px;font-size:12.5px;line-height:20px;text-align:center;color:var(--ink-muted)}
+/* یوزرنیم لاتین وسط متن فارسی جدا می ماند تا ترتیب کلمه ها به هم نریزد */
+.uname{unicode-bidi:isolate;direction:ltr}

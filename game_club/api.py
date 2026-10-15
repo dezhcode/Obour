@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 
-from . import admin, bridge, service
+from . import admin, bridge, names, service
 from .bot import gcrt
 from .config import gc
 from .db import pic_url
@@ -30,6 +30,13 @@ def _obour():
     from app.runtime import runtime
 
     return runtime
+
+
+def _name_state(p: dict) -> dict:
+    """یوزرنیم و اینکه کی می شود دوباره عوضش کرد (بار اول آزاد است)."""
+    at = int(p.get("uname_at") or 0)
+    return {"name": p["name"], "name_next": at + names.RENAME_DAYS * 86400 if at else 0,
+            "name_hint": not p.get("uname_seen") and not at}
 
 
 def invite_link(code: str, game: str = "ludo") -> str:
@@ -69,7 +76,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         q_row = await gdb.queue_row(tg)
         return {
             "player": {**{k: player[k] for k in ("name", "av", "points", "games", "wins", "show_spend", "tutorial",
-                                                 "sound")}, "pic": pic_url(player)},
+                                                 "sound")}, "pic": pic_url(player),
+                       "joined": int(player.get("created_at") or 0), **_name_state(player)},
             "history": await gdb.history(tg),
             "notify": await gdb.notify_of(tg),
             "obour": {"linked": bool(ou), "balance": int(ou["balance"]) if ou else 0},
@@ -83,6 +91,24 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
                          "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,
                          "bot": gc.username, "obour_bot": await ob.db.get_setting("bot_username", "")},
         }
+    # ---------- یوزرنیم ----------
+    if name == "name/check" and method == "GET":
+        n = names.normalize(str(q.get("n") or ""))
+        bad = names.problem(n)
+        if not bad and n != player["name"] and await gdb.name_taken(n, tg):
+            bad = "name_taken"
+        out = {"name": n, "ok": not bad, "error": bad}
+        if bad == "name_taken":
+            out["suggest"] = [c for c in names.suggestion_candidates(n) if not await gdb.name_taken(c, tg)][:3]
+        return out
+    if name == "name" and method == "POST":
+        err = await gdb.set_name(tg, str(body.get("name") or ""))
+        if err:
+            raise GCError(err)
+        return _name_state(await gdb.get_player(tg) or player)
+    if name == "name/seen" and method == "POST":
+        await gdb.execute("UPDATE players SET uname_seen = 1 WHERE tg_id = ?", (tg,))
+        return {"ok": True}
     # ---------- پروفایل: کارنامهٔ هر بازی و آخرین بازی ها ----------
     if name == "profile" and method == "GET":
         recent = []

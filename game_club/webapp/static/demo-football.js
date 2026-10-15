@@ -4,7 +4,7 @@
 (() => {
 const S = GC.S, save = GC.save, store = GC.store;
 const SEATS = ['0', '1'];
-const BOTS = ['سارا', 'امیر', 'نگار', 'رضا', 'مهسا', 'علی', 'پریا', 'کیان', 'هستی', 'سینا', 'آرش', 'یاسمن'];
+const BOTS = ['lucky_falcon', 'brave_tiger', 'swift_panda', 'calm_otter', 'jolly_ace', 'witty_fox', 'royal_queen', 'cosmic_ninja', 'misty_raven', 'golden_comet', 'keen_hawk', 'sunny_mango'];
 const W = 600, H = 1040, MID = H / 2, GOAL_W = 220, GOAL_D = 60, GX0 = (W - GOAL_W) / 2, GX1 = (W + GOAL_W) / 2;
 const DISC_R = 36, BALL_R = 18, DISC_M = 1, BALL_M = .3, BALL = 12, N = 13, VMAX = 2200, MIN_POWER = .06;
 const DT = 1 / 120, FRAME_EVERY = 4, MAX_SIM = 9, AFTER_GOAL = .5, DRAG = [.9, .55], FRIC = [330, 85];

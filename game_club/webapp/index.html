@@ -147,6 +147,14 @@ a.gt:active{transform:scale(.98)}
 .ntf .ic svg{width:21px;height:21px}
 .ntf b{display:block;font-weight:800;font-size:14px;line-height:21px}
 .ntf small{display:block;font-size:12px;line-height:18px;color:var(--ink-muted)}
+.name-hint{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px 12px;padding:14px;border-radius:var(--radius-lg);background:var(--surface);box-shadow:inset 0 0 0 1px rgba(245,196,81,.35)}
+.nh-ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(245,196,81,.15);color:var(--gold)}
+.nh-ic svg{width:22px;height:22px}
+.nh-tx{display:grid;min-width:0}
+.nh-tx small{font-size:12.5px;line-height:18px;color:var(--ink-muted)}
+.nh-tx b{font-size:18px;line-height:26px;font-weight:900;justify-self:start;overflow:hidden;text-overflow:ellipsis}
+.nh-acts{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nh-acts .btn{min-height:44px}
 </style>
 </head>
 <body>
@@ -166,6 +174,12 @@ a.gt:active{transform:scale(.98)}
 <main class="page home-page">
   <div class="note-bar" id="noteBar" hidden><span id="noteIc"></span><span id="noteTx"></span></div>
   <a class="card card-link adm-link" id="admLink" href="admin.html" hidden><span class="ic-box">⚙︎</span><span><b>پنل مدیریت</b><small>کاربران، میزها، پیام همگانی و تنظیمات</small></span><span aria-hidden="true">‹</span></a>
+
+  <section class="name-hint" id="nameHint" aria-label="یوزرنیم تو" hidden>
+    <span class="nh-ic"><i data-ic="user"></i></span>
+    <span class="nh-tx"><small>یوزرنیم تو در بازی</small><b class="uname" id="nhName"></b></span>
+    <span class="nh-acts"><button class="btn btn-light btn-sm" id="nhOk">همین خوبه</button><button class="btn btn-sm" id="nhEdit">عوضش کن</button></span>
+  </section>
 
   <section class="hero" id="hero" aria-live="polite"></section>
 
@@ -232,6 +246,16 @@ a.gt:active{transform:scale(.98)}
     esm: () => '<div class="ra ra-esm" aria-hidden="true"><span style="background:#FFA552;color:#3A2000;transform:rotate(-8deg)">ب</span><span style="background:#FF7A85;color:#3A0A10;transform:rotate(6deg)">م</span><span style="background:#8E7CF8;color:#fff;transform:rotate(-3deg)">الف</span></div>',
   };
 
+  /* ---------- یوزرنیم تازه: یک بار نشان داده می شود تا کاربر ببیند یا عوضش کند ---------- */
+  function renderNameHint() {
+    const p = me.player;
+    $('nameHint').hidden = !p.name_hint;
+    $('nhName').textContent = p.name || '';
+  }
+  async function hideHint() { $('nameHint').hidden = true; me.player.name_hint = false; try { await GC.data.nameSeen(); } catch (e) {} }
+  $('nhOk').onclick = hideHint;
+  $('nhEdit').onclick = () => GC.editName(me.player, r => { Object.assign(me.player, r); renderHeader(); hideHint(); });
+
   /* ---------- هدر ---------- */
   function renderHeader() {
     const p = me.player, L = GC.level(p);
@@ -239,7 +263,8 @@ a.gt:active{transform:scale(.98)}
     $('lv').style.setProperty('--p', Math.round(L.frac * 100));
     $('lvNum').textContent = FD(L.lv);
     $('lv').setAttribute('aria-label', `سطح ${FD(L.lv)}`);
-    $('meName').textContent = 'سلام، ' + (p.name || 'بازیکن');
+    const nm = document.createElement('bdi'); nm.className = 'uname'; nm.textContent = p.name || '';
+    $('meName').replaceChildren(nm);
     const sub = $('meSub');
     if (!me.obour.linked) { sub.className = 'me-sub bad'; sub.textContent = 'هنوز در ربات عبور نیستی'; }
     else { sub.className = 'me-sub'; sub.innerHTML = `<span class="bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span>${FD(L.left)} تا سطح ${FD(L.lv + 1)}`; }
@@ -361,7 +386,7 @@ a.gt:active{transform:scale(.98)}
       me = await GC.refreshMe();
       style = Object.assign({ table: 'a', cards: 'a' }, me.style || {});
       notify = me.notify || [];
-      renderHeader();
+      renderHeader(); renderNameHint();
       sig = ''; setTables(me.tables || []);
       const note = me.banned ? 'حساب تو در Game Club مسدود شده است. برای پیگیری به پشتیبانی عبور پیام بده.'
         : me.maintenance ? 'در حال به‌روزرسانی هستیم؛ تا چند دقیقه دیگر میز تازه ساخته نمی‌شود.' : (me.notice || '');

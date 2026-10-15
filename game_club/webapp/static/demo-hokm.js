@@ -4,7 +4,7 @@
 (() => {
 const S = GC.S, save = GC.save, store = GC.store;
 const SEATS = ['0', '1', '2', '3'];
-const BOTS = ['سارا', 'امیر', 'نگار', 'رضا', 'مهسا', 'علی', 'پریا', 'کیان', 'هستی', 'سینا', 'آرش', 'یاسمن'];
+const BOTS = ['lucky_falcon', 'brave_tiger', 'swift_panda', 'calm_otter', 'jolly_ace', 'witty_fox', 'royal_queen', 'cosmic_ninja', 'misty_raven', 'golden_comet', 'keen_hawk', 'sunny_mango'];
 const GRACE = 2.5, HAKEM = 2.2, DEAL = 1.8, TRUMP_THINK = 2.4, DEAL2 = 4.0, THINK = .9, COLLECT = 1.5, HANDOVER = 3.6, TURN = 20;
 const suit = c => Math.floor(c / 13), rank = c => c % 13, team = i => i % 2, nxt = i => (i + 1) % 4;
 const now = () => Date.now() / 1000;
