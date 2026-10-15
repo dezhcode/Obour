@@ -184,7 +184,7 @@ def test_notify_and_admin_close():
 
     sent = []
 
-    async def notifier(tg, text, page):
+    async def notifier(tg, text, page, key=""):
         sent.append((tg, text[:12], page))
 
     async def run():
@@ -988,7 +988,7 @@ def test_friends_and_dm():
 
     sent = []
 
-    async def notifier(tg, text, page):
+    async def notifier(tg, text, page, key=""):
         sent.append((tg, page))
 
     async def run():
@@ -1115,7 +1115,7 @@ def test_group_tables():
             users = [NS(id=i, first_name=f"u{i}", last_name=None, username=None) for i in (11, 12, 13, 14)]
             assert await groups.create(db, bot, chat, users[0], "hokm") is None
             cid, card, _ = bot.sent[-1]
-            assert cid == -1001 and "حالت بازی" in P(card) and "✓ ۷ دست" in P(card)
+            assert cid == -1001 and "حالت بازی" in P(card) and "✅ ۷ دست" in P(card)
             token = next(b.callback_data for b in B(card) if b.callback_data.startswith("gs:open:"))[8:]
             assert {b.callback_data for b in B(card)} >= {f"gs:target=3:{token}", f"gs:cancel:{token}"}
             assert '"id":11' in card.model_dump_json()           # منشن سازنده
@@ -1125,21 +1125,21 @@ def test_group_tables():
             await groups.on_setup(cq, gdb=db)
             assert "فقط سازنده" in cq.answers[-1] and (await db.draft(token))["cfg"] == {"target": 7}
             await groups.on_setup(_CQ(11, f"gs:target=3:{token}", chat=chat), gdb=db)
-            assert (await db.draft(token))["cfg"] == {"target": 3} and "✓ ۳ دست" in P(bot.edits[-1][1])
+            assert (await db.draft(token))["cfg"] == {"target": 3} and "✅ ۳ دست" in P(bot.edits[-1][1])
             # باز کردن: همان پیام کارت میز می شود
             await groups.on_setup(_CQ(11, f"gs:open:{token}", chat=chat), gdb=db)
             row = await db.open_group_table(-1001, "hokm")
             m = await db.get_match(row["match_id"])
             assert m["cfg"]["target"] == 3 and row["message_id"] == 101 and (await db.draft(token))["status"] == "open"
             where, rm = bot.edits[-1]
-            assert where == (-1001, 101) and "۳ جای خالی" in P(rm) and "تا ۳ دست" in P(rm)
+            assert where == (-1001, 101) and "۳ صندلی مونده" in P(rm) and "تا ۳ دست" in P(rm)
             assert [b.style for b in B(rm)[:2]] == ["success", "danger"] and B(rm)[0].callback_data == f"gt:join:{m['id']}"
             assert "باز است" in await groups.create(db, bot, chat, users[1], "hokm")
             # نشستن با دکمهٔ داخل پیام
             for u in (12, 13):
                 await groups.on_button(_CQ(u, f"gt:join:{m['id']}", chat=chat), gdb=db, bot=bot)
             last = bot.edits[-1][1]
-            assert '"id":13' in last.model_dump_json() and "۱ جای خالی" in P(last) and "(۳ از ۴)" in P(last)
+            assert '"id":13' in last.model_dump_json() and "۱ صندلی مونده" in P(last) and "(۳ از ۴)" in P(last)
             cq = _CQ(13, f"gt:join:{m['id']}", chat=chat)
             await groups.on_button(cq, gdb=db, bot=bot)
             assert "نشسته" in cq.answers[-1]
@@ -1178,7 +1178,7 @@ def test_group_tables():
                 await service.leave_any(db, u.id, m["id"])
             m = await db.get_match(m["id"])
             if m["status"] == "over":
-                assert "تمام شد" in P(bot.edits[-1][1]) and B(bot.edits[-1][1])[0].callback_data == "gt:new:hokm"
+                assert "تموم شد" in P(bot.edits[-1][1]) and B(bot.edits[-1][1])[0].callback_data == "gt:new:hokm"
             # کارت تنظیمی که کسی بازش نکرد بعد از ۱۵ دقیقه بسته می شود
             assert await groups.create(db, bot, chat, NS(id=21, first_name="x", last_name=None, username=None), "ludo") is None
             tok = next(b.callback_data for b in B(bot.sent[-1][1]) if b.callback_data.startswith("gs:open:"))[8:]
@@ -1246,7 +1246,7 @@ def test_inline_tables():
             await groups.on_setup(_CQ(31, f"gs:players=2:{token}", imid="IM1"), gdb=db)
             d = await db.draft(token)
             assert d["inline_message_id"] == "IM1" and d["cfg"]["players"] == 2
-            assert bot.edits[-1][0] == "IM1" and "✓ ۲ نفره" in P(bot.edits[-1][1])
+            assert bot.edits[-1][0] == "IM1" and "✅ ۲ نفره" in P(bot.edits[-1][1])
             # مقدار غیرمجاز نادیده گرفته می شود
             await groups.on_setup(_CQ(31, f"gs:players=9:{token}", imid="IM1"), gdb=db)
             assert (await db.draft(token))["cfg"]["players"] == 2
@@ -1283,6 +1283,90 @@ def test_inline_tables():
             except service.GCError as e:
                 assert e.code == "bad_game"
         finally:
+            service.table_hook = None
+            await db.close()
+
+    asyncio.run(run())
+
+
+def test_emoji_and_style():
+    """ایموجی پریمیوم Game Club و قالب متنی عبور: متن، پیام غنی، دکمه ها، پیام همگانی با چند دکمه."""
+    tmp = tempfile.mkdtemp()
+    from aiogram.types import MessageEntity
+    from game_club import admin, emoji as emo, groups, service, style as st
+    from game_club.db import GCDatabase
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        from unittest import mock
+        url = mock.patch.object(type(admin.gc), "webapp_url", new_callable=mock.PropertyMock, return_value="https://x.test/gc/")
+        try:
+            # بدون تنظیم: همه چیز همان ایموجی معمولی
+            emo.load_rows({})
+            assert emo.html_of("hokm") == "🃏" and emo.apply("سلام 🃏") == "سلام 🃏"
+            assert emo.button("🃏 بازی حکم") == {"text": "🃏 بازی حکم"} and emo.button("حکم", "hokm") == {"text": "🃏 حکم"}
+            # تنظیم با پیام ادمین: آفست ها UTF-16 اند (🃏 دو واحد، ⚽ یکی)
+            ents = [MessageEntity(type="custom_emoji", offset=0, length=2, custom_emoji_id="111"),
+                    MessageEntity(type="custom_emoji", offset=2, length=1, custom_emoji_id="222"),
+                    MessageEntity(type="custom_emoji", offset=3, length=2, custom_emoji_id="333")]   # 🦄 در کاتالوگ نیست
+            pairs = emo.from_message("🃏⚽🦄", ents)
+            assert pairs == [("hokm", "111"), ("football", "222")]
+            for k, eid in pairs:
+                await emo.set_emoji(db, k, eid)
+            await emo.set_emoji(db, "play", "444")
+            emo.load_rows(await db.settings_all())      # همان چیزی که پروسه های دیگر می خوانند
+            assert emo.custom_id("hokm") == "111" and emo.custom_id("football") == "222"
+            # متن HTML: ⚽ با و بی FE0F؛ اعمال دوباره تگ تودرتو نمی سازد
+            out = emo.apply("<b>حکم</b> 🃏 و ⚽️ و 🎲")
+            assert out.count("<tg-emoji") == 2 and 'emoji-id="111">🃏<' in out and 'emoji-id="222">⚽️<' in out and "🎲" in out
+            assert emo.apply(out) == out
+            # دکمهٔ شیشه ای: ایموجی از متن برداشته می شود و آیکن پریمیوم کنارش می نشیند
+            assert emo.button("🃏 بازی حکم") == {"text": "بازی حکم", "icon_custom_emoji_id": "111"}
+            assert emo.button("حکم", "hokm") == {"text": "حکم", "icon_custom_emoji_id": "111"}
+            assert emo.button("🃏") == {"text": "🃏"}                        # دکمهٔ بی متن آیکن نمی گیرد
+            # قالب متنی: هر خط با RLM، سرتیتر ╮── و │، خط آخر ╯─، اسم کاربر امن
+            parts = st.frame("hokm", "میز حکم", "تنظیم میز", [["سلام ", st.iso("<x>"), "!"]], foot=("coin", "امتیاز", [st.num(1250), " امتیاز"]))
+            h = st.to_html(parts)
+            lines = h.split("\n")
+            assert all(x.startswith(st.RLM) for x in lines if x) and lines[0].startswith(st.RLM + "╮── <tg-emoji")
+            assert lines[1] == st.RLM + "│   تنظیم میز" and lines[-1].startswith(st.RLM + "╯─ ") and "1,250" in lines[-1]
+            assert "&lt;x&gt;" in h and lines[2] == "" and lines[-2] == st.RLM + "💰 امتیاز"
+            rich = st.to_rich(parts)
+            assert any(getattr(x, "custom_emoji_id", "") == "111" for x in rich) and isinstance(rich[0], str)
+            # کارت گروه: پاراگراف و دکمهٔ داخل پیام با ایموجی پریمیوم
+            tok = await db.new_draft(7, "hokm", {"target": 7})
+            await db.player(7, "u7")
+            card = await groups.setup_card(db, await db.draft(tok))
+            dump = card.model_dump_json()
+            assert '"custom_emoji_id":"111"' in dump and "╮── " in groups.plain(card) and "╯─ " in groups.plain(card)
+            open_btn = next(b for b in groups.buttons(card) if b.callback_data == f"gs:open:{tok}")
+            assert isinstance(open_btn.text, list) and open_btn.text[0].custom_emoji_id == "444"
+            # پیام همگانی: تا ۳ دکمه، شکل قدیمی هم، صفحهٔ ناشناخته کنار گذاشته می شود
+            btns = admin.parse_buttons("|ورود به Game Club|brand\nhokm-lobby.html|🃏 بازی حکم|\nbad.html|x|hokm\nludo-lobby.html|منچ|nope\nfriends.html|دوستان")
+            assert btns == [("", "ورود به Game Club", "brand"), ("hokm-lobby.html", "🃏 بازی حکم", ""), ("ludo-lobby.html", "منچ", "")]
+            assert admin.parse_buttons("hokm-lobby.html|بازی") == [("hokm-lobby.html", "بازی", "")]
+            url.start()
+            kb = admin._kb("|ورود|play\nhokm-lobby.html|🃏 بازی حکم|")
+            rows = [r[0] for r in kb.inline_keyboard]
+            assert [(b.text, b.icon_custom_emoji_id, b.web_app.url) for b in rows] == [
+                ("ورود", "444", "https://x.test/gc/"), ("بازی حکم", "111", "https://x.test/gc/hokm-lobby.html")]
+            assert admin._kb("") is None
+            # متن ادمین: tg-emoji خودش هم مجاز است
+            assert admin._clean_text('<tg-emoji emoji-id="9">🔥</tg-emoji> <script>') == '<tg-emoji emoji-id="9">🔥</tg-emoji> &lt;script&gt;'
+            # کپی از عبور (همان پروسه): ایموجی هم شکل
+            from app import emoji as ob
+            ob._cache["fire"] = "555"
+            try:
+                assert ("fire", "555") in emo.from_obour()
+            finally:
+                ob._cache.pop("fire", None)
+            # برگرداندن
+            await emo.reset(db, "hokm")
+            assert emo.custom_id("hokm") is None and "emoji:hokm" not in await db.settings_all()
+        finally:
+            emo.load_rows({})
+            mock.patch.stopall()
             service.table_hook = None
             await db.close()
 

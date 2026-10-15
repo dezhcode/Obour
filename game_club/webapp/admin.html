@@ -87,6 +87,24 @@ textarea{min-height:130px;resize:vertical;line-height:24px}
 .kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px var(--space-3);font-size:14px}
 .kv span{color:var(--ink-muted);font-weight:700}
 .kv b{font-weight:800;overflow-wrap:anywhere}
+.emo-pal{display:flex;flex-wrap:wrap;gap:6px}
+.emo-pal button{min-width:40px;height:40px;border-radius:12px;background:var(--surface-sunk);font-size:20px;position:relative}
+.emo-pal button.pro::after{content:'';position:absolute;top:4px;inset-inline-end:4px;width:7px;height:7px;border-radius:50%;background:var(--violet)}
+.btn-ed{display:grid;grid-template-columns:44px minmax(0,1fr) 36px;gap:6px;align-items:center}
+.btn-ed .emo{width:44px;height:44px;border-radius:12px;background:var(--surface-sunk);font-size:20px;position:relative}
+.btn-ed .emo.pro::after{content:'';position:absolute;top:4px;inset-inline-end:4px;width:7px;height:7px;border-radius:50%;background:var(--violet)}
+.btn-ed select{grid-column:1 / -1}
+.btn-ed .x{width:36px;height:36px;border-radius:50%;background:var(--surface-sunk);color:var(--ink-muted);font-size:18px;font-weight:900}
+.btn-prev{display:grid;gap:6px}
+.btn-prev span{display:block;text-align:center;padding:10px;border-radius:12px;background:var(--sky-tint);color:var(--sky-deep);font-weight:800;font-size:13.5px}
+.emo-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:var(--space-2);align-items:center;padding:var(--space-2) 0;border-bottom:1px solid var(--line)}
+.emo-row:last-child{border-bottom:0}
+.emo-row .e{font-size:24px;text-align:center}
+.emo-row b{display:block;font-weight:800;font-size:14px}
+.emo-row small{display:block;font-size:11.5px;color:var(--ink-muted);direction:ltr;text-align:start}
+.emo-row .acts2{display:flex;gap:6px}
+.emo-row .acts2 button{height:34px;padding:0 10px;border-radius:17px;background:var(--surface-sunk);font-size:12.5px;font-weight:800}
+.t-pro{background:#EFE7FF;color:#5B2DB8}
 .demo-tag{position:fixed;inset-inline-start:12px;bottom:calc(12px + var(--sa-b,0px));z-index:30}
 </style>
 </head>
@@ -119,6 +137,7 @@ const XP = {
   ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
   minus: '<path d="M5 12h14"/>',
   warn: '<path d="M12 3l9.5 17h-19zM12 10v4M12 17h.01"/>',
+  smile: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1.8 2 5.2 2 7 0M9 9.5h.01M15 9.5h.01"/>',
 };
 const ic = (n, w) => XP[n] ? icon('x', w).replace('</svg>', XP[n] + '</svg>') : icon(n, w);
 const when = t => { if (!t) return '—'; const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
@@ -134,7 +153,7 @@ const SET = {
   rake_percent: ['سهم عبور از جایزه (٪)', 'از جمع ورودی‌ها کم می‌شود.'],
   notice: ['اطلاعیهٔ صفحهٔ خانه', 'یک خط بالای صفحهٔ خانه برای همه؛ خالی = بدون اطلاعیه.'],
 };
-const TABS = [['dash', 'داشبورد', 'dash'], ['users', 'کاربران', 'users'], ['tables', 'میزها', 'table'], ['ledger', 'تراکنش‌ها', 'wallet'], ['bc', 'پیام همگانی', 'mega'], ['settings', 'تنظیمات', 'gear'], ['log', 'گزارش', 'list']];
+const TABS = [['dash', 'داشبورد', 'dash'], ['users', 'کاربران', 'users'], ['tables', 'میزها', 'table'], ['ledger', 'تراکنش‌ها', 'wallet'], ['bc', 'پیام همگانی', 'mega'], ['emoji', 'ایموجی‌ها', 'smile'], ['settings', 'تنظیمات', 'gear'], ['log', 'گزارش', 'list']];
 
 /* ---------- ارتباط با سرور (بیرون از تلگرام: داده نمونه برای دیدن ظاهر) ---------- */
 const call = (name, opt = {}) => GC.live ? GC.api(name, opt) : Promise.resolve(MOCK(name, opt));
@@ -165,7 +184,7 @@ async function show() {
   renderTabs(r === 'user' ? 'users' : r);
   GC.back(r === 'user' ? () => history.back() : 'index.html');
   $('title').textContent = r === 'user' ? 'کاربر' : (TABS.find(t => t[0] === r) || TABS[0])[1];
-  loading();
+  loading(); $('view').onclick = null;
   try { await (PAGES[r] || PAGES.dash)(arg); }
   catch (e) { view(`<div class="card empty">${esc(ERR[e.code] || errText(e))}</div>`); }
 }
@@ -380,7 +399,10 @@ async function loadLedger() {
 
 /* ---------- پیام همگانی ---------- */
 const TARGETS = [['all', 'همه'], ['active7', 'فعال ۷ روز'], ['active30', 'فعال ۳۰ روز'], ['game:ludo', 'بازیکنان منچ'], ['game:hokm', 'بازیکنان حکم'], ['game:football', 'بازیکنان فوتبال'], ['me', 'فقط خودم']];
-let bcDraft = { text: '', target: 'all', button: '|ورود به Game Club' };
+let bcDraft = { text: '', target: 'all', btns: [{ page: '', label: 'ورود به Game Club', key: 'brand' }] };
+let EMO = [];
+const emoOf = k => EMO.find(e => e.key === k);
+const emoChar = k => (emoOf(k) || {}).emoji || '';
 function bcCard(b) {
   const done = b.sent + b.failed + b.blocked, pct = b.total ? Math.min(100, Math.round(done / b.total * 100)) : 100;
   const st = { active: '<span class="tag t-live">در حال ارسال</span>', done: '<span class="tag t-ok">تمام شد</span>', cancelled: '<span class="tag t-off">متوقف شد</span>' }[b.status] || '';
@@ -394,15 +416,20 @@ function bcCard(b) {
 }
 PAGES.bc = async () => {
   const r = await get('admin/broadcasts');
-  const pages = Object.entries(r.pages || { '': 'خانه' });
+  const pages = Object.entries(r.pages || { '': 'خانه' }), maxB = r.max_buttons || 3;
+  EMO = r.emojis || EMO;
   view(`
     <section class="card stack">
       <div class="fld"><label for="bt">متن پیام</label>
         <textarea id="bt" maxlength="3500" placeholder="سلام! جام هفتگی حکم امشب شروع می‌شود…">${esc(bcDraft.text)}</textarea>
         <p class="hint" style="text-align:start;margin:0">برای پررنگ: <bdi dir="ltr">&lt;b&gt;متن&lt;/b&gt;</bdi> · کج: <bdi dir="ltr">&lt;i&gt;</bdi> · لینک: <bdi dir="ltr">&lt;a href="…"&gt;</bdi></p>
         <p class="hint" style="text-align:start;margin:0">عکس، ویدیو یا فایل؟ در ربات Game Club روی همان پیام ریپلای کن و بنویس <bdi dir="ltr">/gcbc</bdi></p></div>
-      <div class="fld"><label>دکمهٔ زیر پیام</label>
-        <div class="chips" id="bb"><button class="chip sm" data-b="" aria-pressed="${!bcDraft.button}">بدون دکمه</button>${pages.map(([p, t]) => `<button class="chip sm" data-b="${p}|${t === 'خانه' ? 'ورود به Game Club' : 'بازی ' + t}" aria-pressed="${bcDraft.button.split('|')[0] === p && !!bcDraft.button}">${t}</button>`).join('')}</div></div>
+      <div class="fld"><label>ایموجی‌ها <span class="muted" style="font-weight:700">(لمس = افزودن به متن)</span></label>
+        <div class="emo-pal" id="bpal">${EMO.map(e => `<button data-e="${esc(e.emoji)}" class="${e.id ? 'pro' : ''}" title="${esc(e.title)}" aria-label="${esc(e.title)}">${e.emoji}</button>`).join('')}</div>
+        <p class="hint">نقطهٔ بنفش = ایموجی پریمیومش تنظیم شده و در پیام پریمیوم دیده می‌شود. تنظیم در تب «ایموجی‌ها».</p></div>
+      <div class="fld"><label>دکمه‌های زیر پیام <span class="muted" style="font-weight:700">(تا ${fa(maxB)} دکمه)</span></label>
+        <div class="stack" id="bbs" style="gap:var(--space-3)"></div>
+        <button class="btn btn-light btn-sm" id="badd" style="justify-self:start">${icon('plus')}افزودن دکمه</button></div>
       <div class="fld"><label>برای چه کسانی؟ <span class="muted" id="bn" style="font-weight:700"></span></label>
         <div class="chips" id="bg">${TARGETS.map(([k, t]) => `<button class="chip sm" data-t="${k}" aria-pressed="${bcDraft.target === k}">${t}</button>`).join('')}</div></div>
       <div class="acts" style="margin:0"><button class="btn btn-light" id="btest">آزمایشی به خودم</button><button class="btn" id="bsend">${ic('mega')}ارسال</button></div>
@@ -411,13 +438,38 @@ PAGES.bc = async () => {
     ${r.list.length ? `<div class="sec-head" style="margin:0"><h2 class="on-ground">پیام‌های قبلی</h2></div>${r.list.map(bcCard).join('')}` : ''}`);
   const count = async () => { try { const x = await get('admin/bc_count', { target: bcDraft.target }); $('bn').textContent = '(' + fa(x.n) + ' نفر)'; bcDraft.n = x.n; } catch (e) {} };
   $('bt').oninput = () => { bcDraft.text = $('bt').value; };
-  $('bb').onclick = e => { const b = e.target.closest('[data-b]'); if (!b) return; bcDraft.button = b.dataset.b; $('bb').querySelectorAll('[data-b]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); };
+  // ایموجی در متن: همان جای مکان نما
+  $('bpal').onclick = e => { const b = e.target.closest('[data-e]'); if (!b) return; const t = $('bt'), at = t.selectionStart ?? t.value.length;
+    t.value = t.value.slice(0, at) + b.dataset.e + t.value.slice(t.selectionEnd ?? at); t.focus(); t.selectionStart = t.selectionEnd = at + b.dataset.e.length; bcDraft.text = t.value; haptic('light'); };
+  // دکمه ها: ایموجی (آیکن پریمیوم)، متن و صفحه ای که باز می شود
+  const drawBtns = () => {
+    $('bbs').innerHTML = bcDraft.btns.map((b, i) => { const e = emoOf(b.key);
+      return `<div class="btn-ed" data-i="${i}"><button class="emo ${e && e.id ? 'pro' : ''}" data-pick="${i}" aria-label="ایموجی دکمه">${e ? e.emoji : '∅'}</button>
+        <input class="in" data-l="${i}" maxlength="40" value="${esc(b.label)}" placeholder="متن دکمه">
+        <button class="x" data-del="${i}" aria-label="حذف دکمه">×</button>
+        <select class="in" data-p="${i}">${pages.map(([p, t]) => `<option value="${esc(p)}"${p === b.page ? ' selected' : ''}>باز کردن: ${esc(t)}</option>`).join('')}</select></div>`; }).join('')
+      || '<p class="hint" style="margin:0">بدون دکمه</p>';
+    $('badd').hidden = bcDraft.btns.length >= maxB;
+  };
+  drawBtns();
+  $('badd').onclick = () => { if (bcDraft.btns.length < maxB) { bcDraft.btns.push({ page: '', label: '', key: 'brand' }); drawBtns(); } };
+  $('bbs').oninput = e => { const l = e.target.closest('[data-l]'); if (l) bcDraft.btns[+l.dataset.l].label = l.value; };
+  $('bbs').onchange = e => { const p = e.target.closest('[data-p]'); if (p) bcDraft.btns[+p.dataset.p].page = p.value; };
+  $('bbs').onclick = e => {
+    const d = e.target.closest('[data-del]'); if (d) { bcDraft.btns.splice(+d.dataset.del, 1); drawBtns(); return; }
+    const pk = e.target.closest('[data-pick]'); if (!pk) return;
+    const i = +pk.dataset.pick;
+    const sh = sheet(`${sheetHead('ایموجی دکمه')}<p class="hint" style="text-align:start">اگر پریمیومش تنظیم شده باشد (نقطهٔ بنفش)، کنار متن دکمه به شکل پریمیوم می‌آید.</p>
+      <div class="emo-pal"><button data-k="" aria-label="بدون ایموجی">∅</button>${EMO.map(x => `<button data-k="${x.key}" class="${x.id ? 'pro' : ''}" title="${esc(x.title)}" aria-label="${esc(x.title)}">${x.emoji}</button>`).join('')}</div>`);
+    sh.querySelector('.emo-pal').onclick = ev => { const b = ev.target.closest('[data-k]'); if (!b) return; bcDraft.btns[i].key = b.dataset.k; close(); drawBtns(); };
+  };
   $('bg').onclick = e => { const b = e.target.closest('[data-t]'); if (!b) return; bcDraft.target = b.dataset.t; $('bg').querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); count(); };
   const send = async test => {
     const text = $('bt').value.trim(); if (!text) { toast('متن پیام را بنویس'); return; }
     const btn = $(test ? 'btest' : 'bsend'); btn.disabled = true;
     try {
-      const x = await act('admin/broadcast', { text, target: bcDraft.target, button: bcDraft.button, test }, test ? 'نسخهٔ آزمایشی برایت فرستاده شد' : null);
+      const button = bcDraft.btns.filter(b => b.label.trim()).map(b => [b.page, b.label.trim().replace(/\|/g, ' '), b.key].join('|')).join('\n');
+      const x = await act('admin/broadcast', { text, target: bcDraft.target, button, test }, test ? 'نسخهٔ آزمایشی برایت فرستاده شد' : null);
       if (!test) { toast('ارسال برای ' + fa(x.total) + ' نفر شروع شد'); bcDraft.text = ''; PAGES.bc(); }
     } catch (e) {} finally { btn.disabled = false; }
   };
@@ -435,6 +487,34 @@ document.addEventListener('click', e => {
   const c = e.target.closest('[data-cancel]'); if (!c) return;
   confirmDo('ارسال این پیام متوقف شود؟', async () => { try { await act('admin/broadcast/cancel', { id: +c.dataset.cancel }, 'متوقف شد'); show(); } catch (err) {} });
 });
+
+/* ---------- ایموجی های پریمیوم ---------- */
+PAGES.emoji = async () => {
+  const r = await get('admin/emoji');
+  EMO = r.emojis;
+  const done = EMO.filter(e => e.id).length;
+  view(`<section class="card stack">
+      <div class="sec-head" style="margin:0"><h2>ایموجی‌های پریمیوم</h2><span class="aside">${fa(done)} از ${fa(EMO.length)}</span></div>
+      <p class="hint" style="text-align:start;margin:0">در ربات Game Club بنویس <bdi dir="ltr">/gcemoji</bdi> و بعد یک پیام پر از ایموجی‌های پریمیوم بفرست؛ هر کدام که شکل معمولی‌اش در فهرست زیر است، خودکار جایش می‌نشیند. در کارت‌های گروه، دکمه‌ها، پیام‌ها و پیام همگانی دیده می‌شوند.</p>
+      <button class="btn btn-soft" id="eob"${r.obour ? '' : ' disabled'}>${ic('smile')}کپی از عبور ${r.obour ? `(${fa(r.obour)} ایموجی هم‌شکل)` : '(چیزی تنظیم نشده)'}</button>
+      <p class="hint" style="margin:0">صاحب ربات باید Telegram Premium داشته باشد؛ وگرنه همان ایموجی معمولی دیده می‌شود.</p>
+    </section>
+    <section class="card">${EMO.map(e => `<div class="emo-row"><span class="e">${e.emoji}</span>
+      <span><b>${esc(e.title)} ${e.id ? '<span class="tag t-pro">پریمیوم</span>' : ''}</b><small>${esc(e.key)}${e.id ? ' · ' + esc(e.id) : ''}</small></span>
+      <span class="acts2"><button data-set="${e.key}">آیدی</button>${e.id ? `<button data-reset="${e.key}">معمولی</button>` : ''}</span></div>`).join('')}</section>`);
+  $('eob').onclick = () => confirmDo('ایموجی‌های پریمیوم عبور (برای همان ایموجی‌ها) کپی شود؟', async () => { try { const x = await act('admin/emoji/obour', {}, null); toast(fa(x.n) + ' ایموجی کپی شد'); show(); } catch (e) {} });
+  $('view').onclick = async e => {
+    const rs = e.target.closest('[data-reset]');
+    if (rs) { try { await act('admin/emoji/reset', { key: rs.dataset.reset }, 'برگشت به معمولی'); show(); } catch (err) {} return; }
+    const st = e.target.closest('[data-set]'); if (!st) return;
+    const x = emoOf(st.dataset.set);
+    const sh = sheet(`${sheetHead(esc(x.emoji + ' ' + x.title))}<div class="fld"><label for="eid">آیدی ایموجی پریمیوم (custom_emoji_id)</label>
+      <input class="in" id="eid" inputmode="numeric" dir="ltr" value="${esc(x.id)}" placeholder="5368324170671202286"></div>
+      <p class="hint" style="text-align:start">ساده‌تر: در ربات <bdi dir="ltr">/gcemoji ${esc(x.key)}</bdi> بفرست و بعد خود ایموجی را.</p>
+      <button class="btn btn-block" id="ego">ثبت</button>`);
+    sh.querySelector('#ego').onclick = async () => { try { await act('admin/emoji', { key: x.key, id: sh.querySelector('#eid').value }, 'ثبت شد'); close(); show(); } catch (err) {} };
+  };
+};
 
 /* ---------- تنظیمات ---------- */
 PAGES.settings = async () => {
@@ -475,6 +555,9 @@ const MT = [{ id: 'K7QX2M', game: 'hokm', status: 'playing', mode: 'stake', entr
 let MS = [{ key: 'maintenance', kind: 'bool', min: 0, max: 1, value: false, env: false, custom: false }, { key: 'stake_enabled', kind: 'bool', min: 0, max: 1, value: true, env: true, custom: false },
   { key: 'turn_seconds', kind: 'int', min: 8, max: 60, value: 20, env: 20, custom: false }, { key: 'bot_fill_seconds', kind: 'int', min: 0, max: 120, value: 0, env: 0, custom: false },
   { key: 'rake_percent', kind: 'int', min: 0, max: 30, value: 0, env: 0, custom: false }, { key: 'notice', kind: 'text', min: 0, max: 300, value: '', env: '', custom: false }];
+let ME = [['brand', '🎮', 'نماد Game Club'], ['hello', '👋', 'سلام و خوش آمد'], ['hokm', '🃏', 'حکم'], ['ludo', '🎲', 'منچ'], ['football', '⚽', 'فوتبال'], ['seat', '🪑', 'بنشین و جای خالی'],
+  ['watch', '👀', 'دیدن بازی'], ['trophy', '🏆', 'برنده'], ['coin', '💰', 'امتیاز و کیف'], ['gift', '🎁', 'هدیه'], ['fire', '🔥', 'محبوب'], ['party', '🎉', 'تبریک'], ['megaphone', '📢', 'پیام همگانی']]
+  .map(([key, emoji, title], i) => ({ key, emoji, title, id: i % 3 ? '' : String(5368324170671202286n + BigInt(i)) }));
 const MB = [{ id: 3, status: 'active', text: 'جام هفتگی حکم امشب ساعت ۲۱ 🏆', src_msg: null, total: 1840, sent: 1210, failed: 3, blocked: 41, created_at: now() - 120 },
   { id: 2, status: 'done', text: 'فوتبال به Game Club اضافه شد ⚽️', src_msg: null, total: 1702, sent: 1655, failed: 2, blocked: 45, created_at: now() - 86400 * 3 }];
 function MOCK(name, { q = {}, body } = {}) {
@@ -491,7 +574,9 @@ function MOCK(name, { q = {}, body } = {}) {
   if (name === 'admin/tables') return { tables: q.s === 'over' ? [] : MT, more: false };
   if (name === 'admin/table') { const t = MT.find(x => x.id === q.id) || MT[0]; return { table: t, rows: t.players.map((n, i) => ({ tg_id: MU[i].id, name: n, paid: t.entry, active: 1 })) }; }
   if (name === 'admin/ledger') return { rows: MU.slice(0, 14).map((u, i) => ({ tg_id: u.id, name: u.name, kind: ['charge', 'entry', 'prize', 'admin', 'refund'][i % 5], amount: [500, -100, 200, 50, 100][i % 5], note: '', status: 'done', created_at: now() - i * 1500 })).filter(l => !q.k || l.kind === q.k), more: false };
-  if (name === 'admin/broadcasts') return { list: MB, pages: { '': 'خانه', 'ludo-lobby.html': 'منچ', 'hokm-lobby.html': 'حکم', 'football-lobby.html': 'فوتبال', 'wallet.html': 'کیف امتیاز', 'games.html': 'بازی ها', 'friends.html': 'دوستان' } };
+  if (name === 'admin/emoji') return { emojis: ME, obour: 9 };
+  if (name.startsWith('admin/emoji')) { if (name === 'admin/emoji/reset') ME = ME.map(e => e.key === body.key ? { ...e, id: '' } : e); if (name === 'admin/emoji') ME = ME.map(e => e.key === body.key ? { ...e, id: body.id } : e); if (name === 'admin/emoji/obour') ME = ME.map((e, i) => i < 9 ? { ...e, id: e.id || String(5368324170671202286n + BigInt(i)) } : e); return { ok: true, n: 9, emojis: ME }; }
+  if (name === 'admin/broadcasts') return { emojis: ME, max_buttons: 3, list: MB, pages: { '': 'خانه', 'ludo-lobby.html': 'منچ', 'hokm-lobby.html': 'حکم', 'football-lobby.html': 'فوتبال', 'wallet.html': 'کیف امتیاز', 'games.html': 'بازی ها', 'friends.html': 'دوستان' } };
   if (name === 'admin/bc_count') return { n: { all: 1840, active7: 1104, active30: 1502, me: 1 }[q.target] || 640 };
   if (name === 'admin/settings') return { settings: MS };
   if (name === 'admin/setting') { MS = MS.map(s => s.key === body.key ? { ...s, value: body.value == null ? s.env : body.value, custom: body.value != null } : s); return { ok: true, settings: MS }; }

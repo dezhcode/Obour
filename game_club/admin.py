@@ -19,6 +19,8 @@ import logging
 import re
 import time
 
+from . import emoji as emo
+from . import style as st
 from .config import GCConfig, gc
 from .db import GCDatabase, pic_url
 from .service import GCError
@@ -38,7 +40,8 @@ SETTINGS = {
     "rake_percent": ("int", 0, 30),
     "notice": ("text", 0, 300),
 }
-_BC_TAG = re.compile(r"</?(b|strong|i|em|u|s|a|code|pre|tg-spoiler|blockquote)(\s[^>]*)?>", re.I)
+_BC_TAG = re.compile(r"</?(b|strong|i|em|u|s|a|code|pre|tg-spoiler|blockquote|tg-emoji)(\s[^>]*)?>", re.I)
+BC_BUTTONS = 3   # حداکثر دکمه زیر پیام همگانی
 
 
 def is_admin(tg: int) -> bool:
@@ -67,6 +70,7 @@ async def sync_settings(db: GCDatabase, force: bool = False) -> None:
         return
     _synced = time.time()
     rows = await db.settings_all()
+    emo.load_rows(rows)                      # ایموجی های پریمیوم (emoji:<key>)
     for key in SETTINGS:
         default = getattr(GCConfig, key)
         try:
@@ -81,13 +85,29 @@ def _settings_view(rows: dict) -> list[dict]:
 
 
 # ---------- پیام ----------
-def _kb(button: str):  # noqa: ANN202
-    from .bot import open_kb
+def parse_buttons(raw: str) -> list[tuple[str, str, str]]:
+    """دکمه های زیر پیام: هر خط «صفحه|متن|کلید ایموجی» (شکل قدیمی «صفحه|متن» هم درست است)."""
+    out = []
+    for line in str(raw or "").splitlines():
+        if not line.strip():
+            continue
+        page, label, key = (line.split("|") + ["", "", ""])[:3]
+        if page not in PAGES:
+            continue
+        label = " ".join(label.split())[:40] or "ورود به Game Club"
+        out.append((page, label, key if key in emo.CATALOG else ""))
+    return out[:BC_BUTTONS]
 
-    if not button:
+
+def _kb(button: str):  # noqa: ANN202
+    """هر دکمه یک ردیف؛ ایموجی پریمیوم (کلید یا ایموجی اول متن) آیکن کنار متن دکمه می شود."""
+    from aiogram.types import InlineKeyboardMarkup, WebAppInfo
+
+    btns = parse_buttons(button)
+    if not btns or not gc.webapp_url:
         return None
-    page, _, label = button.partition("|")
-    return open_kb(page if page in PAGES else "", (label or "ورود به Game Club")[:40])
+    return InlineKeyboardMarkup(inline_keyboard=[[st.kb_button(label, key or None, web_app=WebAppInfo(url=gc.webapp_url + page))]
+                                                 for page, label, key in btns])
 
 
 async def _send(bot, tg: int, text: str = "", button: str = "", src: tuple | None = None) -> str:  # noqa: ANN001
@@ -99,7 +119,7 @@ async def _send(bot, tg: int, text: str = "", button: str = "", src: tuple | Non
             if src:
                 await bot.copy_message(tg, src[0], src[1], reply_markup=_kb(button))
             else:
-                await bot.send_message(tg, text, reply_markup=_kb(button), disable_web_page_preview=True)
+                await bot.send_message(tg, emo.apply(text), reply_markup=_kb(button), disable_web_page_preview=True)
             return "ok"
         except TelegramRetryAfter as e:
             await asyncio.sleep(min(30, e.retry_after) + 0.5)
@@ -270,7 +290,10 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
             return {"rows": rows, "more": len(rows) == 40}
         if path == "broadcasts":
             await resume_if_needed(db)
-            return {"list": [dict(b) for b in await db.bc_list()], "pages": PAGES, "games": GAMES}
+            return {"list": [dict(b) for b in await db.bc_list()], "pages": PAGES, "games": GAMES,
+                    "emojis": emo.listing(), "max_buttons": BC_BUTTONS}
+        if path == "emoji":
+            return {"emojis": emo.listing(), "obour": len(emo.from_obour())}
         if path == "bc_count":
             return {"n": await db.bc_count(_target(q.get("target", "all"), admin))}
         if path == "settings":
@@ -325,9 +348,7 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
         return {"ok": True, **r}
     if path == "broadcast":
         text = _clean_text(body.get("text", ""))
-        button = str(body.get("button") or "")
-        if button and button.partition("|")[0] not in PAGES:
-            button = ""
+        button = "\n".join("|".join(b) for b in parse_buttons(body.get("button") or ""))
         target = _target(body.get("target", "all"), admin)
         g = await gcrt.ensure()
         if not text or g.bot is None:
@@ -347,6 +368,22 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
             raise GCError("not_found")
         await db.log_admin(admin, "broadcast_cancel", str(bid))
         return {"ok": True}
+    if path in ("emoji", "emoji/reset", "emoji/obour"):
+        # ایموجی پریمیوم: آیدی دستی، برگرداندن به معمولی، یا کپی همه از عبور
+        if path == "emoji/obour":
+            pairs = emo.from_obour()
+        else:
+            key = str(body.get("key") or "")
+            if key not in emo.CATALOG:
+                raise GCError("bad_input")
+            eid = "" if path == "emoji/reset" else re.sub(r"\D", "", str(body.get("id") or ""))[:24]
+            if path == "emoji" and len(eid) < 5:
+                raise GCError("bad_input")
+            pairs = [(key, eid)]
+        for k, eid in pairs:
+            await (emo.set_emoji(db, k, eid) if eid else emo.reset(db, k))
+        await db.log_admin(admin, "setting", "emoji", " ".join(k for k, _ in pairs)[:120] or "obour 0")
+        return {"ok": True, "n": len(pairs), "emojis": emo.listing()}
     if path == "setting":
         key = str(body.get("key") or "")
         if key not in SETTINGS:

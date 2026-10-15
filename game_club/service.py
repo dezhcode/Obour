@@ -87,7 +87,7 @@ async def _hook(db: GCDatabase, match_id: str) -> None:
         log.debug("کارت میز گروه به روز نشد", exc_info=True)
 
 
-# تابع ارسال پیام ربات (tg, text, page)؛ bot.py هنگام راه اندازی می گذارد
+# تابع ارسال پیام ربات (tg, text, page, key=نوع اعلان)؛ bot.py هنگام راه اندازی می گذارد
 notifier = None
 AWAY = 12.0  # کسی که این مدت صفحه میز را نپرسیده، بیرون از مینی اپ حساب می شود
 
@@ -97,7 +97,7 @@ async def _notify(db: GCDatabase, tg: int | None, key: str, text: str, page: str
     if notifier is None or not tg or not await db.ping_once(key):
         return
     try:
-        await notifier(tg, text, page)
+        await notifier(tg, text, page, key=key.split(":", 1)[0])
     except Exception:  # noqa: BLE001
         log.debug("اعلان Game Club نرفت", exc_info=True)
 
