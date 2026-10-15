@@ -444,7 +444,7 @@ PAGES.emoji = async () => {
   const done = EMO.filter(e => e.id).length;
   view(`<section class="card stack">
       <div class="sec-head" style="margin:0"><h2>ایموجی‌های پریمیوم</h2><span class="aside">${fa(done)} از ${fa(EMO.length)}</span></div>
-      <p class="hint" style="text-align:start;margin:0">در ربات Game Club بنویس <bdi dir="ltr">/gcemoji</bdi> و بعد یک پیام پر از ایموجی‌های پریمیوم بفرست؛ هر کدام که شکل معمولی‌اش در فهرست زیر است، خودکار جایش می‌نشیند. در کارت‌های گروه، دکمه‌ها، پیام‌ها و پیام همگانی دیده می‌شوند.</p>
+      <p class="hint" style="text-align:start;margin:0">مثل عبور: در ربات Game Club بنویس <bdi dir="ltr">/gcemoji</bdi> (یا <bdi dir="ltr">/admin</bdi> ← ایموجی‌های پریمیوم)، دسته را انتخاب کن، روی ایموجی بزن و ایموجی پریمیوم را بفرست. «چندتا با هم» و «کپی از عبور» هم همان‌جاست.</p>
       <button class="btn btn-soft" id="eob"${r.obour ? '' : ' disabled'}>${ic('smile')}کپی از عبور ${r.obour ? `(${fa(r.obour)} ایموجی هم‌شکل)` : '(چیزی تنظیم نشده)'}</button>
       <p class="hint" style="margin:0">صاحب ربات باید Telegram Premium داشته باشد؛ وگرنه همان ایموجی معمولی دیده می‌شود.</p>
     </section>

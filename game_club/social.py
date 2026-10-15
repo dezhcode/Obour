@@ -128,7 +128,7 @@ async def request(db: GCDatabase, me: int, uid: str) -> dict:
     await db.set_friend(me, other, "pending", me)
     mine = await db.get_player(me) or {}
     await service._notify(db, other, f"freq:{me}:{other}:{int(time.time() // 86400)}",
-                          f"<b>{mine.get('name', '')}</b> برایت درخواست دوستی فرستاد.", "friends.html")
+                          f"<b>{mine.get('name', '')}</b> برات درخواست دوستی فرستاده. قبول می‌کنی؟ 🤝", "friends.html")
     return {"relation": "outgoing"}
 
 
@@ -140,7 +140,7 @@ async def accept(db: GCDatabase, me: int, uid: str) -> dict:
     await db.set_friend(me, p["tg_id"], "accepted", row["requester"])
     mine = await db.get_player(me) or {}
     await service._notify(db, p["tg_id"], f"facc:{me}:{p['tg_id']}",
-                          f"<b>{mine.get('name', '')}</b> درخواست دوستی‌ات را قبول کرد.", "friends.html")
+                          f"<b>{mine.get('name', '')}</b> درخواست دوستیت رو قبول کرد؛ حالا دیگه رفیقید! 🎉", "friends.html")
     return {"relation": "friend"}
 
 
@@ -208,7 +208,7 @@ async def send(db: GCDatabase, me: int, uid: str, text: str) -> dict:
         raise GCError("chat_slow")
     mid = await db.add_dm(me, p["tg_id"], text)
     mine = await db.get_player(me) or {}
-    await _ping_dm(db, me, p, f"پیام تازه از <b>{mine.get('name', '')}</b> در Game Club", f"chat.html?u={mine.get('pic', '')}")
+    await _ping_dm(db, me, p, f"<b>{mine.get('name', '')}</b> یه پیام برات فرستاده 💬", f"chat.html?u={mine.get('pic', '')}")
     return {"id": mid}
 
 
@@ -225,6 +225,6 @@ async def invite(db: GCDatabase, me: int, uid: str, game: str) -> dict:
     await db.add_dm(me, p["tg_id"], f"دعوت به {GAME_NAME[game]}", "invite", meta)
     mine = await db.get_player(me) or {}
     await service._notify(db, p["tg_id"], f"dminv:{r['match']}",
-                          f"<b>{mine.get('name', '')}</b> تو را به {GAME_NAME[game]} دعوت کرد. بزن تا کنارش بنشینی:",
+                          f"<b>{mine.get('name', '')}</b> تو رو به {GAME_NAME[game]} دعوت کرده. بزن بشین کنارش، داره دست‌گرمی می‌کنه 😄",
                           f"{game}-lobby.html?join={r['code']}")
     return {"match": r["match"], "code": r["code"], "game": game}

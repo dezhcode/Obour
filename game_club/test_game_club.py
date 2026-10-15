@@ -1121,34 +1121,34 @@ def test_group_tables():
             users = [NS(id=i, first_name=f"u{i}", last_name=None, username=None) for i in (11, 12, 13, 14)]
             assert await groups.create(db, bot, chat, users[0], "hokm") is None
             cid, card, _ = bot.sent[-1]
-            assert cid == -1001 and "حالت بازی" in P(card) and "✅ ۷ دست" in P(card)
+            assert cid == -1001 and "حالت بازی" in P(card) and "✅ 7 دست" in P(card)
             token = next(b.callback_data for b in B(card) if b.callback_data.startswith("gs:open:"))[8:]
             assert {b.callback_data for b in B(card)} >= {f"gs:target=3:{token}", f"gs:cancel:{token}"}
             assert '"id":11' in card.model_dump_json()           # منشن سازنده
             # میز دوم حکم هم زمان تنظیم نمی شود؛ غیر سازنده نمی تواند تنظیم کند
-            assert "در حال تنظیم" in await groups.create(db, bot, chat, users[1], "hokm")
+            assert "داره چیده می‌شه" in await groups.create(db, bot, chat, users[1], "hokm")
             cq = _CQ(12, f"gs:target=3:{token}", chat=chat)
             await groups.on_setup(cq, gdb=db)
             assert "فقط سازنده" in cq.answers[-1] and (await db.draft(token))["cfg"] == {"target": 7}
             await groups.on_setup(_CQ(11, f"gs:target=3:{token}", chat=chat), gdb=db)
-            assert (await db.draft(token))["cfg"] == {"target": 3} and "✅ ۳ دست" in P(bot.edits[-1][1])
+            assert (await db.draft(token))["cfg"] == {"target": 3} and "✅ 3 دست" in P(bot.edits[-1][1])
             # باز کردن: همان پیام کارت میز می شود
             await groups.on_setup(_CQ(11, f"gs:open:{token}", chat=chat), gdb=db)
             row = await db.open_group_table(-1001, "hokm")
             m = await db.get_match(row["match_id"])
             assert m["cfg"]["target"] == 3 and row["message_id"] == 101 and (await db.draft(token))["status"] == "open"
             where, rm = bot.edits[-1]
-            assert where == (-1001, 101) and "۳ صندلی مونده" in P(rm) and "تا ۳ دست" in P(rm)
+            assert where == (-1001, 101) and "3 صندلی مونده" in P(rm) and "تا 3 دست" in P(rm)
             assert [b.style for b in B(rm)[:2]] == ["success", "danger"] and B(rm)[0].callback_data == f"gt:join:{m['id']}"
-            assert "باز است" in await groups.create(db, bot, chat, users[1], "hokm")
+            assert "بازه" in await groups.create(db, bot, chat, users[1], "hokm")
             # نشستن با دکمهٔ داخل پیام
             for u in (12, 13):
                 await groups.on_button(_CQ(u, f"gt:join:{m['id']}", chat=chat), gdb=db, bot=bot)
             last = bot.edits[-1][1]
-            assert '"id":13' in last.model_dump_json() and "۱ صندلی مونده" in P(last) and "(۳ از ۴)" in P(last)
+            assert '"id":13' in last.model_dump_json() and "1 صندلی مونده" in P(last) and "(3 از 4)" in P(last)
             cq = _CQ(13, f"gt:join:{m['id']}", chat=chat)
             await groups.on_button(cq, gdb=db, bot=bot)
-            assert "نشسته" in cq.answers[-1]
+            assert "نشستی" in cq.answers[-1]
             # نفر چهارم: میز پر و بازی شروع؛ دکمه های میز می روند و فقط «دیدن بازی» می ماند
             await groups.on_button(_CQ(14, f"gt:join:{m['id']}", chat=chat), gdb=db, bot=bot)
             m = await db.get_match(m["id"])
@@ -1194,7 +1194,7 @@ def test_group_tables():
             assert (await db.draft(tok))["status"] == "closed" and "بسته شد" in P(bot.edits[-1][1])
             cq = _CQ(21, f"gs:open:{tok}", chat=chat)
             await groups.on_setup(cq, gdb=db)
-            assert "فعال نیست" in cq.answers[-1]
+            assert "از کار افتاده" in cq.answers[-1]
             # میز فوتبالی که باز شد ولی کسی نیامد هم بسته می شود
             assert await groups.create(db, bot, chat, NS(id=22, first_name="y", last_name=None, username=None), "football") is None
             tok = next(b.callback_data for b in B(bot.sent[-1][1]) if b.callback_data.startswith("gs:open:"))[8:]
@@ -1207,7 +1207,7 @@ def test_group_tables():
             assert await groups.create(db, bot, chat, NS(id=23, first_name="z", last_name=None, username=None), "ludo") is None
             tok = next(b.callback_data for b in B(bot.sent[-1][1]) if b.callback_data.startswith("gs:open:"))[8:]
             await groups.on_setup(_CQ(23, f"gs:cancel:{tok}", chat=chat), gdb=db)
-            assert (await db.draft(tok))["status"] == "closed" and "لغو" in P(bot.edits[-1][1])
+            assert (await db.draft(tok))["status"] == "closed" and "جمع کرد" in P(bot.edits[-1][1])
         finally:
             groups.gc.username = old_user
             service.table_hook = None
@@ -1253,7 +1253,7 @@ def test_inline_tables():
             await groups.on_setup(_CQ(31, f"gs:players=2:{token}", imid="IM1"), gdb=db)
             d = await db.draft(token)
             assert d["inline_message_id"] == "IM1" and d["cfg"]["players"] == 2
-            assert bot.edits[-1][0] == "IM1" and "✅ ۲ نفره" in P(bot.edits[-1][1])
+            assert bot.edits[-1][0] == "IM1" and "✅ 2 نفره" in P(bot.edits[-1][1])
             # مقدار غیرمجاز نادیده گرفته می شود
             await groups.on_setup(_CQ(31, f"gs:players=9:{token}", imid="IM1"), gdb=db)
             assert (await db.draft(token))["cfg"]["players"] == 2
@@ -1266,7 +1266,7 @@ def test_inline_tables():
             # لمس دوباره «باز کردن» میز دوم نمی سازد
             cq = _CQ(31, f"gs:open:{token}", imid="IM1")
             await groups.on_setup(cq, gdb=db)
-            assert "فعال نیست" in cq.answers[-1]
+            assert "از کار افتاده" in cq.answers[-1]
             # نفر دوم می نشیند: میز ۲ نفره پر و بازی شروع می شود؛ پیوی می رود، ephemeral نه (چت معلوم نیست)
             await groups.on_button(_CQ(32, f"gt:join:{mid}", imid="IM1"), gdb=db, bot=bot)
             assert (await db.get_match(mid))["status"] == "playing" and "شروع شد" in P(bot.edits[-1][1])
@@ -1431,6 +1431,105 @@ def test_broadcast_from_bot():
         finally:
             from unittest import mock
             mock.patch.stopall()
+            await db.close()
+
+    asyncio.run(run())
+
+
+def test_emoji_admin_and_tone():
+    """مدیریت ایموجی در ربات مثل عبور (دسته -> ایموجی -> فرستادن پریمیوم) و عددهای لاتین در پیام ها."""
+    import re
+    from types import SimpleNamespace as NS
+    tmp = tempfile.mkdtemp()
+    from aiogram.dispatcher.event.bases import SkipHandler
+    from aiogram.types import MessageEntity
+    from app.config import config as obour_cfg
+    from game_club import bot as gbot, emoji as emo, groups, service
+    from game_club.db import GCDatabase
+    persian = re.compile("[\u06f0-\u06f9\u0660-\u0669]")
+
+    class CQ:
+        def __init__(self, data):
+            self.from_user, self.data, self.answers, self.views = NS(id=5), data, [], []
+            self.message = NS(edit_text=self._edit)
+
+        async def _edit(self, text, reply_markup=None):
+            self.views.append((text, reply_markup))
+
+        async def answer(self, text=None, show_alert=False):
+            self.answers.append(text)
+
+    class Msg:
+        def __init__(self, text, entities=None):
+            self.from_user, self.text, self.entities, self.out = NS(id=5), text, entities, []
+
+        async def answer(self, text, reply_markup=None, **kw):
+            self.out.append((text, reply_markup))
+
+    def datas(kb):
+        return [b.callback_data for r in kb.inline_keyboard for b in r]
+
+    def flat(t):   # عددها داخل نشانه های جداکننده جهت (FSI/PDI) هستند
+        return t.replace("\u2068", "").replace("\u2069", "")
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        old_ids = list(obour_cfg.admin_ids)
+        obour_cfg.admin_ids[:] = [5]
+        try:
+            emo.load_rows({})
+            cq = CQ("ge:h")
+            await gbot.on_emoji_button(cq, gdb=db)
+            text, kb = cq.views[-1]
+            assert "0 از 39" in flat(text) and not persian.search(text) and "ge:c:0:0" in datas(kb) and "ge:o" in datas(kb)
+            cq = CQ("ge:c:1:1")                 # دستهٔ «میز و دکمه ها» صفحهٔ دوم (8 تا در هر صفحه)
+            await gbot.on_emoji_button(cq, gdb=db)
+            text, kb = cq.views[-1]
+            assert "صفحه 2 از 2" in flat(text) and datas(kb)[:4] == ["ge:e:play", "ge:e:new", "ge:e:cancel", "ge:e:selected"] and "ge:c:1:0" in datas(kb)
+            # انتخاب یک ایموجی: منتظر ایموجی پریمیوم؛ ایموجی معمولی رد می شود
+            await gbot.on_emoji_button(CQ("ge:e:hokm"), gdb=db)
+            m = Msg("🃏")
+            await gbot.on_emoji_input(m, gdb=db)
+            assert "پریمیوم نیست" in m.out[-1][0] and not emo.custom_id("hokm")
+            m = Msg("🦄", [MessageEntity(type="custom_emoji", offset=0, length=2, custom_emoji_id="9001")])
+            await gbot.on_emoji_input(m, gdb=db)
+            assert emo.custom_id("hokm") == "9001" and "عوض شد" in m.out[-1][0] and "ge:e:hokm" in datas(m.out[-1][1])
+            # دکمهٔ همان ایموجی حالا آیکن پریمیوم و ✨ دارد
+            btn = next(b for r in m.out[-1][1].inline_keyboard for b in r if b.callback_data == "ge:e:hokm")
+            assert btn.icon_custom_emoji_id == "9001" and btn.text.endswith("✨")
+            # بعد از ثبت، پیام های بعدی ادمین دیگر ایموجی حساب نمی شوند
+            try:
+                await gbot.on_emoji_input(Msg("سلام"), gdb=db)
+                raise AssertionError("باید رد می شد")
+            except SkipHandler:
+                pass
+            # چندتا با هم
+            await gbot.on_emoji_button(CQ("ge:b"), gdb=db)
+            m = Msg("🎲⚽", [MessageEntity(type="custom_emoji", offset=0, length=2, custom_emoji_id="9002"),
+                            MessageEntity(type="custom_emoji", offset=2, length=1, custom_emoji_id="9003")])
+            await gbot.on_emoji_input(m, gdb=db)
+            assert emo.custom_id("ludo") == "9002" and emo.custom_id("football") == "9003" and "2 ایموجی" in m.out[-1][0]
+            # برگرداندن
+            cq = CQ("ge:r:hokm")
+            await gbot.on_emoji_button(cq, gdb=db)
+            assert not emo.custom_id("hokm") and "ge:e:hokm" in datas(cq.views[-1][1])
+            # پیام های ربات: عددها لاتین
+            await db.player(1, "a")
+            await db.player(2, "b")
+            r = await service.invite_create(db, 1, groups.cfg_of("hokm", {"target": 3}))
+            await service.invite_join(db, 2, (await db.get_match(r["match"]))["invite"])
+            await db.add_group_table(r["match"], -1, "g", "hokm", 1)
+            card = await groups.render(db, await db.get_match(r["match"]), await db.group_table(r["match"]))
+            body = groups.plain(card)
+            assert "(2 از 4)" in body and "تا 3 دست" in body and not persian.search(body)
+            tok = await db.new_draft(1, "ludo", {})
+            setup = groups.plain(await groups.setup_card(db, await db.draft(tok)))
+            assert "4 نفره" in setup and not persian.search(setup)
+        finally:
+            obour_cfg.admin_ids[:] = old_ids
+            emo.load_rows({})
+            service.table_hook = None
             await db.close()
 
     asyncio.run(run())
