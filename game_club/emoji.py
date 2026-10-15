@@ -151,7 +151,8 @@ def button(label: str, key: str | None = None) -> dict:
     m = _LEAD.match(label)
     rest = label[m.end():].strip() if m else label
     k = key or (key_of(m.group(1)) if m else None)
-    eid = custom_id(k) if k else None
+    # کلید می تواند خود آیدی ایموجی پریمیوم هم باشد (دکمه ای که ادمین در ربات با ایموجی پریمیوم نوشته)
+    eid = (k if k.isdigit() else custom_id(k)) if k else None
     if eid and rest:
         return {"text": rest, "icon_custom_emoji_id": eid}
     if k and not m and default(k):

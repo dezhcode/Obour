@@ -217,9 +217,13 @@ async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
     sc = state.get("score")
     if isinstance(sc, list) and len(sc) == 2:
         lines.append([st.E("score"), f" نتیجه: {fd(sc[0])} – {fd(sc[1])}"])
-    return card(st.frame(game, f"بازی {g['name']}", "تموم شد", lines + [""] + players,
-                         foot=(None, None, "یه دست دیگه؟ میز تازه بساز.")),
-                _row(_bt("new", f"میز تازهٔ {g['name']}", "success", callback_data=f"gt:new:{game}")))
+    # پایان بازی: فقط خروجی اطلاعات میز (بدون دکمه)؛ برنده ها در فهرست بازیکن ها نشان دارند
+    players = [[st.E("users"), " ", st.B("بازیکن‌ها")],
+               *[_player_line(s) + ([" ", st.E("trophy")] if s.get("color") in win_colors else []) for s in seats]]
+    start = state.get("started") or m.get("created_at") or time.time()
+    mins = max(1, round(((m.get("updated_at") or time.time()) - start) / 60))
+    return card(st.frame(game, f"بازی {g['name']}", f"تموم شد · {summary(game, cfg)}", lines + [""] + players,
+                         foot=("time", "مدت بازی", f"{fd(mins)} دقیقه")))
 
 
 # ---------- به روز کردن کارت (از دکمه ها یا هر تغییری در سرویس) ----------
