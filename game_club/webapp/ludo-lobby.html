@@ -162,7 +162,7 @@
       else if (me.active_match) {
         const v = await GC.ludo.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);
-        else if (v && v.status === 'playing') { store.set('mid', v.id); $('resume').hidden = false; }
+        else if (v && v.status === 'playing') { store.set('mid', v.id); if (code) { location.replace('ludo.html'); return; } $('resume').hidden = false; }
       } else if (me.queue) queueLoop(await GC.ludo.queueStatus());
       else if (code) {
         if (!S.tutorial) await GC.coach('yellow');

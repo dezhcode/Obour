@@ -162,7 +162,7 @@
       if (me.active_match && (me.active_game || 'football') === 'football' && GC.live) {
         const v = await GC.football.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);
-        else if (v && v.status === 'playing') { store.set('fmid', v.id); $('resume').hidden = false; }
+        else if (v && v.status === 'playing') { store.set('fmid', v.id); if (code) { location.replace('football.html'); return; } $('resume').hidden = false; }
       } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یک بازی ${o[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
       else if (!GC.live && store.get('fmid', null)) {
         const v = await GC.football.match(store.get('fmid', null), 0).catch(() => null);

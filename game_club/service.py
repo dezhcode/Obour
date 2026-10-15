@@ -74,6 +74,19 @@ def _winners(st: dict) -> set:
     return {st["winner"]} if st.get("winner") else set()
 
 
+# هر تغییر میز (نشستن، بلند شدن، شروع، پایان، بستن) به groups.py خبر داده می شود تا کارت گروه به روز شود
+table_hook = None
+
+
+async def _hook(db: GCDatabase, match_id: str) -> None:
+    if table_hook is None:
+        return
+    try:
+        await table_hook(db, match_id)
+    except Exception:  # noqa: BLE001
+        log.debug("کارت میز گروه به روز نشد", exc_info=True)
+
+
 # تابع ارسال پیام ربات (tg, text, page)؛ bot.py هنگام راه اندازی می گذارد
 notifier = None
 AWAY = 12.0  # کسی که این مدت صفحه میز را نپرسیده، بیرون از مینی اپ حساب می شود
@@ -337,6 +350,7 @@ async def settle(db: GCDatabase, m: dict) -> None:
         else:
             text = f"بازی {name} تمام شد و این بار باختی." if winners else f"بازی {name} تمام شد."
         await _notify(db, r["tg_id"], f"over:{m['id']}:{r['tg_id']}", text, "shop.html" if won and share else "index.html")
+    await _hook(db, m["id"])
 
 
 def prize_shares(st: dict, rows: list[dict]) -> dict:
@@ -539,6 +553,7 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
                           _gpage(cfg).replace(".html", "-lobby.html"))
         if len(mm["state"]["seats"]) == cfg["players"]:
             await _lobby_go(db, mm)
+        await _hook(db, m["id"])
     return {"match": m["id"]}
 
 
@@ -560,6 +575,7 @@ async def lobby_start(db: GCDatabase, tg: int, match_id: str) -> None:
     if m["cfg"]["mode"] == "stake" and len(m["state"]["seats"]) < m["cfg"]["players"]:
         raise GCError("need_players")
     await _lobby_go(db, m)
+    await _hook(db, match_id)
 
 
 async def lobby_leave(db: GCDatabase, tg: int, m: dict) -> None:
@@ -575,6 +591,7 @@ async def lobby_leave(db: GCDatabase, tg: int, m: dict) -> None:
                 if s["paid"]:
                     await earn(db, s["tg"], s["paid"], "refund", f"لغو میز {_gname(m['cfg'])}", m["id"], "refund:" + s["ref"])
             await db.deactivate(m["id"])
+            await _hook(db, m["id"])
         return
 
     def stand(mm: dict):
@@ -589,6 +606,7 @@ async def lobby_leave(db: GCDatabase, tg: int, m: dict) -> None:
         await db.execute("DELETE FROM match_players WHERE match_id = ? AND tg_id = ?", (m["id"], tg))
         if seat["paid"]:
             await earn(db, tg, seat["paid"], "refund", f"خروج از میز {_gname(m['cfg'])}", m["id"], "refund:" + seat["ref"])
+        await _hook(db, m["id"])
 
 
 # ---------- بازی ----------
@@ -762,6 +780,7 @@ async def admin_close(db: GCDatabase, match_id: str) -> dict:
     await db.mark_settled(match_id)
     await db.deactivate(match_id)
     log.warning("میز %s توسط ادمین بسته شد؛ %s امتیاز برگشت", match_id, refunded)
+    await _hook(db, match_id)
     return {"refunded": refunded}
 
 
