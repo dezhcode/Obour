@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 
-from . import admin, bridge, names, service
+from . import admin, bridge, names, service, social
 from .bot import gcrt
 from .config import gc
 from .db import pic_url
@@ -87,12 +87,35 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "active_game": await gdb.match_game(active) if active else None,
             "queue": bool(q_row and not q_row["claimed"]),
             "tables": await service.my_tables(gdb, tg),
+            "social": await social.badge(gdb, tg),
             "is_admin": admin.is_admin(tg), "banned": bool(player.get("banned")), "style": service.style_of(player),
             "notice": gc.notice, "maintenance": gc.maintenance,
             "settings": {"stake": gc.stake_enabled, "shop": gc.shop_enabled, "entries": list(gc.entries), "packs": list(gc.charge_packs),
                          "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,
                          "bot": gc.username, "obour_bot": await ob.db.get_setting("bot_username", "")},
         }
+    # ---------- دوستان و پیام خصوصی ----------
+    if name == "friends" and method == "GET":
+        return await social.friends_view(gdb, tg)
+    if name == "friends/find" and method == "GET":
+        return await social.find(gdb, tg, str(q.get("n") or ""))
+    if name == "friends/user" and method == "GET":
+        return await social.profile(gdb, tg, str(q.get("u") or ""))
+    if name in ("friends/request", "friends/accept", "friends/drop", "friends/block") and method == "POST":
+        uid = str(body.get("uid") or "")
+        if name == "friends/request":
+            return await social.request(gdb, tg, uid)
+        if name == "friends/accept":
+            return await social.accept(gdb, tg, uid)
+        if name == "friends/drop":
+            return await social.drop(gdb, tg, uid)
+        return await social.block(gdb, tg, uid, bool(body.get("on", True)))
+    if name == "dm" and method == "GET":
+        return await social.chat(gdb, tg, str(q.get("u") or ""), int(q.get("since") or 0))
+    if name == "dm" and method == "POST":
+        return await social.send(gdb, tg, str(body.get("uid") or ""), str(body.get("text") or ""))
+    if name == "dm/invite" and method == "POST":
+        return await social.invite(gdb, tg, str(body.get("uid") or ""), str(body.get("game") or ""))
     # ---------- یوزرنیم ----------
     if name == "name/check" and method == "GET":
         n = names.normalize(str(q.get("n") or ""))

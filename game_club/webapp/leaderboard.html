@@ -3,90 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
-<title>Game Club · رده‌بندی</title>
-<link rel="stylesheet" href="static/tokens.css">
-<link rel="stylesheet" href="static/gc.css">
-<style>
-/* رده‌بندی: انتخاب فهرست، سکوی سه نفر اول، بقیه، جایگاه من */
-.filters{display:grid;gap:var(--space-3)}
-.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:end;gap:var(--space-2);padding-top:var(--space-2)}
-.pod{display:grid;justify-items:center;gap:4px;text-align:center;min-width:0}
-.pod .avatar{--size:56px}
-.pod.p1 .avatar{--size:70px}
-.pod b{font-size:13.5px;line-height:20px;font-weight:900;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pod .amount{font-size:13px}
-.step{width:100%;border-radius:var(--radius-md) var(--radius-md) 0 0;display:grid;place-items:center;font-size:26px;font-weight:900;color:var(--on-fill)}
-.p1 .step{height:76px;background:var(--coin);color:var(--coin-ink)}
-.p2 .step{height:56px;background:#7E93AE}
-.p3 .step{height:44px;background:#B8682C}
-.crown{width:32px;height:22px;margin-bottom:-4px}
-.mine{position:sticky;bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:5}
-.optin{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
-.optin p{font-size:12.5px;line-height:20px;color:var(--ink-muted)}
-</style>
+<title>Game Club · بازی‌ها</title>
+<!-- رده بندی حالا در صفحهٔ هر بازی است؛ لینک های قدیمی به صفحهٔ بازی ها می روند.
+     هش نشانی دست نمی خورد: تلگرام داده های ورود (tgWebAppData) را همان جا می گذارد -->
+<script>location.replace('games.html' + location.search + location.hash);</script>
+<style>body{margin:0;background:#0B1714}</style>
 </head>
-<body>
-<header class="appbar">
-  <div class="appbar-cap"><span>رده‌بندی</span></div>
-  <div class="appbar-in">
-    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>رده‌بندی</h1></div>
-    <span class="tag tag-sample" id="sampleTag" hidden>داده‌ها نمونه‌اند</span>
-  </div>
-</header>
-<main class="page">
-  <section class="card filters" aria-label="فیلتر">
-    <div class="seg" role="tablist" id="tab">
-      <button role="tab" data-v="top">برترین بازیکن‌ها<small>بر اساس امتیاز برده</small></button>
-      <button role="tab" data-v="spend">بیشترین خرج<small>امتیاز خرج‌شده در Game Club</small></button>
-    </div>
-    <div class="chips" id="per">
-      <button class="chip sm" data-v="week">این هفته</button>
-      <button class="chip sm" data-v="month">این ماه</button>
-      <button class="chip sm" data-v="all">همیشه</button>
-    </div>
-  </section>
-  <section class="card" aria-label="سه نفر اول" id="podiumCard"><div class="podium" id="podium"></div></section>
-  <section class="card" aria-label="بقیه" id="restCard"><ol class="list" id="rest" start="4"></ol></section>
-  <section class="card optin" id="optin" hidden>
-    <div><b>نمایش من در این فهرست</b><p>فهرست خرج فقط کسانی را نشان می‌دهد که خودشان اجازه داده‌اند.</p></div>
-    <button class="switch" role="switch" id="sw" aria-label="نمایش من در فهرست بیشترین خرج"></button>
-  </section>
-  <div class="mine" id="mine"></div>
-</main>
-<script src="static/gc.js"></script>
-<script src="static/demo.js"></script>
-<script>
-(() => {
-  const { fa, FD, face, amount, errText, toast } = GC;
-  const $ = id => document.getElementById(id);
-  GC.back('index.html');
-  let tab = 'top', per = 'week', myP = { av: 7 }, showSpend = false;
-  const CROWN = '<svg class="crown" viewBox="0 0 32 22" aria-hidden="true"><path d="M2 6l7.5 6L16 2l6.5 10L30 6l-3 14H5z" fill="#FFC43B" stroke="#B57B00" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-  async function render() {
-    $('tab').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === tab)));
-    $('per').querySelectorAll('[data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === per)));
-    $('optin').hidden = tab !== 'spend';
-    let lb;
-    try { lb = await GC.data.leaderboard(tab, per); } catch (e) { toast(errText(e)); return; }
-    $('sampleTag').hidden = !lb.sample;
-    const rows = lb.rows, sub = r => tab === 'top' ? fa(r.wins) + ' برد' : 'خرج در Game Club';
-    $('podiumCard').hidden = !rows.length;
-    $('podium').innerHTML = [1, 0, 2].filter(i => rows[i]).map(i => { const r = rows[i];
-      return `<div class="pod p${i + 1}" style="order:${[1, 0, 2].indexOf(i)}">${i === 0 ? CROWN : ''}${face(r, i === 0 ? 'var(--coin)' : 'var(--surface)')}<b>${r.name}</b>${amount(r.value)}<div class="step">${FD(i + 1)}</div></div>`; }).join('');
-    $('rest').innerHTML = rows.length > 3 ? rows.slice(3).map((r, i) => `<li class="row${r.me ? ' me' : ''}"><span style="display:flex;align-items:center;gap:10px"><span class="rank">${FD(i + 4)}</span>${face(r)}</span><span class="name">${r.name}<span class="meta">${sub(r)}</span></span>${amount(r.value)}</li>`).join('')
-      : `<li class="hint">${rows.length ? 'فعلا همین‌ها.' : tab === 'top' ? 'هنوز در این بازه کسی بازی امتیازی نبرده.' : 'هنوز کسی در این بازه خرجی نکرده یا اجازهٔ نمایش نداده.'}</li>`;
-    const m = lb.mine;
-    $('mine').innerHTML = `<div class="row me" style="background:var(--surface);box-shadow:var(--lift)"><span style="display:flex;align-items:center;gap:10px"><span class="rank">—</span>${face(myP, 'var(--sky)')}</span><span class="name">جایگاه شما<span class="meta">${!m.visible ? 'در این فهرست نمایش داده نمی‌شوی' : tab === 'top' ? fa(m.wins) + ' برد از ' + fa(m.games) + ' بازی' : 'امتیاز خرج‌شده'}</span></span>${amount(m.value)}</div>`;
-    $('sw').setAttribute('aria-checked', String(!!showSpend));
-  }
-  $('tab').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { tab = b.dataset.v; render(); } };
-  $('per').onclick = e => { const b = e.target.closest('[data-v]'); if (b) { per = b.dataset.v; render(); } };
-  $('sw').onclick = async () => { showSpend = !showSpend; try { await GC.data.setFlag('show_spend', showSpend); } catch (e) { showSpend = !showSpend; toast(errText(e)); } render(); };
-  const load = async () => { try { const me = await GC.refreshMe(); myP = me.player; showSpend = !!me.player.show_spend; } catch (e) {} render(); };
-  GC.page(load);
-  GC.nav('leaderboard'); GC.mount();
-})();
-</script>
-</body>
+<body></body>
 </html>

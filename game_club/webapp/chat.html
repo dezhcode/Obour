@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<title>Game Club · چت</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<style>
+/* چت خصوصی با یک دوست؛ هر ۲٫۵ ثانیه پیام تازه گرفته می شود (فقط وقتی صفحه دیده می شود) */
+body{background:var(--ground)}
+.ch-top{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.ch-who{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:start}
+.ch-who .avatar{--size:42px}
+.ch-who .t{min-width:0;display:grid}
+.ch-who b{font-size:15.5px;line-height:22px;font-weight:900;justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-who small{font-size:12px;line-height:16px;color:var(--ink-muted)}
+.ch-who small.on{color:var(--success)}.ch-who small.play{color:var(--acc-deep)}
+.ch-ib{width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--ink)}
+.ch-ib.gold{background:rgba(245,196,81,.15);color:var(--gold)}
+.ch-ib svg{width:22px;height:22px}
+.ch-log{max-width:480px;margin:0 auto;padding:14px 14px calc(150px + var(--sa-b,0px));display:flex;flex-direction:column;gap:6px}
+.ch-day{align-self:center;margin:8px 0 2px;height:26px;padding:0 12px;border-radius:13px;background:rgba(255,255,255,.07);font-size:12px;font-weight:700;color:var(--ink-muted);display:grid;place-items:center}
+.ch-m{max-width:78%;padding:8px 12px 6px;border-radius:18px;font-size:14.5px;line-height:23px;word-wrap:break-word;overflow-wrap:anywhere}
+.ch-m.them{align-self:flex-end;background:var(--surface);border-end-end-radius:6px}
+.ch-m.me{align-self:flex-start;background:var(--gold);color:var(--gold-ink);border-end-start-radius:6px}
+.ch-m time{display:block;text-align:left;font-size:11px;line-height:14px;opacity:.7}
+.ch-inv{width:78%;display:grid;gap:10px;padding:12px;border-radius:20px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(245,196,81,.35)}
+.ch-inv.them{align-self:flex-end}.ch-inv.me{align-self:flex-start}
+.ch-inv .h{display:flex;align-items:center;gap:10px}
+.ch-inv .g-art{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;flex:none;overflow:hidden}
+.ch-inv .g-art svg{width:78%;height:78%}
+.ch-inv b{font-size:14.5px;font-weight:900}
+.ch-inv small{display:block;font-size:12px;color:var(--ink-muted)}
+.ch-inv .btn{min-height:44px}
+.ch-empty{margin:40px auto 0;display:grid;justify-items:center;gap:8px;text-align:center;color:var(--ink-muted);font-size:13.5px;line-height:22px;max-width:260px}
+.ch-empty .avatar{--size:72px}
+.ch-empty b{color:var(--ink);font-size:16px}
+.ch-bar{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);background:rgba(15,32,27,.97);border-top:1px solid var(--line);
+  padding:8px 12px calc(10px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)))}
+.ch-bar-in{max-width:480px;margin:0 auto;display:grid;gap:8px}
+.ch-quick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.ch-quick::-webkit-scrollbar{display:none}
+.ch-quick button{flex:none;height:36px;padding:0 12px;border-radius:18px;background:rgba(245,196,81,.15);color:var(--acc-deep);font-size:13px;font-weight:800}
+.ch-form{display:flex;align-items:center;gap:8px}
+.ch-form input{flex:1;min-width:0;height:48px;padding:0 16px;border:0;border-radius:24px;background:var(--surface);color:var(--ink);font:inherit;font-size:14.5px;outline:2px solid transparent}
+.ch-form input:focus{outline-color:rgba(245,196,81,.5)}
+.ch-send{width:48px;height:48px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--gold-ink)}
+.ch-send svg{width:22px;height:22px}
+.ch-off{padding:12px;border-radius:16px;background:var(--surface);text-align:center;font-size:13.5px;color:var(--ink-muted)}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-cap"><span>چت</span></div>
+  <div class="appbar-in">
+    <div class="ch-top">
+      <a class="icon-btn back" href="friends.html" aria-label="برگشت"><i data-ic="back"></i></a>
+      <button class="ch-who" id="chWho"><span id="chAv"></span><span class="t"><b class="uname" id="chName">…</b><small id="chSt"></small></span></button>
+      <button class="ch-ib gold" id="chInv" aria-label="دعوت به بازی"><i data-ic="pad"></i></button>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="ch-log" id="chLog" role="log" aria-live="polite"></div>
+</main>
+<div class="ch-bar"><div class="ch-bar-in" id="chBar">
+  <div class="ch-quick" id="chQuick"><button>بزن بریم!</button><button>یه دست دیگه؟</button><button>۵ دقیقه دیگه</button><button>بازی خوبی بود</button></div>
+  <form class="ch-form" id="chForm"><label class="sr" for="chIn">پیام</label><input id="chIn" maxlength="300" placeholder="پیام بنویس…" autocomplete="off" dir="auto"><button class="ch-send" aria-label="ارسال"><i data-ic="send"></i></button></form>
+</div></div>
+<script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/social.js"></script>
+<script>
+(() => {
+  const { FD, icon, face, toast, errText, mount, sfx, haptic, sleep } = GC;
+  const SO = GCSocial, esc = SO.esc;
+  const $ = id => document.getElementById(id);
+  GC.back('friends.html');
+  const uid = new URL(location.href).searchParams.get('u') || '';
+  let user = null, rel = 'friend', msgs = [], last = 0, sending = false;
+
+  const clock = t => new Date(t * 1000).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+  const dayOf = t => { const d = new Date(t * 1000), n = new Date(); const y = new Date(n); y.setDate(n.getDate() - 1);
+    return d.toDateString() === n.toDateString() ? 'امروز' : d.toDateString() === y.toDateString() ? 'دیروز' : d.toLocaleDateString('fa-IR', { month: 'long', day: 'numeric' }); };
+
+  function head() {
+    if (!user) return;
+    const st = SO.status(user);
+    $('chAv').innerHTML = SO.av(user); $('chName').textContent = user.name;
+    $('chSt').textContent = st.text; $('chSt').className = st.cls;
+    document.title = 'Game Club · ' + user.name;
+  }
+  function bubble(m) {
+    if (m.kind === 'invite') {
+      const g = (m.meta && m.meta.game) || 'hokm', x = GC.GAMES.find(y => y.id === g) || GC.GAMES[0], code = (m.meta && m.meta.code) || '';
+      return `<div class="ch-inv ${m.me ? 'me' : 'them'}"><div class="h"><span class="g-art ${x.tint}">${GC.GAME_ART[g]()}</span><span><b>دعوت به ${x.name}</b><small>${m.me ? 'منتظر دوستت سر میز' : 'میز آزاد · ' + clock(m.at)}</small></span></div>
+        ${m.me ? `<a class="btn btn-light btn-block" href="${g}-lobby.html">برو سر میز</a>` : `<a class="btn btn-block" href="${g}-lobby.html?join=${encodeURIComponent(code)}">بپیوند</a>`}</div>`;
+    }
+    return `<div class="ch-m ${m.me ? 'me' : 'them'}"><span dir="auto">${esc(m.text)}</span><time>${clock(m.at)}</time></div>`;
+  }
+  function render() {
+    if (!msgs.length) {
+      $('chLog').innerHTML = user ? `<div class="ch-empty">${face(user)}<b class="uname">${esc(user.name)}</b>اولین پیام را بفرست یا به یک بازی دعوتش کن.</div>` : '';
+    } else {
+      let html = '', day = '';
+      for (const m of msgs) { const d = dayOf(m.at); if (d !== day) { day = d; html += `<span class="ch-day">${d}</span>`; } html += bubble(m); }
+      $('chLog').innerHTML = html;
+    }
+    const can = rel === 'friend';
+    $('chQuick').hidden = !can; $('chForm').hidden = !can; $('chInv').hidden = !can;
+    let off = $('chBar').querySelector('.ch-off');
+    if (!can && !off) { off = document.createElement('p'); off.className = 'ch-off'; $('chBar').appendChild(off); }
+    if (off) { off.hidden = can; off.textContent = rel === 'blocked' ? 'این کاربر را بلاک کرده‌ای.' : 'دیگر با هم دوست نیستید؛ پیام فرستاده نمی‌شود.'; }
+    mount($('chLog'));
+  }
+  const bottom = () => scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  async function pull(first) {
+    try {
+      const r = await GC.data.dm(uid, first ? 0 : last);
+      user = r.user; rel = r.relation; head();
+      if (first) msgs = r.messages; else if (r.messages.length) { msgs = msgs.concat(r.messages.filter(m => !msgs.some(x => x.id === m.id))); if (r.messages.some(m => !m.me)) { sfx.tap(); haptic('light'); } }
+      if (msgs.length) last = msgs[msgs.length - 1].id;
+      if (first || r.messages.length) { render(); bottom(); }
+    } catch (e) { if (first) { toast(errText(e)); $('chLog').innerHTML = `<div class="ch-empty"><b>این گفتگو در دسترس نیست</b>${errText(e)}</div>`; $('chBar').hidden = true; return false; } }
+    return true;
+  }
+  async function send(text) {
+    text = String(text || '').trim(); if (!text || sending) return;
+    sending = true;
+    try { await GC.data.dmSend(uid, text); $('chIn').value = ''; sfx.tap(); await pull(false); }
+    catch (e) { sfx.error(); toast(errText(e)); }
+    sending = false;
+  }
+  $('chForm').onsubmit = e => { e.preventDefault(); send($('chIn').value); };
+  $('chQuick').onclick = e => { const b = e.target.closest('button'); if (b) send(b.textContent); };
+  $('chInv').onclick = () => user && SO.invite(user, () => pull(false));
+  $('chWho').onclick = () => user && rel === 'friend' && SO.friendSheet(user, what => { if (what) location.href = 'friends.html'; }, { noChat: true });
+  (async () => {
+    await GC.refreshMe().catch(() => {});
+    if (!(await pull(true))) return;
+    // پیام تازه: فقط وقتی صفحه دیده می شود، هر ۲٫۵ ثانیه
+    for (;;) { await sleep(2500); if (!document.hidden) await pull(false); }
+  })();
+  mount();
+})();
+</script>
+</body>
+</html>

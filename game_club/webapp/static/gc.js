@@ -105,6 +105,8 @@ function startParam() { try { return (tg && tg.initDataUnsafe && tg.initDataUnsa
 const ERR = {
   not_owned: 'اول این طرح را بخر',
   name_short: 'یوزرنیم دست‌کم ۳ نویسه است', name_long: 'یوزرنیم حداکثر ۱۶ نویسه است', name_start: 'یوزرنیم باید با حرف انگلیسی شروع شود',
+  not_friends: 'اول باید با هم دوست باشید', you_blocked: 'این کاربر را بلاک کرده‌ای', cant_add: 'نمی‌شود این کاربر را اضافه کرد',
+  too_many_friends: 'فهرست دوستانت پر است', slow_requests: 'درخواست‌ها زیاد شد؛ کمی بعد دوباره امتحان کن', no_request: 'این درخواست دیگر وجود ندارد', bad_game: 'این بازی پیدا نشد',
   name_chars: 'فقط حروف انگلیسی، عدد و _ مجاز است', name_reserved: 'این یوزرنیم را نمی‌شود انتخاب کرد', name_taken: 'این یوزرنیم را کس دیگری برداشته',
   banned: 'حساب تو در Game Club مسدود شده است', maintenance: 'در حال به‌روزرسانی هستیم؛ چند دقیقه دیگر دوباره امتحان کن',
   insufficient: 'امتیاز کافی نیست؛ اول کیف را شارژ کن', obour_insufficient: 'موجودی کیف پول عبور کافی نیست',
@@ -152,6 +154,16 @@ const liveData = {
   setName: name => api('name', { body: { name } }),
   nameSeen: () => api('name/seen', { body: {} }),
   saveProfile: body => api('settings', { body }),
+  friends: () => api('friends'),
+  friendFind: n => api('friends/find', { q: { n } }),
+  friendUser: u => api('friends/user', { q: { u } }),
+  friendReq: uid => api('friends/request', { body: { uid } }),
+  friendAccept: uid => api('friends/accept', { body: { uid } }),
+  friendDrop: uid => api('friends/drop', { body: { uid } }),
+  friendBlock: (uid, on) => api('friends/block', { body: { uid, on } }),
+  dm: (u, since = 0) => api('dm', { q: { u, since } }),
+  dmSend: (uid, text) => api('dm', { body: { uid, text } }),
+  dmInvite: (uid, game) => api('dm/invite', { body: { uid, game } }),
 };
 const liveLudo = {
   queueJoin: cfg => api('ludo/queue', { body: { cfg } }),
@@ -204,6 +216,7 @@ async function refreshMe() {
   const shop = !!(me.settings && me.settings.shop);
   if (S.shopOn !== shop) { S.shopOn = shop; save(); }
   document.documentElement.classList.toggle('shop-on', shop);
+  if (me.social) setNavBadge(me.social);
   mount();
   return me;
 }
@@ -232,6 +245,9 @@ const P = {
   shield: '<path d="M12 3l8 3v6c0 4.6-3.4 8.2-8 9-4.6-.8-8-4.4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   card: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18M7 15h4"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  userX: '<circle cx="9" cy="8.5" r="3.5"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5M16 9l5 5M21 9l-5 5"/>',
+  ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   sliders: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/>',
@@ -510,18 +526,26 @@ sfx.fb = {
 function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
 /* ---------- ناوبری پایین: پنج بخش فقط با آیکون؛ «بازی‌ها» دکمهٔ گرد طلایی وسط است ---------- */
-const NAV = [['home', 'index.html', 'خانه', 'home'], ['leaderboard', 'leaderboard.html', 'رده‌بندی', 'trophy'], ['games', 'games.html', 'بازی‌ها', 'pad'],
+const NAV = [['home', 'index.html', 'خانه', 'home'], ['friends', 'friends.html', 'دوستان', 'users'], ['games', 'games.html', 'بازی‌ها', 'pad'],
   ['shop', 'shop.html', 'فروشگاه', 'bag'], ['profile', 'profile.html', 'پروفایل', 'user']];
+// عدد روی آیکون دوستان: درخواست های تازه + پیام های نخوانده
+let navBadge = 0;
+function setNavBadge(s) {
+  navBadge = s ? (+s.requests || 0) + (+s.unread || 0) : navBadge;
+  const b = navEl && navEl.querySelector('.nav-badge'); if (!b) return;
+  b.hidden = !navBadge; b.textContent = navBadge > 9 ? '+۹' : FD(navBadge);
+}
 let navEl = null;
 function nav(active) {
   if (mountingView) return;
   if (navEl) { setActive(active, false); return; }
   const n = navEl = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
   n.innerHTML = `<div class="nav-in"><span class="nav-pill" aria-hidden="true"></span>${NAV.map(([id, href, label, ic]) =>
-    `<a href="${href}" data-id="${id}" aria-label="${label}"${id === 'games' ? ' class="nav-play"' : ''}>${id === 'games' ? `<span class="np">${icon(ic)}</span>` : icon(ic)}</a>`).join('')}</div>`;
+    `<a href="${href}" data-id="${id}" aria-label="${label}"${id === 'games' ? ' class="nav-play"' : ''}>${id === 'games' ? `<span class="np">${icon(ic)}</span>` : icon(ic)}${id === 'friends' ? '<span class="nav-badge" hidden></span>' : ''}</a>`).join('')}</div>`;
   // دانلود زودهنگام: با لمس دکمه، صفحهٔ آن بخش همان لحظه گرفته می شود
   n.addEventListener('pointerdown', e => { const a = e.target.closest('a[href]'); if (a) fetchPage(a.getAttribute('href')); }, { passive: true });
   document.body.appendChild(n);
+  setNavBadge();
   initShell(active);
   setActive(active, false);
   addEventListener('resize', placePill);
@@ -557,7 +581,7 @@ function setActive(id, animate) {
    هر بخش یک بار ساخته می شود و در حافظه می ماند؛ رفتن بین آنها صفحه را دوباره بار نمی کند،
    فقط بخش تازه نشان داده می شود و داده هایش (موجودی، تاریخچه، رده بندی…) تازه می شود.
    بخشی که هنوز ساخته نشده یک بار گرفته و ساخته می شود (صفحه اش از قبل در پس زمینه گرفته شده). */
-const TABS = { 'index.html': 'home', 'leaderboard.html': 'leaderboard', 'games.html': 'games', 'profile.html': 'profile', 'shop.html': 'shop' };
+const TABS = { 'index.html': 'home', 'friends.html': 'friends', 'games.html': 'games', 'profile.html': 'profile', 'shop.html': 'shop' };
 const views = {}, pages = {};
 let curView = null, mountingView = null, switching = null, prebuilding = false;
 const building = {};
@@ -759,6 +783,6 @@ window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, gu
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash };
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();

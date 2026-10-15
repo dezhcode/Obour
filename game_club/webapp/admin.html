@@ -491,7 +491,7 @@ function MOCK(name, { q = {}, body } = {}) {
   if (name === 'admin/tables') return { tables: q.s === 'over' ? [] : MT, more: false };
   if (name === 'admin/table') { const t = MT.find(x => x.id === q.id) || MT[0]; return { table: t, rows: t.players.map((n, i) => ({ tg_id: MU[i].id, name: n, paid: t.entry, active: 1 })) }; }
   if (name === 'admin/ledger') return { rows: MU.slice(0, 14).map((u, i) => ({ tg_id: u.id, name: u.name, kind: ['charge', 'entry', 'prize', 'admin', 'refund'][i % 5], amount: [500, -100, 200, 50, 100][i % 5], note: '', status: 'done', created_at: now() - i * 1500 })).filter(l => !q.k || l.kind === q.k), more: false };
-  if (name === 'admin/broadcasts') return { list: MB, pages: { '': 'خانه', 'ludo-lobby.html': 'منچ', 'hokm-lobby.html': 'حکم', 'football-lobby.html': 'فوتبال', 'wallet.html': 'کیف امتیاز', 'leaderboard.html': 'رده بندی' } };
+  if (name === 'admin/broadcasts') return { list: MB, pages: { '': 'خانه', 'ludo-lobby.html': 'منچ', 'hokm-lobby.html': 'حکم', 'football-lobby.html': 'فوتبال', 'wallet.html': 'کیف امتیاز', 'games.html': 'بازی ها', 'friends.html': 'دوستان' } };
   if (name === 'admin/bc_count') return { n: { all: 1840, active7: 1104, active30: 1502, me: 1 }[q.target] || 640 };
   if (name === 'admin/settings') return { settings: MS };
   if (name === 'admin/setting') { MS = MS.map(s => s.key === body.key ? { ...s, value: body.value == null ? s.env : body.value, custom: body.value != null } : s); return { ok: true, settings: MS }; }

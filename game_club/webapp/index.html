@@ -199,9 +199,9 @@ a.gt:active{transform:scale(.98)}
     <div class="games" id="games"></div>
   </section>
 
-  <a class="rank-card" id="rankCard" href="leaderboard.html" aria-label="رده‌بندی هفته">
+  <a class="rank-card" id="rankCard" href="friends.html" aria-label="دوستان">
     <span class="pos" id="rankPos">…</span>
-    <span class="t"><b id="rankT">رده‌بندی این هفته</b><small id="rankS">در حال بارگذاری…</small></span>
+    <span class="t"><b id="rankT">دوستان</b><small id="rankS">در حال بارگذاری…</small></span>
     <span class="faces" id="rankFaces"></span>
     <span class="chev"><i data-ic="fwd"></i></span>
   </a>
@@ -394,11 +394,13 @@ a.gt:active{transform:scale(.98)}
       $('admLink').hidden = !me.is_admin;
       if (!polling) { polling = true; setInterval(async () => { if (document.hidden || !GC.isActive('home')) return; try { const m = await GC.data.me(); me = Object.assign(me, m); setTables(m.tables || []); } catch (e) {} }, 5000); }
     } catch (e) { toast(errText(e)); }
+    // دوستان آنلاین (رده بندی حالا در صفحهٔ هر بازی است)
     try {
-      const lb = await GC.data.leaderboard('top', 'week'), i = lb.rows.findIndex(r => r.me), mine = lb.mine || {};
-      $('rankFaces').innerHTML = lb.rows.slice(0, 3).map(r => face(r)).join('');
-      if (i >= 0) { $('rankPos').textContent = FD(i + 1); $('rankT').textContent = 'جایگاه تو این هفته'; $('rankS').innerHTML = `${fa(mine.wins || lb.rows[i].wins)} برد · ${amount(lb.rows[i].value)}`; }
-      else { $('rankPos').innerHTML = icon('trophy'); $('rankT').textContent = 'رده‌بندی این هفته'; $('rankS').textContent = lb.rows.length ? 'با بردن بازی امتیازی وارد جدول شو' : 'هنوز کسی امتیازی نبرده؛ اولین نفر باش!'; }
+      const fr = await GC.data.friends(), on = fr.friends.filter(f => f.online);
+      $('rankPos').innerHTML = icon('users');
+      $('rankFaces').innerHTML = (on.length ? on : fr.friends).slice(0, 3).map(f => face(f)).join('');
+      $('rankT').textContent = on.length ? 'دوستان آنلاین' : 'دوستان';
+      $('rankS').textContent = on.length ? `${FD(on.length)} نفر الان آنلاین‌اند` : fr.friends.length ? `${FD(fr.friends.length)} دوست · الان کسی آنلاین نیست` : 'با یوزرنیم دوستانت را اضافه کن';
     } catch (e) { $('rankS').textContent = errText(e); }
     if (GC.S.shopOn) try {
       const sh = await GC.data.shop();

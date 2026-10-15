@@ -160,6 +160,7 @@ h1,h2,h3,p{margin:0}
 .nav-in>[aria-current="page"] svg{stroke-width:2.3}
 .nav-in>a:active{opacity:.75}
 .nav-in>.nav-play{height:48px}
+.nav-badge{position:absolute;top:4px;left:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#FF6B7A;color:#2A0B0F;font-size:11px;line-height:18px;font-weight:900;text-align:center;box-shadow:0 0 0 2px rgba(16,33,27,.97)}
 .nav-play .np{width:60px;height:60px;margin-top:-26px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--gold-ink);box-shadow:0 0 0 6px rgba(16,33,27,.97);transition:box-shadow .2s}
 .nav-play .np svg{width:30px;height:30px}
 .nav-in>.nav-play[aria-current="page"] .np{box-shadow:0 0 0 6px rgba(16,33,27,.97),0 0 0 9px rgba(245,196,81,.35)}
@@ -552,3 +553,47 @@ body.game .appbar .turnbar .time{width:44px}
 .cv-mark{position:absolute;top:14px;inset-inline-start:16px;display:flex;align-items:center;gap:8px;color:#F5C451}
 .cv-mark svg{width:34px;height:34px}
 .cv-mark b{font-family:var(--font-rokh);font-size:17px;font-weight:900;letter-spacing:.3px;color:#F7E3AE}
+
+/* ---------- دوستان (static/social.js) ---------- */
+.fr-av{position:relative;flex:none;display:inline-block}
+.fr-av .avatar{--size:46px}
+.fr-av.big .avatar{--size:84px}
+.fr-av .dot{position:absolute;bottom:1px;left:1px;width:13px;height:13px;border-radius:50%;background:#53645D;box-shadow:0 0 0 2.5px var(--surface)}
+.fr-av.big .dot{width:18px;height:18px;bottom:4px;left:4px}
+.fr-av .dot.on{background:var(--success)}.fr-av .dot.play{background:var(--gold)}
+.fr-lead{font-size:14px;line-height:23px;color:var(--ink-muted)}
+.fr-games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.fr-game{display:grid;justify-items:center;gap:6px;padding:12px 6px;border-radius:18px;background:var(--surface-sunk);text-align:center}
+.fr-game .g-art{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;overflow:hidden}
+.fr-game .g-art svg{width:78%;height:78%}
+.fr-game b{font-size:15px;font-weight:900}
+.fr-game small{font-size:12px;color:var(--ink-muted)}
+.fr-game:disabled{opacity:.5}
+.fr-card{position:relative;display:grid;justify-items:center;gap:4px;margin:-12px -20px 0;padding:0 16px 4px;text-align:center}
+.fr-cover{display:block;width:100%;height:84px;margin-bottom:-44px;border-radius:var(--radius-xl) var(--radius-xl) 0 0}
+.fr-card .fr-av.big{box-shadow:0 0 0 5px var(--surface);border-radius:50%}
+.fr-card>b{margin-top:6px;font-size:20px;line-height:28px;font-weight:900}
+.fr-st{font-size:12.5px;color:var(--ink-muted)}.fr-st.on{color:var(--success)}.fr-st.play{color:var(--acc-deep)}
+.fr-bio{margin-top:4px;font-size:14px;line-height:22px;color:#C9D6D0}
+.fr-nums{display:flex;gap:22px;margin-top:8px;min-height:44px}
+.fr-nums span{display:grid;font-size:12px;color:var(--ink-muted)}
+.fr-nums b{font-family:var(--font-rokh);font-size:18px;color:var(--ink);font-weight:900}
+.fr-acts{display:grid;border-radius:20px;background:var(--surface-sunk);overflow:hidden}
+.fr-act{display:flex;align-items:center;gap:14px;min-height:52px;padding:0 16px;font-size:15px;font-weight:700;color:var(--ink);text-align:start}
+.fr-act+.fr-act{border-top:1px solid var(--line)}
+.fr-act svg{width:22px;height:22px}
+.fr-act.bad{color:#FF8A96}
+.fr-res{display:grid;gap:12px}
+.fr-found{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:var(--surface-sunk)}
+.fr-found .avatar{--size:56px}
+.fr-found .t{display:grid;min-width:0}
+.fr-found b{font-size:17px;font-weight:900;justify-self:start}
+.fr-found small{font-size:12.5px;color:var(--ink-muted)}
+.fr-sent{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 6px 0 14px;border-radius:16px;box-shadow:inset 0 0 0 1px var(--line);font-size:14px;font-weight:800;color:var(--success)}
+.fr-sent svg{width:18px;height:18px;margin-inline-end:6px;vertical-align:-3px}
+.fr-none{display:grid;justify-items:center;gap:4px;padding:18px 8px;text-align:center}
+.fr-none svg{width:28px;height:28px;color:var(--ink-muted)}
+.fr-none b{font-size:15px;font-weight:900}
+.fr-none small{font-size:12.5px;color:var(--ink-muted)}
+.fr-mine{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:16px;background:var(--surface-sunk);font-size:13.5px;color:var(--ink-muted)}
+.fr-mine b{color:var(--ink);font-weight:900}

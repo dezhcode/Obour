@@ -980,6 +980,86 @@ def test_profile_bio_cover():
     asyncio.run(run())
 
 
+def test_friends_and_dm():
+    """دوستی با یوزرنیم: درخواست، قبول، پیام خصوصی و نخوانده ها، دعوت به بازی، بلاک و حذف."""
+    tmp = tempfile.mkdtemp()
+    from game_club import service, social
+    from game_club.db import GCDatabase
+
+    sent = []
+
+    async def notifier(tg, text, page):
+        sent.append((tg, page))
+
+    async def run():
+        service.notifier = notifier
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        try:
+            a, b, c = (await db.player(1, "a")), (await db.player(2, "b")), (await db.player(3, "c"))
+            await db.set_name(2, "bob_two")
+            f = await social.find(db, 1, "@BOB_two")
+            assert f["relation"] == "none" and f["user"]["name"] == "bob_two" and "tg_id" not in f["user"]
+            uid_b, uid_a = f["user"]["uid"], a["pic"]
+            assert (await social.request(db, 1, uid_b))["relation"] == "outgoing"
+            assert (await social.badge(db, 2))["requests"] == 1 and any(x == (2, "friends.html") for x in sent)
+            v = await social.friends_view(db, 2)
+            assert [x["uid"] for x in v["incoming"]] == [uid_a] and not v["friends"]
+            # پیام قبل از دوستی ممنوع
+            try:
+                await social.send(db, 1, uid_b, "سلام")
+                raise AssertionError("dm before friends")
+            except service.GCError as e:
+                assert e.code == "not_friends"
+            assert (await social.accept(db, 2, uid_a))["relation"] == "friend"
+            assert (await social.friends_view(db, 1))["friends"][0]["name"] == "bob_two"
+            await social.send(db, 1, uid_b, "  سلام\u202e  رفیق  ")
+            assert (await social.badge(db, 2))["unread"] == 1
+            ch = await social.chat(db, 2, uid_a)
+            assert [m["text"] for m in ch["messages"]] == ["سلام رفیق"] and not ch["messages"][0]["me"]
+            assert (await social.badge(db, 2))["unread"] == 0                 # با دیدن چت خوانده شد
+            try:
+                await social.send(db, 1, uid_b, "دوباره")                     # خیلی سریع
+                raise AssertionError("slow")
+            except service.GCError as e:
+                assert e.code == "chat_slow"
+            # دعوت به بازی: میز آزاد ساخته می شود و کارتش در چت می آید
+            await db.execute("UPDATE dms SET created_at = created_at - 5")
+            inv = await social.invite(db, 2, uid_a, "hokm")
+            m = await db.get_match(inv["match"])
+            assert m["status"] == "lobby" and m["cfg"]["mode"] == "free"
+            last = (await social.chat(db, 1, uid_b))["messages"][-1]
+            assert last["kind"] == "invite" and last["meta"]["code"] == inv["code"]
+            assert any(p.startswith("hokm-lobby.html?join=") for _, p in sent)
+            # بلاک: دوستی پاک می شود، پیام و پیدا کردن ممنوع
+            await social.block(db, 2, uid_a, True)
+            assert (await social.friends_view(db, 1))["friends"] == []
+            try:
+                await social.find(db, 1, "bob_two")
+                raise AssertionError("blocked find")
+            except service.GCError as e:
+                assert e.code == "not_found"
+            try:
+                await social.request(db, 1, uid_b)
+                raise AssertionError("blocked request")
+            except service.GCError as e:
+                assert e.code == "cant_add"
+            await social.block(db, 2, uid_a, False)
+            await social.request(db, 1, uid_b)
+            assert (await social.drop(db, 1, uid_b))["relation"] == "none"       # پس گرفتن درخواست
+            assert (await social.friends_view(db, 2))["incoming"] == []
+            try:
+                await social.request(db, 1, a["pic"])                             # خودم
+                raise AssertionError("self")
+            except service.GCError as e:
+                assert e.code == "not_found"
+        finally:
+            service.notifier = None
+            await db.close()
+
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
