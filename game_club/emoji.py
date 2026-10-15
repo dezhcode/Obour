@@ -23,14 +23,13 @@ CATALOG: dict[str, tuple[str, str]] = {
     "hokm": ("🃏", "حکم"),
     "ludo": ("🎲", "منچ"),
     "football": ("⚽", "فوتبال"),
-    "seat": ("🪑", "بنشین و جای خالی"),
+    "seat": ("🪑", "صندلی خالی و بشین"),
     "leave": ("🚪", "بلند شو"),
     "robot": ("🤖", "ربات و شروع با ربات"),
     "watch": ("👀", "دیدن بازی"),
     "trophy": ("🏆", "برنده"),
     "crown": ("👑", "سازندهٔ میز"),
     "users": ("👥", "بازیکن ها"),
-    "empty": ("⬜", "صندلی خالی"),
     "gear": ("⚙️", "تنظیم میز"),
     "play": ("▶️", "باز کردن میز و شروع"),
     "new": ("➕", "میز تازه"),
@@ -62,7 +61,7 @@ CATALOG: dict[str, tuple[str, str]] = {
 # دسته ها برای صفحهٔ مدیریت ایموجی در ربات (مثل عبور: دسته -> فهرست -> ایموجی)
 CATEGORIES: dict[str, list[str]] = {
     "بازی‌ها": ["brand", "hokm", "ludo", "football", "group", "trophy", "score", "time"],
-    "میز و دکمه‌ها": ["seat", "leave", "robot", "watch", "crown", "users", "empty", "gear", "play", "new", "cancel", "selected"],
+    "میز و دکمه‌ها": ["seat", "leave", "robot", "watch", "crown", "users", "gear", "play", "new", "cancel", "selected"],
     "امتیاز و اعلان": ["coin", "star", "fire", "turn", "bell", "chat", "friend", "gift", "party", "link"],
     "عمومی": ["hello", "help", "shop", "home", "megaphone", "chart", "ban", "warn", "ok"],
 }
