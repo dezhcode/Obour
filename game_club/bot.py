@@ -7,7 +7,7 @@
   /start obour      آمده از کارت Game Club در مینی اپ عبور
   /points           موجودی امتیاز
   /help             قوانین کوتاه
-در گروه ها (groups.py): /hokm، /ludo، /football یا /play میز آزاد با کارت و دکمهٔ «بنشین» می سازد.
+در گروه ها (groups.py): /hokm، /ludo، /football یا /play کارت تنظیم میز می فرستد؛ دکمه ها داخل خود پیام اند (پیام غنی).
 ادمین ها (ADMIN_IDS عبور):
   /gcstats                  آمار امروز و همه
   /gcpoints <tg_id> <مقدار>  افزودن یا کسر امتیاز (منفی = کسر)

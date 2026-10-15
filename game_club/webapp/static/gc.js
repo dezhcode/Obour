@@ -224,6 +224,7 @@ async function refreshMe() {
 
 /* ---------- آیکون ها (خطی، ۲۴×۲۴، currentColor) ---------- */
 const P = {
+  eye: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H4.5v1.5A3.5 3.5 0 0 0 8 11M16 6h3.5v1.5A3.5 3.5 0 0 1 16 11M12 13v4M8 20h8M9.5 17h5"/>',
   wallet: '<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><path d="M16 13.5h.01"/>',
@@ -777,6 +778,22 @@ function boardArt() {
   g += '<path d="M6 6L7.5 7.5L6 9z" fill="#4C8DFF"/><path d="M6 6L9 6L7.5 7.5z" fill="#FF5A6A"/><path d="M9 6L9 9L7.5 7.5z" fill="#2FC584"/><path d="M6 9L9 9L7.5 7.5z" fill="#FFC531"/>';
   return `<svg viewBox="-.5 -.5 16 16" aria-hidden="true">${g}</svg>`;
 }
+/* ---------- تماشای بازی: اعضای گروه از کارت میز (?watch=شناسه) بازی را فقط می بینند ---------- */
+const watchId = () => { try { return new URL(location.href).searchParams.get('watch') || ''; } catch (e) { return ''; } };
+function watchPill() {
+  // دکمهٔ چت (که تماشاگر لازمش ندارد) همان جای خودش برچسب «در حال تماشا» می شود
+  document.body.classList.add('watching');
+  const b = document.getElementById('chatBtn');
+  if (!b || b.dataset.watch) return;
+  b.dataset.watch = '1'; b.hidden = false; b.disabled = true; b.onclick = null; b.setAttribute('aria-label', 'در حال تماشا');
+  b.innerHTML = `${icon('eye')}<span class="lb">در حال تماشا</span><span class="badge" id="chatBadge" hidden></span>`;
+}
+function watchOver(game, title, line) {
+  watchPill();
+  sheet(`<div class="dlg" role="alertdialog" aria-labelledby="wT" aria-describedby="wD"><span class="dlg-ic">${icon('eye')}</span>
+      <h2 id="wT">${title}</h2><p id="wD">${line}</p>
+      <div class="dlg-acts"><a class="btn" href="${game}-lobby.html">خودت بازی کن</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+}
 const RATE = 100; // هر امتیاز چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
@@ -784,6 +801,6 @@ window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, gu
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge };
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, watchId, watchPill, watchOver };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();

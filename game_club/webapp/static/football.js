@@ -106,12 +106,16 @@ function ballSvg() {
 }
 
 let pred = null, halos = [], rot = [];
-let mid = store.get('fmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
+// تماشاگر (از کارت میز گروه): ?watch=شناسه؛ زمین از دید بازیکن اول، بدون دست زدن به چیزی
+const watchMid = GC.watchId();
+let WATCH = false;
+let mid = watchMid || store.get('fmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
 let s = .5, cur = [], els = [], teams = {}, deadlineAt = 0, readyAt = 0, turnMs = 15000, warned = false, kickedAt = 0, aim = null;
 const opp = () => (me === '0' ? '1' : '0');
 const flip = () => me === '1';
 const P = () => (snap && snap.game ? snap.game.players : {});
-const nameOf = c => c === me ? 'تو' : (P()[c] ? P()[c].name : 'حریف');
+const isMe = c => c === me && !WATCH;
+const nameOf = c => isMe(c) ? 'تو' : (P()[c] ? P()[c].name : 'حریف');
 const mine = i => (me === '0' ? i < 6 : i >= 6 && i < 12);
 const toView = ([x, y]) => flip() ? [W - x, H - y] : [x, y];
 
@@ -209,18 +213,18 @@ function renderHead(g) {
   const tm = TEAM[(teams[me] || pm).team], to = TEAM[(teams[opp()] || po).team];
   const turn = g.phase === 'play' && !g.over;
   $('head').innerHTML = `
-    <div class="fb-pl me" data-seat="${me}">${face(pm, 'var(--me)', turn && g.turn === me ? 'timer' : '')}<span class="nm"><b>${pm.name || 'تو'}</b><span>${tm ? tm.fa : 'تیم تو'}</span></span></div>
+    <div class="fb-pl me" data-seat="${me}">${face(pm, 'var(--me)', turn && g.turn === me ? 'timer' : '')}<span class="nm"><b>${pm.name || 'تو'}</b><span>${tm ? tm.fa : WATCH ? '' : 'تیم تو'}</span></span></div>
     <div class="fb-sc"><b id="score">${FD(g.score[+me])} - ${FD(g.score[+opp()])}</b><span>تا ${FD(g.target)} گل</span></div>
     <div class="fb-pl op${po.out ? ' away' : ''}" data-seat="${opp()}">${face(po, '#FF7A85', turn && g.turn === opp() ? 'timer' : '')}<span class="dot"></span><span class="nm"><b>${po.name || 'حریف'}</b><span>${to ? to.fa : 'حریف'}</span></span></div>`;
   for (const c of Object.keys(bubbles)) showBubble(c);
 }
 function renderStatus(g) {
   const st = $('status');
-  st.classList.toggle('mine', g.phase === 'play' && g.turn === me);
+  st.classList.toggle('mine', g.phase === 'play' && isMe(g.turn));
   let html;
   if (g.over) html = 'پایان بازی';
   else if (g.phase === 'setup') html = 'انتخاب تیم و چیدمان…';
-  else if (g.turn === me) html = `نوبت شماست${g.deadline_ms ? '<em id="clock"></em>' : ''}`;
+  else if (isMe(g.turn)) html = `نوبت شماست${g.deadline_ms ? '<em id="clock"></em>' : ''}`;
   else { const q = g.players[g.turn] || {}; html = `نوبت ${q.name || 'حریف'}<em>${q.bot || q.out ? 'فکر می‌کند…' : ''}</em>`; }
   // هر پرسش سرور همین متن را می آورد؛ فقط وقتی عوض شده بنویس (وگرنه هر بار چیدمان و نقاشی دوباره)
   if (html !== st.dataset.k || !st.firstChild) { st.dataset.k = html; st.innerHTML = html; }
@@ -229,7 +233,7 @@ function renderStatus(g) {
   turnMs = g.turn_ms || 15000;
 }
 function syncTurn() {
-  const g = snap && snap.game, on = !!(g && g.phase === 'play' && !g.over && g.turn === me);
+  const g = snap && snap.game, on = !!(g && g.phase === 'play' && !g.over && isMe(g.turn));
   $('pitch').classList.toggle('myturn', on);
   const hint = $('hint'), n = store.get('fbHints', 0);
   hint.hidden = !(on && n < 6);
@@ -248,13 +252,13 @@ function tickTimer() {
   const g = snap.game, left = deadlineAt ? Math.max(0, deadlineAt - Date.now()) : 0, frac = deadlineAt ? Math.min(1, left / turnMs) : 1;
   document.querySelectorAll('.fb-pl .avatar').forEach(a => a.style.setProperty('--t', a.classList.contains('timer') ? frac : 1));
   const ck = $('clock'); if (ck) ck.textContent = FD(Math.ceil(left / 1000)) + ' ثانیه';
-  if (g.turn === me && g.phase === 'play' && deadlineAt && frac < .3 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
+  if (isMe(g.turn) && g.phase === 'play' && deadlineAt && frac < .3 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
   if (setupEl) tickSetup();
 }
 setInterval(tickTimer, 200);
 
 /* ---------- نشانه گیری و شوت ---------- */
-const canShoot = () => snap && snap.status === 'playing' && snap.game.phase === 'play' && snap.game.turn === me && !busy && !acting && Date.now() >= readyAt - 250;
+const canShoot = () => !WATCH && snap && snap.status === 'playing' && snap.game.phase === 'play' && snap.game.turn === me && !busy && !acting && Date.now() >= readyAt - 250;
 const maxDrag = () => Math.max(84, DISC_R * s * 4.6);
 function local(ev) { const r = $('pitch').getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; }
 let aimRaf = 0, aimDX = 0, aimDY = 0;
@@ -351,9 +355,9 @@ function magnet(to) {
 }
 async function showPass(e) {
   const el = els[e.d], d = cur[e.d], target = e.ball || cur[BALL];
-  sfx.fb.pass(); haptic(e.c === me ? 'success' : 'light');
+  sfx.fb.pass(); haptic(isMe(e.c) ? 'success' : 'light');
   const st = $('status');
-  if (st) { st.classList.toggle('mine', e.c === me); st.dataset.k = ''; st.innerHTML = e.c === me ? `پاس! توپ دست مهره‌ات است<em>${e.left ? FD(e.left) + ' پاس دیگر' : 'آخرین'}</em>` : `${nameOf(e.c)} پاس داد؛ دوباره شوت می‌زند`; }
+  if (st) { st.classList.toggle('mine', isMe(e.c)); st.dataset.k = ''; st.innerHTML = isMe(e.c) ? `پاس! توپ دست مهره‌ات است<em>${e.left ? FD(e.left) + ' پاس دیگر' : 'آخرین'}</em>` : `${nameOf(e.c)} پاس داد؛ دوباره شوت می‌زند`; }
   if (el && target && d) {
     const [bx, by] = toView(target), [dx, dy] = toView(d);
     const to = Math.atan2(bx - dx, -(by - dy)) * 180 / Math.PI;   // نشان مهره رو به توپ
@@ -413,8 +417,8 @@ async function showVS(e) {
   const t = e.teams || {}, pm = P()[me] || {}, po = P()[opp()] || {};
   const side = (c, p, cls, lab) => `<div class="side ${cls}"><small>${lab}</small>${discHtml(t[c] && t[c].team, t[c] && t[c].kit, 104)}<b>${TEAM[t[c] && t[c].team] ? TEAM[t[c].team].fa : ''}</b><span>${p.name || ''}</span></div>`;
   const el = document.createElement('div'); el.className = 'fb-layer fb-vs'; el.setAttribute('role', 'status');
-  el.innerHTML = `<div class="band">${side(me, pm, '', 'تیم تو')}<span class="vs">مقابل</span>${side(opp(), po, 'op', 'حریف')}
-    <span class="info">تا ${FD(snap.game.target)} گل · ${e.kick === me ? 'شروع با توست؛ آماده شو!' : 'شروع با ' + (po.name || 'حریف')}</span></div>`;
+  el.innerHTML = `<div class="band">${side(me, pm, '', WATCH ? 'میزبان' : 'تیم تو')}<span class="vs">مقابل</span>${side(opp(), po, 'op', WATCH ? 'مهمان' : 'حریف')}
+    <span class="info">تا ${FD(snap.game.target)} گل · ${isMe(e.kick) ? 'شروع با توست؛ آماده شو!' : 'شروع با ' + (po.name || 'حریف')}</span></div>`;
   document.body.appendChild(el); sfx.enter();
   await sleep(2300); sfx.fb.whistle();
   await sleep(450); el.remove();
@@ -425,9 +429,9 @@ async function showGoal(e) {
   document.querySelectorAll('.fb-net').forEach(n => { n.classList.remove('shake'); void n.offsetWidth; });
   const goalNet = document.querySelector(scoredMe ? '.fb-goal-top' : '.fb-goal-bot'); if (goalNet) goalNet.classList.add('shake');
   document.querySelectorAll('.fb-crowd').forEach(c => { c.classList.remove('cheer'); void c.offsetWidth; c.classList.add('cheer'); });
-  sfx.fb.goal(); sfx.fb.roar(); haptic(scoredMe ? 'success' : 'warning');
+  sfx.fb.goal(); sfx.fb.roar(); haptic(scoredMe && !WATCH ? 'success' : 'warning');
   await sleep(450);
-  const t = teams[e.c] || {}, title = scoredMe ? (e.own ? 'گل به خودی حریف!' : 'تو گل زدی!') : (e.own ? 'گل به خودی!' : (by.name || 'حریف') + ' گل زد');
+  const t = teams[e.c] || {}, title = WATCH ? (e.own ? 'گل به خودی!' : (by.name || nameOf(e.c)) + ' گل زد') : scoredMe ? (e.own ? 'گل به خودی حریف!' : 'تو گل زدی!') : (e.own ? 'گل به خودی!' : (by.name || 'حریف') + ' گل زد');
   const el = document.createElement('div'); el.className = 'fb-layer fb-goal'; el.setAttribute('role', 'status');
   const conf = scoredMe ? Array.from({ length: 26 }, (_, i) => `<span class="fb-cf" style="left:${(i * 37) % 100}%;background:${['#F5C451', '#3D7BFF', '#FF7A85', '#3DD08E', '#fff', '#B78CFF'][i % 6]};animation-duration:${1.6 + (i % 5) * .3}s;animation-delay:${(i % 7) * .08}s"></span>`).join('') : '';
   el.innerHTML = `<span class="rays"></span>${conf}<b class="word${scoredMe ? '' : ' sad'}">گُل!</b>
@@ -509,14 +513,14 @@ async function play(e) {
       if (e.hold && cur[BALL]) { const q = cur.map(p => p.slice()); q[BALL] = e.hold; await glide(q, 200); }
       await playFrames(e);
     } else setAll(e.pos);
-    if (e.auto && e.c === me) toast('وقتت تمام شد؛ یک شوت خودکار زده شد');
+    if (e.auto && isMe(e.c)) toast('وقتت تمام شد؛ یک شوت خودکار زده شد');
     return;
   }
   if (e.t === 'pass') { await showPass(e); return; }
   if (e.t === 'goal') { await showGoal(e); return; }
   if (e.t === 'reset') { sfx.fb.whistle(); rot = []; els.forEach((el, i) => { if (i < 12) { const n = el.querySelector('.in svg'); if (n) n.style.transform = ''; } }); await glide(e.pos); return; }
-  if (e.t === 'timeout') { if (e.c === me) toast(snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی؛ بازی را باختی' : 'یک نوبت دیگر غیبت = باخت') : 'وقتت تمام شد؛ نوبت به حریف رسید'); else toast(`${nameOf(e.c)} شوت نزد؛ نوبت شماست`); return; }
-  if (e.t === 'leave' && e.c !== me) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}`); return; }
+  if (e.t === 'timeout') { if (WATCH) { toast(`${nameOf(e.c)} شوت نزد`); return; } if (e.c === me) toast(snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی؛ بازی را باختی' : 'یک نوبت دیگر غیبت = باخت') : 'وقتت تمام شد؛ نوبت به حریف رسید'); else toast(`${nameOf(e.c)} شوت نزد؛ نوبت شماست`); return; }
+  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}`); return; }
 }
 
 /* ---------- گفتگو ---------- */
@@ -593,7 +597,7 @@ async function apply(next, anim = true) {
     const g = next.game, evs = (g.events || []).filter(e => e.seq > since).sort((a, b) => a.seq - b.seq);
     for (const e of evs) { if (anim) await play(e); since = e.seq; }
     since = Math.max(since, g.seq);
-    if (g.phase === 'setup') openSetup(g); else closeSetup();
+    if (g.phase === 'setup' && !WATCH) openSetup(g); else closeSetup();
     const tt = {}; for (const c of ['0', '1']) if (g.players[c] && g.players[c].team && g.phase !== 'setup') tt[c] = { team: g.players[c].team, kit: g.players[c].kit };
     if (JSON.stringify(tt) !== JSON.stringify(teams)) setTeams(tt);
     setAll(g.pos);
@@ -632,6 +636,11 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { po
 /* ---------- پایان، خروج ---------- */
 const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
 function over(v) {
+  if (WATCH) {
+    sfx.fb.crowd(false); sfx.win();
+    const g = v.game, w = g.winner, o = w === '0' ? '1' : '0';
+    return GC.watchOver('football', 'بازی تمام شد', w == null ? 'بازی بدون برنده بسته شد.' : `${nameOf(w)} با ${FD(g.score[+w])} به ${FD(g.score[+o])} برد.`);
+  }
   endChat(); closeSetup(); sfx.fb.crowd(false);
   const g = v.game, r = v.result || {}, won = !!r.won;
   GC.guardClose(false); store.set('fmid', null);
@@ -652,19 +661,21 @@ function over(v) {
 }
 function cancelled() {
   if (overShown) return;
+  if (WATCH) { overShown = true; GC.watchOver('football', 'این بازی بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
   overShown = true; endChat(); closeSetup(); GC.guardClose(false); store.set('fmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
       <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازی را بست و ورودی همه به کیف امتیازشان برگشت.</p>
       <div class="dlg-acts"><a class="btn" href="football-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
+  if (watchMid) { GC.watchOver('football', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
   store.set('fmid', null); closeSetup();
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
       <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز وارد بازی‌ای نشده‌ای.</p>
       <div class="dlg-acts"><a class="btn" href="football-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
 }
 function askExit() {
-  if (!snap || snap.status === 'over') { location.href = 'index.html'; return; }
+  if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake';
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
@@ -698,9 +709,11 @@ async function start() {
   let first;
   try { first = await GC.football.match(mid, 0, 0); }
   catch (e) { return e.code === 'not_found' ? noMatch() : (toast(errText(e)), setTimeout(start, 2500)); }
-  if (first.status === 'lobby') { location.href = 'football-lobby.html'; return; }
+  WATCH = !!first.watch;
+  if (first.status === 'lobby') { if (watchMid) return noMatch(); location.href = 'football-lobby.html'; return; }
   if (first.status === 'cancelled') return cancelled();
-  mid = first.id; store.set('fmid', mid); me = first.me;
+  mid = first.id; me = first.me;
+  if (WATCH) GC.watchPill(); else store.set('fmid', mid);
   if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   const g = first.game;

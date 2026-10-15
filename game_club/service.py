@@ -663,7 +663,10 @@ async def chat_view(db: GCDatabase, tg: int, match_id: str, since_id: int) -> li
 
 
 async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, chat_since: int | None = None) -> dict:
-    rows, color = await _membership(db, tg, match_id)
+    rows = await db.match_players(match_id)
+    color = _color_of(rows, tg)
+    if color is None:   # تماشاگر: فقط میزهای گروه، فقط وقتی بازی شروع شده؛ بدون برگ کسی و بدون چت
+        return await _watch_view(db, match_id, since)
     await db.touch(match_id, tg)
     now = time.time()
     m, _ = await mutate(db, match_id, _ticker(now))
@@ -686,6 +689,24 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, cha
         won = color in _winners(st)
         out["result"] = {"won": won, "prize": prize_shares(st, rows).get(tg, 0),
                          "lost": next((r["paid"] for r in rows if r["tg_id"] == tg), 0) if not won else 0}
+    return out
+
+
+async def _watch_view(db: GCDatabase, match_id: str, since: int) -> dict:
+    if not match_id or not await db.group_table(match_id):
+        raise GCError("not_found")
+    now = time.time()
+    m = await db.get_match(match_id)
+    if not m or m["status"] == "lobby":
+        raise GCError("not_found")
+    if m["status"] == "playing":
+        m, _ = await mutate(db, match_id, _ticker(now))
+    st, cfg = m["state"], m["cfg"]
+    out = {"id": m["id"], "status": m["status"], "cfg": cfg, "v": m["version"], "watch": True,
+           "me": (st.get("order") or [None])[0]}   # صفحه از دید بازیکن اول کشیده می شود
+    if m["status"] != "cancelled":
+        out["game"] = _eng(cfg).view(st, None, since, now)
+        out["pot"] = st.get("pot", 0)
     return out
 
 

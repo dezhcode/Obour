@@ -39,12 +39,15 @@ function winnerOf(trick, tr) {
   return bi;
 }
 
-let mid = store.get('hmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
+// تماشاگر (از کارت میز گروه): ?watch=شناسه؛ اگر خودش سر میز باشد همان بازیکن است
+const watchMid = GC.watchId();
+let WATCH = false;
+let mid = watchMid || store.get('hmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
 let deadlineAt = 0, turnMs = 20000, warned = false, pick = null, selfPlayed = null, pileShown = [], handShown = [];
 const rel = s => (+s - +me + 4) % 4;
 const teamUs = () => +me % 2;
 const P = () => (snap && snap.game ? snap.game.players : {});
-const nameOf = s => s === me ? 'تو' : (P()[s] ? P()[s].name : 'بازیکن');
+const nameOf = s => s === me && !WATCH ? 'تو' : (P()[s] ? P()[s].name : 'بازیکن');
 const seatEl = s => s === me ? document.querySelector('#meBar .avatar') : document.querySelector(`.hk-seat[data-rel="${rel(s)}"] .avatar`);
 // جای هر برگ در توده وسط میز: کمی به سمت کسی که انداخته (بالا یار، راست نفر بعد، چپ نفر قبل، پایین خودم)
 const SLOT = { 2: [71, 26, -5], 3: [36, 64, -13], 1: [106, 60, 13], 0: [72, 104, 4] };
@@ -59,9 +62,9 @@ const slotOf = (s, c) => {
 function renderScore(g) {
   const us = teamUs(), tr = g.trump;
   $('score').innerHTML = `
-    <div class="tm us"><span>شما</span><b>${FD(g.score[us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[us])} دست</em></div>
+    <div class="tm us"><span>${WATCH ? 'تیم ۱' : 'شما'}</span><b>${FD(g.score[us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[us])} دست</em></div>
     <div class="hk-trump"><span class="disc${tr == null ? ' unset' : ''}" id="trumpDisc">${tr == null ? '؟' : suitSvg(tr)}</span><small>${tr == null ? 'حکم' : 'حکم ' + SUIT_FA[tr]}</small></div>
-    <div class="tm"><span>حریف</span><b>${FD(g.score[1 - us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[1 - us])} دست</em></div>`;
+    <div class="tm"><span>${WATCH ? 'تیم ۲' : 'حریف'}</span><b>${FD(g.score[1 - us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[1 - us])} دست</em></div>`;
 }
 function renderSeats(g) {
   for (const s of g.order) {
@@ -71,7 +74,7 @@ function renderSeats(g) {
     el.dataset.seat = s;
     el.classList.toggle('out', !!p.out);
     el.innerHTML = `${hk ? `<span class="hk-crown" title="حاکم">${svgP(CROWN, '#3A2A00')}</span>` : ''}${face(p, turn ? 'var(--gold)' : partner ? '#9BE3B8' : '#FFFFFF', turn ? 'timer' : '')}
-      <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جایش' : FD(p.count) + ' برگ'].filter(Boolean).join('، ')}</em>${fanHtml(p.count, rel(s))}`;
+      <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner && !WATCH ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جایش' : FD(p.count) + ' برگ'].filter(Boolean).join('، ')}</em>${fanHtml(p.count, rel(s))}`;
   }
 }
 // برگ های حریف ها: یار روبه رو یک بادبزن افقی زیر اسمش، حریف های چپ و راست یک ستون برگ
@@ -109,14 +112,14 @@ function renderPile(g) {
 }
 function renderPick(g) {
   const pile = $('pile');
-  if (g.hakem !== me) {
+  if (g.hakem !== me || WATCH) {
     if (pile.querySelector(`.hk-choosing[data-h="${g.hakem}"]`)) return;
     const hp = g.players[g.hakem] || {};
     pile.innerHTML = `<div class="hk-choosing" data-h="${g.hakem}" role="status">
       <div class="hk-orbit"><span class="ring">${[0, 1, 2, 3].map(k => `<span class="o${k}">${suitSvg(k)}</span>`).join('')}</span>
         <span class="who">${face(hp, '#F5C451')}<i class="cr">${svgP(CROWN, '#3A2A00')}</i></span></div>
       <b>${nameOf(g.hakem)} دارد حکم می‌کند<span class="hk-dots"></span></b>
-      <small>${hp.team === teamUs() ? 'یارت' : 'حریف'} از روی پنج برگ اولش خال حکم را انتخاب می‌کند</small></div>`;
+      <small>${WATCH ? 'حاکم' : hp.team === teamUs() ? 'یارت' : 'حریف'} از روی پنج برگ اولش خال حکم را انتخاب می‌کند</small></div>`;
     return;
   }
   if (pile.querySelector('.hk-pick')) { pile.querySelectorAll('[data-suit]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.suit === pick))); syncPickBtn(); return; }
@@ -139,6 +142,11 @@ function order(cards, tr) {
 }
 function renderHand(g, anim = false) {
   const hand = $('hand');
+  if (WATCH) { // تماشاگر برگ کسی را نمی بیند؛ فقط پشت برگ های بازیکن پایین
+    const n = Math.min(13, (g.players[me] || {}).count || 0), step = n > 1 ? Math.min(6.5, 31 / (n - 1)) : 0;
+    hand.innerHTML = Array.from({ length: n }, (_, i) => backHtml('', `transform:rotate(${(((n - 1) / 2 - i) * step).toFixed(2)}deg);z-index:${n - i}`)).join('');
+    handShown = []; return;
+  }
   const cards = order(g.hand || [], g.trump), n = cards.length;
   const mine = g.turn === me && g.phase === 'play', ok = new Set(mine ? g.legal : []);
   // نوبت من: برگ هایی که می شود انداخت جدا از بقیه، با فاصلهٔ بیشتر (هر کدام کامل دیده و زده شود)
@@ -165,10 +173,10 @@ function renderHand(g, anim = false) {
   handShown = cards;
 }
 function renderMe(g) {
-  const p = g.players[me], mine = g.turn === me;
+  const p = g.players[me], mine = g.turn === me && !WATCH, hakemMe = g.hakem === me && !WATCH;
   let t, sub = '';
   if (g.over) t = 'بازی تمام شد';
-  else if (g.phase === 'trump') { t = g.hakem === me ? 'تو حاکمی' : 'حاکم: ' + nameOf(g.hakem); sub = g.hakem === me ? 'حکم را انتخاب کن' : 'منتظر انتخاب حکم'; }
+  else if (g.phase === 'trump') { t = hakemMe ? 'تو حاکمی' : 'حاکم: ' + nameOf(g.hakem); sub = hakemMe ? 'حکم را انتخاب کن' : 'منتظر انتخاب حکم'; }
   else if (g.phase === 'play' && mine) {
     t = 'نوبت شماست';
     if (g.led == null) sub = 'دور را تو شروع کن';
@@ -176,7 +184,7 @@ function renderMe(g) {
   } else if (g.phase === 'play') { const q = g.players[g.turn] || {}; t = 'نوبت ' + nameOf(g.turn); sub = q.bot || q.out ? 'ربات فکر می‌کند…' : 'منتظر بازی…'; }
   else if (g.phase === 'collect') { t = 'دور تمام شد'; }
   else { t = 'دست بعد…'; sub = 'ورق‌ها بُر می‌خورد'; }
-  const timer = (mine && g.phase === 'play') || (g.phase === 'trump' && g.hakem === me);
+  const timer = (mine && g.phase === 'play') || (g.phase === 'trump' && hakemMe);
   $('meBar').innerHTML = `<div class="hk-mb${timer ? ' mine' : ''}">${face(Object.assign({}, p, { name: p.name }), timer ? 'var(--gold)' : '#9BE3B8', timer ? 'timer' : '')}
     <span class="txt"><b>${t}${timer && g.deadline_ms ? '<span class="clock" id="clock"></span>' : ''}</b>${sub ? `<span>${sub}</span>` : ''}</span></div>`;
   setDeadline(g.deadline_ms); turnMs = g.turn_ms || 20000;
@@ -200,7 +208,7 @@ function tickTimer() {
   const frac = deadlineAt ? Math.min(1, left / turnMs) : 1;
   document.querySelectorAll('.hk-seat .avatar, #meBar .avatar').forEach(a => a.style.setProperty('--t', a.classList.contains('timer') ? frac : 1));
   const ck = $('clock'); if (ck) ck.textContent = FD(Math.ceil(left / 1000)) + ' ثانیه';
-  const mineNow = (g.turn === me && g.phase === 'play') || (g.phase === 'trump' && g.hakem === me);
+  const mineNow = !WATCH && ((g.turn === me && g.phase === 'play') || (g.phase === 'trump' && g.hakem === me));
   if (mineNow && deadlineAt && frac < .25 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
 }
 setInterval(tickTimer, 200);
@@ -569,7 +577,7 @@ function bubble(m) {
   const s = m.color, old = bubbles[s];
   if (old) { clearTimeout(old.timer); if (old.el) old.el.remove(); }
   const el = document.createElement('div'); el.className = 'hk-bub' + (s === me ? ' me' : '');
-  el.innerHTML = `${s === me ? '' : `<b>${esc(nameOf(s))}</b>`}<span>${esc(m.text)}</span>`;
+  el.innerHTML = `${s === me && !WATCH ? '' : `<b>${esc(nameOf(s))}</b>`}<span>${esc(m.text)}</span>`;
   bubbleLayer().appendChild(el);
   bubbles[s] = { el, until: Date.now() + bubbleMs(m.text) };
   placeBubble(s); armBubble(s);
@@ -663,7 +671,7 @@ async function act(fn, before) {
   } finally { acting = false; }
 }
 function playCard(el) {
-  if (!el || acting || busy || !snap) return;
+  if (!el || acting || busy || !snap || WATCH) return;
   const g = snap.game, c = +el.dataset.card;
   if (g.turn !== me || g.phase !== 'play' || !g.legal.includes(c)) { el.style.translate = ''; el.classList.remove('drag'); return; }
   selfPlayed = c;
@@ -721,7 +729,15 @@ function confetti(n = 34) {
     return `<i style="left:${x}%;--d:${d.toFixed(2)}s;--cft:${dur.toFixed(2)}s;--r:${r}deg;--w:${sway}px;width:${sz}px;height:${sz}px;color:${cols[i % cols.length]}">${svgP(SP[i % 4])}</i>`;
   }).join('')}</div>`;
 }
+function watchEnd(v) {
+  const g = v.game, P = g.players || {}, t = g.winner;
+  const names = k => g.order.filter(s => (P[s] || {}).team === k).map(s => P[s].name).join(' و ');
+  sfx.win();
+  GC.watchOver('hokm', 'بازی تمام شد', t == null ? 'بازی پیش از رسیدن به امتیاز آخر بسته شد.'
+    : `${names(+t % 2)} با ${FD(g.score[+t % 2])} به ${FD(g.score[1 - +t % 2])} بردند.`);
+}
 function over(v) {
+  if (WATCH) return watchEnd(v);
   endChat();
   const g = v.game, r = v.result || {}, won = !!r.won, us = teamUs();
   GC.guardClose(false); store.set('hmid', null);
@@ -775,12 +791,14 @@ function over(v) {
 }
 function cancelled() {
   if (overShown) return;
+  if (WATCH) { overShown = true; GC.watchOver('hokm', 'این میز بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
   overShown = true; endChat(); GC.guardClose(false); store.set('hmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
       <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میز را بست و ورودی همه به کیف امتیازشان برگشت.</p>
       <div class="dlg-acts"><a class="btn" href="hokm-lobby.html">میز تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
+  if (watchMid) { GC.watchOver('hokm', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
   store.set('hmid', null);
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
       <h2 id="dT">میزی پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز سر میزی ننشسته‌ای.</p>
@@ -791,7 +809,7 @@ let exitEl = null;
 function closeExit() { if (!exitEl) return; const el = exitEl; exitEl = null; el.classList.add('out'); setTimeout(() => el.remove(), 220); }
 function askExit() {
   if (exitEl) { closeExit(); return; }
-  if (!snap || snap.status === 'over') { location.href = 'index.html'; return; }
+  if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake', g = snap.game, P = g.players || {}, pa = P[String((+me + 2) % 4)] || {};
   haptic('light');
   exitEl = document.createElement('div'); exitEl.className = 'hk-exit';
@@ -855,9 +873,11 @@ async function start() {
   let first;
   try { first = await GC.hokm.match(mid, 0, 0); }
   catch (e) { return e.code === 'not_found' ? noMatch() : (toast(errText(e)), setTimeout(start, 2500)); }
-  if (first.status === 'lobby') { location.href = 'hokm-lobby.html'; return; }
+  WATCH = !!first.watch;
+  if (first.status === 'lobby') { if (watchMid) return noMatch(); location.href = 'hokm-lobby.html'; return; }
   if (first.status === 'cancelled') return cancelled();
-  mid = first.id; store.set('hmid', mid); me = first.me;
+  mid = first.id; me = first.me;
+  if (WATCH) GC.watchPill(); else store.set('hmid', mid);
   if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   const g = first.game;
