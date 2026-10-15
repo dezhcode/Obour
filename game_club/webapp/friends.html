@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<title>Game Club · دوستان</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<style>
+/* دوستان: دو تب «دوستان | درخواست‌ها»؛ آنلاین ها بالا. لمس هر ردیف برگهٔ همان دوست را باز می کند */
+.fl-add{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 16px 0 14px;border-radius:22px;background:var(--gold);color:var(--gold-ink);font-size:14px;font-weight:900}
+.fl-add svg{width:20px;height:20px}
+.fl-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border-radius:24px;background:var(--surface-sunk);color:var(--ink-muted)}
+.fl-search svg{width:20px;height:20px;flex:none}
+.fl-search input{flex:1;min-width:0;border:0;outline:0;background:none;color:var(--ink);font-size:14.5px}
+.fl-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border-radius:22px;background:var(--surface-sunk)}
+.fl-tabs button{height:42px;border-radius:18px;color:var(--ink-muted);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
+.fl-tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:900;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.fl-n{min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:#FF6B7A;color:#2A0B0F;font-size:11.5px;line-height:20px;font-weight:900}
+.fl-h{margin:2px 4px -4px;font-size:13px;line-height:20px;font-weight:800;color:var(--ink-muted)}
+.fl-list{list-style:none;margin:0;padding:0;border-radius:20px;background:var(--surface);overflow:hidden}
+.fl-row{display:flex;align-items:center;gap:10px;min-height:68px;padding:0 10px 0 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+.fl-row:last-child{border-bottom:0}
+.fl-who{flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:start;min-height:56px}
+.fl-who .t{min-width:0;display:grid}
+.fl-who b{font-size:15px;line-height:22px;font-weight:800;justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-who small{font-size:12.5px;line-height:18px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl-who small.on{color:var(--success)}.fl-who small.play{color:var(--acc-deep)}
+.fl-ib{position:relative;width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.07);color:var(--ink)}
+.fl-ib svg{width:21px;height:21px}
+.fl-ib.gold{background:rgba(245,196,81,.15);color:var(--gold)}
+.fl-ib .u{position:absolute;top:2px;left:0;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#FF6B7A;color:#2A0B0F;font-size:11px;line-height:18px;font-weight:900;box-shadow:0 0 0 2px var(--surface)}
+.fl-acc{height:44px;padding:0 16px;flex:none;border-radius:22px;background:var(--gold);color:var(--gold-ink);font-size:14px;font-weight:900}
+.fl-lite{height:40px;padding:0 14px;flex:none;border-radius:20px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);color:var(--ink);font-size:13px;font-weight:800}
+.fl-empty{display:grid;justify-items:center;gap:8px;padding:32px 16px;border-radius:22px;background:var(--surface);text-align:center}
+.fl-empty .ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:rgba(245,196,81,.15);color:var(--gold)}
+.fl-empty .ic svg{width:30px;height:30px}
+.fl-empty b{font-size:16px;font-weight:900}
+.fl-empty small{font-size:13px;line-height:21px;color:var(--ink-muted)}
+.fl-empty .btn{margin-top:6px}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-cap"><span>دوستان</span></div>
+  <div class="appbar-in">
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>دوستان</h1></div>
+    <button class="fl-add" id="flAdd"><i data-ic="userAdd"></i>افزودن</button>
+  </div>
+</header>
+<main class="page">
+  <span class="tag tag-sample" id="flSample" hidden style="justify-self:start">داده‌ها نمونه‌اند</span>
+  <label class="fl-search"><i data-ic="search"></i><span class="sr">جستجو در دوستان</span><input id="flQ" placeholder="جستجو در دوستان" autocomplete="off" autocapitalize="off"></label>
+  <div class="fl-tabs" role="tablist" id="flTabs"></div>
+  <div class="stack" id="flBody" style="gap:12px"><div class="gp-skel"></div><div class="gp-skel"></div><div class="gp-skel"></div></div>
+</main>
+<script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/social.js"></script>
+<script>
+(() => {
+  const { FD, icon, toast, errText, mount, sfx, haptic } = GC;
+  const SO = GCSocial, esc = SO.esc;
+  const $ = id => document.getElementById(id);
+  GC.back('index.html');
+  let tab = 'friends', data = null, q = '', me = null;
+
+  const row = f => { const st = SO.status(f); return `<li class="fl-row">
+      <button class="fl-who" data-who="${esc(f.uid)}">${SO.av(f)}<span class="t"><b class="uname">${esc(f.name)}</b><small class="${st.cls}">${st.text}</small></span></button>
+      <a class="fl-ib" href="chat.html?u=${encodeURIComponent(f.uid)}" aria-label="پیام به ${esc(f.name)}">${icon('chat')}${f.unread ? `<span class="u">${FD(Math.min(f.unread, 9))}</span>` : ''}</a>
+      <button class="fl-ib gold" data-inv="${esc(f.uid)}" aria-label="دعوت ${esc(f.name)} به بازی">${icon('pad')}</button></li>`; };
+  const reqRow = (f, kind) => `<li class="fl-row"><button class="fl-who" data-find="${esc(f.name)}">${GC.face(f)}<span class="t"><b class="uname">${esc(f.name)}</b><small>${kind === 'in' ? 'می‌خواهد دوستت شود' : kind === 'out' ? 'منتظر جواب' : 'بلاک شده'}</small></span></button>
+      ${kind === 'in' ? `<button class="fl-ib" data-drop="${esc(f.uid)}" aria-label="رد درخواست ${esc(f.name)}">${icon('close')}</button><button class="fl-acc" data-acc="${esc(f.uid)}">قبول</button>`
+        : kind === 'out' ? `<button class="fl-lite" data-drop="${esc(f.uid)}">لغو</button>` : `<button class="fl-lite" data-unblock="${esc(f.uid)}">رفع بلاک</button>`}</li>`;
+  const empty = (ic, t, s, btn) => `<div class="fl-empty"><span class="ic">${icon(ic)}</span><b>${t}</b><small>${s}</small>${btn || ''}</div>`;
+
+  function render() {
+    const nIn = data ? data.incoming.length : 0;
+    $('flTabs').innerHTML = `<button role="tab" data-t="friends" aria-selected="${tab === 'friends'}">دوستان${data ? ' ' + FD(data.friends.length) : ''}</button>
+      <button role="tab" data-t="req" aria-selected="${tab === 'req'}">درخواست‌ها${nIn ? `<span class="fl-n">${FD(nIn)}</span>` : ''}</button>`;
+    $('flQ').closest('.fl-search').hidden = tab !== 'friends';
+    if (!data) return;
+    let html = '';
+    if (tab === 'friends') {
+      const list = data.friends.filter(f => !q || f.name.includes(q));
+      const on = list.filter(f => f.online), off = list.filter(f => !f.online);
+      if (!data.friends.length) html = empty('users', 'هنوز دوستی نداری', 'با یوزرنیم دوستانت را پیدا کن و با هم بازی کنید.', `<button class="btn" data-add>${icon('userAdd')}افزودن دوست</button>`);
+      else if (!list.length) html = empty('search', 'پیدا نشد', 'در دوستانت کسی با این اسم نیست.');
+      else {
+        if (on.length) html += `<h2 class="fl-h">آنلاین · ${FD(on.length)}</h2><ul class="fl-list">${on.map(row).join('')}</ul>`;
+        if (off.length) html += `<h2 class="fl-h">آفلاین · ${FD(off.length)}</h2><ul class="fl-list">${off.map(row).join('')}</ul>`;
+      }
+    } else {
+      if (data.incoming.length) html += `<h2 class="fl-h">درخواست‌های تازه · ${FD(data.incoming.length)}</h2><ul class="fl-list">${data.incoming.map(f => reqRow(f, 'in')).join('')}</ul>`;
+      if (data.outgoing.length) html += `<h2 class="fl-h">فرستاده‌ای</h2><ul class="fl-list">${data.outgoing.map(f => reqRow(f, 'out')).join('')}</ul>`;
+      if (data.blocked.length) html += `<h2 class="fl-h">بلاک شده‌ها</h2><ul class="fl-list">${data.blocked.map(f => reqRow(f, 'blk')).join('')}</ul>`;
+      if (!html) html = empty('userAdd', 'درخواستی نداری', 'وقتی کسی برایت درخواست دوستی بفرستد اینجا می‌بینی.');
+    }
+    $('flBody').innerHTML = html;
+    mount($('flBody'));
+  }
+  async function load() {
+    try {
+      const [m, d] = await Promise.all([GC.refreshMe(), GC.data.friends()]);
+      me = m; data = d; $('flSample').hidden = !d.sample;
+      GC.setNavBadge({ requests: d.incoming.length, unread: d.friends.reduce((a, f) => a + (f.unread || 0), 0) });
+    } catch (e) { toast(errText(e)); data = data || { friends: [], incoming: [], outgoing: [], blocked: [] }; }
+    render();
+  }
+  const find = uid => data && [...data.friends, ...data.incoming, ...data.outgoing, ...data.blocked].find(f => f.uid === uid);
+  $('flTabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b && b.dataset.t !== tab) { tab = b.dataset.t; sfx.tap(); render(); } };
+  $('flQ').oninput = () => { q = GC.normName($('flQ').value); render(); };
+  const add = () => SO.addSheet(me && me.player.name, load);
+  $('flAdd').onclick = add;
+  $('flBody').onclick = async e => {
+    if (e.target.closest('[data-add]')) { add(); return; }
+    const w = e.target.closest('[data-who]'); if (w) { const f = find(w.dataset.who); if (f) SO.friendSheet(f, load); return; }
+    const inv = e.target.closest('[data-inv]'); if (inv) { const f = find(inv.dataset.inv); if (f) SO.invite(f, load); return; }
+    const fnd = e.target.closest('[data-find]'); if (fnd) { SO.addSheet(me && me.player.name, load); return; }
+    const b = e.target.closest('[data-acc],[data-drop],[data-unblock]'); if (!b) return;
+    b.disabled = true;
+    try {
+      if (b.dataset.acc) { await GC.data.friendAccept(b.dataset.acc); sfx.turn(); haptic('success'); toast('حالا با هم دوستید'); }
+      else if (b.dataset.drop) await GC.data.friendDrop(b.dataset.drop);
+      else await GC.data.friendBlock(b.dataset.unblock, false);
+      await load();
+    } catch (err) { toast(errText(err)); b.disabled = false; }
+  };
+  render();
+  GC.page(load);
+  GC.nav('friends'); mount();
+})();
+</script>
+</body>
+</html>

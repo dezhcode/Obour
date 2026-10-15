@@ -177,6 +177,45 @@ CREATE TABLE IF NOT EXISTS broadcasts (
   created_at INTEGER NOT NULL,
   finished_at INTEGER
 );
+
+-- دوستی: هر جفت یک ردیف (a < b)؛ status = pending (درخواست requester) یا accepted
+CREATE TABLE IF NOT EXISTS friends (
+  a INTEGER NOT NULL,
+  b INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  requester INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (a, b)
+);
+CREATE INDEX IF NOT EXISTS friends_b ON friends(b);
+-- کسی که tg_id او را بلاک کرده (other)
+CREATE TABLE IF NOT EXISTS blocks (
+  tg_id INTEGER NOT NULL,
+  other INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (tg_id, other)
+);
+-- پیام خصوصی بین دو دوست (a < b)؛ kind = text یا invite (meta: بازی و کد میز)
+CREATE TABLE IF NOT EXISTS dms (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  a INTEGER NOT NULL,
+  b INTEGER NOT NULL,
+  sender INTEGER NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'text',
+  text TEXT NOT NULL,
+  meta TEXT NOT NULL DEFAULT '',
+  created_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS dms_pair ON dms(a, b, id);
+CREATE INDEX IF NOT EXISTS dms_sender ON dms(sender, created_at);
+-- آخرین پیامی که tg_id از other خوانده
+CREATE TABLE IF NOT EXISTS dm_read (
+  tg_id INTEGER NOT NULL,
+  other INTEGER NOT NULL,
+  last_id INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (tg_id, other)
+);
 """
 
 
@@ -388,6 +427,90 @@ class GCDatabase:
         except aiosqlite.IntegrityError:
             return "name_taken"
         return ""
+
+
+    # ---------- دوستان و پیام خصوصی ----------
+    @staticmethod
+    def pair(x: int, y: int) -> tuple[int, int]:
+        return (x, y) if x < y else (y, x)
+
+    async def friend_row(self, x: int, y: int) -> dict | None:
+        return await self.one("SELECT * FROM friends WHERE a = ? AND b = ?", self.pair(x, y))
+
+    async def set_friend(self, x: int, y: int, status: str, requester: int) -> None:
+        a, b = self.pair(x, y)
+        now = int(time.time())
+        await self.execute(
+            "INSERT INTO friends(a, b, status, requester, created_at, updated_at) VALUES(?,?,?,?,?,?) "
+            "ON CONFLICT(a, b) DO UPDATE SET status = excluded.status, requester = excluded.requester, updated_at = excluded.updated_at",
+            (a, b, status, requester, now, now))
+
+    async def del_friend(self, x: int, y: int) -> int:
+        return await self.execute("DELETE FROM friends WHERE a = ? AND b = ?", self.pair(x, y))
+
+    async def friend_rows(self, tg: int) -> list[dict]:
+        """همهٔ ردیف های دوستی من با اطلاعات طرف مقابل."""
+        return await self.all(
+            "SELECT f.status, f.requester, f.updated_at, p.* FROM friends f "
+            "JOIN players p ON p.tg_id = CASE WHEN f.a = ? THEN f.b ELSE f.a END "
+            "WHERE f.a = ? OR f.b = ? ORDER BY f.updated_at DESC", (tg, tg, tg))
+
+    async def count_friends(self, tg: int, status: str) -> int:
+        row = await self.one("SELECT COUNT(*) AS n FROM friends WHERE (a = ? OR b = ?) AND status = ?", (tg, tg, status))
+        return int(row["n"]) if row else 0
+
+    async def recent_requests(self, tg: int, since: int) -> int:
+        row = await self.one("SELECT COUNT(*) AS n FROM friends WHERE requester = ? AND status = 'pending' AND created_at >= ?",
+                             (tg, since))
+        return int(row["n"]) if row else 0
+
+    async def blocked(self, tg: int, other: int) -> bool:
+        return bool(await self.one("SELECT 1 FROM blocks WHERE tg_id = ? AND other = ?", (tg, other)))
+
+    async def set_block(self, tg: int, other: int, on: bool) -> None:
+        if on:
+            await self.execute("INSERT OR IGNORE INTO blocks(tg_id, other, created_at) VALUES(?,?,?)", (tg, other, int(time.time())))
+        else:
+            await self.execute("DELETE FROM blocks WHERE tg_id = ? AND other = ?", (tg, other))
+
+    async def blocked_list(self, tg: int) -> list[dict]:
+        return await self.all("SELECT p.* FROM blocks k JOIN players p ON p.tg_id = k.other WHERE k.tg_id = ? ORDER BY k.created_at DESC",
+                              (tg,))
+
+    async def add_dm(self, sender: int, other: int, text: str, kind: str = "text", meta: str = "") -> int:
+        a, b = self.pair(sender, other)
+        return await self.insert("INSERT INTO dms(a, b, sender, kind, text, meta, created_at) VALUES(?,?,?,?,?,?,?)",
+                                 (a, b, sender, kind, text, meta, time.time()))
+
+    async def dms(self, x: int, y: int, since_id: int = 0, limit: int = 60) -> list[dict]:
+        a, b = self.pair(x, y)
+        rows = await self.all("SELECT * FROM dms WHERE a = ? AND b = ? AND id > ? ORDER BY id DESC LIMIT ?",
+                              (a, b, since_id, limit))
+        return rows[::-1]
+
+    async def dm_sent_since(self, sender: int, since: float) -> int:
+        row = await self.one("SELECT COUNT(*) AS n FROM dms WHERE sender = ? AND created_at > ?", (sender, since))
+        return int(row["n"]) if row else 0
+
+    async def mark_read(self, tg: int, other: int, last_id: int) -> None:
+        await self.execute(
+            "INSERT INTO dm_read(tg_id, other, last_id) VALUES(?,?,?) "
+            "ON CONFLICT(tg_id, other) DO UPDATE SET last_id = MAX(last_id, excluded.last_id)", (tg, other, last_id))
+
+    async def unread_by(self, tg: int) -> dict[int, int]:
+        """پیام های نخوانده از هر نفر (فقط پیام های طرف مقابل)."""
+        rows = await self.all(
+            "SELECT d.sender AS who, COUNT(*) AS n FROM dms d LEFT JOIN dm_read r ON r.tg_id = ? AND r.other = d.sender "
+            "WHERE (d.a = ? OR d.b = ?) AND d.sender != ? AND d.id > COALESCE(r.last_id, 0) GROUP BY d.sender",
+            (tg, tg, tg, tg))
+        return {int(r["who"]): int(r["n"]) for r in rows}
+
+    async def last_dm(self, x: int, y: int) -> dict | None:
+        a, b = self.pair(x, y)
+        return await self.one("SELECT * FROM dms WHERE a = ? AND b = ? ORDER BY id DESC LIMIT 1", (a, b))
+
+    async def player_by_name(self, name: str) -> dict | None:
+        return await self.one("SELECT * FROM players WHERE name = ?", (name,))
 
     # ---------- گفتگو ----------
     async def add_chat(self, match_id: str, tg_id: int, color: str, text: str) -> int:

@@ -219,12 +219,29 @@ function demoTables() {
   return out;
 }
 
+/* ---------- دوستان نمونه ---------- */
+const PPL = {
+  d_sara: { name: 'sara_m', av: 5, online: true, bio: 'عاشق منچ و دست‌های آخر', games: 142, wins: 81 },
+  d_kian: { name: 'kian_r', av: 3, online: true, playing: 'hokm', games: 210, wins: 120 },
+  d_negar: { name: 'negar_x', av: 9, online: true, games: 64, wins: 30 },
+  d_reza: { name: 'reza_gm', av: 12, ago: 7200, games: 88, wins: 40 },
+  d_mahsa: { name: 'mahsa', av: 13, ago: 90000, games: 31, wins: 12 },
+  d_arash: { name: 'arash_dev', av: 10, online: true, games: 12, wins: 4 },
+  d_leila: { name: 'leila_m', av: 21, ago: 3000, games: 57, wins: 33 },
+  d_pouya: { name: 'pouya_k', av: 6, ago: 600, games: 9, wins: 2 },
+};
+function fr() {
+  if (!S.fr) { S.fr = { friends: ['d_sara', 'd_kian', 'd_negar', 'd_reza', 'd_mahsa'], incoming: ['d_arash', 'd_leila'], outgoing: [], blocked: [],
+    dms: { d_sara: [{ id: 1, me: false, kind: 'text', text: 'سلام! یه دست منچ بزنیم؟', at: Math.round(Date.now() / 1000) - 600 }] }, read: {} }; save(); }
+  return S.fr;
+}
 /* ---------- داده نمایشی بقیه صفحه ها ---------- */
 const STYLE = [['table:a', 'table', 'a', 'میز کلاسیک', 0], ['table:b', 'table', 'b', 'میز کافه شب', 500], ['table:c', 'table', 'c', 'میز Game Club', 500],
   ['cards:m', 'cards', 'm', 'ورق مدرن', 0], ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 300], ['cards:c', 'cards', 'c', 'ورق Game Club', 300], ['cards:d', 'cards', 'd', 'ورق رنگ تمام', 300]];
 const data = {
   async me() {
-    return { covers: [{ id: 'gc', name: 'Game Club' }], player: { bio: S.bio || '', cover: S.cover || 'gc', name: S.uname || 'lucky_falcon', name_next: S.unameAt ? S.unameAt + 30 * 86400 : 0, name_hint: !S.unameSeen && !S.unameAt,
+    const F = fr(), unread = Object.keys(F.dms).reduce((a, u) => a + F.dms[u].filter(m => !m.me && m.id > (F.read[u] || 0)).length, 0);
+    return { social: { requests: F.incoming.length, unread }, covers: [{ id: 'gc', name: 'Game Club' }], player: { bio: S.bio || '', cover: S.cover || 'gc', name: S.uname || 'lucky_falcon', name_next: S.unameAt ? S.unameAt + 30 * 86400 : 0, name_hint: !S.unameSeen && !S.unameAt,
         joined: Math.round(Date.now() / 1000) - 42 * 86400, av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: S.showSpend ? 1 : 0 },
       history: S.ledger.map(l => ({ kind: l.k, amount: l.a, note: l.t, created_at: Math.round(l.at / 1000) })),
       notify: Object.keys(S.notify).filter(k => S.notify[k]), obour: { linked: true, balance: 240000 }, active_match: await ludo.active(), tables: demoTables(),
@@ -277,6 +294,51 @@ const data = {
     const K = { week: 1, month: 3.8, all: 9.5 }[period] || 1;
     const rows = GC.LB[kind].map(([p, w, v]) => ({ name: GC.PEOPLE[p][0], av: GC.PEOPLE[p][1], wins: Math.round(w * K), value: Math.round(v * K / 50) * 50, me: false }));
     return { kind, period, rows, sample: true, mine: { value: kind === 'top' ? S.won : S.spent, wins: S.wins, games: S.games, visible: kind === 'top' || !!S.showSpend } };
+  },
+  // ---------- دوستان و پیام خصوصی (نمونه بیرون از تلگرام) ----------
+  async friends() {
+    const F = fr(), now = Date.now() / 1000, unread = u => (F.dms[u] || []).filter(m => !m.me && m.id > (F.read[u] || 0)).length;
+    const pub = u => { const p = PPL[u]; return { uid: u, name: p.name, av: p.av, pic: '', bio: p.bio || '' }; };
+    const friends = F.friends.map(u => ({ ...pub(u), online: !!PPL[u].online, playing: PPL[u].playing || null, seen: PPL[u].online ? now : now - (PPL[u].ago || 7200), unread: unread(u) }))
+      .sort((a, b) => (b.online - a.online) || (b.unread - a.unread) || a.name.localeCompare(b.name));
+    return { friends, incoming: F.incoming.map(u => ({ ...pub(u), at: now - 900 })), outgoing: F.outgoing.map(pub), blocked: F.blocked.map(pub), sample: true };
+  },
+  async friendFind(n) {
+    n = GC.normName(n); const F = fr();
+    if (n === (S.uname || 'lucky_falcon')) return { user: { uid: 'me', name: n, av: 7, pic: '', bio: S.bio || '', games: S.games, wins: S.wins }, relation: 'self' };
+    const u = Object.keys(PPL).find(k => PPL[k].name === n); if (!u) throw err('not_found');
+    const rel = F.friends.includes(u) ? 'friend' : F.outgoing.includes(u) ? 'outgoing' : F.incoming.includes(u) ? 'incoming' : F.blocked.includes(u) ? 'blocked' : 'none';
+    return { user: { uid: u, name: PPL[u].name, av: PPL[u].av, pic: '', bio: PPL[u].bio || '', games: PPL[u].games || 40, wins: PPL[u].wins || 21 }, relation: rel };
+  },
+  async friendUser(u) {
+    const F = fr(), p = PPL[u]; if (!p) throw err('not_found');
+    const rel = F.friends.includes(u) ? 'friend' : F.outgoing.includes(u) ? 'outgoing' : F.incoming.includes(u) ? 'incoming' : F.blocked.includes(u) ? 'blocked' : 'none';
+    return { user: { uid: u, name: p.name, av: p.av, pic: '', bio: p.bio || '', games: p.games || 40, wins: p.wins || 21, joined: Date.now() / 1000 - 90 * 86400, cover: 'gc', online: !!p.online, playing: p.playing || null, seen: Date.now() / 1000 - (p.ago || 0) }, relation: rel };
+  },
+  async friendReq(u) { const F = fr(); if (F.incoming.includes(u)) return data.friendAccept(u); if (!F.friends.includes(u) && !F.outgoing.includes(u)) F.outgoing.push(u); F.blocked = F.blocked.filter(x => x !== u); save(); return { relation: F.friends.includes(u) ? 'friend' : 'outgoing' }; },
+  async friendAccept(u) { const F = fr(); if (!F.incoming.includes(u)) throw err('no_request'); F.incoming = F.incoming.filter(x => x !== u); F.friends.push(u); save(); return { relation: 'friend' }; },
+  async friendDrop(u) { const F = fr(); ['friends', 'incoming', 'outgoing'].forEach(k => { F[k] = F[k].filter(x => x !== u); }); save(); return { relation: 'none' }; },
+  async friendBlock(u, on) { const F = fr(); await data.friendDrop(u); F.blocked = F.blocked.filter(x => x !== u); if (on) F.blocked.push(u); save(); return { relation: on ? 'blocked' : 'none' }; },
+  async dm(u, since = 0) {
+    const F = fr(), p = PPL[u]; if (!p) throw err('not_found');
+    const list = F.dms[u] || [], last = list.filter(m => !m.me).pop();
+    if (last) { F.read[u] = Math.max(F.read[u] || 0, last.id); save(); }
+    return { user: { uid: u, name: p.name, av: p.av, pic: '', bio: p.bio || '', online: !!p.online, playing: p.playing || null, seen: Date.now() / 1000 - (p.ago || 0) },
+      relation: F.friends.includes(u) ? 'friend' : 'none', messages: list.filter(m => m.id > since) };
+  },
+  async dmSend(u, text) {
+    const F = fr(); if (!F.friends.includes(u)) throw err('not_friends');
+    text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300); if (!text) throw err('empty');
+    const L = F.dms[u] = F.dms[u] || [], id = (L.length ? L[L.length - 1].id : 0) + 1;
+    L.push({ id, me: true, kind: 'text', text, at: Math.round(Date.now() / 1000) }); save();
+    if (PPL[u].online) setTimeout(() => { const M = fr().dms[u]; M.push({ id: M[M.length - 1].id + 1, me: false, kind: 'text', text: ['باشه، بزن بریم!', 'الان میام', 'عالی بود', 'یه دست دیگه؟'][Math.floor(Math.random() * 4)], at: Math.round(Date.now() / 1000) }); save(); }, 1800);
+    return { id };
+  },
+  async dmInvite(u, game) {
+    const F = fr(); if (!F.friends.includes(u)) throw err('not_friends');
+    const L = F.dms[u] = F.dms[u] || [], id = (L.length ? L[L.length - 1].id : 0) + 1, name = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال' }[game];
+    L.push({ id, me: true, kind: 'invite', text: 'دعوت به ' + name, meta: { game, code: 'DEMO42' }, at: Math.round(Date.now() / 1000) }); save();
+    return { match: 'demo', code: 'DEMO42', game, demo: true };
   },
   // رده بندی هر بازی (نمونه): برنده های این بازی با یوزرنیم
   async gameBoard(game, period) {
