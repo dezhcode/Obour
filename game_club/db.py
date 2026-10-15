@@ -577,7 +577,30 @@ class GCDatabase:
         return await self.all(
             "SELECT r.tg_id, p.name, p.av, p.photo, p.pic, SUM(r.won) AS wins, SUM(r.prize) AS value "
             "FROM results r JOIN players p ON p.tg_id = r.tg_id WHERE r.created_at >= ? "
-            "GROUP BY r.tg_id HAVING wins > 0 ORDER BY value DESC, wins DESC LIMIT ?", (since, limit))
+            "GROUP BY r.tg_id HAVING SUM(r.won) > 0 ORDER BY SUM(r.prize) DESC, SUM(r.won) DESC LIMIT ?", (since, limit))
+
+    async def game_board(self, game: str, since: int, limit: int = 30) -> list[dict]:
+        """رده بندی یک بازی: بیشترین برد، بعد بیشترین جایزه، بعد بازی کمتر."""
+        return await self.all(
+            "SELECT r.tg_id, p.name, p.av, p.photo, p.pic, SUM(r.won) AS wins, COUNT(*) AS games, SUM(r.prize) AS value "
+            "FROM results r JOIN matches m ON m.id = r.match_id JOIN players p ON p.tg_id = r.tg_id "
+            "WHERE m.game = ? AND r.created_at >= ? GROUP BY r.tg_id HAVING SUM(r.won) > 0 "
+            "ORDER BY SUM(r.won) DESC, SUM(r.prize) DESC, COUNT(*) ASC, r.tg_id LIMIT ?", (game, since, limit))
+
+    async def game_rank(self, tg_id: int, game: str, since: int) -> dict:
+        """کارنامهٔ من در یک بازی و جایگاهم (۰ یعنی هنوز بردی نداری)."""
+        me = await self.one(
+            "SELECT COALESCE(SUM(r.won),0) AS wins, COUNT(*) AS games, COALESCE(SUM(r.prize),0) AS value FROM results r "
+            "JOIN matches m ON m.id = r.match_id WHERE r.tg_id = ? AND m.game = ? AND r.created_at >= ?", (tg_id, game, since)) or {}
+        wins, value = int(me.get("wins") or 0), int(me.get("value") or 0)
+        rank = 0
+        if wins:
+            row = await self.one(
+                "SELECT COUNT(*) AS n FROM (SELECT r.tg_id, SUM(r.won) AS w, SUM(r.prize) AS v FROM results r "
+                "JOIN matches m ON m.id = r.match_id WHERE m.game = ? AND r.created_at >= ? GROUP BY r.tg_id) "
+                "WHERE w > ? OR (w = ? AND v > ?)", (game, since, wins, wins, value))
+            rank = int(row["n"] if row else 0) + 1
+        return {"wins": wins, "games": int(me.get("games") or 0), "value": value, "rank": rank}
 
     async def top_spenders(self, since: int, limit: int = 10) -> list[dict]:
         return await self.all(

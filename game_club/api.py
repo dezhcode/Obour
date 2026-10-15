@@ -153,6 +153,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         return await bridge.transfer(gdb, ob.db, tg, int(body.get("points") or 0), _idem(body))
 
     # ---------- رده بندی ----------
+    if name == "leaderboard" and method == "GET" and q.get("game"):
+        return await service.game_leaderboard(gdb, tg, str(q.get("game")), q.get("period") or "week")
     if name == "leaderboard" and method == "GET":
         kind = "spend" if q.get("kind") == "spend" else "top"
         return await service.leaderboard(gdb, tg, kind, q.get("period") or "week")
