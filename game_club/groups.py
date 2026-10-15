@@ -101,7 +101,8 @@ def _para(parts: list) -> InputRichBlockParagraph:
 
 
 def _bt(key: str | None, label: str, style: str | None = None, **kw) -> RichMessageButton:
-    return st.rich_button(key, label, style, **kw)
+    """دکمهٔ داخل کارت گروه: فقط متن، بدون ایموجی (key فقط برای خوانایی کد می ماند)."""
+    return st.rich_button(None, label, style, **kw)
 
 
 def _row(*btns: RichMessageButton) -> InputRichBlockButtons:
@@ -167,7 +168,7 @@ async def setup_card(db: GCDatabase, d: dict) -> InputRichMessage:
     blocks = [_para(head)]
     for key, label, opts in g["opts"]:
         blocks.append(_para([st.E(OPT_ICON.get(key, "gear")), " ", st.B(label)]))
-        blocks.append(_row(*[_bt("selected" if cfg[key] == v else None, lab, "primary" if cfg[key] == v else None,
+        blocks.append(_row(*[_bt(None, ("✓ " if cfg[key] == v else "") + lab, "primary" if cfg[key] == v else None,
                                  callback_data=f"gs:{key}={v}:{tok}") for v, lab in opts]))
     blocks.append(_row(_bt("play", "باز کردن میز", "success", callback_data=f"gs:open:{tok}"),
                        _bt("cancel", "لغو", "danger", callback_data=f"gs:cancel:{tok}")))
@@ -191,9 +192,9 @@ async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
         lines = [["سازنده: ", *(who(host["tg"], host["name"]) if host else ["—"])], "",
                  [st.E("users"), " ", st.B(f"سر میز ({fd(len(seats))} از {fd(need)})")]]
         lines += [[f"{fd(i + 1)}. ", *who(s["tg"], s["name"])] for i, s in enumerate(seats)]
-        lines += [[f"{fd(i + 1)}. ", st.E("empty"), " خالی؛ منتظر یه قهرمان"] for i in range(len(seats), need)]
-        foot = ("seat", "جای خالی", f"{fd(free)} صندلی مونده؛ «بنشین» رو بزن تا جا نموندی!") if free else ("party", "میز پر شد", "الان بازی شروع می‌شه؛ کمربندا رو ببندید 😄")
-        rows = [_row(_bt("seat", "بنشین", "success", callback_data=f"gt:join:{mid}"),
+        lines += [[f"{fd(i + 1)}. ", st.E("seat"), " خالی؛ منتظر یه قهرمان"] for i in range(len(seats), need)]
+        foot = ("seat", "جای خالی", f"{fd(free)} صندلی مونده؛ «بشین» رو بزن تا جا نموندی!") if free else ("party", "میز پر شد", "الان بازی شروع می‌شه؛ کمربندا رو ببندید 😄")
+        rows = [_row(_bt("seat", "بشین", "success", callback_data=f"gt:join:{mid}"),
                      _bt("leave", "بلند شو", "danger", callback_data=f"gt:leave:{mid}"))]
         if free:
             rows.append(_row(_bt("robot", "شروع؛ جای خالی با ربات", "primary", callback_data=f"gt:start:{mid}")))
@@ -342,7 +343,7 @@ async def create(db: GCDatabase, bot: Bot, chat, user, game: str) -> str | None:
         return "حسابت توی Game Club مسدوده 🚫"
     name = GAMES[game]["name"]
     if await db.open_group_table(chat.id, game):
-        return f"یه میز {name} همین الان تو این گروه بازه؛ برو همون‌جا «بنشین» رو بزن 😉"
+        return f"یه میز {name} همین الان تو این گروه بازه؛ برو همون‌جا «بشین» رو بزن 😉"
     if await db.setup_draft_in(chat.id, game, int(time.time()) - OPEN_TTL):
         return f"یه میز {name} داره چیده می‌شه؛ صبر کن سازنده‌ش بازش کنه."
     token = await db.new_draft(user.id, game, dict(GAMES[game]["def"]), chat.id, getattr(chat, "title", "") or "")
@@ -404,7 +405,7 @@ async def on_setup(cq: CallbackQuery, gdb: GCDatabase) -> None:
     if not d or d["status"] != "setup":
         return await _draft_err(cq, "این کارت دیگه از کار افتاده.")
     if cq.from_user.id != d["host"]:
-        return await _draft_err(cq, "فقط سازنده تنظیمش می‌کنه 😉 صبر کن میز باز شه، بعد «بنشین» رو بزن.")
+        return await _draft_err(cq, "فقط سازنده تنظیمش می‌کنه 😉 صبر کن میز باز شه، بعد «بشین» رو بزن.")
     # کارت اینلاین یا فرستاده از مینی اپ: شناسهٔ پیام از همین لمس معلوم می شود
     if cq.inline_message_id and not d["inline_message_id"]:
         await gdb.set_draft(token, inline_message_id=cq.inline_message_id)
@@ -430,7 +431,7 @@ async def on_setup(cq: CallbackQuery, gdb: GCDatabase) -> None:
 
 
 async def _act(cq: CallbackQuery, gdb: GCDatabase, act: str, match_id: str) -> None:
-    """بنشین، بلند شو و شروع روی میزی که باز شده (گروهی یا اینلاین)."""
+    """بشین، بلند شو و شروع روی میزی که باز شده (گروهی یا اینلاین)."""
     u = cq.from_user
     row = await gdb.group_table(match_id)
     m = await gdb.get_match(match_id) if row else None

@@ -1121,7 +1121,7 @@ def test_group_tables():
             users = [NS(id=i, first_name=f"u{i}", last_name=None, username=None) for i in (11, 12, 13, 14)]
             assert await groups.create(db, bot, chat, users[0], "hokm") is None
             cid, card, _ = bot.sent[-1]
-            assert cid == -1001 and "حالت بازی" in P(card) and "✅ 7 دست" in P(card)
+            assert cid == -1001 and "حالت بازی" in P(card) and "✓ 7 دست" in P(card)
             token = next(b.callback_data for b in B(card) if b.callback_data.startswith("gs:open:"))[8:]
             assert {b.callback_data for b in B(card)} >= {f"gs:target=3:{token}", f"gs:cancel:{token}"}
             assert '"id":11' in card.model_dump_json()           # منشن سازنده
@@ -1131,7 +1131,7 @@ def test_group_tables():
             await groups.on_setup(cq, gdb=db)
             assert "فقط سازنده" in cq.answers[-1] and (await db.draft(token))["cfg"] == {"target": 7}
             await groups.on_setup(_CQ(11, f"gs:target=3:{token}", chat=chat), gdb=db)
-            assert (await db.draft(token))["cfg"] == {"target": 3} and "✅ 3 دست" in P(bot.edits[-1][1])
+            assert (await db.draft(token))["cfg"] == {"target": 3} and "✓ 3 دست" in P(bot.edits[-1][1])
             # باز کردن: همان پیام کارت میز می شود
             await groups.on_setup(_CQ(11, f"gs:open:{token}", chat=chat), gdb=db)
             row = await db.open_group_table(-1001, "hokm")
@@ -1155,7 +1155,7 @@ def test_group_tables():
             assert m["status"] == "playing"
             rm = bot.edits[-1][1]
             assert "شروع شد" in P(rm) and "حکم" in P(rm) and '"id":14' in rm.model_dump_json()
-            assert [(b.text, b.url) for b in B(rm)] == [("👀 دیدن بازی", f"https://t.me/gcbot?startapp=w_hokm_{m['id']}")]
+            assert [(b.text, b.url) for b in B(rm)] == [("دیدن بازی", f"https://t.me/gcbot?startapp=w_hokm_{m['id']}")]
             assert (await db.group_table(m["id"]))["status"] == "playing"
             assert {d[0] for d in bot.dms} == {11, 12, 13, 14}
             eph = [s for s in bot.sent if s[2] is not None]
@@ -1253,7 +1253,7 @@ def test_inline_tables():
             await groups.on_setup(_CQ(31, f"gs:players=2:{token}", imid="IM1"), gdb=db)
             d = await db.draft(token)
             assert d["inline_message_id"] == "IM1" and d["cfg"]["players"] == 2
-            assert bot.edits[-1][0] == "IM1" and "✅ 2 نفره" in P(bot.edits[-1][1])
+            assert bot.edits[-1][0] == "IM1" and "✓ 2 نفره" in P(bot.edits[-1][1])
             # مقدار غیرمجاز نادیده گرفته می شود
             await groups.on_setup(_CQ(31, f"gs:players=9:{token}", imid="IM1"), gdb=db)
             assert (await db.draft(token))["cfg"]["players"] == 2
@@ -1349,7 +1349,8 @@ def test_emoji_and_style():
             dump = card.model_dump_json()
             assert '"custom_emoji_id":"111"' in dump and "╮── " in groups.plain(card) and "╯─ " in groups.plain(card)
             open_btn = next(b for b in groups.buttons(card) if b.callback_data == f"gs:open:{tok}")
-            assert isinstance(open_btn.text, list) and open_btn.text[0].custom_emoji_id == "444"
+            # دکمه های کارت گروه ایموجی ندارند، حتی وقتی پریمیوم تنظیم شده
+            assert open_btn.text == "باز کردن میز" and all(isinstance(b.text, str) for b in groups.buttons(card))
             # پیام همگانی: تا ۳ دکمه، شکل قدیمی هم، صفحهٔ ناشناخته کنار گذاشته می شود
             btns = admin.parse_buttons("|ورود به Game Club|brand\nhokm-lobby.html|🃏 بازی حکم|\nbad.html|x|hokm\nludo-lobby.html|منچ|nope\nfriends.html|دوستان")
             assert btns == [("", "ورود به Game Club", "brand"), ("hokm-lobby.html", "🃏 بازی حکم", ""), ("ludo-lobby.html", "منچ", "")]
@@ -1482,11 +1483,11 @@ def test_emoji_admin_and_tone():
             cq = CQ("ge:h")
             await gbot.on_emoji_button(cq, gdb=db)
             text, kb = cq.views[-1]
-            assert "0 از 39" in flat(text) and not persian.search(text) and "ge:c:0:0" in datas(kb) and "ge:o" in datas(kb)
+            assert "0 از 38" in flat(text) and not persian.search(text) and "ge:c:0:0" in datas(kb) and "ge:o" in datas(kb)
             cq = CQ("ge:c:1:1")                 # دستهٔ «میز و دکمه ها» صفحهٔ دوم (8 تا در هر صفحه)
             await gbot.on_emoji_button(cq, gdb=db)
             text, kb = cq.views[-1]
-            assert "صفحه 2 از 2" in flat(text) and datas(kb)[:4] == ["ge:e:play", "ge:e:new", "ge:e:cancel", "ge:e:selected"] and "ge:c:1:0" in datas(kb)
+            assert "صفحه 2 از 2" in flat(text) and datas(kb)[:3] == ["ge:e:new", "ge:e:cancel", "ge:e:selected"] and "ge:c:1:0" in datas(kb)
             # انتخاب یک ایموجی: منتظر ایموجی پریمیوم؛ ایموجی معمولی رد می شود
             await gbot.on_emoji_button(CQ("ge:e:hokm"), gdb=db)
             m = Msg("🃏")
