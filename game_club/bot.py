@@ -7,7 +7,8 @@
   /start obour      آمده از کارت Game Club در مینی اپ عبور
   /points           موجودی امتیاز
   /help             قوانین کوتاه
-در گروه ها (groups.py): /hokm، /ludo، /football یا /play کارت تنظیم میز می فرستد؛ دکمه ها داخل خود پیام اند (پیام غنی).
+در گروه ها (groups.py): @آیدی ربات (حالت اینلاین) یا /hokm، /ludo، /football، /play کارت تنظیم میز می فرستد.
+/start و /help راه اینلاین را یاد می دهند و دکمهٔ «بازی توی گروه» دارند.
 ادمین ها (ADMIN_IDS عبور):
   /gcstats                  آمار امروز و همه
   /gcpoints <tg_id> <مقدار>  افزودن یا کسر امتیاز (منفی = کسر)
@@ -31,6 +32,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     MenuButtonWebApp,
     Message,
+    SwitchInlineQueryChosenChat,
     WebAppInfo,
 )
 
@@ -138,6 +140,26 @@ def _h(icon: str, title, sub=None, lines=(), foot=None) -> str:  # noqa: ANN001
 GAME_FA = {"ludo": "منچ", "hokm": "حکم", "football": "فوتبال"}
 
 
+# ---------- راهنمای بازی در گروه با حالت اینلاین (@آیدی ربات) ----------
+def bot_at() -> str:
+    return f"@{gc.username}" if gc.username else "@آیدی_ربات"
+
+
+def group_steps() -> list:
+    return [[st.E("group"), " ", st.B("بازی توی گروه")],
+            ["1. توی گروهت بنویس ", st.iso(bot_at()), " و یه فاصله بذار"],
+            "2. از لیستی که بالای کیبورد باز می‌شه، بازی رو انتخاب کن: حکم، منچ یا فوتبال",
+            "3. حالت بازی رو بچین و «باز کردن میز» رو بزن",
+            "4. رفیقات «بشین» رو می‌زنن؛ میز که پر شد، بازی شروع می‌شه 🎉"]
+
+
+def with_group_button(kb: InlineKeyboardMarkup | None) -> InlineKeyboardMarkup:
+    """دکمهٔ «بازی توی گروه»: تلگرام فهرست چت ها را باز می کند و @آیدی ربات را خودش می نویسد."""
+    btn = st.kb_button("بازی توی گروه", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
+        query="", allow_group_chats=True, allow_user_chats=True))
+    return InlineKeyboardMarkup(inline_keyboard=[[btn], *(kb.inline_keyboard if kb else [])])
+
+
 @router.message(CommandStart())
 async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) -> None:
     u = message.from_user
@@ -169,11 +191,11 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         return
     lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), "، خوش اومدی! اینجا کسی حوصله‌ش سر نمی‌ره 😎"], "",
              [st.E("hokm"), " حکم  ", st.E("ludo"), " منچ  ", st.E("football"), " فوتبال"],
-             "با رفیقات یا با ناشناس؛ توی گروه هم با /hokm یه میز بچین."]
+             "با رفیقات یا با ناشناس؛ هر جا حوصله‌ت سر رفت 😄", "", *group_steps()]
     if arg == "obour":
         lines += ["", "حساب عبورت به همین تلگرام وصله؛ شارژ از کیف عبور یه ثانیه‌ست ⚡"]
     await message.answer(_h("hello", "Game Club", "منوی اصلی", lines, foot=("coin", "امتیاز", [st.num(me["points"]), " امتیاز"])),
-                         reply_markup=open_kb())
+                         reply_markup=with_group_button(open_kb()))
 
 
 @router.message(Command("points"))
@@ -193,13 +215,12 @@ async def on_points(message: Message, gdb: GCDatabase) -> None:
 
 @router.message(Command("help"))
 async def on_help(message: Message) -> None:
-    await message.answer(_h("help", "قوانین کوتاه", "Game Club", [
-        "• بازی آزاد: مجانی، فقط برای کل‌کل 😄",
-        "• بازی با امتیاز: همه یه ورودی می‌دن، برنده همه رو می‌بره",
-        f"• تاس و ورق روی سرور پخش می‌شه؛ هر نوبت {gc.turn_seconds} ثانیه وقت داری",
-        "• توی گروه: /hokm، /ludo یا /football",
-    ], foot=(None, None, "امتیاز فقط توی خدمات عبور خرج می‌شه، نقد نمی‌شه 😉")),
-        reply_markup=open_kb("help.html", "راهنمای کامل", "help"))
+    await message.answer(_h("help", "راهنما", "بازی توی گروه", [
+        *group_steps(), "",
+        "لازم نیست ربات عضو گروه باشه؛ فقط آیدیش رو بنویس 😉",
+        "دکمهٔ «بازی توی گروه» هم گروهت رو باز می‌کنه و آیدی رو خودش می‌نویسه.",
+    ], foot=(None, None, "قوانین هر بازی توی «راهنمای کامل» هست")),
+        reply_markup=with_group_button(open_kb("help.html", "راهنمای کامل", "help")))
 
 
 # ---------- ادمین ----------
@@ -632,7 +653,8 @@ async def on_bc_buttons(message: Message, gdb: GCDatabase) -> None:
 @router.message(F.chat.type == "private", F.text)
 async def on_text(message: Message) -> None:
     await message.answer(_h("brand", "Game Club", "بزن بریم", ["برای بازی، Game Club رو باز کن 👇"],
-                            foot=(None, None, "یا توی گروهت بنویس /hokm و یه میز بچین")), reply_markup=open_kb())
+                            foot=(None, None, ["یا توی گروهت بنویس ", st.iso(bot_at()), " و یه بازی انتخاب کن"])),
+                         reply_markup=with_group_button(open_kb()))
 
 
 COMMANDS = [BotCommand(command="start", description="ورود به Game Club"),
