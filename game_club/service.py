@@ -265,6 +265,10 @@ STYLE_ITEMS = {
 }
 
 
+# کاورهای پروفایل؛ طرح های بعدی همین جا (و کلاس cover-<id> در gc.css) اضافه می شوند
+COVERS = {"gc": "Game Club"}
+
+
 def style_of(player: dict) -> dict:
     return {"table": player.get("table_skin") or "a", "cards": player.get("card_skin") or "a"}
 

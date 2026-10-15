@@ -77,7 +77,9 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         return {
             "player": {**{k: player[k] for k in ("name", "av", "points", "games", "wins", "show_spend", "tutorial",
                                                  "sound")}, "pic": pic_url(player),
-                       "joined": int(player.get("created_at") or 0), **_name_state(player)},
+                       "joined": int(player.get("created_at") or 0), "bio": player.get("bio") or "",
+                       "cover": player.get("cover") if player.get("cover") in service.COVERS else "gc", **_name_state(player)},
+            "covers": [{"id": k, "name": v} for k, v in service.COVERS.items()],
             "history": await gdb.history(tg),
             "notify": await gdb.notify_of(tg),
             "obour": {"linked": bool(ou), "balance": int(ou["balance"]) if ou else 0},
@@ -133,7 +135,12 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         for f in ("show_spend", "tutorial", "sound"):
             if f in body:
                 await gdb.set_flag(tg, f, 1 if body[f] else 0)
-        return {"ok": True}
+        if "cover" in body and str(body["cover"]) not in service.COVERS:
+            raise GCError("bad_cover")
+        await gdb.set_profile(tg, cover=str(body["cover"]) if "cover" in body else None,
+                              bio=str(body.get("bio") or "") if "bio" in body else None)
+        p = await gdb.get_player(tg) or {}
+        return {"ok": True, "bio": p.get("bio") or "", "cover": p.get("cover") or "gc"}
     if name == "notify" and method == "POST":
         game = str(body.get("game") or "")
         if game not in ("esm", "hokm", "football"):

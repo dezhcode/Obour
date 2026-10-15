@@ -11,17 +11,45 @@
 <style>
 /* پروفایل: عکس با حلقهٔ سطح، کارنامهٔ کلی، کارنامهٔ هر بازی، آخرین بازی ها، نشان ها (از کارنامهٔ
    واقعی)، میز و ورق من و تنظیمات. همه چیز از سرور می آید؛ نشان ها از همان عددها حساب می شوند. */
-.pf-head{display:grid;justify-items:center;gap:6px;text-align:center;padding-top:var(--space-2)}
-.pf-ring{position:relative;width:108px;height:108px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--gold) calc(var(--p,0)*1%),rgba(255,255,255,.12) 0)}
-.pf-ring .avatar{--size:94px;--ring:var(--ground)}
-.pf-ring b{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);height:26px;padding:0 12px;border-radius:13px;background:var(--gold);color:var(--gold-ink);font-size:13px;line-height:26px;font-weight:900;white-space:nowrap;box-shadow:0 0 0 3px var(--ground)}
-.pf-name{display:flex;align-items:center;gap:4px;margin-top:10px;padding-inline-start:44px}
-.pf-head h1{font-size:24px;line-height:34px;font-weight:900}
+.pf-card{border-radius:26px;background:var(--surface);overflow:hidden;padding-bottom:16px}
+.pf-cover{height:136px}
+.pf-cbtn{position:absolute;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.32)}
+.pf-cbtn svg{width:20px;height:20px}
+.pf-cbtn.set-btn{top:8px;inset-inline-end:8px}
+.pf-cbtn.add-btn{bottom:8px;inset-inline-end:8px;width:38px;height:38px;background:var(--gold);color:var(--gold-ink)}
+.pf-me{display:grid;justify-items:center;gap:6px;margin-top:-56px;padding:0 16px;text-align:center;position:relative}
+.pf-ring{position:relative;width:108px;height:108px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--gold) calc(var(--p,0)*1%),rgba(255,255,255,.14) 0);box-shadow:0 0 0 5px var(--surface)}
+.pf-ring .avatar{--size:96px;--ring:var(--surface)}
+.pf-ring b{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);height:24px;padding:0 11px;border-radius:12px;background:var(--gold);color:var(--gold-ink);font-size:12.5px;line-height:24px;font-weight:900;white-space:nowrap;box-shadow:0 0 0 3px var(--surface)}
+.pf-name{display:flex;align-items:center;gap:2px;margin-top:10px;padding-inline-start:44px}
+.pf-me h1{font-size:23px;line-height:32px;font-weight:900}
 .pf-edit{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--gold)}
 .pf-edit svg{width:20px;height:20px}
-.pf-head p{font-size:13px;color:var(--ink-muted)}
-.pf-lv{width:min(260px,80%);height:8px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
-.pf-lv i{display:block;height:100%;border-radius:4px;background:var(--gold)}
+.pf-bio{width:100%;min-height:48px;padding:10px 14px;border-radius:16px;background:var(--surface-sunk);font-size:14px;line-height:22px;color:var(--ink);text-align:center}
+.pf-bio.empty{color:var(--ink-muted)}
+.pf-stats{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:8px}
+.pf-stats div{display:grid;gap:2px}
+.pf-stats div+div{border-inline-start:1px solid var(--line)}
+.pf-stats span{font-size:12px;font-weight:800;color:var(--ink-muted)}
+.pf-stats b{font-family:var(--font-rokh);font-size:20px;line-height:28px;font-weight:900}
+.pf-stats .gold{color:var(--gold)}
+.pf-xp{font-size:12px;color:var(--ink-muted)}
+.pf-bal{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:2px}
+.pf-bal .coin svg{width:26px;height:26px}
+.pf-bal b{font-size:21px;font-weight:900}
+.pf-plus,.pf-hist{width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
+.pf-plus{background:var(--gold);color:var(--gold-ink)}
+.pf-hist{border-radius:14px;background:rgba(255,255,255,.07);color:var(--ink)}
+.pf-plus svg,.pf-hist svg{width:20px;height:20px}
+.pf-col{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pf-colbar{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.pf-colbar i{display:block;height:100%;border-radius:3px;background:var(--success)}
+.pf-coln{font-size:12.5px;font-weight:800;color:var(--ink-muted)}
+.pf-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pf-it{display:grid;justify-items:center;gap:6px;padding:8px 6px 10px;border-radius:16px;background:var(--surface);text-align:center;font-size:12.5px;font-weight:800}
+.pf-it .sw{position:relative;width:100%;height:54px;border-radius:10px;overflow:hidden}
+.pf-it .sw.cs{background:#0F201B}
+.pf-it .sw .hk-card,.pf-it .sw .hk-back{font-size:28px}
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
 .kpi{display:grid;justify-items:center;gap:2px;padding:12px 4px;border-radius:18px;background:var(--surface);text-align:center}
 .kpi b{font-family:var(--font-rokh);font-size:20px;line-height:28px;font-weight:900}
@@ -50,14 +78,18 @@
 .pbdg small{font-size:11.5px;color:var(--ink-muted);font-weight:600}
 .pbdg.off .m{background:var(--surface)!important;color:#5E7169!important}
 .pbdg.off{color:var(--ink-muted)}
-.my-style{display:grid;grid-template-columns:96px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:10px;border-radius:var(--radius-xl);background:var(--surface)}
-.my-style .pv{position:relative;height:72px;border-radius:14px;overflow:hidden;box-shadow:var(--rim,none)}
-.my-style .pv .hk-card,.my-style .pv .hk-back{font-size:30px}
-.my-style b{display:block;font-weight:900;font-size:14px}
-.my-style small{display:block;font-size:12px;color:var(--ink-muted)}
 .sets{display:grid;padding:4px 14px;border-radius:var(--radius-xl);background:var(--surface)}
 .set{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:56px}
 .set+.set{border-top:1px solid var(--line)}
+.pf-ta{width:100%;box-sizing:border-box;padding:12px 14px;border:0;border-radius:16px;background:var(--surface-sunk);color:var(--ink);font:inherit;font-size:15px;line-height:24px;resize:none;outline:2px solid transparent}
+.pf-ta:focus{outline-color:var(--gold)}
+.pf-tn{margin-top:-14px;font-size:12px;color:var(--ink-muted);text-align:end}
+.pf-covers{display:grid;gap:10px}
+.pf-cv{display:grid;gap:6px;padding:8px;border-radius:18px;background:var(--surface-sunk);text-align:start;box-shadow:inset 0 0 0 2px transparent}
+.pf-cv.on{box-shadow:inset 0 0 0 2px var(--gold)}
+.pf-cv .cover{display:block;height:90px;border-radius:12px}
+.pf-cv b{font-size:14px;font-weight:900;padding-inline:4px}
+.pf-cv small{font-size:12px;color:var(--success);padding-inline:4px}
 .set b{display:block;font-weight:800;font-size:14px}
 .set small{display:block;font-size:12px;line-height:18px;color:var(--ink-muted)}
 </style>
@@ -71,18 +103,34 @@
   </div>
 </header>
 <main class="page">
-  <section class="pf-head" aria-label="من">
-    <span class="pf-ring" id="ring" style="--p:0"><span id="av"></span><b id="lvTag">سطح ۱</b></span>
-    <div class="pf-name"><h1 id="name" class="uname">…</h1><button class="pf-edit" id="editName" aria-label="تغییر یوزرنیم"><i data-ic="edit"></i></button></div>
-    <span class="pf-lv" aria-hidden="true"><i id="lvBar" style="width:0"></i></span>
-    <p id="lvTxt">&nbsp;</p>
+  <section class="pf-card" aria-label="من">
+    <div class="pf-cover cover cover-gc" id="pfCover">
+      <span class="cv-mark" id="pfMark"></span>
+      <button class="pf-cbtn set-btn" id="pfSet" aria-label="تنظیمات"><i data-ic="sliders"></i></button>
+      <button class="pf-cbtn add-btn" id="pfCoverBtn" aria-label="تغییر کاور"><i data-ic="plus"></i></button>
+    </div>
+    <div class="pf-me">
+      <span class="pf-ring" id="ring" style="--p:0"><span id="av"></span><b id="lvTag">سطح ۱</b></span>
+      <div class="pf-name"><h1 id="name" class="uname">…</h1><button class="pf-edit" id="editName" aria-label="تغییر یوزرنیم"><i data-ic="edit"></i></button></div>
+      <button class="pf-bio" id="pfBio"><span id="bioTx">یه چیزی درباره خودت بنویس…</span></button>
+      <div class="pf-stats">
+        <div><span>برد</span><b id="kWins">…</b></div>
+        <div><span>عضویت</span><b id="kAge">…</b></div>
+        <div><span>سطح</span><b class="gold" id="kLv">…</b></div>
+      </div>
+      <p class="pf-xp" id="lvTxt">&nbsp;</p>
+      <div class="pf-bal">
+        <span data-coin></span><b id="kPts">…</b>
+        <a class="pf-plus" href="shop.html#charge" aria-label="شارژ امتیاز"><i data-ic="plus"></i></a>
+        <a class="pf-hist" href="shop.html#hist" aria-label="تاریخچهٔ امتیاز"><i data-ic="wallet"></i></a>
+      </div>
+    </div>
   </section>
 
-  <section class="kpis" aria-label="کارنامهٔ کلی">
-    <div class="kpi"><b id="kGames">…</b><span>بازی</span></div>
-    <div class="kpi"><b class="win" id="kWins">…</b><span>برد</span></div>
-    <div class="kpi"><b class="gold" id="kRate">…</b><span>درصد برد</span></div>
-    <div class="kpi"><b id="kPts">…</b><span>امتیاز</span></div>
+  <section aria-labelledby="hCol">
+    <div class="sec-head"><h2 id="hCol">کلکسیون من</h2><a href="shop.html">همه</a></div>
+    <div class="pf-col"><span class="pf-colbar"><i id="colBar" style="width:0"></i></span><span id="colN" class="pf-coln"></span></div>
+    <div class="pf-items" id="colItems"><div class="gp-skel"></div><div class="gp-skel"></div><div class="gp-skel"></div></div>
   </section>
 
   <section aria-labelledby="hGame">
@@ -99,11 +147,6 @@
   <section aria-labelledby="hBadge">
     <div class="sec-head"><h2 id="hBadge">نشان‌ها</h2><span class="aside" id="badgeN"></span></div>
     <div class="badges" id="badges"></div>
-  </section>
-
-  <section aria-labelledby="hMine">
-    <div class="sec-head"><h2 id="hMine">میز و ورق من</h2></div>
-    <a class="my-style" href="shop.html" id="myStyle"><span class="pv felt tbl-a cards-a" id="minePv"></span><span><b id="mineT">…</b><small id="mineC">…</small></span><i data-ic="fwd"></i></a>
   </section>
 
   <section aria-labelledby="hSet">
@@ -128,23 +171,36 @@
   const pct = (w, g) => g ? FD(Math.round(w * 100 / g)) + '٪' : '—';
   const ago = t => { const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
 
+  const MARK = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21.5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/><path transform="translate(12 11.5)" fill="currentColor" d="M12 2C9 6.6 4 9.3 4 13.5c0 2.6 2 4.4 4.3 4.4 1.3 0 2.5-.6 3.1-1.5-.3 2-1.1 3.6-2.6 5.1h6.4c-1.5-1.5-2.3-3.1-2.6-5.1.6.9 1.8 1.5 3.1 1.5 2.3 0 4.3-1.8 4.3-4.4C20 9.3 15 6.6 12 2z"/></svg>';
+  const coverMark = id => id === 'gc' ? MARK + '<b lang="en">Game Club</b>' : '';
   function renderMe() {
     const p = me.player, L = GC.level(p);
-    $('av').innerHTML = face(p, 'var(--ground)');
+    $('av').innerHTML = face(p, 'var(--surface)');
     $('ring').style.setProperty('--p', Math.round(L.frac * 100));
     $('lvTag').textContent = 'سطح ' + FD(L.lv);
     $('name').textContent = p.name || '';
-    $('lvBar').style.width = Math.round(L.frac * 100) + '%';
+    $('pfCover').className = 'pf-cover cover cover-' + (p.cover || 'gc');
+    $('pfMark').innerHTML = coverMark(p.cover || 'gc');
+    $('bioTx').textContent = p.bio || 'یه چیزی درباره خودت بنویس…';
+    $('pfBio').classList.toggle('empty', !p.bio);
+    const days = p.joined ? Math.max(1, Math.round((Date.now() / 1000 - p.joined) / 86400)) : 0;
+    $('kWins').textContent = fa(p.wins); $('kAge').textContent = days ? FD(days) + ' روز' : '—'; $('kLv').textContent = FD(L.lv);
     $('lvTxt').textContent = `${FD(L.left)} تجربه تا سطح ${FD(L.lv + 1)} · هر بازی ۱۰ و هر برد ۱۵`;
-    $('kGames').textContent = fa(p.games); $('kWins').textContent = fa(p.wins);
-    $('kRate').textContent = pct(p.wins, p.games); $('kPts').textContent = fa(p.points);
-    const st = Object.assign({ table: 'a', cards: 'a' }, me.style || {});
-    $('minePv').className = `pv felt tbl-${st.table} cards-${st.cards}`;
-    $('minePv').innerHTML = C.back('', 'left:10%;top:16%;transform:rotate(-10deg)') + C.face(12, '', 'left:36%;top:10%;transform:rotate(-2deg)') + C.face(24, '', 'left:58%;top:14%;transform:rotate(10deg)');
-    const T = { a: 'میز کلاسیک', b: 'میز کافه شب', c: 'میز Game Club' }, K = { m: 'ورق مدرن', a: 'ورق کلاسیک', b: 'ورق کافه شب', c: 'ورق Game Club', d: 'ورق رنگ تمام' };
-    $('mineT').textContent = T[st.table] || 'میز'; $('mineC').textContent = (K[st.cards] || 'ورق') + ' · عوض کردن در فروشگاه';
+    $('kPts').textContent = fa(p.points);
     $('swSound').setAttribute('aria-checked', String(!!S.sound));
     $('swSpend').setAttribute('aria-checked', String(!!p.show_spend));
+  }
+  // کلکسیون: میزها، ورق ها و کاورهایی که داری
+  function renderCollection(sty) {
+    const covers = me.covers || [{ id: 'gc', name: 'Game Club' }];
+    const items = (sty && sty.items || []).filter(i => i.owned);
+    const total = (sty && sty.items || []).length + covers.length, own = items.length + covers.length;
+    $('colBar').style.width = Math.round(own * 100 / Math.max(1, total)) + '%';
+    $('colN').textContent = `${FD(own)} از ${FD(total)}`;
+    const tile = i => `<div class="pf-it">${i.kind === 'table' ? `<span class="sw felt tbl-${i.look}"></span>` : `<span class="sw cs cards-${i.look}">${C.back('', 'left:18%;top:12%;transform:rotate(-10deg)')}${C.face(12, '', 'left:48%;top:8%;transform:rotate(8deg)')}</span>`}${i.name}</div>`;
+    const cov = c => `<div class="pf-it"><span class="sw cover cover-${c.id}"></span>کاور ${c.name}</div>`;
+    const list = [...covers.map(cov), ...items.filter(i => i.on).map(tile), ...items.filter(i => !i.on).map(tile)];
+    $('colItems').innerHTML = list.slice(0, 6).join('');
   }
   function stat(g) { return pf && pf.games.find(x => x.game === g) || { games: 0, wins: 0, prize: 0 }; }
   function renderGames() {
@@ -184,6 +240,35 @@
   };
 
   $('editName').onclick = () => { if (me) GC.editName(me.player, r => { Object.assign(me.player, r); renderMe(); }); };
+  $('pfSet').onclick = () => $('hSet').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // درباره من: یک جمله، حداکثر ۸۰ نویسه
+  $('pfBio').onclick = () => {
+    if (!me) return;
+    const sh = GC.sheet(`${GC.sheetHead('درباره من')}<p class="hint" style="text-align:start">یک جمله دربارهٔ خودت؛ دوستانت در پروفایلت می‌بینند.</p>
+      <textarea id="bioIn" class="pf-ta" maxlength="80" rows="3" placeholder="مثلا: عاشق حکم و دست‌های آخرِ نفس‌گیر"></textarea>
+      <span class="pf-tn" id="bioN"></span><button class="btn btn-block" id="bioGo">ذخیره</button>`);
+    const inp = sh.querySelector('#bioIn'), n = sh.querySelector('#bioN');
+    inp.value = me.player.bio || '';
+    const count = () => { n.textContent = FD(inp.value.length) + '/۸۰'; };
+    inp.oninput = count; count(); setTimeout(() => inp.focus(), 80);
+    sh.querySelector('#bioGo').onclick = async ev => {
+      ev.currentTarget.disabled = true;
+      try { const r = await GC.data.saveProfile({ bio: inp.value }); me.player.bio = r.bio; GC.close(); renderMe(); toast('ذخیره شد'); }
+      catch (e) { toast(errText(e)); ev.currentTarget.disabled = false; }
+    };
+  };
+  // کاور: فعلا «Game Club»؛ طرح های تازه بعدا در همین برگه می آیند
+  $('pfCoverBtn').onclick = () => {
+    if (!me) return;
+    const cur = me.player.cover || 'gc', covers = me.covers || [{ id: 'gc', name: 'Game Club' }];
+    const sh = GC.sheet(`${GC.sheetHead('کاور پروفایل')}<div class="pf-covers">${covers.map(c => `<button class="pf-cv${c.id === cur ? ' on' : ''}" data-cv="${c.id}"><span class="cover cover-${c.id}"><span class="cv-mark">${coverMark(c.id)}</span></span><b>${c.name}</b>${c.id === cur ? '<small>انتخاب شده</small>' : ''}</button>`).join('')}</div>
+      <p class="hint">کاورهای تازه به‌زودی اضافه می‌شوند.</p>`);
+    sh.querySelectorAll('[data-cv]').forEach(b => b.onclick = async () => {
+      if (b.dataset.cv === cur) { GC.close(); return; }
+      try { const r = await GC.data.saveProfile({ cover: b.dataset.cv }); me.player.cover = r.cover; GC.close(); renderMe(); }
+      catch (e) { toast(errText(e)); }
+    });
+  };
 
   async function load() {
     try {
@@ -191,6 +276,7 @@
       $('pfSample').hidden = !pf.sample;
       renderMe(); renderGames(); renderRecent(); renderBadges(); GC.mount();
     } catch (e) { toast(errText(e)); }
+    try { renderCollection(await GC.data.style()); } catch (e) { if (me) renderCollection(null); }
   }
   renderGames();
   GC.page(load);

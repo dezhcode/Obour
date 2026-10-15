@@ -273,7 +273,10 @@ html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
   };
 
   async function load() {
+    const want = GC.takeHash();
     try { me = await GC.refreshMe(); renderWallet(); } catch (e) { $('hist').innerHTML = `<p class="hint">${errText(e)}</p>`; }
+    if (want === '#charge') charge();
+    else if (want === '#hist') $('histSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
     await loadStyle();
     if (me && me.settings && me.settings.shop) loadObour();
   }

@@ -208,8 +208,10 @@ def test_notify_and_admin_close():
             await service.match_view(db, 1, mid)
         m = await db.get_match(mid)
         assert m["status"] == "over"
+        # حداکثر دو یادآوری نوبت در هر بازی (اگر بازیکن ۱ با تاس ۶ پشت سر هم زودتر جریمه شود،
+        # ممکن است نوبت بازیکن ۲ اصلا نرسیده باشد؛ پس صفر هم درست است)
         turn_pings = [x for x in sent if x[0] == 2 and "نوبت" in x[1]]
-        assert 1 <= len(turn_pings) <= 2, sent
+        assert len(turn_pings) <= 2, sent
         # نتیجه برای غایب: هر دو بازیکن غایب اند و هر کدام زودتر سه نوبت جا بیندازد می بازد،
         # پس بازیکن ۲ یا خبر باخت (index) می گیرد یا خبر برد (wallet)
         assert any(x[0] == 2 and x[2] in ("index.html", "shop.html") and "منچ" in x[1] for x in sent), sent
@@ -949,6 +951,29 @@ def test_game_board():
                 raise AssertionError("bad game")
             except service.GCError as e:
                 assert e.code == "bad_game"
+        finally:
+            await db.close()
+
+    asyncio.run(run())
+
+
+def test_profile_bio_cover():
+    """درباره من: نویسه های خطرناک حذف و ۸۰ نویسه نگه داشته می شود؛ کاور پیش فرض Game Club است."""
+    tmp = tempfile.mkdtemp()
+    from game_club import service
+    from game_club.db import GCDatabase
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        try:
+            p = await db.player(9, "x")
+            assert p["cover"] == "gc" and p["bio"] == "" and "gc" in service.COVERS
+            await db.set_profile(9, bio="<b>سلام</b>\nخوبی؟ " + "ا" * 200)
+            bio = (await db.get_player(9))["bio"]
+            assert "<" not in bio and "\n" not in bio and len(bio) == 80 and bio.startswith("bسلام/b خوبی؟")
+            await db.set_profile(9, cover="gc")
+            assert (await db.get_player(9))["cover"] == "gc"
         finally:
             await db.close()
 
