@@ -27,8 +27,9 @@ from .service import GCError
 
 log = logging.getLogger(__name__)
 
-GAMES = ("ludo", "hokm", "football")
+GAMES = ("ludo", "hokm", "football", "billiard")
 PAGES = {"": "خانه", "ludo-lobby.html": "منچ", "hokm-lobby.html": "حکم", "football-lobby.html": "فوتبال",
+         "billiard-lobby.html": "بیلیارد",
          "shop.html": "فروشگاه و کیف", "profile.html": "پروفایل", "games.html": "بازی ها", "friends.html": "دوستان"}
 KINDS = ("charge", "entry", "refund", "prize", "admin", "transfer", "shop", "gift", "style")
 # تنظیمات قابل تغییر از پنل: (نوع، کمینه، بیشینه)
@@ -213,6 +214,10 @@ def _score(game: str, st: dict) -> str:
     sc = st.get("score")
     if game in ("football", "hokm") and isinstance(sc, list) and len(sc) == 2:
         return f"{sc[0]} - {sc[1]}"
+    if game == "billiard" and isinstance(st.get("balls"), list) and st.get("solids", -1) >= 0:
+        from .billiard import score
+        a, b = score(st)
+        return f"{a} - {b}"
     if game == "ludo" and isinstance(st.get("pawns"), dict):
         fa = {"blue": "آبی", "red": "قرمز", "green": "سبز", "yellow": "زرد"}
         return " · ".join(f"{fa.get(c, c)} {sum(1 for x in ps if x == 56)}" for c, ps in st["pawns"].items())
@@ -395,7 +400,8 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
 
 
 TARGET_KEYS = [("all", "همه"), ("active7", "فعال ۷ روز"), ("active30", "فعال ۳۰ روز"), ("game:hokm", "بازیکنان حکم"),
-               ("game:ludo", "بازیکنان منچ"), ("game:football", "بازیکنان فوتبال"), ("me", "فقط خودم")]
+               ("game:ludo", "بازیکنان منچ"), ("game:football", "بازیکنان فوتبال"),
+               ("game:billiard", "بازیکنان بیلیارد"), ("me", "فقط خودم")]
 
 
 def target_label(t: str) -> str:

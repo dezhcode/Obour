@@ -1,7 +1,7 @@
 """بازی در گروه های تلگرام: ربات یک «کارت میز» در گروه می فرستد؛ دکمه ها داخل خود پیام اند
 (پیام غنی Bot API 10.3 با بلوک دکمه)، نه کیبورد شیشه ای زیر پیام.
 
-- /hokm، /ludo، /football (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
+- /hokm، /ludo، /football، /billiard (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
   (طول بازی، تعداد بازیکن، مدل) را انتخاب می کند و «باز کردن میز» را می زند؛ سازنده خودش می نشیند.
 - با هر نشستن یا بلند شدن، کارت عوض می شود: چه کسانی نشسته اند (با منشن) و چند جای خالی مانده.
 - وقتی میز پر شد یا سازنده «شروع» را زد، دکمه های میز می روند و کارت «بازی شروع شد» می شود با اسم
@@ -50,6 +50,8 @@ GAMES = {
              "def": {"players": 4, "pawns": 2}},
     "football": {"name": "فوتبال", "icon": "⚽", "base": {"game": "football", "mode": "free", "entry": 0},
                  "opts": [("target", "تا چند گل", [(3, "3 گل · سریع"), (5, "5 گل · کامل")])], "def": {"target": 3}},
+    "billiard": {"name": "بیلیارد", "icon": "🎱", "base": {"game": "billiard", "mode": "free", "entry": 0},
+                 "opts": [("players", "تعداد بازیکن", [(2, "2 نفره · رو در رو"), (4, "4 نفره · یاری")])], "def": {"players": 2}},
 }
 OPEN_TTL = 15 * 60       # میز یا کارت تنظیمی که این مدت شروع نشود بسته می شود
 fd = str   # عددهای پیام های ربات لاتین اند
@@ -66,7 +68,7 @@ def cfg_of(game: str, picks: dict) -> dict:
 
 
 def need_of(game: str, cfg: dict) -> int:
-    return int(cfg.get("players") or 0) if game == "ludo" else 4 if game == "hokm" else 2
+    return int(cfg.get("players") or 0) if game in ("ludo", "billiard") else 4 if game == "hokm" else 2
 
 
 def summary(game: str, cfg: dict) -> str:
@@ -75,6 +77,8 @@ def summary(game: str, cfg: dict) -> str:
         return f"آزاد · {n} نفره · تا {fd(cfg.get('target', 7))} دست"
     if game == "ludo":
         return f"آزاد · {n} نفره · {'کلاسیک' if cfg.get('pawns') == 4 else 'سریع'} ({fd(cfg.get('pawns', 2))} مهره)"
+    if game == "billiard":
+        return f"آزاد · {n} نفره · {'یاری (دو تیم دونفره)' if cfg.get('players') == 4 else 'رو در رو'} · ۸ توپ"
     return f"آزاد · {n} نفره · تا {fd(cfg.get('target', 3))} گل"
 
 
@@ -375,7 +379,7 @@ async def open_table(db: GCDatabase, d: dict) -> str | None:
     return None
 
 
-@router.message(GROUP, Command("hokm", "ludo", "football"))
+@router.message(GROUP, Command("hokm", "ludo", "football", "billiard"))
 async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
     game = (message.text or "").split()[0].lstrip("/").split("@")[0].lower()
     if not message.from_user or game not in GAMES:
@@ -389,7 +393,7 @@ async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
 async def on_play(message: Message) -> None:
     await _send(message.chat.id, card(
         st.frame("brand", "Game Club", "بازی در گروه", ["چی بازی کنیم؟ هر کی زودتر بزنه، میز رو می‌چینه و خودش اول می‌شینه."],
-                 foot=("group", "بازی‌ها", "حکم، منچ و فوتبال؛ همه مجانی، فقط سر کل‌کل 😄")),
+                 foot=("group", "بازی‌ها", "حکم، منچ، فوتبال و بیلیارد؛ همه مجانی، فقط سر کل‌کل 😄")),
         _row(*[_bt(k, g["name"], "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}") for k, g in GAMES.items()])))
 
 
@@ -503,7 +507,8 @@ async def on_old_inline(cq: CallbackQuery) -> None:
 
 
 # ---------- حالت اینلاین (@ربات hokm در هر چتی) و «فرستادن به گروه» از مینی اپ ----------
-INLINE_ALIASES = {"hokm": ("hokm", "حکم", "hk"), "ludo": ("ludo", "منچ", "mench"), "football": ("football", "فوتبال", "fb", "soccer")}
+INLINE_ALIASES = {"hokm": ("hokm", "حکم", "hk"), "ludo": ("ludo", "منچ", "mench"), "football": ("football", "فوتبال", "fb", "soccer"),
+                  "billiard": ("billiard", "بیلیارد", "pool", "8ball", "snooker")}
 
 
 async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArticle:

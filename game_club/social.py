@@ -17,12 +17,13 @@ MAX_FRIENDS = 300
 MAX_PENDING = 60        # درخواست بی جواب فرستاده شده
 REQ_PER_HOUR = 25
 DM_MAX = 300
-GAME_NAME = {"hokm": "حکم", "ludo": "منچ", "football": "فوتبال"}
+GAME_NAME = {"hokm": "حکم", "ludo": "منچ", "football": "فوتبال", "billiard": "بیلیارد"}
 # میز دعوتی که از صفحهٔ دوستان یا چت ساخته می شود (آزاد؛ سازنده بعدا می تواند خودش میز بسازد)
 INVITE_CFG = {
     "hokm": {"game": "hokm", "mode": "free", "entry": 0, "target": 7},
     "ludo": {"mode": "free", "entry": 0, "players": 2, "pawns": 2},
     "football": {"game": "football", "mode": "free", "entry": 0, "target": 3},
+    "billiard": {"game": "billiard", "mode": "free", "entry": 0, "players": 2},
 }
 
 

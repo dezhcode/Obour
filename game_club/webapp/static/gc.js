@@ -115,7 +115,7 @@ const ERR = {
   need_players: 'بازی امتیازی بدون حریف واقعی شروع نمی‌شود', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
   plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
   rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
-  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_pack: 'این بسته در دسترس نیست',
+  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_place: 'توپ سفید را جای خالی بگذار (در بریک: پشت خط سر)', bad_pack: 'این بسته در دسترس نیست',
 };
 const errText = e => {
   const c = String((e && e.code) || '');
@@ -193,6 +193,20 @@ const liveFootball = {
   setup: (match, team, fa, fd, since) => api('football/setup', { body: { match, team, fa, fd, since } }),
   shot: (match, i, dx, dy, p, since) => api('football/shot', { body: { match, i, dx, dy, p, since } }),
   leave: match => api('football/leave', { body: { match } }),
+};
+const liveBilliard = {
+  queueJoin: cfg => api('billiard/queue', { body: { cfg } }),
+  queueStatus: () => api('billiard/queue'),
+  queueLeave: () => api('billiard/queue/leave', { body: {} }),
+  queueBots: () => api('billiard/queue/bots', { body: {} }),
+  invite: cfg => api('billiard/invite', { body: { cfg } }),
+  join: code => api('billiard/join', { body: { code } }),
+  start: match => api('billiard/start', { body: { match } }),
+  match: (id, since = 0, chat = null) => api('billiard/match', { q: Object.assign(id ? { id, since } : { since }, chat == null ? {} : { chat }) }),
+  chat: (match, text) => api('billiard/chat', { body: { match, text } }),
+  // a زاویه (رادیان، مختصات میز)، p قدرت ۰ تا ۱، sx/sy پیچ، cx/cy جای توپ سفید وقتی توپ در دست است
+  shot: (match, a, p, sx, sy, cx, cy, since) => api('billiard/shot', { body: Object.assign({ match, a, p, sx, sy, since }, cx == null ? {} : { cx, cy }) }),
+  leave: match => api('billiard/leave', { body: { match } }),
 };
 const liveHokm = {
   queueJoin: cfg => api('hokm/queue', { body: { cfg } }),
@@ -452,25 +466,36 @@ const sfx = {
    (یا اگر بار نشدند) نسخه ساده با نویز ساخته می شود */
 const SAMPLES = {};
 let samplesLoading = null;
+// صدای واقعی بیلیارد پلاتو (همان فایل های pool_offline/game_assets) — با کلید pl_*
+const PLATO_SND = ['ball1', 'ball2', 'ball3', 'ball_soft1', 'ball_soft2', 'ball_soft3', 'rail1', 'rail2', 'rail3', 'rail_soft1', 'rail_soft2', 'rail_soft3', 'pocket1', 'pocket2', 'pocket3', 'sunk1', 'sunk2', 'sunk3', 'cue_hard1', 'cue_hard2', 'cue_soft1', 'rack', 'tap', 'turn_audio'];
 function loadSamples() {
   const a = ctx();
   if (!a || samplesLoading) return samplesLoading;
-  samplesLoading = Promise.all(['place1', 'place2', 'place3', 'place_soft1', 'place_soft2', 'place_soft3', 'place_hard1', 'place_hard2', 'place_hard3', 'slide_soft', 'slide_hard', 'slide1', 'slide2', 'square', 'flip', 'throw', 'flick', 'shuffle', 'collect', 'fb_kick', 'fb_clack1', 'fb_clack2', 'fb_clack3', 'fb_ball1', 'fb_ball2', 'fb_wall', 'fb_post', 'fb_whistle', 'fb_goal', 'fb_crowd'].map(async n => {
-    try {
-      const r = await fetch('static/sfx/' + n + '.mp3');
-      const b = await r.arrayBuffer();
-      SAMPLES[n] = await new Promise((ok, no) => a.decodeAudioData(b, ok, no));
-    } catch (e) {}
-  }));
+  samplesLoading = Promise.all([
+    ...['place1', 'place2', 'place3', 'place_soft1', 'place_soft2', 'place_soft3', 'place_hard1', 'place_hard2', 'place_hard3', 'slide_soft', 'slide_hard', 'slide1', 'slide2', 'square', 'flip', 'throw', 'flick', 'shuffle', 'collect', 'fb_kick', 'fb_clack1', 'fb_clack2', 'fb_clack3', 'fb_ball1', 'fb_ball2', 'fb_wall', 'fb_post', 'fb_whistle', 'fb_goal', 'fb_crowd'].map(async n => {
+      try {
+        const r = await fetch('static/sfx/' + n + '.mp3');
+        const b = await r.arrayBuffer();
+        SAMPLES[n] = await new Promise((ok, no) => a.decodeAudioData(b, ok, no));
+      } catch (e) {}
+    }),
+    ...PLATO_SND.map(async n => {
+      try {
+        const r = await fetch('static/sfx/plato/' + n + '.m4a');
+        const b = await r.arrayBuffer();
+        SAMPLES['pl_' + n] = await new Promise((ok, no) => a.decodeAudioData(b, ok, no));
+      } catch (e) {}
+    }),
+  ]);
   return samplesLoading;
 }
 // pan: -۱ چپ تا ۱ راست (صدای ورق هر بازیکن از سمت خودش)
-function sample(n, { g = 1, rate = 1, at = 0, loop = false, pan = 0 } = {}) {
+function sample(n, { g = 1, rate = 1, at = 0, loop = false, pan = 0, jitter = true } = {}) {
   const a = ctx(); if (!a) return true;
   const buf = SAMPLES[n];
   if (!buf) { loadSamples(); return false; }
   const s = a.createBufferSource(), v = a.createGain();
-  s.buffer = buf; s.loop = loop; s.playbackRate.value = loop ? 1 : rate * (.94 + Math.random() * .12); v.gain.value = g;
+  s.buffer = buf; s.loop = loop; s.playbackRate.value = loop ? 1 : rate * (jitter ? (.94 + Math.random() * .12) : 1); v.gain.value = g;
   s.connect(v);
   if (pan && a.createStereoPanner) { const p = a.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); v.connect(p); p.connect(master); }
   else v.connect(master);
@@ -524,6 +549,36 @@ sfx.fb = {
   // پاس به یار: دو نت شاد و تشویق کوتاه جمعیت
   pass() { tone(988, .1, { type: 'triangle', g: .14 }); tone(1480, .2, { type: 'triangle', g: .12, at: .08 }); if (crowdLoop) { const t = crowdLoop.s.context.currentTime, v = crowdLoop.v.gain; v.cancelScheduledValues(t); v.setTargetAtTime(.32, t, .1); v.setTargetAtTime(.2, t + .9, .5); } },
   roar() { if (crowdLoop) { const t = crowdLoop.s.context.currentTime, g = crowdLoop.v.gain; g.cancelScheduledValues(t); g.setTargetAtTime(.5, t, .15); g.setTargetAtTime(.2, t + 2.2, .8); } },
+};
+// بیلیارد: فایل های واقعی پلاتو (static/sfx/plato/*.m4a) — انتخاب و بلندی عیناً مثل plato_audio.js (بدون جیترِ نرخ)
+sfx.bl = {
+  // برخوردِ توپ-توپ: بالای .۵ صدای سخت ball* وگرنه ball_soft*
+  ball(g = 1, pan = 0) {
+    g = Math.max(0, Math.min(1, g));
+    const hard = g > .5, v = hard ? Math.min(1, .35 + g * .65) : Math.min(1, .18 + g);
+    sample(pickN('pl_' + (hard ? 'ball' : 'ball_soft'), 3), { g: v, pan, jitter: false }) || noise(.02, { g: .15 + g * .35, f: 4200, q: 2 });
+  },
+  // برخوردِ ریل: بالای .۳۵ صدای سخت rail* وگرنه rail_soft*
+  rail(g = 1, pan = 0) {
+    g = Math.max(0, Math.min(1, g));
+    const hard = g > .35, v = hard ? Math.min(1, .2 + g * .8) : Math.min(1, .15 + g * .85);
+    sample(pickN('pl_' + (hard ? 'rail' : 'rail_soft'), 3), { g: v, pan, jitter: false }) || (tone(120, .1, { g: .2 * g, to: 90 }), noise(.05, { g: .15 * g, f: 600, q: .7 }));
+  },
+  // جیب: مثل پلاتو — k رنکِ توپِ افتاده؛ k>0 صدای pocket* و همیشه sunk*
+  pocket(k = 0, pan = 0) {
+    const okP = k > 0 ? sample(pickN('pl_pocket', 3), { g: 1, pan, jitter: false }) : false;
+    const okS = sample(pickN('pl_sunk', 3), { g: 1, pan, jitter: false });
+    if (!okP && !okS) (tone(140, .2, { g: .25, to: 90 }), noise(.3, { g: .12, f: 300, q: .6, at: .1 }));
+  },
+  // ضربهٔ چوب: بالای .۵ سخت (بالای .۹ محکم تر)؛ بلندی .5+.5g یا .2+g
+  cue(g = 1, pan = 0) {
+    g = Math.max(0, Math.min(1, g));
+    const hard = g > .5, v = hard ? .5 + .5 * g : .2 + g;
+    sample('pl_' + (hard ? (g > .9 ? 'cue_hard2' : 'cue_hard1') : 'cue_soft1'), { g: v, pan, jitter: false }) || noise(.03, { g: .3, f: 1500, q: 1 });
+  },
+  rack() { sample('pl_rack', { g: 1, jitter: false }); },
+  tap() { sample('pl_tap', { g: .8, jitter: false }) || sfx.tap(); },
+  turn() { sample('pl_turn_audio', { g: .8, jitter: false }) || sfx.turn(); },
 };
 function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
@@ -691,12 +746,14 @@ const GAME_ART = {
   hokm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-14 22 36)"><rect x="6" y="10" width="30" height="42" rx="6" fill="#fff"/><path d="M21 20c4 5 8 7 8 11a4 4 0 0 1-6.5 3l1.5 5h-6l1.5-5a4 4 0 0 1-6.5-3c0-4 4-6 8-11z" fill="#1E2235"/></g><g transform="rotate(12 44 36)"><rect x="28" y="12" width="30" height="42" rx="6" fill="#fff"/><path d="M43 43c-7-5-10-8-10-11.5a4.5 4.5 0 0 1 10-2 4.5 4.5 0 0 1 10 2c0 3.5-3 6.5-10 11.5z" fill="#F25C6E"/></g></svg>',
   football: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="4" width="52" height="56" rx="4" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/><path d="M6 32h52" stroke="#fff" stroke-width="2.5" opacity=".9"/><circle cx="32" cy="32" r="8" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/><circle cx="20" cy="44" r="7" fill="#DDE3EA"/><circle cx="20" cy="44" r="5" fill="#1E5BD8"/><circle cx="44" cy="20" r="7" fill="#DDE3EA"/><circle cx="44" cy="20" r="5" fill="#D7263D"/><circle cx="33" cy="33" r="4" fill="#fff" stroke="#1c1f2a" stroke-width="1.2"/></svg>',
   ludo: () => boardArt(),
+  billiard: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="9" y="3" width="46" height="58" rx="7" fill="#6B3A1F"/><rect x="14" y="8" width="36" height="48" rx="3" fill="#1E8A4C"/><g fill="#0B0F0D"><circle cx="15" cy="9" r="3.4"/><circle cx="49" cy="9" r="3.4"/><circle cx="15" cy="55" r="3.4"/><circle cx="49" cy="55" r="3.4"/><circle cx="14" cy="32" r="3"/><circle cx="50" cy="32" r="3"/></g><circle cx="32" cy="20" r="4.6" fill="#FEC625"/><circle cx="27.4" cy="26.5" r="4.6" fill="#1937A5"/><circle cx="36.6" cy="26.5" r="4.6" fill="#111"/><circle cx="35.6" cy="25.2" r="1.7" fill="#fff"/><circle cx="32" cy="45" r="4.6" fill="#F4F1E8"/><path d="M33 50L46 63" stroke="#D9B27C" stroke-width="2.6" stroke-linecap="round"/></svg>',
   esm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>',
 };
 const GAMES = [
   { id: 'hokm', name: 'حکم', sub: '۴ نفره · با یار، ناشناس یا ربات', href: 'hokm-lobby.html', tint: 't-felt', cat: 'card', tag: 'محبوب' },
   { id: 'football', name: 'فوتبال', sub: '۲ نفره · نوبتی', href: 'football-lobby.html', tint: 't-green', cat: 'sport', tag: 'تازه' },
   { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره', href: 'ludo-lobby.html', tint: 't-violet', cat: 'board' },
+  { id: 'billiard', name: 'بیلیارد', sub: '۲ نفره یا ۴ نفره یاری', href: 'billiard-lobby.html', tint: 't-green', cat: 'sport', tag: 'تازه' },
   { id: 'esm', name: 'اسم فامیل', sub: 'به‌زودی', tint: 't-orange', cat: 'word', soon: true },
 ];
 function quickPlay() {
@@ -802,7 +859,8 @@ document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
 window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
-  get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; }, loadSamples,
+  get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
+  get billiard() { return live ? liveBilliard : GC.demo.billiard; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
   PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver };
 document.addEventListener('DOMContentLoaded', () => mount());

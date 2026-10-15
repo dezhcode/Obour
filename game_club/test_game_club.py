@@ -1245,7 +1245,7 @@ def test_inline_tables():
             assert "حالت بازی" in P(rm) and f"gs:open:{token}" in [b.callback_data for b in B(rm)]
             iq.query = ""
             await groups.on_inline(iq, gdb=db)
-            assert len(got[-1][0]) == 3
+            assert len(got[-1][0]) == 4          # حکم، منچ، فوتبال، بیلیارد
             # فقط سازنده تنظیم می کند؛ شناسهٔ پیام اینلاین از همین لمس ثبت می شود
             cq = _CQ(32, f"gs:open:{token}", imid="IM1")
             await groups.on_setup(cq, gdb=db)
@@ -1483,7 +1483,7 @@ def test_emoji_admin_and_tone():
             cq = CQ("ge:h")
             await gbot.on_emoji_button(cq, gdb=db)
             text, kb = cq.views[-1]
-            assert "0 از 38" in flat(text) and not persian.search(text) and "ge:c:0:0" in datas(kb) and "ge:o" in datas(kb)
+            assert "0 از 39" in flat(text) and not persian.search(text) and "ge:c:0:0" in datas(kb) and "ge:o" in datas(kb)
             cq = CQ("ge:c:1:1")                 # دستهٔ «میز و دکمه ها» صفحهٔ دوم (8 تا در هر صفحه)
             await gbot.on_emoji_button(cq, gdb=db)
             text, kb = cq.views[-1]
@@ -1544,6 +1544,164 @@ def test_emoji_admin_and_tone():
             obour_cfg.admin_ids[:] = old_ids
             emo.load_rows({})
             service.table_hook = None
+            await db.close()
+
+    asyncio.run(run())
+
+
+def test_billiard_physics():
+    from game_club import billiard as Bl
+    rng = random.Random(7)
+    pos = Bl.rack(rng)
+    assert len(pos) == 16 and all(p is not None for p in pos)
+    for i in range(16):
+        assert Bl._free(pos, i, *pos[i])                                   # بدون هم پوشانی
+    # بریک: توپ ها پخش می شوند و هیچ توپی از میز بیرون نمی رود
+    res = Bl.simulate(pos, -math.pi / 2, 1.3, (0, 0), True)
+    assert res["frames"] and res["first"] > 0 and len(res["rails"]) >= 4
+    for p in res["pos"]:
+        assert p is None or (0 <= p[0] <= Bl.W and 0 <= p[1] <= Bl.H)
+    # ضربهٔ صاف به گوشه: توپ ۱ کنار جیب بالا چپ می افتد، سفید روی میز می ماند
+    pos = [None] * 16
+    pos[0], pos[1] = [300.0, 300.0], [200.0, 200.0]
+    res = Bl.simulate(pos, math.atan2(-100, -100), 0.35, (0, 0), False)
+    assert [p[0] for p in res["pots"]] == [1] and res["pots"][0][3] == 0 and res["pos"][0] is not None
+    assert res["first"] == 1
+
+
+def _bl_state(n=2):
+    from game_club import billiard as Bl
+    seats = [{"color": c, "uid": i + 1, "name": c, "bot": False} for i, c in enumerate(Bl.seats_of(n))]
+    st = Bl.new_state(seats, 0.0, 20, False, n, first=0)
+    return Bl, st
+
+
+def test_billiard_rules():
+    Bl, st = _bl_state()
+    rk = lambda: [p[:] if p else None for p in st["balls"]]   # noqa: E731
+    assert st["breaking"] and st["bih"] and Bl.current(st) == "0"
+    # بریک: توپ سفید جلوی خط سر قابل گذاشتن نیست
+    assert Bl.shot(st, 0, -1.57, 1, 0, 0, 400, 900, 10.0) == "bad_place"
+    assert Bl.shot(st, 1, -1.57, 1, 0, 0, None, None, 10.0) == "not_your_turn"
+    # بریک قانونی بدون افتادن توپ: میز باز، نوبت حریف
+    res = {"pos": rk(), "pots": [], "first": 3, "rails": [0, 1, 2, 3, 4], "dur": 1.0}
+    Bl._resolve(st, 0, res, [], 10.0)
+    assert not st["breaking"] and st["solids"] == -1 and st["turn"] == 1 and not st["bih"]
+    # میز باز: افتادن تک رنگ = گروه تک رنگ مال تیم زننده و نوبت ادامه دارد
+    b = rk(); b[2] = None
+    Bl._resolve(st, 1, {"pos": b, "pots": [[2, .5, 1, 0]], "first": 2, "rails": [], "dur": 1.0}, Bl.targets(st, 1), 20.0)
+    assert st["solids"] == 1 and st["turn"] == 1 and Bl.solids_of(st, 1) and not Bl.solids_of(st, 0)
+    # برخورد اول با توپ حریف = خطا، حریف توپ در دست
+    Bl._resolve(st, 1, {"pos": rk(), "pots": [], "first": 9, "rails": [9], "dur": 1.0}, Bl.targets(st, 1), 30.0)
+    assert st["turn"] == 0 and st["bih"] and st["msg"] == "wrong_first"
+    # توپ در دست: روی توپ دیگر نمی شود گذاشت
+    p9 = st["balls"][9]
+    assert Bl.shot(st, 0, 0, .5, 0, 0, p9[0], p9[1], 40.0) == "bad_place"
+    # افتادن سفید = خطا
+    b = rk(); b[0] = None
+    Bl._resolve(st, 0, {"pos": b, "pots": [[0, .5, 1, 2]], "first": 9, "rails": [], "dur": 1.0}, Bl.targets(st, 0), 50.0)
+    assert st["turn"] == 1 and st["bih"] and st["msg"] == "scratch" and st["balls"][0] is not None
+    # ۸ پیش از پاک شدن گروه = باخت تیم زننده
+    _, st2 = _bl_state()
+    st2["breaking"], st2["solids"] = False, 0
+    b = [p[:] for p in st2["balls"]]; b[8] = None
+    Bl._resolve(st2, 0, {"pos": b, "pots": [[8, .5, 1, 1]], "first": 1, "rails": [], "dur": 1.0}, Bl.targets(st2, 0), 60.0)
+    assert st2["over"] and st2["winner"] == 1 and Bl.winners(st2) == {"1"}
+    # گروه پاک، ۸ بعد از برخورد اول با خود ۸ = برد
+    _, st3 = _bl_state()
+    st3["breaking"], st3["solids"] = False, 0
+    for k in range(1, 8):
+        st3["balls"][k] = None
+    assert Bl.targets(st3, 0) == [8]
+    b = [p[:] if p else None for p in st3["balls"]]; b[8] = None
+    Bl._resolve(st3, 0, {"pos": b, "pots": [[8, .5, 1, 1]], "first": 8, "rails": [], "dur": 1.0}, [8], 70.0)
+    assert st3["over"] and st3["winner"] == 0 and st3["msg"] == "won"
+    # وقت تمام شد = حریف توپ در دست
+    _, st4 = _bl_state()
+    Bl.tick(st4, st4["deadline"] + 1)
+    assert st4["turn"] == 1 and st4["bih"] and st4["players"]["0"]["misses"] == 1
+
+
+def test_billiard_teams_and_bot_games():
+    from game_club import billiard as Bl
+    random.seed(5)
+    assert Bl.team(0) == Bl.team(2) != Bl.team(1) == Bl.team(3)
+    for n in (2, 4, 4):
+        st = Bl.new_state([{"color": c, "name": c, "bot": True} for c in Bl.seats_of(n)], 0.0, 20, False, n)
+        t = 0.0
+        while not st["over"] and t < 30000:
+            t += 1.0
+            Bl.tick(st, t)
+            for p in st["balls"]:
+                assert p is None or (0 <= p[0] <= Bl.W and 0 <= p[1] <= Bl.H)
+        assert st["over"] and st["winner"] in (0, 1)
+        assert Bl.winners(st) == {s for k, s in enumerate(st["order"]) if k % 2 == st["winner"]}
+    # چهار نفره: خروج یک نفر بازی را تمام نمی کند (ربات جایش بازی می کند)
+    st = Bl.new_state([{"color": c, "uid": i + 1, "name": c, "bot": False} for i, c in enumerate(Bl.SEATS4)], 0.0, 20, False, 4)
+    Bl.leave(st, "2", 1.0)
+    assert not st["over"] and st["players"]["2"]["out"]
+    _, st2 = _bl_state(2)
+    Bl.leave(st2, "0", 1.0)
+    assert st2["over"] and Bl.winners(st2) == {"1"}
+
+
+def test_billiard_service_flow():
+    from game_club import service
+    from game_club.db import GCDatabase
+    tmp = tempfile.mkdtemp()
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        real = service.time.time
+        clock = [80_000.0]
+        service.time.time = lambda: clock[0]
+        try:
+            for tg in (1, 2, 3, 4):
+                await db.player(tg, f"p{tg}")
+                await db.credit(tg, 1000)
+            # تمرین با ربات: دو نفره
+            r = await service.queue_join(db, 1, {"game": "billiard", "mode": "free", "players": 2, "solo": True})
+            mid = r["match"]
+            v = await service.match_view(db, 1, mid)
+            g = v["game"]
+            assert g["n"] == 2 and g["breaking"] and len(g["balls"]) == 16 and v["cfg"]["players"] == 2
+            # تا نوبت من شود (ربات ممکن است اول بزند)
+            for _ in range(20):
+                m = await db.get_match(mid)
+                st = m["state"]
+                clock[0] = max(clock[0], st["next_at"]) + 0.2
+                if st["order"][st["turn"]] == v["me"] and not st["over"]:
+                    break
+                await service.match_view(db, 1, mid)
+            v = await service.act(db, 1, mid, "shot", data={"a": -1.5, "p": 0.8, "sx": 0, "sy": 0})
+            # فقط آخرین ضربه فریم دارد (فریم ضربه های قبلی برای کوچک ماندن وضعیت پاک می شود)
+            shots = [e for e in v["game"]["events"] if e["t"] == "shot"]
+            assert shots and shots[-1].get("frames") and all(len(h) == 4 for h in shots[-1]["hits"])
+            assert (await service.my_tables(db, 1))[0]["game"] == "billiard"
+            await service.leave_any(db, 1, mid)
+            assert (await db.get_match(mid))["status"] == "over"
+            # چهار نفره یاری با امتیاز: اولین مهمان یار سازنده (صندلی ۲) و جایزه بین تیم برنده
+            cfg = {"game": "billiard", "mode": "stake", "entry": 100, "players": 4}
+            inv = await service.invite_create(db, 1, cfg)
+            for tg in (2, 3, 4):
+                await service.invite_join(db, tg, inv["code"])
+            m = await db.get_match(inv["match"])
+            assert m["status"] == "playing"
+            rows = {r["tg_id"]: r["color"] for r in await db.match_players(inv["match"])}
+            assert rows == {1: "0", 2: "2", 3: "1", 4: "3"}
+            assert [(await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)] == [900] * 4
+
+            def win0(mm):
+                from game_club import billiard
+                billiard._finish(mm["state"], 0, "pot8")
+                mm["status"] = "over"
+                return True, None
+            await service.mutate(db, inv["match"], win0)
+            pts = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)}
+            assert pts == {1: 1100, 2: 1100, 3: 900, 4: 900}, pts
+        finally:
+            service.time.time = real
             await db.close()
 
     asyncio.run(run())

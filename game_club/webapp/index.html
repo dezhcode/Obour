@@ -90,6 +90,15 @@ a.gt:active{transform:scale(.98)}
 .ra-fb .fd .in svg{display:block;width:100%;height:100%}
 .ra-fb .fd .in::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 60% 45% at 34% 24%,rgba(255,255,255,.6),rgba(255,255,255,0) 70%)}
 .ra-fb .ball{position:absolute;z-index:3;filter:drop-shadow(2px 4px 3px rgba(0,0,0,.45))}
+/* بیلیارد: گوشهٔ میز با ماهوت، جیب و چند توپ براق */
+.ra-bl{background:radial-gradient(120% 90% at 50% 40%,#2fa45c,#1b7a41 70%,#156536);box-shadow:inset 0 0 0 7px #5a2f17,inset 0 0 0 9px #3b1d0e}
+.ra-bl .pk{position:absolute;width:22px;height:22px;border-radius:50%;background:radial-gradient(#000 55%,#222);z-index:1}
+.ra-bl .pb{position:absolute;width:24px;height:24px;border-radius:50%;z-index:2;background:var(--c);
+  box-shadow:inset -4px -5px 7px rgba(0,0,0,.4),inset 3px 3px 5px rgba(255,255,255,.35),2px 4px 4px rgba(0,0,0,.35)}
+.ra-bl .pb.st{background:radial-gradient(circle at 50% 50%,#fff 0 4px,transparent 4.5px),linear-gradient(180deg,#f4f1e8 0 27%,var(--c) 27% 73%,#f4f1e8 73%)}
+.ra-bl .pb.so{background:radial-gradient(circle at 50% 50%,#fff 0 4px,transparent 4.5px),var(--c)}
+.ra-bl .cue{position:absolute;height:5px;width:120px;border-radius:3px;z-index:3;transform-origin:0 50%;
+  background:linear-gradient(90deg,#4c7bd6 0 4px,#f5f2ea 4px 9px,#e3c58d 9px 70%,#1d1d1d 70% 73%,#5a2a14 73%);box-shadow:2px 4px 4px rgba(0,0,0,.35)}
 /* منچ: صفحهٔ واقعی با پرسپکتیو و مهره ها */
 .ra-ludo{background:linear-gradient(160deg,#3A2F78,#231C4D)}
 .ra-ludo .bd{position:absolute;left:50%;top:10px;width:92px;margin-left:-46px;transform:perspective(420px) rotateX(28deg) rotateZ(-8deg);filter:drop-shadow(0 10px 10px rgba(0,0,0,.45))}
@@ -225,11 +234,11 @@ a.gt:active{transform:scale(.98)}
   const $ = id => document.getElementById(id);
   GC.back(null);
   // آمده از لینک میز گروه تلگرام (t.me/<bot>?startapp=hokm_CODE): مستقیم سر همان میز، فقط یک بار در هر نشست
-  const sp = GC.startParam(), spm = sp.match(/^(hokm|ludo|football)_([A-Za-z0-9]{4,12})$/);
+  const sp = GC.startParam(), spm = sp.match(/^(hokm|ludo|football|billiard)_([A-Za-z0-9]{4,12})$/);
   let spSeen = false; try { spSeen = sessionStorage.getItem('gc_sp') === sp; sessionStorage.setItem('gc_sp', sp); } catch (e) {}
   if (spm && !spSeen) { location.replace(`${spm[1]}-lobby.html?join=${spm[2]}`); return; }
   // دکمهٔ «دیدن بازی» کارت گروه: startapp=w_hokm_MATCHID ← صفحهٔ بازی در حالت تماشا (اگر خودش بازیکن باشد، بازی خودش)
-  const spw = sp.match(/^w_(hokm|ludo|football)_([A-Za-z0-9]{6,16})$/);
+  const spw = sp.match(/^w_(hokm|ludo|football|billiard)_([A-Za-z0-9]{6,16})$/);
   if (spw && !spSeen) { location.replace(`${spw[1]}.html?watch=${spw[2]}`); return; }
   let me = null, style = { table: 'a', cards: 'a' }, notify = [], tables = [];
 
@@ -249,6 +258,10 @@ a.gt:active{transform:scale(.98)}
       C.face(11 + 13, '', `left:calc(50% - ${17 * k}px);top:${8 * k}px;transform:rotate(-2deg);font-size:${34 * k}px`)}${
       C.face(12, '', `left:calc(50% + ${12 * k}px);top:${14 * k}px;transform:rotate(14deg);font-size:${34 * k}px`)}</div>`,
     football: () => `<div class="ra ra-fb" aria-hidden="true">${disc('eagles', 40, 26, 48)}${disc('lions', 40, 104, 14)}<span class="ball" style="left:72px;top:42px;width:20px">${BALL}</span></div>`,
+    billiard: () => `<div class="ra ra-bl" aria-hidden="true"><span class="pk" style="left:6px;top:6px"></span><span class="pk" style="right:6px;top:6px"></span>
+      <span class="pb so" style="--c:#F2B90C;left:calc(50% - 30px);top:20px"></span><span class="pb st" style="--c:#1F45B5;left:calc(50% - 8px);top:14px"></span>
+      <span class="pb so" style="--c:#121212;left:calc(50% + 14px);top:22px"></span><span class="pb" style="--c:#F4F1E8;left:calc(50% - 12px);top:58px"></span>
+      <span class="cue" style="left:calc(50% - 4px);top:80px;transform:rotate(58deg)"></span></div>`,
     ludo: () => `<div class="ra ra-ludo" aria-hidden="true"><span class="bd">${GC.boardArt()}</span><span class="pw" style="left:22px;top:46px">${GC.pawn('red')}</span><span class="pw" style="right:24px;top:38px">${GC.pawn('blue')}</span></div>`,
     esm: () => '<div class="ra ra-esm" aria-hidden="true"><span style="background:#FFA552;color:#3A2000;transform:rotate(-8deg)">ب</span><span style="background:#FF7A85;color:#3A0A10;transform:rotate(6deg)">م</span><span style="background:#8E7CF8;color:#fff;transform:rotate(-3deg)">الف</span></div>',
   };
@@ -296,12 +309,12 @@ a.gt:active{transform:scale(.98)}
     const list = alerts();
     const sh = sheet(`${sheetHead('اعلان‌ها')}<div class="ntf">${list.length ? list.map(a => `<${a.href ? `a href="${a.href}" data-g="${a.game || ''}" data-id="${a.id || ''}" data-k="${a.k || ''}"` : 'div'}><span class="ic" style="background:${a.bg};color:${a.c}">${icon(a.ic)}</span><span><b>${a.t}</b><small>${a.s}</small></span><span>${a.href ? icon('fwd') : ''}</span></${a.href ? 'a' : 'div'}>`).join('')
       : '<p class="hint">اعلان تازه‌ای نداری. وقتی نوبتت شد یا میزی منتظرت بود، اینجا می‌بینی.</p>'}</div>`);
-    sh.querySelectorAll('a[data-id]').forEach(a => a.addEventListener('click', () => { const g = GC.GAMES.find(x => x.id === a.dataset.g); if (a.dataset.k === 'playing' && a.dataset.id && g) store.set({ hokm: 'hmid', football: 'fmid', ludo: 'mid' }[g.id], a.dataset.id); }));
+    sh.querySelectorAll('a[data-id]').forEach(a => a.addEventListener('click', () => { const g = GC.GAMES.find(x => x.id === a.dataset.g); if (a.dataset.k === 'playing' && a.dataset.id && g) store.set({ hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid' }[g.id], a.dataset.id); }));
   };
 
   /* ---------- کارت بزرگ بالا: ادامهٔ بازی یا حکم ---------- */
-  const KEY = { hokm: 'hmid', football: 'fmid', ludo: 'mid' };
-  const heroBg = { hokm: () => `felt tbl-${style.table}`, football: () => 't-green', ludo: () => 't-violet' };
+  const KEY = { hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid' };
+  const heroBg = { hokm: () => `felt tbl-${style.table}`, football: () => 't-green', ludo: () => 't-violet', billiard: () => 't-green' };
   function heroTable() {
     const playing = tables.filter(t => t.kind === 'playing');
     return playing.find(t => t.my_turn) || playing[0] || tables[0] || null;
@@ -351,7 +364,7 @@ a.gt:active{transform:scale(.98)}
   /* ---------- کاشی بازی ها ---------- */
   function renderGames() {
     const open = new Set(tables.map(t => t.game));
-    const badge = { hokm: '<span class="bdg hot">محبوب</span>', football: '<span class="bdg new">جدید</span>' };
+    const badge = { hokm: '<span class="bdg hot">محبوب</span>', football: '<span class="bdg new">جدید</span>', billiard: '<span class="bdg new">جدید</span>' };
     $('games').innerHTML = GC.GAMES.map(g => {
       const b = g.soon ? '' : open.has(g.id) ? '<span class="bdg open">میز باز داری</span>' : (badge[g.id] || '');
       const bg = g.id === 'hokm' ? `felt tbl-${style.table}` : '';

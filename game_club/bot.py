@@ -3,11 +3,11 @@
 روی همان event loop عبور ساخته می شود (app.runtime) ولی Bot، Dispatcher
 و دیتابیس خودش را دارد. کار اصلی ربات باز کردن مینی اپ است:
   /start            خوش آمد + دکمه ورود
-  /start ludo_CODE  لینک دعوت دوست: دکمه مستقیم به همان میز (حکم: hokm_CODE، فوتبال: football_CODE)
+  /start ludo_CODE  لینک دعوت دوست: دکمه مستقیم به همان میز (حکم: hokm_CODE، فوتبال: football_CODE، بیلیارد: billiard_CODE)
   /start obour      آمده از کارت Game Club در مینی اپ عبور
   /points           موجودی امتیاز
   /help             قوانین کوتاه
-در گروه ها (groups.py): @آیدی ربات (حالت اینلاین) یا /hokm، /ludo، /football، /play کارت تنظیم میز می فرستد.
+در گروه ها (groups.py): @آیدی ربات (حالت اینلاین) یا /hokm، /ludo، /football، /billiard، /play کارت تنظیم میز می فرستد.
 /start و /help راه اینلاین را یاد می دهند و دکمهٔ «بازی توی گروه» دارند.
 ادمین ها (ADMIN_IDS عبور):
   /gcstats                  آمار امروز و همه
@@ -137,7 +137,7 @@ def _h(icon: str, title, sub=None, lines=(), foot=None) -> str:  # noqa: ANN001
     return st.to_html(st.frame(icon, title, sub, lines, foot))
 
 
-GAME_FA = {"ludo": "منچ", "hokm": "حکم", "football": "فوتبال"}
+GAME_FA = {"ludo": "منچ", "hokm": "حکم", "football": "فوتبال", "billiard": "بیلیارد"}
 
 
 # ---------- راهنمای بازی در گروه با حالت اینلاین (@آیدی ربات) ----------
@@ -148,7 +148,7 @@ def bot_at() -> str:
 def group_steps() -> list:
     return [[st.E("group"), " ", st.B("بازی توی گروه")],
             ["1. توی گروهت بنویس ", st.iso(bot_at()), " و یه فاصله بذار"],
-            "2. از لیستی که بالای کیبورد باز می‌شه، بازی رو انتخاب کن: حکم، منچ یا فوتبال",
+            "2. از لیستی که بالای کیبورد باز می‌شه، بازی رو انتخاب کن: حکم، منچ، فوتبال یا بیلیارد",
             "3. حالت بازی رو بچین و «باز کردن میز» رو بزن",
             "4. رفیقات «بشین» رو می‌زنن؛ میز که پر شد، بازی شروع می‌شه 🎉"]
 
@@ -183,14 +183,15 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
                 reply_markup=open_kb(f"{game}-lobby.html", f"میز تازهٔ {name}", "new"))
             return
         stake = m["cfg"]["mode"] == "stake"
-        who = {"hokm": "یه دست حکم (یار خودش!)", "football": "یه بازی فوتبال", "ludo": "یه دست منچ"}[game]
+        who = {"hokm": "یه دست حکم (یار خودش!)", "football": "یه بازی فوتبال", "ludo": "یه دست منچ",
+               "billiard": "یه دست بیلیارد" + (" (یار خودش!)" if m["cfg"].get("players") == 4 else "")}[game]
         await message.answer(_h(game, f"میز {name}", "دعوتت کردن!", [
             f"رفیقت تو رو به {who} دعوت کرده؛ منتظره بشینی کنارش 😎"],
             foot=("coin", "نوع میز", ["با امتیاز · ورودی ", st.num(m["cfg"]["entry"])] if stake else "آزاد · مجانی")),
             reply_markup=open_kb(f"{game}-lobby.html?join={code}", "بشین سر میز", "seat"))
         return
     lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), "، خوش اومدی! اینجا کسی حوصله‌ش سر نمی‌ره 😎"], "",
-             [st.E("hokm"), " حکم  ", st.E("ludo"), " منچ  ", st.E("football"), " فوتبال"],
+             [st.E("hokm"), " حکم  ", st.E("ludo"), " منچ  ", st.E("football"), " فوتبال  ", st.E("billiard"), " بیلیارد"],
              "با رفیقات یا با ناشناس؛ هر جا حوصله‌ت سر رفت 😄", "", *group_steps()]
     if arg == "obour":
         lines += ["", "حساب عبورت به همین تلگرام وصله؛ شارژ از کیف عبور یه ثانیه‌ست ⚡"]
@@ -474,9 +475,10 @@ async def on_emoji_input(message: Message, gdb: GCDatabase) -> None:
 # ۲) در کارت کنترل: گیرنده ها، دکمه ها (تا ۳ تا، با ایموجی پریمیوم)، نسخهٔ آزمایشی و ارسال با تایید
 # پیش نویس در دیتابیس است (status=draft)؛ پس اگر پروسه عوض شد چیزی گم نمی شود.
 PAGE_ALIAS = {"خانه": "", "home": "", "حکم": "hokm-lobby.html", "منچ": "ludo-lobby.html", "فوتبال": "football-lobby.html",
+              "بیلیارد": "billiard-lobby.html",
               "بازی‌ها": "games.html", "بازی ها": "games.html", "بازیها": "games.html", "دوستان": "friends.html",
               "پروفایل": "profile.html", "فروشگاه": "shop.html", "کیف": "shop.html"}
-PAGE_FA = {"": "خانه", "hokm-lobby.html": "حکم", "ludo-lobby.html": "منچ", "football-lobby.html": "فوتبال",
+PAGE_FA = {"": "خانه", "hokm-lobby.html": "حکم", "ludo-lobby.html": "منچ", "football-lobby.html": "فوتبال", "billiard-lobby.html": "بیلیارد",
            "games.html": "بازی‌ها", "friends.html": "دوستان", "profile.html": "پروفایل", "shop.html": "فروشگاه"}
 _BC_WAIT = "bcwait:"   # setting: ادمین دارد دکمه های کدام پیش نویس را می فرستد
 
@@ -663,6 +665,7 @@ COMMANDS = [BotCommand(command="start", description="ورود به Game Club"),
 GROUP_COMMANDS = [BotCommand(command="hokm", description="میز حکم در همین گروه"),
                   BotCommand(command="ludo", description="میز منچ در همین گروه"),
                   BotCommand(command="football", description="میز فوتبال در همین گروه"),
+                  BotCommand(command="billiard", description="میز بیلیارد در همین گروه"),
                   BotCommand(command="play", description="انتخاب بازی")]
 UPDATES = ["message", "callback_query", "inline_query", "chosen_inline_result"]
 

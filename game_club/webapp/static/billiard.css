@@ -1,0 +1,119 @@
+/* بیلیارد: همان چیدمان طراحی شدهٔ صفحهٔ بازی، روی قاب مرجع ۶۰۰×۱۲۸۰ (هر چیز بر حسب --u).
+   پس زمینه و آیکن های دکمه ها از آرتِ خودِ پلاتو (static/plato) می آیند؛ بوم و بقیه طراحی Game Club است. */
+html:has(body.billiard){overflow:hidden}
+body.billiard{margin:0;height:100vh;height:100dvh;overflow:hidden;color:#fff;
+  font-family:Roboto,"Segoe UI",Rokh,Vazirmatn,Tahoma,system-ui,sans-serif;
+  --atlas:url("plato/ui.webp");
+  background-color:#3b3342;
+  background-image:url("plato/th_basic_background.webp");
+  background-size:calc(128 * var(--u,1px)) calc(128 * var(--u,1px));
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+body.billiard .sheet{color:var(--ink)}
+#wrap{position:fixed;inset:0;padding:calc(var(--sa-t,0px) + var(--csa-t,0px)) var(--sa-r,0px) var(--sa-b,0px) var(--sa-l,0px)}
+#frame{--u:1px;position:absolute;left:50%;top:calc(50% + (var(--sa-t,0px) + var(--csa-t,0px) - var(--sa-b,0px)) / 2);width:calc(600 * var(--u));height:calc(1280 * var(--u));
+  transform:translate(-50%,-50%);direction:ltr}
+#table{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.abs{position:absolute;z-index:5}
+.round{border-radius:50%;display:flex;align-items:center;justify-content:center;border:0;padding:0;background:rgba(20,16,26,.55);cursor:pointer;color:#fff}
+.round svg{width:52%;height:52%}
+#frame button{font:inherit;color:#fff}
+
+/* ---------- هدر ---------- */
+#exit{left:calc(17 * var(--u));top:calc(29 * var(--u));width:calc(46 * var(--u));height:calc(46 * var(--u))}
+#menuBtn{left:calc(537 * var(--u));top:calc(29 * var(--u));width:calc(46 * var(--u));height:calc(46 * var(--u))}
+#timer{left:calc(444 * var(--u));top:calc(3 * var(--u));display:flex;align-items:center;gap:calc(3 * var(--u))}
+#timer i{display:block;width:calc(16 * var(--u));height:calc(16 * var(--u));
+  background:var(--atlas) no-repeat;background-size:calc(1343 * var(--u) * 16 / 30) auto;
+  background-position:calc(-1303 * var(--u) * 16 / 30) calc(-323 * var(--u) * 16 / 30)}
+#timerTrack{width:calc(62 * var(--u));height:calc(11 * var(--u));border-radius:99px;background:#111;padding:calc(1.5 * var(--u));overflow:hidden}
+#timerBar{height:100%;width:100%;border-radius:99px;background:#f2c832}
+#vs{left:calc(300 * var(--u));top:calc(36 * var(--u));transform:translateX(-50%);font-weight:900;font-size:calc(22 * var(--u));letter-spacing:calc(1 * var(--u))}
+.pl{position:absolute;z-index:5;top:calc(30 * var(--u));width:calc(110 * var(--u));margin-left:calc(-55 * var(--u));display:flex;flex-direction:column;align-items:center}
+.pl .avatar{--size:calc(40 * var(--u));box-shadow:none}
+.pl .avatar > span{border:0}
+.pl.turn .avatar{box-shadow:0 0 0 calc(3 * var(--u)) #2a8cf0}
+.pl.out .avatar{opacity:.45}
+.pname{margin-top:calc(6 * var(--u));font-size:calc(12 * var(--u));line-height:1.1;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:calc(4 * var(--u));direction:ltr}
+.pname::after{content:"";flex:0 0 auto;width:calc(6 * var(--u));height:calc(6 * var(--u));border-radius:50%;background:#4cd964}
+.pl.out .pname::after{background:#9aa3ad}
+.yturn{display:none;margin-top:calc(4 * var(--u));background:#1e88e5;color:#fff;font-weight:700;font-size:calc(12.5 * var(--u));
+  padding:calc(4 * var(--u)) calc(11 * var(--u));border-radius:calc(13 * var(--u));white-space:nowrap}
+.pl.mine.turn .yturn{display:block}
+.pl.mine.turn .pname{display:none}
+.pbub{position:absolute;top:calc(102 * var(--u));z-index:8;max-width:calc(170 * var(--u));padding:calc(6 * var(--u)) calc(10 * var(--u));border-radius:calc(14 * var(--u));
+  background:#fff;color:#1C2230;font-size:calc(12.5 * var(--u));font-weight:700;line-height:1.4;direction:rtl;white-space:normal;animation:bl-rise .3s ease-out both;pointer-events:none}
+@keyframes bl-rise{from{opacity:0;transform:scale(.7) translateY(-6px)}}
+
+/* ---------- پیام روی میز ---------- */
+#msg{left:calc(300 * var(--u));top:calc(242 * var(--u));transform:translateX(-50%);z-index:7;min-width:calc(255 * var(--u));max-width:calc(440 * var(--u));
+  min-height:calc(40 * var(--u));padding:calc(6 * var(--u)) calc(18 * var(--u));border-radius:calc(8 * var(--u));background:rgba(28,27,32,.95);
+  font-weight:700;font-size:calc(16 * var(--u));display:flex;align-items:center;justify-content:center;gap:calc(8 * var(--u));text-align:center;direction:rtl;pointer-events:none}
+#msg em{font-style:normal;color:#f2c832}
+#msg.foul{color:#ffb0a8}
+
+/* ---------- چپ: آیتم ها و قدرت ---------- */
+#itemsLbl{left:calc(37 * var(--u));top:calc(568 * var(--u));transform:translateX(-50%);font-size:calc(10 * var(--u));font-weight:700;letter-spacing:calc(.3 * var(--u))}
+#items{left:calc(15 * var(--u));top:calc(588 * var(--u));width:calc(44 * var(--u));height:calc(44 * var(--u));background:rgba(32,28,38,.85)}
+#items svg{width:62%;height:62%}
+#power{left:calc(19 * var(--u));top:calc(650 * var(--u));width:calc(37 * var(--u));height:calc(392 * var(--u));border-radius:calc(18 * var(--u));
+  background:#120f12;border:calc(3 * var(--u)) solid #0b0a0b;overflow:hidden;touch-action:none;cursor:ns-resize;box-shadow:0 0 0 calc(1 * var(--u)) #ffffff14}
+#power canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* ---------- راست ---------- */
+#eye{left:calc(538 * var(--u));top:calc(586 * var(--u));width:calc(48 * var(--u));height:calc(48 * var(--u));background:rgba(20,16,26,.6)}
+#eye i{display:block;width:72%;height:72%;background:var(--atlas) no-repeat;
+  background-size:calc(1343 * var(--u) * 34.5 / 64) auto;
+  background-position:calc(-1237 * var(--u) * 34.5 / 64) calc(-291 * var(--u) * 34.5 / 64)}
+#eye[aria-pressed="false"] i{background-position:calc(-1244 * var(--u) * 34.5 / 64) calc(-219 * var(--u) * 34.5 / 64)}
+#english{left:calc(531 * var(--u));top:calc(649 * var(--u));width:calc(62 * var(--u));height:calc(62 * var(--u));border-radius:50%;touch-action:none;cursor:pointer}
+#fineLbl{left:calc(563 * var(--u));top:calc(826 * var(--u));transform:translateX(-50%);font-size:calc(13 * var(--u));font-weight:700;white-space:nowrap}
+.fine{left:calc(541 * var(--u));width:calc(44 * var(--u));height:calc(84 * var(--u));border:0;padding:0;
+  background:var(--atlas) no-repeat;background-size:calc(1343 * var(--u) * 44 / 80) auto;
+  background-position:calc(-635 * var(--u) * 44 / 80) calc(-291 * var(--u) * 44 / 80);
+  display:flex;align-items:center;justify-content:center;touch-action:none;-webkit-touch-callout:none}
+.fine i{display:block;width:calc(27 * var(--u));height:calc(16 * var(--u));background:var(--atlas) no-repeat;
+  background-size:calc(1343 * var(--u) * 27 / 49) auto;
+  background-position:calc(-1238 * var(--u) * 27 / 49) calc(-151 * var(--u) * 27 / 49)}
+.fine.pressed{filter:brightness(1.6);transform:scale(.96)}
+#fineUp{top:calc(852 * var(--u))}
+#fineUp i{transform:rotate(180deg)}
+#fineDown{top:calc(958 * var(--u))}
+#frame.wait #power,#frame.wait #english,#frame.wait .fine{opacity:.5}
+
+/* ---------- نوار پیام ---------- */
+#chatbar{left:0;right:0;bottom:0;height:calc(74 * var(--u));background:#141414;display:flex;align-items:center;gap:calc(14 * var(--u));
+  padding:0 calc(24 * var(--u)) 0 calc(28 * var(--u));z-index:6}
+#chatbar button{background:none;border:0;padding:0;display:flex;position:relative}
+#chatbar svg{width:calc(32 * var(--u));height:calc(32 * var(--u))}
+#chatbar .badge{position:absolute;top:calc(-6 * var(--u));right:calc(-8 * var(--u))}
+#chatIn{flex:1 1 auto;min-width:0;background:transparent;border:0;outline:0;color:#eee;font:inherit;font-size:calc(22 * var(--u));direction:auto}
+#chatIn::placeholder{color:#8b8b8b}
+
+/* ---------- پنل پیچ ---------- */
+#spinPop{left:0;top:0;right:0;bottom:calc(74 * var(--u));z-index:35;display:none;background:rgba(0,0,0,.45)}
+#spinPop.open{display:block}
+#spinBig{position:absolute;left:calc(169 * var(--u));top:calc(251 * var(--u));width:calc(262 * var(--u));height:calc(262 * var(--u));touch-action:none;cursor:crosshair;border-radius:50%}
+#presetLbl{position:absolute;left:calc(300 * var(--u));top:calc(636 * var(--u));transform:translateX(-50%);font-weight:700;font-size:calc(17 * var(--u))}
+#spinPop .preset{position:absolute;top:calc(673 * var(--u));width:calc(60 * var(--u));height:calc(60 * var(--u));border-radius:50%;cursor:pointer;touch-action:none}
+#spinClose{position:absolute;left:calc(192 * var(--u));top:calc(871 * var(--u));width:calc(215 * var(--u));height:calc(49 * var(--u));background:rgba(18,40,24,.72);
+  border:1px solid rgba(255,255,255,.75);border-radius:calc(3 * var(--u));font-weight:700;font-size:calc(16 * var(--u));letter-spacing:calc(.5 * var(--u));padding:0;cursor:pointer}
+
+/* ---------- منوی ⋮ ---------- */
+#menuPop{right:calc(14 * var(--u));top:calc(82 * var(--u));z-index:30;display:none;flex-direction:column;min-width:calc(230 * var(--u));background:rgba(24,21,30,.97);
+  border-radius:calc(12 * var(--u));padding:calc(6 * var(--u));box-shadow:0 12px 40px #000a;direction:rtl}
+#menuPop.open{display:flex}
+#menuPop button,#menuPop a{background:none;border:0;text-align:start;padding:calc(11 * var(--u)) calc(14 * var(--u));font-size:calc(17 * var(--u));border-radius:calc(8 * var(--u));color:#fff;display:block;text-decoration:none;font-family:inherit}
+#menuPop button:hover,#menuPop a:hover{background:#ffffff12}
+#mExit{color:#ff8a8a!important}
+
+/* نتیجه */
+.bl-res{display:grid;justify-items:center;gap:var(--space-2);text-align:center}
+.bl-res .ic{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;background:rgba(245,196,81,.16);box-shadow:inset 0 0 0 2px #F5C451;color:#F5C451}
+.bl-res .ic.lost{background:rgba(0,0,0,.06);box-shadow:inset 0 0 0 2px var(--line);color:var(--ink-muted)}
+.bl-res .ic svg{width:34px;height:34px}
+.bl-res h2{font-size:22px;line-height:30px;font-weight:800}
+.bl-res p{font-size:13.5px;color:var(--ink-muted)}
+.bl-res .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
+.bl-res .facts div{display:grid;gap:2px;padding:8px 4px;border-radius:14px;background:var(--surface-sunk)}
+.bl-res .facts b{font-size:18px;font-weight:800}
+.bl-res .facts span{font-size:11px;color:var(--ink-muted)}

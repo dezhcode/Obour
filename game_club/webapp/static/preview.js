@@ -38,6 +38,13 @@ const ART = {
     return `<div class="pv pv-fb" aria-hidden="true"><span class="pv-goal"></span><span class="pv-line"></span><span class="pv-circle"></span>
       ${disc('lions', 'pv-d2')}<span class="pv-layer pv-kick">${disc('eagles', 'pv-d1')}</span><span class="pv-layer pv-shot"><span class="pv-ball">${BALL}</span></span></div>`;
   },
+  // توپ سفید به توپ زرد می خورد و زرد به سمت جیب می رود
+  billiard() {
+    const b = (c, cls, st, stripe) => `<span class="pv-pb${stripe ? ' st' : ''} ${cls}" style="--c:${c};${st}"></span>`;
+    return `<div class="pv pv-bl" aria-hidden="true"><span class="pv-pk" style="left:3%;top:6%"></span><span class="pv-pk" style="right:3%;top:6%"></span>
+      ${b('#1F45B5', '', 'left:56%;top:30%', true)}${b('#121212', '', 'left:64%;top:46%')}${b('#D9262C', '', 'left:30%;top:52%', true)}
+      <span class="pv-layer pv-bl-pot">${b('#F2B90C', '', 'left:44%;top:36%')}</span><span class="pv-layer pv-bl-cue">${b('#F4F1E8', '', 'left:40%;top:72%')}</span></div>`;
+  },
   esm() {
     return '<div class="pv pv-esm" aria-hidden="true"><span style="--d:0s;--r:-8deg">الف</span><span style="--d:.25s;--r:5deg">ب</span><span style="--d:.5s;--r:-3deg">م</span></div>';
   },

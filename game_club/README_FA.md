@@ -1,6 +1,6 @@
 # Game Club (آزمایشی)
 
-ربات و مینی اپ بازی عبور. کاربر منچ، حکم و فوتبال بازی می‌کند (آزاد یا با امتیاز)، با دوستش یا
+ربات و مینی اپ بازی عبور. کاربر منچ، حکم، فوتبال و بیلیارد بازی می‌کند (آزاد یا با امتیاز)، با دوستش یا
 با ناشناس، و امتیازش را در عبور خرج می‌کند. بعد از منچ: اسم فامیل و حکم.
 
 Game Club کنار ربات عبور روی **همان هاست، همان پروسه Passenger و همان event loop**
@@ -62,6 +62,7 @@ game_club/
   ludo.py        قواعد منچ؛ تاس (secrets) و حرکت مجاز فقط اینجا
   hokm.py        قواعد حکم: آس کشی حاکم، حکم، اجبار خال، کوت
   football.py    فوتبال دو نفره: فیزیک برخورد مهره ها و توپ، گل، ربات
+  billiard.py    بیلیارد ۸ توپ دو نفره یا چهار نفره یاری: فیزیک میز و جیب ها، قواعد، ربات
   service.py     صف ناشناس، میز دعوت، ورودی، جایزه، بازگشت پول، رده‌بندی
   bridge.py      پل به عبور: شارژ از کیف عبور، خرید پلن با امتیاز، انتقال
   api.py         اندپوینت‌های مینی اپ
@@ -72,7 +73,7 @@ game_club/
   design/        سیستم دیزاین (tokens.json منبع اصلی، build_tokens.py)
   webapp/        مینی اپ: هر صفحه یک فایل
     index.html wallet.html leaderboard.html shop.html help.html ludo-lobby.html ludo.html
-    hokm-lobby.html hokm.html football-lobby.html football.html
+    hokm-lobby.html hokm.html football-lobby.html football.html billiard-lobby.html billiard.html
     static/gc.js     SDK مینی اپ تلگرام، تمام‌صفحه، API، صدا، اجزای مشترک
     static/ludo.js   نمایش بازی: پخش رویدادهای سرور، چرخش صفحه برای هر بازیکن
     static/demo.js   حالت نمایشی بیرون از تلگرام (همان موتور، در مرورگر)
@@ -92,6 +93,10 @@ game_club/
 API: `me`، `settings`، `notify`، `wallet/charge`، `shop`، `shop/buy`، `shop/transfer`،
 `leaderboard`، `ludo/queue` (+ `/leave`)، `ludo/invite`، `ludo/join`، `ludo/start`،
 `ludo/match`، `ludo/roll`، `ludo/move`، `ludo/leave`.
+بیلیارد همین مسیرها را زیر `billiard/` دارد و حرکتش `billiard/shot` است
+(`a` زاویه، `p` قدرت، `sx`/`sy` پیچ، `cx`/`cy` جای توپ سفید وقتی توپ در دست است).
+تنظیم میز بیلیارد: `players` = ۲ یا ۴ (یاری: اولین مهمان میز دعوت یار سازنده می‌شود؛
+جایزهٔ بازی امتیازی بین اعضای تیم برنده تقسیم می‌شود).
 
 ## بازی آنلاین بدون WebSocket
 
