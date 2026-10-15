@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 
-from . import admin, bridge, names, service, social
+from . import admin, bridge, groups, names, service, social
 from .bot import gcrt
 from .config import gc
 from .db import pic_url
@@ -116,6 +116,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         return await social.send(gdb, tg, str(body.get("uid") or ""), str(body.get("text") or ""))
     if name == "dm/invite" and method == "POST":
         return await social.invite(gdb, tg, str(body.get("uid") or ""), str(body.get("game") or ""))
+    if name == "group/share" and method == "POST":   # کارت میز برای Telegram.WebApp.shareMessage
+        return {"id": await groups.prepare_share(gdb, tg, str(body.get("game") or ""))}
     # ---------- یوزرنیم ----------
     if name == "name/check" and method == "GET":
         n = names.normalize(str(q.get("n") or ""))

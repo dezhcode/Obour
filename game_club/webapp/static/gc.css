@@ -489,6 +489,8 @@ body.game .appbar .turnbar .time{width:44px}
 .gp-private .t,.gp-q .t{flex:1;display:grid;min-width:0}
 .gp-private b{font-size:16px;line-height:24px;font-weight:900}
 .gp-private small,.gp-q small{font-size:12.5px;line-height:18px;color:var(--ink-muted)}
+.gp-share{margin-top:-4px}
+.gp-share .ic svg{fill:none;stroke:var(--gold);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .gp-private .go svg{width:20px;height:20px;color:var(--ink-muted)}
 .gp-q{list-style:none;margin:0;padding:0;border-radius:20px;background:var(--surface);overflow:hidden}
 .gp-q li{display:flex;align-items:center;gap:12px;min-height:72px;padding:8px 12px 8px 14px;border-bottom:1px solid rgba(255,255,255,.06)}

@@ -266,7 +266,7 @@ GROUP_COMMANDS = [BotCommand(command="hokm", description="میز حکم در ه�
                   BotCommand(command="ludo", description="میز منچ در همین گروه"),
                   BotCommand(command="football", description="میز فوتبال در همین گروه"),
                   BotCommand(command="play", description="انتخاب بازی")]
-UPDATES = ["message", "callback_query"]
+UPDATES = ["message", "callback_query", "inline_query", "chosen_inline_result"]
 
 
 async def _heal_webhook(bot: Bot) -> None:

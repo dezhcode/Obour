@@ -221,6 +221,14 @@ CREATE TABLE IF NOT EXISTS group_tables (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS group_tables_chat ON group_tables(chat_id, game, status);
+-- کارت اینلاینی که هنوز میزش ساخته نشده (اولین لمس دکمه میز را می سازد)
+CREATE TABLE IF NOT EXISTS inline_tokens (
+  token TEXT PRIMARY KEY,
+  host INTEGER NOT NULL,
+  game TEXT NOT NULL,
+  match_id TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
 CREATE INDEX IF NOT EXISTS dms_sender ON dms(sender, created_at);
 -- آخرین پیامی که tg_id از other خوانده
 CREATE TABLE IF NOT EXISTS dm_read (
@@ -279,6 +287,9 @@ class GCDatabase:
         for col in ("nick_ok", "uname_at", "uname_seen"):
             if col not in have:
                 await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} INTEGER NOT NULL DEFAULT 0")
+        cur = await self._conn.execute("PRAGMA table_info(group_tables)")
+        if "inline_message_id" not in {r[1] for r in await cur.fetchall()}:
+            await self._conn.execute("ALTER TABLE group_tables ADD COLUMN inline_message_id TEXT NOT NULL DEFAULT ''")
         await self._conn.commit()
         await self._migrate_names()
         await self._conn.execute("CREATE INDEX IF NOT EXISTS players_pic ON players(pic)")
@@ -462,6 +473,22 @@ class GCDatabase:
         """فقط یک پروسه تغییر وضعیت را می برد (مثلا فقط یک بار خبر «شروع شد» می رود)."""
         return bool(await self.execute("UPDATE group_tables SET status = ?, updated_at = ? WHERE match_id = ? AND status = ?",
                                        (new, int(time.time()), match_id, old)))
+
+    async def set_group_inline(self, match_id: str, inline_message_id: str) -> None:
+        await self.execute("UPDATE group_tables SET inline_message_id = ? WHERE match_id = ?", (inline_message_id, match_id))
+
+    async def new_inline_token(self, host: int, game: str) -> str:
+        now = int(time.time())
+        await self.execute("DELETE FROM inline_tokens WHERE created_at < ? AND match_id = ''", (now - 7 * 86400,))
+        token = secrets.token_urlsafe(9)
+        await self.execute("INSERT INTO inline_tokens(token, host, game, created_at) VALUES(?,?,?,?)", (token, host, game, now))
+        return token
+
+    async def inline_token(self, token: str) -> dict | None:
+        return await self.one("SELECT * FROM inline_tokens WHERE token = ?", (str(token)[:40],))
+
+    async def set_inline_match(self, token: str, match_id: str) -> None:
+        await self.execute("UPDATE inline_tokens SET match_id = ? WHERE token = ?", (match_id, token))
 
     async def stale_group_tables(self, before: int) -> list[dict]:
         return await self.all("SELECT g.* FROM group_tables g JOIN matches m ON m.id = g.match_id "

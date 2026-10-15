@@ -32,6 +32,8 @@ function build(opt) {
     const pts = GC.points, rows = opt.queues(settings);
     return `<button class="gp-private" id="gpPriv"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.5 3.5L12 5l4.5 6.5L21 8l-2 10H5z"/></svg></span>
         <span class="t"><b>ساخت میز خصوصی</b><small>${opt.privateSub || 'دوستانت را دعوت کن و با هم بازی کنید'}</small></span><span class="go">${icon('fwd')}</span></button>
+      <button class="gp-private gp-share" id="gpShare"><span class="ic">${icon('users')}</span>
+        <span class="t"><b>فرستادن به گروه</b><small>کارت میز را در گروه یا چت دوستانت بفرست</small></span><span class="go">${icon('send')}</span></button>
       <h2 class="gp-h">صف‌های بازی</h2>
       <ul class="gp-q">${rows.map((q, i) => {
         const short = q.cfg.mode === 'stake' && pts < q.cfg.entry;
@@ -39,6 +41,20 @@ function build(opt) {
           <span class="t"><b>${q.title}${q.hot ? '<span class="hot">محبوب</span>' : ''}</b><small>${q.sub}</small></span>
           <button class="gp-join${q.hot ? ' hot' : ''}" data-q="${i}"${short ? ' disabled' : ''}>${short ? 'امتیاز کم' : q.how === 'bot' ? 'شروع' : 'بپیوند'}</button></li>`;
       }).join('')}</ul>`;
+  }
+  /* فرستادن کارت میز به گروه یا چت: تلگرام پنجرهٔ انتخاب چت را باز می کند (WebApp 8.0+)؛
+     در تلگرام قدیمی تر حالت اینلاین (@ربات hokm) با انتخاب چت باز می شود */
+  async function share(btn) {
+    const w = window.Telegram && Telegram.WebApp, at = v => w && w.isVersionAtLeast && w.isVersionAtLeast(v);
+    const inline = () => { if (at('6.7') && w.switchInlineQuery) { w.switchInlineQuery(opt.game, ['groups', 'users']); return true; } return false; };
+    btn.disabled = true;
+    try {
+      const r = await GC.data.groupShare(opt.game);
+      if (r.demo) toast('در تلگرام، گروه را انتخاب می‌کنی و کارت میز همان‌جا فرستاده می‌شود');
+      else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز فرستاده شد'); } });
+      else if (!inline()) toast(`در گروه بنویس /${opt.game}`);
+    } catch (e) { if (!inline()) toast(errText(e)); }
+    btn.disabled = false;
   }
   function privateSheet() {
     const f = Object.assign({ mode: 'free', entry: settings.entries[0] }, opt.privateDefaults());
@@ -121,6 +137,7 @@ function build(opt) {
   };
   $('gpPanel').onclick = e => {
     if (e.target.closest('#gpPriv')) { privateSheet(); return; }
+    const sb = e.target.closest('#gpShare'); if (sb) { share(sb); return; }
     const j = e.target.closest('[data-q]');
     if (j && !j.disabled) { const q = opt.queues(settings)[+j.dataset.q]; opt.play(q.how, Object.assign({}, q.cfg), j); return; }
     const it = e.target.closest('[data-item]'); if (it) { pickItem(it.dataset.item); return; }

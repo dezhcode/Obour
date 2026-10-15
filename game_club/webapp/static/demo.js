@@ -340,6 +340,7 @@ const data = {
     L.push({ id, me: true, kind: 'invite', text: 'دعوت به ' + name, meta: { game, code: 'DEMO42' }, at: Math.round(Date.now() / 1000) }); save();
     return { match: 'demo', code: 'DEMO42', game, demo: true };
   },
+  async groupShare(game) { return { demo: true, game }; },
   // رده بندی هر بازی (نمونه): برنده های این بازی با یوزرنیم
   async gameBoard(game, period) {
     const K = { week: 1, month: 3.5, all: 9 }[period] || 1, base = { hokm: 41, ludo: 33, football: 26 }[game] || 30;

@@ -1132,6 +1132,100 @@ def test_group_tables():
     asyncio.run(run())
 
 
+def test_inline_tables():
+    """حالت اینلاین و «فرستادن به گروه»: کارت با توکن، ساخت میز با اولین لمس (فقط یک بار)، نشستن، ویرایش با inline_message_id."""
+    from types import SimpleNamespace as NS
+    tmp = tempfile.mkdtemp()
+    from game_club import groups, service
+    from game_club.db import GCDatabase
+
+    class FakeBot:
+        def __init__(self):
+            self.sent, self.edits, self.prepared = [], [], []
+
+        async def send_message(self, chat_id, text, reply_markup=None, **kw):
+            self.sent.append((chat_id, text, kw.get("ephemeral_message_parameters"), reply_markup))
+            return NS(message_id=1)
+
+        async def edit_message_text(self, text, chat_id=None, message_id=None, inline_message_id=None, reply_markup=None, **kw):
+            self.edits.append((inline_message_id, text, reply_markup))
+
+        async def save_prepared_inline_message(self, user_id, result, **kw):
+            self.prepared.append((user_id, result, kw))
+            return NS(id="prep1", expiration_date=0)
+
+    class CQ:
+        def __init__(self, uid, data, imid="IM1"):
+            self.from_user = NS(id=uid, first_name=f"u{uid}", last_name=None, username=None)
+            self.data, self.inline_message_id, self.answers = data, imid, []
+
+        async def answer(self, text=None, show_alert=False, **kw):
+            self.answers.append(text)
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        bot = FakeBot()
+        groups.install(bot, db)
+        try:
+            # @ربات منچ → فقط کارت منچ؛ بدون متن هر سه بازی
+            got = []
+            iq = NS(from_user=NS(id=31, first_name="host", last_name=None, username=None), query="منچ")
+
+            async def answer(results, **kw):
+                got.append((results, kw))
+            iq.answer = answer
+            await groups.on_inline(iq, gdb=db)
+            res, kw = got[-1]
+            assert len(res) == 1 and kw["is_personal"] and "tg://user?id=31" in res[0].input_message_content.message_text
+            token = res[0].id
+            assert res[0].reply_markup.inline_keyboard[0][0].callback_data == f"gi:join:{token}"
+            iq.query = ""
+            await groups.on_inline(iq, gdb=db)
+            assert len(got[-1][0]) == 3
+            # هنوز میزی ساخته نشده
+            assert not (await db.inline_token(token))["match_id"]
+            # اولین لمس «بنشین»: میز ساخته می شود، سازنده و این کاربر سر میزند، کارت با inline_message_id ویرایش می شود
+            await groups.on_inline_button(CQ(32, f"gi:join:{token}"), gdb=db)
+            mid = (await db.inline_token(token))["match_id"]
+            assert mid and (await db.group_table(mid))["inline_message_id"] == "IM1"
+            m = await db.get_match(mid)
+            assert [s["tg"] for s in m["state"]["seats"]] == [31, 32]
+            assert bot.edits[-1][0] == "IM1" and "tg://user?id=32" in bot.edits[-1][1]
+            assert bot.edits[-1][2].inline_keyboard[0][0].callback_data == f"gt:join:{mid}"
+            # لمس دوباره روی همان توکن میز دوم نمی سازد
+            cq = CQ(32, f"gi:join:{token}")
+            await groups.on_inline_button(cq, gdb=db)
+            assert (await db.inline_token(token))["match_id"] == mid and "نشسته" in cq.answers[-1]
+            # شروع با ربات: بازی شروع می شود؛ پیام پیوی می رود ولی ephemeral نه (چت معلوم نیست)
+            await groups.on_inline_button(CQ(31, f"gi:start:{token}"), gdb=db)
+            assert (await db.get_match(mid))["status"] == "playing" and "شروع شد" in bot.edits[-1][1]
+            assert {s[0] for s in bot.sent} == {31, 32} and all(s[2] is None for s in bot.sent)
+            # پایان: دکمهٔ میز تازه برای کارت اینلاین پیشوند gi دارد و همان پیام را میز تازه می کند
+            for u in (31, 32):
+                await service.leave_any(db, u, mid)
+            if (await db.get_match(mid))["status"] == "over":
+                assert bot.edits[-1][2].inline_keyboard[0][0].callback_data == "gi:new:ludo"
+                await groups.on_inline_button(CQ(32, "gi:new:ludo"), gdb=db)
+                row = await db.one("SELECT * FROM group_tables WHERE match_id != ?", (mid,))
+                assert row["inline_message_id"] == "IM1" and row["host"] == 32 and row["game"] == "ludo"
+            # فرستادن از مینی اپ: پیام آماده با کارت همین بازی
+            pid = await groups.prepare_share(db, 33, "football")
+            uid, art, kw = bot.prepared[-1]
+            assert pid == "prep1" and uid == 33 and kw["allow_group_chats"] and not kw["allow_channel_chats"]
+            assert (await db.inline_token(art.id))["game"] == "football"
+            try:
+                await groups.prepare_share(db, 33, "chess")
+                raise AssertionError("بازی ناشناخته")
+            except service.GCError as e:
+                assert e.code == "bad_game"
+        finally:
+            service.table_hook = None
+            await db.close()
+
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
