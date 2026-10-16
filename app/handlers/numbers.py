@@ -59,7 +59,7 @@ def order_view(order: dict) -> tuple[str, InlineKeyboardMarkup]:
         "service": esc(order.get("service_name") or ""),
         "flag": ns.flag(order["country"]),
         "country": esc(ns.country_label(order)),
-        "phone": esc(order.get("phone") or "-"),
+        "phone": esc(order.get("phone") or ("…" if st == ns.ACTIVE else "-")),
         "code": order["code"],
     }
     price = f"{int(order['price']):,}"
@@ -90,6 +90,8 @@ async def notify_event(bot, db: Database, r: dict) -> None:  # noqa: ANN001
             await bot.edit_message_text(text, chat_id=order["chat_id"], message_id=order["message_id"], reply_markup=kb)
         except Exception:  # noqa: BLE001  (پیام پاک شده یا تغییری نکرده)
             pass
+    if r.get("event") == "phone":
+        return          # فقط شماره ی تلفن رسید؛ پیام تازه (نوتیف) لازم نیست
     try:
         # پیام تازه، چون ویرایش نوتیف نمی دهد و کاربر شاید توی اپ دیگری منتظر کد باشد
         await bot.send_message(int(user["telegram_id"]), text, reply_markup=kb)

@@ -15,6 +15,15 @@
 seed (۱۶ حرف، مثل AbC3-dEf4-gHj5-kLm6) تنها اعتبار حساب است و موجودی ما
 را خرج می کند؛ هیچ وقت در لاگ نوشته نمی شود.
 
+دو روش اتصال با همان seed (خودکار تشخیص داده می شود و در دیتابیس می ماند):
+
+    bearer   /api/v1 با هدر Authorization: Bearer <seed> (حساب هایی که از POST /api/v1/account ساخته شده اند)
+    session  مستند اصلی سایت: POST /auth-api.php {action: login, seed} ← کوکی ← api.php?action=...
+             (حساب های ساخته شده از خود سایت: user، buy، orders، cancel). ورود فقط ۵ بار در ۱۵ دقیقه
+             مجاز است، پس کوکی ذخیره می شود و فقط وقتی منقضی شد دوباره وارد می شویم.
+             پیگیری شماره از فهرست «orders» (۵۰ سفارش اخیر) است؛ شماره ی تلفن ممکن است چند ثانیه بعد
+             از خرید در آن پیدا شود، و quote ندارد (قیمت از جدول قیمت ها و پاسخ خرید می آید).
+
 نکته مهم: خرید کلید یکتا (Idempotency-Key) ندارد. پس خریدی که شاید به
 سرویس دهنده رسیده باشد (قطع وسط پاسخ، ۵xx) **هیچ وقت دوباره فرستاده
 نمی شود** و CanbosoUnknown بالا می رود؛ ادمین آن را دستی می بندد.
@@ -26,6 +35,7 @@ seed (۱۶ حرف، مثل AbC3-dEf4-gHj5-kLm6) تنها اعتبار حساب �
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import time
 from typing import Any
@@ -47,6 +57,13 @@ MAX_WAIT = 15.0
 # پنجره تحویل هر شماره نزد سرویس دهنده (دقیقه)
 VALID_MINUTES = 20
 
+# وضعیت اتصال هر seed (مشترک بین نمونه های کلاینت): {tag: {"mode": "", "cookies": {...}}}.
+# tag هش seed است، نه خود seed.
+_STATE: dict[str, dict] = {}
+_LOGINS: list[float] = []     # زمان ورودهای اخیر (سقف سایت: ۵ بار در ۱۵ دقیقه)
+_AUTH_LOCK = asyncio.Lock()   # تشخیص روش اتصال و ورود یکی یکی انجام شوند
+LOGIN_BUDGET = 3              # حداکثر ورود در ۱۵ دقیقه که خودمان مجاز می دانیم
+
 _last_call = 0.0
 _rate_lock = asyncio.Lock()
 _cache: dict[str, tuple[float, Any]] = {}
@@ -57,8 +74,21 @@ _cache: dict[str, tuple[float, Any]] = {}
 OP_TYPES = ("virtual", "physical", "premium")
 
 
+def seed_tag(seed: str) -> str:
+    return hashlib.sha256((seed or "").encode()).hexdigest()[:12]
+
+
+def _login_required(data: Any) -> bool:
+    return isinstance(data, dict) and (str(data.get("error") or "").lower() == "login required"
+                                       or data.get("logged_in") is False)
+
+
 class SmsBadSeed(CanbosoError):
     """seed نامعتبر است (۴۰۱ یا ۴۰۳). تا ادمین درستش نکند هیچ خریدی ممکن نیست."""
+
+
+class SmsOrderNotFound(CanbosoError):
+    """سفارش در ۵۰ سفارش اخیر حساب نیست (روش نشست فقط همین فهرست را دارد)."""
 
 
 class SmsOutOfStock(CanbosoError):
@@ -220,8 +250,11 @@ class SmsBurner:
     # خرید کلید یکتا ندارد: خرید مبهم دوباره فرستاده نمی شود
     idempotent = False
 
-    def __init__(self, seed: str, base_url: str | None = None, proxy: str = "") -> None:
+    def __init__(self, seed: str, base_url: str | None = None, proxy: str = "", persist=None) -> None:  # noqa: ANN001
         self._seed = (seed or "").strip()
+        self._tag = seed_tag(self._seed)
+        self._state = _STATE.setdefault(self._tag, {"mode": "", "cookies": {}})
+        self._persist_cb = persist
         base = (base_url or BASE_URL).rstrip("/")
         # ریشه سایت (برای مسیر قدیمی api.php که فهرست اپراتورها را دارد)
         self._origin = base.split("/api/")[0] if "/api/" in base else base
@@ -230,6 +263,9 @@ class SmsBurner:
             base_url=base, timeout=TIMEOUT,
             headers={"Authorization": f"Bearer {self._seed}", "Accept": "application/json"}, **kw,
         )
+        host = self._origin.split("://", 1)[-1].split("/", 1)[0]
+        for name, value in (self._state.get("cookies") or {}).items():
+            self._http.cookies.set(name, value, domain=host)
 
     @property
     def configured(self) -> bool:
@@ -338,10 +374,8 @@ class SmsBurner:
         _cache[f"ops:{cc}"] = (time.monotonic(), out)
         return out
 
-    async def quote(self, service_id: str, cc: str, operator_id: str | None = None) -> float | None:
-        """قیمت دلاری تازه برای یک سرویس و کشور (و اپراتور)؛ None اگر پاسخ قابل فهم نبود."""
-        if not self.configured:
-            raise CanbosoError("seed تنظیم نشده")
+    async def _b_quote(self, service_id: str, cc: str, operator_id: str | None = None) -> float | None:
+        """(bearer) قیمت دلاری تازه برای یک سرویس و کشور (و اپراتور)؛ None اگر پاسخ قابل فهم نبود."""
         await _pace()
         body: dict[str, Any] = {"service_id": _id(service_id), "country": cc.upper()}
         if operator_id:
@@ -380,24 +414,33 @@ class SmsBurner:
             return hit[1]
         out: dict | None = None
         try:
-            data = await self._get("/account")
-            src = _unwrap(data)
-            for k in ("account", "user", "wallet"):
-                if isinstance(src.get(k), dict):
-                    src = src[k]
-                    break
-            amount = _num(_first(src, "balance", "balance_usd", "amount", "credit")) \
-                if src else None
-            if amount is None:
-                amount = _num(_first(data, "balance", "balance_usd", "credit"))
-            if amount is not None:
-                out = {"balance": amount, "currency": norm_currency(_first(src, "currency") or "USD"), "text": ""}
+            out = await self._balance_raw()
             _cache.pop("balance_err", None)
         except CanbosoError as exc:
             log.info("موجودی سرویس دهنده خوانده نشد: %s", exc)
             _cache["balance_err"] = (time.monotonic(), exc)
         _cache["balance"] = (time.monotonic(), out)
         return out
+
+    async def _balance_raw(self) -> dict | None:
+        if await self._mode() == "session":
+            return await self._s_balance()
+        data = await self._get("/account")
+        src = _unwrap(data)
+        for k in ("account", "user", "wallet"):
+            if isinstance(src.get(k), dict):
+                src = src[k]
+                break
+        amount = _num(_first(src, "balance", "balance_usd", "amount", "credit")) if src else None
+        if amount is None:
+            amount = _num(_first(data, "balance", "balance_usd", "credit"))
+        if amount is None:
+            return None
+        return {"balance": amount, "currency": norm_currency(_first(src, "currency") or "USD"), "text": ""}
+
+    def mode_label(self) -> str:
+        """برای پنل ادمین: روش اتصال تشخیص داده شده."""
+        return {"bearer": "Bearer (/api/v1)", "session": "نشست کوکی (api.php)"}.get(self._state.get("mode") or "", "هنوز تشخیص داده نشده")
 
     @staticmethod
     def balance_error() -> Exception | None:
@@ -429,11 +472,22 @@ class SmsBurner:
             except Exception as exc:  # noqa: BLE001
                 out["/operators?country=us" if path == ops_url else path] = {
                     "status": 0, "error": f"{type(exc).__name__}: {exc}"}
+        # روش نشست کوکی (مستند اصلی سایت): ورود با seed و خواندن user. کوکی هرگز چاپ نمی شود.
+        sess: dict[str, Any] = {"mode_in_use": self._state.get("mode") or "هنوز تشخیص داده نشده"}
+        try:
+            await self._login()
+            sess["login"] = "ok"
+            sess["user"] = await self._api("user", relogin=False)
+        except SmsBadSeed:
+            sess["login"] = "Invalid seed (seed را سایت نمی شناسد)"
+        except CanbosoError as exc:
+            sess["login"] = f"خطا: {exc}"
+        out["session"] = {"status": 200 if sess.get("login") == "ok" else 0, "body": sess}
         return out
 
     # ---------- خرید و پیگیری ----------
-    async def buy(self, service_id: str, cc: str, operator_id: str | None = None) -> dict:
-        """خرید یک شماره (با نوع/اپراتور دلخواه، وگرنه پیش فرض سایت). خروجی parse_number.
+    async def _b_buy(self, service_id: str, cc: str, operator_id: str | None = None) -> dict:
+        """(bearer) خرید یک شماره (با نوع/اپراتور دلخواه، وگرنه پیش فرض سایت). خروجی parse_number.
 
         - SmsOutOfStock: شماره ای نیست (قطعا خرید نشد)
         - CanbosoNoFunds: موجودی *ما* کم است (قطعا خرید نشد)
@@ -441,8 +495,6 @@ class SmsBurner:
         - CanbosoUnknown: شاید خریده شده؛ دوباره فرستاده نمی شود
         فقط وقتی اتصال اصلا برقرار نشده (چیزی نرفته) یا ۴۲۹ آمده تکرار می شود.
         """
-        if not self.configured:
-            raise CanbosoError("seed تنظیم نشده")
         body: dict[str, Any] = {"service_id": _id(service_id), "country": cc.upper()}
         if operator_id:
             body["operator_id"] = _id(operator_id)
@@ -501,17 +553,15 @@ class SmsBurner:
         forget_balance()
         return info
 
-    async def poll(self, number_id: str) -> dict:
-        """وضعیت یک شماره (و کد پیامک اگر آمده). خروجی parse_number."""
+    async def _b_poll(self, number_id: str) -> dict:
+        """(bearer) وضعیت یک شماره (و کد پیامک اگر آمده). خروجی parse_number."""
         data = await self._get(f"/numbers/{number_id}")
         info = parse_number(data)
         info["id"] = info["id"] or str(number_id)
         return info
 
-    async def cancel(self, number_id: str) -> bool:
-        """لغو و برگشت پول. True یعنی لغو شد؛ SmsAlreadyReceived اگر پیامک آمده."""
-        if not self.configured:
-            raise CanbosoError("seed تنظیم نشده")
+    async def _b_cancel(self, number_id: str) -> bool:
+        """(bearer) لغو و برگشت پول. True یعنی لغو شد؛ SmsAlreadyReceived اگر پیامک آمده."""
         await _pace()
         try:
             r = await self._http.post(f"/numbers/{number_id}/cancel")
@@ -532,6 +582,271 @@ class SmsBurner:
         if isinstance(data, dict) and data.get("ok") is False:
             raise CanbosoError(_message(r))
         forget_balance()
+        return True
+
+
+    # ═══════════ تشخیص روش اتصال و توزیع ═══════════
+
+    async def _persist(self) -> None:
+        if self._persist_cb:
+            try:
+                await self._persist_cb(self._state)
+            except Exception:  # noqa: BLE001
+                log.warning("ذخیره وضعیت اتصال SMSBurner نشد", exc_info=True)
+
+    async def _mode(self) -> str:
+        """bearer یا session. بار اول: اول Bearer، اگر ۴۰۱ داد ورود با seed (حساب های ساخته شده از سایت)."""
+        m = self._state.get("mode")
+        if m:
+            return m
+        if not self.configured:
+            raise CanbosoError("seed تنظیم نشده")
+        async with _AUTH_LOCK:
+            m = self._state.get("mode")         # در همین فاصله کس دیگری تشخیص داده بود
+            if m:
+                return m
+            try:
+                await self._get("/account")
+                m = "bearer"
+            except SmsBadSeed:
+                await self._login(locked=True)  # اگر seed واقعا نامعتبر باشد، همین جا SmsBadSeed بالا می رود
+                m = "session"
+            self._state["mode"] = m
+            await self._persist()
+            log.info("روش اتصال SMSBurner: %s", m)
+            return m
+
+    async def quote(self, service_id: str, cc: str, operator_id: str | None = None) -> float | None:
+        """قیمت دلاری تازه (فقط bearer)؛ در روش نشست quote نداریم و None برمی گردد."""
+        if not self.configured:
+            raise CanbosoError("seed تنظیم نشده")
+        if await self._mode() == "session":
+            return None
+        return await self._b_quote(service_id, cc, operator_id)
+
+    async def buy(self, service_id: str, cc: str, operator_id: str | None = None) -> dict:
+        if not self.configured:
+            raise CanbosoError("seed تنظیم نشده")
+        if await self._mode() == "session":
+            return await self._s_buy(service_id, cc, operator_id)
+        return await self._b_buy(service_id, cc, operator_id)
+
+    async def poll(self, number_id: str) -> dict:
+        if await self._mode() == "session":
+            return await self._s_poll(number_id)
+        return await self._b_poll(number_id)
+
+    async def cancel(self, number_id: str) -> bool:
+        if not self.configured:
+            raise CanbosoError("seed تنظیم نشده")
+        if await self._mode() == "session":
+            return await self._s_cancel(number_id)
+        return await self._b_cancel(number_id)
+
+    # ═══════════ روش نشست کوکی (api.php) ═══════════
+
+    async def _login(self, locked: bool = False) -> None:
+        """POST /auth-api.php {action: login, seed}؛ کوکی در کلاینت و در وضعیت ذخیره می شود.
+
+        چند درخواست همزمان که نشست منقضی شده را دیدند، فقط یک ورود انجام می دهند و بقیه همان کوکی تازه را
+        برمی دارند (سقف سایت ۵ ورود در ۱۵ دقیقه است)."""
+        if locked:
+            return await self._login_locked()
+        async with _AUTH_LOCK:
+            return await self._login_locked()
+
+    async def _login_locked(self) -> None:
+        host = self._origin.split("://", 1)[-1].split("/", 1)[0]
+        mine = {c.name: c.value for c in self._http.cookies.jar}
+        if self._state.get("cookies") and mine != self._state["cookies"]:
+            for name, value in self._state["cookies"].items():      # کس دیگری در همین فاصله وارد شد؛ کوکی تازه اش را بردار
+                self._http.cookies.set(name, value, domain=host)
+            return
+        t = time.monotonic()
+        _LOGINS[:] = [x for x in _LOGINS if t - x < 900]
+        if len(_LOGINS) >= LOGIN_BUDGET:
+            raise CanbosoError("ورود به SMSBurner موقتا محدود شده؛ چند دقیقه دیگر دوباره امتحان کن")
+        _LOGINS.append(t)
+        await _pace()
+        try:
+            r = await self._http.post(f"{self._origin}/auth-api.php", data={"action": "login", "seed": self._seed})
+        except Exception as exc:  # noqa: BLE001
+            raise CanbosoError(f"ارتباط برقرار نشد: {type(exc).__name__}") from exc
+        if r.status_code == 429:
+            raise CanbosoError("ورود به SMSBurner موقتا محدود شده؛ چند دقیقه دیگر دوباره امتحان کن")
+        try:
+            data = r.json()
+        except Exception:  # noqa: BLE001
+            data = {}
+        if isinstance(data, dict) and data.get("success"):
+            self._state["cookies"] = {c.name: c.value for c in self._http.cookies.jar}
+            await self._persist()
+            return
+        err = str(data.get("error") or "") if isinstance(data, dict) else ""
+        if r.status_code in (401, 403) or "seed" in err.lower() or not err:
+            raise SmsBadSeed("seed نامعتبر است")
+        raise CanbosoError(f"ورود ناموفق: {err[:120]}")
+
+    async def _api(self, action: str, post: dict | None = None, relogin: bool = True) -> Any:
+        """یک درخواست api.php با نشست؛ اگر «Login required» بود یک بار دوباره وارد می شود."""
+        url = f"{self._origin}/api.php"
+        for attempt in range(2):
+            await _pace()
+            try:
+                if post is None:
+                    r = await self._http.get(url, params={"action": action})
+                else:
+                    r = await self._http.post(url, params={"action": action}, json=post)
+            except Exception as exc:  # noqa: BLE001
+                raise CanbosoError(f"ارتباط برقرار نشد: {type(exc).__name__}") from exc
+            if r.status_code == 429:
+                wait = _retry_after(r, 5.0)
+                if attempt == 0 and wait <= MAX_WAIT:
+                    await asyncio.sleep(wait)
+                    continue
+                raise CanbosoError(f"سقف درخواست؛ {int(wait)} ثانیه دیگر")
+            break
+        if r.status_code >= 500:
+            raise CanbosoError(f"HTTP {r.status_code}")
+        try:
+            data = r.json()
+        except Exception as exc:  # noqa: BLE001
+            raise CanbosoError("پاسخ قابل خواندن نبود") from exc
+        if _login_required(data) and relogin:
+            await self._login()
+            return await self._api(action, post, relogin=False)
+        return data
+
+    async def _s_balance(self) -> dict | None:
+        data = await self._api("user")
+        amount = _num(data.get("balance")) if isinstance(data, dict) and data.get("logged_in") else None
+        return None if amount is None else {"balance": amount, "currency": "USDT", "text": ""}
+
+    async def _s_orders(self, force: bool = False) -> list[dict]:
+        """۵۰ سفارش اخیر (با کدهای پیامک). چند سفارش منتظر کد یک درخواست را شریک می شوند (کش ۳ ثانیه)."""
+        hit = _cache.get("orders")
+        if not force and hit and time.monotonic() - hit[0] < 3.0:
+            return hit[1]
+        data = await self._api("orders")
+        if not isinstance(data, list):
+            raise CanbosoError(str((data or {}).get("error") if isinstance(data, dict) else data)[:150] or "پاسخ ناشناخته")
+        _cache["orders"] = (time.monotonic(), data)
+        return data
+
+    @staticmethod
+    def _s_info(o: dict) -> dict:
+        code = o.get("sms_code")
+        return {"id": str(o.get("id") or ""), "phone": norm_phone(o.get("phone_number")),
+                "sms_code": str(code) if code not in (None, "") else "", "sms_text": "",
+                "status": norm_status(o.get("status"), code), "price": _num(o.get("price")),
+                "expires_at": "", "expires_in": None, "raw": o}
+
+    async def _s_poll(self, number_id: str, force: bool = False) -> dict:
+        for o in await self._s_orders(force=force):
+            if isinstance(o, dict) and str(o.get("id")) == str(number_id):
+                return self._s_info(o)
+        raise SmsOrderNotFound("سفارش در ۵۰ سفارش اخیر SMSBurner پیدا نشد")
+
+    async def _s_buy(self, service_id: str, cc: str, operator_id: str | None = None) -> dict:
+        """خرید با api.php?action=buy. همان قواعد bearer: خرید مبهم هرگز دوباره فرستاده نمی شود."""
+        body: dict[str, Any] = {"country": cc.lower(), "service_id": _id(service_id)}
+        if operator_id:
+            body["operator_id"] = _id(operator_id)
+        relogged = False
+        r: httpx.Response | None = None
+        for attempt in range(4):
+            await _pace()
+            try:
+                r = await self._http.post(f"{self._origin}/api.php", params={"action": "buy"}, json=body,
+                                          timeout=BUY_TIMEOUT)
+            except httpx.ConnectError as exc:
+                if attempt < 3:
+                    await asyncio.sleep(2.0)
+                    continue
+                raise CanbosoError(f"ارتباط برقرار نشد: {type(exc).__name__}") from exc
+            except Exception as exc:  # noqa: BLE001  (تایم اوت یا قطع وسط پاسخ: شاید خریده شده)
+                raise CanbosoUnknown(f"پاسخ نرسید: {type(exc).__name__}") from exc
+            if r.status_code == 429 and attempt < 3:
+                wait = _retry_after(r, 3.0 * (attempt + 1))
+                if wait <= MAX_WAIT:
+                    await asyncio.sleep(wait)
+                    continue
+            try:
+                data = r.json()
+            except Exception:  # noqa: BLE001
+                data = None
+            if _login_required(data) and not relogged:
+                relogged = True             # خرید انجام نشده (وارد نبودیم)؛ وارد شو و دوباره بفرست
+                await self._login()
+                continue
+            break
+        assert r is not None
+        code = r.status_code
+        if code == 429:
+            raise CanbosoError("سرویس دهنده شلوغ است، چند دقیقه دیگر امتحان کن")
+        if code >= 500:
+            raise CanbosoUnknown(f"HTTP {code}")
+        try:
+            data = r.json()
+        except Exception as exc:  # noqa: BLE001
+            raise CanbosoUnknown("پاسخ قابل خواندن نبود") from exc
+        if not isinstance(data, dict):
+            raise CanbosoUnknown("پاسخ ناشناخته")
+        err = str(data.get("error") or "")
+        if _login_required(data):
+            raise SmsBadSeed("seed نامعتبر است")
+        if err:
+            if _no_funds("", err):
+                raise CanbosoNoFunds(err[:200])
+            if _out_of_stock("", err):
+                raise SmsOutOfStock(err[:200])
+            raise CanbosoError(err[:200])
+        oid = data.get("order_id")
+        if not data.get("success") or oid in (None, ""):
+            raise CanbosoUnknown("خرید انجام شد ولی شناسه سفارش در پاسخ نبود" if data.get("success")
+                                 else "پاسخ خرید نامشخص بود")
+        forget_balance()
+        info = {"id": str(oid), "phone": "", "sms_code": "", "sms_text": "", "status": "active",
+                "price": _num(data.get("price")), "expires_at": "", "expires_in": None, "raw": data}
+        try:
+            # شماره ی تلفن در پاسخ خرید نیست؛ معمولا همین لحظه در فهرست سفارش ها هست
+            got = await self._s_poll(str(oid), force=True)
+            info.update({k: got[k] for k in ("phone", "sms_code", "status") if got.get(k)})
+        except CanbosoError:
+            pass                            # پایشگر چند ثانیه بعد شماره را می گیرد
+        return info
+
+    async def _s_cancel(self, number_id: str) -> bool:
+        """لغو با api.php?action=cancel (POST). SmsAlreadyReceived اگر پیامک رسیده باشد."""
+        body = {"order_id": _id(number_id), "id": _id(number_id)}
+        relogged = False
+        while True:
+            await _pace()
+            try:
+                r = await self._http.post(f"{self._origin}/api.php", params={"action": "cancel"}, json=body)
+            except Exception as exc:  # noqa: BLE001
+                raise CanbosoUnknown(f"پاسخ نرسید: {type(exc).__name__}") from exc
+            if r.status_code == 405:
+                raise CanbosoError("لغو از مسیر API ممکن نیست")
+            if r.status_code >= 500:
+                raise CanbosoUnknown(f"HTTP {r.status_code}")
+            try:
+                data = r.json()
+            except Exception:  # noqa: BLE001
+                data = {}
+            if _login_required(data) and not relogged:
+                relogged = True
+                await self._login()
+                continue
+            break
+        err = str(data.get("error") or "") if isinstance(data, dict) else ""
+        if err:
+            low = err.lower()
+            if any(w in low for w in ("sms", "received", "completed", "already")):
+                raise SmsAlreadyReceived(err[:150])
+            raise CanbosoError(f"لغو نشد: {err[:150]}")
+        forget_balance()
+        _cache.pop("orders", None)
         return True
 
 
