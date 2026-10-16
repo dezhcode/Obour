@@ -1,8 +1,11 @@
 """فروش خدمات هوش مصنوعی — مستقل از رابط.
 
-سرویس دهنده: aitoolifystudio (app/aitoolify.py) وقتی AITOOLIFY_API_KEY
-تنظیم باشد یا کلید پنل با sk_ شروع شود؛ وگرنه canboso (app/canboso.py).
-هر دو یک رابط و یک شکل خروجی دارند.
+سرویس دهنده: ssondigitalworks (app/sson.py). کلاس آن همان رابط و شکل
+خروجی canboso را دارد؛ خطاها هم همان کلاس های app/canboso.py هستند.
+
+قیمت کاربر: هزینه عمده × نرخ ارز + سود. سود هر محصول را ادمین جدا
+تنظیم می کند (مبلغ ثابت یا درصد)؛ اگر تنظیم نکرده باشد سود کلی پنل
+(app/pricing.py) اعمال می شود.
 
 ترتیب خرید عمدی است، چون تحویل **برگشت ناپذیر** است:
 
@@ -23,13 +26,14 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from app import i18n, pricing, texts
-from app.canboso import Canboso, CanbosoError, CanbosoNoFunds, CanbosoUnknown, accounts_of
+from app.canboso import CanbosoError, CanbosoNoFunds, CanbosoUnknown, accounts_of
 from app.config import config
 from app.utils import esc
 
@@ -53,27 +57,25 @@ NOT_CONFIGURED = "not_configured"
 BAD_INPUT = "bad_input"
 
 
+# کلید پنل جدا از کلید سرویس دهنده های قبلی (ai_api_key) ذخیره می شود تا
+# کلید قدیمی canboso یا aitoolify هیچ وقت برای فروشنده تازه فرستاده نشود.
+KEY_SETTING = "sson_api_key"
+PROVIDER = "sson"
+
+
 async def api_key(db: "Database") -> str:
-    """کلید از .env (AITOOLIFY_API_KEY یا CANBOSO_API_KEY)، وگرنه همان که ادمین در پنل گذاشته."""
-    return (config.aitoolify_api_key or config.canboso_api_key
-            or (await db.get_setting("ai_api_key", "") or "").strip())
+    """کلید از .env (SSON_API_KEY)، وگرنه همان که ادمین در پنل گذاشته."""
+    return config.sson_api_key or (await db.get_setting(KEY_SETTING, "") or "").strip()
 
 
-def is_aitoolify(key: str) -> bool:
-    return bool(key) and (key == config.aitoolify_api_key or key.startswith("sk_"))
+async def client(db: "Database"):  # noqa: ANN201  (رابط یکسان با Canboso)
+    from app.sson import Sson
 
-
-async def client(db: "Database"):  # noqa: ANN201  (Canboso یا Aitoolify؛ رابط یکسان)
-    key = await api_key(db)
-    if is_aitoolify(key):
-        from app.aitoolify import Aitoolify
-
-        return Aitoolify(key, config.aitoolify_base_url or None)
-    return Canboso(key)
+    return Sson(await api_key(db), config.sson_base_url or None)
 
 
 async def provider_name(db: "Database") -> str:
-    return "aitoolify" if is_aitoolify(await api_key(db)) else "canboso"
+    return PROVIDER
 
 
 # ═══════════════════ محصول ═══════════════════
@@ -237,6 +239,44 @@ def guide_of(p: dict, meta: dict | None) -> str:
     return ((meta or {}).get("guide") or str(p.get("description") or "")).strip()
 
 
+# ═══════════════════ سود هر محصول ═══════════════════
+
+_FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+RESET_WORDS = ("", "-", "default", "reset", "پیش فرض", "پیش‌فرض", "کلی", "حذف")
+MAX_PERCENT = 1000.0
+MAX_TOMAN = 1_000_000_000
+
+
+def parse_markup(raw: str) -> dict | None:
+    """ورودی ادمین ← سود محصول. «150000» مبلغ ثابت تومانی، «20%» درصد،
+    «-» یا خالی برگشت به سود کلی (None). ورودی نامعتبر ValueError."""
+    text = str(raw or "").strip().translate(_FA_DIGITS)
+    if text.lower() in RESET_WORDS:
+        return None
+    text = text.replace(",", "").replace("،", "").replace("٬", "").replace("تومان", "").strip()
+    percent = text.endswith(("%", "٪")) or text.startswith(("%", "٪"))
+    num = text.strip("%٪ ").replace("٫", ".")
+    value = float(num)
+    if value < 0 or not math.isfinite(value):
+        raise ValueError("negative")
+    if percent:
+        if value > MAX_PERCENT:
+            raise ValueError("too big")
+        return {"percent": round(value, 2)}
+    if value > MAX_TOMAN:
+        raise ValueError("too big")
+    return {"toman": int(round(value))}
+
+
+async def set_markup(db: "Database", pid: str, markup: dict | None) -> None:
+    """سود اختصاصی محصول را ذخیره می کند؛ None یعنی برگشت به سود کلی."""
+    await db.set_product_meta(
+        str(pid),
+        markup_toman=int(markup["toman"]) if markup and "toman" in markup else None,
+        markup_percent=float(markup["percent"]) if markup and "percent" in markup else None,
+    )
+
+
 # ═══════════════════ نمایش و موجودی ═══════════════════
 
 VISIBLE_KEY = "ai_products_on"
@@ -326,7 +366,10 @@ async def catalog(db: "Database", force: bool = False, admin: bool = False) -> d
         stock = effective_stock(api_stock, wallet)
         if req["months"] and not months:
             stock = 0
-        price_of = (lambda c: pricing.compute(c, cfg, cur).final) if priced else (lambda c: 0)
+        meta = metas.get(pid) or {}
+        markup = pricing.markup_of(meta)
+        price_of = (lambda c: pricing.compute(c, cfg, cur, markup).final) if priced else (lambda c: 0)
+        first_b = pricing.compute(cost_of(p, first), cfg, cur, markup) if priced else None
         item = {
             "id": pid,
             "name": str(p.get("name") or ""),
@@ -356,6 +399,10 @@ async def catalog(db: "Database", force: bool = False, admin: bool = False) -> d
             "months": req["months"] if admin else months,
             "month_prices": {m: price_of(cost_of(p, m)) for m in (req["months"] if admin else months)},
             "needs_email": req["email"],
+            # سود اختصاصی همین محصول (None = سود کلی پنل)
+            "markup": markup,
+            "markup_label": pricing.markup_label(markup),
+            "profit": first_b.net_profit if first_b else 0,
         }
         if admin:
             item["raw"] = p
@@ -382,7 +429,7 @@ async def buy(
         try:
             cat = await cb.catalog(force=True)
         except CanbosoError as exc:
-            log.warning("خواندن محصولات canboso نشد: %s", exc)
+            log.warning("خواندن محصولات سرویس دهنده نشد: %s", exc)
             return {"status": FAILED, "error": str(exc)}
         p = next((x for x in cat["products"] if str(x.get("productId")) == str(product_id)), None)
         ids = await enabled_ids(db)
@@ -397,7 +444,8 @@ async def buy(
         if not pricing.is_configured(cfg, currency):
             return {"status": NOT_CONFIGURED}
         cost = cost_of(p, months if req["months"] else None)
-        b = pricing.compute(cost, cfg, currency)
+        meta = await db.product_meta(str(product_id))
+        b = pricing.compute(cost, cfg, currency, pricing.markup_of(meta))
 
         # موجودی خودمان قبل از کسر پول کاربر
         bal = await cb.balance()
@@ -415,9 +463,9 @@ async def buy(
         )
         request = {"product_id": str(product_id), "months": months if req["months"] else None,
                    "email": email if req["email"] else None, "expected_cost": cost,
-                   "guide": guide_of(p, await db.product_meta(str(product_id)))[:2500],
+                   "guide": guide_of(p, meta)[:2500],
                    "category": auto_category(p), "brand": str(p.get("emoji") or ""), "kind": delivery_kind(p),
-                   "provider": getattr(cb, "name", "canboso")}
+                   "provider": getattr(cb, "name", PROVIDER)}
         idem = f"obour-{order['code']}-{uuid.uuid4().hex[:16]}"
         await db.set_ai_request(order["id"], idem, json.dumps(request, ensure_ascii=False), currency)
         order = await db.get_ai_order(order["id"])
@@ -435,8 +483,10 @@ def provider_of(order: dict) -> str:
 
 
 def can_retry(order: dict) -> bool:
-    """فقط canboso کلید یکتای خرید دارد؛ فرستادن دوباره سفارش aitoolify ممکن است دوبار خرید کند."""
-    return provider_of(order) == "canboso"
+    """سفارش فقط به همان سرویس دهنده ای دوباره فرستاده می شود که ثبتش کرده و
+    شناسه یکتای سفارش دارد (external_order_id). سفارش های مانده از canboso یا
+    aitoolify با کلید فعلی پرسیدنی نیستند و دستی بسته می شوند."""
+    return provider_of(order) == PROVIDER
 
 
 async def resolve(db: "Database", bot, order: dict) -> dict:  # noqa: ANN001
@@ -453,7 +503,7 @@ async def resolve(db: "Database", bot, order: dict) -> dict:  # noqa: ANN001
         await cb.close()
 
 
-async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, first: bool) -> dict:  # noqa: ANN001
+async def _send(db: "Database", bot, cb, user: dict, order: dict, *, first: bool) -> dict:  # noqa: ANN001
     req = json.loads(order.get("request") or "{}")
     try:
         result = await cb.purchase(
@@ -478,7 +528,7 @@ async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, fi
 
     o = result.get("order") or {}
     # بدون اطلاعات ورود، «تحویل شد» معنا ندارد (مثل محصولات Manual Delivery
-    # که canboso بعدا تحویل می دهد): در انتظار فروشنده می ماند.
+    # که فروشنده بعدا تحویل می دهد): در انتظار فروشنده می ماند.
     status = DELIVERED if accounts_of(result) else PROCESSING
     delivery = {
         "accounts": accounts_of(result),
@@ -494,7 +544,7 @@ async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, fi
     if status == PROCESSING and not req.get("email") and first:
         # محصول ایمیلی (slot) عادی است؛ ولی account بی تحویل را ادمین باید ببیند
         await _alert_admins(bot, f"⏳ سفارش <code>{order['code']}</code> ({esc(order['title'])}) پذیرفته شد ولی "
-                                 f"اطلاعات تحویل نیامد. کد canboso: <code>{esc(str(o.get('orderCode') or '-'))}</code>")
+                                 f"اطلاعات تحویل نیامد. کد سفارش فروشنده: <code>{esc(str(o.get('orderCode') or '-'))}</code>")
 
     # اگر هزینه واقعی بیشتر از برآورد شد (مثلا تخفیف یا قیمت ماهانه)،
     # از کاربر چیزی اضافه کم نمی شود؛ فقط ادمین باخبر می شود.

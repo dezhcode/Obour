@@ -2025,7 +2025,7 @@ function WalletStrip(bal){
     <button class="btn btn-sm ${empty ? 'btn-p' : 'btn-d'}" onclick="App.go('topup')">شارژ</button></div>`;
 }
 /* دسته های فروشگاه. «اینترنت آزاد» کانفیگ های خود عبور است (و VPN های
-   آماده canboso زیرش)؛ بقیه دسته های محصولات آماده اند. دسته بی محصول
+   آماده سرویس‌دهنده زیرش)؛ بقیه دسته های محصولات آماده اند. دسته بی محصول
    نشان داده نمی شود. */
 const SHOP_CATS = {
   vpn:  ['globe', 'net',   'اینترنت آزاد', 'کانفیگ پرسرعت'],
@@ -2473,7 +2473,7 @@ const Store = {
     if (this.kind === 'vpn') this.vpnExtra();
     return AI.d;
   },
-  /* VPN های آماده canboso زیر کانفیگ های خود عبور */
+  /* VPN های آماده سرویس‌دهنده زیر کانفیگ های خود عبور */
   vpnExtra(){
     const items = ((AI.d && AI.d.items) || []).filter(x => x.category === 'vpn');
     const box = $('store-box'); if (!box || !items.length || $('vpn-extra')) return;
@@ -3589,7 +3589,7 @@ const AI_BRANDS = [
   [/eleven/i, '#26262B', '11'], [/netflix/i, '#B20710', 'N'], [/spotify/i, '#1A8F45', 'S'], [/youtube/i, '#CC2A2A', 'YT'],
 ];
 const AI_EMAIL = /^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/;
-/* کلید emoji خود canboso، مطمئن تر از حدس از روی نام */
+/* کلید emoji خود سرویس‌دهنده، مطمئن تر از حدس از روی نام */
 const AI_BRAND_KEYS = { google_one:['#2F6BEA','G'], gemini:['#2F6BEA','G'], chatgpt:['#10A37F','GPT'], elevenlabs:['#26262B','11'], grok:['#16181D','X'],
   capcut:['#18181B','CC'], youtube:['#CC2A2A','YT'], lovable:['#E0457B','L'], notion:['#26262B','N'], duolingo:['#4C9A1A','D'], wispr_flow:['#3A3F8F','W'],
   udemy:['#5624D0','U'], microsoft_office_365:['#D83B01','M'], canva:['#7D2AE8','Ca'], surfshark:['#178A8A','S'], nordvpn:['#4687FF','N'],
@@ -3974,19 +3974,19 @@ Object.entries({
   "تنظیمات محصول":"Product settings",
   "تصویر":"Image",
   "انتخاب عکس":"Choose a photo",
-  "تصویر خود canboso":"Use canboso’s image",
+  "تصویر خود سرویس‌دهنده":"Use the provider’s image",
   "حذف تصویر":"Remove image",
   "عکس مربعی بهتر است؛ خودکار کوچک و فشرده می‌شود. در ربات، بالای کارت محصول نمایش داده می‌شود.":"Square photos work best; they are resized and compressed automatically. In the bot, it shows above the product card.",
   "دسته":"Category",
   "خودکار":"Automatic",
-  "خالی بماند تا توضیح خود canboso نمایش داده شود.":"Leave empty to use canboso’s own description.",
-  "بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود canboso.":"After purchase it is sent to the buyer with the link or login details, in the bot and the mini app. Empty = canboso’s English description.",
+  "خالی بماند تا توضیح خود سرویس‌دهنده نمایش داده شود.":"Leave empty to use the provider’s own description.",
+  "بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود سرویس‌دهنده.":"After purchase it is sent to the buyer with the link or login details, in the bot and the mini app. Empty = the provider’s English description.",
   "ذخیره آموزش":"Save guide",
-  "توضیح canboso":"canboso description",
+  "توضیح سرویس‌دهنده":"Provider description",
   "نمایش":"Visibility",
   "به کاربر نمایش داده می‌شود":"Shown to users",
   "پنهان":"Hidden",
-  "در حال دریافت از canboso…":"Fetching from canboso…",
+  "در حال دریافت از سرویس‌دهنده…":"Fetching from the provider…",
   "تصویر گذاشته شد":"Image set",
   "تصویر حذف شود؟":"Remove the image?",
   "حذف شد":"Removed",
@@ -4004,7 +4004,7 @@ Object.entries({
   "وقتی آماده شد، اطلاعاتش در صفحه سفارش می‌آید.":"When it’s ready, the details appear on the order page.",
   "لینک فعال‌سازی":"Activation link",
   "محصولات هوش مصنوعی":"AI products",
-  "نمایش محصولات و موجودی کیف پول canboso":"Product visibility and canboso wallet stock",
+  "نمایش محصولات و موجودی کیف پول سرویس‌دهنده":"Product visibility and provider wallet stock",
   "کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها":"Card, rates, payment methods and sections",
   "ارسال همگانی، نظرسنجی، دسته‌ها، ایموجی‌ها و نرخ و سود هوش مصنوعی از پنل ربات (/admin) انجام می‌شود.":"Broadcasts, polls, categories, emojis and AI rates and margins are managed in the bot panel (/admin).",
   "روش‌های پرداخت":"Payment methods",
@@ -4024,12 +4024,23 @@ Object.entries({
   "همه محصولات نمایش داده شوند؟":"Show all products?",
   "همه محصولات پنهان شوند؟":"Hide all products?",
   "کلید API تنظیم نشده":"API key not set",
-  "CANBOSO_API_KEY را در فایل .env بگذار.":"Put CANBOSO_API_KEY in the .env file.",
-  "خواندن از canboso نشد":"Couldn’t read from canboso",
-  "کیف پول شما نزد canboso":"Your canboso wallet",
+  "SSON_API_KEY را در فایل .env بگذار.":"Put SSON_API_KEY in the .env file.",
+  "خواندن از سرویس‌دهنده نشد":"Couldn’t read from the provider",
+  "کیف پول شما نزد سرویس‌دهنده":"Your provider wallet",
+  "سود این محصول":"This product’s margin",
+  "سود کلی":"Global margin",
+  "مبلغ ثابت (تومان)":"Fixed amount (toman)",
+  "درصد":"Percent",
+  "ذخیره سود":"Save margin",
+  "سود ذخیره شد":"Margin saved",
+  "قیمت کاربر الان:":"Current user price:",
+  "یک عدد معتبر بنویس":"Enter a valid number",
+  "قیمت کاربر = قیمت API × (۱ + این درصد)، بعد رند می‌شود.":"User price = API price × (1 + this percent), then rounded.",
+  "قیمت کاربر = قیمت API + همین مبلغ تومانی، بعد رند می‌شود.":"User price = API price + this toman amount, then rounded.",
+  "با تنظیمات سود کلی پنل ربات حساب می‌شود (درصد سود، کارمزد، حاشیه نوسان، حداقل سود یا سود ثابت).":"Uses the bot panel’s global margin settings (profit %, fee, buffer, minimum profit or fixed margin).",
   "موجودی که کاربر می‌بیند کمترینِ موجودی API و تعدادی است که با همین کیف پول خریدنی است؛ اگر هر کدام صفر باشد، «ناموجود».":"Users see the lower of the API stock and how many this wallet can buy; if either is zero, it shows “Out of stock”.",
   "محصولی نیامد":"No products returned",
-  "محصول تازه canboso تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.":"New canboso products stay hidden until you turn them on (unless you haven’t turned any product off yet). Prices use the rates and margins from the bot panel.",
+  "محصول تازه سرویس‌دهنده تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.":"New provider products stay hidden until you turn them on (unless you haven’t turned any product off yet). Prices use the rates and margins from the bot panel.",
 }).forEach(([k, v]) => { L10N.en[I18N.norm(k)] = v; });
 
 /* ═════════ پنل مدیریت (فقط ادمین) ═════════
@@ -4087,7 +4098,7 @@ SubPages.admin = async function(p){
         Row({ kind:'cash', icon:'image', title:'رسیدهای شارژ', sub: d.pending ? `${fa(d.pending)} رسید منتظر بررسی` : 'رسیدی در انتظار نیست',
               subColor: d.pending ? 'var(--help-i)' : '', fn:"App.go('adm_charges')" })
         + Row({ kind:'ai', icon:'list', title:'پلن‌ها', sub:'قیمت، حجم، مدت و روشن/خاموش', fn:"App.go('adm_plans')" })
-        + Row({ kind:'ai', icon:'spark', title:'محصولات هوش مصنوعی', sub:'نمایش محصولات و موجودی کیف پول canboso', fn:"App.go('adm_ai')" })
+        + Row({ kind:'ai', icon:'spark', title:'محصولات هوش مصنوعی', sub:'نمایش محصولات و موجودی کیف پول سرویس‌دهنده', fn:"App.go('adm_ai')" })
         + Row({ kind:'ai', icon:'spark', title:'دستیار هوشمند', sub: aiOn('admin') ? 'روشن · تست اتصال، گزارش و سقف روزانه' : 'خاموش: AI_API_KEY در فایل .env هاست تنظیم نشده',
               subColor: aiOn('admin') ? '' : 'var(--help-i)', fn:"App.go('adm_settings'); setTimeout(() => { const b = $('adm-assist'); b && b.scrollIntoView({ behavior:'smooth' }); }, 900)" })
         + Row({ kind:'help', icon:'bolt', title:'تنظیمات', sub:'کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها', fn:"App.go('adm_settings')" }))}
@@ -4525,7 +4536,7 @@ const AdminSettings = {
 };
 
 /* ---------- محصولات هوش مصنوعی ----------
-   موجودی نمایشی = کمترینِ موجودی خود canboso و تعدادی که کیف پول ما
+   موجودی نمایشی = کمترینِ موجودی خود سرویس‌دهنده و تعدادی که کیف پول ما
    می خرد؛ هر سه عدد اینجا کنار هم دیده می شوند. */
 const AdminAi = {
   st(v){ return v == null ? '∞' : fa(v); },
@@ -4536,7 +4547,8 @@ const AdminAi = {
     const cat = SHOP_CATS[x.category] || SHOP_CATS.tools;
     return `<button class="row" onclick="App.go('adm_ai_p', ${esc(JSON.stringify(x.id))})">${AiThumb(x, 'sm')}<span class="row-m"><span class="row-t ai-lat">${esc(x.name)}</span>
         <span class="row-s">${cat[2]}${x.guide ? ' · <span>آموزش دارد</span>' : ''}</span>
-        <span class="row-s" style="white-space:normal">${sub}</span><span class="row-s">${N(String(x.cost))} ${esc(x.currency)} → ${price}${x.months.length ? ` · <span>ماه:</span> ${N(x.months.join(','))}` : ''}</span></span>
+        <span class="row-s" style="white-space:normal">${sub}</span><span class="row-s">${N(String(x.cost))} ${esc(x.currency)} → ${price}${x.months.length ? ` · <span>ماه:</span> ${N(x.months.join(','))}` : ''}</span>
+        <span class="row-s">💰 <span>سود:</span> ${x.markup ? N(this.mkTxt(x.markup)) : '<span>سود کلی</span>'}${x.priced ? ` · ${N(fa(x.profit))} <span>تومان</span>` : ''}</span></span>
       <span class="row-e">${Admin.sw(x.visible, `AdminAi.set(${esc(JSON.stringify(x.id))}, ${!x.visible})`)}</span></button>`;
   },
   async set(id, on){ const r = await Admin.act('admin/ai/product', { id, on }, on ? 'نمایش داده می‌شود' : 'پنهان شد'); if (r) this.reload(); },
@@ -4554,7 +4566,7 @@ const AdminAi = {
         <div class="adm-img-b">
           <label class="btn btn-s" style="cursor:pointer">${ic('image', 2)}<span>انتخاب عکس</span>
             <input type="file" accept="image/*" style="display:none" onchange="AdminAi.upload(${esc(JSON.stringify(x.id))}, this)"></label>
-          ${x.provider_image ? `<button class="btn btn-s" onclick="AdminAi.fetchImg(${esc(JSON.stringify(x.id))})">${ic('down', 2)}تصویر خود canboso</button>` : ''}
+          ${x.provider_image ? `<button class="btn btn-s" onclick="AdminAi.fetchImg(${esc(JSON.stringify(x.id))})">${ic('down', 2)}تصویر خود سرویس‌دهنده</button>` : ''}
           ${x.image ? `<button class="btn btn-s" style="color:var(--bad)" onclick="AdminAi.dropImg(${esc(JSON.stringify(x.id))})">${ic('trash', 2)}حذف تصویر</button>` : ''}
         </div></div>
       <div class="adm-note">عکس مربعی بهتر است؛ خودکار کوچک و فشرده می‌شود. در ربات، بالای کارت محصول نمایش داده می‌شود.</div>
@@ -4562,19 +4574,32 @@ const AdminAi = {
         <button class="cat-chip${x.category_set ? '' : ' on'}" onclick="AdminAi.meta(${esc(JSON.stringify(x.id))}, { category:'' })">${ic('refresh', 2)}<span>خودکار</span> (${SHOP_CATS[auto][2]})</button>
         ${Object.keys(SHOP_CATS).map(k => `<button class="cat-chip${x.category_set && k === cat ? ' on' : ''}" onclick="AdminAi.meta(${esc(JSON.stringify(x.id))}, { category:'${k}' })">${ic(SHOP_CATS[k][0], 2)}${SHOP_CATS[k][2]}</button>`).join('')}
       </div></div>
+      ${Sec('سود این محصول')}<div class="card mx ai-box">
+        <div class="ai-hint" style="margin:0 0 10px">${x.priced ? `<span>قیمت کاربر الان:</span> ${N(fa(x.price))} <span>تومان</span> · <span>سود:</span> ${N(fa(x.profit))} <span>تومان</span>` : `<span style="color:var(--warn)">نرخ ${esc(x.currency)} تنظیم نشده</span>`}</div>
+        <div class="cat-chips">
+          ${[['', 'سود کلی'], ['toman', 'مبلغ ثابت (تومان)'], ['percent', 'درصد']].map(([k, l]) =>
+            `<button class="cat-chip${this.mkMode(x) === k ? ' on' : ''}" onclick="AdminAi.mkPick(${esc(JSON.stringify(x.id))}, '${k}')">${l}</button>`).join('')}
+        </div>
+        ${this.mkMode(x) ? `<input class="adm-in" id="adm-mk" inputmode="decimal" dir="ltr" style="margin-top:10px"
+            placeholder="${this.mkMode(x) === 'percent' ? '20' : '150000'}" value="${esc(this.mkVal(x))}">` : ''}
+        <div class="ai-hint">${this.mkMode(x) === 'percent' ? 'قیمت کاربر = قیمت API × (۱ + این درصد)، بعد رند می‌شود.'
+          : this.mkMode(x) === 'toman' ? 'قیمت کاربر = قیمت API + همین مبلغ تومانی، بعد رند می‌شود.'
+          : 'با تنظیمات سود کلی پنل ربات حساب می‌شود (درصد سود، کارمزد، حاشیه نوسان، حداقل سود یا سود ثابت).'}
+          سود این محصول بر تنظیمات سود کلی مقدم است؛ فقط نرخ ارز و رند کردن از تنظیمات کلی می‌آید.</div>
+        <button class="btn btn-p btn-block" style="margin-top:10px" onclick="AdminAi.saveMarkup(${esc(JSON.stringify(x.id))})">ذخیره سود</button></div>
       ${Sec('توضیح فارسی')}<div class="card mx ai-box">
-        <textarea class="adm-ta" id="adm-desc" dir="auto" maxlength="1500" placeholder="خالی بماند تا توضیح خود canboso نمایش داده شود.">${esc(x.desc_fa || '')}</textarea>
+        <textarea class="adm-ta" id="adm-desc" dir="auto" maxlength="1500" placeholder="خالی بماند تا توضیح خود سرویس‌دهنده نمایش داده شود.">${esc(x.desc_fa || '')}</textarea>
         <div class="ai-hint">به جای توضیح انگلیسی سرویس‌دهنده به خریدار نشان داده می‌شود.</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
           ${aiOn('admin') ? `<button class="btn btn-s" id="drf-desc" onclick="AdminAi.draft(${esc(JSON.stringify(x.id))}, 'desc')">${ic('spark',2)}پیش‌نویس هوشمند</button>` : ''}
           <button class="btn btn-p" style="${aiOn('admin') ? '' : 'grid-column:1/-1'}" onclick="AdminAi.meta(${esc(JSON.stringify(x.id))}, { desc_fa:$('adm-desc').value })">ذخیره توضیح</button></div></div>
       ${Sec('آموزش فعال‌سازی')}<div class="card mx ai-box">
-        <textarea class="adm-ta" id="adm-guide" dir="auto" maxlength="3000" placeholder="${esc(I18N.t('خالی بماند تا توضیح خود canboso نمایش داده شود.'))}">${esc(x.guide || '')}</textarea>
-        <div class="ai-hint">بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود canboso.</div>
+        <textarea class="adm-ta" id="adm-guide" dir="auto" maxlength="3000" placeholder="${esc(I18N.t('خالی بماند تا توضیح خود سرویس‌دهنده نمایش داده شود.'))}">${esc(x.guide || '')}</textarea>
+        <div class="ai-hint">بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود سرویس‌دهنده.</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
           ${aiOn('admin') ? `<button class="btn btn-s" id="drf-guide" onclick="AdminAi.draft(${esc(JSON.stringify(x.id))}, 'guide')">${ic('spark',2)}پیش‌نویس هوشمند</button>` : ''}
           <button class="btn btn-p" style="${aiOn('admin') ? '' : 'grid-column:1/-1'}" onclick="AdminAi.saveGuide(${esc(JSON.stringify(x.id))})">ذخیره آموزش</button></div></div>
-      ${x.description ? Sec('توضیح canboso') + `<div class="card mx"><div class="ai-guide clip" dir="auto">${esc(x.description)}</div></div>` : ''}
+      ${x.description ? Sec('توضیح سرویس‌دهنده') + `<div class="card mx"><div class="ai-guide clip" dir="auto">${esc(x.description)}</div></div>` : ''}
       ${Sec('پرفروش')}${Group(`<div class="row"><span class="row-m"><span class="row-t">${x.featured ? '🔥 پرفروش' : 'پرفروش نیست'}</span>
           <span class="row-s">ویترین دسته در فروشگاه و برچسب «پرفروش» روی کارت محصول</span></span>
         <span class="row-e">${Admin.sw(x.featured, `AdminAi.meta(${esc(JSON.stringify(x.id))}, { featured:${!x.featured} })`)}</span></div>`)}
@@ -4588,6 +4613,20 @@ const AdminAi = {
     AI.d = null;
   },
   async meta(id, body){ const r = await Admin.act('admin/ai/meta', Object.assign({ id }, body), 'ذخیره شد'); if (r) this.refreshPage(id); },
+  /* سود اختصاصی محصول: {toman} یا {percent}؛ null یعنی سود کلی */
+  mk:{},
+  mkTxt(m){ return m && m.toman != null ? fa(m.toman) + ' ' + I18N.t('تومان') : m && m.percent != null ? fa(m.percent) + '٪' : ''; },
+  mkMode(x){ if (x.id in this.mk) return this.mk[x.id]; return x.markup ? (x.markup.toman != null ? 'toman' : 'percent') : ''; },
+  mkVal(x){ const m = x.markup; if (!m) return ''; return this.mkMode(x) === 'toman' ? (m.toman ?? '') : (m.percent ?? ''); },
+  mkPick(id, mode){ this.mk[id] = mode; const x = this.find(id), p = $('sub').querySelector('.page'); if (x && p) p.innerHTML = this.page(x); },
+  async saveMarkup(id){
+    const x = this.find(id); if (!x) return;
+    const mode = this.mkMode(x), el = $('adm-mk');
+    const v = el ? String(el.value).trim().replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[,،٬]/g, '') : '';
+    if (mode && !/^\d+(\.\d+)?$/.test(v)) return App.toast('یک عدد معتبر بنویس', true);
+    const r = await Admin.act('admin/ai/meta', { id, markup: mode === 'percent' ? v + '%' : mode === 'toman' ? v : '' }, 'سود ذخیره شد');
+    if (r) { delete this.mk[id]; this.refreshPage(id); }
+  },
   saveGuide(id){ return this.meta(id, { guide:$('adm-guide').value }); },
   /* پیش نویس هوش مصنوعی فقط در جعبه می نشیند؛ ذخیره با خود ادمین است */
   async draft(id, kind){
@@ -4601,7 +4640,7 @@ const AdminAi = {
     finally { if (b) { b.disabled = false; b.innerHTML = ic('spark',2) + 'پیش‌نویس هوشمند'; } }
   },
   async setHere(id, on){ const r = await Admin.act('admin/ai/product', { id, on }, on ? 'نمایش داده می‌شود' : 'پنهان شد'); if (r) this.refreshPage(id); },
-  async fetchImg(id){ App.toast(I18N.t('در حال دریافت از canboso…')); const r = await Admin.act('admin/ai/image', { id, fetch:true }, 'تصویر گذاشته شد'); if (r) this.refreshPage(id); },
+  async fetchImg(id){ App.toast(I18N.t('در حال دریافت از سرویس‌دهنده…')); const r = await Admin.act('admin/ai/image', { id, fetch:true }, 'تصویر گذاشته شد'); if (r) this.refreshPage(id); },
   async dropImg(id){ if (!await Admin.ask(I18N.t('تصویر حذف شود؟'))) return; const r = await Admin.act('admin/ai/image', { id, remove:true }, 'حذف شد'); if (r) this.refreshPage(id); },
   /* عکس در خود گوشی کوچک و JPEG می شود (حداکثر ۶۴۰ پیکسل) تا آپلود سبک باشد */
   upload(id, input){
@@ -4623,7 +4662,7 @@ SubPages.adm_ai_p = async function(p, id){
   try {
     if (!AdminAi.find(id)) AdminAi.d = await api('admin/ai');
     const x = AdminAi.find(id);
-    p.innerHTML = x ? AdminAi.page(x) : Top('تنظیمات محصول') + emptyBox('این محصول دیگر در canboso نیست');
+    p.innerHTML = x ? AdminAi.page(x) : Top('تنظیمات محصول') + emptyBox('این محصول دیگر در سرویس‌دهنده نیست');
   } catch (err) { p.innerHTML = Top('تنظیمات محصول') + emptyBox('خوانده نشد', err.message); }
 };
 SubPages.adm_ai_p.noNav = true;
@@ -4631,12 +4670,12 @@ SubPages.adm_ai = async function(p){
   p.innerHTML = Top('محصولات هوش مصنوعی') + skel(1, 120) + skel(4, 70);
   try {
     const d = AdminAi.d = await api('admin/ai');
-    if (!d.configured) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('کلید API تنظیم نشده', 'CANBOSO_API_KEY را در فایل .env بگذار.'));
-    if (d.error) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خواندن از canboso نشد', d.error));
+    if (!d.configured) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('کلید API تنظیم نشده', 'SSON_API_KEY را در فایل .env بگذار.'));
+    if (d.error) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خواندن از سرویس‌دهنده نشد', d.error));
     const on = d.items.filter(x => x.visible).length;
     p.innerHTML = Top('محصولات هوش مصنوعی', `${fa(on)} / ${fa(d.items.length)}`) + `
       <div class="ai-hero">${TUNNEL}
-        <div class="lbl" style="color:#DAD4FF">کیف پول شما نزد canboso</div>
+        <div class="lbl" style="color:#DAD4FF">کیف پول شما نزد سرویس‌دهنده</div>
         <div class="ai-hero-t n" style="font-size:28px;margin-top:4px">${esc(d.wallet ? d.wallet.text : '—')}</div>
         <div class="ai-hero-s">موجودی که کاربر می‌بیند کمترینِ موجودی API و تعدادی است که با همین کیف پول خریدنی است؛ اگر هر کدام صفر باشد، «ناموجود».</div>
       </div>
@@ -4644,7 +4683,7 @@ SubPages.adm_ai = async function(p){
         <button class="btn btn-s" onclick="AdminAi.all(true)">${ic('check',2)}همه روشن</button>
         <button class="btn btn-s" onclick="AdminAi.all(false)">همه خاموش</button></div>
       ${Sec('محصولات')}${d.items.length ? Group(d.items.map(x => AdminAi.row(x)).join('')) : emptyBox('محصولی نیامد')}
-      <div class="adm-note">محصول تازه canboso تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.</div>`;
+      <div class="adm-note">محصول تازه سرویس‌دهنده تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.</div>`;
   } catch (err) { p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خوانده نشد', err.message); }
 };
 SubPages.adm_ai.noNav = true;

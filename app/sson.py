@@ -1,23 +1,27 @@
-"""اتصال به وب سرویس فروش عمده aitoolifystudio (Reseller API v1) برای خدمات هوش مصنوعی.
+"""اتصال به وب سرویس فروش عمده ssondigitalworks (Developer / Reseller API) برای خدمات هوش مصنوعی.
 
-قرارداد:
+قرارداد (از مستند فروشنده):
 
-    GET  {BASE}/products     فهرست محصولات   ← data.products
-    POST {BASE}/order        خرید            بدنه {"product_id": عدد، "quantity": 1}
-                                             ← result.delivered[0] محتوای محصول
+    یک آدرس:  https://ssondigitalworks.online/api/reseller
+    GET  ?action=products   فهرست محصولات
+    GET  ?action=balance    موجودی کیف پول ما
+    POST ?action=order      خرید، بدنه:
+         {"product_id": "...", "quantity": 1, "external_order_id": "..."}
     هدر Authorization: Bearer <کلید>
+
+- این API فقط قیمت عمده (هزینه ما) را از موجودی ما کم می کند؛ قیمت فروش
+  به کاربر را خود ربات حساب می کند (app/pricing.py و سود هر محصول).
+- external_order_id برای هر سفارش یکتاست و «تکرار با همان شناسه همان
+  سفارش قبلی را برمی گرداند و دوباره پول کم نمی کند». پس مثل
+  Idempotency-Key است: وقتی جواب نرسید، با همان شناسه دوباره می پرسیم و
+  خرید تکراری نمی شود؛ سفارش مبهم هم بعدا با همان شناسه حل می شود.
 
 این کلاس همان رابط Canboso را دارد (catalog، balance، purchase، debug،
 close) و خروجی را به همان شکل برمی گرداند تا بقیه ربات (فروشگاه، مینی اپ،
 پنل ادمین) بدون تغییر کار کند.
 
-تفاوت مهم با canboso: این API کلید یکتای خرید (Idempotency-Key) ندارد. پس
-درخواستی که شاید به سرویس دهنده رسیده باشد **هیچ وقت دوباره فرستاده
-نمی شود** (وگرنه ممکن است دوبار خرید شود)؛ سفارش مبهم می ماند تا ادمین
-در پنل سرویس دهنده ببیند و دستی «برگشت پول» یا «تحویل شد» بزند.
-
-شکل دقیق فیلدهای محصول در مستند نیامده؛ برای همین نام های رایج هر فیلد
-پذیرفته می شود و پاسخ خام از پنل ادمین («خروجی خام») قابل دیدن است.
+شکل دقیق فیلدهای پاسخ در مستند نیامده؛ برای همین نام های رایج هر فیلد
+پذیرفته می شود و پاسخ خام از پنل ادمین («خروجی خام API») قابل دیدن است.
 کلید هیچ وقت در لاگ نوشته نمی شود.
 """
 from __future__ import annotations
@@ -31,10 +35,11 @@ import httpx
 
 from app.canboso import CanbosoError, CanbosoNoFunds, CanbosoUnknown, norm_currency
 
-log = logging.getLogger("obour.aitoolify")
+log = logging.getLogger("obour.sson")
 
-BASE_URL = "https://bot.aitoolifystudio.io/api/reseller/v1"
-NAME = "aitoolify"
+BASE_URL = "https://ssondigitalworks.online/api/reseller"
+NAME = "sson"
+TITLE = "ssondigitalworks"
 TIMEOUT = 45.0
 MIN_INTERVAL = 0.5
 PRODUCTS_TTL = 60.0
@@ -96,15 +101,24 @@ def _no_funds(msg: str) -> bool:
     return any(w in low for w in ("balance", "funds", "credit", "top up", "top-up"))
 
 
+def _unwrap(data: Any) -> Any:
+    """بعضی API ها همه چیز را زیر data یا result می گذارند."""
+    if isinstance(data, dict):
+        for k in ("data", "result"):
+            if isinstance(data.get(k), (dict, list)):
+                return data[k]
+    return data
+
+
 # ═══════════════════ تبدیل به شکل canboso ═══════════════════
 
 
 def normalize_product(p: dict, default_currency: str) -> dict | None:
     """یک محصول این API به همان شکلی که ai_shop از canboso انتظار دارد."""
-    pid = _first(p, "id", "product_id", "productId")
+    pid = _first(p, "product_id", "id", "productId", "code", "sku")
     if pid in (None, ""):
         return None
-    price_raw = _first(p, "price", "reseller_price", "price_usd", "cost", "amount", "unit_price")
+    price_raw = _first(p, "wholesale_price", "reseller_price", "price", "cost", "price_usd", "amount", "unit_price")
     currency = _first(p, "currency", "price_currency") or default_currency
     if isinstance(price_raw, dict):
         currency = price_raw.get("currency") or currency
@@ -135,19 +149,22 @@ def normalize_product(p: dict, default_currency: str) -> dict | None:
     }
 
 
+_USER_KEYS = ("username", "user", "email", "login", "account")
+_PASS_KEYS = ("password", "pass", "pwd")
+_CONTENT_KEYS = ("content", "data", "code", "key", "license", "link", "url", "text", "value", "details")
+
+
 def _account_of(item: Any) -> dict:
-    """یک قلم delivered به شکل حساب canboso (user، password، otherInfo ...)."""
+    """یک قلم تحویلی به شکل حساب canboso (user، password، otherInfo ...)."""
     if isinstance(item, dict):
-        user = _first(item, "username", "user", "email", "login", "account")
-        pw = _first(item, "password", "pass", "pwd")
+        user = _first(item, *_USER_KEYS)
+        pw = _first(item, *_PASS_KEYS)
         rest = {k: v for k, v in item.items()
-                if k not in ("username", "user", "email", "login", "account", "password", "pass", "pwd")
-                and v not in (None, "", [], {})}
-        content = _first(rest, "content", "data", "code", "key", "link", "url", "text", "value")
-        other = [str(content)] if content is not None else []
+                if k not in _USER_KEYS + _PASS_KEYS and v not in (None, "", [], {})}
+        content = _first(rest, *_CONTENT_KEYS)
+        other = [str(content)] if content is not None and not isinstance(content, (dict, list)) else []
         other += [f"{k}: {v}" for k, v in rest.items()
-                  if k not in ("content", "data", "code", "key", "link", "url", "text", "value")
-                  and not isinstance(v, (dict, list))]
+                  if k not in _CONTENT_KEYS and not isinstance(v, (dict, list))]
         return {"user": str(user or ""), "password": str(pw or ""), "otherInfo": "\n".join(other)}
     text = str(item or "").strip()
     if text.startswith(("http://", "https://")) and " " not in text:
@@ -155,21 +172,48 @@ def _account_of(item: Any) -> dict:
     return {"otherInfo": text}
 
 
+# جاهایی که محتوای تحویلی ممکن است باشد (به ترتیب)
+_DELIVERY_KEYS = ("delivered", "delivery", "items", "accounts", "credentials", "codes", "keys",
+                  "licenses", "content", "product_data")
+
+
+def _delivered_of(d: dict) -> Any:
+    for k in _DELIVERY_KEYS:
+        v = d.get(k)
+        if v in (None, "", [], {}):
+            continue
+        if k == "delivery" and isinstance(v, dict):
+            inner = _delivered_of(v)
+            if inner is not None:
+                return inner
+            continue
+        return v
+    return None
+
+
+FAILED_STATES = ("failed", "cancelled", "canceled", "rejected", "refunded", "error")
+
+
 def normalize_order(data: dict, product_id: str) -> dict:
     """پاسخ خرید به شکل canboso: order، payment و delivery.accounts."""
-    delivered = data.get("delivered")
-    if delivered is None and isinstance(data.get("order"), dict):
-        delivered = data["order"].get("delivered")
+    src = _unwrap(data)
+    src = src if isinstance(src, dict) else {}
+    o = src.get("order") if isinstance(src.get("order"), dict) else src
+    delivered = _delivered_of(o)
+    if delivered is None and o is not src:
+        delivered = _delivered_of(src)
     if isinstance(delivered, (str, dict)):
         delivered = [delivered]
     accounts = [a for a in (_account_of(x) for x in (delivered or [])) if any(a.values())]
-    o = data.get("order") if isinstance(data.get("order"), dict) else data
-    code = _first(o, "order_id", "orderId", "id", "order_code", "code") or _first(data, "order_id", "id")
-    amount = _num(_first(o, "total", "amount", "cost", "price", "charged")) or _num(_first(data, "total", "amount", "cost", "charged"))
+    code = (_first(o, "order_id", "orderId", "id", "order_code", "code")
+            or _first(src, "order_id", "orderId", "id"))
+    amount = (_num(_first(o, "total", "amount", "cost", "price", "charged", "wholesale_total"))
+              or _num(_first(src, "total", "amount", "cost", "charged")))
     return {
         "success": True,
         "order": {"orderCode": str(code or ""), "productId": str(product_id),
-                  "status": str(_first(o, "status") or ("completed" if accounts else "processing"))},
+                  "externalOrderId": str(_first(o, "external_order_id") or ""),
+                  "status": str(_first(o, "status", "state") or ("completed" if accounts else "processing"))},
         "payment": {"amount": amount} if amount is not None else {},
         "delivery": {"accounts": accounts},
         "raw": data,
@@ -179,15 +223,17 @@ def normalize_order(data: dict, product_id: str) -> dict:
 # ═══════════════════ کلاینت ═══════════════════
 
 
-class Aitoolify:
+class Sson:
     name = NAME
-    # کلید یکتای خرید ندارد: سفارش مبهم دوباره فرستاده نمی شود
-    idempotent = False
+    title = TITLE
+    # external_order_id یکتا: تکرار همان سفارش دوباره خرید نمی کند
+    idempotent = True
 
     def __init__(self, api_key: str, base_url: str | None = None) -> None:
         self._key = (api_key or "").strip()
+        self.base_url = (base_url or BASE_URL).rstrip("/")
         self._http = httpx.AsyncClient(
-            base_url=(base_url or BASE_URL).rstrip("/"), timeout=TIMEOUT,
+            timeout=TIMEOUT,
             headers={"Authorization": f"Bearer {self._key}", "Accept": "application/json"},
         )
 
@@ -198,13 +244,13 @@ class Aitoolify:
     async def close(self) -> None:
         await self._http.aclose()
 
-    async def _get(self, path: str) -> Any:
+    async def _get(self, action: str) -> Any:
         if not self.configured:
             raise CanbosoError("کلید API تنظیم نشده")
         for attempt in range(2):
             await _pace()
             try:
-                r = await self._http.get(path)
+                r = await self._http.get(self.base_url, params={"action": action})
             except Exception as exc:  # noqa: BLE001
                 raise CanbosoError(f"ارتباط برقرار نشد: {type(exc).__name__}") from exc
             if r.status_code == 429:
@@ -222,7 +268,7 @@ class Aitoolify:
                 data = r.json()
             except Exception as exc:  # noqa: BLE001
                 raise CanbosoError("پاسخ قابل خواندن نبود") from exc
-            if isinstance(data, dict) and data.get("success") is False:
+            if isinstance(data, dict) and (data.get("success") is False or data.get("ok") is False):
                 raise CanbosoError(_message(r))
             return data
         raise CanbosoError("سرویس دهنده شلوغ است")
@@ -232,10 +278,14 @@ class Aitoolify:
         global _products_cache
         if not force and _products_cache and time.monotonic() - _products_cache[0] < PRODUCTS_TTL:
             return _products_cache[1]
-        data = await self._get("/products")
-        raw = data.get("products") if isinstance(data, dict) else data
-        if isinstance(raw, dict):
-            raw = raw.get("items") or raw.get("data") or []
+        data = await self._get("products")
+        raw: Any = data
+        if isinstance(data, dict):
+            raw = data.get("products")
+            if raw is None:
+                raw = _unwrap(data)
+            if isinstance(raw, dict):
+                raw = raw.get("products") or raw.get("items") or raw.get("data") or []
         cur = norm_currency((data.get("currency") if isinstance(data, dict) else None) or "USD")
         products = [n for n in (normalize_product(p, cur) for p in (raw or []) if isinstance(p, dict)) if n]
         out = {"currency": cur, "products": products}
@@ -249,15 +299,20 @@ class Aitoolify:
         return None
 
     async def balance(self, force: bool = True) -> dict | None:
-        """موجودی ما نزد سرویس دهنده اگر API آن را بدهد؛ وگرنه None (بی سقف)."""
+        """موجودی ما نزد سرویس دهنده؛ اگر خوانده نشد None (بی سقف)."""
         global _balance_cache
         if not force and _balance_cache and time.monotonic() - _balance_cache[0] < BALANCE_TTL:
             return _balance_cache[1]
         out: dict | None = None
         try:
-            data = await self._get("/balance")
-            src = data.get("data") if isinstance(data, dict) and isinstance(data.get("data"), dict) else data
-            amount = _num(_first(src, "balance", "amount", "credit", "wallet")) if isinstance(src, dict) else None
+            data = await self._get("balance")
+            src = _unwrap(data)
+            if isinstance(src, dict) and isinstance(src.get("wallet"), dict):
+                src = src["wallet"]
+            amount = _num(_first(src, "balance", "amount", "credit", "wallet", "available")) if isinstance(src, dict) else None
+            if amount is None and isinstance(data, dict):
+                src = data
+                amount = _num(_first(data, "balance", "amount", "credit", "wallet"))
             if amount is not None:
                 out = {"balance": amount, "currency": norm_currency(src.get("currency") or "USD"), "text": ""}
         except CanbosoError as exc:
@@ -266,20 +321,20 @@ class Aitoolify:
         return out
 
     async def debug(self) -> dict:
-        """پاسخ خام /products و /balance برای پنل ادمین (بدون کش)."""
+        """پاسخ خام products و balance برای پنل ادمین (بدون کش)."""
         out: dict[str, Any] = {}
-        for path in ("/products", "/balance"):
+        for action in ("products", "balance"):
             await _pace()
             started = time.monotonic()
             try:
-                r = await self._http.get(path)
+                r = await self._http.get(self.base_url, params={"action": action})
                 try:
                     body: Any = r.json()
                 except Exception:  # noqa: BLE001
                     body = r.text[:2000]
-                out[path] = {"status": r.status_code, "ms": int((time.monotonic() - started) * 1000), "body": body}
+                out[action] = {"status": r.status_code, "ms": int((time.monotonic() - started) * 1000), "body": body}
             except Exception as exc:  # noqa: BLE001
-                out[path] = {"status": 0, "error": f"{type(exc).__name__}: {exc}"}
+                out[action] = {"status": 0, "error": f"{type(exc).__name__}: {exc}"}
         return out
 
     # ---------- خرید ----------
@@ -287,52 +342,78 @@ class Aitoolify:
         self,
         product_id: str,
         *,
-        idempotency_key: str = "",
+        idempotency_key: str,
         quantity: int = 1,
         customer_email: str | None = None,
         slot_months: int | None = None,
     ) -> dict:
         """خرید. خروجی به شکل canboso (order، payment، delivery).
 
+        idempotency_key همان external_order_id است.
         - CanbosoError: قطعا انجام نشد (پول کاربر برمی گردد)
         - CanbosoNoFunds: موجودی ما کم است (انجام نشد)
-        - CanbosoUnknown: شاید انجام شده؛ دوباره فرستاده نمی شود
-        فقط وقتی اتصال اصلا برقرار نشده (چیزی نرفته) یا ۴۲۹ آمده، تکرار می شود.
+        - CanbosoUnknown: معلوم نیست؛ بعدا با همان شناسه دوباره پرسیده می شود
+        چون شناسه یکتاست، جواب نرسیده با همان شناسه دوباره فرستاده می شود و
+        اگر اولی انجام شده بود همان سفارش برمی گردد.
         """
         if not self.configured:
             raise CanbosoError("کلید API تنظیم نشده")
-        pid: Any = int(product_id) if str(product_id).isdigit() else str(product_id)
-        body: dict[str, Any] = {"product_id": pid, "quantity": int(quantity)}
+        if not idempotency_key:
+            raise CanbosoError("شناسه سفارش خالی است")
+        body: dict[str, Any] = {"product_id": str(product_id), "quantity": int(quantity),
+                                "external_order_id": idempotency_key}
         if customer_email:
             body["email"] = customer_email
+
+        maybe_sent = False      # آیا ممکن است درخواستی به مسیر خرید رسیده باشد؟
         r: httpx.Response | None = None
         for attempt in range(3):
             await _pace()
             try:
-                r = await self._http.post("/order", json=body, headers={"Content-Type": "application/json"})
+                r = await self._http.post(self.base_url, params={"action": "order"}, json=body,
+                                          headers={"Content-Type": "application/json"})
             except httpx.ConnectError as exc:
+                # اتصال برقرار نشد؛ این بار چیزی نرفت
                 if attempt < 2:
                     await asyncio.sleep(2.0)
                     continue
+                if maybe_sent:
+                    raise CanbosoUnknown(f"پاسخ نرسید: {type(exc).__name__}") from exc
                 raise CanbosoError(f"ارتباط برقرار نشد: {type(exc).__name__}") from exc
             except Exception as exc:  # noqa: BLE001  (تایم اوت یا قطع وسط پاسخ: شاید انجام شده)
+                maybe_sent = True
+                if attempt < 2:
+                    await asyncio.sleep(2.0)
+                    continue
                 raise CanbosoUnknown(f"پاسخ نرسید: {type(exc).__name__}") from exc
-            if r.status_code == 429 and attempt < 2:
+
+            code = r.status_code
+            if code == 429:
                 raw = r.headers.get("Retry-After")
                 wait = float(raw) if raw and raw.replace(".", "", 1).isdigit() else 3.0 * (attempt + 1)
-                if wait <= MAX_WAIT:
+                if attempt < 2 and wait <= MAX_WAIT:
                     await asyncio.sleep(wait)
                     continue
+                if maybe_sent:
+                    raise CanbosoUnknown("HTTP 429 بعد از تلاش مبهم")
+                raise CanbosoError("سرویس دهنده شلوغ است، چند دقیقه دیگر امتحان کن")
+            if code >= 500:
+                maybe_sent = True
+                if attempt < 2:
+                    await asyncio.sleep(2.0)
+                    continue
+                raise CanbosoUnknown(f"HTTP {code}: {_message(r)}")
             break
 
         assert r is not None
         code = r.status_code
-        if code == 429:
-            raise CanbosoError("سرویس دهنده شلوغ است، چند دقیقه دیگر امتحان کن")
-        if code >= 500:
-            raise CanbosoUnknown(f"HTTP {code}: {_message(r)}")
+        if code == 409:
+            # همان شناسه هنوز در حال انجام است یا قبلا ثبت شده؛ بعدا دوباره می پرسیم
+            raise CanbosoUnknown(f"HTTP 409: {_message(r)}")
         if code >= 400:
             msg = _message(r)
+            if maybe_sent:
+                raise CanbosoUnknown(f"HTTP {code} بعد از تلاش مبهم: {msg}")
             if code == 402 or _no_funds(msg):
                 raise CanbosoNoFunds(msg)
             if code in (401, 403):
@@ -346,13 +427,17 @@ class Aitoolify:
             raise CanbosoUnknown("پاسخ قابل خواندن نبود") from exc
         if not isinstance(data, dict):
             raise CanbosoUnknown("پاسخ ناشناخته")
-        if data.get("success") is False or (data.get("error") and not data.get("delivered")):
-            msg = str(data.get("error") or data.get("message") or "")
+        if data.get("success") is False or data.get("ok") is False or (
+                data.get("error") and _delivered_of(data) is None and not isinstance(data.get("order"), dict)):
+            msg = _message(r)
             if _no_funds(msg):
                 raise CanbosoNoFunds(msg[:200])
             raise CanbosoError(msg[:200] or "سفارش انجام نشد")
         forget_balance()
-        return normalize_order(data, str(product_id))
+        out = normalize_order(data, str(product_id))
+        if out["order"]["status"].lower() in FAILED_STATES and not out["delivery"]["accounts"]:
+            raise CanbosoError(f"سفارش {out['order']['status']} شد")
+        return out
 
 
 def forget_balance() -> None:

@@ -74,7 +74,7 @@ async def _ai_ready(db: Database) -> bool:
 
 @router.callback_query(F.data == "buy:ai")
 async def cb_ai_shop(call: CallbackQuery, db: Database, user: dict) -> None:
-    """بخش خدمات هوش مصنوعی: کاتالوگ canboso با قیمت تومانی."""
+    """بخش خدمات هوش مصنوعی: کاتالوگ سرویس دهنده با قیمت تومانی."""
     if not features.is_on("shop_ai"):
         return await call.answer(texts.SECTION_OFF, show_alert=True)
     if not await _ai_ready(db):

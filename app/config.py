@@ -173,14 +173,13 @@ class Config:
     channel_id: str = os.getenv("CHANNEL_ID", "")
     join_for_trial: bool = _bool("JOIN_FOR_TRIAL", "true")
 
-    # ===== خدمات هوش مصنوعی (canboso.com) =====
-    # کلید خریدار (tgb_...) از ربات canboso. اگر خالی باشد، کلیدی که
+    # ===== خدمات هوش مصنوعی (ssondigitalworks Reseller API) =====
+    # کلید API فروشنده (Authorization: Bearer). اگر خالی باشد، کلیدی که
     # ادمین در پنل گذاشته استفاده می شود.
-    canboso_api_key: str = os.getenv("CANBOSO_API_KEY", "").strip()
-    # وب سرویس فروش عمده aitoolifystudio (کلید sk_live_...). اگر تنظیم باشد
-    # به جای canboso استفاده می شود.
-    aitoolify_api_key: str = os.getenv("AITOOLIFY_API_KEY", "").strip()
-    aitoolify_base_url: str = os.getenv("AITOOLIFY_BASE_URL", "").strip().rstrip("/")
+    sson_api_key: str = os.getenv("SSON_API_KEY", "").strip()
+    # فقط اگر فروشنده آدرس را عوض کرد؛ پیش فرض
+    # https://ssondigitalworks.online/api/reseller
+    sson_base_url: str = os.getenv("SSON_BASE_URL", "").strip().rstrip("/")
 
     # ===== دستیار هوش مصنوعی (وب سرویس dezhcode) =====
     # کلید فقط در .env می ماند. بدون کلید همه بخش های هوشمند خاموش اند و

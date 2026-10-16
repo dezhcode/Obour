@@ -1,4 +1,4 @@
-"""خرید خدمات هوش مصنوعی از canboso (کاتالوگ کامل، نه یک محصول ثابت).
+"""خرید خدمات هوش مصنوعی از سرویس دهنده (ssondigitalworks؛ کاتالوگ کامل، نه یک محصول ثابت).
 
 منطق خرید، قیمت و حل سفارش مبهم در app/services/ai_shop.py است؛ اینجا
 فقط گفتگوی ربات:
@@ -39,7 +39,7 @@ async def _items(db: Database) -> list[dict] | None:
     try:
         return (await ai_shop.catalog(db))["items"]
     except CanbosoError as exc:
-        log.warning("کاتالوگ canboso خوانده نشد: %s", exc)
+        log.warning("کاتالوگ سرویس دهنده خوانده نشد: %s", exc)
         return None
 
 
