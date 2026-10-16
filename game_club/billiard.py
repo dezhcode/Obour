@@ -501,7 +501,8 @@ SEATS2, SEATS4 = ("0", "1"), ("0", "1", "2", "3")
 LOBBY_ORDER4 = ("0", "2", "1", "3")    # اولین مهمان میز دعوت یار سازنده می شود
 SHOT_PAUSE = 0.6
 INTRO = 2.6
-BOT_THINK = 1.4
+BOT_THINK = 2.4
+AIM_MIN_S = 0.25          # فاصلهٔ کمینهٔ دو به روزرسانی نشانه گیری زنده
 MAX_EVENTS = 40
 TURN_S = 30
 
@@ -638,7 +639,37 @@ def shot(st: dict, i: int, angle, power, sx=0.0, sy=0.0, cx=None, cy=None, now: 
     _event(st, t="shot", c=s, a=round(angle, 4), p=round(power, 3), cue=pos0[0], ids=res["ids"], frames=res["frames"],
            dur=res["dur"], pots=res["pots"], hits=res["hits"], auto=auto)
     st["balls"] = res["pos"]
+    st.pop("live", None)
     _resolve(st, i, res, need, now)
+    return None
+
+
+def aim(st: dict, i: int, angle, power, cx=None, cy=None, now: float = 0.0) -> str | None:
+    """نشانه گیری زنده مثل پلاتو (حرکت های a:3 چرخش چوب، a:4 قدرت، a:2 جای توپ در دست):
+    فقط برای دیدن بقیه؛ رویداد و نوبت را عوض نمی کند. «same» یعنی چیزی نوشته نشد."""
+    if st["over"] or st["phase"] != "play":
+        return "over"
+    if st["turn"] != i:
+        return "not_your_turn"
+    try:
+        a, p = float(angle), float(power or 0)
+    except (TypeError, ValueError):
+        return "bad_shot"
+    if not (math.isfinite(a) and math.isfinite(p)):
+        return "bad_shot"
+    cue = None
+    if st["bih"] and cx is not None and cy is not None:
+        try:
+            x, y = float(cx), float(cy)
+        except (TypeError, ValueError):
+            x = y = float("nan")
+        if math.isfinite(x) and math.isfinite(y) and _valid_place(st, x, y):
+            cue = [round(x, 1), round(y, 1)]
+    old = st.get("live")
+    if old and old.get("id") == st["turn_id"] and now - old.get("t", 0) < AIM_MIN_S:
+        return "same"
+    st["live"] = {"id": st["turn_id"], "c": st["order"][i], "a": round(math.atan2(math.sin(a), math.cos(a)), 4),
+                  "p": round(min(1.0, max(0.0, p)), 3), "cue": cue, "t": round(now, 2)}
     return None
 
 
@@ -881,9 +912,23 @@ def tick(st: dict, now: float) -> bool:
         s = st["order"][i]
         p = st["players"][s]
         if _auto(st, i):
+            # ربات هم مثل بازیکن واقعی نشانه می گیرد: اول نزدیک هدف، کمی پیش از ضربه دقیق با قدرت
+            plan = st.get("plan")
+            if not plan or plan.get("id") != st["turn_id"]:
+                v = list(bot_shot(st, i))
+                plan = st["plan"] = {"id": st["turn_id"], "v": v, "k": 0}
+                cue = [round(v[4], 1), round(v[5], 1)] if v[4] is not None else None
+                st["live"] = {"id": st["turn_id"], "c": s, "a": round(v[0] + (_rng.random() - 0.5) * 0.45, 4), "p": 0,
+                              "cue": cue, "t": round(now, 2)}
+                changed = True
             if now < st["next_at"]:
+                if plan["k"] == 0 and now >= st["next_at"] - 1.0:
+                    plan["k"] = 1
+                    st["live"] = dict(st["live"], a=round(plan["v"][0], 4), p=round(plan["v"][1], 3), t=round(now, 2))
+                    changed = True
                 break
-            a, pw, sx, sy, cx, cy = bot_shot(st, i)
+            a, pw, sx, sy, cx, cy = plan["v"]
+            st.pop("plan", None)
             shot(st, i, a, pw, sx, sy, cx, cy, now, auto=True)
             changed = True
             continue
@@ -935,6 +980,9 @@ def view(st: dict, me: str | None, since: int, now: float) -> dict:
     cur = current(st)
     mi = st["order"].index(me) if me in st["order"] else None
     auto = cur is not None and _auto(st, st["order"].index(cur))
+    live = st.get("live")
+    if not (cur is not None and live and live.get("id") == st["turn_id"] and live.get("c") == cur):
+        live = None
     return {
         "order": list(st["order"]),
         "n": st["n"],
@@ -956,6 +1004,8 @@ def view(st: dict, me: str | None, since: int, now: float) -> dict:
         "ready_ms": max(0, int((st["next_at"] - now) * 1000)) if cur is not None else 0,
         "deadline_ms": 0 if (cur is None or auto) else max(0, int((st["deadline"] - now) * 1000)),
         "turn_ms": st["turn_s"] * 1000,
+        # نشانه گیری زندهٔ نوبت دار (چوب، قدرت، جای توپ در دست) برای بقیه
+        "live": {k: live[k] for k in ("c", "a", "p", "cue")} if live else None,
         "events": [e for e in st["events"] if e["seq"] > since],
         "seq": st["seq"],
         "over": st["over"],

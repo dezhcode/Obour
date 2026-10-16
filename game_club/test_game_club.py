@@ -1645,6 +1645,38 @@ def test_billiard_teams_and_bot_games():
     assert st2["over"] and Bl.winners(st2) == {"1"}
 
 
+def test_billiard_live_aim():
+    from game_club import billiard as Bl
+    random.seed(9)
+    st = Bl.new_state([{"color": c, "uid": i + 1, "name": c, "bot": False} for i, c in enumerate(Bl.SEATS2)], 0.0, 30, False, 2, 0)
+    t = st["next_at"]
+    assert Bl.aim(st, 1, 0.5, 0.2, now=t) == "not_your_turn"
+    assert Bl.aim(st, 0, 0.5, 0.2, now=t) is None
+    lv = Bl.view(st, "1", 0, t)["live"]
+    assert lv["c"] == "0" and abs(lv["a"] - 0.5) < 1e-6 and lv["p"] == 0.2 and lv["cue"] is None
+    assert Bl.aim(st, 0, 0.9, 0.2, now=t + 0.1) == "same"          # پشت سر هم: چیزی نوشته نمی شود
+    # توپ در دست: جای مجاز فرستاده می شود، جای غیرمجاز نه
+    assert Bl.aim(st, 0, 0.9, 0.0, Bl.W / 2, Bl.BREAK_MIN_Y + 40, now=t + 1) is None
+    assert Bl.view(st, "1", 0, t)["live"]["cue"] == [round(Bl.W / 2, 1), round(Bl.BREAK_MIN_Y + 40, 1)]
+    assert Bl.aim(st, 0, 0.9, 0.0, Bl.W / 2, 300, now=t + 2) is None
+    assert Bl.view(st, "1", 0, t)["live"]["cue"] is None
+    assert Bl.shot(st, 0, -1.5, 0.8, now=t + 3) is None
+    assert Bl.view(st, "1", 0, t + 3)["live"] is None                # بعد از ضربه نشانه گیری پاک است
+    # ربات: اول نزدیک هدف بدون قدرت، کمی پیش از ضربه دقیق با قدرت، بعد همان ضربه
+    st = Bl.new_state([{"color": "0", "uid": 1, "name": "a"}, {"color": "1", "name": "b", "bot": True}], 0.0, 30, False, 2, 1)
+    t0 = st["next_at"] - Bl.BOT_THINK + 0.1
+    Bl.tick(st, t0)
+    lv = Bl.view(st, "0", 0, t0)["live"]
+    assert lv and lv["c"] == "1" and lv["p"] == 0
+    plan = st["plan"]["v"]
+    Bl.tick(st, st["next_at"] - 0.5)
+    lv = Bl.view(st, "0", 0, st["next_at"] - 0.5)["live"]
+    assert abs(lv["a"] - round(plan[0], 4)) < 1e-6 and lv["p"] > 0
+    Bl.tick(st, st["next_at"] + 0.01)
+    sh = [e for e in st["events"] if e["t"] == "shot"][-1]
+    assert sh["c"] == "1" and sh["auto"] and "plan" not in st
+
+
 def test_billiard_service_flow():
     from game_club import service
     from game_club.db import GCDatabase
@@ -1674,6 +1706,9 @@ def test_billiard_service_flow():
                 if st["order"][st["turn"]] == v["me"] and not st["over"]:
                     break
                 await service.match_view(db, 1, mid)
+            assert await service.act(db, 1, mid, "aim", data={"a": -1.2, "p": 0.3}) == {"ok": True}
+            lv = (await service.match_view(db, 1, mid))["game"]["live"]
+            assert lv["c"] == v["me"] and abs(lv["a"] + 1.2) < 1e-6 and lv["p"] == 0.3
             v = await service.act(db, 1, mid, "shot", data={"a": -1.5, "p": 0.8, "sx": 0, "sy": 0})
             # فقط آخرین ضربه فریم دارد (فریم ضربه های قبلی برای کوچک ماندن وضعیت پاک می شود)
             shots = [e for e in v["game"]["events"] if e["t"] == "shot"]

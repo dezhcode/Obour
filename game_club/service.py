@@ -848,6 +848,7 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
         st = m["state"]
         eng = _eng(m["cfg"])
         changed = eng.tick(st, now)
+        noop = False
         kk = int(k) if str(k if k is not None else "").lstrip("-").isdigit() else -1
         if action == "leave":
             eng.leave(st, color, now, "left")
@@ -870,19 +871,26 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
             d = data or {}
             err = billiard.shot(st, st["order"].index(color), d.get("a"), d.get("p"), d.get("sx"), d.get("sy"),
                                 d.get("cx"), d.get("cy"), now)
+        elif eng is billiard and action == "aim":
+            d = data or {}
+            err = billiard.aim(st, st["order"].index(color), d.get("a"), d.get("p"), d.get("cx"), d.get("cy"), now)
+            if err == "same":                    # خیلی زود پس از قبلی: چیزی نوشته نمی شود
+                err, noop = None, True
         else:
             err = "bad_action"
-        if err is None and action != "leave":
+        if err is None and action not in ("leave", "aim"):   # نشانه گیری بدون ضربه، غیبت را پاک نمی کند
             eng.human_acted(st, color)
         if st["over"]:
             m["status"] = "over"
-        return changed or err is None, err
+        return changed or (err is None and not noop), err
 
     m, err = await mutate(db, match_id, fn)
     if action == "leave":
         await db.deactivate(match_id, tg)
     if err and err not in ("over",):
         raise GCError(err)
+    if action == "aim":                          # پاسخ سبک: کلاینت نمای کامل را با poll می گیرد
+        return {"ok": True}
     return await match_view(db, tg, match_id, since)
 
 

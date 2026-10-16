@@ -4,7 +4,7 @@
 (() => {
 const S = GC.S, save = GC.save, store = GC.store, E = BLEngine;
 const BOTS = ['lucky_falcon', 'brave_tiger', 'swift_panda', 'calm_otter', 'jolly_ace', 'witty_fox', 'royal_queen', 'cosmic_ninja', 'misty_raven', 'golden_comet', 'keen_hawk', 'sunny_mango'];
-const SHOT_PAUSE = .6, INTRO = 2.6, BOT_THINK = 1.4, TURN_S = 30;
+const SHOT_PAUSE = .6, INTRO = 2.6, BOT_THINK = 2.4, TURN_S = 30, AIM_MIN_S = .25;
 const now = () => Date.now() / 1000;
 const err = code => { const e = new Error(code); e.code = code; return e; };
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -51,7 +51,7 @@ function shot(st, i, angle, power, sx, sy, cx, cy, t, isAuto) {
   for (const e of st.events) if (e.t === 'shot') delete e.frames;
   st.stats[s].shots++;
   ev(st, { t: 'shot', c: s, a: +angle.toFixed(4), p: +power.toFixed(3), cue: pos0[0], ids: res.ids, frames: res.frames, dur: res.dur, pots: res.pots, hits: res.hits, auto: !!isAuto });
-  st.balls = res.pos;
+  st.balls = res.pos; delete st.live;
   resolve(st, i, res, need, t);
   return null;
 }
@@ -153,8 +153,18 @@ function tick(st, t) {
   for (let g = 0; g < 3 && !st.over; g++) {
     const i = st.turn, s = st.order[i], p = st.players[s];
     if (auto(st, i)) {
-      if (t < st.next_at) break;
-      const [a, pw, sx, sy, place] = botShot(st, i);
+      // ربات هم مثل بازیکن نشانه می گیرد (نشانه گیری زنده): اول نزدیک هدف، کمی پیش از ضربه دقیق با قدرت
+      let plan = st.plan;
+      if (!plan || plan.id !== st.turn_id) {
+        const v = botShot(st, i);
+        plan = st.plan = { id: st.turn_id, v, k: 0 };
+        st.live = { id: st.turn_id, c: s, a: +(v[0] + (Math.random() - .5) * .45).toFixed(4), p: 0, cue: v[4] ? v[4].map(q => +q.toFixed(1)) : null, t };
+      }
+      if (t < st.next_at) {
+        if (plan.k === 0 && t >= st.next_at - 1) { plan.k = 1; st.live = Object.assign({}, st.live, { a: +plan.v[0].toFixed(4), p: +plan.v[1].toFixed(3), t }); }
+        break;
+      }
+      const [a, pw, sx, sy, place] = plan.v; delete st.plan;
       shot(st, i, a, pw, sx, sy, place ? place[0] : null, place ? place[1] : null, t, true); continue;
     }
     if (t < st.deadline) break;
@@ -163,14 +173,25 @@ function tick(st, t) {
     else after(st, i, false, 'timeout', .4, t);
   }
 }
+// نشانه گیری زنده (مثل aim در billiard.py)
+function aim(st, i, a, p, cx, cy, t) {
+  if (st.over || st.phase !== 'play') return 'over';
+  if (st.turn !== i) return 'not_your_turn';
+  if (!isFinite(a) || !isFinite(p)) return 'bad_shot';
+  const cue = st.bih && cx != null && cy != null && E.validPlace(st.balls, st.breaking, cx, cy) ? [+cx.toFixed(1), +cy.toFixed(1)] : null;
+  const old = st.live; if (old && old.id === st.turn_id && t - old.t < AIM_MIN_S) return 'same';
+  st.live = { id: st.turn_id, c: st.order[i], a: +Math.atan2(Math.sin(a), Math.cos(a)).toFixed(4), p: +Math.min(1, Math.max(0, p)).toFixed(3), cue, t };
+  return null;
+}
 function view(st, me, since) {
   const t = now(), cur = current(st), mi = st.order.indexOf(me), au = cur != null && auto(st, st.order.indexOf(cur));
+  const lv = st.live && cur != null && st.live.id === st.turn_id && st.live.c === cur ? { c: st.live.c, a: st.live.a, p: st.live.p, cue: st.live.cue } : null;
   return { order: st.order, n: st.n, me, phase: st.phase, turn: cur, balls: st.balls, solids: st.solids, bih: st.bih, breaking: st.breaking, msg: st.msg,
     players: Object.fromEntries(st.order.map((s, k) => { const p = st.players[s]; return [s, { name: p.name, av: p.av, pic: '', bot: p.bot, out: p.out, me: s === me, team: team(k), group: st.solids < 0 ? null : (st.solids === team(k) ? 'solids' : 'stripes') }]; })),
     targets: cur != null ? targets(st, st.turn) : [], mine: mi >= 0 && !st.over ? targets(st, mi) : [], score: score(st),
     ready_ms: cur != null ? Math.max(0, Math.round((st.next_at - t) * 1000)) : 0,
     deadline_ms: cur == null || au ? 0 : Math.max(0, Math.round((st.deadline - t) * 1000)), turn_ms: st.turn_s * 1000,
-    events: st.events.filter(e => e.seq > since), seq: st.seq, over: st.over, winner: st.winner, stats: st.stats[me], started: st.started };
+    live: lv, events: st.events.filter(e => e.seq > since), seq: st.seq, over: st.over, winner: st.winner, stats: st.stats[me], started: st.started };
 }
 
 /* ---------- API نمایشی (هم شکل liveBilliard در gc.js) ---------- */
@@ -254,6 +275,13 @@ const billiard = {
     if (m.state.over) { m.status = 'over'; settle(m); }
     saveM(m); if (e && e !== 'over') throw err(e);
     return out(m, since);
+  },
+  async aim(id, a, p, cx, cy) {
+    const m = loadM(); if (!m || m.id !== id) throw err('not_found');
+    if (m.status !== 'playing') return { ok: true };
+    const e = aim(m.state, 0, +a, +(p || 0), cx == null ? null : +cx, cy == null ? null : +cy, now());
+    if (!e) saveM(m); else if (e !== 'same' && e !== 'over') throw err(e);
+    return { ok: true };
   },
   async leave(id) {
     const m = loadM();
