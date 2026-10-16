@@ -1241,7 +1241,7 @@ async def _ai_home(message: Message, db: Database) -> None:
     await edit_or_send(
         message,
         texts.ADMIN_AI.format(
-            key=("از .env ✅" if config.canboso_api_key else "تنظیم شده ✅") if key else "تنظیم نشده ❌",
+            key=("از .env ✅" if config.sson_api_key else "تنظیم شده ✅") if key else "تنظیم نشده ❌",
             wallet=wallet,
             fields="\n".join(lines),
             delivered=stats.get("delivered") or 0,
@@ -1289,13 +1289,15 @@ async def cb_ai_field(call: CallbackQuery, state: FSMContext) -> None:
 async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> None:
     from app import pricing
 
+    from app.services import ai_shop
+
     data = await state.get_data()
     field = data.get("ai_field")
     await state.clear()
     raw = message.text.strip()
 
     if field == "ai_api_key":
-        await db.set_setting("ai_api_key", raw)
+        await db.set_setting(ai_shop.KEY_SETTING, raw)
         # کلید می تواند پول خرج کند: پیام حاوی آن پاک می شود
         try:
             await message.delete()
@@ -1303,6 +1305,21 @@ async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> Non
             pass
         await message.answer(texts.ADMIN_AI_KEY_SAVED)
         return await _ai_home(message, db)
+
+    if field == "markup":
+        # سود اختصاصی یک محصول
+        pid = str(data.get("ai_pid") or "")
+        if not pid:
+            return await message.answer("محصول مشخص نیست؛ دوباره از فهرست محصولات روی 💰 بزن.")
+        try:
+            markup = ai_shop.parse_markup(raw)
+        except ValueError:
+            await state.set_state(Admin.waiting_ai_field)
+            await state.update_data(ai_field="markup", ai_pid=pid, ai_page=data.get("ai_page") or 0)
+            return await message.answer("نامعتبر بود. مثل 150000 (تومان) یا 20% (درصد) بفرست؛ - یعنی سود کلی.")
+        await ai_shop.set_markup(db, pid, markup)
+        await message.answer(f"✅ سود این محصول: {pricing.markup_label(markup)}")
+        return await _ai_products(message, db, int(data.get("ai_page") or 0))
 
     try:
         value = float(raw.replace(",", "").replace("،", ""))
@@ -1317,7 +1334,7 @@ async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> Non
 
 @router.callback_query(F.data == "adm:ai:preview")
 async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
-    """قیمت همه محصولات canboso با تنظیمات فعلی: قیمت API ← قیمت کاربر."""
+    """قیمت همه محصولات با تنظیمات فعلی (و سود هر محصول): قیمت API ← قیمت کاربر."""
     from app import pricing
     from app.canboso import CanbosoError
     from app.services import ai_shop
@@ -1332,11 +1349,12 @@ async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
     cfg = await pricing.load(db)
     rows = []
     for x in cat["items"][:25]:
-        b = pricing.compute(x["cost"], cfg, x["currency"])
+        b = pricing.compute(x["cost"], cfg, x["currency"], x.get("markup"))
         stock = "∞" if x["stock"] is None else x["stock"]
         rows.append(f"{'•' if x['visible'] else '🔴'} <b>{esc(x['name'])}</b> ({stock})\n   {x['cost']:g} {x['currency']} → {b.final:,} تومان"
-                    + (f" · سود {b.net_profit:,}" if b.net_profit else ""))
-    first = pricing.compute(cat["items"][0]["cost"], cfg, cat["items"][0]["currency"])
+                    + (f" · سود {b.net_profit:,}" if b.net_profit else "")
+                    + (f" (💰 {esc(x['markup_label'])})" if x.get("markup") else ""))
+    first = pricing.compute(cat["items"][0]["cost"], cfg, cat["items"][0]["currency"], cat["items"][0].get("markup"))
     await call.message.answer("🧮 <b>قیمت محصولات برای کاربر</b>\n\n" + "\n".join(rows) + "\n\n" + pricing.explain(first))
     await call.answer()
 
@@ -1407,7 +1425,7 @@ async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
 
 @router.callback_query(F.data.startswith("adm:ai:rs:"))
 async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
-    """سفارش مبهم را با همان Idempotency-Key از canboso دوباره می پرسد.
+    """سفارش مبهم را با همان شناسه یکتا (external_order_id) از سرویس دهنده دوباره می پرسد.
 
     اگر اولی انجام شده بود همان پاسخ برمی گردد و تحویل می شود؛ اگر نه،
     همین حالا انجام می شود (پول کاربر از قبل کم شده) یا اگر قطعا ممکن
@@ -1422,14 +1440,14 @@ async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
     if not ai_shop.can_retry(order):
         return await call.answer("این سفارش دوباره فرستاده نمی‌شه؛ از «برگشت پول» یا «تحویل شد» استفاده کن.",
                                  show_alert=True)
-    await call.answer("در حال پرسیدن از canboso…")
+    await call.answer("در حال پرسیدن از سرویس دهنده…")
     r = await ai_shop.resolve(db, call.bot, order)
     await notify_buyer(call.bot, db, r)
     label = {
         ai_shop.DELIVERED: "✅ تحویل شد و برای کاربر فرستاده شد",
         ai_shop.PROCESSING: "⏳ پذیرفته شد؛ در انتظار فروشنده",
         ai_shop.FAILED: "↩️ انجام نشد؛ پول کاربر برگشت",
-        ai_shop.NO_FUNDS: "↩️ موجودی canboso کم است؛ پول کاربر برگشت",
+        ai_shop.NO_FUNDS: "↩️ موجودی سرویس دهنده کم است؛ پول کاربر برگشت",
         ai_shop.UNKNOWN: "🔎 هنوز مبهم است؛ کمی بعد دوباره امتحان کن",
     }.get(r["status"], r["status"])
     await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
@@ -1438,14 +1456,17 @@ async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
 
 @router.callback_query(F.data.regexp(r"^adm:ai:(rf|dn):\d+$"))
 async def cb_ai_settle_ask(call: CallbackQuery, db: Database) -> None:
-    """سفارش مبهم aitoolify: اول در پنل سرویس دهنده نگاه کن، بعد تصمیم بگیر."""
+    """سفارش مبهمی که دوباره فرستادنش ممکن نیست (مثل سفارش های مانده از سرویس دهنده
+    قبلی): اول در پنل همان سرویس دهنده نگاه کن، بعد تصمیم بگیر."""
+    from app.services import ai_shop
+
     _, _, act, oid = call.data.split(":")
     order = await db.get_ai_order(int(oid))
     if not order or order["status"] not in ("unknown", "pending"):
         return await call.answer("این سفارش دیگر مبهم نیست.", show_alert=True)
     refund = act == "rf"
     body = (f"سفارش <code>{order['code']}</code> · {esc(order['title'])} · {order['price']:,} تومان\n\n"
-            "اول در پنل aitoolifystudio نگاه کن این سفارش ثبت شده یا نه.\n\n")
+            f"اول در پنل سرویس دهنده ({esc(ai_shop.provider_of(order))}) نگاه کن این سفارش ثبت شده یا نه.\n\n")
     body += ("اگه <b>ثبت نشده</b>، پول کاربر به کیف پولش برمی‌گرده و بهش خبر داده می‌شه."
              if refund else
              "اگه <b>ثبت شده</b> و محتوا رو از پشتیبانی به کاربر دادی، سفارش «تحویل شد» علامت می‌خوره. "
@@ -1477,7 +1498,7 @@ def _stock_txt(v) -> str:  # noqa: ANN001
 
 
 async def _ai_products(message: Message, db: Database, page: int) -> None:
-    """همه محصولات canboso با روشن/خاموش نمایش و سه عدد موجودی:
+    """همه محصولات سرویس دهنده با روشن/خاموش نمایش، سود هر محصول و سه عدد موجودی:
     موجودی API، تعدادی که پول کیف پول ما می رسد، و کمترینِ این دو که به
     کاربر نشان داده می شود."""
     from app.canboso import CanbosoError
@@ -1497,21 +1518,25 @@ async def _ai_products(message: Message, db: Database, page: int) -> None:
         state = "ناموجود" if not x["available"] else f"نمایش: {_stock_txt(x['stock'])}"
         price = f"{x['price']:,} تومان" if x["priced"] else f"⚠️ نرخ {x['currency']} تنظیم نشده"
         months = f" · ماه ها: {', '.join(map(str, x['months']))}" if x["months"] else ""
+        profit = (f"   💰 سود: {esc(x['markup_label'])}" + (" (اختصاصی)" if x.get("markup") else "")
+                  + (f" · {x['profit']:,} تومان" if x["priced"] else "") + "\n")
         rows.append(
             f"{mark} <b>{esc(x['name'])}</b>\n"
             f"   <code>{esc(x['id'])}</code> · {esc(x['type'])}{months}\n"
             f"   {x['cost']:g} {x['currency']} → {price}\n"
+            + profit +
             f"   موجودی API: {_stock_txt(x['api_stock'])} · با کیف پول: {_stock_txt(x['wallet_stock'])} → {state}"
         )
     on = sum(1 for x in items if x["visible"])
     body = (
-        "╮── 🗂 محصولات canboso\n"
+        "╮── 🗂 محصولات سرویس دهنده\n"
         f"│   {on} از {len(items)} محصول روشن\n\n"
-        f"💼 کیف پول شما نزد canboso: <b>{esc(wallet)}</b>\n\n"
+        f"💼 کیف پول شما نزد سرویس دهنده: <b>{esc(wallet)}</b>\n\n"
         + ("\n\n".join(rows) or "محصولی نیامد.")
         + "\n\n<blockquote>موجودی که کاربر می بیند کمترینِ «موجودی API» و «تعدادی که با کیف پول شما خریدنی است» است. "
           "🟢 یعنی در ربات و مینی اپ نمایش داده می شود؛ برای عوض کردن روی محصول بزن. "
           "🔥 یعنی «پرفروش»: ویترین دسته و برچسب روی کارت محصول؛ با دکمه ☆/🔥 کنار هر محصول عوضش کن. "
+          "💰 کنار هر محصول سود همان محصول را جدا تنظیم می کند (مبلغ ثابت یا درصد). "
           "محصول تازه سرویس دهنده تا روشنش نکنی نمایش داده نمی شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی).</blockquote>"
     )
     await edit_or_send(message, body, keyboards.admin_ai_products_kb(items, page))
@@ -1519,7 +1544,7 @@ async def _ai_products(message: Message, db: Database, page: int) -> None:
 
 @router.callback_query(F.data.startswith("adm:ai:pl:"))
 async def cb_ai_products(call: CallbackQuery, db: Database) -> None:
-    await call.answer("در حال خواندن از canboso…")
+    await call.answer("در حال خواندن از سرویس دهنده…")
     await _ai_products(call.message, db, int(call.data.split(":")[3] or 0))
 
 
@@ -1535,7 +1560,7 @@ async def cb_ai_product_toggle(call: CallbackQuery, db: Database) -> None:
         return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
     item = next((x for x in cat["items"] if x["id"] == pid), None)
     if not item:
-        return await call.answer("این محصول دیگر در canboso نیست.", show_alert=True)
+        return await call.answer("این محصول دیگر در سرویس دهنده نیست.", show_alert=True)
     await ai_shop.set_visible(db, pid, not item["visible"], [x["id"] for x in cat["items"]])
     await call.answer("روشن شد ✅" if not item["visible"] else "خاموش شد")
     await _ai_products(call.message, db, int(page or 0))
@@ -1549,6 +1574,42 @@ async def cb_ai_product_featured(call: CallbackQuery, db: Database) -> None:
     await db.set_product_meta(pid, featured=1 if on else None)
     await call.answer("🔥 پرفروش شد" if on else "از پرفروش ها برداشته شد")
     await _ai_products(call.message, db, int(page or 0))
+
+
+@router.callback_query(F.data.startswith("adm:ai:pm:"))
+async def cb_ai_product_markup(call: CallbackQuery, db: Database, state: FSMContext) -> None:
+    """سود اختصاصی یک محصول: مبلغ ثابت تومانی یا درصد، یا برگشت به سود کلی."""
+    from app import pricing
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    _, _, _, page, pid = call.data.split(":", 4)
+    try:
+        cat = await ai_shop.catalog(db, admin=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
+    item = next((x for x in cat["items"] if x["id"] == pid), None)
+    if not item:
+        return await call.answer("این محصول دیگر در سرویس دهنده نیست.", show_alert=True)
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field="markup", ai_pid=pid, ai_page=int(page or 0))
+    price = f"{item['price']:,} تومان (سود {item['profit']:,})" if item["priced"] else "نرخ ارز تنظیم نشده"
+    await edit_or_send(
+        call.message,
+        "╮── 💰 سود این محصول\n"
+        f"│   {esc(item['name'])}\n\n"
+        f"├ قیمت API: {item['cost']:g} {esc(item['currency'])}\n"
+        f"├ سود فعلی: {esc(pricing.markup_label(item['markup']))}\n"
+        f"├ قیمت کاربر الان: {price}\n\n"
+        "سود تازه را بفرست:\n"
+        "• <code>150000</code> یعنی قیمت API + ۱۵۰٬۰۰۰ تومان\n"
+        "• <code>20%</code> یعنی قیمت API + ۲۰ درصد\n"
+        "• <code>-</code> یعنی برگشت به سود کلی پنل\n\n"
+        "<blockquote>سود این محصول بر سود کلی (درصد سود، کارمزد، حاشیه نوسان، حداقل سود و سود ثابت) "
+        "مقدم است؛ فقط نرخ ارز و رند کردن از تنظیمات کلی می آید.</blockquote>",
+        None,
+    )
+    await call.answer()
 
 
 @router.callback_query(F.data.startswith("adm:ai:pa:"))
@@ -1568,10 +1629,10 @@ async def cb_ai_products_all(call: CallbackQuery, db: Database) -> None:
 
 @router.callback_query(F.data == "adm:ai:raw")
 async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
-    """پاسخ خام canboso و برداشت ربات از آن، کنار هم، در یک فایل JSON.
+    """پاسخ خام سرویس دهنده و برداشت ربات از آن، کنار هم، در یک فایل JSON.
 
     برای مقایسه درخواست ها و دریافتی ها با آنچه ربات نشان می دهد. کلید API
-    در فایل نیست (فقط در query string درخواست می رود).
+    در فایل نیست (فقط در هدر Authorization می رود).
     """
     import json as _json
 
@@ -1594,14 +1655,15 @@ async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
         parsed = {"error": str(exc)}
     key = await ai_shop.api_key(db)
     prov = await ai_shop.provider_name(db)
-    base = ("https://bot.aitoolifystudio.io/api/reseller/v1" if prov == "aitoolify"
-            else "https://canboso.com/api/v2/telegram-buyer")
-    auth = "  (Authorization: Bearer ***)" if prov == "aitoolify" else "?key=***"
+    base = getattr(cb, "base_url", "")
+    auth = "  (Authorization: Bearer ***)"
     doc = {
         "provider": prov,
         "requests": {
-            "products": f"GET {base}/products{auth}",
-            "balance": f"GET {base}/balance{auth}",
+            "products": f"GET {base}?action=products{auth}",
+            "balance": f"GET {base}?action=balance{auth}",
+            "order": f"POST {base}?action=order{auth}  "
+                     '{"product_id": "...", "quantity": 1, "external_order_id": "..."}',
         },
         "responses": raw,
         "bot_view": parsed,
@@ -1609,14 +1671,14 @@ async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
     data = _json.dumps(doc, ensure_ascii=False, indent=2, default=str)
     if key:
         data = data.replace(key, "***")
-    prod = raw.get("/products", {})
-    bal = raw.get("/balance", {})
-    n = len(((prod.get("body") or {}) if isinstance(prod.get("body"), dict) else {}).get("products") or [])
+    prod = raw.get("products", {})
+    bal = raw.get("balance", {})
+    n = len(parsed.get("items") or [])
     await call.message.answer_document(
         BufferedInputFile(data.encode("utf-8"), filename=f"{prov}_check.json"),
         caption=(f"🧪 خروجی خام {prov}\n"
-                 f"/products → HTTP {prod.get('status')} · {prod.get('ms', '-')}ms · {n} محصول\n"
-                 f"/balance → HTTP {bal.get('status')} · {bal.get('ms', '-')}ms\n"
+                 f"products → HTTP {prod.get('status')} · {prod.get('ms', '-')}ms · {n} محصول\n"
+                 f"balance → HTTP {bal.get('status')} · {bal.get('ms', '-')}ms\n"
                  "responses = پاسخ خام · bot_view = برداشت ربات (قیمت تومانی و موجودی)"),
     )
 

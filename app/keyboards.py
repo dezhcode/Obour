@@ -394,8 +394,9 @@ def ai_confirm_kb(affordable: bool) -> InlineKeyboardMarkup:
 
 
 def admin_ai_unknown_kb(rows: list[dict]) -> InlineKeyboardMarkup:
-    """برای هر سفارش مبهم: «بررسی دوباره» (canboso، با کلید یکتا)، یا برای
-    سرویس دهنده ای که کلید یکتا ندارد (aitoolify) تصمیم دستی ادمین."""
+    """برای هر سفارش مبهم: «بررسی دوباره» (با همان شناسه یکتای سفارش)، یا برای
+    سفارش هایی که دوباره فرستادنشان ممکن نیست (مانده از سرویس دهنده قبلی)
+    تصمیم دستی ادمین."""
     from app.services import ai_shop
 
     kb = InlineKeyboardBuilder()
@@ -2061,7 +2062,8 @@ AI_PAGE = 10
 
 
 def admin_ai_products_kb(items: list[dict], page: int) -> InlineKeyboardMarkup:
-    """روشن/خاموش کردن نمایش هر محصول (سبز یعنی نمایش) و کنارش 🔥 «پرفروش»."""
+    """روشن/خاموش کردن نمایش هر محصول (سبز یعنی نمایش)، کنارش 💰 سود همان
+    محصول و 🔥 «پرفروش»."""
     kb = InlineKeyboardBuilder()
     rows: list[int] = []
     chunk = items[page * AI_PAGE:(page + 1) * AI_PAGE]
@@ -2071,14 +2073,19 @@ def admin_ai_products_kb(items: list[dict], page: int) -> InlineKeyboardMarkup:
             continue
         mark = "🟢" if x["visible"] else "🔴"
         stock = "∞" if x["stock"] is None else x["stock"]
-        _add(kb, f"{mark} {x['name'][:30]} · {stock}", style=SUCCESS if x["visible"] else DANGER, callback_data=data)
+        _add(kb, f"{mark} {x['name'][:26]} · {stock}", style=SUCCESS if x["visible"] else DANGER, callback_data=data)
+        n = 1
+        mdata = f"adm:ai:pm:{page}:{x['id']}"
+        if len(mdata.encode()) <= 64:
+            # سود اختصاصی همین محصول (مبلغ ثابت یا درصد)
+            _add(kb, "💰" + ("✓" if x.get("markup") else ""), alt="سود", callback_data=mdata)
+            n += 1
         fdata = f"adm:ai:pf:{page}:{x['id']}"
         if len(fdata.encode()) <= 64:
             # «پرفروش»: ویترین دسته و برچسب روی کارت محصول در ربات و مینی اپ
             _add(kb, "🔥" if x.get("featured") else "☆", alt="پرفروش", callback_data=fdata)
-            rows.append(2)
-        else:
-            rows.append(1)
+            n += 1
+        rows.append(n)
     nav = 0
     if page > 0:
         _add(kb, "◀️ قبلی", callback_data=f"adm:ai:pl:{page - 1}"); nav += 1

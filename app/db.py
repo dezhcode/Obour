@@ -585,6 +585,10 @@ class Database:
             ("shop_product_meta", "desc_fa", "ALTER TABLE shop_product_meta ADD COLUMN desc_fa TEXT"),
             # «پرفروش» دستی ادمین: ویترین دسته و برچسب روی کارت محصول
             ("shop_product_meta", "featured", "ALTER TABLE shop_product_meta ADD COLUMN featured INTEGER"),
+            # سود اختصاصی هر محصول هوش مصنوعی: مبلغ ثابت تومانی یا درصد
+            # (هر دو NULL یعنی سود کلی پنل؛ app/pricing.py)
+            ("shop_product_meta", "markup_toman", "ALTER TABLE shop_product_meta ADD COLUMN markup_toman INTEGER"),
+            ("shop_product_meta", "markup_percent", "ALTER TABLE shop_product_meta ADD COLUMN markup_percent REAL"),
             # رسید کارت به کارت: ستون کد پیگیری قدیمی (دیگر پرسیده نمی شود)،
             # هش عکس (رسید تکراری)، زمان رسیدن عکس و زمان بررسی
             ("transactions", "ref_code", "ALTER TABLE transactions ADD COLUMN ref_code TEXT"),
@@ -2427,8 +2431,10 @@ class Database:
         return dict(row) if row else {}
 
     async def set_product_meta(self, product_id: str, **fields) -> None:
-        """category، image، guide، desc_fa و featured؛ None یعنی برگشت به پیش فرض."""
-        allowed = {k: v for k, v in fields.items() if k in ("category", "image", "guide", "desc_fa", "featured")}
+        """category، image، guide، desc_fa، featured و سود (markup_toman یا
+        markup_percent)؛ None یعنی برگشت به پیش فرض."""
+        allowed = {k: v for k, v in fields.items()
+                   if k in ("category", "image", "guide", "desc_fa", "featured", "markup_toman", "markup_percent")}
         if not allowed:
             return
         await self.execute(

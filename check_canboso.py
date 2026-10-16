@@ -1,9 +1,9 @@
-"""خروجی واقعی canboso و برداشت ربات از آن، کنار هم.
+"""خروجی واقعی سرویس دهنده خدمات هوش مصنوعی (ssondigitalworks) و برداشت ربات از آن، کنار هم.
 
   python check_canboso.py            جدول محصولات و موجودی
   python check_canboso.py --json     همه چیز به صورت JSON (پاسخ خام + برداشت ربات)
 
-کلید از CANBOSO_API_KEY در .env خوانده می شود و هیچ جا چاپ نمی شود.
+کلید از SSON_API_KEY در .env (یا کلید پنل ادمین) خوانده می شود و هیچ جا چاپ نمی شود.
 فقط می خواند: هیچ خریدی انجام نمی دهد.
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ async def main() -> None:
     try:
         key = await ai_shop.api_key(db)
         if not key:
-            print("CANBOSO_API_KEY در .env نیست.")
+            print("SSON_API_KEY در .env نیست و در پنل ادمین هم کلیدی ثبت نشده.")
             return
         cb = await ai_shop.client(db)
         try:
@@ -54,16 +54,17 @@ async def main() -> None:
         for path, r in raw.items():
             print(f"GET {path} -> HTTP {r.get('status')} · {r.get('ms', '-')}ms {r.get('error', '')}")
         bal = view.get("balance")
-        print(f"\nکیف پول شما نزد canboso: {(bal or {}).get('text') or (bal or {}).get('balance', 'خوانده نشد')}")
+        print(f"\nکیف پول شما نزد سرویس دهنده: {(bal or {}).get('text') or (bal or {}).get('balance', 'خوانده نشد')}")
         if view.get("error"):
             print("خطا:", view["error"])
-        print(f"\n{'':2}{'id':<28}{'name':<34}{'type':<16}{'cost':>12}  {'toman':>12}  API  wallet  shown")
+        print(f"\n{'':2}{'id':<28}{'name':<34}{'type':<16}{'cost':>12}  {'toman':>12}  API  wallet  shown  margin")
         for x in view["items"]:
             mark = "on " if x["visible"] else "off"
             price = f"{x['price']:,}" if x["priced"] else "no rate"
             shown = _st(x["stock"]) if x["available"] else "out"
             print(f"{mark} {x['id'][:27]:<28}{x['name'][:33]:<34}{x['type'][:15]:<16}"
                   f"{x['cost']:>9g} {x['currency']:<3}{price:>12}  {_st(x['api_stock']):>3}  {_st(x['wallet_stock']):>6}  {shown:>5}"
+                  f"  {x['markup_label']}"
                   + (f"  months={x['months']}" if x["months"] else "") + ("  email" if x["needs_email"] else ""))
     finally:
         await db.close()

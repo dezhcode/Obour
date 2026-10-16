@@ -19,6 +19,13 @@
 قیمت همیشه دقیقا همین مقدار (مثلا ۱۰۰، ۱۵۰ یا ۲۰۰ هزار تومان) از قیمت
 محصول در API بالاتر است. صفر = برگشت به حالت درصدی.
 
+سود هر محصول (پنل ادمین ← محصولات هوش مصنوعی ← تنظیمات محصول):
+ادمین می تواند برای هر محصول جدا سود بگذارد، یا مبلغ ثابت تومانی یا درصد:
+    مبلغ ثابت:  قیمت کاربر = قیمت API به تومان + همین مبلغ
+    درصد:       قیمت کاربر = قیمت API به تومان × (۱ + درصد ÷ ۱۰۰)
+(بعد رند رو به بالا). سود هر محصول بر همه تنظیمات سود کلی بالا مقدم است؛
+محصولی که سود جدا ندارد با همان تنظیمات کلی حساب می شود.
+
 چرا حاشیه نوسان جدا از سود؟
 اگر همه را در یک عدد جمع کنی، وقتی تتر می پرد نمی فهمی سود واقعی ات
 چقدر آب رفته. جدا بودنشان یعنی می شود گفت «۲۰٪ سود می خواهم و ۸٪ هم
@@ -62,6 +69,8 @@ class Breakdown:
     final: int
     fixed: int = 0   # سود ثابت تومانی؛ صفر یعنی حالت درصدی
     currency: str = "USDT"
+    percent: float = 0.0   # درصد سود اختصاصی محصول (فقط وقتی own=True)
+    own: bool = False      # سود اختصاصی همین محصول اعمال شد، نه تنظیمات کلی
 
     @property
     def net_profit(self) -> int:
@@ -109,14 +118,48 @@ def rate_for(cfg: dict[str, float], currency: str = "USDT") -> float:
     return 0.0
 
 
-def compute(cost: float, cfg: dict[str, float], currency: str = "USDT") -> Breakdown:
-    """قیمت نهایی تومانی از قیمت سرویس دهنده (تتر یا دونگ)."""
+def markup_of(meta: dict | None) -> dict | None:
+    """سود اختصاصی یک محصول از ردیف shop_product_meta؛ None یعنی سود کلی.
+
+    {"toman": مبلغ ثابت} یا {"percent": درصد}. مبلغ ثابت مقدم است.
+    """
+    meta = meta or {}
+    try:
+        toman = meta.get("markup_toman")
+        if toman not in (None, "") and int(toman) >= 0:
+            return {"toman": int(toman)}
+        pct = meta.get("markup_percent")
+        if pct not in (None, "") and float(pct) >= 0:
+            return {"percent": float(pct)}
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
+def compute(cost: float, cfg: dict[str, float], currency: str = "USDT",
+            markup: dict | None = None) -> Breakdown:
+    """قیمت نهایی تومانی از قیمت سرویس دهنده (تتر یا دونگ).
+
+    markup سود اختصاصی محصول است (خروجی markup_of)؛ بدون آن سود کلی.
+    """
     from app.canboso import norm_currency
 
     currency = norm_currency(currency or "USDT")
     rate = rate_for(cfg, currency)
     base = round(cost * rate, 6)
     step = int(cfg.get("ai_round_to") or 1) or 1
+
+    # سود اختصاصی همین محصول: قیمت API + مبلغ ثابت یا درصد، بدون تنظیمات کلی
+    if markup:
+        if "toman" in markup:
+            fixed = max(0, int(markup["toman"]))
+            final = int(math.ceil((base + fixed) / step) * step)
+            return Breakdown(cost=cost, rate=rate, base=int(round(base)), profit=final - int(round(base)),
+                             fee=0, buffer=0, final=final, fixed=fixed, currency=currency, own=True)
+        pct = max(0.0, float(markup.get("percent") or 0))
+        final = int(math.ceil(base * (1 + pct / 100) / step) * step)
+        return Breakdown(cost=cost, rate=rate, base=int(round(base)), profit=final - int(round(base)),
+                         fee=0, buffer=0, final=final, currency=currency, percent=pct, own=True)
 
     # حالت سود ثابت: قیمت API + مبلغ ثابت، بدون درصدها
     fixed = int(cfg.get("ai_markup_toman") or 0)
@@ -165,8 +208,27 @@ def _unit(currency: str) -> str:
     return {"VND": "دونگ", "USDT": "تتر (USDT)"}.get(norm_currency(currency), currency)
 
 
+def markup_label(markup: dict | None) -> str:
+    """متن کوتاه سود محصول برای پنل ادمین."""
+    if not markup:
+        return "سود کلی"
+    if "toman" in markup:
+        return f"{int(markup['toman']):,} تومان"
+    return f"{float(markup['percent']):g}٪"
+
+
 def explain(b: Breakdown) -> str:
     """ریز محاسبه، برای صفحه تنظیمات ادمین."""
+    if b.own:
+        how = f"سود ثابت محصول: \u2068{b.fixed:,}\u2069" if b.fixed or not b.percent else f"سود محصول: \u2068{b.percent:g}\u2069٪"
+        return (
+            "╮── 🧮 ریز قیمت (سود اختصاصی محصول)\n"
+            f"│   \u2068{b.cost:g}\u2069 {_unit(b.currency)}\n\n"
+            f"├ قیمت API (× \u2068{b.rate:g}\u2069): \u2068{b.base:,}\u2069\n"
+            f"├ {how}\n\n"
+            f"💰 قیمت کاربر: <b>\u2068{b.final:,}\u2069</b> تومان\n"
+            f"╯─ سود شما: \u2068{b.net_profit:,}\u2069 تومان"
+        )
     if b.fixed:
         return (
             "╮── 🧮 ریز قیمت (سود ثابت)\n"

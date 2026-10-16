@@ -682,8 +682,9 @@ PHRASES.update({
 PHRASES.update({
     "محصول مشخص نیست": "No product specified",
     "این دسته وجود ندارد": "That category doesn't exist",
-    "canboso برای این محصول تصویری ندارد": "canboso has no image for this product",
-    "دریافت تصویر از canboso نشد": "Couldn't fetch the image from canboso",
+    "سرویس دهنده برای این محصول تصویری ندارد": "The provider has no image for this product",
+    "دریافت تصویر از سرویس دهنده نشد": "Couldn't fetch the image from the provider",
+    "سود نامعتبر است؛ مثل 150000 یا 20%": "Invalid margin; e.g. 150000 or 20%",
     "فقط عکس JPG، PNG یا WEBP تا ۳ مگابایت": "Only JPG, PNG or WEBP images up to 3 MB",
     "خواندن محصولات نشد": "Couldn't read the products",
     "شارژ با Stars": "Top up with Stars",
