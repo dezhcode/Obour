@@ -243,12 +243,125 @@ def row_of(cat: dict, service_id: str, cc: str) -> dict | None:
     return next((r for r in cat["rows"] if r["service_id"] == str(service_id) and r["cc"] == cc), None)
 
 
+# ═══════════════════ جستجوی سرویس ═══════════════════
+
+_ARABIC = str.maketrans({"ي": "ی", "ك": "ک", "ۀ": "ه", "ة": "ه", "أ": "ا", "إ": "ا", "ؤ": "و"})
+
+# نام فارسی رایج ← slug سرویس در SMSBurner
+FA_ALIASES = {
+    "تلگرام": "telegram", "تلگرم": "telegram", "واتساپ": "whatsapp", "واتس اپ": "whatsapp", "واتسآپ": "whatsapp",
+    "گوگل": "google", "جیمیل": "google", "اینستاگرام": "instagram", "اینستا": "instagram",
+    "فیسبوک": "facebook", "فیس بوک": "facebook", "توییتر": "twitter", "تویتر": "twitter", "ایکس": "twitter",
+    "تیک تاک": "tiktok", "تیکتاک": "tiktok", "دیسکورد": "discord", "اسنپ چت": "snapchat", "لینکدین": "linkedin",
+    "پیپال": "paypal", "بایننس": "binance", "بایبیت": "bybit", "کوین بیس": "coinbase", "مایکروسافت": "microsoft",
+    "اپل": "apple", "آیکلود": "icloud", "آمازون": "amazon", "علی اکسپرس": "aliexpress", "نتفلیکس": "netflix",
+    "اسپاتیفای": "spotify", "استیم": "steam", "ایمو": "imo", "لاین": "line", "سیگنال": "signal",
+    "چت جی پی تی": "openai", "چت جیپیتی": "openai", "اوپن ای آی": "openai", "کلود": "claude",
+    "اوبر": "uber", "تیندر": "tinder", "ردیت": "reddit", "پینترست": "pinterest", "اسلک": "slack",
+    "گیت هاب": "github", "گیتهاب": "github", "یاهو": "yahoo", "ایرانسل": "any-other", "سایر": "any-other",
+    "ترد": "threads", "توییچ": "twitch", "یوتیوب": "youtube", "ایبی": "ebay", "ای بی": "ebay",
+}
+
+
+def norm_query(q: str) -> str:
+    """کوچک، بدون فاصله و نیم فاصله، یکدست کردن ی و ک عربی."""
+    q = str(q or "").translate(_ARABIC).lower()
+    for ch in (" ", "‌", "‏", "‎", "-", "_", ".", "/"):
+        q = q.replace(ch, "")
+    return q.strip()
+
+
+def search_services(cat: dict, query: str, limit: int = 10) -> list[dict]:
+    """سرویس هایی که اسم (انگلیسی یا فارسی رایج) شان به متن کاربر می خورد؛ دقیق ترین ها اول."""
+    q = norm_query(query)
+    if len(q) < 2:
+        return []
+    slugs = set()
+    for alias, slug in FA_ALIASES.items():
+        a = norm_query(alias)
+        # «تلگرام» دقیق، «تلگ» ابتدای اسم، یا «شماره تلگرام» که اسم داخلش است
+        if a == q or (len(q) >= 3 and (a.startswith(q) or (len(a) >= 3 and a in q))):
+            slugs.add(slug)
+    scored = []
+    for s in services_of(cat):
+        name, slug = norm_query(s["name"]), norm_query(s["slug"])
+        if s["slug"] in slugs:
+            score = 0
+        elif name == q or slug == q:
+            score = 0
+        elif name.startswith(q) or slug.startswith(q):
+            score = 1
+        elif q in name or q in slug:
+            score = 2
+        else:
+            continue
+        scored.append((score, s["name"].lower(), s))
+    scored.sort(key=lambda t: t[:2])
+    return [s for _, _, s in scored[:limit]]
+
+
+# ═══════════════════ نوع شماره (اپراتور) ═══════════════════
+
+# نوع ← (عنوان فارسی، ایموجی)
+OP_LABELS = {"virtual": ("مجازی", "📞"), "physical": ("فیزیکی", "📱"), "premium": ("پریمیوم", "⭐")}
+
+
+def op_title(op: dict | None) -> str:
+    """«فیزیکی · T-Mobile» به زبان جاری؛ خالی اگر اپراتور انتخاب نشده."""
+    if not op or not (op.get("id") or op.get("operator_id")):
+        return ""
+    kind = op.get("type") or op.get("operator_type") or "virtual"
+    name = op.get("name") or op.get("operator_name") or ""
+    return f"{i18n.t(OP_LABELS.get(kind, OP_LABELS['virtual'])[0])} · {name}".strip(" ·")
+
+
+def country_label(order: dict) -> str:
+    """نام کشور (به زبان جاری) به همراه نوع شماره اگر انتخاب شده: «آمریکا · فیزیکی · T-Mobile»."""
+    label = country_title(order.get("country") or "", order.get("country_name") or "")
+    op = op_title(order_op(order))
+    return f"{label} · {op}" if op else label
+
+
+def order_op(order: dict) -> dict | None:
+    if not order.get("operator_id"):
+        return None
+    return {"id": order["operator_id"], "name": order.get("operator_name") or "", "type": order.get("operator_type") or "virtual"}
+
+
+async def operators_of(db: "Database", cat: dict, service_id: str, cc: str) -> list[dict]:
+    """گزینه های نوع شماره برای یک سرویس و کشور با قیمت تومانی، ارزان ترین اول.
+
+    خالی یعنی انتخابی نیست (یک اپراتور یا فهرست خوانده نشد)؛ آن وقت خرید با اپراتور
+    پیش فرض سایت انجام می شود، همان رفتار قبل از این قابلیت."""
+    row = row_of(cat, service_id, cc)
+    if row is None:
+        return []
+    sb = await client(db)
+    try:
+        ops = await sb.operators(cc)
+    except CanbosoError as exc:
+        log.info("اپراتورهای %s خوانده نشد: %s", cc, exc)
+        return []
+    finally:
+        await sb.close()
+    if len(ops) < 2:
+        return []
+    rate, cfg = cat["rate"], await load_cfg(db)
+    out = [{**o, "usd": round(row["usd"] * o["mult"], 4), "price": price_toman(row["usd"] * o["mult"], rate, cfg)} for o in ops]
+    out.sort(key=lambda o: (o["price"], o["name"]))
+    return out
+
+
 # ═══════════════════ خرید ═══════════════════
 
 
-async def buy(db: "Database", bot, user: dict, service_id: str, cc: str) -> dict:  # noqa: ANN001
-    """{"status": ..., "order": ردیف سفارش}. status یکی از ثابت های بالا یا وضعیت سفارش."""
+async def buy(db: "Database", bot, user: dict, service_id: str, cc: str,  # noqa: ANN001
+              operator_id: str | None = None) -> dict:
+    """{"status": ..., "order": ردیف سفارش}. status یکی از ثابت های بالا یا وضعیت سفارش.
+
+    operator_id: نوع/اپراتور انتخابی کاربر (از operators_of)؛ خالی = پیش فرض سایت."""
     cc = (cc or "").lower()
+    operator_id = str(operator_id).strip() if operator_id and str(operator_id) not in ("0", "None") else None
     lock = f"num:{user['id']}"
     if not await db.acquire_lock(lock, ttl_seconds=120):
         return {"status": LOCKED}
@@ -271,8 +384,18 @@ async def buy(db: "Database", bot, user: dict, service_id: str, cc: str) -> dict
         if row is None or row["stock"] == 0 or row["price"] <= 0:
             return {"status": UNAVAILABLE}
         usd = row["price"]
+        op = None
+        if operator_id:
+            # قیمت اپراتور = قیمت پایه × ضریب همان اپراتور (قیمت نهایی را quote تایید می کند)
+            try:
+                op = next((o for o in await sb.operators(cc) if o["id"] == operator_id), None)
+            except CanbosoError as exc:
+                return {"status": PROVIDER_ERROR, "error": str(exc)}
+            if op is None:
+                return {"status": UNAVAILABLE}
+            usd = row["price"] * op["mult"]
         try:
-            quoted = await sb.quote(service_id, cc)
+            quoted = await sb.quote(service_id, cc, operator_id)
         except SmsOutOfStock:
             return {"status": UNAVAILABLE}
         except CanbosoError as exc:
@@ -297,7 +420,8 @@ async def buy(db: "Database", bot, user: dict, service_id: str, cc: str) -> dict
             return {"status": INSUFFICIENT, "price": price}
         txn_id = await db.insert_transaction(user["id"], "number_purchase", -price, status="approved")
         order = await db.create_number_order(
-            user["id"], str(service_id), row["service"], cc, row["country"], usd, price, txn_id)
+            user["id"], str(service_id), row["service"], cc, row["country"], usd, price, txn_id,
+            operator={"id": op["id"], "name": op["name"], "type": op["type"]} if op else None)
         return await _send(db, bot, sb, user, order)
     finally:
         await sb.close()
@@ -306,7 +430,7 @@ async def buy(db: "Database", bot, user: dict, service_id: str, cc: str) -> dict
 
 async def _send(db: "Database", bot, sb: SmsBurner, user: dict, order: dict) -> dict:  # noqa: ANN001
     try:
-        info = await sb.buy(order["service_id"], order["country"])
+        info = await sb.buy(order["service_id"], order["country"], order.get("operator_id") or None)
     except CanbosoUnknown as exc:
         await db.update_number_order(order["id"], only_from=(PENDING,), status=UNKNOWN, error=str(exc)[:300])
         log.error("سفارش شماره مبهم ماند: %s (%s)", order["code"], exc)
@@ -439,6 +563,30 @@ async def cancel(db: "Database", order: dict) -> dict:
                 "event": "refunded" if refunded else None}
     finally:
         await sb.close()
+
+
+async def reroll(db: "Database", bot, user: dict, order: dict) -> dict:  # noqa: ANN001
+    """«شماره ی دیگه»: شماره ی منتظر کد لغو می شود (پولش برمی گردد) و از همان سرویس، کشور و نوع
+    یک شماره ی تازه گرفته می شود.
+
+    اگر لغو نشد (کد رسیده یا سایت اجازه نداد) هیچ خرید تازه ای انجام نمی شود. قیمت خرید تازه
+    دوباره از سایت خوانده می شود و ممکن است کمی فرق کند. بین دو درخواست ۲۰ ثانیه فاصله لازم
+    است تا کسی با لغو و خرید پشت سر هم به سرویس دهنده فشار نیاورد.
+
+    خروجی مثل buy؛ اگر لغو نشد، وضعیت لغو (CANT_CANCEL، PROVIDER_ERROR، COMPLETED، BAD_STATE...).
+    """
+    if order["status"] != ACTIVE:
+        return {"status": BAD_STATE, "order": order}
+    if not await db.acquire_lock(f"numre:{user['id']}", ttl_seconds=20):
+        return {"status": LOCKED, "order": order}
+    c = await cancel(db, order)
+    if c["status"] != REFUNDED:
+        return {"status": c["status"], "order": c.get("order") or order, "error": c.get("error"),
+                "event": c.get("event")}
+    fresh = await db.get_user(user["id"]) or user
+    r = await buy(db, bot, fresh, order["service_id"], order["country"], order.get("operator_id") or None)
+    r["old"] = c["order"]
+    return r
 
 
 async def settle_manual(db: "Database", order: dict, refund: bool) -> dict:

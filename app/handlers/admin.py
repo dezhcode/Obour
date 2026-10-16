@@ -1654,6 +1654,7 @@ async def cb_num_raw(call: CallbackQuery, db: Database) -> None:
         seen = {"error": str(exc)}
     doc = {"requests": {"account": "GET /api/v1/account  (Authorization: Bearer ***)",
                         "countries": "GET /api/v1/countries", "catalog": "GET /api/v1/catalog",
+                        "operators": "GET /api.php?action=operators&country=us  (نوع شماره؛ فقط در api.php)",
                         "buy": 'POST /api/v1/numbers {"service_id": 1, "country": "US"}',
                         "poll": "GET /api/v1/numbers/{id}", "cancel": "POST /api/v1/numbers/{id}/cancel"},
            "responses": raw, "bot_view": seen}

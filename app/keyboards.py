@@ -491,11 +491,14 @@ def num_hub_kb(services: list[dict] | None) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     rows: list[int] = []
     popular = (services or [])[:12]
+    if services:
+        _add(kb, "🔎 جستجوی سرویس", style=PRIMARY, callback_data="num:q")
+        rows.append(1)
     for s in popular:
         _add(kb, s["name"][:28], callback_data=f"num:s:{s['id']}:0")
     rows += [2] * (len(popular) // 2) + ([1] if len(popular) % 2 else [])
     if services:
-        _add(kb, "🔎 همه سرویس ها", style=PRIMARY, callback_data="num:cats")
+        _add(kb, "🗂 همه سرویس ها", callback_data="num:cats")
         rows.append(1)
     _add(kb, "📋 شماره های من", callback_data="num:mine")
     _btn(kb, "wallet", "شارژ کیف پول", callback_data="wal")
@@ -546,13 +549,49 @@ def num_countries_kb(items: list[dict], service_id: str, page: int, pages: int) 
     return kb.as_markup()
 
 
-def num_confirm_kb(affordable: bool, service_id: str, cc: str) -> InlineKeyboardMarkup:
+def num_confirm_kb(affordable: bool, service_id: str, cc: str, operator_id: str = "",
+                   back: str = "") -> InlineKeyboardMarkup:
+    """operator_id: نوع انتخابی (خالی = پیش فرض سایت)؛ back: صفحه قبل (نوع شماره یا فهرست کشورها)."""
     kb = InlineKeyboardBuilder()
     if affordable:
-        _btn(kb, "ok", "تایید و خرید", style=SUCCESS, callback_data=f"num:go:{service_id}:{cc}")
+        _btn(kb, "ok", "تایید و خرید", style=SUCCESS, callback_data=f"num:go:{service_id}:{cc}:{operator_id or 0}")
     else:
         _btn(kb, "wallet", "شارژ کیف پول", style=SUCCESS, callback_data="wal")
+    _btn(kb, "back", "برگشت", callback_data=back or f"num:s:{service_id}:0")
+    kb.adjust(1, 1)
+    return kb.as_markup()
+
+
+def num_ops_kb(service_id: str, cc: str, ops: list[dict], default_price: int) -> InlineKeyboardMarkup:
+    """نوع شماره: پیش فرض سایت و هر اپراتور با قیمت تومانی (ops از numbers_shop.operators_of)."""
+    from app.services import numbers_shop as ns
+
+    kb = InlineKeyboardBuilder()
+    _add(kb, f"⚡ {_t('پیش فرض سایت')} · {default_price:,}", style=PRIMARY, callback_data=f"num:b:{service_id}:{cc}:0")
+    for o in ops:
+        emoji = ns.OP_LABELS.get(o["type"], ns.OP_LABELS["virtual"])[1]
+        _add(kb, f"{emoji} {_t(ns.OP_LABELS.get(o['type'], ns.OP_LABELS['virtual'])[0])} · {o['name']} · {o['price']:,}"[:60],
+             callback_data=f"num:b:{service_id}:{cc}:{o['id']}")
     _btn(kb, "back", "برگشت", callback_data=f"num:s:{service_id}:0")
+    kb.adjust(*([1] * (len(ops) + 1)), 1)
+    return kb.as_markup()
+
+
+def num_search_kb(items: list[dict]) -> InlineKeyboardMarkup:
+    """نتیجه جستجو: هر سرویس با ارزان ترین قیمت؛ و جستجوی تازه."""
+    kb = InlineKeyboardBuilder()
+    for s in items:
+        _add(kb, f"{s['name'][:22]} · {s['from']:,}"[:60], callback_data=f"num:s:{s['id']}:0")
+    _add(kb, "🔎 جستجوی دیگر", style=PRIMARY, callback_data="num:q")
+    _btn(kb, "back", "برگشت", callback_data="num")
+    kb.adjust(*([1] * len(items)), 1, 1)
+    return kb.as_markup()
+
+
+def num_reroll_ask_kb(order_id: int) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    _add(kb, "🔁 بله، شماره‌ی دیگه", style=PRIMARY, callback_data=f"num:rey:{order_id}")
+    _add(kb, "🔙 نه، همین رو نگه دار", callback_data=f"num:o:{order_id}")
     kb.adjust(1, 1)
     return kb.as_markup()
 
@@ -561,10 +600,11 @@ def num_active_kb(order_id: int) -> InlineKeyboardMarkup:
     """شماره منتظر کد: بررسی دستی، لغو با برگشت پول."""
     kb = InlineKeyboardBuilder()
     _add(kb, "🔄 بررسی کد", style=PRIMARY, callback_data=f"num:chk:{order_id}")
+    _add(kb, "🔁 شماره‌ی دیگه", callback_data=f"num:re:{order_id}")
     _add(kb, "❌ لغو و برگشت پول", style=DANGER, callback_data=f"num:x:{order_id}")
     _add(kb, "📋 شماره های من", callback_data="num:mine")
     _add(kb, "🏠 منوی اصلی", callback_data="menu")
-    kb.adjust(1, 1, 2)
+    kb.adjust(1, 1, 1, 2)
     return kb.as_markup()
 
 

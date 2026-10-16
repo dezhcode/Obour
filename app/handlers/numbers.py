@@ -21,13 +21,15 @@ import logging
 import math
 
 from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
-from app import features, i18n, keyboards, texts
+from app import features, i18n, keyboards, texts, ui
 from app.canboso import CanbosoError
 from app.db import Database
 from app.i18n import t as _t
 from app.services import numbers_shop as ns
+from app.states import NumShop
 from app.ui import edit_or_send
 from app.utils import esc, now
 
@@ -56,7 +58,7 @@ def order_view(order: dict) -> tuple[str, InlineKeyboardMarkup]:
     base = {
         "service": esc(order.get("service_name") or ""),
         "flag": ns.flag(order["country"]),
-        "country": esc(ns.country_title(order["country"], order.get("country_name") or "")),
+        "country": esc(ns.country_label(order)),
         "phone": esc(order.get("phone") or "-"),
         "code": order["code"],
     }
@@ -195,7 +197,9 @@ async def show_hub(message: Message, db: Database, user: dict) -> None:
 
 
 @router.callback_query(F.data == "num")
-async def cb_hub(call: CallbackQuery, db: Database, user: dict) -> None:
+async def cb_hub(call: CallbackQuery, db: Database, user: dict, state: FSMContext | None = None) -> None:
+    if state is not None:
+        await state.set_state(None)        # از حالت «اسم سرویس را بنویس» بیرون بیا
     if not await _gate(call, db, user):
         return
     await show_hub(call.message, db, user)
@@ -280,12 +284,16 @@ async def cb_service(call: CallbackQuery, db: Database, user: dict) -> None:
 
 @router.callback_query(F.data.startswith("num:b:"))
 async def cb_confirm(call: CallbackQuery, db: Database, user: dict) -> None:
+    """num:b:<سرویس>:<کشور> ← نوع شماره (اگر چند نوع هست) ← num:b:<سرویس>:<کشور>:<اپراتور> ← تایید.
+
+    اپراتور 0 یعنی پیش فرض سایت."""
     if not await _gate(call, db, user):
         return
-    try:
-        _, _, sid, cc = call.data.split(":", 3)
-    except ValueError:
+    parts = call.data.split(":")
+    if len(parts) not in (4, 5):
         return await call.answer(_t("درخواست نامعتبر."), show_alert=True)
+    sid, cc = parts[2], parts[3]
+    opid = parts[4] if len(parts) == 5 else None
     cat = await _catalog(call.message, db, "num")
     if cat is None:
         return await call.answer()
@@ -293,12 +301,24 @@ async def cb_confirm(call: CallbackQuery, db: Database, user: dict) -> None:
     if row is None:
         await edit_or_send(call.message, texts.NUM_UNAVAILABLE, keyboards.num_back_kb(f"num:s:{sid}:0"))
         return await call.answer()
+    ops = await ns.operators_of(db, cat, sid, cc)
+    label = {"service": esc(row["service"]), "flag": ns.flag(cc), "country": esc(ns.country_title(cc, row["country"]))}
+    if opid is None and ops:
+        await edit_or_send(call.message, texts.NUM_OPERATORS.format(balance=f"{user['balance']:,}", **label),
+                           keyboards.num_ops_kb(sid, cc, ops, row["price"]))
+        return await call.answer()
+    op = next((o for o in ops if o["id"] == opid), None) if opid and opid != "0" else None
+    if opid and opid != "0" and op is None:
+        await edit_or_send(call.message, texts.NUM_UNAVAILABLE, keyboards.num_back_kb(f"num:b:{sid}:{cc}"))
+        return await call.answer()
+    price = op["price"] if op else row["price"]
+    if op:
+        label["country"] += " · " + esc(ns.op_title(op))
     await edit_or_send(
         call.message,
-        texts.NUM_CONFIRM.format(service=esc(row["service"]), flag=ns.flag(cc),
-                                 country=esc(ns.country_title(cc, row["country"])),
-                                 price=f"{row['price']:,}", balance=f"{user['balance']:,}"),
-        keyboards.num_confirm_kb(row["price"] <= int(user["balance"]), sid, cc),
+        texts.NUM_CONFIRM.format(price=f"{price:,}", balance=f"{user['balance']:,}", **label),
+        keyboards.num_confirm_kb(price <= int(user["balance"]), sid, cc, op["id"] if op else "",
+                                 back=f"num:b:{sid}:{cc}" if ops else ""),
     )
     await call.answer()
 
@@ -341,17 +361,18 @@ async def show_buy_result(message: Message, db: Database, bot, r: dict, sid: str
 async def cb_buy(call: CallbackQuery, db: Database, user: dict) -> None:
     if not await _gate(call, db, user):
         return
-    try:
-        _, _, sid, cc = call.data.split(":", 3)
-    except ValueError:
+    parts = call.data.split(":")
+    if len(parts) not in (4, 5):
         return await call.answer(_t("درخواست نامعتبر."), show_alert=True)
+    sid, cc = parts[2], parts[3]
+    opid = parts[4] if len(parts) == 5 and parts[4] != "0" else None
     await call.answer()
     # تلگرام آپدیتی که جواب دیر بگیرد دوباره می فرستد؛ هر کلیک فقط یک بار خرید می کند
     if not await db.acquire_lock(f"numcb:{call.id}", ttl_seconds=3600):
         return
     await edit_or_send(call.message, texts.NUM_WORKING, None)
     try:
-        r = await ns.buy(db, call.bot, user, sid, cc)
+        r = await ns.buy(db, call.bot, user, sid, cc, opid)
     except Exception:  # noqa: BLE001
         log.exception("خرید شماره مجازی شکست خورد")
         return await edit_or_send(call.message, texts.NUM_PROVIDER_DOWN, keyboards.num_back_kb(f"num:s:{sid}:0"))
@@ -450,6 +471,86 @@ async def cb_mine(call: CallbackQuery, db: Database, user: dict) -> None:
             price=f"{int(o['price']):,}", code_line=code_line))
     await edit_or_send(call.message, texts.NUM_ORDERS.format(count=len(orders), rows="\n\n".join(blocks)),
                        keyboards.num_orders_kb([o for o in orders if o["status"] == ns.ACTIVE]))
+    await call.answer()
+
+
+# ═══════════════════ جستجوی سرویس ═══════════════════
+
+
+@router.callback_query(F.data == "num:q")
+async def cb_search(call: CallbackQuery, db: Database, state: FSMContext, user: dict) -> None:
+    if not await _gate(call, db, user):
+        return
+    await state.set_state(NumShop.waiting_query)
+    await edit_or_send(call.message, texts.NUM_SEARCH_ASK, keyboards.num_back_kb("num"))
+    await call.answer()
+
+
+@router.message(NumShop.waiting_query, F.text)
+async def msg_search(message: Message, db: Database, state: FSMContext, user: dict) -> None:
+    query = (message.text or "").strip()[:40]
+    if not features.is_on("shop_numbers") or not await ns.ready(db):
+        await state.set_state(None)
+        return
+    try:
+        cat = await ns.catalog(db)
+    except CanbosoError as exc:
+        log.warning("کاتالوگ شماره مجازی خوانده نشد: %s", exc)
+        return await message.answer(texts.NUM_PROVIDER_DOWN, reply_markup=keyboards.num_back_kb("num"))
+    items = ns.search_services(cat, query)
+    await ui.consume(message)
+    if not items:
+        # در همین حالت می ماند تا اسم دیگری بنویسد
+        return await message.answer(texts.NUM_SEARCH_EMPTY.format(query=esc(query)),
+                                    reply_markup=keyboards.num_back_kb("num"))
+    await state.set_state(None)
+    await message.answer(texts.NUM_SEARCH_RESULTS.format(query=esc(query), count=len(items)),
+                         reply_markup=keyboards.num_search_kb(items))
+
+
+# ═══════════════════ شماره ی دیگه ═══════════════════
+
+
+@router.callback_query(F.data.startswith("num:re:"))
+async def cb_reroll_ask(call: CallbackQuery, db: Database, user: dict) -> None:
+    order = await _own(call, db, user, call.data[len("num:re:"):])
+    if order is None:
+        return
+    if order["status"] != ns.ACTIVE:
+        text, kb = order_view(order)
+        await edit_or_send(call.message, text, kb)
+        return await call.answer()
+    await edit_or_send(call.message, texts.NUM_REROLL_ASK.format(price=f"{int(order['price']):,}"),
+                       keyboards.num_reroll_ask_kb(order["id"]))
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("num:rey:"))
+async def cb_reroll(call: CallbackQuery, db: Database, user: dict) -> None:
+    """لغو شماره ی فعلی (پول برمی گردد) و گرفتن یکی تازه از همان سرویس، کشور و نوع."""
+    order = await _own(call, db, user, call.data[len("num:rey:"):])
+    if order is None:
+        return
+    if not await db.acquire_lock(f"numcb:{call.id}", ttl_seconds=3600):
+        return
+    await edit_or_send(call.message, texts.NUM_WORKING, None)
+    try:
+        r = await ns.reroll(db, call.bot, user, order)
+    except Exception:  # noqa: BLE001
+        log.exception("شماره ی دیگه شکست خورد")
+        text, kb = order_view(await db.get_number_order(order["id"]) or order)
+        await edit_or_send(call.message, text, kb)
+        return await call.answer(texts.NUM_PROVIDER_DOWN, show_alert=True)
+    if "old" in r:
+        # شماره ی قبلی لغو و پولش برگشت؛ نتیجه ی خرید تازه مثل یک خرید معمولی نشان داده می شود
+        await show_buy_result(call.message, db, call.bot, r, order["service_id"])
+        return await call.answer()
+    text, kb = order_view(r.get("order") or order)
+    await edit_or_send(call.message, text, kb)
+    if r["status"] == ns.LOCKED:
+        return await call.answer(texts.NUM_REROLL_COOLDOWN, show_alert=True)
+    if r["status"] in (ns.CANT_CANCEL, ns.PROVIDER_ERROR):
+        return await call.answer(texts.NUM_CANT_CANCEL.format(error=r.get("error") or "-"), show_alert=True)
     await call.answer()
 
 

@@ -348,6 +348,9 @@ CREATE TABLE IF NOT EXISTS number_orders (
   service_name TEXT,
   country TEXT NOT NULL,               -- کد دو حرفی کوچک، مثل us
   country_name TEXT,
+  operator_id TEXT,                    -- نوع/اپراتور انتخابی (خالی = پیش فرض سایت)
+  operator_name TEXT,
+  operator_type TEXT,                  -- virtual | physical | premium
   usd_cost REAL,
   price INTEGER NOT NULL,              -- مبلغ تومانی کسر شده
   status TEXT NOT NULL DEFAULT 'pending',
@@ -571,6 +574,10 @@ class Database:
         migrations = [
             # canboso: کلید یکتای خرید و خود درخواست، تا سفارش مبهم با همان
             # کلید دوباره پرسیده شود؛ ارز هزینه (VND یا USDT)
+            # نوع شماره (مجازی / فیزیکی / پریمیوم) انتخابی کاربر
+            ("number_orders", "operator_id", "ALTER TABLE number_orders ADD COLUMN operator_id TEXT"),
+            ("number_orders", "operator_name", "ALTER TABLE number_orders ADD COLUMN operator_name TEXT"),
+            ("number_orders", "operator_type", "ALTER TABLE number_orders ADD COLUMN operator_type TEXT"),
             ("ai_orders", "idem_key", "ALTER TABLE ai_orders ADD COLUMN idem_key TEXT"),
             ("ai_orders", "request", "ALTER TABLE ai_orders ADD COLUMN request TEXT"),
             ("ai_orders", "cost_currency", "ALTER TABLE ai_orders ADD COLUMN cost_currency TEXT"),
@@ -2325,13 +2332,19 @@ class Database:
         usd_cost: float | None,
         price: int,
         txn_id: int | None = None,
+        operator: dict | None = None,
     ) -> dict:
-        """ثبت سفارش در حالت pending، *قبل* از تماس با سرویس دهنده (مثل ai_orders)."""
+        """ثبت سفارش در حالت pending، *قبل* از تماس با سرویس دهنده (مثل ai_orders).
+
+        operator: {"id", "name", "type"} اگر کاربر نوع شماره را انتخاب کرده."""
+        op = operator or {}
         oid = await self.insert(
             """INSERT INTO number_orders
-               (user_id, service_id, service_name, country, country_name, usd_cost, price, txn_id, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (user_id, str(service_id), service_name, country, country_name, usd_cost, price, txn_id, now_str()),
+               (user_id, service_id, service_name, country, country_name, operator_id, operator_name,
+                operator_type, usd_cost, price, txn_id, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, str(service_id), service_name, country, country_name, op.get("id"), op.get("name"),
+             op.get("type"), usd_cost, price, txn_id, now_str()),
         )
         await self.execute("UPDATE number_orders SET code = ? WHERE id = ?", (track_code("NM", oid), oid))
         return dict(await self.fetchone("SELECT * FROM number_orders WHERE id = ?", (oid,)))

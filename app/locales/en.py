@@ -848,3 +848,33 @@ PHRASES.update({
     "این بخش فعلا در دسترس نیست": "This section isn't available right now",
     "سرویس دهنده الان جواب نمی ده": "The provider isn't responding right now",
 })
+
+
+# شماره مجازی: جستجو، نوع شماره، شماره ی دیگه
+TEXTS.update({
+    "NUM_SEARCH_ASK": "╭── 🔎 Search a service\n│   Type the service name\n\nFor example: Telegram, WhatsApp, Google, Instagram, binance\n╰─ Persian or English both work.",
+    "NUM_SEARCH_RESULTS": "╭── 🔎 Search results\n│   “{query}” · {count} services\n\nPick a service. The cheapest price is on each button.\n╰─ You can also type another name.",
+    "NUM_SEARCH_EMPTY": "Nothing found for “{query}”. Type another name (Persian or English).",
+    "NUM_OPERATORS": "╭── 📶 Number type\n│   {service} · {flag} {country}\n\nEach type has its own price and success rate:\n📞 <b>Virtual</b>: cheaper; some services may reject it\n📱 <b>Physical</b>: a real SIM; higher success\n⭐ <b>Premium</b>: fastest (about 10 seconds) and the highest success\n\n💰 Balance\n╰─ {balance} toman",
+    "NUM_REROLL_ASK": "╭── 🔁 Another number\n│   Same service and country\n\nYour current number is cancelled ({price} toman goes back to you) and you get a fresh one from the same service and country. The new price may differ slightly.\n╰─ If the code has already arrived, it can't be cancelled and we'll show you the code.",
+    "NUM_REROLL_COOLDOWN": "Wait a few seconds and try again.",
+})
+
+PHRASES.update({
+    "جستجوی سرویس": "Search a service",
+    "جستجوی دیگر": "Search again",
+    "پیش فرض سایت": "Site default",
+    "مجازی": "Virtual",
+    "فیزیکی": "Physical",
+    "پریمیوم": "Premium",
+    "شماره‌ی دیگه": "Another number",
+    "بله، شماره‌ی دیگه": "Yes, another number",
+    "نه، همین رو نگه دار": "No, keep this one",
+})
+
+
+# شماره مجازی: پیام های سمت سرور مینی اپ
+PHRASES.update({
+    "چند ثانیه صبر کن و دوباره امتحان کن": "Wait a few seconds and try again",
+    "کد رسیده بود؛ لغو نشد": "The code had arrived; not cancelled",
+})

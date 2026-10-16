@@ -52,6 +52,11 @@ _rate_lock = asyncio.Lock()
 _cache: dict[str, tuple[float, Any]] = {}
 
 
+# نوع اپراتور: virtual (VoIP، ارزان، ممکنه بعضی سرویس ها رد کنن)، physical (سیم کارت واقعی)،
+# premium (سریع ترین، حدود ۱۰ ثانیه، بیشترین موفقیت)
+OP_TYPES = ("virtual", "physical", "premium")
+
+
 class SmsOutOfStock(CanbosoError):
     """برای این سرویس و کشور شماره ای نیست (قطعا خرید انجام نشد)."""
 
@@ -212,9 +217,12 @@ class SmsBurner:
 
     def __init__(self, seed: str, base_url: str | None = None, proxy: str = "") -> None:
         self._seed = (seed or "").strip()
+        base = (base_url or BASE_URL).rstrip("/")
+        # ریشه سایت (برای مسیر قدیمی api.php که فهرست اپراتورها را دارد)
+        self._origin = base.split("/api/")[0] if "/api/" in base else base
         kw: dict[str, Any] = {"proxy": proxy} if proxy.startswith(("http", "socks")) else {}
         self._http = httpx.AsyncClient(
-            base_url=(base_url or BASE_URL).rstrip("/"), timeout=TIMEOUT,
+            base_url=base, timeout=TIMEOUT,
             headers={"Authorization": f"Bearer {self._seed}", "Accept": "application/json"}, **kw,
         )
 
@@ -278,13 +286,41 @@ class SmsBurner:
         return [{"code": str(c["code"]).lower(), "name": str(c.get("name") or c["code"])}
                 for c in raw or [] if isinstance(c, dict) and c.get("code")]
 
-    async def quote(self, service_id: str, cc: str) -> float | None:
-        """قیمت دلاری تازه برای یک سرویس و کشور؛ None اگر پاسخ قابل فهم نبود."""
+    async def operators(self, cc: str, force: bool = False) -> list[dict]:
+        """اپراتورهای یک کشور: [{id, name, type (virtual|physical|premium), mult}].
+
+        فقط مسیر قدیمی api.php این فهرست را دارد (در /api/v1 نیست) و بدون seed هم
+        جواب می دهد. هر اپراتور یک ضریب قیمت روی قیمت پایه سرویس دارد.
+        """
+        cc = (cc or "").lower()
+        hit = _cache.get(f"ops:{cc}")
+        if not force and hit and time.monotonic() - hit[0] < 600.0:
+            return hit[1]
+        data = await self._get(f"{self._origin}/api.php?action=operators&country={cc}")
+        raw = data.get("operators") if isinstance(data, dict) else data
+        out: list[dict] = []
+        for o in raw or []:
+            if not isinstance(o, dict) or o.get("id") in (None, ""):
+                continue
+            mult = _num(o.get("price_multiplier"))
+            kind = str(o.get("type") or "").lower()
+            if mult is None or mult <= 0:
+                continue
+            out.append({"id": str(o["id"]), "name": str(o.get("name") or o["id"]),
+                        "type": kind if kind in OP_TYPES else "virtual", "mult": mult})
+        _cache[f"ops:{cc}"] = (time.monotonic(), out)
+        return out
+
+    async def quote(self, service_id: str, cc: str, operator_id: str | None = None) -> float | None:
+        """قیمت دلاری تازه برای یک سرویس و کشور (و اپراتور)؛ None اگر پاسخ قابل فهم نبود."""
         if not self.configured:
             raise CanbosoError("seed تنظیم نشده")
         await _pace()
+        body: dict[str, Any] = {"service_id": _id(service_id), "country": cc.upper()}
+        if operator_id:
+            body["operator_id"] = _id(operator_id)
         try:
-            r = await self._http.post("/quote", json={"service_id": _id(service_id), "country": cc.upper()})
+            r = await self._http.post("/quote", json=body)
         except Exception as exc:  # noqa: BLE001
             raise CanbosoError(f"ارتباط برقرار نشد: {type(exc).__name__}") from exc
         if r.status_code in (401, 403):
@@ -330,7 +366,9 @@ class SmsBurner:
     async def debug(self) -> dict:
         """پاسخ خام چند مسیر برای پنل ادمین (بدون کش، کوتاه شده)."""
         out: dict[str, Any] = {}
-        for path in ("/account", "/countries", "/catalog"):
+        # اپراتورها فقط در api.php هستند (برای نوع شماره: مجازی / فیزیکی / پریمیوم)
+        ops_url = f"{self._origin}/api.php?action=operators&country=us"
+        for path in ("/account", "/countries", "/catalog", ops_url):
             await _pace()
             started = time.monotonic()
             try:
@@ -342,14 +380,18 @@ class SmsBurner:
                 if isinstance(body, dict):
                     # فهرست های بلند را کوتاه کن تا پیام ادمین نترکد
                     body = {k: (v[:3] if isinstance(v, list) else v) for k, v in body.items()}
-                out[path] = {"status": r.status_code, "ms": int((time.monotonic() - started) * 1000), "body": body}
+                elif isinstance(body, list):
+                    body = body[:4]
+                key = "/operators?country=us" if path == ops_url else path
+                out[key] = {"status": r.status_code, "ms": int((time.monotonic() - started) * 1000), "body": body}
             except Exception as exc:  # noqa: BLE001
-                out[path] = {"status": 0, "error": f"{type(exc).__name__}: {exc}"}
+                out["/operators?country=us" if path == ops_url else path] = {
+                    "status": 0, "error": f"{type(exc).__name__}: {exc}"}
         return out
 
     # ---------- خرید و پیگیری ----------
-    async def buy(self, service_id: str, cc: str) -> dict:
-        """خرید یک شماره. خروجی parse_number.
+    async def buy(self, service_id: str, cc: str, operator_id: str | None = None) -> dict:
+        """خرید یک شماره (با نوع/اپراتور دلخواه، وگرنه پیش فرض سایت). خروجی parse_number.
 
         - SmsOutOfStock: شماره ای نیست (قطعا خرید نشد)
         - CanbosoNoFunds: موجودی *ما* کم است (قطعا خرید نشد)
@@ -359,7 +401,9 @@ class SmsBurner:
         """
         if not self.configured:
             raise CanbosoError("seed تنظیم نشده")
-        body = {"service_id": _id(service_id), "country": cc.upper()}
+        body: dict[str, Any] = {"service_id": _id(service_id), "country": cc.upper()}
+        if operator_id:
+            body["operator_id"] = _id(operator_id)
         r: httpx.Response | None = None
         for attempt in range(3):
             await _pace()

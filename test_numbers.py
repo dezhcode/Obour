@@ -38,10 +38,22 @@ class FakeServer:
         self.cancel_status = 200
         self.calls: list[tuple[str, str]] = []
         self.balance = 10.0
+        self.next_id = 101
+        self.buys: list[dict] = []          # بدنه ی هر خرید (برای دیدن operator_id)
+
+    MULT = {"1": 1.0, "3": 1.8, "4": 2.2}
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         path, method = request.url.path.replace("/api/v1", ""), request.method
         self.calls.append((method, path))
+        if path == "/api.php" and request.url.params.get("action") == "operators":
+            if request.url.params.get("country") != "us":
+                return httpx.Response(200, json=[{"id": 1, "name": "Lycamobile", "type": "virtual",
+                                                  "price_multiplier": "1.00"}])
+            return httpx.Response(200, json=[
+                {"id": 1, "name": "Lycamobile", "type": "virtual", "price_multiplier": "1.00", "icon_slug": None},
+                {"id": 3, "name": "T-Mobile", "type": "physical", "price_multiplier": "1.80", "icon_slug": "tmobile"},
+                {"id": 4, "name": "AT&T", "type": "premium", "price_multiplier": "2.20", "icon_slug": None}])
         if path == "/catalog":
             return httpx.Response(200, json={"ok": True, "rows": [
                 {"service_id": 2, "service": "Telegram", "service_slug": "telegram", "category": "social",
@@ -54,11 +66,16 @@ class FakeServer:
         if path == "/account":
             return httpx.Response(200, json={"ok": True, "balance": self.balance})
         if path == "/quote":
-            return httpx.Response(200, json={"ok": True, "price": USD})
+            op = str(json.loads(request.content or b"{}").get("operator_id") or "")
+            return httpx.Response(200, json={"ok": True, "price": round(USD * self.MULT.get(op, 1.0), 4)})
         if path == "/numbers" and method == "POST":
+            body = json.loads(request.content or b"{}")
             if self.mode == "ok":
-                return httpx.Response(201, json={"ok": True, "number_id": 101, "phone_number": "15551234567",
-                                                 "price": USD, "status": "active"})
+                self.buys.append(body)
+                nid, self.next_id = self.next_id, self.next_id + 1
+                price = round(USD * self.MULT.get(str(body.get("operator_id") or ""), 1.0), 4)
+                return httpx.Response(201, json={"ok": True, "number_id": nid, "phone_number": "15551234567",
+                                                 "price": price, "status": "active"})
             if self.mode == "stock":
                 return httpx.Response(409, json={"ok": False, "error": "out_of_stock", "message": "No numbers"})
             if self.mode == "funds":
@@ -71,10 +88,10 @@ class FakeServer:
                 return httpx.Response(201, json={"ok": True, "phone_number": "15550000000"})
             if self.mode == "401":
                 return httpx.Response(401, json={"ok": False, "error": "unauthorized"})
-        if path == "/numbers/101" and method == "GET":
+        if path.startswith("/numbers/") and method == "GET":
             return httpx.Response(200, json={"ok": True, "phone_number": "15551234567",
                                              "sms_code": self.sms, "status": self.status})
-        if path == "/numbers/101/cancel" and method == "POST":
+        if path.startswith("/numbers/") and path.endswith("/cancel") and method == "POST":
             if self.cancel_status == 409:
                 return httpx.Response(409, json={"ok": False, "error": "sms_received"})
             return httpx.Response(200, json={"ok": True, "refunded": True})
@@ -299,6 +316,172 @@ async def run(db: Database) -> None:
     await handler_flow(db, srv)
     await webapp_flow(db, srv)
     await admin_and_menus(db, srv)
+    await new_features(db, srv)
+
+
+async def new_features(db: Database, srv: FakeServer) -> None:
+    """جستجوی سرویس، نوع شماره (مجازی/فیزیکی/پریمیوم) و «شماره ی دیگه»."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from app.handlers import numbers as h
+    from app.webapp import api as webapi
+    from app.webapp.auth import WebAppUser
+
+    h.ensure_watcher = lambda *a, **k: None      # type: ignore[assignment]
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+    srv.mode, srv.sms, srv.status, srv.cancel_status = "ok", None, "active", 200
+    srv.buys.clear()
+    cat = await ns.catalog(db, force=True)
+
+    # ── جستجو: فارسی و انگلیسی، نیم فاصله، ی و ک عربی، جمله ی دارای اسم
+    def trow(sid: str, name: str, slug: str, category: str) -> dict:
+        return {"service_id": sid, "service": name, "slug": slug, "category": category, "cc": "us",
+                "country": "United States", "usd": 1.0, "price": 10_000, "stock": 5}
+
+    manual = {"rows": [trow("2", "Telegram", "telegram", "social"), trow("19", "Google/Gmail", "google", "email"),
+                       trow("3", "WhatsApp", "whatsapp", "social"), trow("88", "OpenAI", "openai", "tech"),
+                       trow("50", "Netflix", "netflix", "streaming")]}
+
+    def names(q: str) -> list[str]:
+        return [s["name"] for s in ns.search_services(manual, q)]
+
+    assert names("تلگرام") == ["Telegram"] and names("tele") == ["Telegram"] and names("NETFL") == ["Netflix"]
+    assert names("واتساپ") == ["WhatsApp"] and names("واتس اپ") == ["WhatsApp"] and names("واتس") == ["WhatsApp"]
+    assert names("جیمیل") == ["Google/Gmail"] and names("جيميل") == ["Google/Gmail"]       # ی عربی
+    assert names("چت جی پی تی") == ["OpenAI"] and names("شماره تلگرام") == ["Telegram"]
+    assert names("x") == [] and names("zzzzzz") == [] and names("") == []
+    print("OK search (fa/en aliases, arabic letters, sentences)")
+
+    # ── نوع شماره: قیمت هر اپراتور = قیمت پایه × ضریب، با همان سود
+    ops = await ns.operators_of(db, cat, "2", "us")
+    assert [o["name"] for o in ops] == ["Lycamobile", "T-Mobile", "AT&T"], ops
+    assert [o["price"] for o in ops] == [49_000, 89_000, 108_000], [o["price"] for o in ops]
+    assert await ns.operators_of(db, cat, "2", "in") == []                                # یک نوع: انتخابی نیست
+    u = await new_user(db, 960, 400_000)
+    r = await ns.buy(db, None, u, "2", "us", "3")
+    assert r["status"] == ns.ACTIVE and r["order"]["operator_type"] == "physical", r["status"]
+    assert srv.buys[-1].get("operator_id") == 3 and await bal(db, u) == 400_000 - 89_000
+    assert "T-Mobile" in ns.country_label(r["order"]) and abs(r["order"]["usd_cost"] - 0.63) < 1e-9
+    r2 = await ns.buy(db, None, u, "2", "us", "99")                                       # اپراتور ناشناس
+    assert r2["status"] == ns.UNAVAILABLE and await bal(db, u) == 400_000 - 89_000
+    r3 = await ns.buy(db, None, u, "2", "us", "0")                                        # 0 = پیش فرض سایت
+    assert r3["status"] == ns.ACTIVE and "operator_id" not in srv.buys[-1] and not r3["order"]["operator_id"]
+    assert await bal(db, u) == 400_000 - 89_000 - 49_000
+    print("OK operator choice (prices, buy body, unknown operator, default)")
+
+    # ── شماره ی دیگه: لغو (پول برمی گردد) + خرید تازه از همان سرویس، کشور و نوع
+    before = await bal(db, u)
+    rr = await ns.reroll(db, None, u, r["order"])
+    assert rr["status"] == ns.ACTIVE and rr["old"]["status"] == ns.REFUNDED, rr["status"]
+    assert rr["order"]["id"] != r["order"]["id"] and rr["order"]["operator_id"] == "3"
+    assert await bal(db, u) == before                                                     # برگشت 89000، کسر 89000
+    assert (await db.get_number_order(r["order"]["id"]))["status"] == ns.REFUNDED
+    again = await ns.reroll(db, None, u, rr["order"])                                     # فاصله ی ۲۰ ثانیه
+    assert again["status"] == ns.LOCKED and (await db.get_number_order(rr["order"]["id"]))["status"] == ns.ACTIVE
+    await db.release_lock(f"numre:{u['id']}")
+    srv.cancel_status, srv.sms = 409, "123123"                                            # کد همین حالا رسیده
+    n_buys = len(srv.buys)
+    rc = await ns.reroll(db, None, u, rr["order"])
+    assert rc["status"] == ns.COMPLETED and len(srv.buys) == n_buys and "old" not in rc
+    srv.cancel_status, srv.sms = 200, None
+    assert (await ns.reroll(db, None, u, rc["order"]))["status"] == ns.BAD_STATE          # فقط منتظر کد
+    await db.release_lock(f"numre:{u['id']}")
+    ra = await ns.buy(db, None, u, "2", "us")
+    before = await bal(db, u)
+    srv.mode = "stock"                                                                    # خرید تازه جا نمی افتد
+    rf = await ns.reroll(db, None, u, ra["order"])
+    assert rf["status"] == ns.UNAVAILABLE and rf["old"]["status"] == ns.REFUNDED
+    assert await bal(db, u) == before + 49_000                                            # فقط برگشت، پولی گم نشد
+    srv.mode = "ok"
+    print("OK reroll (refund+rebuy, cooldown, code arrived, stock gone)")
+
+    # ── ربات: جستجو، نوع شماره و دکمه ی «شماره ی دیگه»
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+    state = AsyncMock()
+    uh = await new_user(db, 961, 400_000)
+
+    async def tap(data: str, fn, *extra) -> FakeCall:  # noqa: ANN001
+        c = FakeCall(data)
+        await fn(c, db, *extra, await db.get_user(uh["id"]))
+        return c
+
+    c = await tap("num", h.cb_hub)
+    assert "num:q" in c.buttons and "num:s:2:0" in c.buttons, c.buttons
+    c = FakeCall("num:q")
+    await h.cb_search(c, db, state, await db.get_user(uh["id"]))
+    state.set_state.assert_awaited()
+    assert "جستجوی سرویس" in c.page
+    msg = MagicMock()
+    msg.text = "تلگرام"
+    msg.delete, msg.answer = AsyncMock(), AsyncMock()
+    await h.msg_search(msg, db, state, await db.get_user(uh["id"]))
+    kb = msg.answer.await_args.kwargs["reply_markup"]
+    assert "num:s:2:0" in [b.callback_data for row in kb.inline_keyboard for b in row]
+    state.set_state.assert_awaited_with(None)                                             # از حالت جستجو بیرون آمد
+    state2 = AsyncMock()
+    msg.text = "zzzzzz"
+    msg.answer.reset_mock()
+    await h.msg_search(msg, db, state2, await db.get_user(uh["id"]))
+    state2.set_state.assert_not_awaited()                                                 # در همان حالت می ماند
+    assert "پیدا نشد" in msg.answer.await_args.args[0]
+    c = FakeCall("num")
+    await h.cb_hub(c, db, await db.get_user(uh["id"]), state2)
+    state2.set_state.assert_awaited_with(None)                                            # منو حالت جستجو را می بندد
+
+    c = await tap("num:b:2:us:3", h.cb_confirm)
+    assert "89,000" in c.page and "T-Mobile" in c.page and "num:go:2:us:3" in c.buttons, c.page
+    c = await tap("num:b:2:us:99", h.cb_confirm)
+    assert "نیست" in c.page                                                               # نوع دیگر موجود نیست
+    c = await tap("num:go:2:us:3", h.cb_buy)
+    oh = (await db.user_number_orders(uh["id"]))[0]
+    assert oh["operator_id"] == "3" and "T-Mobile" in c.page and f"num:re:{oh['id']}" in c.buttons, c.buttons
+    c = await tap(f"num:re:{oh['id']}", h.cb_reroll_ask)
+    assert f"num:rey:{oh['id']}" in c.buttons and "89,000" in c.page
+    c = await tap(f"num:rey:{oh['id']}", h.cb_reroll)
+    new = (await db.user_number_orders(uh["id"]))[0]
+    assert new["id"] != oh["id"] and new["status"] == ns.ACTIVE and "+15551234567" in c.page, c.page
+    assert (await db.get_number_order(oh["id"]))["status"] == ns.REFUNDED and new["operator_id"] == "3"
+    assert await bal(db, uh) == 400_000 - 89_000
+    c = await tap(f"num:rey:{new['id']}", h.cb_reroll)                                    # دوباره زود: فاصله
+    assert "صبر" in c.answer.await_args.args[0], c.answer.await_args
+    print("OK bot: search, operator step, reroll buttons")
+
+    # ── مینی اپ
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+    await db.release_lock(f"numre:{uh['id']}")
+    um = await new_user(db, 962, 400_000)
+    await db.execute("UPDATE users SET rules_accepted_at = ? WHERE id = ?", ("2026-01-01T00:00:00", um["id"]))
+    me = WebAppUser(id=962, first_name="M", username="m", language_code="fa", is_premium=False, start_param="")
+    bot = AsyncMock()
+    info = await webapi.numbers_info(db, None, me)
+    assert "تلگرام" in info["aliases"]["telegram"].split("|"), info["aliases"]
+    d = await webapi.numbers_operators(db, None, me, "2", "us")
+    assert [i["name"] for i in d["items"]] == ["Lycamobile", "T-Mobile", "AT&T"] and d["default_price"] == 49_000
+    assert d["items"][1]["label"] == "فیزیکی" and d["items"][2]["type"] == "premium"
+    assert (await webapi.numbers_operators(db, None, me, "2", "in"))["items"] == []
+    b = await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-op-001", operator_id="3", bot=bot)
+    assert b["order"]["price"] == 89_000 and "T-Mobile" in b["order"]["country"], b["order"]
+    rr = await webapi.numbers_reroll(db, None, me, order_id=b["order"]["id"], nonce="nonce-re-001", bot=bot)
+    assert rr["order"]["id"] != b["order"]["id"] and rr["balance"] == b["balance"], (rr["balance"], b["balance"])
+    for args in (dict(order_id=rr["order"]["id"], nonce="nonce-re-002"),):           # فاصله ی ۲۰ ثانیه
+        try:
+            await webapi.numbers_reroll(db, None, me, bot=bot, **args)
+            raise AssertionError("cooldown expected")
+        except webapi.ApiError as exc:
+            assert exc.code == "cooldown", exc.code
+    try:
+        await webapi.numbers_reroll(db, None, me, order_id=rr["order"]["id"], nonce="nonce-re-001", bot=bot)
+        raise AssertionError("duplicate nonce expected")
+    except webapi.ApiError as exc:
+        assert exc.code == "duplicate", exc.code
+    other = WebAppUser(id=961, first_name="H", username="h", language_code="fa", is_premium=False, start_param="")
+    await db.release_lock(f"numre:{um['id']}")
+    try:
+        await webapi.numbers_reroll(db, None, other, order_id=rr["order"]["id"], nonce="nonce-re-003", bot=bot)
+        raise AssertionError("ownership expected")
+    except webapi.ApiError as exc:
+        assert exc.status == 404, exc.status
+    print("OK mini app API: aliases, operators, buy with operator, reroll")
 
 
 async def admin_and_menus(db: Database, srv: FakeServer) -> None:
@@ -551,9 +734,13 @@ async def handler_flow(db: Database, srv: FakeServer) -> None:
     assert "Telegram" in str(c.message.edit_text.call_args) and "num:s:2:0" in c.buttons
     c = await tap("num:s:2:0", h.cb_service)
     assert c.buttons.index("num:b:2:in") < c.buttons.index("num:b:2:us"), c.buttons       # ارزان تر اول
-    c = await tap("num:b:2:us", h.cb_confirm)
-    assert "49,000" in c.page and "num:go:2:us" in c.buttons
-    c = await tap("num:go:2:us", h.cb_buy)
+    c = await tap("num:b:2:us", h.cb_confirm)                          # آمریکا چند نوع دارد ← اول نوع شماره
+    assert "num:b:2:us:0" in c.buttons and "num:b:2:us:3" in c.buttons and "نوع شماره" in c.page, c.buttons
+    c = await tap("num:b:2:in", h.cb_confirm)                          # هند یک نوع دارد ← مستقیم تایید
+    assert "num:go:2:in:0" in c.buttons and "18,000" not in c.page or "num:go:2:in:0" in c.buttons
+    c = await tap("num:b:2:us:0", h.cb_confirm)
+    assert "49,000" in c.page and "num:go:2:us:0" in c.buttons and "num:b:2:us" in c.buttons, c.buttons
+    c = await tap("num:go:2:us:0", h.cb_buy)
     assert "+15551234567" in c.page and any(b.startswith("num:chk:") for b in c.buttons), c.page
     order = (await db.user_number_orders(u["id"]))[0]
     assert order["chat_id"] == 777 and order["message_id"] == 5      # برای خبر دادن بعدی ذخیره شد
