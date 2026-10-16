@@ -56,18 +56,25 @@ const myTeam = () => teamOf(me);
 
 /* ---------- قاب مرجع و بوم ---------- */
 const frameEl = $('frame'), cv = $('table'), ctx = cv.getContext('2d');
-let dpr = 1, u = 1, s = .4, ox = 0, oy = 0, cw = 600, ch = 1280, tableBuf = null;
+let dpr = 1, u = 1, s = .4, ox = 0, oy = 0, cw = 600, ch = 1280, tableBuf = null, dy = 0;
 const TABLE_RECT = [75, 250, 450, 820];            // جای میز در قاب (واحد مرجع)
+// میز همیشه به اندازهٔ عرض صفحه (مثل پلاتو)؛ در صفحه های کوتاه (تلگرام غیر تمام صفحه، گوشی های
+// کوتاه تر) به جای کوچک شدن همه چیز، فاصلهٔ خالی بالا و پایین میز کم می شود: قاب تا FH_MIN کوتاه
+// می شود و میز و دکمه های کنارش به اندازهٔ نصف آن (dy) بالا می آیند؛ نوار پیام پایین قاب می ماند.
+const FH_MIN = 1100;
 function fit() {
   const w = $('wrap'), cs = getComputedStyle(w);
   const aw = w.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const ah = w.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-  u = Math.max(.3, Math.min(aw / 600, ah / 1280));
+  u = Math.max(.3, Math.min(aw / 600, ah / FH_MIN));
+  const fh = Math.max(FH_MIN, Math.min(1280, ah / u));
+  dy = (1280 - fh) / 2;
   frameEl.style.setProperty('--u', u + 'px'); document.body.style.setProperty('--u', u + 'px');
+  frameEl.style.setProperty('--fh', fh.toFixed(2)); frameEl.style.setProperty('--dy', dy.toFixed(2));
   dpr = Math.min(2.5, window.devicePixelRatio || 1);
-  cw = 600 * u; ch = 1280 * u;
+  cw = 600 * u; ch = fh * u;
   cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
-  const [tx, ty, tw, th] = TABLE_RECT.map(v => v * u);
+  const [tx, ty, tw, th] = [TABLE_RECT[0], TABLE_RECT[1] - dy, TABLE_RECT[2], TABLE_RECT[3]].map(v => v * u);
   s = Math.min(tw / W, th / H); ox = tx + (tw - W * s) / 2; oy = ty + (th - H * s) / 2;
   tableBuf = null;
   for (const b of balls) { b._rc = null; b._pc = null; }
@@ -459,7 +466,7 @@ function drawColumns() {
     const active = g.turn != null && teamOf(g.turn) === tm;
     ctx.save(); ctx.globalAlpha = active ? 1 : .55;
     for (let i = 0; i <= list.length; i++) {
-      const x = cx * u, y = (280 + i * 29) * u, r = 11.5 * u, k = i < list.length ? list[i] : (eight ? 8 : -1);
+      const x = cx * u, y = (280 - dy + i * 29) * u, r = 11.5 * u, k = i < list.length ? list[i] : (eight ? 8 : -1);
       if (k < 0) { ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.arc(x, y, r * .86, 0, Math.PI * 2); ctx.fill(); continue; }
       const gb = GAP[k] || (GAP[k] = { k, q: [0, 0, 1, 0], _rc: null, _pc: null });   // شماره رو به بیننده (GAP_Q پلاتو)
       ballSprite(gb, x, y, r, 43);
