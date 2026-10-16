@@ -91,21 +91,6 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 .hk-chat svg{width:20px;height:20px}
 .hk-chat .badge{box-shadow:0 0 0 2px var(--felt)}
 /* حباب گفتگو روی میز (دم رو به گوینده) */
-.hk-bubbles{position:absolute;inset:0;z-index:40;pointer-events:none}
-.hk-bub{position:absolute;max-width:min(220px,62%);box-sizing:border-box;padding:7px 12px 8px;border-radius:16px;background:#fff;color:#1E2235;direction:rtl;text-align:right;
-  font-size:13.5px;line-height:20px;font-weight:700;overflow-wrap:anywhere;animation:hk-bub-in .28s cubic-bezier(.2,1.5,.4,1) both}
-.hk-bub b{display:block;font-size:11px;line-height:15px;font-weight:800;color:#1E6B4F}
-.hk-bub.me{background:#FFE7A3;color:#3A2A00}
-.hk-bub::after{content:"";position:absolute;width:12px;height:12px;background:inherit;transform:rotate(45deg);border-radius:2px}
-.hk-bub[data-tail="br"]{transform-origin:100% 100%}
-.hk-bub[data-tail="br"]::after{bottom:-5px;right:18px}
-.hk-bub[data-tail="bl"]{transform-origin:0 100%}
-.hk-bub[data-tail="bl"]::after{bottom:-5px;left:18px}
-.hk-bub[data-tail="r"]{transform-origin:100% 0;max-width:min(170px,40%)}
-.hk-bub[data-tail="r"]::after{top:16px;right:-5px}
-.hk-bub.bye{animation:hk-bub-out .25s ease-in both}
-@keyframes hk-bub-in{from{opacity:0;scale:.6}}
-@keyframes hk-bub-out{to{opacity:0;scale:.85}}
 @media (max-width:330px){.hk-table{--chat-w:44px}.hk-chat .lb{display:none}.hk-chat{padding:0;width:44px;justify-content:center}}
 
 /* دست بادبزنی */

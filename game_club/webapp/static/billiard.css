@@ -23,7 +23,7 @@ body.billiard .sheet{color:var(--ink)}
 /* ---------- هدر ---------- */
 #exit{left:calc(17 * var(--u));top:calc(29 * var(--u));width:calc(46 * var(--u));height:calc(46 * var(--u))}
 #menuBtn{left:calc(537 * var(--u));top:calc(29 * var(--u));width:calc(46 * var(--u));height:calc(46 * var(--u))}
-#timer{left:calc(444 * var(--u));top:calc(3 * var(--u));display:flex;align-items:center;gap:calc(3 * var(--u))}
+#timer{left:calc(378 * var(--u));top:calc(6 * var(--u));transform:translateX(-50%);display:flex;align-items:center;gap:calc(3 * var(--u));transition:left .3s ease;z-index:6}
 #timer i{display:block;width:calc(16 * var(--u));height:calc(16 * var(--u));
   background:var(--atlas) no-repeat;background-size:calc(1343 * var(--u) * 16 / 30) auto;
   background-position:calc(-1303 * var(--u) * 16 / 30) calc(-323 * var(--u) * 16 / 30)}
@@ -42,9 +42,6 @@ body.billiard .sheet{color:var(--ink)}
   padding:calc(4 * var(--u)) calc(11 * var(--u));border-radius:calc(13 * var(--u));white-space:nowrap}
 .pl.mine.turn .yturn{display:block}
 .pl.mine.turn .pname{display:none}
-.pbub{position:absolute;top:calc(102 * var(--u));z-index:8;max-width:calc(170 * var(--u));padding:calc(6 * var(--u)) calc(10 * var(--u));border-radius:calc(14 * var(--u));
-  background:#fff;color:#1C2230;font-size:calc(12.5 * var(--u));font-weight:700;line-height:1.4;direction:rtl;white-space:normal;animation:bl-rise .3s ease-out both;pointer-events:none}
-@keyframes bl-rise{from{opacity:0;transform:scale(.7) translateY(-6px)}}
 
 /* ---------- پیام روی میز ---------- */
 #msg{left:calc(300 * var(--u));top:calc(242 * var(--u));transform:translateX(-50%);z-index:7;min-width:calc(255 * var(--u));max-width:calc(440 * var(--u));
@@ -88,8 +85,11 @@ body.billiard .sheet{color:var(--ink)}
 #chatbar button{background:none;border:0;padding:0;display:flex;position:relative}
 #chatbar svg{width:calc(32 * var(--u));height:calc(32 * var(--u))}
 #chatbar .badge{position:absolute;top:calc(-6 * var(--u));right:calc(-8 * var(--u))}
-#chatIn{flex:1 1 auto;min-width:0;background:transparent;border:0;outline:0;color:#eee;font:inherit;font-size:calc(22 * var(--u));direction:auto}
-#chatIn::placeholder{color:#8b8b8b}
+#chatbar .tc-in{font-size:calc(22 * var(--u))}
+#chatbar .tc-send{display:none}
+#chatbar.typing .tc-send{display:flex}
+#chatbar.typing .tc-ic{display:none}
+#chatbar .tc-send svg{width:calc(36 * var(--u));height:calc(36 * var(--u))}
 
 /* ---------- پنل پیچ ---------- */
 #spinPop{left:0;top:0;right:0;bottom:calc(74 * var(--u));z-index:35;display:none;background:rgba(0,0,0,.45)}

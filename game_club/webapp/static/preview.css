@@ -46,37 +46,31 @@
 @keyframes pv-f2{0%{opacity:1}14%,96%{opacity:0}100%{opacity:1}}
 @keyframes pv-f4{0%{opacity:0}14%,96%{opacity:1}100%{opacity:0}}
 
-/* ---------- فوتبال ---------- */
-.pv-fb{background:repeating-linear-gradient(180deg,#2F8E40 0 12.5%,#2A7F39 12.5% 25%)}
-.pv-bl{background:radial-gradient(110% 90% at 50% 45%,#2fa45c,#1b7a41 70%,#156536);box-shadow:inset 0 0 0 10px #5a2f17,inset 0 0 0 12px #3b1d0e}
-.pv-pk{position:absolute;width:30px;height:30px;border-radius:50%;background:radial-gradient(#000 55%,#1d1d1f)}
-.pv-pb{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:var(--c);
-  box-shadow:inset -4px -5px 7px rgba(0,0,0,.4),inset 3px 3px 5px rgba(255,255,255,.35),2px 4px 4px rgba(0,0,0,.35)}
-.pv-pb.st{background:linear-gradient(180deg,#f4f1e8 0 27%,var(--c) 27% 73%,#f4f1e8 73%)}
-.pv-bl-cue{animation:pv-bl-cue 3.2s cubic-bezier(.2,.7,.3,1) infinite}
-.pv-bl-pot{animation:pv-bl-pot 3.2s cubic-bezier(.2,.7,.3,1) infinite}
-@keyframes pv-bl-cue{0%,10%{transform:none}30%{transform:translate(4%,-30%)}55%,88%{transform:translate(2%,-24%);opacity:1}94%{opacity:0}100%{transform:none;opacity:1}}
-@keyframes pv-bl-pot{0%,28%{transform:none;opacity:1}60%{transform:translate(-36%,-28%);opacity:1}70%,90%{transform:translate(-40%,-31%) scale(.6);opacity:0}94%{transform:none;opacity:0}100%{transform:none;opacity:1}}
-.pv-goal{position:absolute;left:32%;top:0;width:36%;height:10%;box-sizing:border-box;border:2px solid rgba(255,255,255,.9);border-top:0;
-  background:repeating-linear-gradient(45deg,rgba(255,255,255,.22) 0 2px,transparent 2px 6px),repeating-linear-gradient(-45deg,rgba(255,255,255,.22) 0 2px,transparent 2px 6px);animation:pv-net 3.6s infinite}
-.pv-line{position:absolute;left:0;right:0;top:56%;border-top:2px solid rgba(255,255,255,.55)}
-.pv-circle{position:absolute;left:50%;top:56%;width:30%;aspect-ratio:1;border:2px solid rgba(255,255,255,.55);border-radius:50%;transform:translate(-50%,-50%)}
-.pv-disc{position:absolute;width:20%;aspect-ratio:1;border-radius:50%;box-sizing:border-box;padding:2.2%;transform:translate(-50%,-50%);
-  background:conic-gradient(from 215deg,#fff,#aab2bb 55deg,#eef1f4 115deg,#7a848f 190deg,#d9dee3 250deg,#9aa3ad 310deg,#fff);
-  box-shadow:0 2px 0 #a2aab3,0 4px 0 #7c858e,2px 7px 7px rgba(0,0,0,.4)}
-.pv-disc .in{position:relative;display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1.5px rgba(30,36,44,.6)}
-.pv-disc .in svg{display:block;width:100%;height:100%}
-.pv-disc .in::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 60% 45% at 34% 24%,rgba(255,255,255,.6),rgba(255,255,255,0) 70%)}
-.pv-d1{left:30%;top:80%}
-.pv-d2{left:74%;top:30%;width:18%}
-.pv-ball{position:absolute;left:44%;top:62%;width:9%;transform:translate(-50%,-50%);filter:drop-shadow(2px 3px 2px rgba(0,0,0,.45))}
-.pv-ball svg{display:block;width:100%}
+/* ---------- فوتبال و بیلیارد: تصویرهای واقعی بازی (static/previews) ----------
+   زمین/میز داخل قاب درونی بزرگ تر از خود پیش نمایش است (مثل cover ولی نزدیک تر)؛ با container query
+   هم در کاشی تقریبا مربع خانه و هم در بنر پهن لابی همان بخش دیده می شود. جای هر چیز به درصد قاب درونی. */
+.pv-fb,.pv-bl{container-type:size}
+.pv-fb{background:#2f8e40}
+.pv-fb-in{position:absolute;left:50%;top:0;transform:translateX(-50%);width:max(min(140cqw,180cqh),100cqw,60cqh);aspect-ratio:924/1602;
+  background:url("previews/fb-pitch.webp") center/100% 100% no-repeat}
+.pv-fd{position:absolute;width:12%;transform:translate(-50%,-50%);filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+.pv-fbb{position:absolute;width:6.4%;transform:translate(-50%,-50%);filter:drop-shadow(1px 3px 2px rgba(0,0,0,.4))}
 .pv-kick{animation:pv-kick 3.6s cubic-bezier(.3,.7,.3,1) infinite}
 .pv-shot{animation:pv-shot 3.6s cubic-bezier(.15,.8,.3,1) infinite}
-@keyframes pv-kick{0%,18%{transform:none}30%{transform:translate(10%,-13%)}44%{transform:translate(7%,-9%)}80%,100%{transform:none}}
-@keyframes pv-shot{0%,29%{transform:none;opacity:1}46%{transform:translate(6%,-55%);opacity:1}70%{transform:translate(6%,-55%);opacity:1}78%{transform:translate(6%,-55%);opacity:0}86%{transform:none;opacity:0}94%,100%{transform:none;opacity:1}}
-@keyframes pv-net{0%,44%{transform:none}48%{transform:scaleY(1.25)}54%{transform:scaleY(.92)}60%,100%{transform:none}}
-.pv-goal{transform-origin:50% 0}
+@keyframes pv-kick{0%,18%{transform:none}30%{transform:translate(5%,-1.9%)}44%{transform:translate(3.5%,-1.3%)}80%,100%{transform:none}}
+@keyframes pv-shot{0%,29%{transform:none;opacity:1}46%{transform:translate(1%,-9%);opacity:1}70%{transform:translate(1%,-9%);opacity:1}78%{transform:translate(1%,-9%);opacity:0}86%{transform:none;opacity:0}94%,100%{transform:none;opacity:1}}
+
+.pv-bl{background:#1d6b35}
+.pv-bl-in{position:absolute;left:50%;top:0;transform:translateX(-50%);width:max(min(220cqw,290cqh),100cqw,182cqh);aspect-ratio:1200/660;
+  background:url("previews/bl-table.webp") center/100% 100% no-repeat}
+.pv-bb{position:absolute;width:2.9%;transform:translate(-50%,-50%);filter:drop-shadow(1px 2px 1.5px rgba(0,0,0,.45))}
+.pv-cue{position:absolute;left:-12%;top:36.4%;width:62%;transform-origin:100% 50%;transform:translateY(-50%) rotate(-90deg);filter:drop-shadow(2px 4px 3px rgba(0,0,0,.4))}
+.pv-bl-stick{animation:pv-bl-stick 3.4s cubic-bezier(.3,.6,.3,1) infinite}
+.pv-bl-cb{animation:pv-bl-cb 3.4s cubic-bezier(.2,.7,.3,1) infinite}
+.pv-bl-pot{animation:pv-bl-pot 3.4s cubic-bezier(.2,.7,.3,1) infinite}
+@keyframes pv-bl-stick{0%{transform:none;opacity:1}16%{transform:translateY(5%)}24%{transform:translateY(-1%)}30%{transform:translateY(0)}60%{opacity:1}68%,90%{opacity:0;transform:translateY(0)}100%{opacity:1;transform:none}}
+@keyframes pv-bl-cb{0%,23%{transform:none;opacity:1}38%{transform:translateY(-13.6%)}46%,86%{transform:translateY(-12.4%);opacity:1}92%{opacity:0}96%{transform:none;opacity:0}100%{opacity:1}}
+@keyframes pv-bl-pot{0%,36%{transform:none;opacity:1}56%{transform:translateY(-12.6%);opacity:1}64%{transform:translateY(-13.6%) scale(.7);opacity:0}94%{transform:none;opacity:0}100%{transform:none;opacity:1}}
 
 /* ---------- اسم فامیل ---------- */
 .pv-esm{display:flex;align-items:center;justify-content:center;gap:6%;background:radial-gradient(90% 90% at 50% 40%,#5A3A22,#3A2618)}

@@ -111,7 +111,6 @@ function renderSeats(g) {
       <span class="die sm c-${c}${g.last[c] ? '' : ' ghost'}" data-die="${c}">${pips(g.last[c] || 0)}</span>`;
   }
   document.querySelectorAll('.yard').forEach(y => y.classList.toggle('turn', g.turn === y.dataset.yard));
-  for (const c of Object.keys(bubbles)) showBubble(c);
 }
 function dock(title, sub, state) {
   $('dockT').textContent = title; $('dockS').textContent = sub || '';
@@ -232,78 +231,19 @@ async function play(e) {
   if (e.t === 'leave') { feed(c, (c === me ? 'از بازی بیرون رفتی' : nameOf(c) + (e.why === 'timeout' ? ' به‌خاطر غیبت حذف شد' : ' از بازی رفت'))); return; }
 }
 
-/* ---------- گفتگوی سر میز (مثل پلاتو) ----------
-   پیام ها با همان پرس و جوی هر ۰٫۹ ثانیه می آیند (chat=آخرین شماره). پیام تازه
-   چند ثانیه به شکل حباب کنار صندلی فرستنده دیده می شود؛ تاریخچه در برگه گفتگو. */
+/* ---------- گفتگوی سر میز: نوار و پیام های شناور مثل بیلیارد (tchat.js) ----------
+   پیام ها با همان پرس و جوی هر ۰٫۹ ثانیه می آیند (chat=آخرین شماره). */
 const QUICK = ['سلام!', 'خوش‌بازی!', 'آفرین', 'شانسی بود', 'زود باش', 'یک دست دیگه؟'];
-const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-let chatId = 0, chatLog = [], unread = 0, chatSheet = null, sending = false;
-const bubbles = {};
-function showBubble(c) {
-  const b = bubbles[c], seat = document.querySelector(`.seat.c-${c}`);
-  if (!b || !seat) return;
-  if (Date.now() > b.until) { delete bubbles[c]; return; }
-  seat.querySelectorAll('.bubble').forEach(x => x.remove());
-  const el = document.createElement('div'); el.className = 'bubble'; el.textContent = b.text; el.setAttribute('aria-hidden', 'true');
-  seat.appendChild(el);
-}
-function bubble(m) {
-  bubbles[m.color] = { text: m.text, until: Date.now() + 4200 };
-  showBubble(m.color);
-  setTimeout(() => { if (bubbles[m.color] && Date.now() >= bubbles[m.color].until) { delete bubbles[m.color]; document.querySelectorAll(`.seat.c-${m.color} .bubble`).forEach(x => x.remove()); } }, 4300);
-}
-function badge() {
-  const b = $('chatBadge'); b.hidden = !unread; b.textContent = unread > 9 ? '+۹' : FD(unread);
-  $('chatBtn').setAttribute('aria-label', unread ? `گفتگوی میز، ${FD(unread)} پیام تازه` : 'گفتگوی میز');
-}
-function chatIn(list, quiet) {
-  if (!list || !list.length) return;
-  for (const m of list) {
-    if (m.id <= chatId) continue;
-    chatId = m.id; chatLog.push(m);
-    if (quiet) continue;
-    bubble(m);
-    if (!m.me && !(chatSheet && document.body.contains(chatSheet))) { unread++; sfx.tap(); }
-  }
-  chatLog = chatLog.slice(-60); badge();
-  if (chatSheet && document.body.contains(chatSheet)) renderChat();
-}
-function renderChat() {
-  const log = chatSheet.querySelector('#chatLog');
-  log.innerHTML = chatLog.length ? chatLog.map(m => `<div class="msg${m.me ? ' mine' : ''}">${m.me ? '' : face(m, COL[m.color] ? COL[m.color].hex : 'var(--surface)')}<div class="bub">${m.me ? '' : `<b>${esc(m.name)}</b>`}<span>${esc(m.text)}</span></div></div>`).join('')
-    : '<p class="hint">هنوز کسی چیزی نگفته. سلام کن!</p>';
-  log.scrollTop = log.scrollHeight;
-}
-async function send(text) {
-  text = String(text || '').trim();
-  if (!text || sending || !mid) return false;
-  sending = true;
-  try {
-    await GC.ludo.chat(mid, text);
-    chatIn((await GC.ludo.match(mid, since, chatId)).chat);
-    return true;
-  } catch (e) { sfx.error(); toast(errText(e)); return false; }
-  finally { sending = false; }
-}
-function openChat() {
-  unread = 0; badge();
-  const sh = sheet(`${sheetHead('گفتگوی میز')}<div class="chat-log" id="chatLog" aria-live="polite"></div>
-    <div class="quick">${QUICK.map(q => `<button class="chip sm" data-q>${q}</button>`).join('')}</div>
-    <form class="chat-form" id="chatForm"><button class="send" aria-label="فرستادن">${icon('up', 2.6)}</button><input id="chatTxt" maxlength="140" placeholder="یه چیزی بگو…" autocomplete="off" enterkeyhint="send" aria-label="پیام به میز"></form>`,
-  { onClose: () => { chatSheet = null; } });
-  chatSheet = sh; renderChat();
-  sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => send(b.textContent); });
-  const input = sh.querySelector('#chatTxt');
-  sh.querySelector('#chatForm').onsubmit = async e => { e.preventDefault(); if (await send(input.value)) input.value = ''; input.focus(); };
-}
-$('chatBtn').onclick = openChat;
+const chat = TChat.init({
+  btn: $('chatBtn'), badge: $('chatBadge'), quick: QUICK, face: m => face(m, COL[m.color] ? COL[m.color].hex : 'var(--surface)'),
+  rest: () => { const r = $('dock').getBoundingClientRect(); return r.height ? innerHeight - r.top + 8 : 140; },
+  canSend: () => !!mid,
+  send: async text => { await GC.ludo.chat(mid, text); return (await GC.ludo.match(mid, since, chat.last())).chat; },
+  onNew: () => sfx.tap(), onError: e => { sfx.error(); toast(errText(e)); },
+});
+const chatIn = (list, quiet) => chat.add(list, quiet);
 // پایان یا بستن میز: گفتگوی آن میز روی سرور پاک شده؛ اینجا هم پاک و دکمه پنهان می شود
-function endChat() {
-  chatLog = []; unread = 0; chatSheet = null;
-  for (const c of Object.keys(bubbles)) delete bubbles[c];
-  document.querySelectorAll('.bubble').forEach(x => x.remove());
-  $('chatBtn').hidden = true;
-}
+function endChat() { chat.end(); $('chatBtn').hidden = true; }
 
 /* ---------- همگام سازی با سرور ---------- */
 async function apply(next) {
@@ -326,7 +266,7 @@ async function poll() {
   clearTimeout(pollT);
   if (document.hidden || overShown) { pollT = setTimeout(poll, POLL_MS); return; }
   if (!busy && !acting) {
-    try { await apply(await GC.ludo.match(mid, since, chatId)); }
+    try { await apply(await GC.ludo.match(mid, since, chat.last())); }
     catch (e) { if (e.code === 'not_found') return noMatch(); }
   }
   pollT = setTimeout(poll, POLL_MS);
