@@ -654,7 +654,7 @@ const snd = {
   tap() { sfx.bl.tap(); },
 };
 
-/* ---------- هدر: بازیکن ها (حریف چپ، خودت راست)، VS، تایمر ---------- */
+/* ---------- هدر: بازیکن ها (حریف چپ، خودت راست)، VS، تایمر بالای سر نوبت دار ---------- */
 let headKey = '';
 function seatsLayout(g) {
   const mt = WATCH ? 1 : myTeam(), team = t => g.order.filter((c, k) => k % 2 === t);
@@ -666,11 +666,14 @@ function renderPlayers(g) {
   const key = JSON.stringify([g.order.map(c => [g.players[c].name, g.players[c].pic, g.players[c].out]), g.turn, g.over, me, WATCH]);
   if (key === headKey) return;
   headKey = key;
+  // تایمر فقط یکی است و بالای سر کسی می نشیند که نوبتش است
+  const at = seatsLayout(g).find(([c]) => c === g.turn), tm = $('timer');
+  tm.hidden = !at || !!g.over;
+  if (at) tm.style.left = `calc(${at[1]} * var(--u))`;
   $('players').innerHTML = seatsLayout(g).map(([c, x]) => {
     const p = g.players[c] || {}, turn = g.turn === c && !g.over;
     return `<div class="pl${turn ? ' turn' : ''}${isMe(c) ? ' mine' : ''}${p.out ? ' out' : ''}" data-seat="${c}" style="left:calc(${x} * var(--u))">${face(p, 'transparent')}<span class="pname">${(p.name || '').replace(/[<>&]/g, '')}</span><span class="yturn">Your Turn</span></div>`;
   }).join('');
-  for (const c of Object.keys(bubbles)) showBubble(c);
 }
 function msgText(g) {
   if (flash && Date.now() < flash.until) return flash;
@@ -910,71 +913,20 @@ async function play(e) {
   if (e.t === 'win' || e.t === 'end') { if (e.balls) setBalls(e.balls); return; }
 }
 
-/* ---------- گفتگو: نوار «Say hello...»، حباب زیر آواتار، تاریخچه در برگه ---------- */
+/* ---------- گفتگو: نوار «Say hello...» و پیام های شناور روی میز مثل پلاتو (tchat.js) ---------- */
 const QUICK = ['سلام!', 'خوش‌بازی!', 'عجب ضربه‌ای!', 'شانس آوردی', 'زود باش', 'یک دست دیگه؟'];
-const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[x]));
-let chatId = 0, chatLog = [], unread = 0, chatSheet = null, sending = false;
-const bubbles = {};
-function showBubble(c) {
-  const b = bubbles[c], seat = document.querySelector(`.pl[data-seat="${c}"]`);
-  document.querySelectorAll(`.pbub[data-c="${c}"]`).forEach(x => x.remove());
-  if (!b || !seat || Date.now() > b.until) { delete bubbles[c]; return; }
-  const el = document.createElement('div'); el.className = 'pbub'; el.dataset.c = c; el.textContent = b.text;
-  const x = parseFloat(seat.style.left.match(/[\d.]+/)[0]);
-  el.style.left = `calc(${Math.max(10, Math.min(420, x - 60))} * var(--u))`;
-  frameEl.appendChild(el);
-}
-function bubble(m) {
-  bubbles[m.color] = { text: m.text, until: Date.now() + 4200 }; showBubble(m.color);
-  setTimeout(() => showBubble(m.color), 4300);
-}
-function badge() { const b = $('chatBadge'); b.hidden = !unread; b.textContent = unread > 9 ? '+۹' : FD(unread); }
-function chatIn(list, quiet) {
-  if (!list || !list.length) return;
-  for (const m of list) {
-    if (m.id <= chatId) continue;
-    chatId = m.id; chatLog.push(m);
-    if (quiet) continue;
-    bubble(m);
-    if (!m.me && !(chatSheet && document.body.contains(chatSheet))) { unread++; snd.tap(); }
-  }
-  chatLog = chatLog.slice(-60); badge();
-  if (chatSheet && document.body.contains(chatSheet)) renderChat();
-}
-function renderChat() {
-  const log = chatSheet.querySelector('#chatLog');
-  log.innerHTML = chatLog.length ? chatLog.map(m => `<div class="msg${m.me ? ' mine' : ''}">${m.me ? '' : face(m)}<div class="bub">${m.me ? '' : `<b>${esc(m.name)}</b>`}<span>${esc(m.text)}</span></div></div>`).join('')
-    : '<p class="hint">هنوز کسی چیزی نگفته. سلام کن!</p>';
-  log.scrollTop = log.scrollHeight;
-}
-async function send(text) {
-  text = String(text || '').trim();
-  if (!text || sending || !mid || WATCH) return false;
-  sending = true;
-  try { await GC.billiard.chat(mid, text); chatIn((await GC.billiard.match(mid, since, chatId)).chat); return true; }
-  catch (e) { sfx.error(); toast(errText(e)); return false; }
-  finally { sending = false; }
-}
-function openChat() {
-  unread = 0; badge();
-  const sh = sheet(`${sheetHead('گفتگوی بازی')}<div class="chat-log" id="chatLog" aria-live="polite"></div>
-    <div class="quick">${QUICK.map(q => `<button class="chip sm" data-q>${q}</button>`).join('')}</div>`,
-  { onClose: () => { chatSheet = null; } });
-  chatSheet = sh; renderChat();
-  sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => send(b.textContent); });
-}
+const chat = TChat.init({
+  bar: $('chatbar'), quick: QUICK, face: m => face(m, 'transparent'),
+  canSend: () => mid && !WATCH,
+  send: async text => { await GC.billiard.chat(mid, text); return (await GC.billiard.match(mid, since, chat.last())).chat; },
+  onNew: () => snd.tap(), onError: e => { sfx.error(); toast(errText(e)); },
+});
+const chatIn = (list, quiet) => chat.add(list, quiet);
 function quickSheet() {
   const sh = sheet(`${sheetHead('پیام سریع')}<div class="quick" style="justify-content:center">${QUICK.map(q => `<button class="chip" data-q>${q}</button>`).join('')}</div>`);
-  sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => { GC.close(); send(b.textContent); }; });
+  sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => { GC.close(); chat.send(b.textContent); }; });
 }
-$('chatOpen').onclick = openChat;
-$('quickBtn').onclick = quickSheet;
 $('items').onclick = quickSheet;
-$('chatIn').addEventListener('keydown', async e => {
-  e.stopPropagation();
-  if (e.key !== 'Enter') return;
-  const inp = e.currentTarget; if (await send(inp.value)) inp.value = '';
-});
 
 /* ---------- منوی ⋮ ---------- */
 const menu = $('menuPop');
@@ -1009,7 +961,7 @@ async function poll() {
   clearTimeout(pollT);
   if (document.hidden || overShown) { pollT = setTimeout(poll, pollMs()); return; }
   if (!busy && !acting && !anim) {
-    try { await apply(await GC.billiard.match(mid, since, chatId)); }
+    try { await apply(await GC.billiard.match(mid, since, chat.last())); }
     catch (e) { if (e.code === 'not_found') return noMatch(); }
   }
   pollT = setTimeout(poll, pollMs());
@@ -1027,6 +979,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
 const WHY = { pot8: 'توپ ۸ با ضربهٔ قانونی افتاد', foul8: 'توپ ۸ همراه با خطا افتاد', early8: 'توپ ۸ زودتر از وقتش افتاد', left: 'یک طرف بازی را ترک کرد' };
 function over(v) {
+  chat.end();
   const g = v.game, lastWin = (g.events || []).filter(e => e.t === 'win' || e.t === 'end').pop() || {};
   if (WATCH) {
     sfx.win();
@@ -1052,7 +1005,7 @@ function over(v) {
 }
 function cancelled() {
   if (overShown) return;
-  overShown = true;
+  overShown = true; chat.end();
   if (WATCH) { GC.watchOver('billiard', 'این بازی بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
   GC.guardClose(false); store.set('bmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>

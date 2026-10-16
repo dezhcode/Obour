@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
 <link rel="stylesheet" href="static/cards.css">
+<link rel="stylesheet" href="static/preview.css">
 <style>
 /* خانه «سالن شب»: هدر با حلقهٔ سطح، کارت بزرگ بالا (ادامهٔ بازی نیمه‌تمام یا حکم)، کارهای سریع،
    کاشی بازی ها با اجزای واقعی هر بازی (ورق و میز خود بازیکن، مهرهٔ فلزی و توپ، صفحه و مهرهٔ منچ)
@@ -80,27 +81,7 @@ a.gt:active{transform:scale(.98)}
 /* حکم: ماهوت و ورق خود بازیکن */
 .ra-hokm .hk-card{font-size:34px}
 /* فوتبال: زمین چمن، مهره های فلزی و توپ */
-.ra-fb{background:repeating-linear-gradient(90deg,#2F8E40 0 20px,#2A7F39 20px 40px)}
-.ra-fb::before{content:"";position:absolute;left:50%;top:22px;width:62px;height:62px;margin-left:-31px;border-radius:50%;border:2px solid rgba(255,255,255,.55)}
-.ra-fb::after{content:"";position:absolute;left:0;right:0;top:52px;border-top:2px solid rgba(255,255,255,.55)}
-.ra-fb .fd{position:absolute;border-radius:50%;box-sizing:border-box;padding:calc(var(--d)*.11);z-index:2;
-  background:radial-gradient(circle,transparent 61%,rgba(0,0,0,.22) 64%,transparent 68%),conic-gradient(from 215deg,#fff,#aab2bb 55deg,#eef1f4 115deg,#7a848f 190deg,#d9dee3 250deg,#9aa3ad 310deg,#fff);
-  box-shadow:inset 0 calc(var(--d)*.045) calc(var(--d)*.03) rgba(255,255,255,.95),inset 0 calc(var(--d)*-.05) calc(var(--d)*.05) rgba(0,0,0,.4),0 calc(var(--d)*.025) 0 #a2aab3,0 calc(var(--d)*.05) 0 #7c858e,0 calc(var(--d)*.07) 0 #59626b,calc(var(--d)*.03) calc(var(--d)*.12) calc(var(--d)*.12) rgba(0,0,0,.45)}
-.ra-fb .fd .in{position:relative;display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1.5px rgba(30,36,44,.6)}
-.ra-fb .fd .in svg{display:block;width:100%;height:100%}
-.ra-fb .fd .in::after{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse 60% 45% at 34% 24%,rgba(255,255,255,.6),rgba(255,255,255,0) 70%)}
-.ra-fb .ball{position:absolute;z-index:3;filter:drop-shadow(2px 4px 3px rgba(0,0,0,.45))}
-/* بیلیارد: گوشهٔ میز با ماهوت، جیب و چند توپ براق */
-.ra-bl{background:radial-gradient(120% 90% at 50% 40%,#2fa45c,#1b7a41 70%,#156536);box-shadow:inset 0 0 0 7px #5a2f17,inset 0 0 0 9px #3b1d0e}
-.ra-bl .pk{position:absolute;width:22px;height:22px;border-radius:50%;background:radial-gradient(#000 55%,#222);z-index:1}
-.ra-bl .pb{position:absolute;width:24px;height:24px;border-radius:50%;z-index:2;background:var(--c);
-  box-shadow:inset -4px -5px 7px rgba(0,0,0,.4),inset 3px 3px 5px rgba(255,255,255,.35),2px 4px 4px rgba(0,0,0,.35)}
-.ra-bl .pb.st{background:radial-gradient(circle at 50% 50%,#fff 0 4px,transparent 4.5px),linear-gradient(180deg,#f4f1e8 0 27%,var(--c) 27% 73%,#f4f1e8 73%)}
-.ra-bl .pb.so{background:radial-gradient(circle at 50% 50%,#fff 0 4px,transparent 4.5px),var(--c)}
-.ra-bl .cue{position:absolute;height:5px;width:120px;border-radius:3px;z-index:3;transform-origin:0 50%;
-  background:linear-gradient(90deg,#4c7bd6 0 4px,#f5f2ea 4px 9px,#e3c58d 9px 70%,#1d1d1d 70% 73%,#5a2a14 73%);box-shadow:2px 4px 4px rgba(0,0,0,.35)}
-/* منچ: صفحهٔ واقعی با پرسپکتیو و مهره ها */
-.ra-ludo{background:linear-gradient(160deg,#3A2F78,#231C4D)}
+.ra-ludo{background:radial-gradient(120% 90% at 50% 40%,#1F4A37,var(--game-bg) 62%,#0B1714)}
 .ra-ludo .bd{position:absolute;left:50%;top:10px;width:92px;margin-left:-46px;transform:perspective(420px) rotateX(28deg) rotateZ(-8deg);filter:drop-shadow(0 10px 10px rgba(0,0,0,.45))}
 .ra-ludo .bd svg{display:block;width:100%;border-radius:10px}
 .ra-ludo .pw{position:absolute;z-index:2;width:26px;filter:drop-shadow(0 4px 4px rgba(0,0,0,.4))}
@@ -227,6 +208,7 @@ a.gt:active{transform:scale(.98)}
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
 <script src="static/cards.js"></script>
+<script src="static/preview.js"></script>
 <script>
 (() => {
   const { fa, FD, toast, face, amount, icon, errText, store, sheet, sheetHead, GAME_ART } = GC;
@@ -243,25 +225,15 @@ a.gt:active{transform:scale(.98)}
   let me = null, style = { table: 'a', cards: 'a' }, notify = [], tables = [];
 
   /* ---------- اجزای واقعی هر بازی (برای کاشی ها و کارت بالا) ---------- */
-  let uid = 0;
-  const STAR = 'M16 7.5l2.5 5.2 5.7.8-4.1 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4.1-4 5.7-.8z';
-  const EMBLEM = {
-    eagles: () => { const id = 'he' + (++uid); return `<svg viewBox="0 0 32 32"><defs><pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="4" height="8" fill="#1E5BD8"/><rect x="4" width="4" height="8" fill="#5AA2FF"/></pattern></defs><circle cx="16" cy="16" r="16" fill="url(#${id})"/><path d="${STAR}" fill="#fff"/></svg>`; },
-    lions: () => '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#D7263D"/><rect x="0" y="12" width="32" height="8" fill="#F5C451"/><path d="M9 20l7-6 7 6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  };
-  const BALL = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9.3" fill="#fff" stroke="#1c1f2a" stroke-width=".8"/><path d="M10 6.2l3.6 2.6-1.4 4.2H7.8L6.4 8.8z" fill="#1c1f2a"/><path d="M10 .9v2.6M18.6 7.6l-2.5.8M15.4 18l-1.5-2.1M4.6 18l1.5-2.1M1.4 7.6l2.5.8" stroke="#1c1f2a" stroke-width="1.6"/></svg>';
-  const disc = (team, d, x, y) => `<span class="fd" style="--d:${d}px;width:${d}px;height:${d}px;left:${x}px;top:${y}px"><span class="in">${EMBLEM[team]()}</span></span>`;
   const REAL = {
     // ماهوت و طرح ورقی که خود بازیکن انتخاب کرده؛ آس پیک، شاه دل و بی بی خشت در دست
     hokm: (k = 1) => `<div class="ra ra-hokm felt tbl-${style.table} cards-${style.cards}" aria-hidden="true">${
       C.face(10 + 13 * 2, '', `left:calc(50% - ${46 * k}px);top:${16 * k}px;transform:rotate(-16deg);font-size:${34 * k}px`)}${
       C.face(11 + 13, '', `left:calc(50% - ${17 * k}px);top:${8 * k}px;transform:rotate(-2deg);font-size:${34 * k}px`)}${
       C.face(12, '', `left:calc(50% + ${12 * k}px);top:${14 * k}px;transform:rotate(14deg);font-size:${34 * k}px`)}</div>`,
-    football: () => `<div class="ra ra-fb" aria-hidden="true">${disc('eagles', 40, 26, 48)}${disc('lions', 40, 104, 14)}<span class="ball" style="left:72px;top:42px;width:20px">${BALL}</span></div>`,
-    billiard: () => `<div class="ra ra-bl" aria-hidden="true"><span class="pk" style="left:6px;top:6px"></span><span class="pk" style="right:6px;top:6px"></span>
-      <span class="pb so" style="--c:#F2B90C;left:calc(50% - 30px);top:20px"></span><span class="pb st" style="--c:#1F45B5;left:calc(50% - 8px);top:14px"></span>
-      <span class="pb so" style="--c:#121212;left:calc(50% + 14px);top:22px"></span><span class="pb" style="--c:#F4F1E8;left:calc(50% - 12px);top:58px"></span>
-      <span class="cue" style="left:calc(50% - 4px);top:80px;transform:rotate(58deg)"></span></div>`,
+    // فوتبال و بیلیارد: همان پیش نمایش زندهٔ لابی، از تصویرهای واقعی خود بازی (static/previews)
+    football: () => `<div class="ra">${GCPreview.html('football')}</div>`,
+    billiard: () => `<div class="ra">${GCPreview.html('billiard')}</div>`,
     ludo: () => `<div class="ra ra-ludo" aria-hidden="true"><span class="bd">${GC.boardArt()}</span><span class="pw" style="left:22px;top:46px">${GC.pawn('red')}</span><span class="pw" style="right:24px;top:38px">${GC.pawn('blue')}</span></div>`,
     esm: () => '<div class="ra ra-esm" aria-hidden="true"><span style="background:#FFA552;color:#3A2000;transform:rotate(-8deg)">ب</span><span style="background:#FF7A85;color:#3A0A10;transform:rotate(6deg)">م</span><span style="background:#8E7CF8;color:#fff;transform:rotate(-3deg)">الف</span></div>',
   };
@@ -387,7 +359,7 @@ a.gt:active{transform:scale(.98)}
     const rest = tables.filter(t => t !== heroTable());
     $('tablesSec').hidden = !rest.length;
     $('tables').innerHTML = rest.map(tableHtml).join('');
-    renderGames(); renderBell(); GC.mount();
+    renderGames(); renderBell(); GC.mount(); GCPreview.watch($('games'));
   }
   let sig = '';
   function setTables(list) { const s = JSON.stringify(list); if (s === sig) return; sig = s; tables = list; renderAll(); }

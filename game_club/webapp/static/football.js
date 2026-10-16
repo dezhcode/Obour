@@ -216,7 +216,6 @@ function renderHead(g) {
     <div class="fb-pl me" data-seat="${me}">${face(pm, 'var(--me)', turn && g.turn === me ? 'timer' : '')}<span class="nm"><b>${pm.name || 'تو'}</b><span>${tm ? tm.fa : WATCH ? '' : 'تیم تو'}</span></span></div>
     <div class="fb-sc"><b id="score">${FD(g.score[+me])} - ${FD(g.score[+opp()])}</b><span>تا ${FD(g.target)} گل</span></div>
     <div class="fb-pl op${po.out ? ' away' : ''}" data-seat="${opp()}">${face(po, '#FF7A85', turn && g.turn === opp() ? 'timer' : '')}<span class="dot"></span><span class="nm"><b>${po.name || 'حریف'}</b><span>${to ? to.fa : 'حریف'}</span></span></div>`;
-  for (const c of Object.keys(bubbles)) showBubble(c);
 }
 function renderStatus(g) {
   const st = $('status');
@@ -523,68 +522,16 @@ async function play(e) {
   if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}`); return; }
 }
 
-/* ---------- گفتگو ---------- */
+/* ---------- گفتگو: نوار پایین و پیام های شناور روی زمین مثل بیلیارد (tchat.js) ---------- */
 const QUICK = ['سلام!', 'خوش‌بازی!', 'چه شوتی!', 'شانس آوردی', 'زود باش', 'یک بازی دیگه؟'];
-const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-let chatId = 0, chatLog = [], unread = 0, chatSheet = null, sending = false;
-const bubbles = {};
-function showBubble(c) {
-  const b = bubbles[c], seat = document.querySelector(`.fb-pl[data-seat="${c}"]`);
-  if (!b || !seat) return;
-  if (Date.now() > b.until) { delete bubbles[c]; return; }
-  seat.querySelectorAll('.fb-bubble').forEach(x => x.remove());
-  const el = document.createElement('div'); el.className = 'fb-bubble'; el.textContent = b.text; el.setAttribute('aria-hidden', 'true');
-  seat.appendChild(el);
-}
-function bubble(m) {
-  bubbles[m.color] = { text: m.text, until: Date.now() + 4200 };
-  showBubble(m.color);
-  setTimeout(() => { if (bubbles[m.color] && Date.now() >= bubbles[m.color].until) { delete bubbles[m.color]; document.querySelectorAll(`.fb-pl[data-seat="${m.color}"] .fb-bubble`).forEach(x => x.remove()); } }, 4300);
-}
-function badge() { const b = $('chatBadge'); b.hidden = !unread; b.textContent = unread > 9 ? '+۹' : FD(unread); }
-function chatIn(list, quiet) {
-  if (!list || !list.length) return;
-  for (const m of list) {
-    if (m.id <= chatId) continue;
-    chatId = m.id; chatLog.push(m);
-    if (quiet) continue;
-    bubble(m);
-    if (!m.me && !(chatSheet && document.body.contains(chatSheet))) { unread++; sfx.tap(); }
-  }
-  chatLog = chatLog.slice(-60); badge();
-  if (chatSheet && document.body.contains(chatSheet)) renderChat();
-}
-function renderChat() {
-  const log = chatSheet.querySelector('#chatLog');
-  log.innerHTML = chatLog.length ? chatLog.map(m => `<div class="msg${m.me ? ' mine' : ''}">${m.me ? '' : face(m)}<div class="bub">${m.me ? '' : `<b>${esc(m.name)}</b>`}<span>${esc(m.text)}</span></div></div>`).join('')
-    : '<p class="hint">هنوز کسی چیزی نگفته. سلام کن!</p>';
-  log.scrollTop = log.scrollHeight;
-}
-async function send(text) {
-  text = String(text || '').trim();
-  if (!text || sending || !mid) return false;
-  sending = true;
-  try { await GC.football.chat(mid, text); chatIn((await GC.football.match(mid, since, chatId)).chat); return true; }
-  catch (e) { sfx.error(); toast(errText(e)); return false; }
-  finally { sending = false; }
-}
-function openChat() {
-  unread = 0; badge();
-  const sh = sheet(`${sheetHead('گفتگوی بازی')}<div class="chat-log" id="chatLog" aria-live="polite"></div>
-    <div class="quick">${QUICK.map(q => `<button class="chip sm" data-q>${q}</button>`).join('')}</div>
-    <form class="chat-form" id="chatForm"><button class="send" aria-label="فرستادن">${icon('up', 2.6)}</button><input id="chatTxt" maxlength="140" placeholder="یه چیزی بگو…" autocomplete="off" enterkeyhint="send" aria-label="پیام به حریف"></form>`,
-  { onClose: () => { chatSheet = null; } });
-  chatSheet = sh; renderChat();
-  sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => send(b.textContent); });
-  const input = sh.querySelector('#chatTxt');
-  sh.querySelector('#chatForm').onsubmit = async e => { e.preventDefault(); if (await send(input.value)) input.value = ''; input.focus(); };
-}
-$('chatBtn').onclick = openChat;
-$('emoBtn').onclick = () => {
-  const sh = sheet(`${sheetHead('پیام سریع')}<div class="quick" style="justify-content:center">${QUICK.map(q => `<button class="chip" data-q>${q}</button>`).join('')}</div>`);
-  sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => { GC.close(); send(b.textContent); }; });
-};
-function endChat() { chatLog = []; unread = 0; chatSheet = null; for (const c of Object.keys(bubbles)) delete bubbles[c]; document.querySelectorAll('.fb-bubble').forEach(x => x.remove()); }
+const chat = TChat.init({
+  bar: $('chatbar'), quick: QUICK, face: m => face(m, m.me ? 'var(--me)' : '#FF7A85'),
+  canSend: () => mid && !WATCH,
+  send: async text => { await GC.football.chat(mid, text); return (await GC.football.match(mid, since, chat.last())).chat; },
+  onNew: () => sfx.tap(), onError: e => { sfx.error(); toast(errText(e)); },
+});
+const chatIn = (list, quiet) => chat.add(list, quiet);
+const endChat = () => chat.end();
 
 /* ---------- همگام سازی با سرور ---------- */
 async function apply(next, anim = true) {
@@ -617,7 +564,7 @@ async function poll() {
   clearTimeout(pollT);
   if (document.hidden || overShown) { pollT = setTimeout(poll, pollMs()); return; }
   if (!busy && !acting) {
-    try { await apply(await GC.football.match(mid, since, chatId)); }
+    try { await apply(await GC.football.match(mid, since, chat.last())); }
     catch (e) { if (e.code === 'not_found') return noMatch(); }
   }
   pollT = setTimeout(poll, pollMs());
@@ -713,7 +660,8 @@ async function start() {
   if (first.status === 'lobby') { if (watchMid) return noMatch(); location.href = 'football-lobby.html'; return; }
   if (first.status === 'cancelled') return cancelled();
   mid = first.id; me = first.me;
-  if (WATCH) GC.watchPill(); else store.set('fmid', mid);
+  // تماشاگر چیزی نمی نویسد: جای نوار پیام، برچسب «در حال تماشا»
+  if (WATCH) { $('chatbar').innerHTML = '<button class="fb-say" id="chatBtn"></button>'; GC.watchPill(); } else store.set('fmid', mid);
   if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   const g = first.game;

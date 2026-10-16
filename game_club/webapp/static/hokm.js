@@ -190,7 +190,7 @@ function renderMe(g) {
   setDeadline(g.deadline_ms); turnMs = g.turn_ms || 20000;
 }
 function renderAll(g, anim = false) {
-  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); renderStacks(g.tricks); mount($('meBar')); tickTimer(); placeBubbles();
+  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); renderStacks(g.tricks); mount($('meBar')); tickTimer();
 }
 
 /* ---------- تایمر نوبت ---------- */
@@ -540,96 +540,17 @@ async function handResult(e) {
   GC.close();
 }
 
-/* ---------- گفتگوی سر میز ---------- */
+/* ---------- گفتگوی سر میز: نوار و پیام های شناور مثل بیلیارد (tchat.js) ---------- */
 const QUICK = ['سلام!', 'خوش‌بازی!', 'آفرین یار', 'حکم خوبی بود', 'زود باش', 'یک دست دیگه؟'];
-const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-let chatId = 0, chatLog = [], unread = 0, chatSheet = null, sending = false;
-// حباب گفتگو: لایه جدا روی میز (با رندر دوباره صندلی ها و نوار من پاک نمی شود)، با دم رو به
-// چهره گوینده؛ ماندنش به اندازه طول پیام است و هر حباب مستقل از بقیه می رود
-const bubbles = {};
-const bubbleMs = t => Math.min(9000, Math.max(4500, 3200 + String(t).length * 90));
-function bubbleLayer() {
-  let L = $('bubbles');
-  if (!L) { L = document.createElement('div'); L.id = 'bubbles'; L.className = 'hk-bubbles'; L.setAttribute('aria-hidden', 'true'); $('table').appendChild(L); }
-  return L;
-}
-function placeBubble(s) {
-  const b = bubbles[s]; if (!b || !b.el) return;
-  const av = seatEl(s), tb = $('table'); if (!av || !tb) return;
-  const a = av.getBoundingClientRect(), t = tb.getBoundingClientRect(), r = s === me ? 0 : rel(s), st = b.el.style;
-  st.left = st.right = st.top = st.bottom = ''; st.transform = '';
-  // من و حریف های کناری: بالای چهره؛ یار روبه رو: کنار چهره (اسم و برگ هایش پیدا بماند)
-  if (r === 2) { st.top = (a.top - t.top + 4) + 'px'; st.right = (t.right - a.left + 10) + 'px'; b.el.dataset.tail = 'r'; }
-  else if (r === 3) { st.bottom = (t.bottom - a.top + 8) + 'px'; st.left = Math.max(6, a.left - t.left) + 'px'; b.el.dataset.tail = 'bl'; }
-  else { st.bottom = (t.bottom - a.top + 8) + 'px'; st.right = Math.max(6, t.right - a.right) + 'px'; b.el.dataset.tail = 'br'; }
-}
-function placeBubbles() { for (const s of Object.keys(bubbles)) placeBubble(s); }
-function dropBubble(s) {
-  const b = bubbles[s]; if (!b) return;
-  delete bubbles[s]; clearTimeout(b.timer);
-  if (b.el) { b.el.classList.add('bye'); setTimeout(() => b.el.remove(), 260); }
-}
-function armBubble(s) {
-  const b = bubbles[s]; if (!b) return;
-  clearTimeout(b.timer); b.timer = setTimeout(() => dropBubble(s), Math.max(0, b.until - Date.now()));
-}
-function bubble(m) {
-  const s = m.color, old = bubbles[s];
-  if (old) { clearTimeout(old.timer); if (old.el) old.el.remove(); }
-  const el = document.createElement('div'); el.className = 'hk-bub' + (s === me ? ' me' : '');
-  el.innerHTML = `${s === me && !WATCH ? '' : `<b>${esc(nameOf(s))}</b>`}<span>${esc(m.text)}</span>`;
-  bubbleLayer().appendChild(el);
-  bubbles[s] = { el, until: Date.now() + bubbleMs(m.text) };
-  placeBubble(s); armBubble(s);
-}
-addEventListener('resize', placeBubbles);
-function badge() {
-  const b = $('chatBadge'); b.hidden = !unread; b.textContent = unread > 9 ? '+۹' : FD(unread);
-  $('chatBtn').setAttribute('aria-label', unread ? `گفتگوی میز، ${FD(unread)} پیام تازه` : 'گفتگوی میز');
-}
-function chatIn(list, quiet) {
-  if (!list || !list.length) return;
-  for (const m of list) {
-    if (m.id <= chatId) continue;
-    chatId = m.id; chatLog.push(m);
-    if (quiet) continue;
-    bubble(m);
-    if (!m.me && !(chatSheet && document.body.contains(chatSheet))) { unread++; sfx.tap(); }
-  }
-  chatLog = chatLog.slice(-60); badge();
-  if (chatSheet && document.body.contains(chatSheet)) renderChat();
-}
-function renderChat() {
-  const log = chatSheet.querySelector('#chatLog');
-  log.innerHTML = chatLog.length ? chatLog.map(m => `<div class="msg${m.me ? ' mine' : ''}">${m.me ? '' : face(m)}<div class="bub">${m.me ? '' : `<b>${esc(m.name)}</b>`}<span>${esc(m.text)}</span></div></div>`).join('')
-    : '<p class="hint">هنوز کسی چیزی نگفته. سلام کن!</p>';
-  log.scrollTop = log.scrollHeight;
-}
-async function send(text) {
-  text = String(text || '').trim();
-  if (!text || sending || !mid) return false;
-  sending = true;
-  try { await GC.hokm.chat(mid, text); chatIn((await GC.hokm.match(mid, since, chatId)).chat); return true; }
-  catch (e) { sfx.error(); toast(errText(e)); return false; }
-  finally { sending = false; }
-}
-function openChat() {
-  unread = 0; badge();
-  const sh = sheet(`${sheetHead('گفتگوی میز')}<div class="chat-log" id="chatLog" aria-live="polite"></div>
-    <div class="quick">${QUICK.map(q => `<button class="chip sm" data-q>${q}</button>`).join('')}</div>
-    <form class="chat-form" id="chatForm"><button class="send" aria-label="فرستادن">${icon('up', 2.6)}</button><input id="chatTxt" maxlength="140" placeholder="یه چیزی بگو…" autocomplete="off" enterkeyhint="send" aria-label="پیام به میز"></form>`,
-  { onClose: () => { chatSheet = null; for (const k of Object.keys(bubbles)) { bubbles[k].until = Math.max(bubbles[k].until, Date.now() + 3500); armBubble(k); } } });
-  chatSheet = sh; renderChat();
-  sh.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => send(b.textContent); });
-  const input = sh.querySelector('#chatTxt');
-  sh.querySelector('#chatForm').onsubmit = async e => { e.preventDefault(); if (await send(input.value)) input.value = ''; input.focus(); };
-}
-$('chatBtn').onclick = openChat;
-function endChat() {
-  chatLog = []; unread = 0; chatSheet = null;
-  for (const s of Object.keys(bubbles)) dropBubble(s);
-  $('chatBtn').hidden = true;
-}
+const chat = TChat.init({
+  btn: $('chatBtn'), badge: $('chatBadge'), quick: QUICK, face: m => face(m, '#FFFFFF'),
+  rest: () => { const r = $('meBar').getBoundingClientRect(); return r.height ? innerHeight - r.top + 8 : 140; },
+  canSend: () => !!mid,
+  send: async text => { await GC.hokm.chat(mid, text); return (await GC.hokm.match(mid, since, chat.last())).chat; },
+  onNew: () => sfx.tap(), onError: e => { sfx.error(); toast(errText(e)); },
+});
+const chatIn = (list, quiet) => chat.add(list, quiet);
+function endChat() { chat.end(); $('chatBtn').hidden = true; }
 
 /* ---------- همگام سازی با سرور ---------- */
 async function apply(next, anim = true) {
@@ -653,7 +574,7 @@ async function poll() {
   clearTimeout(pollT);
   if (document.hidden || overShown) { pollT = setTimeout(poll, POLL_MS); return; }
   if (!busy && !acting) {
-    try { await apply(await GC.hokm.match(mid, since, chatId)); }
+    try { await apply(await GC.hokm.match(mid, since, chat.last())); }
     catch (e) { if (e.code === 'not_found') return noMatch(); }
   }
   pollT = setTimeout(poll, POLL_MS);

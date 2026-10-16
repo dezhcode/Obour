@@ -1,17 +1,10 @@
-/* پیش نمایش زندهٔ هر بازی با همان اجزای خود بازی (ورق و ماهوت حکم، صفحه و مهرهٔ منچ، زمین و مهرهٔ فلزی
-   فوتبال) و یک حرکت کوتاه تکراری تا کاربر ببیند قرار است چه بازی کند.
+/* پیش نمایش زندهٔ هر بازی با همان اجزای خود بازی (ورق و ماهوت حکم، صفحه و مهرهٔ منچ؛ زمین، مهره و توپ
+   فوتبال و میز و توپ و چوب بیلیارد عیناً از رندر خود بازی در static/previews) و یک حرکت کوتاه تکراری.
    فقط transform و opacity جابه جا می شوند؛ حرکت فقط وقتی پیش نمایش روی صفحه دیده می شود اجرا می شود
    (IntersectionObserver) و با «کاهش حرکت» گوشی اصلا اجرا نمی شود (preview.css). */
 (function () {
 const C = () => window.GCCards;
 let uid = 0;
-const STAR = 'M16 7.5l2.5 5.2 5.7.8-4.1 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4.1-4 5.7-.8z';
-const EMBLEM = {
-  eagles: () => { const id = 'pve' + (++uid); return `<svg viewBox="0 0 32 32" aria-hidden="true"><defs><pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="4" height="8" fill="#1E5BD8"/><rect x="4" width="4" height="8" fill="#5AA2FF"/></pattern></defs><circle cx="16" cy="16" r="16" fill="url(#${id})"/><path d="${STAR}" fill="#fff"/></svg>`; },
-  lions: () => '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#D7263D"/><rect x="0" y="12" width="32" height="8" fill="#F5C451"/><path d="M9 20l7-6 7 6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-};
-const BALL = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9.3" fill="#fff" stroke="#1c1f2a" stroke-width=".8"/><path d="M10 6.2l3.6 2.6-1.4 4.2H7.8L6.4 8.8z" fill="#1c1f2a"/><path d="M10 .9v2.6M18.6 7.6l-2.5.8M15.4 18l-1.5-2.1M4.6 18l1.5-2.1M1.4 7.6l2.5.8" stroke="#1c1f2a" stroke-width="1.6"/></svg>';
-const disc = (team, cls) => `<span class="pv-disc ${cls}"><span class="in">${EMBLEM[team]()}</span></span>`;
 // خانهٔ (x, y) صفحهٔ منچ به درصد (صفحه ۱۶ واحد است با نیم واحد حاشیه)
 const cell = (x, y) => `left:${((x + 1) / 16 * 100).toFixed(2)}%;top:${((y + 1) / 16 * 100).toFixed(2)}%`;
 
@@ -33,17 +26,22 @@ const ART = {
       <span class="pv-layer pv-hop"><span class="pv-pawn" style="${cell(...hop[0])}">${P('blue')}</span></span></div>
       <span class="pv-dice"><span class="f f2"><i></i><i></i></span><span class="f f4"><i></i><i></i><i></i><i></i></span></span></div>`;
   },
-  // مهرهٔ تو به توپ می خورد و توپ به دروازه می رود
+  // زمین، مهره ها و توپ واقعی خود بازی (static/previews از make_previews.js): مهرهٔ تو به توپ می زند و توپ به دروازه می رود
   football() {
-    return `<div class="pv pv-fb" aria-hidden="true"><span class="pv-goal"></span><span class="pv-line"></span><span class="pv-circle"></span>
-      ${disc('lions', 'pv-d2')}<span class="pv-layer pv-kick">${disc('eagles', 'pv-d1')}</span><span class="pv-layer pv-shot"><span class="pv-ball">${BALL}</span></span></div>`;
+    const im = (n, cls, st) => `<img class="${cls}" src="static/previews/${n}.webp" alt="" draggable="false" style="${st}">`;
+    return `<div class="pv pv-fb" aria-hidden="true"><div class="pv-fb-in">
+      ${im('fb-disc-lions', 'pv-fd', 'left:63%;top:5.6%')}
+      <span class="pv-layer pv-kick">${im('fb-disc-eagles', 'pv-fd', 'left:38%;top:14.6%')}</span>
+      <span class="pv-layer pv-shot">${im('fb-ball', 'pv-fbb', 'left:49%;top:10.6%')}</span></div></div>`;
   },
-  // توپ سفید به توپ زرد می خورد و زرد به سمت جیب می رود
+  // میز، توپ ها و چوب واقعی بیلیارد (پلاتو): چوب به توپ سفید می زند، سفید به یک می خورد و یک به جیب وسط می رود
   billiard() {
-    const b = (c, cls, st, stripe) => `<span class="pv-pb${stripe ? ' st' : ''} ${cls}" style="--c:${c};${st}"></span>`;
-    return `<div class="pv pv-bl" aria-hidden="true"><span class="pv-pk" style="left:3%;top:6%"></span><span class="pv-pk" style="right:3%;top:6%"></span>
-      ${b('#1F45B5', '', 'left:56%;top:30%', true)}${b('#121212', '', 'left:64%;top:46%')}${b('#D9262C', '', 'left:30%;top:52%', true)}
-      <span class="pv-layer pv-bl-pot">${b('#F2B90C', '', 'left:44%;top:36%')}</span><span class="pv-layer pv-bl-cue">${b('#F4F1E8', '', 'left:40%;top:72%')}</span></div>`;
+    const ball = (k, x, y) => `<img class="pv-bb" src="static/previews/bl-ball-${k}.webp" alt="" draggable="false" style="left:${x}%;top:${y}%">`;
+    return `<div class="pv pv-bl" aria-hidden="true"><div class="pv-bl-in">
+      ${ball(8, 37, 21)}${ball(10, 63, 27)}${ball(3, 41, 35)}${ball(13, 61, 11)}${ball(9, 29, 9)}
+      <span class="pv-layer pv-bl-pot">${ball(1, 50, 16.5)}</span>
+      <span class="pv-layer pv-bl-cb">${ball(0, 50, 33)}</span>
+      <span class="pv-layer pv-bl-stick"><img class="pv-cue" src="static/previews/bl-cue.webp" alt="" draggable="false"></span></div></div>`;
   },
   esm() {
     return '<div class="pv pv-esm" aria-hidden="true"><span style="--d:0s;--r:-8deg">الف</span><span style="--d:.25s;--r:5deg">ب</span><span style="--d:.5s;--r:-3deg">م</span></div>';

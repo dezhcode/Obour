@@ -371,11 +371,6 @@ body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-f
 .chat-btn svg{width:24px;height:24px}
 .chat-btn .badge{position:absolute;top:-2px;inset-inline-end:-2px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--danger);color:var(--on-fill);font-size:11px;font-weight:900;line-height:20px;text-align:center;box-shadow:0 0 0 2px var(--game-bg)}
 .seat{position:relative}
-.bubble{direction:rtl;text-align:right;position:absolute;inset-inline-start:24px;z-index:6;max-width:220px;background:var(--surface);color:var(--ink);font-size:13px;line-height:20px;font-weight:700;border-radius:16px;padding:6px 12px;animation:bubble-in .18s ease-out;overflow-wrap:anywhere}
-.seat.right .bubble{inset-inline-start:auto;inset-inline-end:24px}
-#seatsTop .bubble{top:calc(100% + 6px);border-top-right-radius:4px}
-#seatsBot .bubble{bottom:calc(100% + 6px);border-bottom-right-radius:4px}
-@keyframes bubble-in{from{opacity:0;transform:scale(.85)}}
 .chat-log{display:grid;gap:var(--space-2);max-height:42vh;overflow-y:auto;padding:var(--space-1) 0;align-content:start}
 .msg{display:flex;flex-direction:row-reverse;align-items:flex-end;gap:var(--space-2);max-width:88%;justify-self:end}
 .msg .avatar{--size:34px;padding:2px}
@@ -391,6 +386,37 @@ body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-f
 .chat-form input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px}
 .chat-form .send{width:42px;height:42px;flex:none;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center}
 .chat-form .send svg{width:22px;height:22px}
+
+/* گفتگوی میز مثل پلاتو (tchat.js): نوار پایین + پیام های شناور روی بازی */
+.tc-bar{direction:ltr;display:flex;align-items:center;gap:14px;background:#141414;color:#eee;z-index:37}
+.tc-bar.tc-float{position:fixed;left:0;right:0;bottom:0;height:60px;padding:0 14px 0 18px;padding-bottom:var(--sa-b,0px);box-sizing:content-box;
+  transform:translateY(110%);transition:transform .18s ease-out;box-shadow:0 -6px 18px rgba(0,0,0,.35)}
+.tc-bar.tc-float.on{transform:none}
+.tc-bar button{background:none;border:0;padding:0;display:flex;flex:none;position:relative;cursor:pointer}
+.tc-bar svg{width:28px;height:28px}
+.tc-bar .badge{position:absolute;top:-6px;right:-8px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--danger);color:#fff;font-size:10.5px;font-weight:900;line-height:18px;text-align:center}
+.tc-in{flex:1 1 auto;min-width:0;background:transparent;border:0;outline:0;color:#eee;font:inherit;font-size:17px;caret-color:#2E8BFF}
+.tc-in::placeholder{color:#8b8b8b}
+.tc-bar .tc-send{display:none}
+.tc-bar.typing .tc-send{display:flex}
+.tc-bar.typing .tc-ic{display:none}
+.tc-feed{direction:ltr;position:fixed;left:10px;right:10px;bottom:120px;z-index:36;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.tc-m{display:flex;align-items:flex-end;gap:8px;max-width:78%;align-self:flex-start;animation:tc-in .22s ease-out both}
+.tc-m.me{flex-direction:row-reverse;align-self:flex-end}
+.tc-m.out{animation:tc-out .25s ease-in forwards}
+.tc-m .avatar{--size:34px;padding:0;flex:none;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.tc-c{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.tc-m.me .tc-c{align-items:flex-end}
+.tc-n{font-size:12.5px;font-weight:900;line-height:16px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 4px}
+.tc-ok{font-style:normal;color:#3D9BFF;margin-inline-start:4px}
+.tc-b{background:rgba(58,58,62,.94);color:#fff;font-size:16px;font-weight:600;line-height:22px;padding:8px 14px;border-radius:16px;overflow-wrap:anywhere;box-shadow:0 3px 10px rgba(0,0,0,.3);text-align:start}
+.tc-m.me .tc-b{background:#1F8BFF}
+@keyframes tc-in{from{opacity:0;transform:translateY(10px) scale(.96)}}
+@keyframes tc-out{to{opacity:0;transform:translateY(-6px)}}
+.tc-quick{direction:rtl;position:fixed;left:10px;right:10px;z-index:38;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:10px;border-radius:18px;background:rgba(20,20,20,.94);box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.tc-quick[hidden]{display:none}
+.tc-quick button{border:0;border-radius:999px;background:#2b2b2f;color:#fff;font:inherit;font-size:14px;font-weight:700;padding:8px 14px;cursor:pointer}
+.tc-quick button:active{background:#1F8BFF}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
