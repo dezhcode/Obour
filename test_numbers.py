@@ -298,6 +298,106 @@ async def run(db: Database) -> None:
 
     await handler_flow(db, srv)
     await webapp_flow(db, srv)
+    await admin_and_menus(db, srv)
+
+
+async def admin_and_menus(db: Database, srv: FakeServer) -> None:
+    """پنل ادمین شماره مجازی و ورودی های منو (فروشگاه و «سرویس های من»)."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from app import keyboards
+    from app.handlers import admin as adm
+    from app.handlers import buy, services
+    from app.handlers import numbers as h
+
+    h.ensure_watcher = lambda *a, **k: None      # type: ignore[assignment]
+    srv.mode, srv.sms, srv.status = "ok", None, "active"
+    state = AsyncMock()
+    adm_user = await new_user(db, 950, 0)
+
+    c = FakeCall("adm:num")
+    await adm.cb_num_home(c, db, state)
+    assert "seed" in c.page and "SMSBurner" in c.page and "10 دلار" in c.page, c.page      # موجودی 10 دلار
+    assert "adm:num:key" in c.buttons and "adm:num:raw" in c.buttons and "adm:num:unknown" in c.buttons
+
+    # seed نامعتبر رد، معتبر ذخیره و پیام حاوی آن پاک می شود
+    state.get_data = AsyncMock(return_value={"ai_field": "num_seed"})
+    msg = MagicMock()
+    msg.text = "not-a-seed"
+    msg.delete, msg.answer = AsyncMock(), AsyncMock()
+    msg.edit_text = AsyncMock(return_value=msg)
+    await adm.msg_ai_field(msg, db, state)
+    msg.delete.assert_awaited()
+    assert "درست نیست" in msg.answer.await_args.args[0]
+    msg.text = "Zz9Y-yXx8-wVv7-uTt6"
+    msg.answer.reset_mock()
+    await adm.msg_ai_field(msg, db, state)
+    assert (await db.get_setting(ns.KEY_SETTING)) == "Zz9Y-yXx8-wVv7-uTt6", "valid seed saved"
+    await db.set_setting(ns.KEY_SETTING, "AbC3-dEf4-gHj5-kLm6")
+    state.get_data = AsyncMock(return_value={"ai_field": "num_profit_percent"})
+    msg.text = "55"
+    await adm.msg_ai_field(msg, db, state)
+    assert (await ns.load_cfg(db))["num_profit_percent"] == 55
+    await db.set_setting("num_profit_percent", "40")
+    state.get_data = AsyncMock(return_value={"ai_field": "num_profit_percent"})
+    msg.text = "abc"
+    msg.answer.reset_mock()
+    await adm.msg_ai_field(msg, db, state)
+    assert (await ns.load_cfg(db))["num_profit_percent"] == 40          # ورودی بد ذخیره نشد
+
+    c = FakeCall("adm:num:preview")
+    await adm.cb_num_preview(c, db)
+    shown = c.message.answer.await_args.args[0]
+    assert "Telegram" in shown and "49,000" in shown and "تومان" in shown, shown
+
+    c = FakeCall("adm:num:balance")
+    await adm.cb_num_balance(c, db)
+    assert "10" in c.answer.await_args.args[0]
+
+    c = FakeCall("adm:num:raw")
+    await adm.cb_num_raw(c, db)
+    doc = c.message.answer_document.await_args
+    body = doc.args[0].data.decode()
+    assert "AbC3-dEf4-gHj5-kLm6" not in body and '"/account"' in body, "seed must never be in the file"
+
+    # خرید مبهم ← فهرست ادمین ← تایید ← برگشت پول
+    srv.mode = "timeout"
+    ub = await new_user(db, 951, 100_000)
+    r = await ns.buy(db, None, ub, "2", "us")
+    assert r["status"] == ns.UNKNOWN
+    c = FakeCall("adm:num:unknown")
+    await adm.cb_num_unknown(c, db)
+    assert r["order"]["code"] in c.page and f"adm:num:rf:{r['order']['id']}" in c.buttons, c.buttons
+    c = FakeCall(f"adm:num:rf:{r['order']['id']}")
+    await adm.cb_num_settle_ask(c, db)
+    assert f"adm:num:rfy:{r['order']['id']}" in c.buttons
+    c = FakeCall(f"adm:num:rfy:{r['order']['id']}")
+    c.bot = AsyncMock()
+    await adm.cb_num_settle(c, db)
+    assert await bal(db, ub) == 100_000
+    c.bot.send_message.assert_awaited()                                 # به کاربر خبر داده شد
+    srv.mode = "ok"
+
+    # منوها: فروشگاه و «سرویس های من»
+    u = await new_user(db, 952, 10_000)
+    c = FakeCall("buy")
+    await buy.cb_shop_hub(c, db, state, u)
+    assert "num" in c.buttons, c.buttons
+    c = FakeCall("svc")
+    await services.cb_services(c, db, u)
+    assert "num" in c.buttons or "num:mine" in c.buttons, c.buttons
+    assert "شماره مجازی" in c.page and "به زودی" not in c.page.split("ویزا")[0].split("شماره مجازی")[1][:15]
+    kb = keyboards.my_services_kb([], 0, False, True, 2)
+    assert "num:mine" in [b.callback_data for row in kb.inline_keyboard for b in row]
+    # بخش خاموش: دکمه فروشگاه پنهان می شود
+    from app import features
+
+    await features.set_on(db, "shop_numbers", False)
+    c = FakeCall("buy")
+    await buy.cb_shop_hub(c, db, state, u)
+    assert "num" not in c.buttons, c.buttons
+    await features.set_on(db, "shop_numbers", True)
+    print("OK admin panel & menus (seed, settings, preview, raw w/o seed, unknown settle, shop hub, my services)")
 
 
 async def webapp_flow(db: Database, srv: FakeServer) -> None:
@@ -414,6 +514,7 @@ class FakeCall:
         self.message.chat.id, self.message.message_id = 777, 5
         self.message.edit_text = AsyncMock(return_value=self.message)
         self.message.answer = AsyncMock(return_value=self.message)
+        self.message.answer_document = AsyncMock()
         self.answer = AsyncMock()
         self.bot = AsyncMock()
 
