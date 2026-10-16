@@ -20,6 +20,7 @@ log = logging.getLogger("obour.features")
 FEATURES: dict[str, tuple[str, str, bool]] = {
     "shop_vpn": ("🌐 فروش کانفیگ", "پلن های اینترنت آزاد", True),
     "shop_ai": ("🤖 خدمات هوش مصنوعی", "اشتراک جمنای و مانند آن", False),
+    "shop_numbers": ("📱 شماره مجازی", "کد تایید تلگرام، واتساپ و بقیه (SMSBurner)", True),
     "shop_custom": ("🎛 ساخت سرویس دلخواه", "انتخاب حجم و مدت توسط کاربر", True),
     "shop_locations": ("🌍 سرورها و لوکیشن ها", "صفحه معرفی لوکیشن ها", True),
     "shop_trial": ("🎁 تست رایگان", "سرویس آزمایشی برای کاربر تازه", True),

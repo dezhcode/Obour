@@ -56,7 +56,7 @@ def info(t: dict) -> dict:
             details.append(["تعداد ستاره", f"{int(t['st_stars']):,} ⭐"])
         else:
             method = "card"
-    elif typ in ("purchase", "ai_purchase"):
+    elif typ in ("purchase", "ai_purchase", "number_purchase"):
         method = "wallet"
         if t.get("ai_title"):
             details.append(["محصول", str(t["ai_title"])])

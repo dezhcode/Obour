@@ -104,6 +104,7 @@ def build() -> tuple[Dispatcher, Bot, Database, Panel | None]:
     from .handlers import (
         admin,
         ai,
+        numbers,
         buy,
         commands,
         extras,
@@ -122,6 +123,7 @@ def build() -> tuple[Dispatcher, Bot, Database, Panel | None]:
         admin.router,
         assist.router,
         ai.router,
+        numbers.router,
         buy.router,
         extras.router,
         wallet.router,
