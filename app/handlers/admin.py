@@ -1539,14 +1539,15 @@ async def _num_home(message: Message, db: Database) -> None:
         prices += " (در حال به روزرسانی…)"
 
     # موجودی نزد سرویس دهنده همین جا دیده می شود: صفر یعنی هیچ خریدی موفق نمی شود
-    wallet = "—"
+    wallet, mode = "—", ""
     if sd:
         sb = await ns.client(db)
         try:
             bal = await sb.balance()
             wallet = (f"{bal['balance']:g} دلار" + (" ⚠️ خالی" if bal["balance"] <= 0 else "")) if bal else "خوانده نشد"
             if isinstance(sb.balance_error(), SmsBadSeed):
-                wallet = "❌ seed نامعتبر (Invalid Bearer seed)"
+                wallet = "❌ seed نامعتبر (نه Bearer و نه ورود نشست کوکی)"
+            mode = sb.mode_label()
         except Exception:  # noqa: BLE001
             wallet = "خوانده نشد"
         finally:
@@ -1559,7 +1560,8 @@ async def _num_home(message: Message, db: Database) -> None:
     await edit_or_send(
         message,
         texts.ADMIN_NUM.format(
-            seed=("از .env ✅" if config.smsburner_seed else "تنظیم شده ✅") if sd else "تنظیم نشده ❌",
+            seed=(("از .env ✅" if config.smsburner_seed else "تنظیم شده ✅") + (f" · {mode}" if mode else ""))
+            if sd else "تنظیم نشده ❌",
             wallet=wallet,
             rate=f"{int(rate):,}" if rate else "تنظیم نشده ❌",
             prices=prices,

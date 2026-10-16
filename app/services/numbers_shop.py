@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import math
 import time
@@ -32,11 +33,13 @@ from typing import TYPE_CHECKING
 from app import i18n, pricing
 from app.canboso import CanbosoError, CanbosoNoFunds, CanbosoUnknown
 from app.config import config
+from app import smsburner as sbmod
 from app.smsburner import (
     VALID_MINUTES,
     SmsAlreadyReceived,
     SmsBadSeed,
     SmsBurner,
+    SmsOrderNotFound,
     SmsOutOfStock,
 )
 from app.utils import esc, now, now_str
@@ -47,6 +50,7 @@ if TYPE_CHECKING:
 log = logging.getLogger("obour.numbers")
 
 KEY_SETTING = "smsburner_seed"
+STATE_SETTING = "smsburner_state"     # روش اتصال تشخیص داده شده و کوکی نشست (JSON)
 
 # وضعیت سفارش
 PENDING = "pending"
@@ -88,7 +92,22 @@ async def seed(db: "Database") -> str:
 
 
 async def client(db: "Database") -> SmsBurner:
-    return SmsBurner(await seed(db), config.smsburner_base_url or None, config.smsburner_proxy)
+    """کلاینت با روش اتصال و کوکی ذخیره شده (تا هر بار تشخیص و ورود تکرار نشود؛ ورود فقط ۵ بار در ۱۵ دقیقه)."""
+    sd = await seed(db)
+    tag = sbmod.seed_tag(sd)
+    if sd and tag not in sbmod._STATE:
+        try:
+            saved = json.loads(await db.get_setting(STATE_SETTING, "") or "{}")
+        except ValueError:
+            saved = {}
+        if saved.get("tag") == tag:
+            sbmod._STATE[tag] = {"mode": saved.get("mode") or "", "cookies": saved.get("cookies") or {}}
+
+    async def persist(state: dict) -> None:
+        await db.set_setting(STATE_SETTING, json.dumps(
+            {"tag": tag, "mode": state.get("mode") or "", "cookies": state.get("cookies") or {}}))
+
+    return SmsBurner(sd, config.smsburner_base_url or None, config.smsburner_proxy, persist=persist)
 
 
 async def load_cfg(db: "Database") -> dict[str, float]:
@@ -631,8 +650,9 @@ async def _refund(db: "Database", order: dict, status: str, reason: str) -> bool
 async def check(db: "Database", order: dict, sb: SmsBurner | None = None) -> dict:
     """یک بار از سرویس دهنده می پرسد.
 
-    {"status": وضعیت سفارش بعد از بررسی, "order": سفارش تازه, "event": None | "completed" | "refunded"}
-    event فقط وقتی پر است که همین فراخوانی تغییر را انجام داد (برای اطلاع به کاربر).
+    {"status": وضعیت سفارش بعد از بررسی, "order": سفارش تازه, "event": None | "completed" | "refunded" | "phone"}
+    event فقط وقتی پر است که همین فراخوانی تغییر را انجام داد (برای اطلاع به کاربر). "phone" یعنی
+    شماره ی تلفن (که در پاسخ خرید روش نشست نیست) تازه پیدا شد و فقط صفحه ی سفارش به روز می شود.
     """
     if order["status"] != ACTIVE or not order.get("provider_id"):
         return {"status": order["status"], "order": order, "event": None}
@@ -642,10 +662,19 @@ async def check(db: "Database", order: dict, sb: SmsBurner | None = None) -> dic
     try:
         try:
             info = await sb.poll(order["provider_id"])
+        except SmsOrderNotFound as exc:
+            # از ۵۰ سفارش اخیر حساب بیرون افتاد؛ بعد از مهلت، حدس نمی زنیم (شاید کد رسیده): دست ادمین
+            if is_expired(order, with_grace=True):
+                await db.update_number_order(order["id"], only_from=(ACTIVE,), status=UNKNOWN, error=str(exc)[:300])
+            return {"status": PROVIDER_ERROR, "order": await db.get_number_order(order["id"]), "event": None,
+                    "error": str(exc)}
         except CanbosoError as exc:
             log.info("پیگیری شماره %s نشد: %s", order["code"], exc)
             return {"status": PROVIDER_ERROR, "order": order, "event": None, "error": str(exc)}
         await db.update_number_order(order["id"], checked_at=now_str())
+        phone_new = bool(info.get("phone")) and info["phone"] != (order.get("phone") or "")
+        if phone_new:
+            await db.update_number_order(order["id"], phone=info["phone"])
         if info["status"] == "completed":
             if await _deliver(db, order, info):
                 event = "completed"
@@ -663,6 +692,8 @@ async def check(db: "Database", order: dict, sb: SmsBurner | None = None) -> dic
                 pass        # دور بعد کد را می گیریم
             except CanbosoError as exc:
                 log.info("لغو شماره منقضی %s نشد: %s", order["code"], exc)
+        if event is None and phone_new:
+            event = "phone"
     finally:
         if own:
             await sb.close()

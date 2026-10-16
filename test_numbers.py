@@ -119,16 +119,92 @@ class FakeServer:
         return httpx.Response(404, json={"ok": False, "error": "not_found"})
 
 
+ORIG_CLIENT = ns.client      # ساخت واقعی کلاینت (seed از دیتابیس، وضعیت اتصال و کوکی ذخیره شده)
+
+
+class FakeSession(FakeServer):
+    """مستند اصلی سایت: ورود با seed (کوکی) و api.php. Bearer در /api/v1 همیشه ۴۰۱ می دهد."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.valid_seed = "AbC3-dEf4-gHj5-kLm6"
+        self.logins = 0
+        self.cookie: str | None = None
+        self.orders: dict[int, dict] = {}
+        self.orders_calls = 0
+        self.phone_after = 0                 # بعد از چند بار خواندن «orders» شماره ی تلفن پیدا شود
+        self.cancel_calls = 0
+
+    def _authed(self, request: httpx.Request) -> bool:
+        return bool(self.cookie) and f"simsms_session={self.cookie}" in request.headers.get("cookie", "")
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        from urllib.parse import parse_qs
+
+        path = request.url.path.replace("/api/v1", "")
+        self.calls.append((request.method, path))
+        if path in ("/account", "/quote") or path.startswith("/numbers"):
+            return httpx.Response(401, json={"ok": False, "error": "unauthorized", "message": "Invalid Bearer seed."})
+        if path == "/auth-api.php":
+            form = parse_qs(request.content.decode())
+            self.logins += 1
+            if form.get("seed", [""])[0] != self.valid_seed:
+                return httpx.Response(200, json={"success": False, "error": "Invalid seed."})
+            self.cookie = f"tok{self.logins}"
+            return httpx.Response(200, json={"success": True, "user": {"id": 42, "prefix": "AbC3", "balance": "74.50"}},
+                                  headers={"set-cookie": f"simsms_session={self.cookie}; Path=/"})
+        action = request.url.params.get("action")
+        if path == "/api.php" and action not in ("countries", "services", "operators"):
+            if not self._authed(request):
+                return httpx.Response(200, json={"logged_in": False} if action == "user" else {"error": "Login required"})
+            if action == "user":
+                return httpx.Response(200, json={"logged_in": True, "id": 42, "prefix": "AbC3", "balance": "74.50"})
+            if action == "buy" and request.method == "POST":
+                body = json.loads(request.content)
+                if self.mode == "stock":
+                    return httpx.Response(200, json={"error": "Service not available for this country"})
+                if self.mode == "funds":
+                    return httpx.Response(200, json={"error": "Insufficient balance", "need": 0.5, "have": "0.10"})
+                if self.mode == "timeout":
+                    raise httpx.ReadTimeout("slow", request=request)
+                oid, self.next_id = self.next_id, self.next_id + 1
+                price = round(USD * self.MULT.get(str(body.get("operator_id") or ""), 1.0), 2)
+                self.buys.append(body)
+                self.orders[oid] = {"id": oid, "price": f"{price}", "status": "active", "phone_number": "",
+                                    "sms_code": None, "country_code": body.get("country"), "service_name": "Telegram"}
+                return httpx.Response(200, json={"success": True, "order_id": oid, "price": price, "balance": "73.97"})
+            if action == "orders":
+                self.orders_calls += 1
+                out = []
+                for o in sorted(self.orders.values(), key=lambda x: -x["id"]):
+                    row = dict(o)
+                    if self.orders_calls > self.phone_after:
+                        row["phone_number"] = "+15551234567"
+                    if row["status"] == "active":
+                        row["sms_code"] = self.sms
+                        row["status"] = self.status
+                    out.append(row)
+                return httpx.Response(200, json=out)
+            if action == "cancel" and request.method == "POST":
+                self.cancel_calls += 1
+                if self.sms:
+                    return httpx.Response(200, json={"error": "SMS already received"})
+                for o in self.orders.values():
+                    o["status"] = "cancelled"
+                return httpx.Response(200, json={"success": True, "balance": "74.50"})
+        return super().handler(request)
+
+
 def install(server: FakeServer) -> None:
-    def make(_db):  # noqa: ANN001
-        sb = smsburner.SmsBurner("AbC3-dEf4-gHj5-kLm6")
+    async def fake_client(db):  # noqa: ANN001
+        sb = await ORIG_CLIENT(db)
+        cookies = dict(sb._state.get("cookies") or {})
         sb._http = httpx.AsyncClient(
             base_url=smsburner.BASE_URL, transport=httpx.MockTransport(server.handler),
-            headers={"Authorization": "Bearer x"})
+            headers={"Authorization": f"Bearer {sb._seed}"})
+        for name, value in cookies.items():
+            sb._http.cookies.set(name, value, domain="smsburner.com")
         return sb
-
-    async def fake_client(db):  # noqa: ANN001
-        return make(db)
 
     ns.client = fake_client      # type: ignore[assignment]
     smsburner._cache.clear()
@@ -341,6 +417,150 @@ async def run(db: Database) -> None:
     await admin_and_menus(db, srv)
     await new_features(db, srv)
     await matrix_and_seed(db, srv)
+    await session_mode()
+
+
+async def session_mode() -> None:
+    """seed حساب ساخته شده از سایت: Bearer ۴۰۱ می دهد ولی ورود کوکی (مستند اصلی سایت) کار می کند."""
+    import time
+
+    ns.ensure_refresher = lambda db: None      # type: ignore[assignment]
+    tmp3 = tempfile.mkdtemp()
+    db3 = Database(os.path.join(tmp3, "s.db"))
+    await db3.connect()
+    try:
+        await db3.set_setting("ai_usdt_rate", str(RATE))
+        await db3.set_setting(ns.KEY_SETTING, "AbC3-dEf4-gHj5-kLm6")
+        srv = FakeSession()
+        srv.phone_after = 1
+        smsburner._STATE.clear()
+        smsburner._LOGINS.clear()
+        install(srv)
+        assert await ns.refresh_prices(db3, budget=30.0) == 3
+        u = await new_user(db3, 980, 400_000)
+
+        # ── اولین خرید: تشخیص خودکار (Bearer ۴۰۱ ← ورود کوکی)، فقط یک ورود
+        r = await ns.buy(db3, None, u, "2", "us")
+        assert r["status"] == ns.ACTIVE, r["status"]
+        assert srv.logins == 1 and srv.buys[-1] == {"country": "us", "service_id": 2}, (srv.logins, srv.buys)
+        assert await bal(db3, u) == 400_000 - 49_000
+        saved = json.loads(await db3.get_setting(ns.STATE_SETTING))
+        assert saved["mode"] == "session" and saved["cookies"].get("simsms_session") == "tok1", saved.get("mode")
+        o = r["order"]
+        assert o["provider_id"] == str(srv.next_id - 1) and not o["phone"]       # شماره هنوز در orders نیست
+
+        # ── شماره ی تلفن چند ثانیه بعد پیدا می شود (event فقط برای به روز کردن صفحه)
+        smsburner._cache.pop("orders", None)
+        c1 = await ns.check(db3, o)
+        assert c1["event"] == "phone" and c1["order"]["phone"] == "+15551234567" and c1["status"] == ns.ACTIVE, c1
+        c2 = await ns.check(db3, c1["order"])
+        assert c2["event"] is None and srv.logins == 1                              # کوکی دوباره استفاده شد
+        # چند سفارش منتظر کد یک درخواست orders را شریک می شوند (کش ۳ ثانیه)
+        n = srv.orders_calls
+        await ns.check(db3, c1["order"])
+        await ns.check(db3, c1["order"])
+        assert srv.orders_calls == n
+
+        # ── کد رسید
+        srv.sms = "246810"
+        smsburner._cache.pop("orders", None)
+        c3 = await ns.check(db3, c1["order"])
+        assert c3["event"] == "completed" and c3["order"]["sms_code"] == "246810", c3
+        srv.sms = None
+
+        # ── «ری استارت پروسه»: وضعیت از دیتابیس برمی گردد و دوباره وارد نمی شویم
+        smsburner._STATE.clear()
+        smsburner._cache.clear()
+        r2 = await ns.buy(db3, None, u, "2", "us")
+        assert r2["status"] == ns.ACTIVE and srv.logins == 1, srv.logins
+        assert smsburner._STATE[smsburner.seed_tag("AbC3-dEf4-gHj5-kLm6")]["mode"] == "session"
+
+        # ── نشست منقضی شد (سایت فراموش کرد): یک بار دوباره وارد می شود و ادامه می دهد
+        srv.cookie = None
+        smsburner._cache.pop("orders", None)
+        c4 = await ns.check(db3, r2["order"])
+        assert c4["status"] == ns.ACTIVE and srv.logins == 2, (c4["status"], srv.logins)
+
+        # ── لغو: پول برمی گردد؛ اگر کد رسیده باشد لغو نمی شود و کد تحویل می شود
+        before = await bal(db3, u)
+        cc1 = await ns.cancel(db3, c4["order"])
+        assert cc1["status"] == ns.REFUNDED and srv.cancel_calls == 1 and await bal(db3, u) == before + 49_000
+        r3 = await ns.buy(db3, None, u, "2", "us")
+        srv.sms = "13579"
+        smsburner._cache.pop("orders", None)
+        cc2 = await ns.cancel(db3, r3["order"])
+        assert cc2["status"] == ns.COMPLETED and cc2["order"]["sms_code"] == "13579", cc2["status"]
+        srv.sms = None
+
+        # ── نوع شماره در بدنه ی خرید؛ قیمت از ضریب اپراتور (quote در این روش نیست)
+        u2 = await new_user(db3, 981, 400_000)
+        r4 = await ns.buy(db3, None, u2, "2", "us", "3")
+        assert r4["status"] == ns.ACTIVE and srv.buys[-1].get("operator_id") == 3
+        assert await bal(db3, u2) == 400_000 - 89_000, await bal(db3, u2)
+
+        # ── خطاهای خرید مثل روش Bearer: موجود نیست / موجودی ما کم است ← پول برمی گردد؛ مبهم ← ادمین
+        for i, (mode, want) in enumerate((("stock", ns.UNAVAILABLE), ("funds", ns.NO_FUNDS), ("timeout", ns.UNKNOWN))):
+            srv.mode = mode
+            ux = await new_user(db3, 990 + i, 100_000)
+            rx = await ns.buy(db3, None, ux, "2", "us")
+            assert rx["status"] == want, (mode, rx["status"])
+            assert await bal(db3, ux) == (100_000 - 49_000 if mode == "timeout" else 100_000), mode
+        srv.mode = "ok"
+
+        # ── نشست منقضی و چند درخواست همزمان (هر کدام کلاینت خودش): فقط یک ورود، بقیه کوکی تازه را برمی دارند
+        srv.cookie = None
+        smsburner._cache.pop("orders", None)
+        n_logins = srv.logins
+        many = await asyncio.gather(*[ns.check(db3, r4["order"]) for _ in range(4)])
+        assert srv.logins == n_logins + 1 and all(x["status"] == ns.ACTIVE for x in many), srv.logins - n_logins
+
+        # ── سقف ورود ۵ بار در ۱۵ دقیقه: خودمان بیشتر از ۳ بار تلاش نمی کنیم؛ نه کرش، نه پول
+        smsburner._LOGINS[:] = [time.monotonic()] * 3
+        srv.cookie = None
+        smsburner._cache.pop("orders", None)
+        cx = await ns.check(db3, r4["order"])
+        assert cx["status"] == ns.PROVIDER_ERROR and srv.logins == n_logins + 1, (cx["status"], srv.logins)
+        smsburner._LOGINS.clear()
+
+        # ── سفارش از «۵۰ سفارش اخیر» بیرون افتاد: قبل از مهلت فقط خطا، بعد از مهلت دست ادمین (نه حدس و برگشت پول)
+        u3 = await new_user(db3, 983, 400_000)
+        r5 = await ns.buy(db3, None, u3, "2", "us")
+        srv.orders.pop(int(r5["order"]["provider_id"]))
+        smsburner._cache.pop("orders", None)
+        nf = await ns.check(db3, r5["order"])
+        assert nf["status"] == ns.PROVIDER_ERROR and nf["order"]["status"] == ns.ACTIVE
+        await db3.execute("UPDATE number_orders SET expires_at = '2020-01-01T00:00:00+03:30' WHERE id = ?",
+                          (r5["order"]["id"],))
+        smsburner._cache.pop("orders", None)
+        nf2 = await ns.check(db3, await db3.get_number_order(r5["order"]["id"]))
+        assert nf2["order"]["status"] == ns.UNKNOWN and await bal(db3, u3) == 400_000 - 49_000
+
+        # ── خروجی خام ادمین: روش و ورود را نشان می دهد، کوکی را هرگز
+        sb = await ns.client(db3)
+        raw = await sb.debug()
+        await sb.close()
+        assert raw["session"]["body"]["login"] == "ok" and raw["session"]["body"]["user"]["balance"] == "74.50"
+        assert "simsms_session" not in json.dumps(raw) and "tok" not in json.dumps(raw["session"])
+        assert (await ns.client(db3)).mode_label() == "نشست کوکی (api.php)"
+        print("OK cookie-session mode (autodetect, one login, persisted, relogin, phone later, cancel, errors, limit)")
+
+        # ── seed که نه Bearer می پذیرد نه ورود سایت: هیچ پولی کم نمی شود
+        await db3.set_setting(ns.KEY_SETTING, "Wr0n-gSee-dXXX-0000")
+        smsburner._STATE.clear()
+        smsburner._LOGINS.clear()                       # ۱۵ دقیقه گذشته فرض می شود (سقف ورود جداگانه تست شد)
+        ub = await new_user(db3, 982, 100_000)
+        rb = await ns.buy(db3, None, ub, "2", "us")
+        assert rb["status"] == ns.NOT_CONFIGURED and await bal(db3, ub) == 100_000, rb["status"]
+        sb = await ns.client(db3)
+        await sb.balance(force=True)
+        assert isinstance(sb.balance_error(), smsburner.SmsBadSeed), (repr(sb.balance_error()), len(smsburner._LOGINS))
+        await sb.close()
+        print("OK invalid seed in both modes → not configured, nobody charged")
+    finally:
+        await db3.close()
+        shutil.rmtree(tmp3, ignore_errors=True)
+        smsburner._STATE.clear()
+        smsburner._LOGINS.clear()
 
 
 def row_price(cat: dict, sid: str, cc: str) -> int:
