@@ -400,6 +400,8 @@ body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-f
 .tc-bar .tc-send{display:none}
 .tc-bar.typing .tc-send{display:flex}
 .tc-bar.typing .tc-ic{display:none}
+.tc-dim{position:fixed;inset:0;z-index:35;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s}
+.tc-dim.on{opacity:1;pointer-events:auto}
 .tc-feed{direction:ltr;position:fixed;left:10px;right:10px;bottom:120px;z-index:36;display:flex;flex-direction:column;gap:10px;pointer-events:none}
 .tc-m{display:flex;align-items:flex-end;gap:8px;max-width:78%;align-self:flex-start;animation:tc-in .22s ease-out both}
 .tc-m.me{flex-direction:row-reverse;align-self:flex-end}

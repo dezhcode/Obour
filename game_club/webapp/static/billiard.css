@@ -84,7 +84,8 @@ body.billiard .sheet{color:var(--ink)}
 #frame.wait #power,#frame.wait #english,#frame.wait .fine{opacity:.5}
 
 /* ---------- نوار پیام ---------- */
-#chatbar{left:0;right:0;bottom:0;height:calc(74 * var(--u));background:#141414;display:flex;align-items:center;gap:calc(14 * var(--u));
+#frame .tc-dim{position:absolute;z-index:31}
+#chatbar{z-index:32 !important;left:0;right:0;bottom:0;height:calc(74 * var(--u));background:#141414;display:flex;align-items:center;gap:calc(14 * var(--u));
   padding:0 calc(24 * var(--u)) 0 calc(28 * var(--u));z-index:6}
 #chatbar button{background:none;border:0;padding:0;display:flex;position:relative}
 #chatbar svg{width:calc(32 * var(--u));height:calc(32 * var(--u))}
