@@ -22,8 +22,10 @@
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import math
+import time
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -33,6 +35,7 @@ from app.config import config
 from app.smsburner import (
     VALID_MINUTES,
     SmsAlreadyReceived,
+    SmsBadSeed,
     SmsBurner,
     SmsOutOfStock,
 )
@@ -182,19 +185,134 @@ def cat_title(key: str) -> tuple[str, str]:
 # ═══════════════════ کاتالوگ با قیمت تومانی ═══════════════════
 
 
+# ═══════════════════ ماتریس قیمت (کشور × سرویس) ═══════════════════
+#
+# /api/v1/catalog فقط ۵۰۰ ردیف برتر را می دهد و فیلتر کشور یا سرویس را نمی پذیرد؛ پس برای هر سرویس
+# فقط چند کشور دیده می شد. فهرست کامل هر کشور در api.php?action=services&country=XX است. سایت بیشتر از
+# حدود یک درخواست در ثانیه را با ۴۲۹ رد می کند، پس ۱۱۶ کشور یک بار در چند دقیقه ی پس زمینه خوانده و در
+# دیتابیس نگه داشته می شود؛ هر کشور بعد از PRICE_FRESH_HOURS دوباره.
+
+PRICE_FRESH_HOURS = 0.5         # بعد از این، کشور دوباره خوانده می شود
+PRICE_MAX_AGE_HOURS = 12.0      # قدیمی تر از این دیگر نمایش داده نمی شود
+_PRICE_LOCK = "numprices"
+_refresher: asyncio.Task | None = None
+
+
+async def refresh_prices(db: "Database", budget: float = 15.0) -> int:
+    """کشورهای کهنه (اول کهنه ترین) را در حد budget ثانیه می خواند؛ تعداد کشورهای به روز شده."""
+    if not await db.acquire_lock(_PRICE_LOCK, ttl_seconds=int(budget) + 60):
+        return 0            # پروسه ی دیگری همین حالا این کار را می کند
+    started, done = time.monotonic(), 0
+    sb = await client(db)
+    try:
+        countries = await sb.countries()
+        ages = await db.number_price_ages()
+        cutoff = (now() - timedelta(hours=PRICE_FRESH_HOURS)).isoformat(timespec="seconds")
+        todo = sorted((c for c in countries if (ages.get(c["code"]) or "") < cutoff),
+                      key=lambda c: ages.get(c["code"]) or "")
+        for c in todo:
+            if time.monotonic() - started > budget:
+                break
+            try:
+                rows = await sb.country_services(c["code"])
+            except SmsBadSeed:
+                raise
+            except CanbosoError as exc:
+                log.info("قیمت های %s خوانده نشد: %s", c["code"], exc)
+                continue
+            if rows:
+                await db.save_number_prices(c["code"], c["name"], rows)
+                done += 1
+    except CanbosoError as exc:
+        log.info("به روزرسانی قیمت شماره ها ممکن نشد: %s", exc)
+    finally:
+        await sb.close()
+        await db.release_lock(_PRICE_LOCK)
+    return done
+
+
+async def _refresh_loop(db: "Database") -> None:
+    idle = 0
+    while idle < 2:
+        try:
+            n = await refresh_prices(db, budget=60.0)
+        except Exception:  # noqa: BLE001
+            log.warning("به روزرسانی پس زمینه ی قیمت شماره ها خطا داد", exc_info=True)
+            n = 0
+        idle = 0 if n else idle + 1
+        if not n:
+            await asyncio.sleep(5)
+
+
+def ensure_refresher(db: "Database") -> None:
+    """تا وقتی کشور کهنه ای هست، در پس زمینه قیمت ها را می خواند و بعد خودش تمام می شود."""
+    global _refresher
+    if _refresher is not None and not _refresher.done():
+        return
+    try:
+        _refresher = asyncio.get_running_loop().create_task(_refresh_loop(db))
+    except RuntimeError:
+        pass
+
+
+async def price_status(db: "Database") -> dict:
+    """برای پنل ادمین: چند کشور از چند کشور قیمت تازه دارند."""
+    sb = await client(db)
+    try:
+        total = len(await sb.countries())
+    except CanbosoError:
+        total = 0
+    finally:
+        await sb.close()
+    ages = await db.number_price_ages()
+    cutoff = (now() - timedelta(hours=PRICE_FRESH_HOURS)).isoformat(timespec="seconds")
+    return {"fresh": sum(1 for t in ages.values() if t >= cutoff), "known": len(ages), "total": total,
+            "newest": max(ages.values()) if ages else ""}
+
+
+async def _load_rows(db: "Database", sb: SmsBurner, force: bool = False) -> list[dict]:
+    """همه ی ردیف های (کشور × سرویس) به دلار، بدون فیلتر.
+
+    اول ماتریس کامل دیتابیس. کشوری که هنوز در آن نیست (شروع تازه، یا کهنه) از کاتالوگ ۵۰۰ ردیفی
+    v1 مکمل می شود، و پایش پس زمینه شروع می شود."""
+    stored = await db.number_price_rows(PRICE_MAX_AGE_HOURS)
+    ages = await db.number_price_ages()
+    cutoff = (now() - timedelta(hours=PRICE_FRESH_HOURS)).isoformat(timespec="seconds")
+    try:
+        countries = await sb.countries()
+    except CanbosoError:
+        countries = []
+    if any((ages.get(c["code"]) or "") < cutoff for c in countries) or not countries:
+        ensure_refresher(db)
+    rows: dict[tuple[str, str], dict] = {
+        (r["service_id"], r["cc"]): {
+            "service_id": r["service_id"], "service": r["service"] or r["service_id"], "slug": r["slug"] or "",
+            "category": r["category"] or "tech", "cc": r["cc"], "country": r["country"] or r["cc"].upper(),
+            "price": r["price"], "stock": r["stock"]} for r in stored}
+    if len(ages) < max(1, len(countries)):
+        try:
+            for r in await sb.catalog(force=force):
+                if r["cc"] not in ages:
+                    rows.setdefault((r["service_id"], r["cc"]), r)
+        except CanbosoError as exc:
+            if not rows:
+                raise
+            log.info("کاتالوگ مکمل خوانده نشد: %s", exc)
+    return list(rows.values())
+
+
 async def catalog(db: "Database", force: bool = False) -> dict:
     """ردیف های (سرویس × کشور) قابل فروش با قیمت تومانی.
 
     {"rate", "rows": [{service_id, service, slug, category, cc, country, usd, price, stock}]}
-    این فقط برای نمایش است؛ موقع خرید قیمت و موجودی دوباره و بدون کش خوانده
-    می شود. کشور بی نرخ، بی موجودی یا بیشتر از موجودی ما نزد سرویس دهنده
-    نمایش داده نمی شود.
+    این فقط برای نمایش است؛ موقع خرید قیمت را quote تازه تایید می کند. کشور بی نرخ، بی موجودی یا
+    بیشتر از موجودی ما نزد سرویس دهنده نمایش داده نمی شود.
     """
     rate = await usdt_rate(db)
     cfg = await load_cfg(db)
     sb = await client(db)
     try:
-        rows = await sb.catalog(force=force)
+        rows = await _load_rows(db, sb, force=force)
         bal = await sb.balance(force=force) if sb.configured else None
     finally:
         await sb.close()
@@ -374,9 +492,9 @@ async def buy(db: "Database", bot, user: dict, service_id: str, cc: str,  # noqa
             return {"status": NOT_CONFIGURED}
         cfg = await load_cfg(db)
 
-        # قیمت و موجودی تازه
+        # قیمت و موجودی (ماتریس دیتابیس، حداکثر چند دقیقه کهنه)؛ قیمت واقعی را quote تایید می کند
         try:
-            rows = await sb.catalog(force=True)
+            rows = await _load_rows(db, sb)
         except CanbosoError as exc:
             log.warning("کاتالوگ شماره مجازی خوانده نشد: %s", exc)
             return {"status": PROVIDER_ERROR, "error": str(exc)}
@@ -398,6 +516,9 @@ async def buy(db: "Database", bot, user: dict, service_id: str, cc: str,  # noqa
             quoted = await sb.quote(service_id, cc, operator_id)
         except SmsOutOfStock:
             return {"status": UNAVAILABLE}
+        except SmsBadSeed:
+            await _seed_alert(db, bot)
+            return {"status": NOT_CONFIGURED}
         except CanbosoError as exc:
             return {"status": PROVIDER_ERROR, "error": str(exc)}
         if quoted and quoted > 0:
@@ -409,7 +530,10 @@ async def buy(db: "Database", bot, user: dict, service_id: str, cc: str,  # noqa
         price = price_toman(usd, rate, cfg)
 
         # موجودی خودمان قبل از کسر پول کاربر
-        bal = await sb.balance()
+        bal = await sb.balance(force=False)
+        if isinstance(sb.balance_error(), SmsBadSeed):
+            await _seed_alert(db, bot)
+            return {"status": NOT_CONFIGURED}
         if bal is not None and bal.get("currency") in ("", "USDT") and bal["balance"] < usd:
             await alert_admins(bot, "🚨 <b>موجودی SMSBurner کافی نیست</b>\n\n"
                                     f"موجودی {bal['balance']:g} دلار است و یک شماره {usd:g} دلار لازم دارد. "
@@ -449,6 +573,10 @@ async def _send(db: "Database", bot, sb: SmsBurner, user: dict, order: dict) -> 
     except SmsOutOfStock:
         await _refund(db, order, FAILED, "شماره موجود نبود")
         return {"status": UNAVAILABLE, "order": await db.get_number_order(order["id"])}
+    except SmsBadSeed:
+        await _refund(db, order, FAILED, "seed نامعتبر است")
+        await _seed_alert(db, bot)
+        return {"status": NOT_CONFIGURED, "order": await db.get_number_order(order["id"])}
     except CanbosoError as exc:
         await _refund(db, order, FAILED, str(exc))
         log.warning("سفارش شماره %s انجام نشد: %s", order["code"], exc)
@@ -607,6 +735,14 @@ async def settle_manual(db: "Database", order: dict, refund: bool) -> dict:
 
 async def active_orders(db: "Database", limit: int = 50) -> list[dict]:
     return await db.number_orders_by_status((ACTIVE,), limit)
+
+
+async def _seed_alert(db: "Database", bot) -> None:  # noqa: ANN001
+    """seed نامعتبر: ساعتی یک بار به ادمین ها خبر می دهد (کاربر فقط «هنوز تنظیم نشده» می بیند)."""
+    if await db.acquire_lock("numseedalert", ttl_seconds=3600):
+        await alert_admins(bot, "🚨 <b>seed SMSBurner نامعتبر است</b>\n\nSMSBurner جواب «Invalid Bearer seed» داد، "
+                                "پس هیچ شماره ای فروخته نمی شود. seed را در .env (SMSBURNER_SEED) یا "
+                                "تنظیمات ← 📱 شماره مجازی ← 🔑 seed حساب درست کن.")
 
 
 async def alert_admins(bot, body: str) -> None:  # noqa: ANN001

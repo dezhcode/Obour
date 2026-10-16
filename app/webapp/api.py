@@ -970,7 +970,7 @@ async def _num_buy_result(db: "Database", user: dict, r: dict, bot) -> dict:  # 
 
             await send_order(bot, db, order)
         return {"ok": True, "status": status, "balance": balance, "order": _num_order_out(order)}
-    if order and status in (ns.NO_FUNDS, ns.PROVIDER_ERROR, ns.UNAVAILABLE):
+    if order and status in (ns.NO_FUNDS, ns.PROVIDER_ERROR, ns.UNAVAILABLE, ns.NOT_CONFIGURED):
         raise ApiError("شماره‌ای صادر نشد؛ پولت به کیف پول برگشت", 502, "refunded")
     code, msg = _NUM_ERRORS.get(status, (400, "خرید انجام نشد"))
     raise ApiError(msg, code, status)

@@ -40,7 +40,7 @@ BASE_URL = "https://smsburner.com/api/v1"
 NAME = "smsburner"
 TIMEOUT = 15.0              # کاتالوگ، قیمت، پیگیری: کوتاه، تا هندلر وبهوک (۵۰ ثانیه) نترکد
 BUY_TIMEOUT = 25.0          # خود خرید کمی بیشتر صبر می کند
-MIN_INTERVAL = 0.4          # فاصله حداقل بین دو درخواست این پروسه
+MIN_INTERVAL = 1.1          # فاصله حداقل بین دو درخواست؛ سایت بعد از چند درخواست پشت سر هم ۴۲۹ «Wait 1 s» می دهد
 CATALOG_TTL = 60.0
 BALANCE_TTL = 30.0
 MAX_WAIT = 15.0
@@ -55,6 +55,10 @@ _cache: dict[str, tuple[float, Any]] = {}
 # نوع اپراتور: virtual (VoIP، ارزان، ممکنه بعضی سرویس ها رد کنن)، physical (سیم کارت واقعی)،
 # premium (سریع ترین، حدود ۱۰ ثانیه، بیشترین موفقیت)
 OP_TYPES = ("virtual", "physical", "premium")
+
+
+class SmsBadSeed(CanbosoError):
+    """seed نامعتبر است (۴۰۱ یا ۴۰۳). تا ادمین درستش نکند هیچ خریدی ممکن نیست."""
 
 
 class SmsOutOfStock(CanbosoError):
@@ -203,7 +207,8 @@ def normalize_rows(data: Any) -> list[dict]:
             "slug": str(_first(r, "service_slug", "slug") or ""),
             "category": str(_first(r, "category") or "tech"),
             "cc": cc,
-            "country": str(_first(r, "country_name", "country_title") or cc.upper()),
+            "country": str(_first(r, "country_name", "country_title")
+                           or (_first(r, "country") if _first(r, "country_code") else None) or cc.upper()),
             "price": price,
             "stock": None if stock is None else max(0, int(stock)),
         })
@@ -248,7 +253,7 @@ class SmsBurner:
                     continue
                 raise CanbosoError(f"سقف درخواست؛ {int(wait)} ثانیه دیگر")
             if r.status_code in (401, 403):
-                raise CanbosoError("seed نامعتبر است")
+                raise SmsBadSeed("seed نامعتبر است")
             if r.status_code >= 400:
                 raise CanbosoError(f"HTTP {r.status_code}: {_message(r)}")
             try:
@@ -269,9 +274,31 @@ class SmsBurner:
         return data
 
     # ---------- کاتالوگ ----------
-    async def catalog(self, force: bool = False) -> list[dict]:
-        """ردیف های (سرویس × کشور) با قیمت دلاری. بدون seed هم کار می کند."""
-        return normalize_rows(await self._cached("catalog", CATALOG_TTL, force, "/catalog"))
+    async def catalog(self, force: bool = False, max_age: float | None = None) -> list[dict]:
+        """ردیف های (سرویس × کشور) با قیمت دلاری (فقط ۵۰۰ ردیف برتر). بدون seed هم کار می کند."""
+        return normalize_rows(await self._cached("catalog", max_age if max_age is not None else CATALOG_TTL,
+                                                 force, "/catalog"))
+
+    async def country_services(self, cc: str) -> list[dict]:
+        """همه ی سرویس های یک کشور با قیمت دلاری و موجودی (api.php، بدون seed).
+
+        کاتالوگ /api/v1/catalog فقط ۵۰۰ ردیف دارد و فیلتر کشور یا سرویس را نمی پذیرد، پس برای
+        فهرست کامل کشورهای هر سرویس، به ازای هر کشور یک بار از همین مسیر می خوانیم."""
+        cc = (cc or "").lower()
+        data = await self._get(f"{self._origin}/api.php?action=services&country={cc}")
+        raw = data.get("services") if isinstance(data, dict) else data
+        out: list[dict] = []
+        for x in raw or []:
+            if not isinstance(x, dict) or x.get("id") in (None, ""):
+                continue
+            price = _num(x.get("price"))
+            if price is None:
+                continue
+            stock = _num(x.get("stock"))
+            out.append({"service_id": str(x["id"]), "service": str(x.get("name") or x["id"]),
+                        "slug": str(x.get("slug") or ""), "category": str(x.get("category") or "tech"),
+                        "cc": cc, "price": price, "stock": None if stock is None else max(0, int(stock))})
+        return out
 
     async def services(self, force: bool = False) -> list[dict]:
         data = await self._cached("services", 600.0, force, "/services")
@@ -319,16 +346,23 @@ class SmsBurner:
         body: dict[str, Any] = {"service_id": _id(service_id), "country": cc.upper()}
         if operator_id:
             body["operator_id"] = _id(operator_id)
-        try:
-            r = await self._http.post("/quote", json=body)
-        except Exception as exc:  # noqa: BLE001
-            raise CanbosoError(f"ارتباط برقرار نشد: {type(exc).__name__}") from exc
+        for attempt in range(2):
+            try:
+                r = await self._http.post("/quote", json=body)
+            except Exception as exc:  # noqa: BLE001
+                raise CanbosoError(f"ارتباط برقرار نشد: {type(exc).__name__}") from exc
+            wait = _retry_after(r, 2.0)
+            if r.status_code == 429 and attempt == 0 and wait <= 4.0:
+                await asyncio.sleep(wait)       # فقط قیمت است؛ یک بار دوباره
+                await _pace()
+                continue
+            break
         if r.status_code in (401, 403):
-            raise CanbosoError("seed نامعتبر است")
+            raise SmsBadSeed("seed نامعتبر است")
         if r.status_code == 409 or (r.status_code == 404):
             raise SmsOutOfStock(_message(r))
         if r.status_code >= 400:
-            return None
+            return None     # از جمله ۴۲۹: قیمت تایید نشد؛ قیمت کاتالوگ می ماند و ادمین از هزینه ی واقعی باخبر می شود
         try:
             data = r.json()
         except Exception:  # noqa: BLE001
@@ -358,10 +392,18 @@ class SmsBurner:
                 amount = _num(_first(data, "balance", "balance_usd", "credit"))
             if amount is not None:
                 out = {"balance": amount, "currency": norm_currency(_first(src, "currency") or "USD"), "text": ""}
+            _cache.pop("balance_err", None)
         except CanbosoError as exc:
             log.info("موجودی سرویس دهنده خوانده نشد: %s", exc)
+            _cache["balance_err"] = (time.monotonic(), exc)
         _cache["balance"] = (time.monotonic(), out)
         return out
+
+    @staticmethod
+    def balance_error() -> Exception | None:
+        """خطای آخرین خواندن موجودی؛ None اگر خوانده شد."""
+        hit = _cache.get("balance_err")
+        return hit[1] if hit else None
 
     async def debug(self) -> dict:
         """پاسخ خام چند مسیر برای پنل ادمین (بدون کش، کوتاه شده)."""
@@ -430,7 +472,7 @@ class SmsBurner:
         if code >= 500:
             raise CanbosoUnknown(f"HTTP {code}: {msg}")
         if code in (401, 403):
-            raise CanbosoError("seed نامعتبر است")
+            raise SmsBadSeed("seed نامعتبر است")
         if code == 402 or (code >= 400 and _no_funds(err, msg)):
             raise CanbosoNoFunds(msg)
         if code == 409 or (code >= 400 and _out_of_stock(err, msg)):
@@ -476,7 +518,7 @@ class SmsBurner:
         except Exception as exc:  # noqa: BLE001
             raise CanbosoUnknown(f"پاسخ نرسید: {type(exc).__name__}") from exc
         if r.status_code in (401, 403):
-            raise CanbosoError("seed نامعتبر است")
+            raise SmsBadSeed("seed نامعتبر است")
         if r.status_code == 409:
             raise SmsAlreadyReceived(_message(r))
         if r.status_code >= 500:
@@ -499,8 +541,16 @@ def _id(service_id: str) -> Any:
 
 
 def _retry_after(r: httpx.Response, default: float) -> float:
+    """مهلت ۴۲۹: هدر Retry-After، وگرنه retry_after داخل بدنه ی JSON سایت، وگرنه پیش فرض."""
     raw = r.headers.get("Retry-After")
-    return float(raw) if raw and raw.replace(".", "", 1).isdigit() else default
+    if raw and raw.replace(".", "", 1).isdigit():
+        return float(raw)
+    try:
+        body = r.json()
+        wait = _num(body.get("retry_after")) if isinstance(body, dict) else None
+    except Exception:  # noqa: BLE001
+        wait = None
+    return max(0.5, wait) + 0.2 if wait else default
 
 
 def forget_balance() -> None:

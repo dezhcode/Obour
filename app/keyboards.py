@@ -656,9 +656,10 @@ def admin_num_kb(has_seed: bool) -> InlineKeyboardMarkup:
         _add(kb, "🧮 پیش نمایش قیمت", callback_data="adm:num:preview")
         _add(kb, "🧪 خروجی خام API", callback_data="adm:num:raw")
         _add(kb, "💼 موجودی من", callback_data="adm:num:balance")
+        _add(kb, "🔄 به‌روزرسانی قیمت‌ها", callback_data="adm:num:prices")
     _add(kb, "🔎 سفارش های مبهم", callback_data="adm:num:unknown")
     _add(kb, "🔙 تنظیمات", callback_data="adm:set")
-    kb.adjust(1, 3, 1, 3, 1, 1) if has_seed else kb.adjust(1, 3, 1, 1, 1)
+    kb.adjust(1, 3, 1, 3, 1, 1, 1) if has_seed else kb.adjust(1, 3, 1, 1, 1)
     return kb.as_markup()
 
 

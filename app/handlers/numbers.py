@@ -346,7 +346,7 @@ async def show_buy_result(message: Message, db: Database, bot, r: dict, sid: str
         body, kb = texts.INSUFFICIENT, keyboards.insufficient_kb()
     elif status == ns.UNAVAILABLE:
         body = texts.NUM_UNAVAILABLE
-    elif status in (ns.NO_FUNDS, ns.PROVIDER_ERROR) and order:
+    elif status in (ns.NO_FUNDS, ns.PROVIDER_ERROR, ns.NOT_CONFIGURED) and order:
         body = texts.NUM_FAILED_REFUNDED.format(price=f"{int(order['price']):,}")
     elif status == ns.LOCKED:
         body = texts.NUM_IN_PROGRESS
