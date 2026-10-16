@@ -5,7 +5,7 @@
 
    چیدمان صفحه همان طرح بازی است (قاب مرجع ۶۰۰×۱۲۸۰): هدر با بازیکن ها و VS، پیام روی
    میز، ستون توپ های هر طرف کنار میز، ITEMS و نوار قدرت چپ، خط راهنما و پیچ و FINE AIM
-   راست، نوار پیام پایین. کنترل: روی میز بکش تا نشانه بگیری · نوار قدرت را پایین بکش و
+   راست، نوار پیام پایین. کنترل: یک لمس = نوک چوب همان جا؛ کشیدن = ته چوب با انگشت می رود · نوار قدرت را پایین بکش و
    رها کن · FINE AIM نگه داشتن = چرخش آرام ۱ درجه در ثانیه. */
 (() => {
 const { S, fa, FD, store, face, icon, sheet, sheetHead, toast, sleep, sfx, haptic, errText, setSound, amount } = GC;
@@ -710,6 +710,11 @@ setInterval(tickTimer, 250);
 /* ---------- ورودی: نشانه گیری و توپ در دست ---------- */
 function pt(ev) { const r = cv.getBoundingClientRect(); return toT((ev.clientX - r.left) * cw / r.width, (ev.clientY - r.top) * ch / r.height); }
 const canAct = () => myTurnNow() && !acting && !busy && Date.now() >= readyAt - 250;
+// یک لمس (بدون کشیدن): نوک چوب به همان نقطه نشانه می رود.
+// کشیدن: انگار تهِ چوب را گرفته ای؛ ته چوب همان جهتی می رود که انگشت می رود و چوب دور توپ سفید
+// می چرخد (بی پرش). اهرم بلند = چرخش آرام تر و نشانه گیری دقیق تر.
+const DRAG_PX = 7, LEVER = 520;      // آستانهٔ تشخیص کشیدن (پیکسل صفحه) و طول اهرم (واحد میز)
+let grab = null;
 cv.addEventListener('pointerdown', ev => {
   GC.loadSamples(); closeMenu();
   if (!canAct()) return;
@@ -717,19 +722,30 @@ cv.addEventListener('pointerdown', ev => {
   lastInput = performance.now();
   try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
   if (g.bih && c.on && Math.hypot(x - c.x, y - c.y) < R * 3) { placing = true; movePlace(x, y); return; }
-  aiming = true; aimAt(x, y);
+  aiming = true;
+  grab = { x, y, cx: ev.clientX, cy: ev.clientY, a: angle, moved: false };
 });
 cv.addEventListener('pointermove', ev => {
   if (!placing && !aiming) return;
   const [x, y] = pt(ev); lastInput = performance.now();
-  if (placing) movePlace(x, y); else aimAt(x, y);
+  if (placing) { movePlace(x, y); return; }
+  if (!grab) return;
+  if (!grab.moved && Math.hypot(ev.clientX - grab.cx, ev.clientY - grab.cy) < DRAG_PX) return;
+  grab.moved = true;
+  dragButt(x - grab.x, y - grab.y);
 });
-const endPtr = () => {
+const endPtr = ev => {
   if (placing) { placing = false; const g = G(); if (g && !E.validPlace(cur().map((p, i) => i ? p : null), g.breaking, balls[0].x, balls[0].y)) toast(errText({ code: 'bad_place' })); }
-  aiming = false;
+  if (aiming && grab && !grab.moved && ev && ev.type === 'pointerup') aimAt(grab.x, grab.y);   // فقط یک لمس
+  aiming = false; grab = null;
 };
 cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
 function aimAt(x, y) { const c = balls[0]; if (Math.hypot(x - c.x, y - c.y) > R * .6) angle = Math.atan2(y - c.y, x - c.x); }
+// ته چوب (پشت توپ سفید، روی امتداد مخالف نشانه) به اندازهٔ جابه جایی انگشت جابه جا می شود
+function dragButt(dx, dy) {
+  const c = balls[0], bx = c.x - Math.cos(grab.a) * LEVER + dx, by = c.y - Math.sin(grab.a) * LEVER + dy;
+  if (Math.hypot(c.x - bx, c.y - by) > R) angle = Math.atan2(c.y - by, c.x - bx);
+}
 function movePlace(x, y) {
   const g = G();
   x = Math.min(E.MAX_X, Math.max(E.MIN_X, x)); y = Math.min(E.MAX_Y, Math.max(g.breaking ? E.BREAK_MIN_Y : E.MIN_Y, y));
