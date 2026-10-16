@@ -18,6 +18,11 @@ class AiShop(StatesGroup):
     waiting_email = State()
 
 
+class NumShop(StatesGroup):
+    # اسمی که کاربر برای جستجوی سرویس شماره مجازی می نویسد
+    waiting_query = State()
+
+
 class Track(StatesGroup):
     waiting_code = State()
 

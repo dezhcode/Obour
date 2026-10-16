@@ -814,7 +814,7 @@ def _num_order_out(o: dict) -> dict:
         "service_id": o.get("service_id") or "",
         "cc": o.get("country") or "",
         "flag": ns.flag(o.get("country") or ""),
-        "country": ns.country_title(o.get("country") or "", o.get("country_name") or ""),
+        "country": ns.country_label(o),
         "phone": o.get("phone") or "",
         "sms_code": o.get("sms_code") or "",
         "sms_text": (o.get("sms_text") or "")[:500],
@@ -850,6 +850,11 @@ async def numbers_info(db: "Database", panel: "Panel | None", wuser: WebAppUser)
     out["services"] = [{"id": s["id"], "name": s["name"], "slug": s["slug"], "category": s["category"],
                         "from": s["from"], "n": s["n"]} for s in services]
     out["popular"] = [s["id"] for s in services if s["slug"] in ns.POPULAR][:12]
+    # نام های فارسی رایج هر سرویس، برای جستجوی فارسی (مثل «واتساپ») در مینی اپ
+    aliases: dict[str, list[str]] = {}
+    for alias, slug in ns.FA_ALIASES.items():
+        aliases.setdefault(slug, []).append(ns.norm_query(alias))
+    out["aliases"] = {slug: "|".join(v) for slug, v in aliases.items()}
     used = {s["category"] for s in services}
     keys = [k for k in ns.CATEGORIES if k in used] + sorted(k for k in used if k not in ns.CATEGORIES)
     out["categories"] = [{"key": k, "title": i18n.t(ns.cat_title(k)[0]), "emoji": ns.cat_title(k)[1]} for k in keys]
@@ -873,6 +878,30 @@ async def numbers_countries(db: "Database", panel: "Panel | None", wuser: WebApp
     return {"service": rows[0]["service"] if rows else "", "balance": int(user["balance"]),
             "items": [{"cc": r["cc"], "flag": ns.flag(r["cc"]), "title": ns.country_title(r["cc"], r["country"]),
                        "price": r["price"]} for r in rows]}
+
+
+async def numbers_operators(db: "Database", panel: "Panel | None", wuser: WebAppUser, service_id: str, cc: str) -> dict:
+    """نوع شماره (مجازی / فیزیکی / پریمیوم) برای یک سرویس و کشور، با قیمت تومانی.
+
+    items خالی یعنی انتخابی نیست و خرید با نوع پیش فرض سایت انجام می شود."""
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_numbers") or not await ns.ready(db):
+        raise ApiError("این بخش فعلا در دسترس نیست", 503, "not_ready")
+    try:
+        cat = await ns.catalog(db)
+    except CanbosoError:
+        raise ApiError("سرویس دهنده الان جواب نمی ده", 503, "provider")
+    row = ns.row_of(cat, str(service_id), str(cc).lower())
+    if row is None:
+        raise ApiError("برای این سرویس و کشور الان شماره‌ای نیست؛ پولی کم نشد", 409, "unavailable")
+    ops = await ns.operators_of(db, cat, str(service_id), row["cc"])
+    return {"balance": int(user["balance"]), "default_price": row["price"],
+            "items": [{"id": o["id"], "name": o["name"], "type": o["type"],
+                       "label": i18n.t(ns.OP_LABELS.get(o["type"], ns.OP_LABELS["virtual"])[0]), "price": o["price"]}
+                      for o in ops]}
 
 
 async def numbers_order(db: "Database", panel: "Panel | None", wuser: WebAppUser, order_id: int, bot=None) -> dict:  # noqa: ANN001
@@ -906,9 +935,9 @@ _NUM_ERRORS = {
 
 async def numbers_buy(
     db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
-    service_id: str, cc: str, nonce: str, bot=None,  # noqa: ANN001
+    service_id: str, cc: str, nonce: str, operator_id: str = "", bot=None,  # noqa: ANN001
 ) -> dict:
-    """گرفتن شماره از مینی اپ؛ همان numbers_shop.buy که ربات دارد (دروازه ها هم همان).
+    """گرفتن شماره از مینی اپ (با نوع شماره ی دلخواه)؛ همان numbers_shop.buy که ربات دارد (دروازه ها هم همان).
 
     nonce هر بار زدن دکمه تازه است؛ ارسال دوباره همان nonce (دابل کلیک، شبکه
     ضعیف) خرید دوم نمی سازد.
@@ -923,7 +952,14 @@ async def numbers_buy(
     if not await db.acquire_lock(f"numnonce:{wuser.id}:{nonce}", ttl_seconds=86400):
         raise ApiError("این خرید در حال پردازشه", 409, "duplicate")
 
-    r = await ns.buy(db, bot, user, str(service_id), str(cc))
+    r = await ns.buy(db, bot, user, str(service_id), str(cc), str(operator_id or "") or None)
+    return await _num_buy_result(db, user, r, bot)
+
+
+async def _num_buy_result(db: "Database", user: dict, r: dict, bot) -> dict:  # noqa: ANN001
+    """نتیجه ی buy یا reroll برای مینی اپ: سفارش یا خطای قابل نمایش."""
+    from app.services import numbers_shop as ns
+
     status, order = r["status"], r.get("order")
     fresh = await db.get_user(user["id"])
     balance = int((fresh or user)["balance"])
@@ -934,10 +970,33 @@ async def numbers_buy(
 
             await send_order(bot, db, order)
         return {"ok": True, "status": status, "balance": balance, "order": _num_order_out(order)}
-    if order and status in (ns.NO_FUNDS, ns.PROVIDER_ERROR, ns.UNAVAILABLE):
+    if order and status in (ns.NO_FUNDS, ns.PROVIDER_ERROR, ns.UNAVAILABLE, ns.NOT_CONFIGURED):
         raise ApiError("شماره‌ای صادر نشد؛ پولت به کیف پول برگشت", 502, "refunded")
     code, msg = _NUM_ERRORS.get(status, (400, "خرید انجام نشد"))
     raise ApiError(msg, code, status)
+
+
+async def numbers_reroll(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+                         order_id: int, nonce: str, bot=None) -> dict:  # noqa: ANN001
+    """«شماره ی دیگه»: لغو شماره ی منتظر کد (پولش برمی گردد) و گرفتن یکی تازه از همان سرویس، کشور و نوع."""
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_numbers"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    o = await db.get_number_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    if not await db.acquire_lock(f"numnonce:{wuser.id}:{nonce}", ttl_seconds=86400):
+        raise ApiError("این خرید در حال پردازشه", 409, "duplicate")
+    r = await ns.reroll(db, bot, user, o)
+    if "old" not in r:
+        if r["status"] == ns.LOCKED:
+            raise ApiError("چند ثانیه صبر کن و دوباره امتحان کن", 429, "cooldown")
+        if r["status"] == ns.COMPLETED:
+            raise ApiError("کد رسیده بود؛ لغو نشد", 409, "completed")
+        raise ApiError("الان نمی‌شه لغو کرد؛ کمی بعد دوباره امتحان کن", 409, "cant_cancel")
+    return await _num_buy_result(db, user, r, bot)
 
 
 async def numbers_cancel(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, order_id: int, bot=None) -> dict:  # noqa: ANN001
@@ -1500,4 +1559,4 @@ ROUTES = {
 }
 
 __all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase",
-           "numbers_countries", "numbers_order", "numbers_buy", "numbers_cancel"]
+           "numbers_countries", "numbers_operators", "numbers_order", "numbers_buy", "numbers_reroll", "numbers_cancel"]

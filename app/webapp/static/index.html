@@ -4938,10 +4938,11 @@ const NUM_ST = {
   pending:   ['warn', 'refresh', 'در حال انجام'],
 };
 const NUM_HUES = ['#2F6BEA', '#C2408A', '#1A8F45', '#C15F3C', '#7D2AE8', '#1F7A8C', '#B20710', '#26262B'];
+const numNorm = t => String(t || '').toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/[\s\u200c\-_./]/g, '');
 const numHue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return NUM_HUES[h % NUM_HUES.length]; };
 const numMono = name => `<span class="nm-mono" style="--c:${numHue(name)}">${esc(String(name).replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '#')}</span>`;
 const Num = {
-  d:null, c:null, o:null, cat:'', q:'', busy:false, polling:false, tick:null, left:0, pending:null,
+  d:null, c:null, o:null, cat:'', q:'', qn:'', ops:null, busy:false, polling:false, tick:null, left:0, pending:null,
   get ready(){ return !!(App.boot && App.boot.numbers && App.boot.numbers.ready); },
   async load(force){ if (!this.d || force) this.d = await api('numbers'); return this.d; },
 
@@ -4971,11 +4972,15 @@ const Num = {
     const all = [{ key:'', title:I18N.t('پرطرفدار'), emoji:'🔥' }].concat(this.d.categories);
     el.innerHTML = all.map(c => `<button class="nm-cat${c.key === this.cat && !this.q ? ' on' : ''}" onclick="Num.pickCat(${esc(JSON.stringify(c.key))})">${c.emoji} ${esc(c.title)}</button>`).join('');
   },
-  pickCat(k){ this.cat = k; this.q = ''; const i = $('nm-q'); if (i) i.value = ''; App.haptic(); this.cats(); this.list(); },
-  search(q){ this.q = String(q || '').trim().toLowerCase(); this.cats(); this.list(); },
+  pickCat(k){ this.cat = k; this.q = ''; this.qn = ''; const i = $('nm-q'); if (i) i.value = ''; App.haptic(); this.cats(); this.list(); },
+  search(q){ this.q = String(q || '').trim(); this.qn = numNorm(q); this.cats(); this.list(); },
   items(){
     const d = this.d;
-    if (this.q) return d.services.filter(s => s.name.toLowerCase().includes(this.q) || s.slug.includes(this.q));
+    if (this.qn) {
+      const q = this.qn, al = d.aliases || {};
+      return d.services.filter(s => numNorm(s.name).includes(q) || s.slug.includes(q)
+        || String(al[s.slug] || '').split('|').some(a => a && (a.includes(q) || (a.length >= 3 && q.includes(a)))));
+    }
     if (!this.cat) { const pop = new Set(d.popular), xs = d.services.filter(s => pop.has(s.id)); return xs.length ? xs : d.services.slice(0, 12); }
     return d.services.filter(s => s.category === this.cat).sort((a, b) => a.name.localeCompare(b.name));
   },
@@ -4996,31 +5001,54 @@ const Num = {
   },
   pick(sid){ App.haptic(); App.go('num_svc', sid); },
 
-  /* ── تایید و خرید ── */
-  confirm(sid, cc){
+  /* ── نوع شماره، تایید و خرید ── */
+  async country(sid, cc){
+    const d = this.c && this.c.sid === sid && this.c.d, c = d && d.items.find(x => x.cc === cc); if (!c || this.busy) return;
+    App.haptic();
+    let ops = null;
+    try { ops = await api('numbers/operators?service=' + encodeURIComponent(sid) + '&cc=' + encodeURIComponent(cc)); } catch (err) { /* بدون انتخاب نوع ادامه می دهیم */ }
+    if (!ops || !ops.items.length) return this.confirm(sid, cc, null);
+    this.ops = { sid, cc, ops };
+    const ico = x => ic(x.type === 'premium' ? 'star' : x.type === 'physical' ? 'phone' : 'globe');
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${numMono(d.service)}
+        <div><div class="sheet-t">نوع شماره</div><div class="topbar-s ai-lat">${esc(d.service)} · ${esc(c.title)}</div></div></div>
+      <div class="short" style="text-align:start;margin:0 0 10px">مجازی ارزان‌تر است ولی ممکن است بعضی سرویس‌ها قبولش نکنند؛ فیزیکی سیم‌کارت واقعی است؛ پریمیوم سریع‌ترین و پرموفقیت‌ترین است.</div>
+      <div style="margin:0 calc(-1 * var(--pad))"><div class="group" style="border:none;border-radius:0">
+        <button class="row" onclick="Num.pickOp(-1)"><span class="ic number">${ic('bolt')}</span><span class="row-m"><span class="row-t">پیش‌فرض سایت</span></span>
+          <span class="row-e">${N(fa(ops.default_price))} <span class="lbl">تومان</span></span></button>
+        ${ops.items.map((x, i) => `<button class="row" onclick="Num.pickOp(${i})"><span class="ic number">${ico(x)}</span>
+          <span class="row-m"><span class="row-t">${esc(x.label)}</span><span class="row-s ai-lat">${esc(x.name)}</span></span>
+          <span class="row-e">${N(fa(x.price))} <span class="lbl">تومان</span></span></button>`).join('')}</div></div>`);
+  },
+  pickOp(i){
+    const o = this.ops; if (!o) return;
+    this.confirm(o.sid, o.cc, i < 0 ? null : o.ops.items[i]);
+  },
+  confirm(sid, cc, op){
     const d = this.c && this.c.sid === sid && this.c.d, c = d && d.items.find(x => x.cc === cc); if (!c) return;
-    const bal = App.boot.user.balance, low = bal < c.price;
-    this.pending = { sid, cc };
-    const rows = [['سرویس', `<span class="ai-lat">${esc(d.service)}</span>`], ['کشور', `${c.flag} ${esc(c.title)}`],
-      ['قیمت', `${N(fa(c.price))} <span>تومان</span>`], ['موجودی بعد از خرید', `${N(fa(Math.max(0, bal - c.price)))} <span>تومان</span>`]];
+    const price = op ? op.price : c.price, bal = App.boot.user.balance, low = bal < price;
+    this.pending = { sid, cc, op };
+    const rows = [['سرویس', `<span class="ai-lat">${esc(d.service)}</span>`], ['کشور', `${c.flag} ${esc(c.title)}`]]
+      .concat(op ? [['نوع شماره', `${esc(op.label)} · <span class="ai-lat">${esc(op.name)}</span>`]] : [])
+      .concat([['قیمت', `${N(fa(price))} <span>تومان</span>`], ['موجودی بعد از خرید', `${N(fa(Math.max(0, bal - price)))} <span>تومان</span>`]]);
     App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${numMono(d.service)}
         <div><div class="sheet-t">تایید خرید شماره</div><div class="topbar-s ai-lat">${esc(d.service)} · ${esc(c.title)}</div></div></div>
       <div style="margin:0 calc(-1 * var(--pad))">${KV(rows).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
       <div class="ai-warn" style="margin:12px 0 0">${ic('clock', 2)}<span>کد تا ۲۰ دقیقه می‌رسد. نیامد، پولت برمی‌گردد؛ خودت هم هر وقت خواستی لغو می‌کنی.</span></div>
-      ${low ? `<button class="btn btn-p btn-block" style="margin-top:16px;height:54px;font-size:16px" onclick="App.closeSheet();App.go('topup')">${ic('wallet', 2)}<span>${N(money(c.price - bal))}</span>&nbsp;<span>تومان کم داری؛ شارژ کن</span></button>`
+      ${low ? `<button class="btn btn-p btn-block" style="margin-top:16px;height:54px;font-size:16px" onclick="App.closeSheet();App.go('topup')">${ic('wallet', 2)}<span>${N(money(price - bal))}</span>&nbsp;<span>تومان کم داری؛ شارژ کن</span></button>`
             : `<button class="btn btn-ai btn-block" id="nm-buy" style="margin-top:16px;height:54px;font-size:16px" onclick="Num.buy()">${ic('phone', 2)}پرداخت و گرفتن شماره</button>`}
       <div class="short" style="margin-top:10px">شماره یک‌بار مصرف است</div>`);
   },
   async buy(){
     if (this.busy || !this.pending) return;
     this.busy = true;
-    const { sid, cc } = this.pending;
+    const { sid, cc, op } = this.pending;
     $('sheet').innerHTML = `<div class="grip"></div><div class="ai-wait"><div class="ai-orb">${ic('phone', 2)}</div>
       <div class="sheet-t">در حال گرفتن شماره…</div>
       <div class="short" style="margin-top:6px">ممکن است تا نیم دقیقه طول بکشد؛ این صفحه را نبند.</div></div>`;
     App.haptic('medium');
     try {
-      const r = await api('numbers/buy', { service_id:sid, cc, nonce:Buy.nonce() });
+      const r = await api('numbers/buy', { service_id:sid, cc, operator_id:op ? op.id : '', nonce:Buy.nonce() });
       App.setBalance(r.balance); App.notify('success'); App.closeSheet(); this.d = null;
       App.stack.pop(); App.go('num_order', { id:r.order.id, order:r.order, fresh:true });
     } catch (err) {
@@ -5064,14 +5092,15 @@ const Num = {
         ${o.sms_code ? this.field('کد تایید', o.sms_code, 'code') : ''}
         ${active ? `<div class="nmo-wait"><span class="ai-orb sm">${ic('clock', 2)}</span><span>در انتظار کد…</span><b class="n" id="nmo-left"></b></div>
           <div class="nmo-act"><button class="btn btn-p" id="nmo-chk" onclick="Num.check(${o.id})">${ic('refresh', 2)}بررسی کد</button>
-            <button class="btn btn-s" onclick="Num.cancelAsk(${o.id})">لغو و برگشت پول</button></div>` : ''}
+            <button class="btn btn-s" onclick="Num.cancelAsk(${o.id})">لغو و برگشت پول</button></div>
+          <div class="nmo-act"><button class="btn btn-s" onclick="Num.rerollAsk(${o.id})">${ic('refresh', 2)}شماره‌ی دیگر</button></div>` : ''}
       </div>
       ${fresh ? `<div class="ai-sent">${ic('chat', 2)}<span>یک نسخه در چت ربات هم برایت فرستاده شد؛ کد آنجا هم می‌آید.</span></div>` : ''}
       ${o.sms_text && o.sms_text !== o.sms_code ? Sec('متن پیامک') + `<div class="card mx"><div class="ai-guide" dir="auto">${esc(o.sms_text)}</div></div>` : ''}
       ${Sec('جزئیات سفارش')}${KV(rows)}
       ${Sec('کارها')}${Group(
         Row({ kind:'help', icon:'chat', title:'مشکلی داری؟', sub:'به پشتیبانی بگو؛ کد سفارش خودکار نوشته می‌شود', fn:`Num.support(${esc(JSON.stringify(o.code))})` })
-        + (o.service_id ? Row({ kind:'number', icon:'refresh', title:'شماره‌ای دیگر', sub:o.service, fn:`Num.pick(${esc(JSON.stringify(o.service_id))})` }) : ''))}`;
+        + (o.service_id ? Row({ kind:'number', icon:'refresh', title:'کشور دیگر', sub:o.service, fn:`Num.pick(${esc(JSON.stringify(o.service_id))})` }) : ''))}`;
   },
   support(code){
     App.go('compose');
@@ -5123,6 +5152,36 @@ const Num = {
       <button class="btn btn-s btn-block" style="height:50px" onclick="Num.cancel(${id})">بله، لغو کن</button>
       <button class="btn btn-p btn-block" style="height:50px;margin-top:10px" onclick="App.closeSheet()">نه، منتظر می‌مانم</button>`);
   },
+  rerollAsk(id){
+    App.sheet(`<div class="sheet-t">شماره‌ی دیگر از همین کشور؟</div>
+      <div class="short" style="margin:8px 0 16px;text-align:start">شماره‌ی فعلی لغو می‌شود (مبلغش برمی‌گردد) و یک شماره‌ی تازه از همین سرویس و کشور می‌گیری. قیمت شماره‌ی تازه ممکن است کمی فرق کند. اگر کد همین حالا رسیده باشد، لغو نمی‌شود.</div>
+      <button class="btn btn-ai btn-block" style="height:50px" onclick="Num.reroll(${id})">بله، شماره‌ی دیگر</button>
+      <button class="btn btn-s btn-block" style="height:50px;margin-top:10px" onclick="App.closeSheet()">نه، همین را نگه دار</button>`);
+  },
+  async reroll(id){
+    if (this.busy) return;
+    this.busy = true; this.stop();
+    $('sheet').innerHTML = `<div class="grip"></div><div class="ai-wait"><div class="ai-orb">${ic('phone', 2)}</div>
+      <div class="sheet-t">در حال گرفتن شماره‌ی تازه…</div>
+      <div class="short" style="margin-top:6px">ممکن است تا نیم دقیقه طول بکشد؛ این صفحه را نبند.</div></div>`;
+    App.haptic('medium');
+    try {
+      const r = await api('numbers/reroll', { id, nonce:Buy.nonce() });
+      App.setBalance(r.balance); App.notify('success'); App.closeSheet(); this.d = null;
+      App.stack.pop(); App.go('num_order', { id:r.order.id, order:r.order, fresh:true });
+    } catch (err) {
+      App.notify('error'); App.closeSheet();
+      if (err.code === 'insufficient') { App.toast(err.message, true); App.go('topup'); }
+      else App.toast(err.message || 'انجام نشد', true);
+      /* وضعیت واقعی سفارش را دوباره بخوان: ممکن است شماره ی قبلی لغو شده باشد */
+      try {
+        const x = await api('numbers/order?id=' + id);
+        this.o = x.order; this.left = x.order.left; App.setBalance(x.balance);
+        const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(x.order);
+        if (x.order.status === 'active') this.watch(); else this.stop();
+      } catch (e) { /* همان صفحه می ماند */ }
+    } finally { this.busy = false; }
+  },
   async cancel(id){
     App.closeSheet();
     if (this.busy) return;
@@ -5148,7 +5207,7 @@ SubPages.num_svc = async function(p, sid){
     p.innerHTML = Top(d.service || 'شماره مجازی', 'کشور شماره را انتخاب کن؛ ارزان‌ترین اول')
       + '<div class="gap" style="height:8px"></div>'
       + (d.items.length
-        ? Group(d.items.map(c => `<button class="row nm-row" onclick="Num.confirm(${esc(JSON.stringify(sid))}, ${esc(JSON.stringify(c.cc))})"><span class="nm-flag">${c.flag}</span>
+        ? Group(d.items.map(c => `<button class="row nm-row" onclick="Num.country(${esc(JSON.stringify(sid))}, ${esc(JSON.stringify(c.cc))})"><span class="nm-flag">${c.flag}</span>
             <span class="row-m"><span class="row-t">${esc(c.title)}</span><span class="row-s">یک کد تایید · تا ۲۰ دقیقه</span></span>
             <span class="row-e">${N(fa(c.price))} <span class="lbl">تومان</span></span><span class="chev">${ic('chev', 2)}</span></button>`).join(''))
         : emptyBox('فعلا شماره‌ای نیست', 'کمی بعد دوباره سر بزن.'));
@@ -5206,6 +5265,12 @@ Object.entries({
   'بله، لغو کن':'Yes, cancel', 'نه، منتظر می‌مانم':'No, I’ll wait', 'لغو شد؛ مبلغ به کیف پولت برگشت':'Cancelled; the amount went back to your wallet',
   'کد رسیده بود؛ لغو نشد':'The code had arrived; not cancelled', 'کد هر شماره همیشه اینجا می‌ماند':'Each number’s code always stays here',
   'هنوز شماره‌ای نگرفتی':'You haven’t got a number yet', 'از «شماره مجازی» اولین شمارت را بگیر.':'Get your first one from “Virtual numbers”.',
+  'نوع شماره':'Number type', 'پیش‌فرض سایت':'Site default', 'مجازی':'Virtual', 'فیزیکی':'Physical', 'پریمیوم':'Premium',
+  'مجازی ارزان‌تر است ولی ممکن است بعضی سرویس‌ها قبولش نکنند؛ فیزیکی سیم‌کارت واقعی است؛ پریمیوم سریع‌ترین و پرموفقیت‌ترین است.':'Virtual is cheaper but some services may reject it; physical is a real SIM; premium is the fastest and most successful.',
+  'شماره‌ی دیگر':'Another number', 'کشور دیگر':'Another country', 'شماره‌ی دیگر از همین کشور؟':'Another number from this country?',
+  'شماره‌ی فعلی لغو می‌شود (مبلغش برمی‌گردد) و یک شماره‌ی تازه از همین سرویس و کشور می‌گیری. قیمت شماره‌ی تازه ممکن است کمی فرق کند. اگر کد همین حالا رسیده باشد، لغو نمی‌شود.':'Your current number is cancelled (you get its price back) and you get a fresh one from the same service and country. The new price may differ slightly. If the code has just arrived, it isn’t cancelled.',
+  'بله، شماره‌ی دیگر':'Yes, another number', 'نه، همین را نگه دار':'No, keep this one', 'در حال گرفتن شماره‌ی تازه…':'Getting a fresh number…',
+  'انجام نشد':'It didn’t go through', 'چند ثانیه صبر کن و دوباره امتحان کن':'Wait a few seconds and try again', 'کد رسیده بود؛ لغو نشد':'The code had arrived; not cancelled',
   'شماره مجازی':'Virtual numbers', 'خرید شماره مجازی':'Virtual number purchase', 'شماره‌ها خوانده نشد':'Couldn’t load numbers', 'سفارش خوانده نشد':'Couldn’t load the order',
   'شماره‌ای صادر نشد؛ پولت به کیف پول برگشت':'No number was issued; your money went back to your wallet',
   'برای این سرویس و کشور الان شماره‌ای نیست؛ پولی کم نشد':'There’s no number for this service and country right now; you weren’t charged',

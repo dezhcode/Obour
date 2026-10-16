@@ -154,6 +154,7 @@ async def _run_round(bot, db: Database) -> None:  # noqa: ANN001
     from app.handlers import numbers as numbers_h
 
     await step("شماره مجازی", lambda: numbers_h.sweep(db, bot))
+    await step("قیمت شماره ها", lambda: _numbers_prices(db))
     await step("عکس مصرف", lambda: tasks.snapshot_usage(db))
 
     await step("پاکسازی کش هوش مصنوعی", lambda: db.ai_cache_purge())
@@ -172,6 +173,16 @@ async def _run_round(bot, db: Database) -> None:  # noqa: ANN001
     # وگرنه دور بعدی بلافاصله دوباره شروع می شود و ربات کند می ماند.
     await db.set_setting("last_cron_at", now_str())
     log.info("کارهای دوره ای خودکار اجرا شد: %s", ", ".join(done) or "بدون تغییر")
+
+
+async def _numbers_prices(db: Database) -> int:
+    """قیمت کشورهای کهنه ی شماره مجازی را در حد چند ثانیه می خواند (فقط وقتی بخش روشن و seed هست)."""
+    from app import features
+    from app.services import numbers_shop
+
+    if not features.is_on("shop_numbers") or not await numbers_shop.seed(db):
+        return 0
+    return await numbers_shop.refresh_prices(db, budget=10.0)
 
 
 async def ai_round(bot, db: Database) -> str:  # noqa: ANN001

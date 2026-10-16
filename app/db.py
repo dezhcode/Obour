@@ -348,6 +348,9 @@ CREATE TABLE IF NOT EXISTS number_orders (
   service_name TEXT,
   country TEXT NOT NULL,               -- کد دو حرفی کوچک، مثل us
   country_name TEXT,
+  operator_id TEXT,                    -- نوع/اپراتور انتخابی (خالی = پیش فرض سایت)
+  operator_name TEXT,
+  operator_type TEXT,                  -- virtual | physical | premium
   usd_cost REAL,
   price INTEGER NOT NULL,              -- مبلغ تومانی کسر شده
   status TEXT NOT NULL DEFAULT 'pending',
@@ -368,6 +371,22 @@ CREATE TABLE IF NOT EXISTS number_orders (
 
 CREATE INDEX IF NOT EXISTS idx_num_user ON number_orders(user_id, id);
 CREATE INDEX IF NOT EXISTS idx_num_status ON number_orders(status, id);
+
+-- قیمت و موجودی هر (کشور × سرویس) SMSBurner. کاتالوگ /api/v1 فقط ۵۰۰ ردیف دارد، پس به ازای
+-- هر کشور یک بار فهرست کامل را از api.php می خوانیم و اینجا نگه می داریم (بازسازی پس زمینه).
+CREATE TABLE IF NOT EXISTS number_prices (
+  cc TEXT NOT NULL,
+  service_id TEXT NOT NULL,
+  service TEXT,
+  slug TEXT,
+  category TEXT,
+  country TEXT,
+  price REAL NOT NULL,                 -- دلار، اپراتور پیش فرض سایت
+  stock INTEGER,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (cc, service_id)
+);
+CREATE INDEX IF NOT EXISTS idx_numprice_service ON number_prices(service_id);
 
 -- «خبرم کن» خدمات پیش نمایش (شماره مجازی، ویزا کارت)
 CREATE TABLE IF NOT EXISTS soon_waitlist (
@@ -571,6 +590,10 @@ class Database:
         migrations = [
             # canboso: کلید یکتای خرید و خود درخواست، تا سفارش مبهم با همان
             # کلید دوباره پرسیده شود؛ ارز هزینه (VND یا USDT)
+            # نوع شماره (مجازی / فیزیکی / پریمیوم) انتخابی کاربر
+            ("number_orders", "operator_id", "ALTER TABLE number_orders ADD COLUMN operator_id TEXT"),
+            ("number_orders", "operator_name", "ALTER TABLE number_orders ADD COLUMN operator_name TEXT"),
+            ("number_orders", "operator_type", "ALTER TABLE number_orders ADD COLUMN operator_type TEXT"),
             ("ai_orders", "idem_key", "ALTER TABLE ai_orders ADD COLUMN idem_key TEXT"),
             ("ai_orders", "request", "ALTER TABLE ai_orders ADD COLUMN request TEXT"),
             ("ai_orders", "cost_currency", "ALTER TABLE ai_orders ADD COLUMN cost_currency TEXT"),
@@ -2325,13 +2348,19 @@ class Database:
         usd_cost: float | None,
         price: int,
         txn_id: int | None = None,
+        operator: dict | None = None,
     ) -> dict:
-        """ثبت سفارش در حالت pending، *قبل* از تماس با سرویس دهنده (مثل ai_orders)."""
+        """ثبت سفارش در حالت pending، *قبل* از تماس با سرویس دهنده (مثل ai_orders).
+
+        operator: {"id", "name", "type"} اگر کاربر نوع شماره را انتخاب کرده."""
+        op = operator or {}
         oid = await self.insert(
             """INSERT INTO number_orders
-               (user_id, service_id, service_name, country, country_name, usd_cost, price, txn_id, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (user_id, str(service_id), service_name, country, country_name, usd_cost, price, txn_id, now_str()),
+               (user_id, service_id, service_name, country, country_name, operator_id, operator_name,
+                operator_type, usd_cost, price, txn_id, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, str(service_id), service_name, country, country_name, op.get("id"), op.get("name"),
+             op.get("type"), usd_cost, price, txn_id, now_str()),
         )
         await self.execute("UPDATE number_orders SET code = ? WHERE id = ?", (track_code("NM", oid), oid))
         return dict(await self.fetchone("SELECT * FROM number_orders WHERE id = ?", (oid,)))
@@ -2383,6 +2412,31 @@ class Database:
                FROM number_orders"""
         )
         return dict(row) if row else {}
+
+    async def save_number_prices(self, cc: str, country: str, rows: list[dict]) -> None:
+        """جایگزین کردن همه ی ردیف های یک کشور (اتمیک: یا کامل عوض می شود یا هیچ)."""
+        stamp = now_str()
+        async with self._lock:
+            assert self._conn
+            await self._conn.execute("DELETE FROM number_prices WHERE cc = ?", (cc,))
+            await self._conn.executemany(
+                """INSERT OR REPLACE INTO number_prices
+                   (cc, service_id, service, slug, category, country, price, stock, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [(cc, r["service_id"], r["service"], r.get("slug"), r.get("category"), country,
+                  r["price"], r.get("stock"), stamp) for r in rows],
+            )
+            await self._conn.commit()
+
+    async def number_price_rows(self, max_age_hours: float = 12.0) -> list[dict]:
+        cutoff = (now() - timedelta(hours=max_age_hours)).isoformat(timespec="seconds")
+        rows = await self.fetchall("SELECT * FROM number_prices WHERE updated_at >= ?", (cutoff,))
+        return [dict(r) for r in rows]
+
+    async def number_price_ages(self) -> dict[str, str]:
+        """آخرین به روزرسانی هر کشور: {cc: updated_at}."""
+        rows = await self.fetchall("SELECT cc, MAX(updated_at) AS t FROM number_prices GROUP BY cc")
+        return {r["cc"]: r["t"] for r in rows}
 
     # ---------- مانیتورینگ پنل ادمین مینی اپ ----------
     async def admin_users(
