@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 from typing import Any
 
@@ -101,6 +102,17 @@ def _no_funds(msg: str) -> bool:
     return any(w in low for w in ("balance", "funds", "credit", "top up", "top-up"))
 
 
+# شناسه ایموجی پریمیوم تلگرام که فروشنده در متن ها می گذارد، مثل
+# «{pe:5415932912484779414} Gemini»؛ معمولا ایموجی معمولی بعدش هم آمده.
+_PE_RE = re.compile(r"\{pe:\d+\}")
+
+
+def clean_text(v: Any) -> str:
+    """حذف {pe:...} و فاصله اضافه سر و ته هر خط."""
+    text = _PE_RE.sub("", str(v or "")).replace("\r\n", "\n")
+    return "\n".join(line.strip() for line in text.split("\n")).strip()
+
+
 def _unwrap(data: Any) -> Any:
     """بعضی API ها همه چیز را زیر data یا result می گذارند."""
     if isinstance(data, dict):
@@ -136,12 +148,15 @@ def normalize_product(p: dict, default_currency: str) -> dict | None:
         stock = 0
 
     image = _first(p, "image", "image_url", "imageUrl", "icon", "logo", "thumbnail")
+    # product_type فروشنده: link (لینک فعال سازی)، text (حساب یا کد متنی) یا null
+    ptype = str(_first(p, "product_type", "type", "delivery_type") or "").lower()
     return {
         "productId": str(pid),
-        "name": str(_first(p, "name", "title", "product_name") or f"#{pid}"),
-        "description": str(_first(p, "description", "desc", "details", "note") or ""),
+        "name": clean_text(_first(p, "name", "title", "product_name")) or f"#{pid}",
+        "description": clean_text(_first(p, "description", "desc", "details", "note")),
         "productType": "account",
-        "emoji": str(_first(p, "category", "brand", "service") or "").lower().replace(" ", "_"),
+        "deliveryKind": "link" if ptype == "link" else "",
+        "emoji": clean_text(_first(p, "category", "brand", "service")).lower().replace(" ", "_"),
         "image": str(image or ""),
         "price": {"amount": price, "currency": norm_currency(currency)},
         "availability": {"available": stock},
@@ -169,6 +184,10 @@ def _account_of(item: Any) -> dict:
     text = str(item or "").strip()
     if text.startswith(("http://", "https://")) and " " not in text:
         return {"user": text}
+    # قالب رایج فروشنده: Email|Password|2FA (یا بیشتر)
+    parts = [x.strip() for x in text.split("|")]
+    if "\n" not in text and len(parts) >= 2 and parts[0] and parts[1] and " " not in parts[0]:
+        return {"user": parts[0], "password": parts[1], "otherInfo": " | ".join(x for x in parts[2:] if x)}
     return {"otherInfo": text}
 
 
@@ -307,8 +326,11 @@ class Sson:
         try:
             data = await self._get("balance")
             src = _unwrap(data)
-            if isinstance(src, dict) and isinstance(src.get("wallet"), dict):
-                src = src["wallet"]
+            # پاسخ واقعی: {"ok": true, "reseller": {"user_id": ..., "balance": 0.0}}
+            for k in ("reseller", "wallet", "account", "user"):
+                if isinstance(src, dict) and isinstance(src.get(k), dict):
+                    src = src[k]
+                    break
             amount = _num(_first(src, "balance", "amount", "credit", "wallet", "available")) if isinstance(src, dict) else None
             if amount is None and isinstance(data, dict):
                 src = data

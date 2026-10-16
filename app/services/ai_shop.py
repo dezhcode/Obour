@@ -104,8 +104,11 @@ def delivery_kind(p: dict) -> str:
     t = str(p.get("productType") or "account")
     if t != "account":
         return t
+    if p.get("deliveryKind"):
+        # سرویس دهنده خودش گفته (product_type: link)
+        return str(p["deliveryKind"])
     name = str(p.get("name") or "")
-    if re.search(r"manual", name, re.I):
+    if re.search(r"manual", name, re.I) or re.search(r"manual delivery", str(p.get("description") or ""), re.I):
         return "manual"
     if _LINK_RE.search(name) or re.search(r"redeem link|voucher link|coupon", str(p.get("description") or ""), re.I):
         return "link"
