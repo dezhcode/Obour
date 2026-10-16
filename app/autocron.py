@@ -150,6 +150,10 @@ async def _run_round(bot, db: Database) -> None:  # noqa: ANN001
     from app.services import crypto
 
     await step("پرداخت کریپتو", lambda: crypto.scan(db, bot, force=True))
+    # شماره های مجازی منتظر کد: اگر پایشگر با خوابیدن پروسه مرد، اینجا ادامه پیدا می کند
+    from app.handlers import numbers as numbers_h
+
+    await step("شماره مجازی", lambda: numbers_h.sweep(db, bot))
     await step("عکس مصرف", lambda: tasks.snapshot_usage(db))
 
     await step("پاکسازی کش هوش مصنوعی", lambda: db.ai_cache_purge())

@@ -181,6 +181,16 @@ class Config:
     # https://ssondigitalworks.online/api/reseller
     sson_base_url: str = os.getenv("SSON_BASE_URL", "").strip().rstrip("/")
 
+    # ===== شماره مجازی (SMSBurner، smsburner.com) =====
+    # seed حساب SMSBurner (۱۶ حرف، مثل AbC3-dEf4-gHj5-kLm6)؛ تنها اعتبار
+    # حساب و خرج کننده موجودی است. اگر خالی باشد، seed ای که ادمین در
+    # پنل گذاشته استفاده می شود.
+    smsburner_seed: str = os.getenv("SMSBURNER_SEED", "").strip()
+    # فقط اگر سرویس دهنده آدرس را عوض کرد؛ پیش فرض https://smsburner.com/api/v1
+    smsburner_base_url: str = os.getenv("SMSBURNER_BASE_URL", "").strip().rstrip("/")
+    # اگر هاست به smsburner.com دسترسی ندارد: http://host:port یا socks5://...
+    smsburner_proxy: str = os.getenv("SMSBURNER_PROXY", "").strip()
+
     # ===== دستیار هوش مصنوعی (وب سرویس dezhcode) =====
     # کلید فقط در .env می ماند. بدون کلید همه بخش های هوشمند خاموش اند و
     # ربات مثل قبل کار می کند.

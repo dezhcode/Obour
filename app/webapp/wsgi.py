@@ -257,6 +257,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                    "/api/rules/accept", "/api/ticket/send", "/api/ticket/close", "/api/ticket/rate", "/api/lang", "/api/soon/join",
                    "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
                    "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
+                   "/api/numbers/buy", "/api/numbers/cancel",
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
                    "/api/admin/plan", "/api/admin/setting", "/api/admin/feature",
                    "/api/admin/pay", "/api/admin/ai/product", "/api/admin/ai/meta", "/api/admin/ai/image",
@@ -671,6 +672,42 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             return _json(start_response, runtime.run(webapi.ai_buy(
                 db, panel, wuser, product_id=pid, months=months, email=str(body.get("email") or ""),
                 nonce=nonce, bot=runtime.bot), timeout=170))
+
+        # ---------- شماره مجازی: کشورها، پیگیری، خرید، لغو ----------
+        if name == "numbers/countries":
+            return _json(start_response, runtime.run(webapi.numbers_countries(
+                db, panel, wuser, str(query.get("service") or "")[:20]), timeout=25))
+        if name == "numbers/order":
+            try:
+                oid = int(query.get("id") or 0)
+            except (TypeError, ValueError):
+                oid = 0
+            return _json(start_response, runtime.run(webapi.numbers_order(
+                db, panel, wuser, oid, bot=runtime.bot), timeout=25))
+        if name in ("numbers/buy", "numbers/cancel"):
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=512)
+            if name == "numbers/cancel":
+                try:
+                    oid = int(body.get("id") or 0)
+                except (TypeError, ValueError):
+                    oid = 0
+                if oid <= 0:
+                    return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+                return _json(start_response, runtime.run(webapi.numbers_cancel(
+                    db, panel, wuser, order_id=oid, bot=runtime.bot), timeout=45))
+            sid = str(body.get("service_id") or "")[:20]
+            cc = str(body.get("cc") or "")[:3].lower()
+            nonce = str(body.get("nonce") or "")[:64]
+            if not sid or len(cc) != 2 or len(nonce) < 8:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            # تایم اوت بلند: گرفتن شماره تا چند ده ثانیه طول می کشد. اگر همین هم گذشت،
+            # خرید در پس زمینه تمام می شود و نتیجه اش در «شماره های من» پیداست.
+            return _json(start_response, runtime.run(webapi.numbers_buy(
+                db, panel, wuser, service_id=sid, cc=cc, nonce=nonce, bot=runtime.bot), timeout=100))
 
         # ---------- دستیار هوش مصنوعی ----------
         if name.startswith("assist/"):

@@ -1306,6 +1306,37 @@ async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> Non
         await message.answer(texts.ADMIN_AI_KEY_SAVED)
         return await _ai_home(message, db)
 
+    if field == "num_seed":
+        import re as _re
+
+        from app.services import numbers_shop as ns
+
+        # seed می تواند موجودی را خرج کند: پیام حاوی آن در هر حال پاک می شود
+        try:
+            await message.delete()
+        except Exception:  # noqa: BLE001
+            pass
+        if not _re.fullmatch(r"[A-Za-z0-9]{4}(-[A-Za-z0-9]{4}){3}", raw):
+            return await message.answer(texts.ADMIN_NUM_SEED_BAD)
+        await db.set_setting(ns.KEY_SETTING, raw)
+        await message.answer(texts.ADMIN_NUM_SEED_SAVED)
+        return await _num_home(message, db)
+
+    if field and field.startswith("num_"):
+        from app.services import numbers_shop as ns
+
+        if field not in ns.FIELDS:
+            return await message.answer("این تنظیم پیدا نشد.")
+        try:
+            value = float(raw.replace(",", "").replace("،", ""))
+            if value < 0:
+                raise ValueError
+        except ValueError:
+            return await message.answer("یک عدد معتبر بفرست.")
+        await db.set_setting(field, str(int(value) if value.is_integer() else value))
+        await message.answer(texts.ADMIN_AI_SAVED)
+        return await _num_home(message, db)
+
     if field == "markup":
         # سود اختصاصی یک محصول
         pid = str(data.get("ai_pid") or "")
@@ -1490,6 +1521,210 @@ async def cb_ai_settle(call: CallbackQuery, db: Database) -> None:
     label = {ai_shop.FAILED: "↩️ پول کاربر برگشت", ai_shop.DELIVERED: "✅ تحویل شد علامت خورد"}.get(r["status"], r["status"])
     await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
     await cb_ai_unknown(call, db)
+
+
+# ---------- شماره مجازی (SMSBurner) ----------
+async def _num_home(message: Message, db: Database) -> None:
+    from app.services import numbers_shop as ns
+
+    cfg = await ns.load_cfg(db)
+    sd = await ns.seed(db)
+    rate = await ns.usdt_rate(db)
+    stats = await db.number_stats()
+
+    # موجودی نزد سرویس دهنده همین جا دیده می شود: صفر یعنی هیچ خریدی موفق نمی شود
+    wallet = "—"
+    if sd:
+        sb = await ns.client(db)
+        try:
+            bal = await sb.balance()
+            wallet = (f"{bal['balance']:g} دلار" + (" ⚠️ خالی" if bal["balance"] <= 0 else "")) if bal else "خوانده نشد"
+        except Exception:  # noqa: BLE001
+            wallet = "خوانده نشد"
+        finally:
+            await sb.close()
+    lines = []
+    for field, (title, _default, _d) in ns.FIELDS.items():
+        val = cfg.get(field, 0)
+        shown = f"{int(val):,}" if val >= 1000 else f"{val:g}"
+        lines.append(f"├ {title}: ⁨{shown}⁩")
+    await edit_or_send(
+        message,
+        texts.ADMIN_NUM.format(
+            seed=("از .env ✅" if config.smsburner_seed else "تنظیم شده ✅") if sd else "تنظیم نشده ❌",
+            wallet=wallet,
+            rate=f"{int(rate):,}" if rate else "تنظیم نشده ❌",
+            fields="\n".join(lines),
+            active=stats.get("active") or 0,
+            completed=stats.get("completed") or 0,
+            unknown=stats.get("unknown") or 0,
+            revenue=f"{stats.get('revenue') or 0:,}",
+            usd_cost=f"{(stats.get('usd_cost') or 0):.2f}",
+        ),
+        keyboards.admin_num_kb(bool(sd)),
+    )
+
+
+@router.callback_query(F.data == "adm:num")
+async def cb_num_home(call: CallbackQuery, db: Database, state: FSMContext) -> None:
+    await state.clear()
+    await _num_home(call.message, db)
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:num:key")
+async def cb_num_key(call: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field="num_seed")
+    await edit_or_send(call.message, texts.ADMIN_NUM_SEED_ASK, None)
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("adm:num:f:"))
+async def cb_num_field(call: CallbackQuery, state: FSMContext) -> None:
+    from app.services import numbers_shop as ns
+
+    field = call.data.split(":")[3]
+    if field not in ns.FIELDS:
+        return await call.answer("این تنظیم پیدا نشد.", show_alert=True)
+    title, default, desc = ns.FIELDS[field]
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field=field)
+    await edit_or_send(call.message, texts.ADMIN_AI_FIELD_ASK.format(title=title, desc=desc, default=default), None)
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:num:preview")
+async def cb_num_preview(call: CallbackQuery, db: Database) -> None:
+    """قیمت ارزان ترین کشورهای سرویس های پرطرفدار با تنظیمات فعلی: هزینه دلاری ← قیمت کاربر."""
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    try:
+        cat = await ns.catalog(db, force=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن کاتالوگ نشد: {exc}", show_alert=True)
+    if not cat["rows"]:
+        return await call.answer("ردیفی نیامد؛ نرخ تتر را تنظیم کرده ای و seed درسته؟", show_alert=True)
+    rate = cat["rate"]
+    out = []
+    for s in ns.services_of(cat)[:10]:
+        for r in ns.countries_of(cat, s["id"])[:2]:
+            profit = int(r["price"] - r["usd"] * rate)
+            out.append(f"• <b>{esc(s['name'])}</b> {ns.flag(r['cc'])} {esc(r['country'])}: "
+                       f"{r['usd']:g}$ → {r['price']:,} تومان (سود {profit:,})")
+    await call.message.answer("🧮 <b>قیمت شماره ها برای کاربر</b> (ارزان ترین کشورها)\n\n" + "\n".join(out)
+                              + f"\n\nنرخ تتر: {int(rate):,} تومان")
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:num:balance")
+async def cb_num_balance(call: CallbackQuery, db: Database) -> None:
+    from app.services import numbers_shop as ns
+
+    sb = await ns.client(db)
+    try:
+        bal = await sb.balance()
+    finally:
+        await sb.close()
+    await call.answer(f"موجودی شما نزد SMSBurner: {bal['balance']:g} دلار" if bal is not None
+                      else "موجودی خوانده نشد.", show_alert=True)
+
+
+@router.callback_query(F.data == "adm:num:raw")
+async def cb_num_raw(call: CallbackQuery, db: Database) -> None:
+    """پاسخ خام سرویس دهنده (کوتاه شده) برای دیدن شکل واقعی فیلدها. seed در فایل نیست."""
+    import json as _json
+
+    from aiogram.types import BufferedInputFile
+
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    await call.answer("در حال گرفتن خروجی…")
+    sb = await ns.client(db)
+    try:
+        raw = await sb.debug()
+    finally:
+        await sb.close()
+    try:
+        cat = await ns.catalog(db, force=True)
+        seen = {"rows": len(cat["rows"]), "services": len(ns.services_of(cat)), "sample": cat["rows"][:5]}
+    except CanbosoError as exc:
+        seen = {"error": str(exc)}
+    doc = {"requests": {"account": "GET /api/v1/account  (Authorization: Bearer ***)",
+                        "countries": "GET /api/v1/countries", "catalog": "GET /api/v1/catalog",
+                        "buy": 'POST /api/v1/numbers {"service_id": 1, "country": "US"}',
+                        "poll": "GET /api/v1/numbers/{id}", "cancel": "POST /api/v1/numbers/{id}/cancel"},
+           "responses": raw, "bot_view": seen}
+    data = _json.dumps(doc, ensure_ascii=False, indent=2, default=str)
+    sd = await ns.seed(db)
+    if sd:
+        data = data.replace(sd, "***")
+    acc, cat_r = raw.get("/account", {}), raw.get("/catalog", {})
+    await call.message.answer_document(
+        BufferedInputFile(data.encode("utf-8"), filename="smsburner_check.json"),
+        caption=(f"🧪 خروجی خام SMSBurner\n"
+                 f"account → HTTP {acc.get('status')} · {acc.get('ms', '-')}ms\n"
+                 f"catalog → HTTP {cat_r.get('status')} · {cat_r.get('ms', '-')}ms · {seen.get('rows', 0)} ردیف\n"
+                 "responses = پاسخ خام · bot_view = برداشت ربات"),
+    )
+
+
+@router.callback_query(F.data == "adm:num:unknown")
+async def cb_num_unknown(call: CallbackQuery, db: Database) -> None:
+    """خریدهایی که وضعیتشان مبهم مانده؛ چون خرید کلید یکتا ندارد، فقط دستی بسته می شوند."""
+    from app.services import numbers_shop as ns
+
+    rows = await db.number_orders_by_status((ns.UNKNOWN, ns.PENDING))
+    if not rows:
+        return await call.answer("سفارش مبهمی نیست ✅", show_alert=True)
+    body = "\n\n".join(texts.ADMIN_NUM_UNKNOWN_ROW.format(
+        code=o["code"], service=esc(o.get("service_name") or ""), flag=ns.flag(o["country"]),
+        user=o["telegram_id"], price=f"{o['price']:,}", error=esc((o.get("error") or "-")[:60])) for o in rows)
+    await edit_or_send(
+        call.message,
+        texts.ADMIN_AI_UNKNOWN_LIST.format(count=len(rows), rows=body).replace(
+            "تاریخچه سرویس دهنده را چک کن: اگه انجام شده لینک را دستی بفرست،",
+            "اول در smsburner.com ← سفارش ها نگاه کن: اگه شماره خریده شده، کدش را دستی بفرست و «تحویل شد» بزن؛"),
+        keyboards.admin_num_unknown_kb(rows),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.regexp(r"^adm:num:(rf|dn):\d+$"))
+async def cb_num_settle_ask(call: CallbackQuery, db: Database) -> None:
+    from app.services import numbers_shop as ns
+
+    _, _, act, oid = call.data.split(":")
+    order = await db.get_number_order(int(oid))
+    if not order or order["status"] not in (ns.UNKNOWN, ns.PENDING):
+        return await call.answer("این سفارش دیگر مبهم نیست.", show_alert=True)
+    refund = act == "rf"
+    body = (f"سفارش <code>{order['code']}</code> · {esc(order.get('service_name') or '')} · "
+            f"{order['price']:,} تومان\n\nاول در حساب smsburner.com نگاه کن این شماره خریده شده یا نه.\n\n")
+    body += ("اگه <b>خریده نشده</b>، پول کاربر به کیف پولش برمی‌گرده و بهش خبر داده می‌شه."
+             if refund else
+             "اگه <b>خریده شده</b> و کد رو دستی به کاربر دادی، سفارش «تحویل شد» علامت می‌خوره. پولی برنمی‌گرده.")
+    await edit_or_send(call.message, body, keyboards.admin_num_settle_kb(order["id"], refund))
+    await call.answer()
+
+
+@router.callback_query(F.data.regexp(r"^adm:num:(rfy|dny):\d+$"))
+async def cb_num_settle(call: CallbackQuery, db: Database) -> None:
+    from app.handlers.numbers import notify_event
+    from app.services import numbers_shop as ns
+
+    _, _, act, oid = call.data.split(":")
+    order = await db.get_number_order(int(oid))
+    if not order:
+        return await call.answer("سفارش پیدا نشد.", show_alert=True)
+    r = await ns.settle_manual(db, order, refund=act == "rfy")
+    if r["status"] == ns.FAILED:
+        await notify_event(call.bot, db, r)
+    label = {ns.FAILED: "↩️ پول کاربر برگشت", ns.COMPLETED: "✅ تحویل شد علامت خورد"}.get(r["status"], r["status"])
+    await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
+    await cb_num_unknown(call, db)
 
 
 # ---------- محصولات هوش مصنوعی: نمایش و موجودی ----------

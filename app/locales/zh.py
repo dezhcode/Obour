@@ -79,7 +79,7 @@ TEXTS = {
     },
     "INVALID_AMOUNT": "╭── ⚠️ 金额无效\n│   请重新发送\n\n╰─ 请发送一个以托曼为单位的数字。最低充值 {min_charge} 托曼。",
     "SERVICES_EMPTY": "╭── 🌐 你的服务\n│   暂无\n\n去商店选择一个套餐。\n╰─ 只需几秒钟。",
-    "SERVICES_HUB": "╭── 👤 我的服务\n│   Obour 的所有服务一览\n\n🌐 配置：{vpn} 个（{vpn_active} 个使用中）\n🤖 AI 订阅：{ai} 个订单\n📱 虚拟号码：即将推出\n💳 Visa 卡：即将推出\n\n╰─ 🟢 使用中 · 🟠 即将用完 · 🔴 已结束",
+    "SERVICES_HUB": "╭── 👤 我的服务\n│   Obour 的所有服务一览\n\n🌐 配置：{vpn} 个（{vpn_active} 个使用中）\n🤖 AI 订阅：{ai} 个订单\n{num_line}\n💳 Visa 卡：即将推出\n\n╰─ 🟢 使用中 · 🟠 即将用完 · 🔴 已结束",
     "SUPPORT_WEBAPP": "╭── 🆘 Obour 客服\n│   在小程序中\n\n带主题和截图的工单、状态跟踪、智能助手和帮助中心都在小程序里。客服的回复仍会发送到机器人这里。\n╰─ 点击下方按钮。",
     "HELP_HUB": "╭── 📖 帮助中心\n│   按板块分类的常见问题\n\n选择你的问题所属的板块：配置、AI、虚拟号码、Visa 卡或钱包。\n╰─ 分步连接教程在本页底部。",
     "SOON_LIVE": "╭── 🔔 好消息\n│   {title} 已上线\n\n你曾让我们在 Obour 开放 {title} 时通知你；现在可以在小程序中使用了。\n╰─ 点击下方按钮。",
@@ -229,6 +229,7 @@ TEXTS = {
         "referral": "推荐奖励",
         "admin_adjust": "管理员手动调整",
         "ai_purchase": "AI 购买",
+        "number_purchase": "购买虚拟号码",
         "refund": "退款",
     },
     "TXN_STATUS": {
@@ -723,4 +724,57 @@ PHRASES.update({
 
 PHRASES.update({
     "متن کامل قوانین و مقررات": "完整条款与规则",
+})
+
+
+# شماره مجازی (SMSBurner)
+TEXTS.update({
+    "NUM_HUB": "╭── 📱 虚拟号码\n│   Telegram、WhatsApp、Google 等验证码\n\n选择需要验证码的服务。号码即时发放，验证码将在 20 分钟内送达；若未收到验证码，将全额退款。\n\n💰 余额\n╰─ {balance} 土曼",
+    "NUM_CATS": "╭── 🔎 全部服务\n│   {count} 个服务\n\n请选择分类。\n╰─ 最热门的服务在上一页。",
+    "NUM_SERVICES": "╭── {emoji} {title}\n│   {count} 个服务\n\n请选择服务，按钮上显示最低价格。\n╰─ 第 {page} / {pages} 页",
+    "NUM_COUNTRIES": "╭── 📱 {service}\n│   请选择号码所属国家\n\n最便宜的国家排在前面，价格显示在按钮上。\n\n💰 余额\n╰─ {balance} 土曼 · 第 {page} / {pages} 页",
+    "NUM_CONFIRM": "╭── ✅ 确认购买号码\n│   {service} · {flag} {country}\n\n⏱ 验证码将在 20 分钟内送达。若未收到，将自动取消（或一键取消）并全额退款。\n<blockquote>号码为一次性，仅用于接收这一条验证码。确认后请立即在对应服务中请求验证码。</blockquote>\n\n💰 价格：<b>{price}</b> 土曼\n╰─ 你的余额：{balance} 土曼",
+    "NUM_WORKING": "╭── 📱 正在获取号码\n│   请稍候\n\n正在为你获取号码，请不要关闭此消息。\n╰─ 最长可能需要 30 秒。",
+    "NUM_ACTIVE": "╭── 📱 号码已就绪\n│   {service} · {flag} {country}\n\n📞 号码（点击复制）\n├ <code>{phone}</code>\n\n请在 {service} 中输入此号码并请求验证码，验证码会显示在这里。\n⏳ 还会等待验证码 {left} 分钟。\n<blockquote>若未收到验证码，将自动退款。你也可以自行取消。</blockquote>\n╰─ 追踪码 <code>{code}</code>",
+    "NUM_CODE": "╭── ✅ 已收到验证码\n│   {service} · {flag} {country}\n\n📞 号码\n├ <code>{phone}</code>\n🔑 验证码\n├ <code>{sms_code}</code>\n{sms_text}╰─ 追踪码 <code>{code}</code>",
+    "NUM_REFUNDED": "╭── ↩️ 已退款\n│   {service} · {flag} {country}\n\n未收到验证码，{price} 土曼已退回你的钱包。\n╰─ 你可以换一个号码或国家再试。",
+    "NUM_FAILED_REFUNDED": "╭── ⚠️ 未成功\n│   已退款\n\n未能获取号码，{price} 土曼已退回你的钱包。\n╰─ 请几分钟后再试，或换一个国家。",
+    "NUM_PENDING_REVIEW": "╭── ⏳ 审核中\n│   {code}\n\n服务商未及时响应，订单状态不明。客服已收到通知并会处理。\n\n<blockquote>若号码已发放，会把验证码发给你；否则将全额退款。</blockquote>\n╰─ 请保存上面的追踪码。",
+    "NUM_UNAVAILABLE": "╭── 📱 暂时无货\n│   虚拟号码\n\n该服务和国家目前没有号码，且未扣款。\n╰─ 请换一个国家试试。",
+    "NUM_CANCEL_ASK": "╭── ❌ 取消号码\n│   退款\n\n确定吗？号码将被取消，{price} 土曼会退回你的钱包。\n╰─ 若验证码已到达则无法取消，我们会把验证码发给你。",
+    "NUM_EMPTY_CAT": "此分类暂时没有服务。",
+    "NUM_CANT_CANCEL": "现在无法取消：{error}\n请稍后再试。",
+    "NUM_STILL_WAITING": "还没有收到验证码，请几秒后再点一次 🔄",
+    "NUM_NOT_CONFIGURED": "此功能尚未完全设置好，请联系客服。",
+    "NUM_PROVIDER_DOWN": "服务商暂时没有响应，请几分钟后再试。",
+    "NUM_IN_PROGRESS": "你有一笔购买正在处理中，请等待其完成。",
+    "NUM_NO_ORDER": "未找到该订单。",
+    "NUM_SOON": "╭── 📱 虚拟号码\n│   即将推出\n\n此功能正在准备中，很快你就可以在这里获取国外号码来接收验证码。\n\n💰 余额\n╰─ {balance} 土曼",
+    "NUM_ORDERS": "╭── 📱 我的号码\n│   {count} 个订单\n\n{rows}\n\n╰─ 点击任意有效号码即可获取验证码。",
+    "NUM_ORDER_ROW": "├ {status} {service} · {flag}\n│  <code>{phone}</code> · {price} 土曼{code_line}",
+    "NUM_ORDERS_EMPTY": "╭── 📱 我的号码\n│   暂无\n\n你还没有获取过号码。\n╰─ 到「虚拟号码」获取你的第一个号码。",
+    "NUM_STATUS": {"pending": "⏳ 处理中", "active": "📨 等待验证码", "completed": "✅ 已收到验证码", "failed": "❌ 失败", "refunded": "↩️ 已退款", "unknown": "🔎 审核中"},
+})
+
+PHRASES.update({
+    "همه سرویس ها": "全部服务",
+    "شماره های من": "我的号码",
+    "بررسی کد": "查看验证码",
+    "لغو و برگشت پول": "取消并退款",
+    "بله، لغو کن": "是，取消",
+    "نه، منتظر می مونم": "否，继续等待",
+    "یه شماره‌ی دیگه": "再来一个号码",
+    "شماره جدید": "新号码",
+    "بعدی": "下一页",
+    "شماره": "个号码",
+    "به زودی": "即将推出",
+    "شبکه اجتماعی و پیام رسان": "社交与通讯",
+    "ابزار و فناوری": "工具与科技",
+    "مالی و کریپتو": "金融与加密货币",
+    "خرید آنلاین": "网购",
+    "موزیک و فیلم": "音乐与视频",
+    "بازی": "游戏",
+    "دوست یابی": "交友",
+    "تاکسی و غذا": "出行与外卖",
+    "سایر": "其他",
 })

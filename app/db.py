@@ -331,6 +331,44 @@ CREATE TABLE IF NOT EXISTS ai_waitlist (
   created_at TEXT NOT NULL
 );
 
+-- شماره های مجازی (SMSBurner). هر سفارش یک شماره یک بار مصرف است.
+--
+-- وضعیت ها:
+--   pending    پول کسر شده، هنوز به سرویس دهنده نرفته
+--   active     شماره صادر شده، منتظر پیامک (تا expires_at)
+--   completed  پیامک آمد و کد تحویل شد
+--   failed     خرید قطعا انجام نشد، پول برگشته
+--   refunded   لغو یا منقضی شد (پیامک نیامد)، پول برگشته
+--   unknown    پاسخ نگرفتیم؛ ممکن است شماره خریده شده باشد. هرگز خودکار
+--              دوباره تلاش یا برگشت نمی خورد - ادمین باید بررسی کند.
+CREATE TABLE IF NOT EXISTS number_orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  service_id TEXT NOT NULL,
+  service_name TEXT,
+  country TEXT NOT NULL,               -- کد دو حرفی کوچک، مثل us
+  country_name TEXT,
+  usd_cost REAL,
+  price INTEGER NOT NULL,              -- مبلغ تومانی کسر شده
+  status TEXT NOT NULL DEFAULT 'pending',
+  code TEXT,                           -- کد پیگیری NM-xxxxx
+  provider_id TEXT,                    -- شناسه شماره نزد سرویس دهنده
+  phone TEXT,
+  sms_code TEXT,
+  sms_text TEXT,
+  error TEXT,
+  txn_id INTEGER,
+  chat_id INTEGER,                     -- پیامی که با رسیدن کد به روز می شود
+  message_id INTEGER,
+  created_at TEXT NOT NULL,
+  expires_at TEXT,
+  completed_at TEXT,
+  checked_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_num_user ON number_orders(user_id, id);
+CREATE INDEX IF NOT EXISTS idx_num_status ON number_orders(status, id);
+
 -- «خبرم کن» خدمات پیش نمایش (شماره مجازی، ویزا کارت)
 CREATE TABLE IF NOT EXISTS soon_waitlist (
   user_id INTEGER NOT NULL REFERENCES users(id),
@@ -972,7 +1010,7 @@ class Database:
                  WHERE t.user_id = ?"""
         params: list = [user_id]
         if kind == "purchase":
-            sql += " AND t.type IN ('purchase', 'ai_purchase')"
+            sql += " AND t.type IN ('purchase', 'ai_purchase', 'number_purchase')"
         elif kind:
             sql += " AND t.type = ?"
             params.append(kind)
@@ -998,7 +1036,7 @@ class Database:
         sql = "SELECT COUNT(*) AS n FROM transactions WHERE user_id = ?"
         params: list = [user_id]
         if kind == "purchase":
-            sql += " AND type IN ('purchase', 'ai_purchase')"
+            sql += " AND type IN ('purchase', 'ai_purchase', 'number_purchase')"
         elif kind:
             sql += " AND type = ?"
             params.append(kind)
@@ -2273,6 +2311,79 @@ class Database:
         )
         return dict(row) if row else {}
 
+    # ---------- شماره های مجازی ----------
+    _NUMBER_FIELDS = ("status", "provider_id", "phone", "sms_code", "sms_text", "error", "expires_at",
+                      "completed_at", "checked_at", "chat_id", "message_id", "usd_cost")
+
+    async def create_number_order(
+        self,
+        user_id: int,
+        service_id: str,
+        service_name: str,
+        country: str,
+        country_name: str,
+        usd_cost: float | None,
+        price: int,
+        txn_id: int | None = None,
+    ) -> dict:
+        """ثبت سفارش در حالت pending، *قبل* از تماس با سرویس دهنده (مثل ai_orders)."""
+        oid = await self.insert(
+            """INSERT INTO number_orders
+               (user_id, service_id, service_name, country, country_name, usd_cost, price, txn_id, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, str(service_id), service_name, country, country_name, usd_cost, price, txn_id, now_str()),
+        )
+        await self.execute("UPDATE number_orders SET code = ? WHERE id = ?", (track_code("NM", oid), oid))
+        return dict(await self.fetchone("SELECT * FROM number_orders WHERE id = ?", (oid,)))
+
+    async def update_number_order(self, order_id: int, only_from: tuple[str, ...] | None = None, **fields) -> bool:
+        """به روزرسانی اتمیک. با only_from فقط اگر وضعیت فعلی یکی از آن ها باشد.
+
+        True یعنی همین فراخوانی ردیف را عوض کرد. برگشت پول و تحویل کد با همین
+        شرط اتمیک انجام می شوند، پس دو بررسی همزمان هرگز دوبار پول برنمی گردانند.
+        """
+        data = {k: v for k, v in fields.items() if k in self._NUMBER_FIELDS}
+        if not data:
+            return False
+        sets = ", ".join(f"{k} = ?" for k in data)
+        sql, params = f"UPDATE number_orders SET {sets} WHERE id = ?", [*data.values(), order_id]
+        if only_from:
+            sql += f" AND status IN ({','.join('?' * len(only_from))})"
+            params += list(only_from)
+        return await self.execute(sql, tuple(params)) == 1
+
+    async def get_number_order(self, order_id: int) -> dict | None:
+        row = await self.fetchone("SELECT * FROM number_orders WHERE id = ?", (order_id,))
+        return dict(row) if row else None
+
+    async def user_number_orders(self, user_id: int, limit: int = 10) -> list[dict]:
+        rows = await self.fetchall(
+            "SELECT * FROM number_orders WHERE user_id = ? ORDER BY id DESC LIMIT ?", (user_id, limit))
+        return [dict(r) for r in rows]
+
+    async def number_orders_by_status(self, statuses: tuple[str, ...], limit: int = 50) -> list[dict]:
+        rows = await self.fetchall(
+            f"""SELECT n.*, u.telegram_id, u.first_name, u.lang FROM number_orders n
+                JOIN users u ON u.id = n.user_id
+                WHERE n.status IN ({','.join('?' * len(statuses))}) ORDER BY n.id DESC LIMIT ?""",
+            (*statuses, limit),
+        )
+        return [dict(r) for r in rows]
+
+    async def number_stats(self) -> dict:
+        row = await self.fetchone(
+            """SELECT
+                 COUNT(*) AS total,
+                 SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) AS completed,
+                 SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) AS active,
+                 SUM(CASE WHEN status='unknown' THEN 1 ELSE 0 END) AS unknown,
+                 SUM(CASE WHEN status IN ('failed', 'refunded') THEN 1 ELSE 0 END) AS refunded,
+                 SUM(CASE WHEN status='completed' THEN price ELSE 0 END) AS revenue,
+                 SUM(CASE WHEN status='completed' THEN usd_cost ELSE 0 END) AS usd_cost
+               FROM number_orders"""
+        )
+        return dict(row) if row else {}
+
     # ---------- مانیتورینگ پنل ادمین مینی اپ ----------
     async def admin_users(
         self, page: int = 0, per_page: int = 30, flt: str = "all", sort: str = "recent", q: str = ""
@@ -2297,7 +2408,7 @@ class Database:
                    (SELECT COUNT(*) FROM services s WHERE s.user_id = u.id AND s.is_active = 1 AND s.expire_at > ?) AS svc_on,
                    (SELECT COUNT(*) FROM ai_orders a WHERE a.user_id = u.id) AS ai_n,
                    (SELECT COALESCE(SUM(-amount), 0) FROM transactions t
-                     WHERE t.user_id = u.id AND t.type IN ('purchase', 'ai_purchase') AND t.status = 'approved') AS spent
+                     WHERE t.user_id = u.id AND t.type IN ('purchase', 'ai_purchase', 'number_purchase') AND t.status = 'approved') AS spent
                 FROM users u{cond}
                 ORDER BY {orders.get(sort, orders['recent'])}
                 LIMIT ? OFFSET ?""",
@@ -2361,7 +2472,7 @@ class Database:
 
     async def admin_purchases(self, page: int = 0, per_page: int = 30, kind: str = "all") -> tuple[list[dict], int]:
         """خریدهای موفق (سرویس و هوش مصنوعی) با خریدار، تازه ترین اول."""
-        types = {"service": "('purchase')", "ai": "('ai_purchase')"}.get(kind, "('purchase', 'ai_purchase')")
+        types = {"service": "('purchase')", "ai": "('ai_purchase')"}.get(kind, "('purchase', 'ai_purchase', 'number_purchase')")
         cond = f" WHERE t.type IN {types} AND t.status = 'approved'"
         rows = await self.fetchall(
             f"""SELECT t.*, u.telegram_id, u.first_name, u.username,
@@ -2388,7 +2499,7 @@ class Database:
                  (SELECT COALESCE(SUM(-amount), 0) FROM transactions
                    WHERE type = 'ai_purchase' AND status = 'approved' AND substr(created_at, 1, 10) = ?) AS ai_sales_today,
                  (SELECT COUNT(*) FROM transactions
-                   WHERE type IN ('purchase', 'ai_purchase') AND status = 'approved' AND substr(created_at, 1, 10) = ?) AS buys_today,
+                   WHERE type IN ('purchase', 'ai_purchase', 'number_purchase') AND status = 'approved' AND substr(created_at, 1, 10) = ?) AS buys_today,
                  (SELECT COUNT(*) FROM users WHERE substr(created_at, 1, 10) = ?) AS users_today""",
             (now, soon, today, today, today, today),
         )
@@ -2512,6 +2623,7 @@ class Database:
         tables = [
             ("pending_amounts", "user_id"),
             ("ai_orders", "user_id"),
+            ("number_orders", "user_id"),
             ("ai_waitlist", "user_id"),
             ("soon_waitlist", "user_id"),
             ("transactions", "user_id"),

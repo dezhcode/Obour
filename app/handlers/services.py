@@ -60,10 +60,19 @@ async def cb_services(call: CallbackQuery, db: Database, user: dict) -> None:
     orders = [o for o in await db.user_ai_orders(user["id"], limit=50) if o.get("status") != "failed"]
     active = sum(1 for s in services if service_status(s["expire_at"], duration_days=s.get("duration_days")) != "expired")
     ai_on = features.is_on("shop_ai")
+    from app.services import numbers_shop
+
+    num_on = features.is_on("shop_numbers") and await numbers_shop.ready(db)
+    num_orders = [o for o in await db.user_number_orders(user["id"], limit=50)
+                  if o["status"] in ("active", "completed", "unknown")]
+    if num_on or num_orders:
+        num_line = f"📱 {_t('شماره مجازی')}: \u2068{len(num_orders)}\u2069 {_t('شماره')}"
+    else:
+        num_line = f"📱 {_t('شماره مجازی')}: {_t('به زودی')}"
     await edit_or_send(
         call.message,
-        texts.SERVICES_HUB.format(vpn=len(services), vpn_active=active, ai=len(orders)),
-        keyboards.my_services_kb(services, len(orders), ai_on),
+        texts.SERVICES_HUB.format(vpn=len(services), vpn_active=active, ai=len(orders), num_line=num_line),
+        keyboards.my_services_kb(services, len(orders), ai_on, num_on, len(num_orders)),
     )
 
 
