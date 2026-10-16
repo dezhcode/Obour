@@ -235,6 +235,26 @@ async def run(db: Database) -> None:
     assert await bal(db, u10) == 300_000 - price
     print("OK concurrent buys are locked")
 
+    # ۱۰.۵) فیلدهای عمومی (code، message) هرگز کد پیامک حساب نمی شوند
+    info = smsburner.parse_number({"ok": True, "number_id": 5, "phone_number": "1555", "code": "US", "message": "OK",
+                                   "status": "active"})
+    assert info["sms_code"] == "" and info["status"] == "active" and info["sms_text"] == "", info
+    assert smsburner.parse_number({"number": {"id": 9, "phone_number": "+1", "sms_code": "4455"}})["status"] == "completed"
+    # قیمت quote با واحد عجیب (۱۰۰ برابر) نادیده گرفته می شود و کاربر زیادی پول نمی دهد
+    class Crazy(FakeServer):
+        def handler(self, request):  # noqa: ANN001, ANN201
+            if request.url.path.endswith("/quote"):
+                return httpx.Response(200, json={"ok": True, "price": USD * 100})
+            return super().handler(request)
+
+    crazy = Crazy()
+    install(crazy)
+    uq = await new_user(db, 11, 200_000)
+    rq = await ns.buy(db, None, uq, "2", "us")
+    assert rq["status"] == ns.ACTIVE and await bal(db, uq) == 200_000 - price, await bal(db, uq)
+    install(srv)
+    print("OK response parsing guards (no fake codes, absurd quote ignored)")
+
     # ۱۱) کاتالوگ: بی موجودی و بیشتر از موجودی ما نمایش داده نمی شود
     cat = await ns.catalog(db, force=True)
     assert {r["cc"] for r in cat["rows"]} == {"us", "in"}
@@ -277,15 +297,119 @@ async def run(db: Database) -> None:
     print("OK stats", {k: st[k] for k in ("total", "completed", "active", "unknown", "refunded")})
 
     await handler_flow(db, srv)
+    await webapp_flow(db, srv)
+
+
+async def webapp_flow(db: Database, srv: FakeServer) -> None:
+    """اندپوینت های مینی اپ: ویترین، کشورها، خرید (با nonce)، پیگیری، لغو، و مالکیت سفارش."""
+    from unittest.mock import AsyncMock
+
+    from app.handlers import numbers as h
+    from app.webapp import api as webapi
+    from app.webapp.auth import WebAppUser
+
+    h.ensure_watcher = lambda *a, **k: None      # type: ignore[assignment]
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+    srv.mode, srv.sms, srv.status, srv.cancel_status = "ok", None, "active", 200
+    u = await new_user(db, 900, 200_000)
+    await db.execute("UPDATE users SET rules_accepted_at = ? WHERE id = ?", ("2026-01-01T00:00:00", u["id"]))
+    me = WebAppUser(id=900, first_name="T", username="t", language_code="fa", is_premium=False, start_param="")
+    other = await new_user(db, 901, 0)
+    stranger = WebAppUser(id=901, first_name="S", username="s", language_code="fa", is_premium=False, start_param="")
+    bot = AsyncMock()
+
+    info = await webapi.numbers_info(db, None, me)
+    assert info["ready"] and info["enabled"] and info["balance"] == 200_000, info
+    assert [s["name"] for s in info["services"]] == ["Telegram"] and info["popular"] == ["2"]
+    assert info["categories"][0]["key"] == "social" and info["categories"][0]["emoji"] == "💬"
+    d = await webapi.numbers_countries(db, None, me, "2")
+    assert [c["cc"] for c in d["items"]] == ["in", "us"] and d["items"][1]["price"] == 49_000
+    assert d["items"][0]["title"] == "هند" and d["items"][0]["flag"] == "🇮🇳"
+
+    # خرید: صفحه شماره در چت هم فرستاده می شود؛ همان nonce دوبار خرید نمی کند
+    r = await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-1", bot=bot)
+    assert r["status"] == "active" and r["order"]["phone"] == "+15551234567" and r["order"]["left"] > 1000, r
+    assert r["balance"] == 200_000 - 49_000
+    bot.send_message.assert_awaited()
+    try:
+        await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-1", bot=bot)
+        raise AssertionError("duplicate nonce must be rejected")
+    except webapi.ApiError as exc:
+        assert exc.code == "duplicate", exc.code
+    oid = r["order"]["id"]
+    assert (await db.get_user(u["id"]))["balance"] == 200_000 - 49_000
+
+    # پیگیری: بدون کد ← active؛ با کد ← completed و خبر به چت ربات
+    p1 = await webapi.numbers_order(db, None, me, oid, bot=bot)
+    assert p1["order"]["status"] == "active" and p1["order"]["sms_code"] == ""
+    await db.release_lock(f"numchk:{oid}")
+    srv.sms = "314159"
+    bot.send_message.reset_mock()
+    p2 = await webapi.numbers_order(db, None, me, oid, bot=bot)
+    assert p2["order"]["status"] == "completed" and p2["order"]["sms_code"] == "314159", p2
+    assert any("314159" in str(c) for c in bot.send_message.await_args_list)
+
+    # سفارش کس دیگر دیده یا لغو نمی شود
+    for call in (webapi.numbers_order(db, None, stranger, oid), webapi.numbers_cancel(db, None, stranger, order_id=oid)):
+        try:
+            await call
+            raise AssertionError("stranger must not access the order")
+        except webapi.ApiError as exc:
+            assert exc.status == 404, exc.status
+
+    # لغو: پول برمی گردد؛ کد رسیده را لغو نمی کند
+    srv.sms = None
+    r2 = await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-2", bot=bot)
+    c = await webapi.numbers_cancel(db, None, me, order_id=r2["order"]["id"], bot=bot)
+    assert c["status"] == "refunded" and c["balance"] == 200_000 - 49_000, c
+
+    # خطاها: کمبود موجودی، نبود شماره، سرویس خاموش
+    try:
+        await webapi.numbers_buy(db, None, WebAppUser(901, "S", "s", "fa", False, ""), service_id="2", cc="us",
+                                 nonce="nonce-aaaa-3", bot=bot)
+        raise AssertionError("must require accepted rules")
+    except webapi.ApiError as exc:
+        assert exc.code == "rules", exc.code
+    await db.execute("UPDATE users SET rules_accepted_at = ? WHERE id = ?", ("2026-01-01T00:00:00", other["id"]))
+    try:
+        await webapi.numbers_buy(db, None, stranger, service_id="2", cc="us", nonce="nonce-aaaa-4", bot=bot)
+        raise AssertionError("must reject insufficient balance")
+    except webapi.ApiError as exc:
+        assert exc.status == 402 and exc.code == "insufficient", (exc.status, exc.code)
+    srv.mode = "stock"
+    try:
+        await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-5", bot=bot)
+        raise AssertionError("must report refund")
+    except webapi.ApiError as exc:
+        assert exc.code in ("unavailable", "refunded"), exc.code
+    assert (await db.get_user(u["id"]))["balance"] == 200_000 - 49_000       # پولی گم نشد
+    from app import features
+
+    await features.set_on(db, "shop_numbers", False)
+    assert (await webapi.numbers_info(db, None, me))["ready"] is False
+    try:
+        await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-6", bot=bot)
+        raise AssertionError("must be off")
+    except webapi.ApiError as exc:
+        assert exc.code == "feature_off", exc.code
+    await features.set_on(db, "shop_numbers", True)
+    boot_ready = await webapi._numbers_ready(db)
+    assert boot_ready is True
+    print("OK mini app API (catalog, countries, buy+nonce, poll+notify, cancel, ownership, errors, flag)")
 
 
 class FakeCall:
     """CallbackQuery ساختگی: دکمه ای که کاربر می زند و صفحه ای که ربات نشان می دهد."""
 
+    seq = 0
+    callback_id: str | None = None
+
     def __init__(self, data: str) -> None:
         from unittest.mock import AsyncMock, MagicMock
 
         self.data = data
+        FakeCall.seq += 1
+        self.id = self.callback_id or f"cb{FakeCall.seq}"
         self.message = MagicMock()
         self.message.chat.id, self.message.message_id = 777, 5
         self.message.edit_text = AsyncMock(return_value=self.message)
@@ -344,6 +468,15 @@ async def handler_flow(db: Database, srv: FakeServer) -> None:
     assert "654321" in c.page, c.page
     c = await tap("num:mine", h.cb_mine)
     assert "654321" in c.page and "+15551234567" in c.page
+
+    # همان آپدیت تلگرام (کلیک) اگر دوباره برسد، خرید دوم نمی سازد
+    n_orders = len(await db.user_number_orders(u["id"], limit=50))
+    dup = FakeCall("num:go:2:us")
+    dup.callback_id = "same-update-1"
+    await h.cb_buy(dup, db, await db.get_user(u["id"]))
+    await h.cb_buy(dup, db, await db.get_user(u["id"]))
+    assert len(await db.user_number_orders(u["id"], limit=50)) == n_orders + 1
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
 
     # شماره دیگر: لغو از طریق دکمه
     srv.sms, srv.status = None, "active"

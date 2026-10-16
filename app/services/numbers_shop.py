@@ -278,7 +278,11 @@ async def buy(db: "Database", bot, user: dict, service_id: str, cc: str) -> dict
         except CanbosoError as exc:
             return {"status": PROVIDER_ERROR, "error": str(exc)}
         if quoted and quoted > 0:
-            usd = max(usd, quoted)      # هیچ وقت زیر قیمت تمام شده نمی فروشیم
+            if quoted <= usd * 3:
+                usd = max(usd, quoted)      # هیچ وقت زیر قیمت تمام شده نمی فروشیم
+            else:
+                # عدد باورنکردنی (مثلا واحد دیگر): به کاتالوگ اعتماد می کنیم و ادمین از هشدار هزینه واقعی خبردار می شود
+                log.warning("قیمت quote (%s) با کاتالوگ (%s) جور نیست؛ نادیده گرفته شد", quoted, usd)
         price = price_toman(usd, rate, cfg)
 
         # موجودی خودمان قبل از کسر پول کاربر

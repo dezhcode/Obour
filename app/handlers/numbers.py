@@ -346,6 +346,9 @@ async def cb_buy(call: CallbackQuery, db: Database, user: dict) -> None:
     except ValueError:
         return await call.answer(_t("درخواست نامعتبر."), show_alert=True)
     await call.answer()
+    # تلگرام آپدیتی که جواب دیر بگیرد دوباره می فرستد؛ هر کلیک فقط یک بار خرید می کند
+    if not await db.acquire_lock(f"numcb:{call.id}", ttl_seconds=3600):
+        return
     await edit_or_send(call.message, texts.NUM_WORKING, None)
     try:
         r = await ns.buy(db, call.bot, user, sid, cc)

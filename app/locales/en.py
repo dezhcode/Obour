@@ -837,3 +837,14 @@ PHRASES.update({
     "تاکسی و غذا": "Rides & food",
     "سایر": "Other",
 })
+
+
+# شماره مجازی: پیام های سمت سرور مینی اپ
+PHRASES.update({
+    "برای این سرویس و کشور الان شماره‌ای نیست؛ پولی کم نشد": "There's no number for this service and country right now; you weren't charged",
+    "ارتباط با سرویس دهنده برقرار نشد؛ پولی کم نشد": "Couldn't reach the provider; you weren't charged",
+    "شماره‌ای صادر نشد؛ پولت به کیف پول برگشت": "No number was issued; your money went back to your wallet",
+    "الان نمی‌شه لغو کرد؛ کمی بعد دوباره امتحان کن": "It can't be cancelled right now; try again in a moment",
+    "این بخش فعلا در دسترس نیست": "This section isn't available right now",
+    "سرویس دهنده الان جواب نمی ده": "The provider isn't responding right now",
+})

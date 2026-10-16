@@ -187,10 +187,22 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
         # روش های شارژ این کاربر؛ کارت به کارت فقط برای فارسی
         "pay_methods": (methods := await payments_svc.available(db, telegram_id=wuser.id)),
         "crypto": payments_svc.CRYPTO in methods,
+        # شماره مجازی: فروش واقعی وقتی seed و نرخ تتر تنظیم شده؛ وگرنه همان پیش نمایش
+        "numbers": {"ready": await _numbers_ready(db)},
         # فقط برای نمایش ردیف «پنل مدیریت»؛ هر درخواست ادمین جدا بررسی می شود
         "is_admin": wuser.id in config.admin_ids,
         "readonly": False,
     }
+
+
+async def _numbers_ready(db: "Database") -> bool:
+    """سبک: بدون seed هیچ کار اضافه ای (مثل خواندن نرخ) در مسیر پرتردد bootstrap نمی شود."""
+    from app.services import numbers_shop as ns
+
+    try:
+        return features.is_on("shop_numbers") and bool(await ns.seed(db)) and await ns.ready(db)
+    except Exception:  # noqa: BLE001
+        return False
 
 
 async def services_list(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
@@ -777,6 +789,177 @@ async def ai_notify(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
     return {"ok": True, "added": await db.ai_waitlist_add(user["id"])}
 
 
+# ═══════════════════ شماره مجازی ═══════════════════
+
+
+def _num_order_out(o: dict) -> dict:
+    """سفارش شماره برای مینی اپ. کد پیامک فقط برای صاحب سفارش می رسد (همین تابع بعد از چک مالکیت)."""
+    from app.services import numbers_shop as ns
+
+    left = 0
+    if o["status"] == ns.ACTIVE and o.get("expires_at"):
+        try:
+            from datetime import datetime
+
+            from app.utils import now
+
+            left = max(0, int((datetime.fromisoformat(o["expires_at"]) - now()).total_seconds()))
+        except (TypeError, ValueError):
+            left = 0
+    return {
+        "id": o["id"],
+        "code": o.get("code") or "",
+        "status": o["status"],
+        "service": o.get("service_name") or "",
+        "service_id": o.get("service_id") or "",
+        "cc": o.get("country") or "",
+        "flag": ns.flag(o.get("country") or ""),
+        "country": ns.country_title(o.get("country") or "", o.get("country_name") or ""),
+        "phone": o.get("phone") or "",
+        "sms_code": o.get("sms_code") or "",
+        "sms_text": (o.get("sms_text") or "")[:500],
+        "price": int(o.get("price") or 0),
+        "created_at": o["created_at"],
+        "left": left,
+    }
+
+
+async def numbers_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """ویترین شماره مجازی: سرویس ها با ارزان ترین قیمت، دسته ها و شماره های خود کاربر.
+
+    ready=False یعنی هنوز seed یا نرخ تتر تنظیم نشده؛ مینی اپ آن وقت همان
+    پیش نمایش «به زودی» را نشان می دهد.
+    """
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    on = features.is_on("shop_numbers")
+    ready = on and await ns.ready(db)
+    out: dict = {"enabled": on, "ready": ready, "balance": int(user["balance"]), "services": [], "popular": [],
+                 "categories": [], "orders": [], "down": False}
+    if not ready:
+        return out
+    try:
+        cat = await ns.catalog(db)
+    except CanbosoError as exc:
+        log.warning("کاتالوگ شماره مجازی خوانده نشد: %s", exc)
+        cat = {"rows": []}
+        out["down"] = True
+    services = ns.services_of(cat)
+    out["services"] = [{"id": s["id"], "name": s["name"], "slug": s["slug"], "category": s["category"],
+                        "from": s["from"], "n": s["n"]} for s in services]
+    out["popular"] = [s["id"] for s in services if s["slug"] in ns.POPULAR][:12]
+    used = {s["category"] for s in services}
+    keys = [k for k in ns.CATEGORIES if k in used] + sorted(k for k in used if k not in ns.CATEGORIES)
+    out["categories"] = [{"key": k, "title": i18n.t(ns.cat_title(k)[0]), "emoji": ns.cat_title(k)[1]} for k in keys]
+    out["orders"] = [_num_order_out(o) for o in await db.user_number_orders(user["id"], limit=20)]
+    return out
+
+
+async def numbers_countries(db: "Database", panel: "Panel | None", wuser: WebAppUser, service_id: str) -> dict:
+    """کشورهای یک سرویس، ارزان ترین اول، با قیمت تومانی."""
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_numbers") or not await ns.ready(db):
+        raise ApiError("این بخش فعلا در دسترس نیست", 503, "not_ready")
+    try:
+        cat = await ns.catalog(db)
+    except CanbosoError:
+        raise ApiError("سرویس دهنده الان جواب نمی ده", 503, "provider")
+    rows = ns.countries_of(cat, str(service_id))
+    return {"service": rows[0]["service"] if rows else "", "balance": int(user["balance"]),
+            "items": [{"cc": r["cc"], "flag": ns.flag(r["cc"]), "title": ns.country_title(r["cc"], r["country"]),
+                       "price": r["price"]} for r in rows]}
+
+
+async def numbers_order(db: "Database", panel: "Panel | None", wuser: WebAppUser, order_id: int, bot=None) -> dict:  # noqa: ANN001
+    """یک شماره با پیگیری تازه از سرویس دهنده (حداکثر هر ۴ ثانیه برای هر سفارش)."""
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    o = await db.get_number_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    if o["status"] == ns.ACTIVE and await db.acquire_lock(f"numchk:{o['id']}", ttl_seconds=4):
+        r = await ns.check(db, o)
+        o = r["order"]
+        if bot is not None and r.get("event"):
+            from app.handlers.numbers import notify_event
+
+            await notify_event(bot, db, r)
+    fresh = await db.get_user(user["id"])
+    return {"order": _num_order_out(o), "balance": int((fresh or user)["balance"])}
+
+
+# وضعیت خرید -> (کد HTTP، پیام) برای وقت هایی که شماره ای صادر نشده
+_NUM_ERRORS = {
+    "insufficient": (402, "موجودی کیف پولت کافی نیست"),
+    "unavailable": (409, "برای این سرویس و کشور الان شماره‌ای نیست؛ پولی کم نشد"),
+    "locked": (409, "یه خرید دیگه همین حالا در جریانه"),
+    "not_configured": (503, "فروش این بخش فعلا در دسترس نیست"),
+    "provider_error": (503, "ارتباط با سرویس دهنده برقرار نشد؛ پولی کم نشد"),
+}
+
+
+async def numbers_buy(
+    db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+    service_id: str, cc: str, nonce: str, bot=None,  # noqa: ANN001
+) -> dict:
+    """گرفتن شماره از مینی اپ؛ همان numbers_shop.buy که ربات دارد (دروازه ها هم همان).
+
+    nonce هر بار زدن دکمه تازه است؛ ارسال دوباره همان nonce (دابل کلیک، شبکه
+    ضعیف) خرید دوم نمی سازد.
+    """
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_numbers"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    if not user.get("rules_accepted_at") and await db.get_setting("rules_enabled", "1") == "1":
+        raise ApiError("اول باید قوانین را در ربات بپذیری", 403, "rules")
+    if not await db.acquire_lock(f"numnonce:{wuser.id}:{nonce}", ttl_seconds=86400):
+        raise ApiError("این خرید در حال پردازشه", 409, "duplicate")
+
+    r = await ns.buy(db, bot, user, str(service_id), str(cc))
+    status, order = r["status"], r.get("order")
+    fresh = await db.get_user(user["id"])
+    balance = int((fresh or user)["balance"])
+    if status in (ns.ACTIVE, ns.COMPLETED, ns.UNKNOWN) and order:
+        if bot is not None and status != ns.UNKNOWN:
+            # صفحه شماره در چت ربات هم می آید و کد بعدی همان جا خبر داده می شود
+            from app.handlers.numbers import send_order
+
+            await send_order(bot, db, order)
+        return {"ok": True, "status": status, "balance": balance, "order": _num_order_out(order)}
+    if order and status in (ns.NO_FUNDS, ns.PROVIDER_ERROR, ns.UNAVAILABLE):
+        raise ApiError("شماره‌ای صادر نشد؛ پولت به کیف پول برگشت", 502, "refunded")
+    code, msg = _NUM_ERRORS.get(status, (400, "خرید انجام نشد"))
+    raise ApiError(msg, code, status)
+
+
+async def numbers_cancel(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, order_id: int, bot=None) -> dict:  # noqa: ANN001
+    """لغو شماره و برگشت پول (فقط اگر کدی نیامده)."""
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    o = await db.get_number_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    r = await ns.cancel(db, o)
+    if r["status"] in (ns.CANT_CANCEL, ns.PROVIDER_ERROR):
+        raise ApiError("الان نمی‌شه لغو کرد؛ کمی بعد دوباره امتحان کن", 409, "cant_cancel")
+    if bot is not None and r.get("event"):
+        from app.handlers.numbers import notify_event
+
+        await notify_event(bot, db, r)
+    fresh = await db.get_user(user["id"])
+    return {"ok": True, "status": r["status"], "balance": int((fresh or user)["balance"]),
+            "order": _num_order_out(r.get("order") or o)}
+
+
 def _latin(text: str) -> str:
     """ارقام فارسی و عربی متن های ربات به لاتین، برای یکدستی مینی اپ."""
     return (text or "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
@@ -1304,6 +1487,7 @@ ROUTES = {
     "tickets": tickets,
     "ai": ai_catalog,
     "ai/orders": ai_orders,
+    "numbers": numbers_info,
     "topup": topup_info,
     "crypto": crypto_info,
     "stars": stars_info,
@@ -1315,4 +1499,5 @@ ROUTES = {
     "ticket/related": ticket_related,
 }
 
-__all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase"]
+__all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase",
+           "numbers_countries", "numbers_order", "numbers_buy", "numbers_cancel"]

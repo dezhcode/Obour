@@ -38,7 +38,8 @@ log = logging.getLogger("obour.smsburner")
 
 BASE_URL = "https://smsburner.com/api/v1"
 NAME = "smsburner"
-TIMEOUT = 30.0
+TIMEOUT = 15.0              # کاتالوگ، قیمت، پیگیری: کوتاه، تا هندلر وبهوک (۵۰ ثانیه) نترکد
+BUY_TIMEOUT = 25.0          # خود خرید کمی بیشتر صبر می کند
 MIN_INTERVAL = 0.4          # فاصله حداقل بین دو درخواست این پروسه
 CATALOG_TTL = 60.0
 BALANCE_TTL = 30.0
@@ -160,8 +161,10 @@ def parse_number(data: Any) -> dict:
     """پاسخ خرید یا پیگیری به شکل ثابت: id، phone، sms_code، sms_text، status، price."""
     src = _unwrap(data)
     pid = _first(src, "number_id", "order_id", "id") or _first(data, "number_id", "order_id", "id")
-    code = _first(src, "sms_code", "code", "otp") or _first(data, "sms_code")
-    text = _first(src, "sms_text", "sms", "message", "text")
+    # فقط فیلدهای مستند: «code» یا «message» عمومی ممکن است کد کشور یا پیام وضعیت باشند و
+    # اگر به جای کد پیامک برداشته شوند، سفارش با کد جعلی «تحویل شده» می شود
+    code = _first(src, "sms_code", "otp_code") or _first(data, "sms_code")
+    text = _first(src, "sms_text", "sms_body")
     exp_in = _num(_first(src, "expires_in", "ttl", "seconds_left"))
     return {
         "id": str(pid) if pid not in (None, "") else "",
@@ -169,7 +172,7 @@ def parse_number(data: Any) -> dict:
         "sms_code": str(code) if code not in (None, "") else "",
         "sms_text": str(text) if text not in (None, "") else "",
         "status": norm_status(_first(src, "status", "state"), code),
-        "price": _num(_first(src, "price", "price_usd", "cost", "charged", "amount")),
+        "price": _num(_first(src, "price", "price_usd", "cost", "charged")),
         "expires_at": str(_first(src, "expires_at", "expiry", "expires") or ""),
         "expires_in": exp_in,
         "raw": data,
@@ -361,7 +364,7 @@ class SmsBurner:
         for attempt in range(3):
             await _pace()
             try:
-                r = await self._http.post("/numbers", json=body)
+                r = await self._http.post("/numbers", json=body, timeout=BUY_TIMEOUT)
             except httpx.ConnectError as exc:
                 if attempt < 2:
                     await asyncio.sleep(2.0)

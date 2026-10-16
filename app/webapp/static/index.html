@@ -458,6 +458,23 @@ html.perf-low #store-box{will-change:auto}
 .nm-p{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;font-size:13px;color:var(--ink)}
 .nm-p small{font-size:11px;color:var(--ink-3);font-weight:600}
 .nm-p span{font-size:10.5px;color:var(--ink-3)}
+.nm-cats{display:flex;gap:8px;overflow-x:auto;padding:0 var(--pad) 12px;scrollbar-width:none}
+.nm-cats::-webkit-scrollbar{display:none}
+.nm-cat{flex-shrink:0;padding:8px 14px;border-radius:99px;background:var(--surface);border:1.5px solid var(--line);font-size:12.5px;font-weight:700;color:var(--ink-2);white-space:nowrap;transition:border-color .2s,background .2s}
+.nm-cat.on{border-color:#C2408A;background:color-mix(in srgb,#C2408A 8%,var(--surface));color:#9B1F5E}
+.nm-mono{width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--c) 14%,var(--surface));color:var(--c);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;letter-spacing:-.3px}
+.nmo-f{display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 14px;border-radius:var(--r-md);background:var(--sunk)}
+.nmo-f.code{background:color-mix(in srgb,var(--ok) 10%,var(--surface))}
+.nmo-k{font-size:11.5px;color:var(--ink-3);font-weight:700;flex-shrink:0}
+.nmo-v{flex-grow:1;min-width:0;font-size:18px;font-weight:800;text-align:start;overflow-wrap:anywhere}
+.nmo-code{font-size:28px;letter-spacing:4px}
+.nmo-wait{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--ink-2);font-weight:700}
+.nmo-wait b{margin-inline-start:auto;font-size:15px;color:var(--ink)}
+.nmo-wait .ai-orb.sm{width:30px;height:30px;margin:0;border-radius:15px}
+.nmo-wait .ai-orb.sm svg{width:16px;height:16px}
+.nmo-act{display:flex;gap:8px;margin-top:14px}
+.nmo-act .btn{flex:1}
+.nmo-f .ai-f-b{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
 /* ویزا کارت */
 .vc-wrap{perspective:900px;margin-bottom:16px}
 .vcard{position:relative;overflow:hidden;aspect-ratio:1.586;border-radius:20px;padding:18px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;
@@ -2041,9 +2058,9 @@ function Depts(active, counts){
   const f = App.boot.features, vpnOn = f.shop_vpn !== false, aiOn = f.shop_ai;
   const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : k === 'number' ? true : aiOn && (!counts || counts[k] || k === active));
   Store.keys = keys;
-  const sub = k => k === 'vpn' ? 'کانفیگ' : k === 'number' ? 'پیش‌نمایش' : counts ? fa(counts[k] || 0) + ' محصول' : '…';
+  const sub = k => k === 'vpn' ? 'کانفیگ' : k === 'number' ? (Num.ready ? 'کد تایید' : 'پیش‌نمایش') : counts ? fa(counts[k] || 0) + ' محصول' : '…';
   return `<div class="dept" id="dept">${keys.map(k => `<button class="dept-b${k === active ? ' on' : ''}" data-k="${k}" onclick="Store.to('${k}')">
-      <span class="ic ${SHOP_CATS[k][1]}">${ic(SHOP_CATS[k][0])}</span><span class="dept-t">${SHOP_CATS[k][2]}</span><span class="dept-s">${esc(sub(k))}</span>${k === 'number' ? '<i class="dept-pv"></i>' : ''}</button>`).join('')}
+      <span class="ic ${SHOP_CATS[k][1]}">${ic(SHOP_CATS[k][0])}</span><span class="dept-t">${SHOP_CATS[k][2]}</span><span class="dept-s">${esc(sub(k))}</span>${k === 'number' && !Num.ready ? '<i class="dept-pv"></i>' : ''}</button>`).join('')}
     <button class="dept-b" onclick="App.go('visa')"><span class="ic visa">${ic('card')}</span><span class="dept-t">ویزا کارت</span><span class="dept-s">پیش‌نمایش</span><i class="dept-pv"></i></button></div>`;
 }
 /* ویترین فروشگاه: هر بخش یک کارت عبور کوچک با بافت نقطه ای و پیش نمایش
@@ -2084,7 +2101,7 @@ function CatGrid(){
   }
   return `<div class="cg">${html}</div>
     <div class="cg-soon">
-      <button class="cg-sn" onclick="Store.open('number')">${ic('phone')}<span><b>شماره مجازی</b><small>به‌زودی</small></span></button>
+      <button class="cg-sn" onclick="Store.open('number')">${ic('phone')}<span><b>شماره مجازی</b><small>${Num.ready ? 'کد تایید' : 'به‌زودی'}</small></span></button>
       <button class="cg-sn" onclick="App.go('visa')">${ic('card')}<span><b>ویزا کارت</b><small>به‌زودی</small></span></button>
     </div>`;
 }
@@ -2095,7 +2112,7 @@ function DeptHero(k){
     : ((AI.d && AI.d.items) || []).filter(x => x.category === k && x.stock !== 0).map(x => x.price);
   const minP = prices.length ? Math.min(...prices) : 0;
   const sub = k === 'vpn' ? 'کانفیگ پرسرعت در همه کشورها، همه توی یک لینک؛ روزانه، هفتگی و ماهانه' : SHOP_CATS[k][3];
-  const chips = k === 'number' ? [['clock', 'به‌زودی'], ['wallet', 'پرداخت از کیف پول'], ['refresh', 'کد نیامد؟ پول برمی‌گردد']]
+  const chips = k === 'number' ? [[Num.ready ? 'bolt' : 'clock', Num.ready ? 'شماره فوری' : 'به‌زودی'], ['wallet', 'پرداخت از کیف پول'], ['refresh', 'کد نیامد؟ پول برمی‌گردد']]
     : [['bolt', 'تحویل فوری'], ['wallet', 'پرداخت از کیف پول'], ['chat', 'پشتیبانی در مینی اپ']];
   return `<div class="${'dh dh-' + k}"><span class="dh-art">${ic(SHOP_CATS[k][0], 1.2)}</span>
     <div class="dh-t">${SHOP_CATS[k][2]}</div><div class="dh-s">${sub}</div>
@@ -2584,7 +2601,7 @@ const Store = {
   /* کارت های «به زودی در عبور» ته فروشگاه */
   soonCards(){
     const box = $('soon-box'); if (!box) return;
-    const num = this.kind !== 'number';
+    const num = this.kind !== 'number' && !Num.ready;
     box.innerHTML = Sec('به‌زودی در عبور') + `<div class="soon${num ? '' : ' one'}">
       ${num ? `<button class="soon-c num" onclick="Store.to('number');$('view').scrollTo({ top:0, behavior:'smooth' })">${ic('phone', 1.4)}<span class="soon-tag">پیش‌نمایش</span>
         <span class="soon-t">شماره مجازی</span><span class="soon-s">کد تایید تلگرام، واتساپ و گوگل</span></button>` : ''}
@@ -2592,9 +2609,11 @@ const Store = {
         <span class="soon-t">ویزا کارت مجازی</span><span class="soon-s">پرداخت اشتراک‌ها و خریدهای خارجی</span></button></div>`;
   },
 
-  /* شماره مجازی (پیش نمایش): سرویس، نوع شماره و کشورها با قیمت تقریبی */
+  /* شماره مجازی: فروش واقعی (Num) وقتی seed و نرخ تنظیم شده، وگرنه پیش نمایش */
   nm:{ kind:0, svc:'telegram' },
-  async loadNumbers(){
+  async loadNumbers(){ return Num.ready ? Num.render() : this.loadNumbersPreview(); },
+  /* شماره مجازی (پیش نمایش): سرویس، نوع شماره و کشورها با قیمت تقریبی */
+  async loadNumbersPreview(){
     try {
       const d = await Soon.load(), n = d.number;
       const box = $('store-box'); if (!box || this.kind !== 'number') return;
@@ -2682,7 +2701,7 @@ const Wallet = {
   more(){ this.offset += 12; return this.load(); },
   find(id){ return this.items.find(x => x.id === id); }
 };
-const TX = { charge:['cash','down','شارژ کیف پول'], purchase:['net','up','خرید سرویس'], ai_purchase:['ai','spark','خرید هوش مصنوعی'],
+const TX = { charge:['cash','down','شارژ کیف پول'], purchase:['net','up','خرید سرویس'], ai_purchase:['ai','spark','خرید هوش مصنوعی'], number_purchase:['number','phone','خرید شماره مجازی'],
   referral:['cash','gift','پاداش هم‌سفر'], refund:['cash','refresh','برگشت وجه'], admin_adjust:['help','wallet','تغییر توسط پشتیبانی'] };
 /* کیف پول های متصل (TON Connect) در صفحه کیف پول. اتصال در خود مرورگر تلگرام
    می ماند؛ همان کیف پولی است که در شارژ کریپتو استفاده می شود. */
@@ -4250,7 +4269,7 @@ SubPages.adm_user = async function(p, tgId){
   try {
     const u = await api('admin/user_full?id=' + tgId);
     Admin.user = u;
-    const TX = { charge:'شارژ', purchase:'خرید سرویس', ai_purchase:'خرید هوش مصنوعی', referral:'پاداش دعوت', refund:'برگشت وجه', admin_adjust:'تغییر دستی' };
+    const TX = { charge:'شارژ', purchase:'خرید سرویس', ai_purchase:'خرید هوش مصنوعی', number_purchase:'خرید شماره مجازی', referral:'پاداش دعوت', refund:'برگشت وجه', admin_adjust:'تغییر دستی' };
     const TXS = { approved:['ok','انجام شد'], pending:['warn','در انتظار'], rejected:['bad','رد شد'], cancelled:['', 'لغو'] };
     p.innerHTML = Top(u.name, u.username ? '@' + u.username : String(u.telegram_id)) + `
       <div class="adm-stats">
@@ -4906,6 +4925,293 @@ const Soon = {
     this._busy = false;
   }
 };
+
+/* ═════════ شماره مجازی (فروش واقعی با SMSBurner) ═════════
+   سرویس ← کشور (ارزان‌ترین اول) ← تایید ← شماره + کد خودکار. تا وقتی ادمین seed و
+   نرخ تتر را تنظیم نکرده (App.boot.numbers.ready)، همان پیش‌نمایش Soon نشان داده می‌شود. */
+const NUM_ST = {
+  active:    ['warn', 'clock',   'منتظر کد'],
+  completed: ['ok',   'check',   'کد رسید'],
+  refunded:  ['bad',  'refresh', 'پولت برگشت'],
+  failed:    ['bad',  'warn',    'ناموفق'],
+  unknown:   ['warn', 'refresh', 'در حال بررسی'],
+  pending:   ['warn', 'refresh', 'در حال انجام'],
+};
+const NUM_HUES = ['#2F6BEA', '#C2408A', '#1A8F45', '#C15F3C', '#7D2AE8', '#1F7A8C', '#B20710', '#26262B'];
+const numHue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return NUM_HUES[h % NUM_HUES.length]; };
+const numMono = name => `<span class="nm-mono" style="--c:${numHue(name)}">${esc(String(name).replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '#')}</span>`;
+const Num = {
+  d:null, c:null, o:null, cat:'', q:'', busy:false, polling:false, tick:null, left:0, pending:null,
+  get ready(){ return !!(App.boot && App.boot.numbers && App.boot.numbers.ready); },
+  async load(force){ if (!this.d || force) this.d = await api('numbers'); return this.d; },
+
+  /* ── تب «شماره مجازی» در فروشگاه ── */
+  async render(){
+    const box = $('store-box'); if (!box || Store.kind !== 'number') return;
+    try {
+      const d = await this.load(true);
+      if (!d.ready) { if (App.boot.numbers) App.boot.numbers.ready = false; return void Store.loadNumbersPreview(); }
+      if (Store.kind !== 'number' || !$('store-box')) return;
+      App.setBalance(d.balance);
+      const act = d.orders.filter(o => o.status === 'active'), rest = d.orders.filter(o => o.status !== 'active').slice(0, 4);
+      box.innerHTML = (d.down ? `<div class="pv-banner">${ic('warn', 2)}<span>سرویس‌دهنده الان جواب نمی‌دهد؛ کمی بعد دوباره سر بزن.</span></div>` : '')
+        + (act.length ? Sec('منتظر کد') + Group(act.map(o => this.orderRow(o)).join('')) + '<div class="gap"></div>' : '')
+        + `<label class="hc-search">${ic('search', 2)}<input type="search" id="nm-q" value="${esc(this.q)}" placeholder="${esc(I18N.t('جستجوی سرویس؛ مثلا تلگرام'))}" oninput="Num.search(this.value)" autocomplete="off"></label>`
+        + `<div class="nm-cats" id="nm-cats"></div><div id="nm-list"></div>`
+        + (rest.length ? Sec('شماره‌های قبلی', d.orders.length > act.length + 4 ? `<button class="sec-a" onclick="App.go('num_orders')">همه</button>` : '') + Group(rest.map(o => this.orderRow(o)).join('')) : '')
+        + Sec('چطور کار می‌کند؟') + Steps(['سرویس و کشور را انتخاب کن؛ ارزان‌ترین کشورها اول می‌آیند',
+            'مبلغ از کیف پول کم می‌شود و شماره همان لحظه نشان داده می‌شود',
+            'کد تایید همین‌جا و در ربات می‌آید؛ اگر نیامد، پولت برمی‌گردد'])
+        + '<div class="gap"></div>' + Group(Row({ kind:'number', icon:'book', title:'سوالات پرتکرار شماره مجازی', sub:'قیمت، زمان انتظار کد و برگشت وجه', fn:"App.go('help_d','number')" }));
+      this.cats(); this.list();
+    } catch (err) { const b = $('store-box'); if (b && Store.kind === 'number') b.innerHTML = emptyBox('شماره‌ها خوانده نشد', err.message); }
+  },
+  cats(){
+    const el = $('nm-cats'); if (!el || !this.d) return;
+    const all = [{ key:'', title:I18N.t('پرطرفدار'), emoji:'🔥' }].concat(this.d.categories);
+    el.innerHTML = all.map(c => `<button class="nm-cat${c.key === this.cat && !this.q ? ' on' : ''}" onclick="Num.pickCat(${esc(JSON.stringify(c.key))})">${c.emoji} ${esc(c.title)}</button>`).join('');
+  },
+  pickCat(k){ this.cat = k; this.q = ''; const i = $('nm-q'); if (i) i.value = ''; App.haptic(); this.cats(); this.list(); },
+  search(q){ this.q = String(q || '').trim().toLowerCase(); this.cats(); this.list(); },
+  items(){
+    const d = this.d;
+    if (this.q) return d.services.filter(s => s.name.toLowerCase().includes(this.q) || s.slug.includes(this.q));
+    if (!this.cat) { const pop = new Set(d.popular), xs = d.services.filter(s => pop.has(s.id)); return xs.length ? xs : d.services.slice(0, 12); }
+    return d.services.filter(s => s.category === this.cat).sort((a, b) => a.name.localeCompare(b.name));
+  },
+  list(){
+    const el = $('nm-list'); if (!el || !this.d) return;
+    const xs = this.items();
+    el.innerHTML = xs.length
+      ? Group(xs.map(s => `<button class="row" onclick="Num.pick(${esc(JSON.stringify(s.id))})">${numMono(s.name)}
+          <span class="row-m"><span class="row-t ai-lat">${esc(s.name)}</span><span class="row-s">${N(fa(s.n))} <span>کشور</span></span></span>
+          <span class="row-e"><span class="lbl">از</span> ${N(fa(s.from))} <span class="lbl">تومان</span></span><span class="chev">${ic('chev', 2)}</span></button>`).join(''))
+      : emptyBox('سرویسی پیدا نشد', 'اسم دیگری را امتحان کن.');
+  },
+  orderRow(o){
+    const st = NUM_ST[o.status] || ['', 'list', o.status];
+    return `<button class="row" onclick="App.go('num_order', ${o.id})"><span class="nm-flag">${o.flag}</span>
+      <span class="row-m"><span class="row-t ai-lat">${esc(o.service)}</span><span class="row-s" dir="ltr" style="text-align:start">${esc(o.phone || o.code)}</span></span>
+      <span class="row-e">${Badge(st[0], st[2])}</span><span class="chev">${ic('chev', 2)}</span></button>`;
+  },
+  pick(sid){ App.haptic(); App.go('num_svc', sid); },
+
+  /* ── تایید و خرید ── */
+  confirm(sid, cc){
+    const d = this.c && this.c.sid === sid && this.c.d, c = d && d.items.find(x => x.cc === cc); if (!c) return;
+    const bal = App.boot.user.balance, low = bal < c.price;
+    this.pending = { sid, cc };
+    const rows = [['سرویس', `<span class="ai-lat">${esc(d.service)}</span>`], ['کشور', `${c.flag} ${esc(c.title)}`],
+      ['قیمت', `${N(fa(c.price))} <span>تومان</span>`], ['موجودی بعد از خرید', `${N(fa(Math.max(0, bal - c.price)))} <span>تومان</span>`]];
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${numMono(d.service)}
+        <div><div class="sheet-t">تایید خرید شماره</div><div class="topbar-s ai-lat">${esc(d.service)} · ${esc(c.title)}</div></div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV(rows).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      <div class="ai-warn" style="margin:12px 0 0">${ic('clock', 2)}<span>کد تا ۲۰ دقیقه می‌رسد. نیامد، پولت برمی‌گردد؛ خودت هم هر وقت خواستی لغو می‌کنی.</span></div>
+      ${low ? `<button class="btn btn-p btn-block" style="margin-top:16px;height:54px;font-size:16px" onclick="App.closeSheet();App.go('topup')">${ic('wallet', 2)}<span>${N(money(c.price - bal))}</span>&nbsp;<span>تومان کم داری؛ شارژ کن</span></button>`
+            : `<button class="btn btn-ai btn-block" id="nm-buy" style="margin-top:16px;height:54px;font-size:16px" onclick="Num.buy()">${ic('phone', 2)}پرداخت و گرفتن شماره</button>`}
+      <div class="short" style="margin-top:10px">شماره یک‌بار مصرف است</div>`);
+  },
+  async buy(){
+    if (this.busy || !this.pending) return;
+    this.busy = true;
+    const { sid, cc } = this.pending;
+    $('sheet').innerHTML = `<div class="grip"></div><div class="ai-wait"><div class="ai-orb">${ic('phone', 2)}</div>
+      <div class="sheet-t">در حال گرفتن شماره…</div>
+      <div class="short" style="margin-top:6px">ممکن است تا نیم دقیقه طول بکشد؛ این صفحه را نبند.</div></div>`;
+    App.haptic('medium');
+    try {
+      const r = await api('numbers/buy', { service_id:sid, cc, nonce:Buy.nonce() });
+      App.setBalance(r.balance); App.notify('success'); App.closeSheet(); this.d = null;
+      App.stack.pop(); App.go('num_order', { id:r.order.id, order:r.order, fresh:true });
+    } catch (err) {
+      App.notify('error'); App.closeSheet();
+      if (err.code === 'rules') { App.toast('اول قوانین را بخوان و بپذیر', true); App.go('rules'); }
+      else if (err.code === 'insufficient') { App.toast(err.message, true); App.go('topup'); }
+      else if (!err.status || err.code === 'server' || err.status === 504) {
+        /* جواب نرسید؛ خرید ممکن است انجام شده باشد. نتیجه در شماره های من */
+        this.d = null; App.toast('جواب دیر رسید؛ نتیجه را در «شماره‌های من» ببین', true);
+        App.stack.pop(); App.go('num_orders');
+      } else App.toast(err.message || 'خرید انجام نشد', true);
+    } finally { this.busy = false; }
+  },
+
+  /* ── صفحه سفارش و گرفتن خودکار کد ── */
+  title(o, fresh){
+    return o.status === 'completed' ? (fresh ? 'کد رسید' : 'کد رسید') : (NUM_ST[o.status] || ['', '', o.status])[2];
+  },
+  note(o){
+    return { active:'شماره را در سرویس وارد کن و درخواست کد بزن؛ کد همین‌جا می‌آید.',
+      completed:'کد تایید همین پایین است و همیشه در «شماره‌های من» می‌ماند.',
+      refunded:'کدی نیامد و مبلغ به کیف پولت برگشت.',
+      failed:'شماره‌ای صادر نشد و مبلغ به کیف پولت برگشت.',
+      unknown:'جواب سرویس‌دهنده به‌موقع نرسید. نگران نباش: یا کد برایت می‌آید یا مبلغ کامل برمی‌گردد.',
+      pending:'سفارش در حال انجام است.' }[o.status] || '';
+  },
+  field(label, value, cls){
+    return `<div class="nmo-f${cls ? ' ' + cls : ''}"><span class="nmo-k">${label}</span><span class="nmo-v n${cls === 'code' ? ' nmo-code' : ''}" dir="ltr">${esc(value)}</span>
+      <button class="ai-f-b" onclick="App.copy(${esc(JSON.stringify(value))})" aria-label="${esc(I18N.t('کپی'))}">${ic('copy')}</button></div>`;
+  },
+  orderPage(o, fresh){
+    const st = NUM_ST[o.status] || ['', 'list', o.status], active = o.status === 'active';
+    const rows = [['سرویس', `<span class="ai-lat">${esc(o.service)}</span>`], ['کشور', `${o.flag} ${esc(o.country)}`],
+      ['کد پیگیری', `<span class="n">${esc(o.code)}</span>`], ['مبلغ', `${N(fa(o.price))} <span>تومان</span>`], ['تاریخ', N(jfull(o.created_at))]];
+    return Top('شماره مجازی', `<span class="n">${esc(o.code)}</span>`) + `
+      <div class="ai-st ${st[0]}">
+        <div class="ai-st-h"><span class="ai-st-i">${ic(st[1], 2.4)}</span>
+          <div style="min-width:0"><div class="ai-st-t">${esc(I18N.t(this.title(o, fresh)))}</div><div class="ai-st-c ai-lat">${esc(o.service)} · ${o.flag} ${esc(o.country)}</div></div></div>
+        <div class="ai-st-s">${this.note(o)}</div>
+        ${o.phone ? this.field('شماره', o.phone) : ''}
+        ${o.sms_code ? this.field('کد تایید', o.sms_code, 'code') : ''}
+        ${active ? `<div class="nmo-wait"><span class="ai-orb sm">${ic('clock', 2)}</span><span>در انتظار کد…</span><b class="n" id="nmo-left"></b></div>
+          <div class="nmo-act"><button class="btn btn-p" id="nmo-chk" onclick="Num.check(${o.id})">${ic('refresh', 2)}بررسی کد</button>
+            <button class="btn btn-s" onclick="Num.cancelAsk(${o.id})">لغو و برگشت پول</button></div>` : ''}
+      </div>
+      ${fresh ? `<div class="ai-sent">${ic('chat', 2)}<span>یک نسخه در چت ربات هم برایت فرستاده شد؛ کد آنجا هم می‌آید.</span></div>` : ''}
+      ${o.sms_text && o.sms_text !== o.sms_code ? Sec('متن پیامک') + `<div class="card mx"><div class="ai-guide" dir="auto">${esc(o.sms_text)}</div></div>` : ''}
+      ${Sec('جزئیات سفارش')}${KV(rows)}
+      ${Sec('کارها')}${Group(
+        Row({ kind:'help', icon:'chat', title:'مشکلی داری؟', sub:'به پشتیبانی بگو؛ کد سفارش خودکار نوشته می‌شود', fn:`Num.support(${esc(JSON.stringify(o.code))})` })
+        + (o.service_id ? Row({ kind:'number', icon:'refresh', title:'شماره‌ای دیگر', sub:o.service, fn:`Num.pick(${esc(JSON.stringify(o.service_id))})` }) : ''))}`;
+  },
+  support(code){
+    App.go('compose');
+    const t = $('tk-body');
+    if (t) { t.value = I18N.t('شماره مجازی') + ' ' + code + '\n'; try { Compose.count(t); } catch(e){} t.focus(); }
+  },
+  /* هر ثانیه شمارش معکوس؛ هر ۵ ثانیه پرسیدن از سرور. با رفتن از صفحه خودش تمام می شود. */
+  watch(){
+    this.stop();
+    let n = 0;
+    this.tick = setInterval(() => {
+      const top = App.stack[App.stack.length - 1];
+      if (!top || top[0] !== 'num_order' || !this.o || this.o.status !== 'active') return this.stop();
+      this.left = Math.max(0, this.left - 1); this.paintLeft();
+      if (++n >= 5) { n = 0; this.refresh(true); }
+    }, 1000);
+    this.paintLeft();
+  },
+  stop(){ if (this.tick) clearInterval(this.tick); this.tick = null; },
+  paintLeft(){
+    const el = $('nmo-left'); if (el) el.textContent = Math.floor(this.left / 60) + ':' + String(this.left % 60).padStart(2, '0');
+  },
+  async refresh(silent){
+    if (this.polling || !this.o) return;
+    this.polling = true;
+    const id = this.o.id;
+    try {
+      const r = await api('numbers/order?id=' + id), was = this.o.status;
+      const top = App.stack[App.stack.length - 1]; if (!top || top[0] !== 'num_order' || this.o.id !== id) return;
+      this.o = r.order; this.left = r.order.left; App.setBalance(r.balance);
+      if (r.order.status !== was) {
+        const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(r.order);
+        if (r.order.status === 'active') this.watch(); else this.stop();
+        App.notify(r.order.status === 'completed' ? 'success' : 'warning');
+        App.toast(r.order.status === 'completed' ? 'کد رسید' : r.order.status === 'refunded' ? 'کدی نیامد؛ مبلغ به کیف پولت برگشت' : 'وضعیت عوض شد');
+      } else if (!silent) App.toast('هنوز کدی نیامده؛ چند ثانیه دیگر دوباره بزن');
+    } catch (err) { if (!silent) App.toast(err.message, true); }
+    finally { this.polling = false; }
+  },
+  async check(id){
+    const b = $('nmo-chk'); if (b) b.disabled = true;
+    App.haptic();
+    await this.refresh(false);
+    const b2 = $('nmo-chk'); if (b2) b2.disabled = false;
+  },
+  cancelAsk(id){
+    App.sheet(`<div class="sheet-t">لغو شماره و برگشت پول؟</div>
+      <div class="short" style="margin:8px 0 16px;text-align:start">اگر کد همین حالا رسیده باشد لغو نمی‌شود و کد را نشانت می‌دهیم.</div>
+      <button class="btn btn-s btn-block" style="height:50px" onclick="Num.cancel(${id})">بله، لغو کن</button>
+      <button class="btn btn-p btn-block" style="height:50px;margin-top:10px" onclick="App.closeSheet()">نه، منتظر می‌مانم</button>`);
+  },
+  async cancel(id){
+    App.closeSheet();
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      const r = await api('numbers/cancel', { id });
+      App.setBalance(r.balance); this.o = r.order; this.left = r.order.left; this.d = null;
+      const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(r.order);
+      if (r.order.status === 'active') this.watch(); else this.stop();
+      App.notify('success');
+      App.toast(r.order.status === 'refunded' ? 'لغو شد؛ مبلغ به کیف پولت برگشت' : r.order.status === 'completed' ? 'کد رسیده بود؛ لغو نشد' : 'وضعیت عوض شد');
+    } catch (err) { App.notify('error'); App.toast(err.message, true); }
+    finally { this.busy = false; }
+  },
+};
+
+SubPages.num_svc = async function(p, sid){
+  p.innerHTML = Top('شماره مجازی') + skel(1, 56) + skel(5, 64);
+  try {
+    const d = await api('numbers/countries?service=' + encodeURIComponent(sid));
+    Num.c = { sid, d };
+    App.setBalance(d.balance);
+    p.innerHTML = Top(d.service || 'شماره مجازی', 'کشور شماره را انتخاب کن؛ ارزان‌ترین اول')
+      + '<div class="gap" style="height:8px"></div>'
+      + (d.items.length
+        ? Group(d.items.map(c => `<button class="row nm-row" onclick="Num.confirm(${esc(JSON.stringify(sid))}, ${esc(JSON.stringify(c.cc))})"><span class="nm-flag">${c.flag}</span>
+            <span class="row-m"><span class="row-t">${esc(c.title)}</span><span class="row-s">یک کد تایید · تا ۲۰ دقیقه</span></span>
+            <span class="row-e">${N(fa(c.price))} <span class="lbl">تومان</span></span><span class="chev">${ic('chev', 2)}</span></button>`).join(''))
+        : emptyBox('فعلا شماره‌ای نیست', 'کمی بعد دوباره سر بزن.'));
+  } catch (err) { p.innerHTML = Top('شماره مجازی') + emptyBox('کشورها خوانده نشد', err.message); }
+};
+SubPages.num_order = async function(p, a){
+  const id = a && typeof a === 'object' ? a.id : a;
+  Num.stop();
+  p.innerHTML = Top('شماره مجازی') + skel(1, 240) + skel(1, 180);
+  try {
+    const o = (a && a.order) || (await api('numbers/order?id=' + id)).order;
+    Num.o = o; Num.left = o.left;
+    p.innerHTML = Num.orderPage(o, a && a.fresh);
+    if (a && a.fresh) a.fresh = false;
+    if (o.status === 'active') Num.watch();
+  } catch (err) { p.innerHTML = Top('شماره مجازی') + emptyBox('سفارش خوانده نشد', err.message); }
+};
+SubPages.num_orders = async function(p){
+  p.innerHTML = Top('شماره‌های من') + skel(4, 64);
+  try {
+    const d = Num.d = await api('numbers');
+    p.innerHTML = Top('شماره‌های من', 'کد هر شماره همیشه اینجا می‌ماند') + '<div class="gap" style="height:8px"></div>'
+      + (d.orders.length ? Group(d.orders.map(o => Num.orderRow(o)).join('')) : emptyBox('هنوز شماره‌ای نگرفتی', 'از «شماره مجازی» اولین شمارت را بگیر.'));
+  } catch (err) { p.innerHTML = Top('شماره‌های من') + emptyBox('شماره‌ها خوانده نشد', err.message); }
+};
+['num_svc', 'num_order'].forEach(k => SubPages[k].noNav = true);
+Object.entries({
+  'منتظر کد':'Waiting for code', 'کد رسید':'Code received', 'پولت برگشت':'Refunded', 'ناموفق':'Failed', 'در حال بررسی':'Under review', 'در حال انجام':'In progress',
+  'پرطرفدار':'Popular', 'جستجوی سرویس؛ مثلا تلگرام':'Search a service, e.g. Telegram', 'کشور':'countries', 'همه':'All',
+  'شماره‌های قبلی':'Previous numbers', 'شماره‌های من':'My numbers',
+  'سرویس‌دهنده الان جواب نمی‌دهد؛ کمی بعد دوباره سر بزن.':'The provider isn’t responding right now; check back in a moment.',
+  'سرویس و کشور را انتخاب کن؛ ارزان‌ترین کشورها اول می‌آیند':'Pick a service and country; the cheapest countries come first',
+  'مبلغ از کیف پول کم می‌شود و شماره همان لحظه نشان داده می‌شود':'The amount is taken from your wallet and the number appears instantly',
+  'کد تایید همین‌جا و در ربات می‌آید؛ اگر نیامد، پولت برمی‌گردد':'The verification code arrives here and in the bot; if it doesn’t, you’re refunded',
+  'قیمت، زمان انتظار کد و برگشت وجه':'Pricing, code wait time and refunds',
+  'سرویسی پیدا نشد':'No service found', 'اسم دیگری را امتحان کن.':'Try another name.',
+  'کشور شماره را انتخاب کن؛ ارزان‌ترین اول':'Pick the number’s country; cheapest first', 'یک کد تایید · تا ۲۰ دقیقه':'One verification code · up to 20 min',
+  'فعلا شماره‌ای نیست':'No numbers right now', 'کشورها خوانده نشد':'Couldn’t load countries',
+  'تایید خرید شماره':'Confirm number purchase', 'سرویس':'Service', 'کد تا ۲۰ دقیقه می‌رسد. نیامد، پولت برمی‌گردد؛ خودت هم هر وقت خواستی لغو می‌کنی.':'The code arrives within 20 minutes. If it doesn’t, you’re refunded; you can also cancel any time.',
+  'تومان کم داری؛ شارژ کن':'toman short; top up', 'پرداخت و گرفتن شماره':'Pay and get the number', 'شماره یک‌بار مصرف است':'The number is single-use',
+  'در حال گرفتن شماره…':'Getting your number…', 'ممکن است تا نیم دقیقه طول بکشد؛ این صفحه را نبند.':'It can take up to 30 seconds; don’t close this page.',
+  'جواب دیر رسید؛ نتیجه را در «شماره‌های من» ببین':'The reply was late; check the result in “My numbers”',
+  'شماره را در سرویس وارد کن و درخواست کد بزن؛ کد همین‌جا می‌آید.':'Enter the number in the service and request the code; it will appear here.',
+  'کد تایید همین پایین است و همیشه در «شماره‌های من» می‌ماند.':'Your code is right below and always stays in “My numbers”.',
+  'کدی نیامد و مبلغ به کیف پولت برگشت.':'No code arrived and the amount went back to your wallet.',
+  'شماره‌ای صادر نشد و مبلغ به کیف پولت برگشت.':'No number was issued and the amount went back to your wallet.',
+  'جواب سرویس‌دهنده به‌موقع نرسید. نگران نباش: یا کد برایت می‌آید یا مبلغ کامل برمی‌گردد.':'The provider didn’t reply in time. Don’t worry: either your code arrives or you’re fully refunded.',
+  'سفارش در حال انجام است.':'Your order is in progress.', 'شماره':'Number', 'کد تایید':'Verification code', 'در انتظار کد…':'Waiting for the code…',
+  'بررسی کد':'Check code', 'لغو و برگشت پول':'Cancel & refund', 'متن پیامک':'SMS text', 'شماره‌ای دیگر':'Another number',
+  'یک نسخه در چت ربات هم برایت فرستاده شد؛ کد آنجا هم می‌آید.':'A copy was also sent to your bot chat; the code will arrive there too.',
+  'کدی نیامد؛ مبلغ به کیف پولت برگشت':'No code arrived; the amount went back to your wallet', 'وضعیت عوض شد':'Status changed',
+  'هنوز کدی نیامده؛ چند ثانیه دیگر دوباره بزن':'No code yet; try again in a few seconds',
+  'لغو شماره و برگشت پول؟':'Cancel the number and refund?',
+  'اگر کد همین حالا رسیده باشد لغو نمی‌شود و کد را نشانت می‌دهیم.':'If the code has just arrived it can’t be cancelled and we’ll show you the code.',
+  'بله، لغو کن':'Yes, cancel', 'نه، منتظر می‌مانم':'No, I’ll wait', 'لغو شد؛ مبلغ به کیف پولت برگشت':'Cancelled; the amount went back to your wallet',
+  'کد رسیده بود؛ لغو نشد':'The code had arrived; not cancelled', 'کد هر شماره همیشه اینجا می‌ماند':'Each number’s code always stays here',
+  'هنوز شماره‌ای نگرفتی':'You haven’t got a number yet', 'از «شماره مجازی» اولین شمارت را بگیر.':'Get your first one from “Virtual numbers”.',
+  'شماره مجازی':'Virtual numbers', 'خرید شماره مجازی':'Virtual number purchase', 'شماره‌ها خوانده نشد':'Couldn’t load numbers', 'سفارش خوانده نشد':'Couldn’t load the order',
+  'شماره‌ای صادر نشد؛ پولت به کیف پول برگشت':'No number was issued; your money went back to your wallet',
+  'برای این سرویس و کشور الان شماره‌ای نیست؛ پولی کم نشد':'There’s no number for this service and country right now; you weren’t charged',
+  'الان نمی‌شه لغو کرد؛ کمی بعد دوباره امتحان کن':'It can’t be cancelled right now; try again in a moment',
+  'ارتباط با سرویس دهنده برقرار نشد؛ پولی کم نشد':'Couldn’t reach the provider; you weren’t charged',
+}).forEach(([k, v]) => { const n = I18N.norm(k); if (!(n in L10N.en)) L10N.en[n] = v; });
 
 const Visa = {
   on:null,
