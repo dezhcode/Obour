@@ -37,7 +37,22 @@ def _b64(s: str) -> str:
     return s.strip().replace("-", "+").replace("_", "/")
 
 
-def _payload_text(b64: str | None) -> str:
+# شکل payloadها از تست واقعی (MARKETAPP_FA.md):
+#   سفارش TON: op + امضای ۵۱۲ بیتی MarketApp؛ ref = آدرس پرداخت Fragment + مبلغی که به آن می رسد +
+#   ref کامنت Fragment («Telegram Premium for 3 months \n\nRef#...»). باقی مانده کارمزد MarketApp است.
+#   سفارش USDT: انتقال جتون استاندارد از کیف پول جتون حساب MarketApp به قرارداد MarketApp.
+OP_MARKETAPP_ORDER = 0x3F2B92D2
+OP_JETTON_TRANSFER = 0x0F8A7EA5
+
+
+def _comments(cell: Cell) -> list[str]:
+    out = [t] if (t := read_comment(cell)) is not None else []
+    for r in cell.refs:
+        out += _comments(r)
+    return out
+
+
+def _payload_text(b64: str | None, amount: int = 0) -> str:
     if not b64:
         return "-"
     try:
@@ -48,8 +63,25 @@ def _payload_text(b64: str | None) -> str:
     if text is not None:
         return f"comment={text!r}"
     bits = cell.bits
-    op = f"0x{int(bits[:32], 2):08x}" if len(bits) >= 32 else "-"
-    return f"op={op} bits={len(bits)} refs={len(cell.refs)}"
+    op = int(bits[:32], 2) if len(bits) >= 32 else None
+    try:
+        if op == OP_MARKETAPP_ORDER and cell.refs:
+            s = cell.refs[0].slice()
+            dst, fwd = s.address(), s.coins()
+            fee = f"{(amount - fwd) / amount * 100:.2f}%" if amount else "-"
+            return (f"marketapp-order fragment={dst.friendly(bounceable=True) if dst else '-'} "
+                    f"forward={fwd / NANO:.9f} fee={fee} comment={_comments(cell)!r}")
+        if op == OP_JETTON_TRANSFER:
+            s = cell.slice()
+            s.uint(32), s.uint(64)
+            amt, dst, resp = s.coins(), s.address(), s.address()
+            s.bit()
+            fwd = s.coins()
+            return (f"jetton-transfer amount={amt / 1e6:g} (USDT=6 decimals) to={dst.friendly(bounceable=True) if dst else '-'} "
+                    f"response={resp.friendly() if resp else '-'} forward_ton={fwd / NANO:g} comment={_comments(cell)!r}")
+    except (TonError, IndexError, ValueError):
+        pass
+    return f"op={f'0x{op:08x}' if op is not None else '-'} bits={len(bits)} refs={len(cell.refs)}"
 
 
 def _price(p: dict | None) -> float | None:
@@ -150,7 +182,7 @@ class Check:
             amt = int(m.get("amount") or 0)
             total += amt
             self.out(f"      msg{i}: to={m.get('address')} amount={amt / NANO:.9f} "
-                     f"{_payload_text(m.get('payload'))} stateInit={'yes' if m.get('stateInit') else 'no'}")
+                     f"{_payload_text(m.get('payload'), amt)} stateInit={'yes' if m.get('stateInit') else 'no'}")
         left = int(tx.get("validUntil") or 0) - int(time.time())
         line = f"      total={total / NANO:.9f} · validUntil in {left}s · messages={len(msgs)}"
         if quote:
