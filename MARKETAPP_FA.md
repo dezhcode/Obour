@@ -19,6 +19,15 @@
 MARKETAPP_TOKEN=... python check_marketapp.py --user YOUR_USERNAME [--channel CHANNEL] [--ads LINK] [--json]
 ```
 
+یا از مرورگر (کل گزارش به صورت یک فایل `.txt` دانلود می‌شود):
+
+```
+https://dezhcode.pyho.ir/obour/marketapp-check?key=ADMIN_KEY&user=USERNAME&channel=CHANNEL
+```
+
+توکن از `MARKETAPP_TOKEN` در `.env` هاست؛ اگر نبود از پارامتر `mt=` (در access log هاست می‌ماند، پس فقط
+برای توکن موقت). بدون `user` یوزرنیم اولین ادمین (`ADMIN_IDS`) استفاده می‌شود.
+
 همه endpointهای Fragment، بازار و اجاره را با داده واقعی صدا می‌زند. تراکنش‌های خرید را فقط باز می‌کند
 (مقصد، مبلغ، کامنت، اختلاف با قیمت اعلام شده) و **هیچ چیزی امضا یا ارسال نمی‌کند**. توکن چاپ نمی‌شود.
 
