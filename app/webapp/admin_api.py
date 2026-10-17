@@ -554,8 +554,12 @@ async def ai_order_full(db: "Database", panel: "Panel | None", wuser: WebAppUser
     if not o:
         raise ApiError("سفارش پیدا نشد", 404, "not_found")
     u = await db.get_user(o["user_id"]) or {}
+    from app.services import ai_shop
+
     return {**_ai_order_out(o, full=True), "user": _who(u), "error": o.get("error") or "",
-            "cost": o.get("usd_cost"), "cost_currency": norm_currency(o.get("cost_currency") or "USDT")}
+            "cost": o.get("usd_cost"), "cost_currency": norm_currency(o.get("cost_currency") or "USDT"),
+            # پاسخ خام فروشنده (فقط ادمین): اگر لینک جایی آمد که ربات نشناخت
+            "provider_raw": str(ai_shop.delivery_of(o).get("provider_raw") or "")[:3500]}
 
 
 async def purchases(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,

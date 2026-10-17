@@ -340,11 +340,13 @@ def ai_shop_kb(items: list[dict] | None = None, back: str = "buy") -> InlineKeyb
     return kb.as_markup()
 
 
-def ai_track_kb(order_id: int, has_provider_code: bool = False) -> InlineKeyboardMarkup:
+def ai_track_kb(order_id: int, has_provider_code: bool = False, refetch: bool = False) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
+    if refetch:
+        _btn(kb, "relink", "دریافت دوباره لینک", style=PRIMARY, callback_data=f"ai:rf:{order_id}")
     _btn(kb, "history", "سفارش های من", callback_data="ai:mine")
     _btn(kb, "back", "منوی اصلی", callback_data="menu")
-    kb.adjust(2)
+    kb.adjust(1, 2) if refetch else kb.adjust(2)
     return kb.as_markup()
 
 
@@ -406,7 +408,10 @@ def admin_ai_unknown_kb(rows: list[dict]) -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     sizes: list[int] = []
     for o in rows[:10]:
-        if ai_shop.can_retry(o):
+        if ai_shop.can_refetch(o):
+            _add(kb, f"🔗 دریافت دوباره لینک {o['code']}", callback_data=f"adm:ai:rs:{o['id']}")
+            sizes.append(1)
+        elif ai_shop.can_retry(o):
             _add(kb, f"🔄 بررسی دوباره {o['code']}", callback_data=f"adm:ai:rs:{o['id']}")
             sizes.append(1)
         else:
@@ -424,6 +429,16 @@ def admin_ai_settle_kb(order_id: int, refund: bool) -> InlineKeyboardMarkup:
          callback_data=f"adm:ai:{'rfy' if refund else 'dny'}:{order_id}")
     _add(kb, "🔙 انصراف", callback_data="adm:ai:unknown")
     kb.adjust(1)
+    return kb.as_markup()
+
+
+def ai_orders_kb(waiting: list[dict]) -> InlineKeyboardMarkup:
+    """«سفارش های من»: برای سفارش های در انتظار فروشنده، دکمه دریافت دوباره."""
+    kb = InlineKeyboardBuilder()
+    for o in waiting[:5]:
+        _btn(kb, "relink", _t("دریافت دوباره") + f" {o['code']}", callback_data=f"ai:rf:{o['id']}")
+    kb.adjust(1)
+    kb.attach(InlineKeyboardBuilder.from_markup(back_to_shop_kb()))
     return kb.as_markup()
 
 
