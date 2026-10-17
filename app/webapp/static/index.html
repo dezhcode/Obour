@@ -34,6 +34,8 @@
   --cash:#E09A1F; --cash-t:#FCEFD3; --cash-i:#7A4A00;
   --ai:#6A55E0; --ai-t:#E7E3FC; --ai-i:#3F2DA6;
   --help:#E0573E; --help-t:#FCE4DE; --help-i:#9B2F1B;
+  /* پرمیوم و استارز تلگرام. --tgs زیر متن سفید 6.9:1 */
+  --tgs:#0E5A9E; --tgs-t:#DCEEFB; --tgs-i:#0B4A7A;
   --ok:#0B7A55; --warn:#8A5D00; --bad:#C0392B;
   --nav-bg:#0A1633; --nav-icon:#9AAACB; --nav-on:#EDF1F8;
   --shadow-pass:0 18px 34px -18px rgba(10,37,114,.55);
@@ -468,6 +470,59 @@ html.perf-low #store-box{will-change:auto}
 .nmo-k{font-size:11.5px;color:var(--ink-3);font-weight:700;flex-shrink:0}
 .nmo-v{flex-grow:1;min-width:0;font-size:18px;font-weight:800;text-align:start;overflow-wrap:anywhere}
 .nmo-code{font-size:28px;letter-spacing:4px}
+/* پرمیوم و استارز تلگرام: کارت ویترین، گیرنده، بسته های استارز */
+.ic.tgs{background:var(--tgs-t);color:var(--tgs-i)}
+.cg-t.tgs{background:radial-gradient(circle at 0% 100%,rgba(70,225,244,.26),transparent 58%),radial-gradient(rgba(255,255,255,.16) 1.2px,transparent 1.5px) 0 0/12px 12px,var(--cg)}
+.cg-tags{margin-inline-start:auto;display:flex;gap:6px;flex-shrink:0}
+.cg-tags .cg-c{margin-inline-start:0}
+.cg-new{height:24px;padding:0 9px;border-radius:999px;background:var(--tunnel);color:var(--deep);font-size:11px;font-weight:800;display:flex;align-items:center}
+.tgv{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2.5px var(--cg)}
+.tgv + .tgv{margin-inline-start:-9px}
+.tgv svg{width:17px;height:17px;fill:currentColor}
+.tgv.prem{background:radial-gradient(circle at 30% 25%,#6E9BFF,#6B46DB 60%,#4A23A8);color:#fff}
+.tgv.stars{background:radial-gradient(circle at 30% 25%,#FFE08A,#F6B53A 60%,#E08D12);color:#fff}
+.tgv.stars svg{stroke:#8A5200}
+.dh-tgs{background:radial-gradient(120% 90% at 0% 0%,#2B9BE6 0%,#0F5FA6 52%,#072F5C 100%)}
+.tk.tgs .tk-vol{color:var(--tgs-i)}
+.tk.tgs:not(.best) .tk-buy{background:var(--tgs)}
+.tk.tgs:not(.best) .tk-buy:active{background:#0B4A85}
+.tg-note{margin:10px var(--pad) 0;text-align:start;line-height:1.8}
+.tg-rcp{display:flex;align-items:center;gap:10px;width:calc(100% - 2 * var(--pad));margin:12px var(--pad) 0;padding:10px 12px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);text-align:start}
+.tg-rcp.bad{border-color:var(--bad)}
+.tg-av{width:38px;height:38px;border-radius:19px;background:var(--tgs-t);color:var(--tgs-i);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0;overflow:hidden}
+.tg-av img{width:100%;height:100%;object-fit:cover}
+.tg-av svg{width:19px;height:19px}
+.tg-u{font-size:12.5px;font-weight:600;color:var(--ink-3)}
+.tg-st{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;flex-shrink:0;color:var(--ink-3)}
+.tg-st svg{width:14px;height:14px}
+.tg-st.ok{color:var(--ok)} .tg-st.bad{color:var(--bad)}
+.tg-ch{height:32px;padding:0 10px;border-radius:10px;border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--ink);display:flex;align-items:center;flex-shrink:0}
+.tg-err{margin:6px var(--pad) 0;font-size:12px;line-height:1.8;color:var(--bad)}
+.tg-packs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px var(--pad) 0}
+.tg-pk{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:var(--r-lg);background:var(--surface);border:1.5px solid var(--line);color:var(--ink);transition:transform .15s var(--ease)}
+.tg-pk:active{transform:scale(.96);border-color:var(--brand)}
+.tg-pk-q{display:flex;align-items:center;gap:4px;font-size:18px}
+.tg-pk-q svg{width:16px;height:16px;fill:#F2A516;stroke:#B8740A;stroke-width:1}
+.tg-pk-p{font-size:11px;color:var(--ink-3)} .tg-pk-p .n{font-size:11.5px;color:var(--ink-2)}
+.tg-custom{display:flex;gap:8px;align-items:center;margin:10px var(--pad) 0}
+.tg-custom input{flex-grow:1;min-width:0;height:46px;padding:0 14px;border-radius:var(--r-md);border:1px dashed var(--line);background:var(--surface);font:inherit;font-size:14px;color:var(--ink);outline:none}
+.tg-custom input:focus{border-style:solid;border-color:var(--brand)}
+.tg-in{display:flex;align-items:center;gap:6px;height:50px;margin-top:14px;padding:0 14px;border-radius:var(--r-md);background:var(--sunk);direction:ltr}
+.tg-in span{font-size:16px;font-weight:800;color:var(--ink-3)}
+.tg-in input{flex-grow:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:16px;font-weight:600;color:var(--ink);direction:ltr}
+.tg-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tg-chip{height:32px;padding:0 12px;border-radius:16px;border:1px solid var(--line);background:var(--surface);font-size:12.5px;font-weight:700;color:var(--ink-2);display:flex;align-items:center;gap:5px}
+.tg-chip svg{width:15px;height:15px}
+.tg-chip.on{border-color:var(--brand);color:var(--brand)}
+.tg-tag{height:22px;padding:0 8px;border-radius:11px;background:var(--ai-t);color:var(--ai-i);font-size:10.5px;font-weight:800;display:flex;align-items:center;flex-shrink:0}
+.tg-steps{display:flex;flex-direction:column;gap:10px;margin-top:14px;padding:12px 14px;border-radius:var(--r-lg);background:var(--ground)}
+.tg-step{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;text-align:start}
+.tg-step i{width:22px;height:22px;border-radius:11px;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tg-step i svg{width:12px;height:12px}
+.tg-step.skip{color:var(--ink-3)} .tg-step.skip i{background:var(--line);color:var(--ink-2)}
+.ai-orb.tg-done{background:var(--ai-t);color:var(--ai-i)}
+.ai-orb.tg-done::after{display:none}
+.ai-orb.tg-done svg{animation:none}
 .nmo-wait{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--ink-2);font-weight:700}
 .nmo-wait b{margin-inline-start:auto;font-size:15px;color:var(--ink)}
 .nmo-wait .ai-orb.sm{width:30px;height:30px;margin:0;border-radius:15px}
@@ -1661,7 +1716,7 @@ const App = {
       case 'guide': this.go('guide'); break;
       case 'rules': this.go('rules'); break;
       case 'assist': if (aiOn('support')) Assist.open(arg === 'fix' ? 'fix' : 'chat'); break;
-      case 'store': Store.kind = ['ai', 'vpn', 'number', 'work', 'fun', 'tools'].includes(arg) ? arg : null; this.tab('store'); break;
+      case 'store': Store.kind = ['ai', 'vpn', 'number', 'tg', 'work', 'fun', 'tools'].includes(arg) ? arg : null; this.tab('store'); break;
       case 'services': this.tab('home'); break;
       case 'visa': this.go('visa'); break;
       case 'numbers': Store.kind = 'number'; this.tab('store'); break;
@@ -2051,12 +2106,13 @@ const SHOP_CATS = {
   fun:  ['play',  'fun',   'سرگرمی',      'فیلم، موسیقی و ویدیو'],
   tools:['tool',  'tools', 'ابزار',        'آموزش، ایمیل و بیشتر'],
   number:['phone','number','شماره مجازی',  'کد تایید تلگرام، واتساپ و سایت‌ها'],
+  tg:   ['send',  'tgs',   'تلگرام پرمیوم و استارز', 'برای خودت یا هدیه، تحویل خودکار'],
 };
 /* ریل بخش های فروشگاه: هر بخش یک دکمه کوچک با آیکون و تعداد. شماره مجازی
    پیش نمایش است و همین جا باز می شود؛ ویزا کارت صفحه جدای خودش را دارد. */
 function Depts(active, counts){
   const f = App.boot.features, vpnOn = f.shop_vpn !== false, aiOn = f.shop_ai;
-  const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : k === 'number' ? true : aiOn && (!counts || counts[k] || k === active));
+  const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : k === 'number' ? true : k === 'tg' ? TG.ready : aiOn && (!counts || counts[k] || k === active));
   Store.keys = keys;
   const sub = k => k === 'vpn' ? 'کانفیگ' : k === 'number' ? (Num.ready ? 'کد تایید' : 'پیش‌نمایش') : counts ? fa(counts[k] || 0) + ' محصول' : '…';
   return `<div class="dept" id="dept">${keys.map(k => `<button class="dept-b${k === active ? ' on' : ''}" data-k="${k}" onclick="Store.to('${k}')">
@@ -2066,7 +2122,7 @@ function Depts(active, counts){
 /* ویترین فروشگاه: هر بخش یک کارت عبور کوچک با بافت نقطه ای و پیش نمایش
    محتوایش (کشورهای اینترنت آزاد، نشان چند محصول پرفروش). زدن هر کارت همان
    بخش را باز می کند؛ شماره مجازی و ویزا کارت پیش نمایش اند. */
-const CG_COLOR = { vpn:'var(--navy)', ai:'var(--indigo)', work:'var(--ocean)', fun:'var(--ember)', tools:'#1E2A4A' };
+const CG_COLOR = { vpn:'var(--navy)', ai:'var(--indigo)', work:'var(--ocean)', fun:'var(--ember)', tools:'#1E2A4A', tg:'var(--tgs)' };
 /* «N فروش موفق · M خریدار» زیر هر پلن و محصول */
 function SalesLine(sold, buyers){
   if (!sold) return '';
@@ -2099,6 +2155,7 @@ function CatGrid(){
     }
     html += tiles.map(([k, inner], i) => `<button class="cg-t${tiles.length % 2 && i === tiles.length - 1 ? ' span' : ''}" style="--cg:${CG_COLOR[k]}" onclick="Store.open('${k}')">${inner}</button>`).join('');
   }
+  if (f.shop_telegram !== false && TG.ready) html += TG.tile();
   return `<div class="cg">${html}</div>
     <div class="cg-soon">
       <button class="cg-sn" onclick="Store.open('number')">${ic('phone')}<span><b>شماره مجازی</b><small>${Num.ready ? 'کد تایید' : 'به‌زودی'}</small></span></button>
@@ -2340,7 +2397,7 @@ async store(p){
         <button class="sh-bal" onclick="App.go('topup')" aria-label="${esc(I18N.t('شارژ کیف پول'))}">${ic('wallet')}<span class="n" data-bal>${fa(App.boot.user.balance)}</span></button></div>
       <div id="sh-res"></div>`;
   if (Store.kind == null) return Store.landing(p, head);
-  if (!ai && Store.kind !== 'number') Store.kind = 'vpn';
+  if (!ai && Store.kind !== 'number' && Store.kind !== 'tg') Store.kind = 'vpn';
   if (f.shop_vpn === false && Store.kind === 'vpn') Store.kind = ai ? 'ai' : 'number';
   /* صفحه هر بخش فقط همان بخش را دارد؛ برگشت (دکمه بالا یا برگشت تلگرام) به ویترین */
   const t = SHOP_CATS[Store.kind] || SHOP_CATS.vpn;
@@ -2441,6 +2498,7 @@ const Store = {
     const jobs = [];
     if (f.shop_vpn !== false && !this.data) jobs.push(api('plans').then(d => { this.data = d; }).catch(() => {}));
     if (f.shop_ai && !AI.d) jobs.push(api('ai').then(d => { AI.d = d; this._aiFail = false; if (d.balance != null) App.setBalance(d.balance); }).catch(() => { this._aiFail = true; }));
+    if (f.shop_telegram !== false && TG.ready && !TG.d) jobs.push(TG.load().catch(() => {}));
     if (!jobs.length) return;
     await Promise.all(jobs);
     const box = $('cg-box'); if (box && this.kind == null) box.innerHTML = CatGrid();
@@ -2449,7 +2507,7 @@ const Store = {
   home(){ this.kind = null; App.haptic(); App.tab('store'); },
 
   keys:[],
-  load(){ return this.kind === 'vpn' ? this.loadVpn() : this.kind === 'number' ? this.loadNumbers() : this.loadAi(); },
+  load(){ return this.kind === 'vpn' ? this.loadVpn() : this.kind === 'number' ? this.loadNumbers() : this.kind === 'tg' ? TG.render() : this.loadAi(); },
   centerDept(smooth){
     const b = document.querySelector(`#dept .dept-b[data-k="${this.kind}"]`);
     if (b) try { b.scrollIntoView({ inline:'center', block:'nearest', behavior: smooth ? 'smooth' : 'auto' }); } catch(e){}
@@ -4943,6 +5001,189 @@ const NUM_HUES = ['#2F6BEA', '#C2408A', '#1A8F45', '#C15F3C', '#7D2AE8', '#1F7A8
 const numNorm = t => String(t || '').toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/[\s\u200c\-_./]/g, '');
 const numHue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return NUM_HUES[h % NUM_HUES.length]; };
 const numMono = name => `<span class="nm-mono" style="--c:${numHue(name)}">${esc(String(name).replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '#')}</span>`;
+/* ═════════ پرمیوم و استارز تلگرام (MarketApp) ═════════
+   قیمت ها و بررسی گیرنده از API واقعی است. تا وقتی d.demo روشن است، خرید
+   نمایشی است: سفارش واقعی از تلگرام ساخته و بررسی می شود ولی پرداخت نمی شود و
+   پولی کم نمی شود؛ هر جا که به خرید می رسد این را به کاربر می گوییم. */
+const TG = {
+  d:null, tab:0, rcp:null, busy:false, pending:null, rq:0,
+  get ready(){ return !!(App.boot && App.boot.telegram && App.boot.telegram.ready); },
+  get demo(){ return this.d ? this.d.demo !== false : !(App.boot && App.boot.telegram && App.boot.telegram.demo === false); },
+  async load(force){ if (!this.d || force) this.d = await api('tg'); return this.d; },
+
+  /* کارت ویترین صفحه اول فروشگاه، هم شکل کارت هوش مصنوعی */
+  tile(){
+    const d = this.d, from = d && d.packs && d.packs.length ? Math.min(...d.packs.map(p => p.price)) : 0;
+    return `<button class="cg-t span tgs" style="--cg:${CG_COLOR.tg}" onclick="Store.open('tg')">
+      <span class="cg-h"><span class="cg-ic">${ic('send')}</span><span class="cg-tags"><span class="cg-new">تازه</span><span class="cg-c">${this.demo ? 'نمایشی' : 'تحویل خودکار'}</span></span></span>
+      <span class="cg-pv"><span class="tgv prem">${ic('star', 1.2)}</span><span class="tgv stars">${ic('star', 1.2)}</span></span>
+      <span class="cg-b"><span class="cg-n">تلگرام پرمیوم و استارز</span><span class="cg-s">${from ? `از ${N(fa(from))} تومان · ` : ''}برای خودت یا هدیه</span></span></button>`;
+  },
+
+  /* ── صفحه بخش ── */
+  async render(){
+    const box = $('store-box'); if (!box || Store.kind !== 'tg') return;
+    try {
+      const d = await this.load(true);
+      if (Store.kind !== 'tg' || !$('store-box')) return;
+      App.setBalance(d.balance);
+      if (!d.ready) return void (box.innerHTML = emptyBox('به‌زودی', 'پرمیوم و استارز تلگرام به‌زودی از همین‌جا.'));
+      if (!this.rcp && d.me) this.rcp = { username:d.me, self:true, state:'idle' };
+      const orders = d.orders.slice(0, 4);
+      box.innerHTML = (d.demo ? `<div class="pv-banner">${ic('eye', 2)}<span>این بخش فعلا نمایشی است: قیمت‌ها و بررسی گیرنده واقعی‌اند، ولی خرید انجام نمی‌شود و هیچ پولی از کیف پولت کم نمی‌شود.</span></div>` : '')
+        + (d.down ? `<div class="pv-banner">${ic('warn', 2)}<span>سرویس‌دهنده الان جواب نمی‌دهد؛ کمی بعد دوباره سر بزن.</span></div>` : '')
+        + `<div class="dh dh-tgs" style="margin-top:0"><span class="dh-art">${ic('star', 1.2)}</span>
+            <div class="dh-t">پرمیوم و استارز تلگرام</div><div class="dh-s">برای خودت یا هدیه به هر یوزرنیم؛ نه رمز می‌خواهیم نه ورود به حساب.</div>
+            <div class="dh-chips"><span class="dh-chip">${ic('bolt', 2)}تحویل خودکار</span><span class="dh-chip">${ic('lock', 2)}بدون ورود به حساب</span><span class="dh-chip">${ic('gift', 2)}هدیه به دوستان</span></div></div>`
+        + `<div id="tg-rcp">${this.rcpCard()}</div>`
+        + `<div style="margin-top:14px">${Tabs('tg-tab', [{ t:'تلگرام پرمیوم', s:fa(d.premium.length) + ' پلن' }, { t:'استارز', s:fa(d.min) + ' تا ' + fa(d.max) }], this.tab, 'TG.pick')}</div>`
+        + `<div id="tg-list">${d.down ? '' : this.list()}</div>`
+        + (orders.length ? Sec('سفارش‌های قبلی') + Group(orders.map(o => `<div class="row"><span class="ic tgs">${ic(o.kind === 'premium' ? 'star' : 'spark')}</span>
+            <span class="row-m"><span class="row-t">${esc(o.title)} <span class="tg-u">→ <bdi dir="ltr">@${esc(o.recipient)}</bdi></span></span><span class="row-s">${N(o.code)} · ${N(fa(o.price))} تومان</span></span>
+            ${o.mode === 'demo' ? '<span class="tg-tag">نمایشی</span>' : ''}</div>`).join('')) : '')
+        + Sec('چطور کار می‌کند؟') + Steps(['یوزرنیم گیرنده را بده؛ اسم حسابش را نشانت می‌دهیم که مطمئن شوی',
+            'پلن پرمیوم یا تعداد استارز را انتخاب کن؛ قیمت همان لحظه از تلگرام گرفته می‌شود',
+            d.demo ? 'فعلا نمایشی: سفارش ساخته و بررسی می‌شود ولی پرداخت نمی‌شود' : 'مبلغ از کیف پول کم می‌شود و چند ثانیه بعد فعال می‌شود'])
+        + '<div class="gap"></div>' + Group(Row({ kind:'tgs', icon:'send', title:'خرید از داخل ربات', sub:'همین بخش در ربات عبور', fn:"App.openBot('tg')" }));
+      if (this.rcp && this.rcp.state === 'idle') this.check();
+    } catch (err) { const b = $('store-box'); if (b && Store.kind === 'tg') b.innerHTML = emptyBox('خوانده نشد', err.message); }
+  },
+  pick(i){
+    if (i === this.tab || !this.d) return;
+    this.tab = i; App.haptic(); slideTabs('tg-tab', i);
+    const el = $('tg-list'); if (el && !this.d.down) el.innerHTML = this.list();
+  },
+  list(){
+    const d = this.d;
+    if (this.tab === 0) {
+      const order = d.premium.slice().sort((a, b) => (b.months === d.best) - (a.months === d.best) || b.months - a.months);
+      return `<div class="tickets">${order.map(p => this.ticket(p, p.months === d.best)).join('')}</div>
+        <div class="short tg-note">اگر گیرنده الان پرمیوم دارد، مدت جدید به آخر اشتراکش اضافه می‌شود.</div>`;
+    }
+    return `<div class="tg-packs">${d.packs.map(p => `<button class="tg-pk" onclick="TG.confirm('stars', ${p.qty})">
+        <span class="tg-pk-q">${ic('star')}${N(fa(p.qty))}</span><span class="tg-pk-p">${N(fa(p.price))} تومان</span></button>`).join('')}</div>
+      <div class="tg-custom"><input id="tg-qty" inputmode="numeric" autocomplete="off" placeholder="${esc(I18N.t('تعداد دلخواه') + ': ' + fa(d.min) + ' – ' + fa(d.max))}"
+        onkeydown="if(event.key==='Enter')TG.custom()"><button class="btn btn-d btn-sm" onclick="TG.custom()">ادامه</button></div>
+      <div class="short tg-note">هر استار حدود ${N(fa(d.per_star))} تومان</div>`;
+  },
+  ticket(p, best){
+    const tag = best ? `<span class="tk-tag best">${ic('spark', 2.4)}بهترین ارزش</span>` : '';
+    return `<div class="tk tgs${best ? ' best' : ''}">${tag}
+      <div class="tk-top"><span class="tk-vol">${N(p.months)}<small>ماه</small></span>
+        <span class="tk-s">تلگرام پرمیوم</span><span class="tk-s">ماهی ${N(fa(p.per_month))} تومان</span></div>
+      <div class="tk-cut"></div>
+      <div class="tk-bot"><span class="tk-p">${N(fa(p.price))}<small>تومان</small></span>
+        <button class="tk-buy" onclick="TG.confirm('premium', ${p.months})">${ic('star', 2)}خرید</button></div></div>`;
+  },
+  custom(){
+    const el = $('tg-qty'), d = this.d; if (!el || !d) return;
+    const n = parseInt(String(el.value || '').replace(/[۰-۹]/g, c => '۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/\D/g, ''), 10);
+    if (!(n >= d.min && n <= d.max)) { App.notify('error'); return App.toast(`تعداد باید بین ${fa(d.min)} تا ${fa(d.max)} باشد`, true); }
+    this.confirm('stars', n);
+  },
+
+  /* ── گیرنده ── */
+  rcpCard(){
+    const r = this.rcp;
+    if (!r) return `<button class="tg-rcp" onclick="TG.edit()"><span class="tg-av">${ic('user', 2)}</span>
+      <span class="row-m"><span class="row-t">گیرنده را انتخاب کن</span><span class="row-s">یوزرنیم تلگرام، مثل @name</span></span><span class="tg-ch">انتخاب</span></button>`;
+    const st = r.state === 'ok' ? `<span class="tg-st ok">${ic('check', 2.6)}پیدا شد</span>`
+      : r.state === 'bad' ? `<span class="tg-st bad">پیدا نشد</span>` : `<span class="tg-st">در حال بررسی…</span>`;
+    const first = esc(String(r.name || r.username || '?').trim().charAt(0).toUpperCase());
+    const av = r.photo ? `<img src="${esc(r.photo)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode(${esc(JSON.stringify(first))}))">` : first;
+    return `<button class="tg-rcp${r.state === 'bad' ? ' bad' : ''}" onclick="TG.edit()"><span class="tg-av">${av}</span>
+      <span class="row-m"><span class="row-s">${r.self ? 'گیرنده: خودت' : 'گیرنده'}</span><span class="row-t">${esc(r.name || r.username)} <bdi class="tg-u" dir="ltr">@${esc(r.username)}</bdi></span></span>
+      ${st}<span class="tg-ch">تغییر</span></button>` + (r.state === 'bad' && r.msg ? `<div class="tg-err">${esc(r.msg)}</div>` : '');
+  },
+  paintRcp(){ const el = $('tg-rcp'); if (el) el.innerHTML = this.rcpCard(); },
+  async check(){
+    const r = this.rcp; if (!r) return;
+    const id = ++this.rq; r.state = 'wait'; this.paintRcp();
+    try {
+      const x = await api('tg/recipient?kind=' + (this.tab ? 'stars' : 'premium') + '&u=' + encodeURIComponent(r.username));
+      if (id !== this.rq || this.rcp !== r) return;
+      Object.assign(r, x.ok ? { state:'ok', name:x.name, photo:x.photo, username:x.username } : { state:'bad', msg:x.message });
+    } catch (err) { if (id !== this.rq || this.rcp !== r) return; Object.assign(r, { state:'bad', msg:err.message }); }
+    if (r.state === 'bad') App.notify('error');
+    this.paintRcp();
+  },
+  edit(){
+    const d = this.d || {}, me = d.me || '', recents = (d.recents || []).filter(x => !me || x.toLowerCase() !== me.toLowerCase());
+    const cur = this.rcp && !this.rcp.self ? this.rcp.username : '';
+    App.sheet(`<div class="sheet-t">برای کی؟</div><div class="topbar-s">یوزرنیم تلگرام گیرنده؛ نه رمز می‌خواهیم نه ورود به حساب</div>
+      <label class="tg-in"><span>@</span><input id="tg-u" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="username" value="${esc(cur)}"
+        onkeydown="if(event.key==='Enter')TG.setRcp(this.value)"></label>
+      <div class="tg-chips">${me ? `<button class="tg-chip${this.rcp && this.rcp.self ? ' on' : ''}" onclick="TG.setRcp(${esc(JSON.stringify(me))}, true)">${ic('user', 2)}برای خودم</button>` : ''}
+        ${recents.map(x => `<button class="tg-chip" dir="ltr" onclick="TG.setRcp(${esc(JSON.stringify(x))})">@${esc(x)}</button>`).join('')}</div>
+      <button class="btn btn-p btn-block" style="margin-top:16px" onclick="TG.setRcp($('tg-u').value)">تایید گیرنده</button>`);
+  },
+  setRcp(u, self){
+    u = String(u || '').trim().replace(/^https?:\/\//, '').replace(/^t\.me\//, '').replace(/^@/, '');
+    if (!/^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(u)) { App.notify('error'); return App.toast('یوزرنیم درست نیست؛ مثل @name', true); }
+    App.closeSheet(); App.haptic();
+    this.rcp = { username:u, self:!!self || (!!this.d && !!this.d.me && u.toLowerCase() === this.d.me.toLowerCase()), state:'idle' };
+    this.check();
+  },
+
+  /* ── تایید و سفارش ── */
+  title(kind, n){ return kind === 'premium' ? `پرمیوم ${fa(n)} ماهه` : `${fa(n)} استارز`; },
+  async confirm(kind, amount){
+    if (this.busy || !this.d) return;
+    const r = this.rcp;
+    if (!r || r.state !== 'ok') {
+      if (r && r.state === 'wait') return App.toast('یک لحظه؛ گیرنده در حال بررسی است');
+      return this.edit();
+    }
+    App.haptic();
+    App.sheet(`<div class="ai-wait"><div class="ai-orb">${ic('star', 2)}</div><div class="sheet-t">قیمت همین لحظه…</div></div>`);
+    let price;
+    try { price = (await api('tg/quote?kind=' + kind + '&n=' + amount)).price; }
+    catch (err) { App.closeSheet(); return App.toast(err.message || 'قیمت گرفته نشد', true); }
+    const bal = App.boot.user.balance, low = bal < price, demo = this.demo, title = this.title(kind, amount);
+    this.pending = { kind, amount };
+    const rows = [['گیرنده', `${esc(r.name || r.username)} <bdi dir="ltr">@${esc(r.username)}</bdi>`], ['بسته', esc(title)],
+      ['قیمت', `${N(fa(price))} <span>تومان</span>`], [low ? 'موجودی' : 'موجودی بعد از خرید', `${N(fa(low ? bal : bal - price))} <span>تومان</span>`]];
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span class="ic lg tgs">${ic(kind === 'premium' ? 'star' : 'spark', 2)}</span>
+        <div><div class="sheet-t">تایید خرید</div><div class="topbar-s">${esc(title)} · ${esc(r.name || r.username)}</div></div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV(rows).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      ${demo ? `<div class="pv-banner" style="margin:12px 0 0">${ic('eye', 2)}<span>خرید نمایشی است: همه مراحل واقعی انجام می‌شود جز پرداخت. هیچ پولی از کیف پولت کم نمی‌شود و ${esc(title)} فعال نمی‌شود.</span></div>`
+             : `<div class="ai-warn" style="margin:12px 0 0">${ic('shield', 2)}<span>اگر خرید انجام نشود، کل مبلغ خودکار به کیف پولت برمی‌گردد.</span></div>`}
+      ${!demo && low ? `<button class="btn btn-p btn-block" style="margin-top:16px;height:54px;font-size:16px" onclick="App.closeSheet();App.go('topup')">${ic('wallet', 2)}<span>${N(money(price - bal))}</span>&nbsp;<span>تومان کم داری؛ شارژ کن</span></button>`
+              : `<button class="btn btn-p btn-block" id="tg-buy" style="margin-top:16px;height:54px;font-size:16px" onclick="TG.buy()">${demo ? 'ثبت سفارش نمایشی' : `پرداخت ${fa(price)} تومان`}</button>`}
+      <button class="btn btn-s btn-block" style="margin-top:8px;height:46px" onclick="App.closeSheet()">انصراف</button>`);
+  },
+  async buy(){
+    if (this.busy || !this.pending || !this.rcp) return;
+    this.busy = true;
+    const p = this.pending, r = this.rcp;
+    $('sheet').innerHTML = `<div class="grip"></div><div class="ai-wait"><div class="ai-orb">${ic('send', 2)}</div>
+      <div class="sheet-t">در حال ساخت سفارش…</div>
+      <div class="short" style="margin-top:6px">گیرنده و قیمت دوباره چک می‌شوند و سفارش از تلگرام گرفته می‌شود.</div></div>`;
+    App.haptic('medium');
+    try {
+      const x = await api('tg/buy', { kind:p.kind, amount:p.amount, username:r.username, nonce:Buy.nonce() });
+      App.notify('success'); App.setBalance(x.balance); this.d = null; this.pending = null;
+      this.done(x);
+    } catch (err) {
+      App.notify('error'); App.closeSheet();
+      if (err.code === 'rules') { App.toast('اول قوانین را بخوان و بپذیر', true); App.go('rules'); }
+      else App.toast(err.message || 'سفارش ساخته نشد', true);
+    } finally { this.busy = false; }
+  },
+  done(x){
+    const o = x.order, demo = x.demo;
+    const step = (ok, t) => `<div class="tg-step${ok ? '' : ' skip'}"><i>${ic(ok ? 'check' : 'eye', 3)}</i><span>${t}</span></div>`;
+    App.sheet(`<div style="text-align:center"><div class="ai-orb tg-done">${ic(demo ? 'eye' : 'check', 2)}</div>
+        <div class="sheet-t">${demo ? 'سفارش نمایشی ثبت شد' : 'انجام شد'}</div>
+        <div class="short" style="margin-top:6px;line-height:1.9">${demo ? 'همه مراحل واقعی انجام شد جز پرداخت.' : `${esc(o.title)} برای <bdi dir="ltr">@${esc(o.recipient)}</bdi> فرستاده شد.`}</div></div>
+      <div class="tg-steps">${step(true, 'گیرنده پیدا شد: ' + esc(o.recipient_name || o.recipient))}${step(true, 'قیمت همین لحظه گرفته شد')}${step(true, 'سفارش از تلگرام ساخته و بررسی شد')}${step(!demo, demo ? 'پرداخت: نمایشی، انجام نشد' : 'پرداخت و فعال‌سازی')}</div>
+      ${demo ? `<div class="pv-banner" style="margin:12px 0 0">${ic('wallet', 2)}<span>هیچ پولی از کیف پولت کم نشد و ${esc(o.title)} برای <bdi dir="ltr">@${esc(o.recipient)}</bdi> فعال نشد.</span></div>` : ''}
+      <div style="margin:12px calc(-1 * var(--pad)) 0">${KV([['کد پیگیری', N(o.code)], ['بسته', esc(o.title)], ['گیرنده', `<bdi dir="ltr">@${esc(o.recipient)}</bdi>`],
+        [demo ? 'قیمت در خرید واقعی' : 'مبلغ', `${N(fa(o.price))} <span>تومان</span>`]]).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      <button class="btn btn-p btn-block" style="margin-top:16px" onclick="App.closeSheet();TG.render()">باشه</button>`);
+  },
+};
+
 const Num = {
   d:null, c:null, o:null, cat:'', q:'', qn:'', ops:null, busy:false, polling:false, tick:null, left:0, pending:null,
   get ready(){ return !!(App.boot && App.boot.numbers && App.boot.numbers.ready); },

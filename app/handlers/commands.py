@@ -61,6 +61,12 @@ async def cmd_start(
 
         if await open_from_start(message, db, user, payload):
             return
+    if payload == "tg":
+        # از مینی اپ: «پرمیوم و استارز در ربات»
+        from app.handlers.telegram_shop import open_from_start as tg_open
+
+        if await tg_open(message, db, user):
+            return
     if payload.startswith("poll_") and payload[5:].isdigit():
         text, markup = await polls.view(db, int(payload[5:]), user["id"])
         if text:

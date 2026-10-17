@@ -165,7 +165,7 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
         "features": {
             key: features.is_on(key)
             for key in ("shop_vpn", "shop_ai", "shop_custom", "shop_trial",
-                        "shop_wallet", "shop_referral", "shop_locations")
+                        "shop_wallet", "shop_referral", "shop_locations", "shop_telegram")
         },
         # بخش های هوشمند (هر کدام فقط وقتی کلید هست و ادمین روشنش گذاشته)
         "ai": {
@@ -189,10 +189,23 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
         "crypto": payments_svc.CRYPTO in methods,
         # شماره مجازی: فروش واقعی وقتی seed و نرخ تتر تنظیم شده؛ وگرنه همان پیش نمایش
         "numbers": {"ready": await _numbers_ready(db)},
+        # پرمیوم و استارز تلگرام (MarketApp): ready با توکن و نرخ تتر؛ demo یعنی خرید نمایشی
+        "telegram": await _telegram_state(db),
         # فقط برای نمایش ردیف «پنل مدیریت»؛ هر درخواست ادمین جدا بررسی می شود
         "is_admin": wuser.id in config.admin_ids,
         "readonly": False,
     }
+
+
+async def _telegram_state(db: "Database") -> dict:
+    """سبک: بدون توکن هیچ کار اضافه ای (مثل خواندن نرخ) در مسیر پرتردد bootstrap نمی شود."""
+    from app.services import marketapp as mk
+
+    try:
+        ready = features.is_on("shop_telegram") and bool(await mk.token(db)) and await mk.ready(db)
+        return {"ready": ready, "demo": await mk.mode(db) == mk.DEMO}
+    except Exception:  # noqa: BLE001
+        return {"ready": False, "demo": True}
 
 
 async def _numbers_ready(db: "Database") -> bool:
@@ -1020,6 +1033,101 @@ async def numbers_cancel(db: "Database", panel: "Panel | None", wuser: WebAppUse
             "order": _num_order_out(r.get("order") or o)}
 
 
+# ═══════════════════ پرمیوم و استارز تلگرام (MarketApp) ═══════════════════
+
+
+async def tg_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """ویترین پرمیوم و استارز: قیمت های تومانی، گیرنده های اخیر و سفارش های کاربر.
+
+    demo=True یعنی خرید نمایشی است (marketapp.DEMO)؛ مینی اپ این را به کاربر می گوید.
+    """
+    from app.services import marketapp as mk
+
+    user = await _require_user(db, wuser)
+    on = features.is_on("shop_telegram")
+    ready = on and await mk.ready(db)
+    out: dict = {"enabled": on, "ready": ready, "demo": await mk.mode(db) == mk.DEMO, "balance": int(user["balance"]),
+                 "premium": [], "best": 12, "packs": [], "per_star": 0, "min": mk.STARS_MIN, "max": mk.STARS_MAX,
+                 "me": mk.clean_username(wuser.username or user.get("username") or "") or "",
+                 "recents": [], "orders": [], "down": False}
+    if not ready:
+        return out
+    out["recents"] = await db.user_tg_recipients(user["id"])
+    out["orders"] = [mk.order_out(o) for o in await db.user_tg_orders(user["id"], limit=10)]
+    try:
+        cat = await mk.catalog(db)
+    except mk.MarketAppError as exc:
+        log.warning("قیمت های MarketApp خوانده نشد: %s", exc)
+        out["down"] = True
+        return out
+    out["premium"] = [{"months": p["months"], "price": p["price"], "per_month": p["per_month"]} for p in cat["premium"]]
+    out["best"] = cat["best"]
+    out["packs"] = cat["packs"]
+    out["per_star"] = round(cat["per_star"])
+    return out
+
+
+async def _tg_gate(db: "Database", wuser: WebAppUser) -> dict:
+    from app.services import marketapp as mk
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_telegram"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    if not await mk.ready(db):
+        raise ApiError(mk.MESSAGES[mk.NOT_CONFIGURED], 503, mk.NOT_CONFIGURED)
+    return user
+
+
+async def tg_recipient(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, kind: str, username: str) -> dict:
+    """بررسی گیرنده با MarketApp: {ok, username, name, photo} یا {ok: False, error, message}."""
+    from app.services import marketapp as mk
+
+    await _tg_gate(db, wuser)
+    if not await db.acquire_lock(f"tgrcp:{wuser.id}", ttl_seconds=1):
+        raise ApiError("کمی آهسته‌تر؛ یک لحظه صبر کن", 429, "rate")
+    return await mk.recipient(db, kind, username)
+
+
+async def tg_quote(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, kind: str, amount: str) -> dict:
+    """قیمت دقیق همین لحظه برای تایید خرید (و تعداد دلخواه استارز)."""
+    from app.services import marketapp as mk
+
+    await _tg_gate(db, wuser)
+    n = mk.valid_amount(kind, amount)
+    if kind not in mk.KINDS or n is None:
+        raise ApiError(mk.MESSAGES[mk.BAD_AMOUNT], 400, mk.BAD_AMOUNT)
+    try:
+        q = await mk.quote(db, kind, n)
+    except mk.MarketAppError as exc:
+        log.warning("قیمت MarketApp خوانده نشد: %s", exc)
+        raise ApiError(mk.MESSAGES[mk.PROVIDER], 503, mk.PROVIDER) from exc
+    return {"kind": kind, "amount": n, "price": q["price"]}
+
+
+async def tg_buy(
+    db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+    kind: str, amount: str, username: str, nonce: str,
+) -> dict:
+    """سفارش پرمیوم یا استارز؛ همان marketapp.buy که ربات دارد. فعلا نمایشی: پولی کم نمی شود.
+
+    nonce هر بار زدن دکمه تازه است؛ ارسال دوباره همان nonce سفارش دوم نمی سازد.
+    """
+    from app.services import marketapp as mk
+
+    user = await _tg_gate(db, wuser)
+    if not user.get("rules_accepted_at") and await db.get_setting("rules_enabled", "1") == "1":
+        raise ApiError("اول باید قوانین را در ربات بپذیری", 403, "rules")
+    if not await db.acquire_lock(f"tgnonce:{wuser.id}:{nonce}", ttl_seconds=86400):
+        raise ApiError("این سفارش در حال پردازشه", 409, "duplicate")
+    r = await mk.buy(db, user, kind, username, amount)
+    if not r["ok"]:
+        status = {mk.PROVIDER: 503, mk.LOCKED: 409, mk.NOT_CONFIGURED: 503}.get(r["error"], 400)
+        raise ApiError(r["message"], status, r["error"])
+    return {"demo": r["demo"], "order": mk.order_out(r["order"]), "balance": r["balance"],
+            "recipient": {"username": r["recipient"]["username"], "name": r["recipient"]["name"],
+                          "photo": r["recipient"]["photo"]}}
+
+
 def _latin(text: str) -> str:
     """ارقام فارسی و عربی متن های ربات به لاتین، برای یکدستی مینی اپ."""
     return (text or "").translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
@@ -1548,6 +1656,7 @@ ROUTES = {
     "ai": ai_catalog,
     "ai/orders": ai_orders,
     "numbers": numbers_info,
+    "tg": tg_info,
     "topup": topup_info,
     "crypto": crypto_info,
     "stars": stars_info,
@@ -1560,4 +1669,5 @@ ROUTES = {
 }
 
 __all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase",
-           "numbers_countries", "numbers_operators", "numbers_order", "numbers_buy", "numbers_reroll", "numbers_cancel"]
+           "numbers_countries", "numbers_operators", "numbers_order", "numbers_buy", "numbers_reroll", "numbers_cancel",
+           "tg_recipient", "tg_quote", "tg_buy"]

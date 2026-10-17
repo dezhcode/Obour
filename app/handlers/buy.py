@@ -49,11 +49,14 @@ async def cb_shop_hub(
     vpn, ai = features.is_on("shop_vpn"), features.is_on("shop_ai")
     from app.services import numbers_shop
 
-    nums = features.is_on("shop_numbers") and await numbers_shop.ready(db)
+    from app.services import marketapp
 
-    if vpn and not (ai or nums):
+    nums = features.is_on("shop_numbers") and await numbers_shop.ready(db)
+    tgs = features.is_on("shop_telegram") and await marketapp.ready(db)
+
+    if vpn and not (ai or nums or tgs):
         return await cb_buy(call, db, state, user)
-    if not vpn and not (ai or nums):
+    if not vpn and not (ai or nums or tgs):
         await edit_or_send(call.message, texts.SHOP_CLOSED, keyboards.back_menu())
         return await call.answer()
 
@@ -63,7 +66,7 @@ async def cb_shop_hub(
     await edit_or_send(
         call.message,
         texts.SHOP_HUB.format(balance=f"{user['balance']:,}"),
-        keyboards.shop_hub_kb(cats, numbers=nums),
+        keyboards.shop_hub_kb(cats, numbers=nums, telegram=tgs),
     )
     await call.answer()
 

@@ -277,7 +277,7 @@ def lang_kb(current: str | None = None) -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def shop_hub_kb(cats: list[dict] | None = None, numbers: bool = False) -> InlineKeyboardMarkup:
+def shop_hub_kb(cats: list[dict] | None = None, numbers: bool = False, telegram: bool = False) -> InlineKeyboardMarkup:
     """صفحه اول فروشگاه: انتخاب بین کانفیگ و خدمات هوش مصنوعی.
 
     این لایه عمدا اضافه شد تا منوی اصلی با اضافه شدن محصول های تازه
@@ -299,6 +299,10 @@ def shop_hub_kb(cats: list[dict] | None = None, numbers: bool = False) -> Inline
     # شماره مجازی (SMSBurner): فقط وقتی seed و نرخ تتر تنظیم شده
     if numbers and features.is_on("shop_numbers"):
         _add(kb, "📱 شماره مجازی", style=SUCCESS, callback_data="num")
+        rows.append(1)
+    # پرمیوم و استارز تلگرام (MarketApp): فقط وقتی توکن و نرخ تتر تنظیم شده
+    if telegram and features.is_on("shop_telegram"):
+        _add(kb, "💎 پرمیوم و استارز تلگرام", style=SUCCESS, callback_data="tg")
         rows.append(1)
     # دسته های اشتراک آماده (canboso)، دوتا دوتا؛ فقط دسته هایی که محصول دارند
     if features.is_on("shop_ai"):
@@ -501,6 +505,87 @@ def num_back_kb(back: str = "num") -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
+# ═══════════════════ خدمات تلگرام (پرمیوم و استارز) ═══════════════════
+
+
+def tg_hub_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    _add(kb, "⭐ تلگرام پرمیوم", style=PRIMARY, callback_data="tg:k:premium")
+    _add(kb, "🌟 استارز", style=PRIMARY, callback_data="tg:k:stars")
+    _add(kb, "🧾 سفارش‌های من", callback_data="tg:mine")
+    _btn(kb, "back", "فروشگاه", callback_data="buy")
+    kb.adjust(2, 1, 1)
+    return kb.as_markup()
+
+
+def tg_recipient_kb(kind: str, me: str | None, recents: list[str]) -> InlineKeyboardMarkup:
+    """گیرنده: خودم، گیرنده های اخیر، یا یوزرنیم تایپی (پیام متنی)."""
+    kb = InlineKeyboardBuilder()
+    sizes: list[int] = []
+    if me:
+        _add(kb, f"👤 برای خودم · @{me}", style=PRIMARY, callback_data=f"tg:r:{kind}:{me}")
+        sizes.append(1)
+    others = [r for r in recents if not me or r.lower() != me.lower()][:4]
+    for r in others:
+        _add(kb, f"@{r}", callback_data=f"tg:r:{kind}:{r}")
+    sizes += [2] * (len(others) // 2) + ([1] if len(others) % 2 else [])
+    _btn(kb, "back", "برگشت", callback_data="tg")
+    kb.adjust(*sizes, 1)
+    return kb.as_markup()
+
+
+def tg_premium_kb(plans: list[dict], best: int) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    order = sorted(plans, key=lambda p: p["months"] != best)
+    for p in order:
+        mark = "🔥 " if p["months"] == best else ""
+        _add(kb, f"{mark}{p['months']} ماه · {p['price']:,}", style=PRIMARY if p["months"] == best else None,
+             callback_data=f"tg:p:{p['months']}")
+    _add(kb, "✏️ گیرنده دیگه", callback_data="tg:k:premium")
+    _btn(kb, "back", "برگشت", callback_data="tg")
+    kb.adjust(1, 2, 2)
+    return kb.as_markup()
+
+
+def tg_stars_kb(packs: list[dict]) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    for p in packs:
+        _add(kb, f"⭐ {p['qty']:,} · {p['price']:,}", style=PRIMARY if p["qty"] == 100 else None,
+             callback_data=f"tg:s:{p['qty']}")
+    _add(kb, "✍️ تعداد دلخواه", callback_data="tg:sc")
+    _add(kb, "✏️ گیرنده دیگه", callback_data="tg:k:stars")
+    _btn(kb, "back", "برگشت", callback_data="tg")
+    rows = [2] * (len(packs) // 2) + ([1] if len(packs) % 2 else [])
+    kb.adjust(*rows, 2, 1)
+    return kb.as_markup()
+
+
+def tg_confirm_kb(price: int, demo: bool) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    label = f"🧪 ثبت سفارش نمایشی · {price:,}" if demo else f"✅ پرداخت {price:,} تومان"
+    _add(kb, label, style=SUCCESS, callback_data="tg:ok")
+    _add(kb, "❌ انصراف", callback_data="tg")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def tg_done_kb(kind: str) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    _add(kb, "🔁 خرید دوباره", style=PRIMARY, callback_data=f"tg:k:{kind}")
+    _add(kb, "🧾 سفارش‌های من", callback_data="tg:mine")
+    _add(kb, "🏠 منوی اصلی", callback_data="menu")
+    kb.adjust(2, 1)
+    return kb.as_markup()
+
+
+def tg_back_kb(back: str = "tg") -> InlineKeyboardMarkup:
+    kb = InlineKeyboardBuilder()
+    _btn(kb, "back", "برگشت", callback_data=back)
+    _add(kb, "🏠 منوی اصلی", callback_data="menu")
+    kb.adjust(2)
+    return kb.as_markup()
+
+
 def num_hub_kb(services: list[dict] | None) -> InlineKeyboardMarkup:
     """صفحه اول شماره مجازی: سرویس های پرطرفدار، همه سرویس ها، شماره های من."""
     kb = InlineKeyboardBuilder()
@@ -682,12 +767,18 @@ def admin_tgs_kb(has_token: bool, saved_token: bool) -> InlineKeyboardMarkup:
     """خدمات تلگرام (MarketApp): توکن، گیرنده و کانال تست، تست کامل API."""
     kb = InlineKeyboardBuilder()
     _add(kb, "🔑 توکن", style=PRIMARY, callback_data="adm:tgs:key")
+    _add(kb, "📈 درصد سود", callback_data="adm:tgs:f:tgs_profit_percent")
+    _add(kb, "⬇️ حداقل سود", callback_data="adm:tgs:f:tgs_min_profit")
+    _add(kb, "🔢 رند کردن", callback_data="adm:tgs:f:tgs_round_to")
+    _add(kb, "💱 نرخ تتر", callback_data="adm:ai:f:ai_usdt_rate")
+    _add(kb, "🧪 حالت فروش: نمایشی", callback_data="adm:tgs:mode")
     _add(kb, "👤 گیرنده تست", callback_data="adm:tgs:user")
     _add(kb, "📢 کانال تست", callback_data="adm:tgs:ch")
-    sizes = [1, 2]
+    sizes = [1, 3, 2, 2]
     if has_token:
+        _add(kb, "🧮 پیش‌نمایش قیمت", callback_data="adm:tgs:preview")
         _add(kb, "🧪 تست کامل API", style=SUCCESS, callback_data="adm:tgs:test")
-        sizes.append(1)
+        sizes.append(2)
     if saved_token:
         _add(kb, "🗑 حذف توکن ذخیره شده", style=DANGER, callback_data="adm:tgs:del")
         sizes.append(1)

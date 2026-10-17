@@ -372,6 +372,33 @@ CREATE TABLE IF NOT EXISTS number_orders (
 CREATE INDEX IF NOT EXISTS idx_num_user ON number_orders(user_id, id);
 CREATE INDEX IF NOT EXISTS idx_num_status ON number_orders(status, id);
 
+-- خدمات تلگرام (پرمیوم و استارز از MarketApp؛ MARKETAPP_FA.md). در حالت نمایشی
+-- (mode='demo') همه مسیر API واقعی است جز امضا و ارسال تراکنش، و پولی کم نمی شود.
+CREATE TABLE IF NOT EXISTS tg_orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  kind TEXT NOT NULL,                  -- premium | stars
+  amount INTEGER NOT NULL,             -- ماه پرمیوم یا تعداد استارز
+  recipient TEXT NOT NULL,             -- یوزرنیم گیرنده بدون @
+  recipient_name TEXT,
+  usd_cost REAL,
+  ton_cost REAL,
+  price INTEGER NOT NULL,              -- مبلغ تومانی (در حالت نمایشی کسر نمی شود)
+  mode TEXT NOT NULL DEFAULT 'demo',   -- demo | live
+  status TEXT NOT NULL DEFAULT 'pending',
+  code TEXT,                           -- کد پیگیری TG-xxxxx
+  ref TEXT,                            -- Ref# کامنت Fragment در سفارش MarketApp
+  tx_to TEXT,
+  tx_amount TEXT,                      -- nanoton
+  fragment TEXT,                       -- آدرس پرداخت Fragment داخل سفارش
+  error TEXT,
+  txn_id INTEGER,
+  created_at TEXT NOT NULL,
+  completed_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_tg_user ON tg_orders(user_id, id);
+
 -- قیمت و موجودی هر (کشور × سرویس) SMSBurner. کاتالوگ /api/v1 فقط ۵۰۰ ردیف دارد، پس به ازای
 -- هر کشور یک بار فهرست کامل را از api.php می خوانیم و اینجا نگه می داریم (بازسازی پس زمینه).
 CREATE TABLE IF NOT EXISTS number_prices (
@@ -2334,6 +2361,61 @@ class Database:
         )
         return dict(row) if row else {}
 
+    # ---------- خدمات تلگرام (پرمیوم و استارز) ----------
+    async def create_tg_order(
+        self,
+        user_id: int,
+        kind: str,
+        amount: int,
+        recipient: str,
+        recipient_name: str,
+        usd_cost: float | None,
+        ton_cost: float | None,
+        price: int,
+        mode: str,
+        status: str,
+        **extra,
+    ) -> dict:
+        """ثبت سفارش. extra فقط ستون های ref، tx_to، tx_amount، fragment، error، txn_id و completed_at."""
+        cols = {k: v for k, v in extra.items() if k in ("ref", "tx_to", "tx_amount", "fragment", "error", "txn_id",
+                                                         "completed_at")}
+        names = ["user_id", "kind", "amount", "recipient", "recipient_name", "usd_cost", "ton_cost", "price",
+                 "mode", "status", "created_at", *cols]
+        values = [user_id, kind, int(amount), recipient, recipient_name, usd_cost, ton_cost, int(price),
+                  mode, status, now_str(), *cols.values()]
+        oid = await self.insert(
+            f"INSERT INTO tg_orders ({', '.join(names)}) VALUES ({', '.join('?' * len(names))})", tuple(values))
+        await self.execute("UPDATE tg_orders SET code = ? WHERE id = ?", (track_code("TG", oid), oid))
+        return dict(await self.fetchone("SELECT * FROM tg_orders WHERE id = ?", (oid,)))
+
+    async def get_tg_order(self, order_id: int) -> dict | None:
+        row = await self.fetchone("SELECT * FROM tg_orders WHERE id = ?", (order_id,))
+        return dict(row) if row else None
+
+    async def user_tg_orders(self, user_id: int, limit: int = 10) -> list[dict]:
+        rows = await self.fetchall(
+            "SELECT * FROM tg_orders WHERE user_id = ? ORDER BY id DESC LIMIT ?", (user_id, limit))
+        return [dict(r) for r in rows]
+
+    async def user_tg_recipients(self, user_id: int, limit: int = 4) -> list[str]:
+        """گیرنده های اخیر کاربر (تازه ترین اول، بدون تکرار) برای دکمه های میانبر."""
+        rows = await self.fetchall(
+            """SELECT recipient, MAX(id) AS last FROM tg_orders WHERE user_id = ?
+               GROUP BY lower(recipient) ORDER BY last DESC LIMIT ?""", (user_id, limit))
+        return [r["recipient"] for r in rows]
+
+    async def tg_stats(self) -> dict:
+        row = await self.fetchone(
+            """SELECT
+                 COUNT(*) AS total,
+                 SUM(CASE WHEN mode='demo' THEN 1 ELSE 0 END) AS demo,
+                 SUM(CASE WHEN kind='premium' THEN 1 ELSE 0 END) AS premium,
+                 SUM(CASE WHEN kind='stars' THEN 1 ELSE 0 END) AS stars,
+                 SUM(CASE WHEN mode='live' AND status='completed' THEN price ELSE 0 END) AS revenue
+               FROM tg_orders"""
+        )
+        return dict(row) if row else {}
+
     # ---------- شماره های مجازی ----------
     _NUMBER_FIELDS = ("status", "provider_id", "phone", "sms_code", "sms_text", "error", "expires_at",
                       "completed_at", "checked_at", "chat_id", "message_id", "usd_cost")
@@ -2678,6 +2760,7 @@ class Database:
             ("pending_amounts", "user_id"),
             ("ai_orders", "user_id"),
             ("number_orders", "user_id"),
+            ("tg_orders", "user_id"),
             ("ai_waitlist", "user_id"),
             ("soon_waitlist", "user_id"),
             ("transactions", "user_id"),

@@ -257,7 +257,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                    "/api/rules/accept", "/api/ticket/send", "/api/ticket/close", "/api/ticket/rate", "/api/lang", "/api/soon/join",
                    "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
                    "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
-                   "/api/numbers/buy", "/api/numbers/cancel", "/api/numbers/reroll",
+                   "/api/numbers/buy", "/api/numbers/cancel", "/api/numbers/reroll", "/api/tg/buy",
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
                    "/api/admin/plan", "/api/admin/setting", "/api/admin/feature",
                    "/api/admin/pay", "/api/admin/ai/product", "/api/admin/ai/meta", "/api/admin/ai/image",
@@ -718,6 +718,28 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
             # خرید در پس زمینه تمام می شود و نتیجه اش در «شماره های من» پیداست.
             return _json(start_response, runtime.run(webapi.numbers_buy(
                 db, panel, wuser, service_id=sid, cc=cc, nonce=nonce, operator_id=opid, bot=runtime.bot), timeout=100))
+
+        # ---------- پرمیوم و استارز تلگرام: گیرنده، قیمت، سفارش (فعلا نمایشی) ----------
+        if name == "tg/recipient":
+            return _json(start_response, runtime.run(webapi.tg_recipient(
+                db, panel, wuser, kind=str(query.get("kind") or "premium")[:10],
+                username=str(query.get("u") or "")[:64]), timeout=30))
+        if name == "tg/quote":
+            return _json(start_response, runtime.run(webapi.tg_quote(
+                db, panel, wuser, kind=str(query.get("kind") or "")[:10], amount=str(query.get("n") or "")[:10]),
+                timeout=30))
+        if name == "tg/buy":
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=512)
+            nonce = str(body.get("nonce") or "")[:64]
+            if len(nonce) < 8:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            return _json(start_response, runtime.run(webapi.tg_buy(
+                db, panel, wuser, kind=str(body.get("kind") or "")[:10], amount=str(body.get("amount") or "")[:10],
+                username=str(body.get("username") or "")[:64], nonce=nonce), timeout=60))
 
         # ---------- دستیار هوش مصنوعی ----------
         if name.startswith("assist/"):

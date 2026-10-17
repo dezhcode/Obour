@@ -1320,6 +1320,21 @@ async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> Non
         await message.answer(texts.ADMIN_TGS_KEY_SAVED)
         return await _tgs_home(message, db)
 
+    if field and field.startswith("tgs_") and field not in ("tgs_token", "tgs_user", "tgs_channel"):
+        from app.services import marketapp as mk
+
+        if field not in mk.FIELDS:
+            return await message.answer("این تنظیم پیدا نشد.")
+        try:
+            value = float(raw.replace(",", "").replace("،", ""))
+            if value < 0:
+                raise ValueError
+        except ValueError:
+            return await message.answer("یک عدد معتبر بفرست.")
+        await db.set_setting(field, str(int(value) if value.is_integer() else value))
+        await message.answer(texts.ADMIN_AI_SAVED)
+        return await _tgs_home(message, db)
+
     if field in ("tgs_user", "tgs_channel"):
         from app.services import marketapp as mk
 
@@ -1789,16 +1804,66 @@ async def _tgs_home(message: Message, db: Database) -> None:
     saved = bool((await db.get_setting(mk.KEY_SETTING, "") or "").strip())
     user = await db.get_setting(mk.USER_SETTING, "") or ""
     channel = await db.get_setting(mk.CHANNEL_SETTING, "") or ""
+    rate, cfg, st = await mk.usdt_rate(db), await mk.load_cfg(db), await db.tg_stats()
+    lines = []
+    for field, (title, _default, _d) in mk.FIELDS.items():
+        val = cfg.get(field, 0)
+        lines.append(f"├ {title}: ⁨{int(val):,}⁩" if val >= 1000 else f"├ {title}: ⁨{val:g}⁩")
     await edit_or_send(
         message,
         texts.ADMIN_TGS.format(
             token=("از .env ✅" if config.marketapp_token else "تنظیم شده ✅") if tok else "تنظیم نشده ❌",
-            user=f"@{user}" if user else "یوزرنیم خودت (پیش فرض)",
-            channel=f"@{channel}" if channel else "— (تست گیواوی خاموش)",
+            rate=f"{int(rate):,}" if rate else "تنظیم نشده ❌",
+            mode="🧪 نمایشی" if await mk.mode(db) == mk.DEMO else "✅ واقعی",
             proxy="دارد ✅" if config.marketapp_proxy else "ندارد",
+            fields="\n".join(lines),
+            orders=st.get("total") or 0, demo=st.get("demo") or 0,
+            premium=st.get("premium") or 0, stars=st.get("stars") or 0,
+            user=f"@{user}" if user else "یوزرنیم خودت",
+            channel=f"@{channel}" if channel else "—",
         ),
         keyboards.admin_tgs_kb(bool(tok), saved),
     )
+
+
+@router.callback_query(F.data.startswith("adm:tgs:f:"))
+async def cb_tgs_field(call: CallbackQuery, state: FSMContext) -> None:
+    from app.services import marketapp as mk
+
+    field = call.data.split(":")[3]
+    if field not in mk.FIELDS:
+        return await call.answer("این تنظیم پیدا نشد.", show_alert=True)
+    title, default, desc = mk.FIELDS[field]
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field=field)
+    await edit_or_send(call.message, texts.ADMIN_AI_FIELD_ASK.format(title=title, desc=desc, default=default), None)
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:tgs:mode")
+async def cb_tgs_mode(call: CallbackQuery) -> None:
+    await call.answer(texts.ADMIN_TGS_LIVE_LOCKED, show_alert=True)
+
+
+@router.callback_query(F.data == "adm:tgs:preview")
+async def cb_tgs_preview(call: CallbackQuery, db: Database) -> None:
+    """قیمت زنده MarketApp (دلار) ← قیمت کاربر (تومان) با تنظیمات فعلی."""
+    from app.services import marketapp as mk
+
+    try:
+        cat = await mk.catalog(db, force=True)
+    except mk.MarketAppError as exc:
+        return await call.answer(f"قیمت ها خوانده نشد: {exc}"[:190], show_alert=True)
+    rate = cat["rate"]
+    out = []
+    for p in cat["premium"]:
+        out.append(f"• <b>پرمیوم {p['months']} ماه</b>: {p['usd']:.2f}$ ({p['ton']:g} TON) → {p['price']:,} تومان "
+                   f"(سود {int(p['price'] - p['usd'] * rate):,})")
+    for p in cat["packs"]:
+        out.append(f"• <b>{p['qty']:,} استارز</b> → {p['price']:,} تومان")
+    await call.message.answer("🧮 <b>قیمت خدمات تلگرام برای کاربر</b> (زنده از MarketApp)\n\n" + "\n".join(out)
+                              + f"\n\nنرخ تتر: {int(rate):,} تومان · هر استار ~{round(cat['per_star']):,} تومان")
+    await call.answer()
 
 
 @router.callback_query(F.data == "adm:tgs")
