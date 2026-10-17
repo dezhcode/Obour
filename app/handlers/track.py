@@ -180,7 +180,7 @@ async def _show_ai_order_track(message: Message, order: dict) -> None:
             provider_line=provider_line,
             links_line=links_line,
         ),
-        keyboards.ai_track_kb(order["id"], bool(order.get("provider_order_id"))),
+        keyboards.ai_track_kb(order["id"], bool(order.get("provider_order_id")), ai_shop.can_refetch(order)),
     )
 
 

@@ -1459,9 +1459,11 @@ async def cb_ai_restock(call: CallbackQuery, db: Database) -> None:
 @router.callback_query(F.data == "adm:ai:unknown")
 async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
     """سفارش هایی که وضعیتشان مبهم مانده و دست ادمین را می خواهند."""
+    from app.services import ai_shop
+
     rows = await db.ai_orders_by_status("unknown") + [
         o for o in await db.ai_orders_by_status("pending") if o.get("idem_key")
-    ]
+    ] + [o for o in await db.ai_orders_by_status("processing") if ai_shop.can_refetch(o)]
     if not rows:
         return await call.answer("سفارش مبهمی نیست ✅", show_alert=True)
     body = "\n\n".join(
@@ -1470,7 +1472,7 @@ async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
             user=o["telegram_id"],
             price=f"{o['price']:,}",
             when=fmt_dt(o["created_at"]),
-            error=esc((o.get("error") or "-")[:60]),
+            error=esc((o.get("error") or ("⏳ در انتظار فروشنده (لینک نیامده)" if o["status"] == "processing" else "-"))[:60]),
         )
         for o in rows
     )

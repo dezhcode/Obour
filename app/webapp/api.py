@@ -762,7 +762,8 @@ async def ai_check(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, 
     o = await db.get_ai_order(int(order_id))
     if not o or o["user_id"] != user["id"]:
         raise ApiError("سفارش پیدا نشد", 404, "not_found")
-    if o["status"] not in (ai_shop.UNKNOWN, "pending") or not o.get("idem_key"):
+    # «در انتظار فروشنده» هم: لینک با همان شناسه یکتا دوباره گرفته می شود
+    if not (ai_shop.can_refetch(o) or (o["status"] in (ai_shop.UNKNOWN, "pending") and o.get("idem_key"))):
         return {"ok": True, "status": o["status"], "order": _ai_order_out(o, full=True)}
     if not await db.acquire_lock(f"aichk:{o['id']}", ttl_seconds=30):
         raise ApiError("همین الان بررسی شد؛ کمی بعد دوباره امتحان کن", 429, "rate")

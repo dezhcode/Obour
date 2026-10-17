@@ -492,8 +492,105 @@ def can_retry(order: dict) -> bool:
     return provider_of(order) == PROVIDER
 
 
+def raw_text(result: dict, limit: int = 3500) -> str:
+    """پاسخ خام سرویس دهنده برای ذخیره کنار سفارش (بدون کلید؛ کلید فقط در هدر است)."""
+    try:
+        return json.dumps(result.get("raw", result), ensure_ascii=False, default=str)[:limit]
+    except (TypeError, ValueError):
+        return ""
+
+
+def can_refetch(order: dict) -> bool:
+    """سفارش «در انتظار فروشنده» که می شود تحویلش را دوباره گرفت.
+
+    طبق مستند ssondigitalworks: «تکرار با همان external_order_id همان سفارش
+    قبلی را برمی گرداند و دوباره پول کم نمی کند». API عمل جدایی برای
+    وضعیت سفارش ندارد؛ پس دریافت دوباره لینک یعنی همان درخواست با همان شناسه.
+    """
+    return order.get("status") == PROCESSING and bool(order.get("idem_key")) and can_retry(order)
+
+
+async def refetch(db: "Database", bot, order: dict) -> dict:  # noqa: ANN001
+    """تحویل سفارش «در انتظار فروشنده» را با همان شناسه یکتا دوباره می گیرد.
+
+    هیچ وقت پول برنمی گرداند: سفارش را فروشنده پذیرفته و هزینه را کم کرده؛
+    خطای این درخواست فقط یعنی این بار جوابی نگرفتیم و سفارش در انتظار می ماند.
+    unchanged=True یعنی هنوز چیزی نیامده (به خریدار دوباره پیام نمی رود).
+    """
+    if not can_refetch(order):
+        return {"status": order["status"], "order": order, "unchanged": True}
+    req = json.loads(order.get("request") or "{}")
+    cb = await client(db)
+    try:
+        result = await cb.purchase(
+            req["product_id"], idempotency_key=order["idem_key"], quantity=1,
+            customer_email=req.get("email"), slot_months=req.get("months"),
+        )
+    except CanbosoError as exc:
+        log.info("دریافت دوباره سفارش %s نشد: %s", order["code"], exc)
+        return {"status": PROCESSING, "order": order, "unchanged": True, "error": str(exc)}
+    finally:
+        await cb.close()
+
+    o = result.get("order") or {}
+    new_code = str(o.get("orderCode") or "")
+    old_code = str(order.get("provider_order_id") or "")
+    if old_code and new_code and new_code != old_code:
+        # نباید پیش بیاید (همان شناسه باید همان سفارش را بدهد)؛ اگر آمد ادمین باید بداند
+        await _alert_admins(bot, f"🚨 دریافت دوباره سفارش <code>{order['code']}</code> کد سفارش تازه ای از فروشنده "
+                                 f"برگرداند: <code>{esc(new_code)}</code> به جای <code>{esc(old_code)}</code>. "
+                                 "در پنل فروشنده بررسی کن دوبار خرید نشده باشد.")
+    delivery = delivery_of(order)
+    accounts = accounts_of(result)
+    delivery["provider_raw"] = raw_text(result)
+    if accounts:
+        delivery["accounts"] = accounts
+        delivery["fulfillment"] = o.get("status") or delivery.get("fulfillment")
+    status = DELIVERED if accounts else PROCESSING
+    await db.finish_ai_order(order["id"], status, provider_order_id=old_code or new_code,
+                             products=json.dumps(delivery, ensure_ascii=False))
+    log.info("دریافت دوباره سفارش %s: %s", order["code"], status)
+    return {"status": status, "order": await db.get_ai_order(order["id"]), "result": result,
+            "unchanged": not accounts}
+
+
+REFETCH_HOURS = 72      # تا چند ساعت بعد از خرید، تحویل خودکار دوباره پرسیده شود
+REFETCH_GAP = 600       # هر سفارش حداکثر هر ۱۰ دقیقه یک بار
+
+
+async def sweep(db: "Database", bot) -> int:  # noqa: ANN001
+    """کار دوره ای: سفارش های «در انتظار فروشنده» را دوباره می پرسد و اگر لینک یا
+    اطلاعات تحویل آمد، برای خریدار می فرستد. تعداد تحویل شده ها را برمی گرداند."""
+    from datetime import datetime, timedelta
+
+    from app.utils import TZ
+
+    if not await api_key(db):
+        return 0
+    cutoff = (datetime.now(TZ) - timedelta(hours=REFETCH_HOURS)).replace(tzinfo=None)
+    done = 0
+    for order in await db.ai_orders_by_status(PROCESSING, limit=15):
+        try:
+            if datetime.fromisoformat(str(order["created_at"])).replace(tzinfo=None) < cutoff:
+                continue
+        except (TypeError, ValueError):
+            continue
+        if not can_refetch(order) or not await db.acquire_lock(f"aifetch:{order['id']}", ttl_seconds=REFETCH_GAP):
+            continue
+        r = await refetch(db, bot, order)
+        if r["status"] == DELIVERED and bot is not None:
+            done += 1
+            from app.handlers.ai import notify_buyer
+
+            await notify_buyer(bot, db, r)
+    return done
+
+
 async def resolve(db: "Database", bot, order: dict) -> dict:  # noqa: ANN001
-    """سفارش مبهم (یا pending جا مانده) را با همان Idempotency-Key دوباره می پرسد."""
+    """سفارش مبهم (یا pending جا مانده) را با همان شناسه یکتا دوباره می پرسد.
+    سفارش «در انتظار فروشنده» هم تحویلش دوباره گرفته می شود (refetch)."""
+    if order["status"] == PROCESSING:
+        return await refetch(db, bot, order)
     if order["status"] not in (UNKNOWN, "pending") or not order.get("idem_key"):
         return {"status": order["status"], "order": order}
     if not can_retry(order):
@@ -540,6 +637,8 @@ async def _send(db: "Database", bot, cb, user: dict, order: dict, *, first: bool
         "payment": result.get("payment") or {},
         "fulfillment": o.get("fulfillmentStatus") or o.get("status"),
         "guide": req.get("guide") or "",
+        # پاسخ خام فروشنده: اگر تحویل جایی آمد که ربات نشناخت، ادمین می بیند
+        "provider_raw": raw_text(result),
     }
     await db.finish_ai_order(order["id"], status, provider_order_id=str(o.get("orderCode") or ""),
                              products=json.dumps(delivery, ensure_ascii=False))
@@ -547,7 +646,9 @@ async def _send(db: "Database", bot, cb, user: dict, order: dict, *, first: bool
     if status == PROCESSING and not req.get("email") and first:
         # محصول ایمیلی (slot) عادی است؛ ولی account بی تحویل را ادمین باید ببیند
         await _alert_admins(bot, f"⏳ سفارش <code>{order['code']}</code> ({esc(order['title'])}) پذیرفته شد ولی "
-                                 f"اطلاعات تحویل نیامد. کد سفارش فروشنده: <code>{esc(str(o.get('orderCode') or '-'))}</code>")
+                                 f"اطلاعات تحویل نیامد. کد سفارش فروشنده: <code>{esc(str(o.get('orderCode') or '-'))}</code>\n"
+                                 "ربات هر چند دقیقه خودکار دوباره می پرسد (همان شناسه، بدون خرید دوباره).\n\n"
+                                 f"پاسخ خام فروشنده:\n<pre>{esc(raw_text(result, 1500))}</pre>")
 
     # اگر هزینه واقعی بیشتر از برآورد شد (مثلا تخفیف یا قیمت ماهانه)،
     # از کاربر چیزی اضافه کم نمی شود؛ فقط ادمین باخبر می شود.

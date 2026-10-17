@@ -166,7 +166,29 @@ def normalize_product(p: dict, default_currency: str) -> dict | None:
 
 _USER_KEYS = ("username", "user", "email", "login", "account")
 _PASS_KEYS = ("password", "pass", "pwd")
-_CONTENT_KEYS = ("content", "data", "code", "key", "license", "link", "url", "text", "value", "details")
+_CONTENT_KEYS = ("content", "data", "code", "key", "license", "link", "url", "redeem_link", "activation_link",
+                 "text", "value", "details", "delivery", "delivered", "item", "stock", "result")
+
+
+def _is_meta(key: str) -> bool:
+    """کلیدهایی که اطلاعات سفارش اند، نه محتوای تحویلی (شناسه، وضعیت، قیمت، زمان...)."""
+    k = str(key).lower()
+    return (k in _META_KEYS or k.endswith(("_id", "_at", "_date", "_time", "_price", "_amount", "_status", "_name"))
+            or k.startswith(("is_", "has_")))
+
+
+_META_KEYS = {
+    "id", "ok", "success", "error", "errors", "message", "msg", "status", "state", "order_id", "orderid",
+    "external_order_id", "product_id", "productid", "numeric_id", "slug", "name", "title", "product_name",
+    "product", "quantity", "qty", "price", "unit_price", "total", "amount", "cost", "charged", "wholesale_price",
+    "wholesale_total", "currency", "balance", "reseller", "user", "user_id", "customer", "created", "updated",
+    "date", "time", "timestamp", "type", "product_type", "category", "description", "duplicate", "existing",
+    "fulfillment", "fulfillment_status", "payment", "pricing", "meta", "note", "warranty", "count",
+    # در سطح سفارش «code» معمولا کد سفارش است، نه کد فعال سازی
+    "code", "order_code", "reference", "ref", "key",
+}
+# داخل یک قلم تحویلی، code و key همان کد فعال سازی اند
+_ITEM_CONTENT = ("code", "key")
 
 
 def _account_of(item: Any) -> dict:
@@ -175,9 +197,20 @@ def _account_of(item: Any) -> dict:
         user = _first(item, *_USER_KEYS)
         pw = _first(item, *_PASS_KEYS)
         rest = {k: v for k, v in item.items()
-                if k not in _USER_KEYS + _PASS_KEYS and v not in (None, "", [], {})}
+                if k not in _USER_KEYS + _PASS_KEYS and v not in (None, "", [], {})
+                and (k in _ITEM_CONTENT or not _is_meta(k))}
         content = _first(rest, *_CONTENT_KEYS)
-        other = [str(content)] if content is not None and not isinstance(content, (dict, list)) else []
+        if isinstance(content, (dict, list)):
+            content = None
+        if content is not None and not user and not pw:
+            # فقط محتوا (لینک، کد یا متن حساب): همان قالب رشته ای
+            inner = _account_of(str(content))
+            extra = [f"{k}: {v}" for k, v in rest.items()
+                     if k not in _CONTENT_KEYS and not isinstance(v, (dict, list))]
+            if extra:
+                inner["otherInfo"] = "\n".join(x for x in [inner.get("otherInfo", ""), *extra] if x)
+            return inner
+        other = [str(content)] if content is not None else []
         other += [f"{k}: {v}" for k, v in rest.items()
                   if k not in _CONTENT_KEYS and not isinstance(v, (dict, list))]
         return {"user": str(user or ""), "password": str(pw or ""), "otherInfo": "\n".join(other)}
@@ -192,22 +225,53 @@ def _account_of(item: Any) -> dict:
 
 
 # جاهایی که محتوای تحویلی ممکن است باشد (به ترتیب)
-_DELIVERY_KEYS = ("delivered", "delivery", "items", "accounts", "credentials", "codes", "keys",
-                  "licenses", "content", "product_data")
+_DELIVERY_KEYS = ("delivered", "delivery", "delivered_items", "deliverables", "items", "accounts", "credentials",
+                  "codes", "keys", "licenses", "links", "link", "redeem_link", "activation_link", "url",
+                  "content", "product_data", "data", "details", "result", "stock", "item", "text", "value")
 
 
 def _delivered_of(d: dict) -> Any:
     for k in _DELIVERY_KEYS:
         v = d.get(k)
-        if v in (None, "", [], {}):
+        if v in (None, "", [], {}) or isinstance(v, bool):
             continue
-        if k == "delivery" and isinstance(v, dict):
+        if isinstance(v, dict):
+            # مثل {"delivery": {"link": ...}}؛ دیکشنری بی محتوای شناخته شده رد می شود
             inner = _delivered_of(v)
             if inner is not None:
                 return inner
+            if any(x in v for x in _USER_KEYS + _PASS_KEYS):
+                return v
+            continue
+        if isinstance(v, (int, float)):
             continue
         return v
     return None
+
+
+def _scan(d: Any, depth: int = 0) -> list:
+    """آخرین راه: هر متن غیر اطلاعات سفارش (شناسه، وضعیت، قیمت...) در پاسخ.
+
+    شکل پاسخ سفارش در مستند فروشنده نیامده؛ اگر لینک یا کد زیر کلیدی آمد که
+    نمی شناسیم، این طوری گم نمی شود.
+    """
+    out: list = []
+    if depth > 3 or not isinstance(d, dict):
+        return out
+    for k, v in d.items():
+        if _is_meta(k) or v in (None, "", [], {}) or isinstance(v, (bool, int, float)):
+            continue
+        if isinstance(v, str):
+            out.append(v)
+        elif isinstance(v, list):
+            for x in v:
+                if isinstance(x, str) and x.strip():
+                    out.append(x)
+                elif isinstance(x, dict):
+                    out.append(x)
+        elif isinstance(v, dict):
+            out += _scan(v, depth + 1)
+    return out
 
 
 FAILED_STATES = ("failed", "cancelled", "canceled", "rejected", "refunded", "error")
@@ -221,9 +285,23 @@ def normalize_order(data: dict, product_id: str) -> dict:
     delivered = _delivered_of(o)
     if delivered is None and o is not src:
         delivered = _delivered_of(src)
-    if isinstance(delivered, (str, dict)):
-        delivered = [delivered]
-    accounts = [a for a in (_account_of(x) for x in (delivered or [])) if any(a.values())]
+
+    def accounts_from(items: Any) -> list[dict]:
+        if isinstance(items, (str, dict)):
+            items = [items]
+        flat: list = []
+        for x in items or []:
+            lines = [ln.strip() for ln in x.splitlines() if ln.strip()] if isinstance(x, str) else []
+            # چند لینک یا چند حساب «Email|Password» در یک متن: هر خط یک قلم
+            if len(lines) > 1 and all(ln.startswith(("http://", "https://")) or "|" in ln for ln in lines):
+                flat += lines
+            else:
+                flat.append(x)
+        return [a for a in (_account_of(x) for x in flat) if any(a.values())]
+
+    accounts = accounts_from(delivered)
+    if not accounts:
+        accounts = accounts_from(_scan(o) or (_scan(src) if o is not src else []))
     code = (_first(o, "order_id", "orderId", "id", "order_code", "code")
             or _first(src, "order_id", "orderId", "id"))
     amount = (_num(_first(o, "total", "amount", "cost", "price", "charged", "wholesale_total"))
