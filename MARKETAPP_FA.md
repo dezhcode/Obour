@@ -15,8 +15,15 @@
 
 ## تست زنده
 
+از ربات (پیشنهادی): /admin ← تنظیمات ← 💎 خدمات تلگرام ← 🔑 توکن، بعد 🧪 تست کامل API. حدود یک دقیقه
+بعد فایل گزارش `.txt` با خلاصه در کپشن در همان چت می‌آید. گیرنده پیش‌فرض یوزرنیم خود ادمین است
+(👤 گیرنده تست)؛ برای تست گیواوی 📢 کانال تست را بگذار. اگر هاست به `api.marketapp.org` وصل نشد،
+`MARKETAPP_PROXY` را در `.env` بگذار.
+
+از ترمینال هاست:
+
 ```bash
-MARKETAPP_TOKEN=... python check_marketapp.py --user YOUR_USERNAME [--channel CHANNEL] [--ads LINK] [--json]
+python check_marketapp.py --user YOUR_USERNAME [--channel CHANNEL] [--ads LINK] [--json]
 ```
 
 یا از مرورگر (کل گزارش به صورت یک فایل `.txt` دانلود می‌شود):

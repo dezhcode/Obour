@@ -663,6 +663,24 @@ def admin_num_kb(has_seed: bool) -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
+def admin_tgs_kb(has_token: bool, saved_token: bool) -> InlineKeyboardMarkup:
+    """خدمات تلگرام (MarketApp): توکن، گیرنده و کانال تست، تست کامل API."""
+    kb = InlineKeyboardBuilder()
+    _add(kb, "🔑 توکن", style=PRIMARY, callback_data="adm:tgs:key")
+    _add(kb, "👤 گیرنده تست", callback_data="adm:tgs:user")
+    _add(kb, "📢 کانال تست", callback_data="adm:tgs:ch")
+    sizes = [1, 2]
+    if has_token:
+        _add(kb, "🧪 تست کامل API", style=SUCCESS, callback_data="adm:tgs:test")
+        sizes.append(1)
+    if saved_token:
+        _add(kb, "🗑 حذف توکن ذخیره شده", style=DANGER, callback_data="adm:tgs:del")
+        sizes.append(1)
+    _add(kb, "🔙 تنظیمات", callback_data="adm:set")
+    kb.adjust(*sizes, 1)
+    return kb.as_markup()
+
+
 def admin_num_unknown_kb(rows: list[dict]) -> InlineKeyboardMarkup:
     """برای هر خرید مبهم: برگشت پول (شماره ای نبود) یا تحویل شد (ادمین دستی کد داده)."""
     kb = InlineKeyboardBuilder()
@@ -1481,6 +1499,7 @@ def admin_setting_kb() -> InlineKeyboardMarkup:
     _btn(kb, "toggle", "بخش های ربات", callback_data="adm:feat")
     _btn(kb, "ai", "خدمات هوش مصنوعی", callback_data="adm:ai")
     _add(kb, "📱 شماره مجازی", callback_data="adm:num")
+    _add(kb, "💎 خدمات تلگرام", callback_data="adm:tgs")
     _add(kb, "🧠 دستیار هوشمند", style=SUCCESS, callback_data="aia")
     _add(kb, "🎬 افکت پیام", callback_data="adm:fx")
     _add(kb, "💳 روش های پرداخت", style=PRIMARY, callback_data="adm:pay")

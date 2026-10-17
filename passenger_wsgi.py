@@ -16,7 +16,7 @@
   GET   /rates                    نرخ تتر و تون از tgju.org (JSON، تومان)
   GET   /status?key=SECRET        وضعیت کامل
   GET   /marketapp-check?key=SECRET[&user=..&channel=..&ads=..]
-                                  تست زنده MarketApp؛ گزارش کامل به صورت فایل متنی (check_marketapp.py)
+                                  تست زنده MarketApp؛ گزارش کامل به صورت فایل متنی (app/services/marketapp_check.py)
   GET   /setwebhook?key=SECRET    ثبت وبهوک روی تلگرام + فهرست دستورها
   GET   /setcommands?key=SECRET   ثبت فقط فهرست دستورها
   GET   /delwebhook?key=SECRET    حذف وبهوک
@@ -324,30 +324,32 @@ def application(environ, start_response):  # noqa: ANN001, ANN201
 
     # ---------- تست زنده MarketApp ----------
     # همه endpointها را با داده واقعی صدا می زند و کل گزارش را یک فایل متنی
-    # برمی گرداند. چیزی امضا یا ارسال نمی شود (MARKETAPP_FA.md). توکن از
-    # MARKETAPP_TOKEN در .env؛ اگر نبود از پارامتر mt (که در access log
-    # هاست می ماند، پس فقط برای توکن موقت). گیرنده پیش فرض: یوزرنیم اولین ادمین.
+    # برمی گرداند. چیزی امضا یا ارسال نمی شود (MARKETAPP_FA.md). همان تست
+    # «تنظیمات ← 💎 خدمات تلگرام ← 🧪 تست کامل API» ربات. توکن از .env یا پنل
+    # ادمین؛ اگر نبود از پارامتر mt (که در access log هاست می ماند، پس فقط
+    # برای توکن موقت). گیرنده پیش فرض: یوزرنیم اولین ادمین.
     if path == "/marketapp-check" and method == "GET":
         if not _authorized(environ):
             return _respond(start_response, "403 Forbidden", "forbidden")
         try:
             from datetime import datetime
 
-            import check_marketapp
+            from app.services import marketapp_check
+            from app.services import marketapp as mk
 
             q = _query(environ)
-            token = (os.getenv("MARKETAPP_TOKEN") or _query_raw(environ, "mt")).strip()
+            runtime.ensure_started()
+            token = (runtime.run(mk.token(runtime.db), timeout=30) or _query_raw(environ, "mt")).strip()
             if not token:
                 return _respond(start_response, "400 Bad Request", "MARKETAPP_TOKEN در .env نیست (یا پارامتر mt=)")
             user = (q.get("user") or "").strip().lstrip("@")
             if not user and config.admin_ids:
-                runtime.ensure_started()
                 chat = runtime.run(runtime.bot.get_chat(config.admin_ids[0]), timeout=30)
                 user = chat.username or ""
             if not user:
                 return _respond(start_response, "400 Bad Request", "پارامتر user= لازم است (ادمین اول یوزرنیم ندارد)")
             lines: list[str] = []
-            check_marketapp.run(token, user, (q.get("channel") or "").strip().lstrip("@") or None,
+            marketapp_check.run(token, user, (q.get("channel") or "").strip().lstrip("@") or None,
                                 q.get("ads") or None, raw=True, out=lines.append, budget=100)
             body = "\n".join(lines)
             for secret in (token, (config.admin_key or "").strip()):

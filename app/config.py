@@ -191,6 +191,15 @@ class Config:
     # اگر هاست به smsburner.com دسترسی ندارد: http://host:port یا socks5://...
     smsburner_proxy: str = os.getenv("SMSBURNER_PROXY", "").strip()
 
+    # ===== خدمات تلگرام (MarketApp، marketapp.org؛ MARKETAPP_FA.md) =====
+    # توکن API از marketapp.org/api-token. اگر خالی باشد، توکنی که ادمین در
+    # پنل گذاشته استفاده می شود.
+    marketapp_token: str = os.getenv("MARKETAPP_TOKEN", "").strip()
+    # فقط اگر آدرس عوض شد؛ پیش فرض https://api.marketapp.org
+    marketapp_base_url: str = os.getenv("MARKETAPP_BASE_URL", "").strip().rstrip("/")
+    # اگر هاست به api.marketapp.org دسترسی ندارد: http://host:port یا socks5://...
+    marketapp_proxy: str = os.getenv("MARKETAPP_PROXY", "").strip()
+
     # ===== دستیار هوش مصنوعی (وب سرویس dezhcode) =====
     # کلید فقط در .env می ماند. بدون کلید همه بخش های هوشمند خاموش اند و
     # ربات مثل قبل کار می کند.

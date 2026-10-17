@@ -1306,6 +1306,34 @@ async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> Non
         await message.answer(texts.ADMIN_AI_KEY_SAVED)
         return await _ai_home(message, db)
 
+    if field == "tgs_token":
+        from app.services import marketapp as mk
+
+        # توکن می تواند تراکنش خرید بسازد: پیام حاوی آن در هر حال پاک می شود
+        try:
+            await message.delete()
+        except Exception:  # noqa: BLE001
+            pass
+        if not mk.valid_token(raw):
+            return await message.answer(texts.ADMIN_TGS_KEY_BAD)
+        await db.set_setting(mk.KEY_SETTING, raw)
+        await message.answer(texts.ADMIN_TGS_KEY_SAVED)
+        return await _tgs_home(message, db)
+
+    if field in ("tgs_user", "tgs_channel"):
+        from app.services import marketapp as mk
+
+        key = mk.USER_SETTING if field == "tgs_user" else mk.CHANNEL_SETTING
+        if raw in ("-", "—"):
+            await db.set_setting(key, "")
+        else:
+            name = mk.clean_username(raw)
+            if not name:
+                return await message.answer(texts.ADMIN_TGS_NAME_BAD)
+            await db.set_setting(key, name)
+        await message.answer(texts.ADMIN_AI_SAVED)
+        return await _tgs_home(message, db)
+
     if field == "num_seed":
         import re as _re
 
@@ -1747,6 +1775,73 @@ async def cb_num_settle(call: CallbackQuery, db: Database) -> None:
     label = {ns.FAILED: "↩️ پول کاربر برگشت", ns.COMPLETED: "✅ تحویل شد علامت خورد"}.get(r["status"], r["status"])
     await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
     await cb_num_unknown(call, db)
+
+
+# ---------- خدمات تلگرام (MarketApp) ----------
+
+
+async def _tgs_home(message: Message, db: Database) -> None:
+    from app.services import marketapp as mk
+
+    tok = await mk.token(db)
+    saved = bool((await db.get_setting(mk.KEY_SETTING, "") or "").strip())
+    user = await db.get_setting(mk.USER_SETTING, "") or ""
+    channel = await db.get_setting(mk.CHANNEL_SETTING, "") or ""
+    await edit_or_send(
+        message,
+        texts.ADMIN_TGS.format(
+            token=("از .env ✅" if config.marketapp_token else "تنظیم شده ✅") if tok else "تنظیم نشده ❌",
+            user=f"@{user}" if user else "یوزرنیم خودت (پیش فرض)",
+            channel=f"@{channel}" if channel else "— (تست گیواوی خاموش)",
+            proxy="دارد ✅" if config.marketapp_proxy else "ندارد",
+        ),
+        keyboards.admin_tgs_kb(bool(tok), saved),
+    )
+
+
+@router.callback_query(F.data == "adm:tgs")
+async def cb_tgs_home(call: CallbackQuery, db: Database, state: FSMContext) -> None:
+    await state.clear()
+    await _tgs_home(call.message, db)
+    await call.answer()
+
+
+@router.callback_query(F.data.in_({"adm:tgs:key", "adm:tgs:user", "adm:tgs:ch"}))
+async def cb_tgs_ask(call: CallbackQuery, state: FSMContext) -> None:
+    field, ask = {
+        "adm:tgs:key": ("tgs_token", texts.ADMIN_TGS_KEY_ASK),
+        "adm:tgs:user": ("tgs_user", texts.ADMIN_TGS_USER_ASK),
+        "adm:tgs:ch": ("tgs_channel", texts.ADMIN_TGS_CHANNEL_ASK),
+    }[call.data]
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field=field)
+    await edit_or_send(call.message, ask, None)
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:tgs:del")
+async def cb_tgs_del(call: CallbackQuery, db: Database) -> None:
+    from app.services import marketapp as mk
+
+    await db.set_setting(mk.KEY_SETTING, "")
+    await call.answer(texts.ADMIN_TGS_KEY_DELETED, show_alert=True)
+    await _tgs_home(call.message, db)
+
+
+@router.callback_query(F.data == "adm:tgs:test")
+async def cb_tgs_test(call: CallbackQuery, db: Database) -> None:
+    """تست کامل API در پس زمینه؛ فایل گزارش حدود یک دقیقه بعد در همین چت می آید."""
+    from app.services import marketapp as mk
+
+    if mk.check_running():
+        return await call.answer("یک تست در حال اجراست؛ صبر کن تا فایلش بیاد.", show_alert=True)
+    user = await db.get_setting(mk.USER_SETTING, "") or call.from_user.username or ""
+    if not user:
+        return await call.answer("یوزرنیم تلگرام نداری؛ از «👤 گیرنده تست» یک یوزرنیم بده.", show_alert=True)
+    channel = await db.get_setting(mk.CHANNEL_SETTING, "") or None
+    if not await mk.start_check(call.bot, db, call.message.chat.id, user, channel):
+        return await call.answer("توکن تنظیم نشده.", show_alert=True)
+    await call.answer(texts.ADMIN_TGS_CHECK_STARTED, show_alert=True)
 
 
 # ---------- محصولات هوش مصنوعی: نمایش و موجودی ----------
