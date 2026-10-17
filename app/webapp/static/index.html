@@ -3836,7 +3836,7 @@ const AI = {
   },
   orderPage(o, fresh){
     const st = AI_ST[o.status] || ['', 'list', o.status, ''];
-    const wait = o.status === 'unknown' || o.status === 'pending';
+    const wait = o.status === 'unknown' || o.status === 'pending' || o.status === 'processing';
     const rows = [['محصول', `<span class="ai-lat">${esc(o.title)}</span>`], ['کد پیگیری', `<span class="n">${esc(o.code)}</span>`]];
     if (o.provider_code) rows.push(['کد فروشنده', `<span class="n">${esc(o.provider_code)}</span>`]);
     if (o.email) rows.push(['ایمیل', `<span dir="ltr" style="overflow-wrap:anywhere">${esc(o.email)}</span>`]);
@@ -3848,7 +3848,7 @@ const AI = {
           <div style="min-width:0"><div class="ai-st-t">${fresh && st[0] === 'ok' ? 'تحویل شد؛ مبارکت باشه' : st[2]}</div><div class="ai-st-c ai-lat">${esc(o.title)}</div></div></div>
         <div class="ai-st-s">${st[3]}</div>
         ${o.status === 'processing' && o.email ? `<div class="ai-st-e">${ic('mail', 2)}<span>${esc(o.email)}</span></div>` : ''}
-        ${wait ? `<button class="btn btn-s btn-block" id="ai-chk" onclick="AI.check(${o.id})">${ic('refresh', 2)}بررسی دوباره</button>` : ''}
+        ${wait ? `<button class="btn btn-s btn-block" id="ai-chk" onclick="AI.check(${o.id})">${ic('refresh', 2)}${o.status === 'processing' ? 'دریافت دوباره لینک' : 'بررسی دوباره'}</button>` : ''}
       </div>
       ${fresh ? `<div class="ai-sent">${ic('chat', 2)}<span>یک نسخه در چت ربات هم برایت فرستاده شد.</span></div>` : ''}
       ${o.delivery && o.delivery.length ? '<div class="gap" style="height:14px"></div>' + o.delivery.map((a, i) => this.cred(o, a, i)).join('') : ''}
@@ -3879,7 +3879,7 @@ const AI = {
       const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(r.order);
       App.notify(r.status === 'delivered' ? 'success' : 'warning');
       App.toast(r.status === 'delivered' ? 'تحویل شد' : r.status === 'failed' ? 'مبلغ به کیف پولت برگشت'
-              : r.status === 'processing' ? 'سفارش ثبت شد؛ در انتظار فروشنده' : 'هنوز جوابی نیامده؛ کمی بعد دوباره امتحان کن');
+              : r.status === 'processing' ? 'هنوز لینک از فروشنده نیامده؛ خودکار هم دوباره پرسیده می‌شود' : 'هنوز جوابی نیامده؛ کمی بعد دوباره امتحان کن');
     } catch (err) {
       App.toast(err.message, true);
       if (b) { b.disabled = false; b.innerHTML = `${ic('refresh', 2)}${esc(I18N.t('بررسی دوباره'))}`; }
@@ -4372,6 +4372,8 @@ SubPages.adm_ai_order = async function(p, id){
       + (o.links && o.links.length ? Sec('لینک‌ها') + o.links.map(l => `<div class="card mx" style="padding:12px 14px;margin-bottom:8px"><div class="linkbox" dir="ltr" style="word-break:break-all;font-size:12px">${esc(l)}</div>
           <button class="btn btn-s btn-block" style="margin-top:8px" onclick="App.copy(${esc(JSON.stringify(l))})">${ic('copy')}کپی</button></div>`).join('') : '')
       + (acc ? Sec('اطلاعات تحویل') + acc : '')
+      + (o.provider_raw ? Sec('پاسخ خام فروشنده') + `<div class="card mx" style="padding:12px 14px"><pre dir="ltr" style="white-space:pre-wrap;word-break:break-all;font-size:11px;margin:0">${esc(o.provider_raw)}</pre>
+          <button class="btn btn-s btn-block" style="margin-top:8px" onclick="App.copy(${esc(JSON.stringify(o.provider_raw))})">${ic('copy')}کپی</button></div>` : '')
       + `<div class="adm-note">برای حل سفارش باز یا برگشت وجه، از پنل ربات (/admin) بخش هوش مصنوعی استفاده کن.</div>`;
   } catch (err) { p.innerHTML = Top('سفارش') + emptyBox('خوانده نشد', err.message); }
 };
