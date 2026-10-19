@@ -400,19 +400,21 @@ body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-f
 .tc-bar .tc-send{display:none}
 .tc-bar.typing .tc-send{display:flex}
 .tc-bar.typing .tc-ic{display:none}
-.tc-dim{position:fixed;inset:0;z-index:35;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s}
+.tc-dim{position:fixed;inset:0;z-index:35;background:rgba(0,0,0,.533);opacity:0;pointer-events:none;transition:opacity .2s}
 .tc-dim.on{opacity:1;pointer-events:auto}
 .tc-feed{direction:ltr;position:fixed;left:10px;right:10px;bottom:120px;z-index:36;display:flex;flex-direction:column;gap:10px;pointer-events:none}
-.tc-m{display:flex;align-items:flex-end;gap:8px;max-width:78%;align-self:flex-start;animation:tc-in .22s ease-out both}
+/* حباب گفتگوی بازی پلاتو (item_game_message_to_me / from_me): عکس ۲۷، حباب گرد بی دم ۳۵ جلوتر،
+   نام ۱۰ بالای حباب، پیام بقیه خاکستری روشن با متن تیره، پیام خودم آبی با متن سفید */
+.tc-m{display:flex;align-items:flex-start;gap:8px;max-width:calc(100% - 50px);align-self:flex-start;animation:tc-in .22s ease-out both}
 .tc-m.me{flex-direction:row-reverse;align-self:flex-end}
 .tc-m.out{animation:tc-out .25s ease-in forwards}
-.tc-m .avatar{--size:34px;padding:0;flex:none;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.tc-m .avatar{--size:27px;padding:0;flex:none;margin-top:17px;box-shadow:0 1px 4px rgba(0,0,0,.4)}
 .tc-c{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
 .tc-m.me .tc-c{align-items:flex-end}
-.tc-n{font-size:12.5px;font-weight:900;line-height:16px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 4px}
+.tc-n{font-size:11px;font-weight:400;line-height:14px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 4px}
 .tc-ok{font-style:normal;color:#3D9BFF;margin-inline-start:4px}
-.tc-b{background:rgba(58,58,62,.94);color:#fff;font-size:16px;font-weight:600;line-height:22px;padding:8px 14px;border-radius:16px;overflow-wrap:anywhere;box-shadow:0 3px 10px rgba(0,0,0,.3);text-align:start}
-.tc-m.me .tc-b{background:#1F8BFF}
+.tc-b{background:#F2F3F5;color:#434343;font-size:16px;font-weight:400;line-height:22px;padding:9px 15px;border-radius:20px;overflow-wrap:anywhere;box-shadow:0 1px 3px rgba(0,0,0,.25);text-align:start}
+.tc-m.me .tc-b{background:#1687EF;color:#fff}
 @keyframes tc-in{from{opacity:0;transform:translateY(10px) scale(.96)}}
 @keyframes tc-out{to{opacity:0;transform:translateY(-6px)}}
 .tc-quick{direction:rtl;position:fixed;left:10px;right:10px;z-index:38;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:10px;border-radius:18px;background:rgba(20,20,20,.94);box-shadow:0 8px 24px rgba(0,0,0,.45)}
