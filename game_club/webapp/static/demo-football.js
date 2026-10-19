@@ -5,51 +5,54 @@
 const S = GC.S, save = GC.save, store = GC.store;
 const SEATS = ['0', '1'];
 const BOTS = ['lucky_falcon', 'brave_tiger', 'swift_panda', 'calm_otter', 'jolly_ace', 'witty_fox', 'royal_queen', 'cosmic_ninja', 'misty_raven', 'golden_comet', 'keen_hawk', 'sunny_mango'];
-const W = 600, H = 1040, MID = H / 2, GOAL_W = 220, GOAL_D = 60, GX0 = (W - GOAL_W) / 2, GX1 = (W + GOAL_W) / 2;
-const DISC_R = 36, BALL_R = 18, DISC_M = 1, BALL_M = .3, BALL = 12, N = 13, VMAX = 2200, MIN_POWER = .06;
-const DT = 1 / 120, FRAME_EVERY = 4, MAX_SIM = 9, AFTER_GOAL = .5, DRAG = [.9, .55], FRIC = [330, 85];
-const E_PAIR = .82, E_DISC_WALL = .5, E_BALL_WALL = .82, STOP = 4;
-const SETUP_S = 20, INTRO = 3.4, SHOT_PAUSE = .35, GOAL_PAUSE = 3.6, BOT_THINK = 1.1, TURN_S = 15;
+const FB = FBPhysics, W = FB.W, H = FB.H, GOAL_H = FB.GOAL_H, BALL_R = FB.BALL_R, BALL = FB.BALL, N = FB.N, CONTROL_RADIUS = FB.CONTROL_RADIUS;
+const SETUP_S = 20, INTRO = 3.4, SHOT_PAUSE = .35, GOAL_PAUSE = 3, BOT_THINK = 1.1, TURN_S = 20, MIN_POWER = .02;
 const TEAMS = ['eagles', 'lions', 'cheetahs', 'mountain', 'storm', 'sea'], FORMS = ['132', '123', '141', '1212'];
-const ATK = { 132: [[300, 42], [110, 230], [300, 210], [490, 230], [220, 400], [380, 400]], 123: [[300, 42], [200, 220], [400, 220], [110, 410], [300, 430], [490, 410]],
-  141: [[300, 42], [90, 280], [230, 250], [370, 250], [510, 280], [300, 430]], 1212: [[300, 42], [200, 200], [400, 200], [300, 320], [210, 430], [390, 430]] };
-const DEF = { 132: [[300, 42], [120, 190], [300, 160], [480, 190], [210, 300], [390, 300]], 123: [[300, 42], [210, 160], [390, 160], [110, 300], [300, 320], [490, 300]],
-  141: [[300, 42], [90, 180], [230, 160], [370, 160], [510, 180], [300, 320]], 1212: [[300, 42], [210, 150], [390, 150], [300, 240], [200, 340], [400, 340]] };
-const SEGS = [[[0, 0], [GX0, 0]], [[GX1, 0], [W, 0]], [[GX0, 0], [GX0, -GOAL_D]], [[GX0, -GOAL_D], [GX1, -GOAL_D]], [[GX1, -GOAL_D], [GX1, 0]],
-  [[0, H], [GX0, H]], [[GX1, H], [W, H]], [[GX0, H], [GX0, H + GOAL_D]], [[GX0, H + GOAL_D], [GX1, H + GOAL_D]], [[GX1, H + GOAL_D], [GX1, H]],
-  [[0, 0], [0, H]], [[W, 0], [W, H]]];
+const FORM_NAME = { 132: '1-3-2', 123: '1-2-3', 141: '1-4-1', 1212: '1-2-1-2' };
+// چیدمان های بازی پلاتو (کسر عرض و ارتفاع؛ ارتفاع از دروازهٔ خودی؛ اولی دروازه بان)
+const FORM = {
+  '1-3-2': [[.5, null], [.22, .22], [.5, .2], [.78, .22], [.4, .38], [.6, .38]], 'd:1-3-2': [[.5, null], [.26, .12], [.5, .17], [.74, .12], [.36, .24], [.64, .24]],
+  '1-2-3': [[.5, null], [.4, .2], [.6, .2], [.22, .33], [.78, .33], [.5, .35]], 'd:1-2-3': [[.5, null], [.4, .11], [.6, .11], [.22, .25], [.78, .25], [.5, .26]],
+  '1-4-1': [[.5, null], [.17, .25], [.39, .21], [.61, .21], [.83, .25], [.5, .35]], 'd:1-4-1': [[.5, null], [.25, .14], [.42, .12], [.58, .12], [.75, .14], [.5, .35]],
+  '1-2-1-2': [[.5, null], [.35, .18], [.65, .18], [.5, .3], [.35, .38], [.65, .38]], 'd:1-2-1-2': [[.5, null], [.35, .12], [.65, .12], [.5, .21], [.35, .3], [.65, .3]],
+};
 const now = () => Date.now() / 1000;
 const err = code => { const e = new Error(code); e.code = code; return e; };
 const pick = a => a[Math.floor(Math.random() * a.length)];
-const r1 = v => Math.round(v * 10) / 10;
+const rd2 = FB.rd2, disp = () => Math.random() * 8 - 4;
 
-// فیزیک مشترک با مینی اپ: static/football-physics.js (کپی دقیق سرور)
-const simulate = (pos, vel) => FBPhysics.simulate(pos, vel);
-
+function turnTime(base, chain, misses) {
+  const t = chain <= 0 ? base * 1.5 : Math.max(Math.min(8, base), base - 3 * (chain - 1));
+  return misses >= 2 ? Math.min(t, 10) : t;
+}
 function formation(seat, form, attack) {
-  const pts = (attack ? ATK : DEF)[form] || ATK[132];
-  return pts.map(([px, d]) => seat === 0 ? [px, H - d] : [W - px, d]);
+  const name = FORM_NAME[form] || '1-3-2';
+  return FORM[attack ? name : 'd:' + name].map(([fx, fy]) => { const y = fy == null ? GOAL_H : fy * H; return [fx * W, seat === 0 ? H - y : y]; });
 }
 function kickoffPos(st) {
   let pos = [];
   SEATS.forEach((s, i) => { const p = st.players[s]; pos = pos.concat(formation(i, i === st.kick ? p.fa : p.fd, i === st.kick)); });
-  return pos.concat([[W / 2, MID]]);
+  pos.push([W / 2, H / 2]);
+  return pos.map(([x, y]) => [rd2(x + disp()), rd2(y + disp())]);
 }
 function ev(st, e) { e.seq = ++st.seq; st.events.push(e); if (st.events.length > 40) st.events = st.events.slice(-40); }
 const auto = (st, i) => st.players[SEATS[i]].bot || st.players[SEATS[i]].out;
-function wait(st, t, d) { if (auto(st, st.turn)) d += BOT_THINK; st.turn_id = st.seq; st.next_at = t + d; st.deadline = t + d + st.turn_s; }
+function wait(st, t, d) {
+  const i = st.turn; if (auto(st, i)) d += BOT_THINK;
+  st.turn_id = st.seq; st.next_at = t + d; st.deadline = t + d + turnTime(st.turn_s, st.chain, st.players[SEATS[i]].misses);
+}
 const current = st => st.phase === 'play' && !st.over ? SEATS[st.turn] : null;
 
-function newState(seats, target) {
+function newState(seats, target, passes) {
   const t = now(), players = {}, taken = [];
   seats.forEach(s => {
     const team = s.bot ? pick(TEAMS.filter(x => !taken.includes(x))) : null; if (team) taken.push(team);
     players[s.color] = { name: s.name, av: s.av, pic: '', bot: !!s.bot, out: false, misses: 0, team, kit: 'home',
       fa: s.bot ? pick(FORMS) : '132', fd: s.bot ? pick(FORMS) : '132', ready: !!s.bot };
   });
-  const st = { game: 'football', players, target, score: [0, 0], phase: 'setup', turn: 0, kick: Math.floor(Math.random() * 2), pos: [],
-    next_at: t + SETUP_S, deadline: t + SETUP_S, turn_s: TURN_S, events: [], seq: 0, over: false, winner: null, started: t,
-    stats: { 0: { shots: 0, goals: 0, passes: 0 }, 1: { shots: 0, goals: 0, passes: 0 } }, streak: 0 };
+  const st = { game: 'football', players, target: [2, 3, 5].includes(target) ? target : 3, passes: [0, 3, 6].includes(passes) ? passes : 0, score: [0, 0], phase: 'setup',
+    turn: 0, kick: Math.floor(Math.random() * 2), pos: [], next_at: t + SETUP_S, deadline: t + SETUP_S, turn_s: TURN_S, events: [], seq: 0, over: false, winner: null,
+    started: t, stats: { 0: { shots: 0, goals: 0, passes: 0 }, 1: { shots: 0, goals: 0, passes: 0 } }, chain: 0, new_ko: true, turn_id: 0 };
   st.pos = kickoffPos(st); ev(st, { t: 'setup' });
   return st;
 }
@@ -65,66 +68,118 @@ function start(st, t) {
   SEATS.forEach(s => { const p = st.players[s]; if (!p.team) { p.team = TEAMS.find(x => !taken.includes(x)); taken.push(p.team); } p.ready = true; });
   const a = st.players[0], b = st.players[1];
   a.kit = 'home'; b.kit = a.team === b.team ? 'away' : 'home';
-  st.phase = 'play'; st.turn = st.kick; st.pos = kickoffPos(st);
+  st.phase = 'play'; st.turn = st.kick; st.chain = 0; st.new_ko = true; st.pos = kickoffPos(st);
   ev(st, { t: 'start', teams: Object.fromEntries(SEATS.map(s => [s, { team: st.players[s].team, kit: st.players[s].kit }])), pos: st.pos, kick: SEATS[st.kick] });
   wait(st, t, INTRO);
+}
+const roundPos = pos => pos.map(p => [rd2(p[0]), rd2(p[1])]);
+function passDone(res) {
+  const s = res.shooter, r = res.receiver;
+  if (s == null || r == null || s === r || res.goal != null) return false;
+  const [bx, by] = res.pos[BALL]; return Math.hypot(res.pos[r][0] - bx, res.pos[r][1] - by) <= CONTROL_RADIUS;
+}
+function freeSpot(pos, d, x, y) {
+  const r = FB.radiusOf(d);
+  if (x - r < 0 || x + r > W || y - r < 0 || y + r > H) return false;
+  if ((x - r < FB.BOX_W || x + r > W - FB.BOX_W) && (y - r < GOAL_H || y + r > H - GOAL_H)) return false;
+  for (let q = 0; q < N; q++) { if (q === d) continue; const rq = FB.radiusOf(q); if (Math.abs(pos[q][0] - x) < r + rq && Math.abs(pos[q][1] - y) < r + rq) return false; }
+  return true;
+}
+function removeFromGoal(pos, exempt) {
+  const moved = [];
+  for (let d = 0; d < 12; d++) {
+    if (d % 6 === 0 || d === exempt) continue;
+    const y = pos[d][1];
+    const [line, limit, e] = d < 6 ? [H - GOAL_H, H - GOAL_H * .8, -1] : [GOAL_H, GOAL_H * .8, 1];
+    if (!(d < 6 ? y > limit : y < limit)) continue;
+    const r = FB.radiusOf(d), s = r * .1, a = Math.floor((W - r * 2) / s);
+    let px = pos[d][0], py = line + r * 1.1 * e; const u = px > W ? 1 : -1;
+    let hc = 0, lc = 0, c = 1000;
+    while (!freeSpot(pos, d, px, py) && c > 0) {
+      if (hc < 6) { hc++; py += s * e; }
+      else { hc = 0; lc++; if (lc >= a) lc = 0; else { c--; if ((1000 - c) % a !== 0) py -= s * e * 6; px += s * u; if (px < r) px = W - r - 1; else if (px > W - r) px = r + 1; } }
+    }
+    pos[d] = [rd2(px), rd2(py)]; moved.push(d);
+  }
+  return moved;
 }
 function shot(st, i, k, dx, dy, power, t, autoP) {
   if (st.over) return 'over'; if (st.phase !== 'play') return 'not_play_phase'; if (st.turn !== i) return 'not_your_turn';
   if (!autoP && t < st.next_at - .3) return 'not_ready';
-  if (!(k >= 0 && k < 6)) return 'bad_shot';
-  const ln = Math.sqrt(dx * dx + dy * dy); if (!(ln > 1e-6)) return 'bad_shot';
-  const disc = i * 6 + k, pos0 = st.hold === disc ? FBPhysics.holdPos(st.pos, disc, dx, dy) : st.pos;
-  const held = pos0 !== st.pos ? [Math.round(pos0[BALL][0] * 10) / 10, Math.round(pos0[BALL][1] * 10) / 10] : null;
-  st.hold = null;
-  const res = simulate(pos0, { [disc]: FBPhysics.shotVel(dx, dy, power) });
-  st.events.forEach(e => { if (e.t === 'shot') delete e.frames; });
-  st.pos = res.pos; st.stats[i].shots++;
-  const g = res.goal, pas = g == null ? FBPhysics.passOf(i, i * 6 + k, res) : null;
-  ev(st, { t: 'shot', c: SEATS[i], k, ids: res.ids, frames: res.frames, dur: res.dur, pos: res.pos, hits: res.hits, goal: g == null ? null : SEATS[g], auto: !!autoP, hold: held });
-  if (g == null) {
-    if (pas != null && (st.streak || 0) < FBPhysics.MAX_PASS) {
-      st.streak = (st.streak || 0) + 1; st.stats[i].passes = (st.stats[i].passes || 0) + 1;
-      const ball = FBPhysics.catchPos(st.pos, i, pas);
-      if (ball) { st.pos = st.pos.map(p => p.slice()); st.pos[BALL] = ball; st.hold = pas; }
-      ev(st, { t: 'pass', c: SEATS[i], d: pas, n: st.streak, left: FBPhysics.MAX_PASS - st.streak, ball: st.pos[BALL] });
-    } else { st.streak = 0; st.turn = 1 - i; }
-    wait(st, t, res.dur + SHOT_PAUSE); return null;
+  if (!(k >= 0 && k < 6) || !isFinite(dx + dy + power)) return 'bad_shot';
+  const imp = FB.impulse(dx, dy, power); if (!imp) return 'bad_shot';
+  const token = i * 6 + k, passOk = st.passes === 0 || st.chain < st.passes;
+  const res = FB.runShot(st.pos, token, imp[0], imp[1], i, passOk);
+  st.events.forEach(e => { if (e.t === 'shot' || e.t === 'pass') delete e.frames; });
+  const pos = roundPos(res.pos); st.stats[i].shots++;
+  const kickShot = st.new_ko, g = res.goal;
+  ev(st, { t: 'shot', c: SEATS[i], k, ids: res.ids, frames: res.frames, dur: res.dur, pos, hits: res.hits.slice(0, 24).map(h => [h[0], h[1], Math.round(Math.min(1, h[2] / 2000) * 100) / 100]), goal: g == null ? null : SEATS[g], auto: !!autoP, kick: kickShot });
+  let base = res.dur + SHOT_PAUSE;
+  if (g != null) return goal(st, i, g, pos, kickShot, base, t);
+  st.new_ko = false;
+  const passed = passDone(res);
+  if (!(pos[BALL][0] > 0 && pos[BALL][0] < W && pos[BALL][1] > 0 && pos[BALL][1] < H)) pos[BALL] = [W / 2, H / 2];
+  const moved = removeFromGoal(pos, passed ? res.receiver : null);
+  if (moved.length) { const mv = moved.slice().sort((a, b) => a - b); ev(st, { t: 'settle', ids: mv, pos: mv.map(q => pos[q]) }); base += .4; }
+  st.pos = pos;
+  if (passed) {
+    st.chain++; st.stats[i].passes++;
+    const ctl = FB.runControl(pos, res.receiver, i);
+    if (ctl.moved) st.pos = roundPos(ctl.pos);
+    ev(st, { t: 'pass', c: SEATS[i], d: res.receiver, n: st.chain, left: st.passes ? st.passes - st.chain : null, ids: ctl.ids, frames: ctl.frames, dur: ctl.dur, pos: st.pos });
+    wait(st, t, base + ctl.dur + .5); return null;
   }
-  st.streak = 0;
-  st.score[g]++; if (g === i) st.stats[g].goals++;
-  ev(st, { t: 'goal', c: SEATS[g], by: SEATS[i], own: g !== i, score: st.score.slice() });
-  if (st.score[g] >= st.target) { st.over = true; st.winner = g; st.phase = 'over'; ev(st, { t: 'win', c: SEATS[g], score: st.score.slice() }); return null; }
-  st.kick = 1 - g; st.turn = st.kick; st.pos = kickoffPos(st);
-  ev(st, { t: 'reset', pos: st.pos, kick: SEATS[st.kick] });
-  wait(st, t, res.dur + GOAL_PAUSE); return null;
+  st.chain = 0; st.turn = 1 - i; ev(st, { t: 'lose', c: SEATS[i], to: SEATS[st.turn] });
+  wait(st, t, base); return null;
 }
-function goalOf(i) { return i === 0 ? [W / 2, -GOAL_D / 2] : [W / 2, H + GOAL_D / 2]; }
-function rate(st, i, res, disc) {
-  if (res.goal != null) return res.goal === i ? 1000 : -2000;
-  const pas = (st.streak || 0) < FBPhysics.MAX_PASS ? FBPhysics.passOf(i, disc, res) : null, bonus = pas != null ? 160 : 0;
-  const [bx, by] = (pas != null && FBPhysics.catchPos(res.pos, i, pas)) || res.pos[BALL], [gx, gy] = goalOf(i), [ox, oy] = goalOf(1 - i);
-  return -Math.hypot(bx - gx, by - gy) * .6 + Math.min(Math.hypot(bx - ox, by - oy), 500) * .4 + bonus;
+function goal(st, i, g, pos, kickShot, base, t) {
+  const foul = kickShot;
+  if (!foul) { st.score[g]++; if (g === i) st.stats[g].goals++; }
+  ev(st, { t: 'goal', c: SEATS[g], by: SEATS[i], own: g !== i, score: st.score.slice(), foul });
+  if (!foul && st.score[g] >= st.target) { st.pos = pos; st.over = true; st.winner = g; st.phase = 'over'; ev(st, { t: 'win', c: SEATS[g], score: st.score.slice() }); return null; }
+  st.chain = 0; st.kick = g === i ? 1 - i : i; st.turn = st.kick; st.new_ko = true; st.pos = kickoffPos(st);
+  ev(st, { t: 'reset', pos: st.pos, kick: SEATS[st.kick], foul });
+  wait(st, t, base + GOAL_PAUSE); return null;
+}
+// ---------- ربات: چند شوت امتحانی با همان فیزیک، بهترین نتیجه ----------
+const goalOf = i => i === 0 ? [W / 2, 0] : [W / 2, H];
+const rateOf = k => k % 6 === 0 ? 4.54 : 6.8;
+function rate(st, i, res) {
+  if (res.goal != null) return st.new_ko ? -400 : (res.goal === i ? 100000 : -100000);
+  const [bx, by] = res.pos[BALL], [gx, gy] = goalOf(i), [ox, oy] = goalOf(1 - i);
+  let v = -Math.hypot(bx - gx, by - gy) * .7 + Math.min(Math.hypot(bx - ox, by - oy), 900) * .5;
+  if (passDone(res)) v += 420 + (Math.hypot(bx - gx, by - gy) < 700 ? 300 : 0);
+  const near = lo => Math.min(...res.pos.slice(lo, lo + 6).map(p => Math.hypot(p[0] - bx, p[1] - by)));
+  return v + (Math.min(near((1 - i) * 6), 500) - Math.min(near(i * 6), 500)) * .25;
 }
 function botShot(st, i) {
-  const pos = st.pos, [bx, by] = pos[BALL], [gx, gy] = goalOf(i), gl = Math.hypot(gx - bx, gy - by) || 1, ux = (gx - bx) / gl, uy = (gy - by) / gl;
+  const pos = st.pos, [bx, by] = pos[BALL], [gx, gy] = goalOf(i); let ux = gx - bx, uy = gy - by; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
   const cands = [];
   for (let k = 0; k < 6; k++) {
-    const [dx0, dy0] = pos[i * 6 + k], cx = bx - ux * (DISC_R + BALL_R) * .9, cy = by - uy * (DISC_R + BALL_R) * .9;
-    let ax = cx - dx0, ay = cy - dy0, dist = Math.hypot(ax, ay) || 1; ax /= dist; ay /= dist;
-    const align = ax * ux + ay * uy;
-    if (align < .15) { ax = bx - dx0; ay = by - dy0; dist = Math.hypot(ax, ay) || 1; ax /= dist; ay /= dist; }
-    let a2 = align, pw = Math.min(1, Math.max(.5, .42 + dist / 1250));
-    if (st.hold === i * 6 + k) { ax = gx - dx0; ay = gy - dy0; dist = Math.hypot(ax, ay) || 1; ax /= dist; ay /= dist; a2 = 1.5; pw = .9; }
-    cands.push([a2 * 2 - dist / 900, k, ax, ay, pw]);
+    const d = i * 6 + k, [tx, ty] = pos[d], rk = FB.radiusOf(d);
+    let ax = bx - ux * (rk + BALL_R - 3) - tx, ay = by - uy * (rk + BALL_R - 3) - ty, dist = Math.hypot(ax, ay) || 1;
+    const align = (ax / dist) * ux + (ay / dist) * uy;
+    cands.push([align * 600 - dist * .2, k, ax / dist, ay / dist, Math.min(1, (dist + 90) / rateOf(k) / 250)]);
+    const cx = bx - tx, cy = by - ty, cd = Math.hypot(cx, cy) || 1;
+    cands.push([align * 200 - cd * .2, k, cx / cd, cy / cd, Math.min(1, (cd + 150) / rateOf(k) / 250)]);
+    for (let j = 0; j < 6; j++) {
+      if (j === k) continue;
+      const [mx, my] = pos[i * 6 + j], px = mx - bx, py = my - by, pl = Math.hypot(px, py) || 1;
+      if (pl < 160) continue;
+      ax = bx - px / pl * (rk + BALL_R - 3) - tx; ay = by - py / pl * (rk + BALL_R - 3) - ty; dist = Math.hypot(ax, ay) || 1;
+      const line = (ax / dist) * (px / pl) + (ay / dist) * (py / pl);
+      if (line < .3) continue;
+      cands.push([line * 350 + 120 - dist * .2, k, ax / dist, ay / dist, Math.min(1, (dist + pl * .5) / rateOf(k) / 250)]);
+    }
   }
   cands.sort((a, b) => b[0] - a[0]);
-  let best = null, bv = -1e9;
-  for (const [, k, ax, ay, p] of cands.slice(0, 4)) {
-    const a = (Math.random() - .5) * .09, dx = ax * Math.cos(a) - ay * Math.sin(a), dy = ax * Math.sin(a) + ay * Math.cos(a);
-    const p0 = st.hold === i * 6 + k ? FBPhysics.holdPos(pos, i * 6 + k, dx, dy) : pos;
-    const v = rate(st, i, simulate(p0, { [i * 6 + k]: [dx * VMAX * p, dy * VMAX * p] }), i * 6 + k) + Math.random() * 30;
-    if (v > bv) { bv = v; best = [k, dx, dy, p]; }
+  const passOk = st.passes === 0 || st.chain < st.passes;
+  let best = null, bv = -1e18;
+  for (const [, k, ax, ay, p] of cands.slice(0, 7)) {
+    const a = (Math.random() - .5) * .05, dx = ax * Math.cos(a) - ay * Math.sin(a), dy = ax * Math.sin(a) + ay * Math.cos(a);
+    const pw = Math.min(1, Math.max(.12, p * (.95 + Math.random() * .1))), imp = FB.impulse(dx, dy, pw);
+    const v = rate(st, i, FB.runShot(pos, i * 6 + k, imp[0], imp[1], i, passOk)) + Math.random() * 25;
+    if (v > bv) { bv = v; best = [k, dx, dy, pw]; }
   }
   return best;
 }
@@ -135,17 +190,17 @@ function tick(st, t) {
     if (auto(st, i)) { if (t < st.next_at) break; const [k, dx, dy, pw] = botShot(st, i); shot(st, i, k, dx, dy, pw, t, true); continue; }
     if (t < st.deadline) break;
     p.misses++; ev(st, { t: 'timeout', c: s, n: p.misses });
-    st.turn = 1 - i; st.streak = 0; st.hold = null; wait(st, t, SHOT_PAUSE);
+    st.turn = 1 - i; st.chain = 0; ev(st, { t: 'lose', c: s, to: SEATS[st.turn], miss: true }); wait(st, t, SHOT_PAUSE);
   }
 }
 function view(st, me, since) {
   const t = now(), cur = current(st), au = cur != null && auto(st, +cur);
   return { order: SEATS, players: Object.fromEntries(SEATS.map(s => { const p = st.players[s]; return [s, Object.assign({ name: p.name, av: p.av, pic: '', bot: p.bot, out: p.out, me: s === me, team: p.team, kit: p.kit, ready: p.ready }, s === me ? { fa: p.fa, fd: p.fd } : {})]; })),
-    me, phase: st.phase, turn: cur, kick: SEATS[st.kick], pos: st.pos, score: st.score, target: st.target,
+    me, phase: st.phase, turn: cur, kick: SEATS[st.kick], pos: st.pos, score: st.score, target: st.target, passes: st.passes, chain: st.chain, kickoff: st.new_ko,
     setup_ms: st.phase === 'setup' ? Math.max(0, Math.round((st.next_at - t) * 1000)) : 0,
     ready_ms: cur != null ? Math.max(0, Math.round((st.next_at - t) * 1000)) : 0,
-    deadline_ms: cur == null || au ? 0 : Math.max(0, Math.round((st.deadline - t) * 1000)), turn_ms: st.turn_s * 1000,
-    events: st.events.filter(e => e.seq > since), seq: st.seq, over: st.over, winner: st.winner == null ? null : SEATS[st.winner], stats: st.stats[me], streak: st.streak || 0, hold: st.hold == null ? null : st.hold, started: st.started };
+    deadline_ms: cur == null || au ? 0 : Math.max(0, Math.round((st.deadline - t) * 1000)), turn_ms: Math.round(turnTime(st.turn_s, st.chain, st.players[SEATS[st.turn]].misses) * 1000),
+    events: st.events.filter(e => e.seq > since), seq: st.seq, over: st.over, winner: st.winner == null ? null : SEATS[st.winner], stats: st.stats[me], started: st.started };
 }
 
 /* ---------- API نمایشی (هم شکل liveFootball در gc.js) ---------- */
@@ -153,7 +208,7 @@ const loadM = () => store.get('demo_football', null), saveM = m => store.set('de
 function makeMatch(cfg, guest) {
   const names = [...BOTS].sort(() => Math.random() - .5);
   const seats = [{ color: '0', name: 'شما', av: 7 }, guest ? { color: '1', name: 'دوست شما', av: 11, bot: true } : { color: '1', name: names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true }];
-  const st = newState(seats, cfg.target || 3); st.pot = cfg.mode === 'stake' ? cfg.entry * 2 : 0; st.stake = cfg.mode === 'stake';
+  const st = newState(seats, cfg.target || 3, cfg.passes || 0); st.pot = cfg.mode === 'stake' ? cfg.entry * 2 : 0; st.stake = cfg.mode === 'stake';
   return { id: 'fb' + Date.now().toString(36), status: 'playing', cfg: Object.assign({ game: 'football', players: 2 }, cfg), state: st, settled: false };
 }
 function settle(m) {

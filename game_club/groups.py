@@ -49,7 +49,8 @@ GAMES = {
                       ("pawns", "مدل بازی", [(2, "سریع · 2 مهره"), (4, "کلاسیک · 4 مهره")])],
              "def": {"players": 4, "pawns": 2}},
     "football": {"name": "فوتبال", "icon": "⚽", "base": {"game": "football", "mode": "free", "entry": 0},
-                 "opts": [("target", "تا چند گل", [(3, "3 گل · سریع"), (5, "5 گل · کامل")])], "def": {"target": 3}},
+                 "opts": [("target", "تا چند گل", [(2, "2 گل · خیلی سریع"), (3, "3 گل · سریع"), (5, "5 گل · کامل")]),
+                          ("passes", "پاس‌ها", [(0, "بدون محدودیت"), (3, "3 پاس"), (6, "6 پاس")])], "def": {"target": 3, "passes": 0}},
     "billiard": {"name": "بیلیارد", "icon": "🎱", "base": {"game": "billiard", "mode": "free", "entry": 0},
                  "opts": [("players", "تعداد بازیکن", [(2, "2 نفره · رو در رو"), (4, "4 نفره · یاری")])], "def": {"players": 2}},
 }
@@ -93,7 +94,7 @@ def watch_link(game: str, match_id: str) -> str:
 
 
 # ---------- اجزای پیام غنی (قالب متنی عبور در یک پاراگراف + ردیف دکمه های داخل پیام) ----------
-OPT_ICON = {"target": "time", "players": "users", "pawns": "ludo"}
+OPT_ICON = {"target": "time", "players": "users", "pawns": "ludo", "passes": "users"}
 
 
 def who(tg: int, name: str) -> list:

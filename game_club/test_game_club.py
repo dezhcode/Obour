@@ -552,99 +552,179 @@ def test_queue_waits_for_full_table_and_bots_on_request():
     asyncio.run(run())
 
 
+def _fb_ready(seed_first=0, passes=0, target=3):
+    from game_club import football as F
+    st = F.new_state([{"color": "0", "name": "a", "uid": 1}, {"color": "1", "name": "b", "uid": 2}], 0.0, 20, False, target,
+                     first=seed_first, passes=passes)
+    F.setup(st, "0", "eagles", "132", "132", 1.0)
+    F.setup(st, "1", "lions", "132", "132", 1.0)
+    return F, st
+
+
+def _fb_lineup(F, st):
+    """مهره ها دور از هم و ساکن: صندلی ۰ پایین، صندلی ۱ بالا؛ مهرهٔ ۱ شوت زننده، مهرهٔ ۲ گیرنده، توپ بین شان."""
+    pos = [[521.0, 1824.0], [500.0, 1500.0], [500.0, 700.0]] + [[150.0 + 180 * q, 1750.0] for q in range(3)]
+    pos += [[521.0, 96.0]] + [[x, 330.0] for x in (100.0, 250.0, 700.0, 850.0, 960.0)]
+    pos.append([500.0, 1250.0])
+    st["pos"] = pos
+    st["next_at"] = 0
+    st["new_ko"] = False
+    return pos
+
+
 def test_football_physics_and_rules():
     from game_club import football as F
     seats = [{"color": "0", "name": "a", "uid": 1}, {"color": "1", "name": "b", "bot": True}]
     st = F.new_state(seats, 0.0, 20, False, 3, first=0)
-    assert st["phase"] == "setup" and len(st["pos"]) == 13
+    assert st["phase"] == "setup" and len(st["pos"]) == 13 and st["target"] == 3 and st["passes"] == 0
+    # چیدمان شروع: دروازه بان ها جلوی دروازه و توپ وسط زمین
+    assert st["pos"][0][1] > 1700 and st["pos"][6][1] < 220 and abs(st["pos"][12][0] - 521) <= 4
     assert F.setup(st, "0", "nope", "132", "132", 1.0) == "bad_setup"
     assert F.setup(st, "0", "eagles", "141", "123", 1.0) is None
-    assert st["phase"] == "play" and st["turn"] == 0
-    assert F.shot(st, 0, 4, 0, -1, 1, 1.0) == "not_ready"            # هنوز نمایش «مقابل» است
-    assert F.shot(st, 1, 4, 0, -1, 1, 99.0) == "not_your_turn"
-    assert F.shot(st, 0, 9, 0, -1, 1, 99.0) == "bad_shot"
-    # شوت مستقیم به دروازه بالا = گل صندلی ۰، بعد شروع با حریف
-    st["pos"][F.BALL] = [300.0, 120.0]
-    st["pos"][4] = [300.0, 200.0]
-    for k in range(6, 12):
-        st["pos"][k] = [40.0 + (k - 6) * 80, 980.0]
-    assert F.shot(st, 0, 4, 0, -1, 0.6, 99.0) is None
-    kinds = [e["t"] for e in st["events"][-3:]]
-    assert kinds == ["shot", "goal", "reset"] and st["score"] == [1, 0] and st["turn"] == 1
-    shot_e = st["events"][-3]
-    assert shot_e["frames"] and len(shot_e["frames"][0]) == 2 * len(shot_e["ids"])
-    # همه چیز داخل زمین یا تور می ماند و ربات بازی را تمام می کند
-    for _ in range(3):
-        st = F.new_state([{"color": "0", "name": "a", "bot": True}, {"color": "1", "name": "b", "bot": True}], 0.0, 20, False, 3)
-        now = 0.0
-        while not st["over"] and now < 3000:
-            now += 0.5
-            F.tick(st, now)
-            for x, y in st["pos"]:
-                assert -1 <= x <= F.W + 1 and -F.GOAL_D - 1 <= y <= F.H + F.GOAL_D + 1
-        assert st["over"] and max(st["score"]) == 3 and F.winners(st) == {F.SEATS[st["winner"]]}
+    assert st["phase"] == "play" and st["turn"] == 0 and st["new_ko"]
+    assert F.shot(st, 0, 4, 0, -1, 0.5, 1.0) == "not_ready"            # هنوز نمایش «مقابل» است
+    assert F.shot(st, 1, 4, 0, -1, 0.5, 99.0) == "not_your_turn"
+    assert F.shot(st, 0, 9, 0, -1, 0.5, 99.0) == "bad_shot"
+    assert F.shot(st, 0, 4, 0, 0, 0.5, 99.0) == "bad_shot"
+    # گل از ضربهٔ شروع خطاست: امتیاز نمی گیرد، حریف شروع می کند
+    pos = _fb_lineup(F, st)
+    st["new_ko"] = True
+    pos[12] = [400.0, 400.0]
+    pos[4] = [400.0, 520.0]
+    assert F.shot(st, 0, 4, 0, -1, 0.55, 99.0) is None
+    assert st["score"] == [0, 0] and st["turn"] == 1 and st["new_ko"] and st["kick"] == 1
+    ev = [e for e in st["events"] if e["t"] in ("shot", "goal", "reset")][-3:]
+    assert [e["t"] for e in ev] == ["shot", "goal", "reset"] and ev[1]["foul"] and ev[0]["frames"]
+    assert len(ev[0]["frames"][0]) == 2 * len(ev[0]["ids"])
+    # گل عادی بعد از اولین شوت: امتیاز می گیرد و تیم گل خورده شروع می کند
+    st["turn"], st["next_at"], st["new_ko"] = 0, 0, False
+    pos = _fb_lineup(F, st)
+    pos[12] = [400.0, 400.0]
+    pos[4] = [400.0, 520.0]
+    assert F.shot(st, 0, 4, 0, -1, 0.55, 199.0) is None
+    assert st["score"] == [1, 0] and st["turn"] == 1 and st["kick"] == 1 and st["new_ko"] and st["stats"]["0"]["goals"] == 1
+    # بدون پاس: توپ از دست می رود و نوبت حریف می شود
+    st["turn"], st["next_at"], st["new_ko"], st["score"] = 0, 0, False, [0, 0]
+    pos = _fb_lineup(F, st)
+    pos[12] = [900.0, 1000.0]
+    assert F.shot(st, 0, 3, 0, -1, 0.3, 399.0) is None and st["turn"] == 1 and st["chain"] == 0
+    assert [e["t"] for e in st["events"]][-1] == "lose"
     # فقط فریم های آخرین شوت نگه داشته می شود
     assert sum(1 for e in st["events"] if e.get("frames")) <= 1
+    # مهلت نوبت مثل پلاتو: ۳۰، بعد ۲۰، ۱۷، ۱۴، ۱۱، ۸ ثانیه؛ غایب ها حداکثر ۱۰
+    assert [F.turn_time(20, c) for c in (0, 1, 2, 3, 4, 5, 9)] == [30.0, 20.0, 17.0, 14.0, 11.0, 8.0, 8.0]
+    assert F.turn_time(20, 0, 2) == 10.0
     # غیبت در بازی امتیازی: سه نوبت = باخت
     st = F.new_state([{"color": "0", "name": "a", "uid": 1}, {"color": "1", "name": "b", "uid": 2}], 0.0, 20, True, 3, first=0)
     now = F.SETUP_S + 1
     F.tick(st, now)
     assert st["phase"] == "play" and st["players"]["0"]["team"] and st["players"]["1"]["team"]
     for _ in range(12):
-        now += 30
+        now += 40
         F.tick(st, now)
         if st["over"]:
             break
     assert st["over"] and st["winner"] in (0, 1)
 
 
-def test_football_pass_gives_extra_turn():
-    from game_club import football as F
-    st = F.new_state([{"color": "0", "name": "a", "uid": 1}, {"color": "1", "name": "b", "uid": 2}], 0.0, 20, False, 3, first=0)
-    F.setup(st, "0", "eagles", "132", "132", 1.0)
-    F.setup(st, "1", "lions", "132", "132", 1.0)
-    park = [[40.0 + k * 50, 520.0] for k in range(12)]
+def test_football_pass_rules():
+    import math
+    F, st = _fb_ready()
+    pos = _fb_lineup(F, st)
+    # شوت مهرهٔ ۱ به توپ، توپ به مهرهٔ ۲ می رسد: پاس کامل، دوباره نوبت خودم، گیرنده پشت توپ رو به دروازه
+    assert F.shot(st, 0, 1, 0, -1, 0.42, 100.0) is None
+    assert st["turn"] == 0 and st["chain"] == 1, (st["turn"], st["chain"])
+    e = [x for x in st["events"] if x["t"] == "pass"][-1]
+    assert e["d"] == 2 and e["n"] == 1 and e["left"] is None
+    bx, by = st["pos"][F.BALL]
+    rx, ry = st["pos"][2]
+    assert 95 < math.hypot(bx - rx, by - ry) < 130 and ry > by - 5          # گیرنده زیر توپ (دروازهٔ حریف بالاست)
+    assert st["stats"]["0"]["passes"] == 1 and F.view(st, "0", 0, 0.0)["chain"] == 1
+    assert F.turn_time(20, 1) == 20.0 and st["deadline"] - st["next_at"] == 20.0
+    # سقف پاس: با سه پاس، پاس چهارم حساب نمی شود و نوبت حریف می شود
+    F, st = _fb_ready(passes=3)
+    for n in range(1, 4):
+        _fb_lineup(F, st)
+        st["chain"] = n - 1
+        assert F.shot(st, 0, 1, 0, -1, 0.42, 100.0 * n) is None and st["chain"] == n and st["turn"] == 0, n
+    _fb_lineup(F, st)
+    assert F.shot(st, 0, 1, 0, -1, 0.42, 500.0) is None
+    assert st["turn"] == 1 and st["chain"] == 0 and st["stats"]["0"]["passes"] == 3
+    # توپ به یار نرسد: پاس نیست و نوبت حریف است
+    F, st = _fb_ready()
+    pos = _fb_lineup(F, st)
+    assert F.shot(st, 0, 1, 1, -0.2, 0.42, 100.0) is None
+    assert st["chain"] == 0 and st["turn"] == 1
+    # مهرهٔ خودم که مهرهٔ دیگرم را هل بدهد پاس نیست (باید توپ به یار برسد)
+    F, st = _fb_ready()
+    pos = _fb_lineup(F, st)
+    pos[12] = [900.0, 1000.0]
+    pos[2] = [500.0, 1330.0]
+    assert F.shot(st, 0, 1, 0, -1, 0.3, 100.0) is None and st["chain"] == 0 and st["turn"] == 1
 
-    def lineup():
-        st["pos"] = [p[:] for p in park] + [[300.0, 820.0]]
-        st["pos"][0] = [300.0, 900.0]          # شوت زننده پشت توپ
-        st["pos"][1] = [300.0, 640.0]          # یار جلوتر در مسیر توپ
-        for k in range(6, 12):
-            st["pos"][k] = [60.0 + (k - 6) * 96, 120.0]
-        st["next_at"] = 0
-    for n in range(1, F.MAX_PASS + 1):
-        lineup()
-        assert F.shot(st, 0, 0, 0, -1, .5, 100.0 * n) is None
-        assert st["turn"] == 0 and st["streak"] == n, (n, st["turn"], st["streak"])
-        e = [x for x in st["events"] if x["t"] == "pass"][-1]
-        assert e["d"] == 1 and e["n"] == n
-        # توپ به گیرنده چسبیده: درست جلوی آن رو به دروازه حریف، و رویداد شوت جای قبلی را نگه داشته
-        dx, dy = st["pos"][1]
-        assert e["ball"] == st["pos"][F.BALL] == [dx, round(dy - F.DISC_R - F.BALL_R - 1, 1)]
-        sh = [x for x in st["events"] if x["t"] == "shot"][-1]
-        assert sh["pos"][F.BALL] != e["ball"]
-        assert st["hold"] == 1 and F.view(st, "0", 0, 0.0)["hold"] == 1
-    # مهره ای که توپ را دارد به هر طرف شوت بزند، اول زیر توپ می آید: توپ در جهت شوت جلویش است
-    st["next_at"] = 0
-    dx, dy = st["pos"][1]
-    assert F.shot(st, 0, 1, 1, 0, .4, 950.0) is None
-    sh = [x for x in st["events"] if x["t"] == "shot"][-1]
-    assert sh["hold"] == [round(dx + F.HOLD_GAP, 1), dy] and st["hold"] is None
-    assert F.BALL in sh["ids"] and sh["pos"][F.BALL][0] > dx + F.HOLD_GAP
-    st["turn"], st["streak"] = 0, F.MAX_PASS     # پاس ها به سقف رسیده
-    lineup()                                   # پاس چهارم: نوبت دیگر اضافه نمی شود
-    F.shot(st, 0, 0, 0, -1, .5, 900.0)
-    assert st["turn"] == 1 and st["streak"] == 0 and st["stats"]["0"]["passes"] == F.MAX_PASS
-    # برخورد مهره خودم (نه توپ) به یار پاس نیست
-    res = F.simulate([[300.0, 900.0], [300.0, 760.0]] + [[40.0 + k * 50, 300.0] for k in range(10)] + [[500.0, 600.0]], {0: (0, -1500)})
-    assert F.pass_of(0, 0, res) is None
-    # جلوی گیرنده دیواره است: توپ کج تر می چسبد؛ صندلی ۱ رو به پایین
-    pos = [[40.0 + k * 50, 520.0] for k in range(12)] + [[300.0, 500.0]]
-    pos[1] = [300.0, 30.0]
-    b = F.catch_pos(pos, 0, 1)
-    assert b and b[1] >= F.BALL_R and abs(math.hypot(b[0] - 300.0, b[1] - 30.0) - (F.DISC_R + F.BALL_R + 1)) < .2
-    pos[7] = [300.0, 300.0]
-    assert F.catch_pos(pos, 1, 7) == [300.0, 355.0]
+
+def test_football_phys_matches_plato_numbers():
+    """ثابت های بستهٔ پلاتو و ویژگی های فیزیکی: زمان توقف ثابت، برگشت از دیوار، فاصلهٔ آهن ربا."""
+    import math
+    from game_club import football_phys as P
+    assert (P.W, P.H, P.GOAL_W, P.BALL_R, P.REG_R, P.KEEP_R) == (1042.0, 1920.0, 354.0, 32.0, 55.0, 64.0)
+    park = [[120.0, 100.0 + 150 * q] for q in range(11)]
+    # بدون برخورد: مسافت متناسب با قدرت و توقف در زمان ثابت (میرایی رو به افزایش)
+    d = []
+    for power in (50, 150, 250):
+        pos = [[521.0, 1800.0]] + park + [[900.0, 100.0]]
+        r = P.run_shot(pos, 0, 0.0, -power * P.IMPULSE_MULT, 0, False)
+        d.append((1800.0 - r["pos"][0][1], r["steps"]))
+    assert abs(d[2][0] / d[0][0] - 5.0) < 0.05 and abs(d[0][1] - d[2][1]) <= 6
+    # ضریب برگشت: توپ ۰٫۹۵ از دیوار برمی گردد
+    pos = [[120.0, 150.0 * q + 100] for q in range(12)] + [[500.0, 960.0]]
+    s = P.Sim(pos, 0)
+    s.wake(12)
+    s.vx[12] = 1000.0
+    prev, ratio = None, 0
+    for _ in range(120):
+        s.step()
+        if prev is not None and prev * s.vx[12] < 0:
+            ratio = -s.vx[12] / prev
+            break
+        prev = s.vx[12]
+    assert 0.92 < ratio < 0.97, ratio
+    # آهن ربا: توپ به گیرندهٔ پاس با فاصلهٔ ۵۵ + ۱٫۵×۳۲ = ۱۰۳ می چسبد
+    pos = [[100.0, 1800.0], [300.0, 1300.0], [300.0, 700.0], [800.0, 1800.0], [800.0, 1500.0], [800.0, 1200.0]]
+    pos += [[1000.0 - 10 * q, 100.0 + 140 * q] for q in range(6)] + [[300.0, 1100.0]]
+    r = P.run_shot(pos, 1, 0.0, -110 * P.IMPULSE_MULT, 0, True)
+    assert r["shooter"] == 1 and r["receiver"] == 2
+    bx, by = r["pos"][12]
+    assert abs(math.hypot(bx - r["pos"][2][0], by - r["pos"][2][1]) - 103.0) < 1.5
+    # کنترل: گیرنده بدون مانع پشت توپ می نشیند، فاصله ۱۲۷ و رو به دروازهٔ بالا
+    park2 = [[100.0, 1800.0], [100.0, 1500.0], [800.0, 1000.0], [800.0, 1800.0], [800.0, 1500.0], [100.0, 1200.0]]
+    cpos = [p[:] for p in park2]
+    cpos[2] = [500.0, 800.0]
+    cpos += [[1000.0 - 10 * q, 100.0 + 140 * q] for q in range(6)] + [[500.0, 903.0]]
+    c = P.run_control(cpos, 2, 0)
+    cx, cy = c["pos"][2]
+    assert c["moved"] and abs(math.hypot(cx - 500.0, cy - 903.0) - 127.0) < 2.0 and cy > 903.0
+    # حسگر دروازه: توپ کامل داخل خط
+    pos = [[521.0, 700.0]] + [[100.0 + 80 * q, 1700.0] for q in range(5)] + [[950.0 - 80 * (q % 3), 300.0 + 120 * q] for q in range(6)] + [[521.0, 520.0]]
+    r = P.run_shot(pos, 0, 0.0, -90 * P.IMPULSE_MULT, 0, True)
+    assert r["goal"] == 0 and r["pos"][12][1] < 70
+    # قطعی بودن: دو بار اجرا یک نتیجه می دهد
+    r2 = P.run_shot(pos, 0, 0.0, -90 * P.IMPULSE_MULT, 0, True)
+    assert r2["frames"] == r["frames"]
+
+
+def test_football_bots_play_a_game():
+    import time
+    from game_club import football as F
+    st = F.new_state([{"color": "0", "name": "a", "bot": True}, {"color": "1", "name": "b", "bot": True}], 0.0, 20, False, 2)
+    now, t0 = 0.0, time.time()
+    while not st["over"] and now < 6000 and time.time() - t0 < 150:
+        now += 0.5
+        F.tick(st, now)
+        for x, y in st["pos"]:
+            assert -80 <= x <= F.W + 80 and -80 <= y <= F.H + 80
+    assert st["over"] and max(st["score"]) == 2 and F.winners(st) == {F.SEATS[st["winner"]]}
+    assert sum(1 for e in st["events"] if e.get("frames")) <= 1
 
 
 def test_football_service_flow():
@@ -673,7 +753,7 @@ def test_football_service_flow():
             await service.leave_any(db, 1, mid)
             assert (await db.get_match(mid))["status"] == "over"
             # بازی امتیازی با دعوت: برنده کل ورودی ها را می برد
-            cfg = {"game": "football", "mode": "stake", "entry": 100, "target": 3}
+            cfg = {"game": "football", "mode": "stake", "entry": 100, "target": 2, "passes": 3}
             inv = await service.invite_create(db, 1, cfg)
             await service.invite_join(db, 2, inv["code"])
             m = await db.get_match(inv["match"])
@@ -683,19 +763,18 @@ def test_football_service_flow():
             m = await db.get_match(inv["match"])
             kits = {s: p["kit"] for s, p in m["state"]["players"].items()}
             assert sorted(kits.values()) == ["away", "home"]                  # تیم یکسان: یکی لباس مهمان
-            for _ in range(400):
+            from game_club import football as F
+            assert m["state"]["passes"] == 3 and m["state"]["target"] == 2
+            rows = {r["color"]: r["tg_id"] for r in await db.match_players(inv["match"])}
+            for _ in range(300):
                 m = await db.get_match(inv["match"])
                 if m["status"] != "playing":
                     break
                 st = m["state"]
                 clock[0] = max(clock[0], st["next_at"]) + 0.1
                 seat = st["turn"]
-                tg = [1, 2][seat] if (await db.match_players(inv["match"]))[0]["color"] == "0" else [2, 1][seat]
-                rows = {r["color"]: r["tg_id"] for r in await db.match_players(inv["match"])}
-                tg = rows[str(seat)]
-                bx, by = st["pos"][12]
-                x, y = st["pos"][seat * 6 + 4]
-                await service.act(db, tg, inv["match"], "shot", data={"i": 4, "dx": bx - x, "dy": by - y, "p": 0.9})
+                k, dx, dy, p = F.bot_shot(st, seat)
+                await service.act(db, rows[str(seat)], inv["match"], "shot", data={"i": k, "dx": dx, "dy": dy, "p": p})
             m = await db.get_match(inv["match"])
             assert m["status"] == "over", m["state"]["score"]
             pts = sorted([(await db.get_player(1))["points"], (await db.get_player(2))["points"]])

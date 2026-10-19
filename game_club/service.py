@@ -147,16 +147,17 @@ def norm_cfg(raw: dict) -> dict:
         try:
             target = int(raw.get("target") or 3)
             entry = int(raw.get("entry") or 0)
+            passes = int(raw.get("passes") or 0)
         except (TypeError, ValueError):
             raise GCError("bad_cfg") from None
-        if target not in (3, 5):
+        if target not in football.GOALS_TO_WIN or passes not in football.PASS_LIMITS:
             raise GCError("bad_cfg")
         if mode == "stake":
             if entry not in gc.entries:
                 raise GCError("bad_entry")
         else:
             entry = 0
-        return {"game": "football", "mode": mode, "entry": entry, "players": 2, "target": target}
+        return {"game": "football", "mode": mode, "entry": entry, "players": 2, "target": target, "passes": passes}
     if raw.get("game") == "billiard":
         try:
             players = int(raw.get("players") or 2)
@@ -188,8 +189,10 @@ def norm_cfg(raw: dict) -> dict:
 
 
 def cfg_key(cfg: dict) -> str:
-    if game_of(cfg) in ("hokm", "football"):
-        return f"{game_of(cfg)}:{cfg['mode']}:{cfg['entry']}:{cfg['target']}"
+    if game_of(cfg) == "football":
+        return f"football:{cfg['mode']}:{cfg['entry']}:{cfg['target']}:{cfg.get('passes', 0)}"
+    if game_of(cfg) == "hokm":
+        return f"hokm:{cfg['mode']}:{cfg['entry']}:{cfg['target']}"
     if game_of(cfg) == "billiard":
         return f"billiard:{cfg['mode']}:{cfg['entry']}:{cfg['players']}"
     return f"{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg['pawns']}"
@@ -252,7 +255,8 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
     if game_of(cfg) == "hokm":
         state = hokm.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
     elif game_of(cfg) == "football":
-        state = football.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
+        state = football.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"],
+                                   passes=cfg.get("passes", 0))
     elif game_of(cfg) == "billiard":
         state = billiard.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["players"])
     else:

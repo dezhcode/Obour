@@ -8,7 +8,12 @@
 const { S, fa, FD, store, face, icon, sheet, sheetHead, toast, sleep, sfx, haptic, errText, setSound, amount, mount } = GC;
 const $ = id => document.getElementById(id);
 const POLL_MS = 1000;
-const W = 600, H = 1040, MID = H / 2, GOAL_W = 220, GOAL_D = 60, GX0 = (W - GOAL_W) / 2, DISC_R = 36, BALL_R = 18, BALL = 12;
+// اندازه های زمین و مهره ها عیناً از بازی پلاتو (football_phys.py): ۱۰۴۲×۱۹۲۰؛ چمن فقط بین دو خط دروازه (از y=۹۶ تا H−۹۶)،
+// دو سر هم جیب تور دروازه (عمق ۹۶، دهانه ۳۵۴) بیرون چمن است. دیواره: کنار ۲۳ و کنار دروازه ۴۳ واحد
+const W = 1042, H = 1920, MID = H / 2, GOAL_W = 354, GOAL_H = 96, GX0 = (W - GOAL_W) / 2, BALL_R = 32, BALL = 12, MAX_DRAG = 250;
+const WALL_SIDE = 23, WALL_END = 43, STRIPES = 14, BOX_W = 492, BOX_D = 134, ARC_R = 143, ARC_Y = 44, CIRCLE_R = 202;
+const rOf = i => i === BALL ? BALL_R : (i % 6 === 0 ? 64 : 55);        // دروازه بان شعاع ۶۴، بقیه ۵۵
+const FPS = 1 / (0.015 * 2);                                          // هر فریم سرور دو گام ۰٫۰۱۵ ثانیه ای
 const STAR = 'M16 7.5l2.5 5.2 5.7.8-4.1 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4.1-4 5.7-.8z';
 const TEAM = {
   eagles: { fa: 'عقاب‌ها', sub: 'آبی · ستاره' },
@@ -122,7 +127,7 @@ const toView = ([x, y]) => flip() ? [W - x, H - y] : [x, y];
 /* ---------- زمین ---------- */
 function fit() {
   const r = $('arena').getBoundingClientRect();
-  const k = Math.min((r.width - 2 * 36 - 10) / W, (r.height - 14) / (H + GOAL_D * 1.6));
+  const k = Math.min((r.width - 2 * 36 - 10) / (W + 2 * WALL_SIDE), (r.height - 14) / H);
   if (k > 0 && Math.abs(k - s) > .002) { s = k; build(); }
 }
 function line(st) { const d = document.createElement('div'); d.className = 'fb-ln'; d.style.cssText = st; return d; }
@@ -133,40 +138,51 @@ function build() {
   const px = v => (v * s).toFixed(1) + 'px';
   const b = Math.max(1.5, 2.2 * s * 1.5).toFixed(1) + 'px';
   const arc = (cx, cy, r, clip) => line(`left:${px(cx - r)};top:${px(cy - r)};width:${px(2 * r)};height:${px(2 * r)};border-width:${b};border-radius:50%;clip-path:${clip}`);
-  const spot = (cx, cy) => line(`left:${px(cx) };top:${px(cy)};width:${px(9)};height:${px(9)};margin:${px(-4.5)} 0 0 ${px(-4.5)};border-radius:50%;background:rgba(255,255,255,.9)`);
-  const cut = ((130 - (105 - 72)) / 144 * 100).toFixed(1);
+  const spot = (cx, cy, r = 9) => line(`left:${px(cx - r)};top:${px(cy - r)};width:${px(2 * r)};height:${px(2 * r)};border-radius:50%;background:rgba(255,255,255,.9)`);
+  $('stadium').style.setProperty('--s', s);
+  const box = (cls, l, t, w, h, extra = '') => { const d = document.createElement('div'); d.className = cls; d.style.cssText = `left:${px(l)};top:${px(t)};width:${px(w)};height:${px(h)};${extra}`; pitch.appendChild(d); return d; };
+  // چمن راه راه فقط بین دو خط دروازه؛ جیب دروازه ها و حاشیه بیرون چمن اند
+  box('fb-grass', 0, GOAL_H, W, H - 2 * GOAL_H, `--stripe:${((H - 2 * GOAL_H) / STRIPES * s).toFixed(2)}px`);
+  // خط وسط و دایره (شعاع ۲۰۲، نقطهٔ وسط ۱۷)، محوطهٔ دروازه ۴۹۲×۱۳۴ از خط دروازه و کمان ۱۴۳ بیرون آن (طرح میز پلاتو)؛ بدون خط دور زمین
+  const cut = ((GOAL_H + BOX_D) - (GOAL_H + ARC_Y - ARC_R)) / (2 * ARC_R) * 100;
   pitch.append(
-    line(`left:${px(10)};right:${px(10)};top:0;bottom:0;border-width:${b}`),
-    line(`left:${px(10)};right:${px(10)};top:${px(MID)};border-top-width:${b};transform:translateY(-50%)`),
-    arc(W / 2, MID, 100, 'none'), spot(W / 2, MID),
-    line(`left:${px(150)};top:0;width:${px(300)};height:${px(130)};border-width:0 ${b} ${b} ${b}`),
-    line(`left:${px(215)};top:0;width:${px(170)};height:${px(55)};border-width:0 ${b} ${b} ${b}`),
-    spot(W / 2, 105), arc(W / 2, 105, 72, `inset(${cut}% 0 0 0)`),
-    line(`left:${px(150)};bottom:0;width:${px(300)};height:${px(130)};border-width:${b} ${b} 0 ${b}`),
-    line(`left:${px(215)};bottom:0;width:${px(170)};height:${px(55)};border-width:${b} ${b} 0 ${b}`),
-    spot(W / 2, H - 105), arc(W / 2, H - 105, 72, `inset(0 0 ${cut}% 0)`),
-    arc(10, 0, 24, 'inset(50% 0 0 50%)'), arc(W - 10, 0, 24, 'inset(50% 50% 0 0)'),
-    arc(10, H, 24, 'inset(0 0 50% 50%)'), arc(W - 10, H, 24, 'inset(0 50% 50% 0)'),
+    line(`left:0;right:0;top:${px(MID)};border-top-width:${b};transform:translateY(-50%)`),
+    arc(W / 2, MID, CIRCLE_R, 'none'), spot(W / 2, MID, 17),
+    line(`left:${px((W - BOX_W) / 2)};top:${px(GOAL_H)};width:${px(BOX_W)};height:${px(BOX_D)};border-width:0 ${b} ${b} ${b}`),
+    arc(W / 2, GOAL_H + ARC_Y, ARC_R, `inset(${cut.toFixed(1)}% 0 0 0)`),
+    line(`left:${px((W - BOX_W) / 2)};top:${px(H - GOAL_H - BOX_D)};width:${px(BOX_W)};height:${px(BOX_D)};border-width:${b} ${b} 0 ${b}`),
+    arc(W / 2, H - GOAL_H - ARC_Y, ARC_R, `inset(0 0 ${cut.toFixed(1)}% 0)`),
   );
-  const net = (cls, pos) => {
-    const d = document.createElement('div'); d.className = 'fb-net ' + cls;
-    d.style.cssText = `left:${px(GX0)};${pos};width:${px(GOAL_W)};height:${px(GOAL_D)}`;
+  // دیواره خاکستری: لبهٔ روشن بیرونی و رویهٔ تیره سمت زمین؛ کنار زمین و دو طرف دهانهٔ دروازه (جعبهٔ ۳۴۴×۹۶ فیزیک)
+  const rail = (cls, l, t, w, h, ld, sd, lip) => box('fb-rail ' + cls, l, t, w, h, `--ld:${ld};--sd:${sd};--lip:${lip}`);
+  const endW = GX0 + WALL_SIDE, endT = GOAL_H - WALL_END;
+  rail('l', -WALL_SIDE, GOAL_H, WALL_SIDE, H - 2 * GOAL_H, '90deg', '180deg', '30%');
+  rail('r', W, GOAL_H, WALL_SIDE, H - 2 * GOAL_H, '270deg', '180deg', '30%');
+  rail('tl', -WALL_SIDE, endT, endW, WALL_END, '180deg', '90deg', '35%');
+  rail('tr', W - GX0, endT, endW, WALL_END, '180deg', '90deg', '35%');
+  rail('bl', -WALL_SIDE, H - GOAL_H, endW, WALL_END, '0deg', '90deg', '35%');
+  rail('br', W - GX0, H - GOAL_H, endW, WALL_END, '0deg', '90deg', '35%');
+  // جیب دروازه: کف تیره، خط دروازه و تور
+  box('fb-pocket fb-pk-t', GX0, 0, GOAL_W, GOAL_H); box('fb-pocket fb-pk-b', GX0, H - GOAL_H, GOAL_W, GOAL_H);
+  const net = (cls, top) => {
+    const d = box('fb-net ' + cls, GX0, top, GOAL_W, GOAL_H);
     d.innerHTML = '<i class="mesh"></i><i class="bar"></i><i class="post l"></i><i class="post r"></i>';
-    pitch.appendChild(d); return d;
+    return d;
   };
-  net('fb-goal-top', `top:${px(-GOAL_D)}`); net('fb-goal-bot', `bottom:${px(-GOAL_D)}`);
-  const flag = (cls, col) => { const d = document.createElement('div'); d.className = 'fb-flag ' + cls; d.innerHTML = `<svg viewBox="0 0 14 22"><path d="M2 21V2" stroke="#e9edf1" stroke-width="1.6" stroke-linecap="round"/><path d="M2.6 2.5l9 3.2-9 3.3z" fill="${col}"/></svg>`; pitch.appendChild(d); };
-  flag('tl', '#E63946'); flag('tr', '#E63946'); flag('bl', '#2F80ED'); flag('br', '#2F80ED');
+  net('fb-goal-top', 0); net('fb-goal-bot', H - GOAL_H);
+  // پرچم گوشه روی لبهٔ بیرونی دیواره
+  const flag = (cls, col, l, t) => { const d = document.createElement('div'); d.className = 'fb-flag ' + cls; d.style.cssText = `left:${px(l)};top:${px(t)}`; d.innerHTML = `<svg viewBox="0 0 14 22"><path d="M2 21V2" stroke="#e9edf1" stroke-width="1.6" stroke-linecap="round"/><path d="M2.6 2.5l9 3.2-9 3.3z" fill="${col}"/></svg>`; pitch.appendChild(d); };
+  flag('tl', '#E63946', -WALL_SIDE, endT); flag('tr', '#E63946', W + WALL_SIDE, endT); flag('bl', '#2F80ED', -WALL_SIDE, H - endT); flag('br', '#2F80ED', W + WALL_SIDE, H - endT);
   els = []; halos = []; lastTf = []; lastZ = [];
   // حلقه نوبت مهره های خودم در لایه ای زیر همه مهره ها، تا روی مهره کناری نیفتد
   for (let i = 0; i < 12; i++) {
     if (!mine(i)) { halos.push(null); continue; }
-    const h = document.createElement('i'); h.className = 'fb-halo'; h.style.width = h.style.height = px(2 * DISC_R); pitch.appendChild(h); halos.push(h);
+    const h = document.createElement('i'); h.className = 'fb-halo'; h.style.width = h.style.height = px(2 * rOf(i)); pitch.appendChild(h); halos.push(h);
   }
   for (let i = 0; i < 13; i++) {
     const w = document.createElement('div');
     if (i === BALL) { w.innerHTML = `<span class="fb-ball" style="width:${px(2 * BALL_R)};height:${px(2 * BALL_R)}"><i class="sh"></i>${ballSvg()}</span>`; }
-    else { const t = teams[i < 6 ? '0' : '1'] || {}; w.innerHTML = discHtml(t.team, t.kit, 2 * DISC_R * s, mine(i) ? 'me pulse' : ''); }
+    else { const t = teams[i < 6 ? '0' : '1'] || {}; w.innerHTML = discHtml(t.team, t.kit, 2 * rOf(i) * s, mine(i) ? 'me pulse' : ''); }
     const el = w.firstElementChild; el.dataset.i = i; pitch.appendChild(el); els.push(el);
     if (i < 12 && rot[i]) el.querySelector('.in svg').style.transform = `rotate(${rot[i]}deg)`;
     if (cur[i]) setPos(i, cur[i]);
@@ -181,7 +197,7 @@ let lastTf = [], lastZ = [];
 function setPos(i, p, z = true) {
   cur[i] = p;
   const el = els[i]; if (!el) return;
-  const [x, y] = toView(p), r = i === BALL ? BALL_R : DISC_R;
+  const [x, y] = toView(p), r = rOf(i);
   const tf = `translate3d(${((x - r) * s).toFixed(1)}px,${((y - r) * s).toFixed(1)}px,0)`;
   if (tf === lastTf[i]) return;
   lastTf[i] = tf;
@@ -223,8 +239,8 @@ function renderStatus(g) {
   let html;
   if (g.over) html = 'پایان بازی';
   else if (g.phase === 'setup') html = 'انتخاب تیم و چیدمان…';
-  else if (isMe(g.turn)) html = `نوبت شماست${g.deadline_ms ? '<em id="clock"></em>' : ''}`;
-  else { const q = g.players[g.turn] || {}; html = `نوبت ${q.name || 'حریف'}<em>${q.bot || q.out ? 'فکر می‌کند…' : ''}</em>`; }
+  else if (isMe(g.turn)) html = `${g.kickoff ? 'ضربهٔ شروع با توست' : 'نوبت شماست'}${g.deadline_ms ? '<em id="clock"></em>' : ''}${g.passes ? `<em>پاس‌ها: ${FD(g.chain)}/${FD(g.passes)}</em>` : g.chain ? `<em>${FD(g.chain)} پاس</em>` : ''}`;
+  else { const q = g.players[g.turn] || {}; html = `${g.kickoff ? (q.name || 'حریف') + ' شوت شروع را می‌زند' : 'نوبت ' + (q.name || 'حریف')}<em>${q.bot || q.out ? 'فکر می‌کند…' : g.passes ? `پاس‌ها: ${FD(g.chain)}/${FD(g.passes)}` : ''}</em>`; }
   // هر پرسش سرور همین متن را می آورد؛ فقط وقتی عوض شده بنویس (وگرنه هر بار چیدمان و نقاشی دوباره)
   if (html !== st.dataset.k || !st.firstChild) { st.dataset.k = html; st.innerHTML = html; }
   setDeadline(g.deadline_ms);
@@ -258,59 +274,46 @@ setInterval(tickTimer, 200);
 
 /* ---------- نشانه گیری و شوت ---------- */
 const canShoot = () => !WATCH && snap && snap.status === 'playing' && snap.game.phase === 'play' && snap.game.turn === me && !busy && !acting && Date.now() >= readyAt - 250;
-const maxDrag = () => Math.max(84, DISC_R * s * 4.6);
 function local(ev) { const r = $('pitch').getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; }
 let aimRaf = 0, aimDX = 0, aimDY = 0;
 function drawAim(dx, dy) {
   aimDX = dx; aimDY = dy;
   if (!aimRaf) aimRaf = requestAnimationFrame(() => { aimRaf = 0; paintAim(aimDX, aimDY); });
 }
-// فلش سفید پهن شونده با سر مثلثی؛ نوکش هیچ وقت از دایره قدرت بیرون نمی زند. کمان سفید لبه دایره = قدرت
+// فلاخن مثل پلاتو: انگشت را روی مهره بگذار و به عقب بکش، رها کن تا مهره خلاف جهت کشیدن شلیک شود. فلش سمت شوت را نشان می دهد و
+// طول کشیدن (بیرون از لبهٔ مهره، تا ۲۵۰ واحد زمین) قدرت است. رها کردن داخل خود مهره = لغو. فلش سفید پهن شونده با سر مثلثی؛ کمان سفید لبه = قدرت
 function paintAim(dx, dy) {
   const svg = $('aim'); if (!svg || !aim) return;
-  const R = maxDrag(), d = Math.hypot(dx, dy), p = Math.min(1, d / R), r = DISC_R * s, cx = aim.cx, cy = aim.cy;
-  const ux = d ? -dx / d : 0, uy = d ? -dy / d : -1, px = -uy, py = ux;
+  const r = rOf(aim.i) * s, R = r + MAX_DRAG * s, d = Math.hypot(dx, dy), len = Math.max(0, d - r) / s, p = Math.min(1, len / MAX_DRAG), cx = aim.cx, cy = aim.cy;
+  const ux = d ? -dx / d : 0, uy = d ? -dy / d : -1, px = -uy, py = ux;   // جهت شوت = خلاف جهت کشیدن
   const f = n => n.toFixed(1);
   let body = '';
-  if (d > 4) {
-    const s0 = r * .3, tip = r * .75 + p * (R - 5 - r * .75), ah = Math.min(R * .24, 11 + p * 9), hw = ah * .8;
-    const w0 = 3, w1 = 6 + p * 5, neck = tip - ah;
+  if (len > 2) {
+    const s0 = r * .3, tip = r + p * (R - r - 4), ah = Math.min((R - r) * .24, 11 + p * 9), hw = ah * .8;
+    const w0 = 3, w1 = 6 + p * 5, neck = Math.max(s0 + 4, tip - ah);
     const P = (t, w) => `${f(cx + ux * t + px * w)},${f(cy + uy * t + py * w)}`;
     const arrow = `${P(s0, w0)} ${P(neck, w1)} ${P(neck, hw)} ${P(tip, 0)} ${P(neck, -hw)} ${P(neck, -w1)} ${P(s0, -w0)}`;
-    const pl = Math.min(d, R) - 2, dots = [];
-    for (let t = r + 6; t < pl; t += 9) dots.push(`<circle cx="${f(cx - ux * t)}" cy="${f(cy - uy * t)}" r="${f(1.6 + (t / R) * 1.2)}"/>`);
     const arc = Math.PI * R * p, ang = Math.atan2(uy, ux) * 180 / Math.PI - (arc / R) * 90 / Math.PI;
     body = `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R - 1.5)}" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="${f(arc)} ${f(2 * Math.PI * R)}" transform="rotate(${f(ang)} ${f(cx)} ${f(cy)})" opacity=".9"/>
-      <g fill="rgba(255,255,255,.75)">${dots.join('')}</g>
       <polygon points="${arrow}" fill="rgba(0,0,0,.28)" transform="translate(1.2 2)"/>
       <polygon points="${arrow}" fill="#fff" stroke="rgba(30,40,50,.25)" stroke-width="1" stroke-linejoin="round"/>`;
   }
-  svg.innerHTML = `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="rgba(0,0,0,.24)" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>${body}`;
-  aim.p = p; aim.dx = ux; aim.dy = uy;
-  if (aim.hold) holdAim(d > 4 ? ux : 0, d > 4 ? uy : 0);
+  svg.innerHTML = `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(R)}" fill="rgba(0,0,0,.2)" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>${body}`;
+  aim.p = p; aim.dx = ux; aim.dy = uy; aim.inside = d <= r;
 }
-// توپ دست این مهره است: موقع نشانه گیری مهره زیر توپ می آید (توپ دور مهره به سمت شوت می چرخد)
-function holdAim(ux, uy) {
-  const g = snap && snap.game, PH = window.FBPhysics; if (!g || !PH || !aim) return;
-  let b = g.pos[BALL];
-  if (ux || uy) { const q = PH.holdPos(g.pos, aim.i, flip() ? -ux : ux, flip() ? -uy : uy); b = q[BALL]; }
-  setPos(BALL, b);
-  const svg = els[aim.i] && els[aim.i].querySelector('.in svg');
-  if (svg && (ux || uy)) { rot[aim.i] = Math.atan2(ux, -uy) * 180 / Math.PI; svg.style.transform = `rotate(${rot[aim.i].toFixed(1)}deg)`; }
-}
-function endAim() { if (aim && aim.hold && snap && snap.game && !aim.shot) setPos(BALL, snap.game.pos[BALL]); if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; } if (aim && halos[aim.i]) halos[aim.i].classList.remove('aim'); if (aim && els[aim.i]) els[aim.i].classList.remove('aim'); aim = null; const svg = $('aim'); if (svg) svg.innerHTML = ''; }
+function endAim() { if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; } if (aim && halos[aim.i]) halos[aim.i].classList.remove('aim'); if (aim && els[aim.i]) els[aim.i].classList.remove('aim'); aim = null; const svg = $('aim'); if (svg) svg.innerHTML = ''; }
 $('pitch').addEventListener('pointerdown', ev => {
   if (!canShoot()) return;
   const [px, py] = local(ev);
-  let best = null, bd = DISC_R * s * 1.7;
+  let best = null, bd = Infinity;
   for (let i = 0; i < 12; i++) {
     if (!mine(i) || !cur[i]) continue;
     const [x, y] = toView(cur[i]), d = Math.hypot(x * s - px, y * s - py);
-    if (d < bd) { bd = d; best = i; }
+    if (d < Math.max(rOf(i) * s * 1.35, 24) && d < bd) { bd = d; best = i; }
   }
   if (best == null) return;
   const [x, y] = toView(cur[best]);
-  aim = { i: best, cx: x * s, cy: y * s, p: 0, dx: 0, dy: -1, hold: snap.game.hold === best };
+  aim = { i: best, cx: x * s, cy: y * s, p: 0, dx: 0, dy: -1, inside: true };
   els[best].classList.add('aim'); if (halos[best]) halos[best].classList.add('aim'); haptic('select');
   try { $('pitch').setPointerCapture(ev.pointerId); } catch (e) {}
   drawAim(0, 0); ev.preventDefault();
@@ -320,7 +323,7 @@ $('pitch').addEventListener('pointercancel', endAim);
 $('pitch').addEventListener('pointerup', () => {
   if (!aim) return;
   if (aimRaf) { cancelAnimationFrame(aimRaf); aimRaf = 0; paintAim(aimDX, aimDY); }
-  const a = aim; a.shot = a.p >= .1 && canShoot(); endAim();
+  const a = aim; a.shot = !a.inside && a.p >= .05 && canShoot(); endAim();
   if (!a.shot) return;
   const k = a.i % 6, dx = flip() ? -a.dx : a.dx, dy = flip() ? -a.dy : a.dy;
   store.set('fbHints', store.get('fbHints', 0) + 1);
@@ -328,53 +331,33 @@ $('pitch').addEventListener('pointerup', () => {
   $('pitch').classList.remove('myturn');
   const wdx = Math.round(dx * 10000) / 10000, wdy = Math.round(dy * 10000) / 10000, wp = Math.round(a.p * 1000) / 1000;
   // همان فیزیک سرور همین جا اجرا می شود تا شوت بی تاخیر دیده شود؛ جواب سرور فقط تایید یا اصلاحش است
-  const PH = window.FBPhysics, g = snap.game, v = PH && PH.shotVel(wdx, wdy, wp);
-  if (v && g.pos && g.pos.length === 13) {
-    const disc = (+me) * 6 + k, pos0 = g.hold === disc ? PH.holdPos(g.pos, disc, wdx, wdy) : g.pos;
-    const res = PH.simulate(pos0, { [disc]: v });
-    pred = { pos: res.pos, done: playFrames({ frames: res.frames, ids: res.ids, hits: res.hits, c: me }) };
+  const PH = window.FBPhysics, g = snap.game, imp = PH && PH.impulse(wdx, wdy, wp);
+  if (imp && g.pos && g.pos.length === 13) {
+    const res = PH.runShot(g.pos, (+me) * 6 + k, imp[0], imp[1], +me, !g.passes || g.chain < g.passes);
+    const hits = res.hits.slice(0, 24).map(h => [h[0], h[1], Math.round(Math.min(1, h[2] / 2000) * 100) / 100]);
+    pred = { pos: res.pos.map(q => [PH.rd2(q[0]), PH.rd2(q[1])]), done: playFrames({ frames: res.frames, ids: res.ids, hits, c: me }) };
   }
   act(() => GC.football.shot(mid, k, wdx, wdy, wp, since));
 });
 
 /* ---------- انیمیشن ها ---------- */
-// پاس: توپ مثل آهنربا به سمت یار کشیده می شود و جلویش می چسبد؛ مهره همزمان رو به توپ می چرخد
-function magnet(to) {
-  return new Promise(done => {
-    const from = cur[BALL].slice(), dist = Math.hypot(to[0] - from[0], to[1] - from[1]);
-    if (dist < 1) { done(); return; }
-    const ms = Math.max(260, Math.min(620, dist * 1.3)), t0 = performance.now();
-    const step = t => {
-      const u = Math.max(0, Math.min(1, (t - t0) / ms)), k = u * u * (2.2 - 1.2 * u);  // آرام شروع، تند و چسبنده تمام
-      setPos(BALL, [from[0] + (to[0] - from[0]) * k, from[1] + (to[1] - from[1]) * k], u >= 1 || (u * 20 | 0) % 2 === 0);
-      if (u < 1) requestAnimationFrame(step); else done();
-    };
-    requestAnimationFrame(step);
-  });
-}
+// پاس (مثل پلاتو): توپ مثل آهنربا به گیرنده می چسبد، بعد گیرنده خودش پشت توپ و رو به دروازه می نشیند
+// (فریم های کنترل از سرور) و بالن «پاس عالی!» (یا «آخرین پاس!» / «بدون پاس!») بالای سرش می آید
+function passBalloon(left) { return left == null || left > 1 ? 'پاس عالی!' : left === 1 ? 'آخرین پاس!' : 'بدون پاس!'; }
 async function showPass(e) {
-  const el = els[e.d], d = cur[e.d], target = e.ball || cur[BALL];
+  const d = cur[e.d];
   sfx.fb.pass(); haptic(isMe(e.c) ? 'success' : 'light');
   const st = $('status');
-  if (st) { st.classList.toggle('mine', isMe(e.c)); st.dataset.k = ''; st.innerHTML = isMe(e.c) ? `پاس! توپ دست مهره‌ات است<em>${e.left ? FD(e.left) + ' پاس دیگر' : 'آخرین'}</em>` : `${nameOf(e.c)} پاس داد؛ دوباره شوت می‌زند`; }
-  if (el && target && d) {
-    const [bx, by] = toView(target), [dx, dy] = toView(d);
-    const to = Math.atan2(bx - dx, -(by - dy)) * 180 / Math.PI;   // نشان مهره رو به توپ
-    const from = rot[e.d] || 0, end = to + 360 * Math.sign(to - from || 1);
-    rot[e.d] = ((to % 360) + 360) % 360;
-    const svg = el.querySelector('.in svg');
-    svg.animate([{ transform: `rotate(${from}deg)` }, { transform: `rotate(${end}deg)` }], { duration: 650, easing: 'cubic-bezier(.2,.8,.3,1)' });
-    svg.style.transform = `rotate(${rot[e.d]}deg)`;
-    if (e.ball && cur[BALL]) {
-      await magnet(e.ball);
-      sfx.fb.ball(.35);
-      el.querySelector('.in').animate([{ transform: 'scale(1)' }, { transform: 'scale(.9)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' });
-    }
-    const tag = document.createElement('span'); tag.className = 'fb-passtag'; tag.textContent = 'پاس!';
-    const [x, y] = toView(d); tag.style.left = (x * s) + 'px'; tag.style.top = ((y - DISC_R) * s) + 'px';
+  if (st) { st.classList.toggle('mine', isMe(e.c)); st.dataset.k = ''; st.innerHTML = isMe(e.c) ? `پاس! دوباره نوبت توست<em>${e.left == null ? '' : e.left > 0 ? FD(e.left) + ' پاس دیگر' : 'آخرین پاس بود'}</em>` : `${nameOf(e.c)} پاس داد`; }
+  if (d) {
+    const tag = document.createElement('span'); tag.className = 'fb-passtag' + (e.left != null && e.left <= 0 ? ' last' : ''); tag.textContent = passBalloon(e.left);
+    const [x, y] = toView(d); tag.style.left = (x * s) + 'px'; tag.style.top = ((y - rOf(e.d)) * s) + 'px';
     $('pitch').appendChild(tag); setTimeout(() => tag.remove(), 1500);
   }
-  await sleep(380);
+  await sleep(220);
+  if (e.frames && e.frames.length) { await playFrames({ frames: e.frames, ids: e.ids, hits: [], c: e.c, quiet: true }); sfx.fb.ball(.35); }
+  setAll(e.pos);
+  await sleep(260);
 }
 function jolt(g) {
   const p = $('stadium'); p.style.setProperty('--j', (1 + g * 1.6).toFixed(1) + 'px');
@@ -384,12 +367,12 @@ function jolt(g) {
 function playFrames(e) {
   return new Promise(done => {
     const F = e.frames, ids = e.ids, n = F.length, hits = (e.hits || []).slice(), t0 = performance.now();
-    if (!(e.c === me && Date.now() - kickedAt < 4000)) sfx.fb.kick(.8);
+    if (!e.quiet && !(e.c === me && Date.now() - kickedAt < 4000)) sfx.fb.kick(.8);
     kickedAt = 0;
     const put = (fr, j, id) => setPos(id, [fr[2 * j], fr[2 * j + 1]]);
     let lastA = -1;
     const step = t => {
-      const el = Math.max(0, (t - t0) / 1000), f = el * 30;  // زمان rAF می تواند کمی قبل از t0 باشد
+      const el = Math.max(0, (t - t0) / 1000), f = el * FPS;  // زمان rAF می تواند کمی قبل از t0 باشد
       while (hits.length && hits[0][0] <= el) { const [, kd, g] = hits.shift(); (kd === 'w' ? sfx.fb.wall : kd === 'p' ? sfx.fb.post : kd === 'b' ? sfx.fb.ball : sfx.fb.clack)(g); if (g > .55 && kd !== 'b') jolt(g); }
       if (f >= n - 1) { ids.forEach((id, j) => put(F[n - 1], j, id)); done(); return; }
       const a = Math.floor(f), u = f - a, A = F[a], B = F[a + 1], z = a !== lastA; lastA = a;
@@ -423,6 +406,11 @@ async function showVS(e) {
   await sleep(450); el.remove();
 }
 async function showGoal(e) {
+  if (e.foul) {   // گل از ضربهٔ شروع بازی: خطا، امتیاز ندارد (kickoff_foul پلاتو)
+    const who = e.by === me ? 'تو' : nameOf(e.by), st = $('status');
+    if (st) { st.dataset.k = ''; st.classList.remove('mine'); st.innerHTML = `خطا برای ${who} بدلیل تک ضرب گل زدن<em>این گل حساب نمی‌شود</em>`; }
+    sfx.fb.whistle(); haptic('warning'); await sleep(1800); return;
+  }
   const scoredMe = e.c === me, sc = e.score;
   const by = P()[e.by] || {};
   document.querySelectorAll('.fb-net').forEach(n => { n.classList.remove('shake'); void n.offsetWidth; });
@@ -509,13 +497,17 @@ async function play(e) {
       const off = e.pos.some((q, i) => !p.pos[i] || Math.hypot(q[0] - p.pos[i][0], q[1] - p.pos[i][1]) > 2);
       if (off) await glide(e.pos, 300); else setAll(e.pos);
     } else if (e.frames && e.frames.length) {
-      if (e.hold && cur[BALL]) { const q = cur.map(p => p.slice()); q[BALL] = e.hold; await glide(q, 200); }
       await playFrames(e);
     } else setAll(e.pos);
     if (e.auto && isMe(e.c)) toast('وقتت تمام شد؛ یک شوت خودکار زده شد');
     return;
   }
   if (e.t === 'pass') { await showPass(e); return; }
+  if (e.t === 'settle') { const q = cur.map(p => p.slice()); e.ids.forEach((id, j) => { q[id] = e.pos[j]; }); sfx.fb.ball(.25); await glide(q, 400); return; }
+  if (e.t === 'lose') {
+    const st = $('status'); if (st) { st.dataset.k = ''; st.classList.remove('mine'); st.innerHTML = e.miss ? `${nameOf(e.c)} نوبت را از دست داد` : `${nameOf(e.c)} توپ را از دست داد`; }
+    await sleep(350); return;
+  }
   if (e.t === 'goal') { await showGoal(e); return; }
   if (e.t === 'reset') { sfx.fb.whistle(); rot = []; els.forEach((el, i) => { if (i < 12) { const n = el.querySelector('.in svg'); if (n) n.style.transform = ''; } }); await glide(e.pos); return; }
   if (e.t === 'timeout') { if (WATCH) { toast(`${nameOf(e.c)} شوت نزد`); return; } if (e.c === me) toast(snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی؛ بازی را باختی' : 'یک نوبت دیگر غیبت = باخت') : 'وقتت تمام شد؛ نوبت به حریف رسید'); else toast(`${nameOf(e.c)} شوت نزد؛ نوبت شماست`); return; }
