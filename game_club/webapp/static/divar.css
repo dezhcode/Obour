@@ -164,3 +164,105 @@ body.watching .dv-tray{display:none}
 
 @media (max-height:640px){.dv-players{padding-top:13px}.dv-pl .avatar{--size:28px}.dv-tray{padding:5px 10px;margin-bottom:5px}.dv-slot{height:38px}}
 @media (prefers-reduced-motion:reduce){.dv-lamp,.dv-edge::after,.dv-pawn.turn::before,.dv-star svg,.dv-beam,.dv-dot::before{animation:none}}
+
+/* ================= تم های میز (رایگان؛ کلاس dvt-* روی body در بازی و روی پیش نمایش در لابی) =================
+   نمد شب پیش فرض است و کلاسی ندارد. هر تم صفحه، خانه، دیوار، مهره و ستاره را عوض می کند؛ رنگ هر دیوار همچنان مال صاحبش است. */
+/* --- رابط روشن برای تم های روشن --- */
+body.divar.dvt-paper,body.divar.dvt-ice,body.divar.dvt-marble{color:#23304A}
+body.divar:is(.dvt-paper,.dvt-ice,.dvt-marble) .appbar{color:#23304A}
+:is(.dvt-paper,.dvt-ice,.dvt-marble) .dv-ib{color:#23304A;background:rgba(255,255,255,.6);box-shadow:0 2px 6px rgba(40,60,90,.15),inset 0 0 0 1px rgba(255,255,255,.7)}
+:is(.dvt-paper,.dvt-ice,.dvt-marble) .dv-chip{background:rgba(255,255,255,.6)}
+:is(.dvt-paper,.dvt-ice,.dvt-marble) .dv-pl{background:rgba(255,255,255,.55);box-shadow:0 4px 10px rgba(40,60,90,.12),inset 0 0 0 1px rgba(255,255,255,.8)}
+:is(.dvt-paper,.dvt-ice,.dvt-marble) .dv-pl.on{background:rgba(255,255,255,.85);box-shadow:inset 0 0 0 2px var(--pc),0 0 14px color-mix(in srgb,var(--pc) 35%,transparent)}
+:is(.dvt-paper,.dvt-ice,.dvt-marble) .dv-pill:not(.mine):not(.warn){background:rgba(255,255,255,.7)}
+:is(.dvt-paper,.dvt-ice,.dvt-marble) .dv-pill.mine,:is(.dvt-paper,.dvt-ice,.dvt-marble) .dv-pill.warn{color:#fff}
+:is(.dvt-paper,.dvt-ice,.dvt-marble) .dv-tray{background:rgba(255,255,255,.5);box-shadow:0 6px 14px rgba(40,60,90,.12),inset 0 0 0 1px rgba(255,255,255,.7)}
+:is(.dvt-paper,.dvt-ice,.dvt-marble) .dv-slot{background:rgba(40,60,90,.07);box-shadow:inset 0 2px 4px rgba(40,60,90,.15)}
+:is(.dvt-paper,.dvt-ice,.dvt-marble,.dvt-neon) .dv-lampbox{display:none}
+:is(.dvt-paper,.dvt-ice,.dvt-marble,.dvt-neon) .dv-board::before{display:none}
+
+/* --- دفتر شطرنجی --- */
+body.divar.dvt-paper{background:#EFE9DA}
+.dvt-paper .dv-board{background-color:#FCFAF3;background-image:linear-gradient(rgba(70,120,200,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(70,120,200,.14) 1px,transparent 1px);background-size:10px 10px;
+  box-shadow:inset 0 1px 0 #fff,4px 7px 0 rgba(40,50,70,.12),0 12px 24px rgba(40,50,70,.16)}
+.dvt-paper .dv-board::after{display:none}
+.dvt-paper .dv-cell{background:rgba(255,255,255,.6);box-shadow:none;border:1.6px solid #2C3A55;border-radius:18% 10% 16% 12% / 12% 18% 10% 16%}
+.dvt-paper .dv-cell:nth-child(3n){border-radius:12% 18% 10% 16% / 16% 10% 18% 12%}
+.dvt-paper .dv-cell::before,.dvt-paper .dv-cell::after{display:none}
+.dvt-paper .dv-wall,.dvt-paper .dv-wall.v{background:var(--wc);border-radius:45% 55% 50% 50% / 60% 40% 60% 40%;box-shadow:1px 1.5px 0 rgba(30,40,60,.25)}
+.dvt-paper .dv-wall::after{display:none}
+.dvt-paper .dv-pawn{background:var(--pc);box-shadow:0 0 0 2.5px #fff,2px 3px 0 rgba(30,40,60,.22)}
+.dvt-paper .dv-pawn b{inset:17%;background:none;box-shadow:none;border:1.6px dashed rgba(255,255,255,.9)}
+.dvt-paper .dv-pawn b::after{inset:26%;opacity:.95}
+.dvt-paper .dv-star .plat{box-shadow:0 0 0 2px #fff,2px 3px 0 rgba(30,40,60,.2)}
+.dvt-paper .dv-star .plat::before{display:none}
+.dvt-paper .dv-star .plat::after{background:#FCFAF3;box-shadow:inset 0 0 0 1.6px #2C3A55}
+.dvt-paper .dv-star svg{filter:none}
+.dvt-paper .dv-star svg path{fill:#EBA219;stroke:#2C3A55;stroke-width:1.2}
+.dvt-paper .dv-edge{box-shadow:none;background:var(--gc);opacity:.85}
+.dvt-paper .dv-edge::after{display:none}
+
+/* --- یخ و بلور --- */
+body.divar.dvt-ice{background:radial-gradient(80% 45% at 50% 0,#fff,transparent 70%),linear-gradient(170deg,#E3F3FD,#BFDDF1)}
+.dvt-ice .dv-board{background:radial-gradient(circle at 30% 20%,#fff,transparent 45%),linear-gradient(160deg,#EAF7FF,#C6E3F5);
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.85),0 0 0 1px rgba(120,170,210,.4),0 18px 30px -6px rgba(40,100,150,.35)}
+.dvt-ice .dv-board::after{background:radial-gradient(ellipse 120% 120% at 30% 15%,transparent 60%,rgba(60,120,170,.15))}
+.dvt-ice .dv-cell{border-radius:22%;background:linear-gradient(150deg,rgba(255,255,255,.95),rgba(185,222,244,.75));box-shadow:inset 0 0 0 1px rgba(255,255,255,.95),0 3px 6px rgba(50,110,160,.22)}
+.dvt-ice .dv-cell::before{display:none}
+.dvt-ice .dv-cell::after{inset:auto;left:18%;top:14%;width:44%;height:14%;border-radius:99px;background:rgba(255,255,255,.9);transform:rotate(-28deg)}
+.dvt-ice .dv-wall{background:linear-gradient(180deg,color-mix(in srgb,var(--wc) 55%,#fff),var(--wc));box-shadow:inset 0 0 0 1px rgba(255,255,255,.85),0 3px 6px color-mix(in srgb,var(--wc) 40%,transparent)}
+.dvt-ice .dv-wall.v{background:linear-gradient(90deg,color-mix(in srgb,var(--wc) 55%,#fff),var(--wc))}
+.dvt-ice .dv-pawn{background:none;border-radius:0;box-shadow:none;filter:drop-shadow(0 3px 3px color-mix(in srgb,var(--pc) 45%,transparent))}
+.dvt-ice .dv-pawn b{inset:0;border-radius:0;box-shadow:none;clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%);
+  background:conic-gradient(from 22deg,color-mix(in srgb,var(--pc) 35%,#fff),var(--pc),var(--pd),var(--pc),color-mix(in srgb,var(--pc) 30%,#fff),var(--pc),var(--pd),color-mix(in srgb,var(--pc) 35%,#fff))}
+.dvt-ice .dv-pawn b::after{inset:27%;opacity:1;clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%);background:linear-gradient(150deg,color-mix(in srgb,var(--pc) 20%,#fff),color-mix(in srgb,var(--pc) 75%,#fff))}
+.dvt-ice .dv-pawn::before{border-radius:0;clip-path:none}
+.dvt-ice .dv-star .plat{box-shadow:inset 0 0 0 2px rgba(255,255,255,.8),0 3px 8px rgba(40,100,150,.3)}
+.dvt-ice .dv-star .plat::after{background:radial-gradient(circle at 35% 30%,#fff,#CFE9F8)}
+.dvt-ice .dv-star svg{filter:drop-shadow(0 0 4px rgba(255,255,255,.9))}
+.dvt-ice .dv-star svg path{fill:#F2B31B}
+
+/* --- نئون شب --- */
+body.divar.dvt-neon{background:radial-gradient(80% 45% at 50% 0,rgba(90,110,255,.18),transparent 70%),radial-gradient(120% 70% at 50% 45%,#121845,#05061a 75%)}
+.dvt-neon .dv-board{background:radial-gradient(circle at 50% 50%,#161c4d,#070817 78%);box-shadow:0 0 0 1px rgba(120,140,255,.45),0 0 24px rgba(90,110,255,.25),0 24px 40px -8px rgba(0,0,0,.8)}
+.dvt-neon .dv-board::after{display:none}
+.dvt-neon .dv-cell{border-radius:18%;background:rgba(90,110,255,.07);box-shadow:inset 0 0 0 1px rgba(130,150,255,.42),0 0 6px rgba(90,110,255,.18)}
+.dvt-neon .dv-cell::before,.dvt-neon .dv-cell::after{display:none}
+.dvt-neon .dv-wall,.dvt-neon .dv-wall.v{background:color-mix(in srgb,var(--wc) 35%,#fff);box-shadow:0 0 3px var(--wc),0 0 9px var(--wc),0 0 18px color-mix(in srgb,var(--wc) 60%,transparent)}
+.dvt-neon .dv-wall::after{display:none}
+.dvt-neon .dv-pawn{background:radial-gradient(circle,#fff 0 16%,var(--pc) 32%,color-mix(in srgb,var(--pc) 30%,transparent) 62%,transparent 70%);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--pc) 60%,#fff),0 0 12px var(--pc)}
+.dvt-neon .dv-pawn b{display:none}
+.dvt-neon .dv-star .plat{opacity:.85;box-shadow:0 0 14px rgba(255,255,255,.3)}
+.dvt-neon .dv-star .plat::before{display:none}
+.dvt-neon .dv-star .plat::after{background:#070817;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
+
+/* --- مرمر و طلا --- */
+body.divar.dvt-marble{background:radial-gradient(80% 45% at 50% 0,#fff,transparent 70%),linear-gradient(170deg,#F1EEE8,#DCD6CC)}
+.dvt-marble .dv-board{background:linear-gradient(115deg,transparent 38%,rgba(120,115,125,.2) 39%,transparent 40.5%),linear-gradient(32deg,transparent 64%,rgba(150,135,120,.18) 64.6%,transparent 66%),linear-gradient(160deg,transparent 20%,rgba(140,130,140,.12) 20.4%,transparent 21.5%),linear-gradient(135deg,#faf8f4,#e7e3dc);
+  box-shadow:inset 0 0 0 5px #fff,inset 0 0 0 6.5px #C9A55A,0 18px 30px -6px rgba(80,60,30,.3)}
+.dvt-marble .dv-board::after{display:none}
+.dvt-marble .dv-cell{border-radius:10%;background:linear-gradient(150deg,#fff,#efebe4);box-shadow:inset 0 0 0 1px rgba(201,165,90,.45),0 2px 3px rgba(80,70,50,.16)}
+.dvt-marble .dv-cell::before,.dvt-marble .dv-cell::after{display:none}
+.dvt-marble .dv-wall{background:linear-gradient(180deg,color-mix(in srgb,var(--wc) 55%,#fff),var(--wc) 50%,color-mix(in srgb,var(--wc) 80%,#000));box-shadow:inset 0 0 0 1.2px #C9A55A,0 2px 4px rgba(60,50,30,.3)}
+.dvt-marble .dv-wall.v{background:linear-gradient(90deg,color-mix(in srgb,var(--wc) 55%,#fff),var(--wc) 50%,color-mix(in srgb,var(--wc) 80%,#000))}
+.dvt-marble .dv-wall::after{opacity:.5}
+.dvt-marble .dv-pawn{background:radial-gradient(circle at 35% 28%,#fff,#f3f0ea 45%,#cfc8bc);box-shadow:0 3px 6px rgba(60,50,30,.32)}
+.dvt-marble .dv-pawn b{inset:16%;background:radial-gradient(circle,#C9A55A 0 13%,#fff 14% 40%,transparent 41%),var(--pc);box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+.dvt-marble .dv-pawn b::after{display:none}
+.dvt-marble .dv-star .plat{box-shadow:0 0 0 2px #C9A55A,0 3px 6px rgba(60,50,30,.3)}
+.dvt-marble .dv-star .plat::after{background:radial-gradient(circle at 35% 30%,#fff,#ece7de);box-shadow:inset 0 0 0 1.5px #C9A55A}
+.dvt-marble .dv-star svg{filter:drop-shadow(0 1px 1px rgba(80,60,30,.4))}
+.dvt-marble .dv-star svg path{fill:#C9A55A}
+
+/* پیش نمایش کوچک تم ها (لابی و برگهٔ انتخاب میز) */
+.dv-mini{--sx:2px;--sy:4px;--li:1;--me:#4C8DFF;display:block;width:100%;aspect-ratio:1;padding:9px;border-radius:16px;background:#0b231a}
+.dv-mini.dvt-paper{background:#EFE9DA}.dv-mini.dvt-ice{background:#D7ECF9}.dv-mini.dvt-neon{background:#05061a}.dv-mini.dvt-marble{background:#E6E1D8}
+.dv-mini .dv-board{display:block;width:100%;height:100%;border-radius:12px}
+.dv-mini .dv-board::before{display:none}
+.dv-mini .dv-wall,.dv-mini .dv-pawn,.dv-mini .dv-cell{position:absolute;transition:none}
+.dv-looks{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.dv-look{display:grid;gap:6px;padding:6px 6px 8px;border-radius:18px;background:var(--surface,rgba(255,255,255,.06));text-align:center;box-shadow:inset 0 0 0 2px transparent}
+.dv-look[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--gold)}
+.dv-look b{font-size:13px;font-weight:800}
+.dv-look small{font-size:11px;line-height:15px;color:var(--ink-muted,#9aa)}
+.dv-look .use{color:var(--success,#3DD08E);font-weight:800}

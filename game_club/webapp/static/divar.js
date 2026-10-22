@@ -385,6 +385,17 @@ function askExit() {
 }
 $('exit').onclick = askExit;
 GC.back(askExit);
+// میز: همهٔ تم ها رایگان؛ همان لحظه عوض می شود و برای بازی های بعد هم می ماند
+DVThemes.apply(document.body, DVThemes.get());
+$('look').onclick = () => {
+  const draw = sh => { sh.querySelector('.dv-looks').innerHTML = DVThemes.LIST.map(t => `<button class="dv-look" data-look="${t.id}" aria-pressed="${DVThemes.get() === t.id}">${DVThemes.mini(t.id)}<b>${t.name}</b></button>`).join(''); };
+  const sh = GC.sheet(`${GC.sheetHead('میز')}<div class="dv-looks"></div>`);
+  draw(sh);
+  sh.querySelector('.dv-looks').onclick = e => {
+    const b = e.target.closest('[data-look]'); if (!b) return;
+    DVThemes.set(b.dataset.look); DVThemes.apply(document.body, b.dataset.look); sfx.tap(); draw(sh);
+  };
+};
 const sndBtn = $('snd');
 const syncSnd = () => { sndBtn.innerHTML = icon(S.sound ? 'soundOn' : 'soundOff'); sndBtn.setAttribute('aria-pressed', String(!!S.sound)); sndBtn.setAttribute('aria-label', S.sound ? 'خاموش کردن صدا' : 'روشن کردن صدا'); };
 sndBtn.onclick = () => { setSound(!S.sound); syncSnd(); if (S.sound) GC.loadSamples(); };
