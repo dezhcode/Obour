@@ -106,7 +106,7 @@
       if (st.state !== 'waiting') { GC.close(); return; }
       const c = st.cfg, list = [{ name: 'شما', av: 7 }];
       for (let i = 1; i < 4; i++) list.push(i < st.found ? { name: 'بازیکن', av: 3 + i } : null);
-      const line = `${FD(st.found)} از ${FD(st.need)} نفر · ${FD(st.waited)} ثانیه`;
+      const line = `${FD(st.found)} از ${FD(st.need)} نفر، ${FD(st.waited)} ثانیه`;
       if (shown === String(st.found)) { const el = document.getElementById('ql'); if (el) el.textContent = line; }
       else {
       shown = String(st.found);

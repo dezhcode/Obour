@@ -68,7 +68,7 @@
       if (st.state !== 'waiting') { GC.close(); return; }
       const c = st.cfg, list = [{ name: 'شما', av: 7, color: 'yellow' }];
       for (let i = 1; i < c.players; i++) list.push(i < st.found ? { name: 'بازیکن', av: 3 + i, color: ['red', 'blue', 'green'][i - 1] } : null);
-      const line = `${FD(st.found)} از ${FD(st.need)} نفر · ${FD(st.waited)} ثانیه`;
+      const line = `${FD(st.found)} از ${FD(st.need)} نفر، ${FD(st.waited)} ثانیه`;
       if (shown === String(st.found)) { const el = document.getElementById('ql'); if (el) el.textContent = line; }
       else {
       shown = String(st.found);

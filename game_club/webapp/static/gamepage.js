@@ -1,5 +1,6 @@
-/* صفحهٔ هر بازی (حکم، منچ، فوتبال): بنر با پیش نمایش زندهٔ بازی و سطح تو در همان بازی، و چهار تب
-   «بازی · فروشگاه · رده‌بندی · آموزش». تب بازی: چیپ های حالت، حریف و ورودی و یک نوار شناور با خلاصه و تنها دکمهٔ شروع؛
+/* لابی هر بازی مثل جعبهٔ همان بازی: در جعبه پیش نمایش زندهٔ خود بازی با برچسب نام، زیرش لبهٔ جعبه به رنگ
+   بازی، بعد سطح تو در همان بازی و تب های «بازی · فروشگاه · رده‌بندی · آموزش». همهٔ دکمه ها و انتخاب ها
+   به رنگ همان بازی اند (کلاس lobby-<بازی> روی body؛ رنگ ها در gc.css). تب بازی: چیپ های حالت، حریف و ورودی و یک نوار شناور با خلاصه و تنها دکمهٔ شروع؛
    انتخاب آخر هر بازی یادش می ماند. منطق صف، دعوت و شروع در خود صفحهٔ لابی می ماند (opt.play)؛ اینجا فقط چیدمان و انتخاب است. */
 (function () {
 const { fa, FD, icon, face, toast, errText, sheet, sheetHead, close, sfx, haptic, mount, store } = GC;
@@ -13,21 +14,33 @@ function build(opt) {
   let stats = { games: 0, wins: 0 }, rank = 0, board = null, sty = null;
   // «میز»: ظاهرهای رایگان بازی (opt.looks.html و opt.looks.click)؛ «فروشگاه»: میز و ورق خریدنی حکم
   const tabs = TABS.filter(([id]) => (id !== 'shop' || opt.shop) && (id !== 'looks' || opt.looks));
-  root.innerHTML = `<section class="gp-banner" id="gpBanner" aria-label="پیشرفت تو در ${opt.title}"></section>
+  const meta = GC.GAMES.find(g => g.id === opt.game) || {};
+  document.body.classList.add('lobby', 'lobby-' + opt.game);
+  root.innerHTML = `<section class="gp-lid" id="gpLid" aria-label="${opt.title}"></section><div class="gp-edge" aria-hidden="true"></div>
+    <div class="gp-lvl" id="gpLvl" aria-label="پیشرفت تو در ${opt.title}"></div>
     <div class="gp-tabs" role="tablist" id="gpTabs">${tabs.map(([id, l]) => `<button role="tab" data-t="${id}">${l}</button>`).join('')}</div>
     <div class="gp-panel" id="gpPanel" role="tabpanel"></div>
     <div class="gp-dock" id="gpDock" hidden></div>`;
   const $ = id => document.getElementById(id);
 
+  // در جعبه (پیش نمایش زنده + برچسب) فقط وقتی ظاهر میز عوض شود دوباره ساخته می شود؛ کارت سطح با هر داده
+  let lidKey = '';
   function banner() {
+    const k = JSON.stringify(style);
+    if (k !== lidKey) {
+      lidKey = k;
+      $('gpLid').innerHTML = `${GCPreview.html(opt.game, { style })}
+        ${meta.tag ? `<span class="gp-tag${meta.tag === 'تازه' ? ' new' : ''}">${meta.tag}</span>` : ''}
+        <div class="gp-label"><b>${opt.title}</b>${meta.sub ? `<small>${meta.sub}</small>` : ''}</div>`;
+      GCPreview.watch($('gpLid'));
+    }
     const L = GC.level(stats);
-    $('gpBanner').innerHTML = `${GCPreview.html(opt.game, { style })}<span class="gp-shade"></span>
-      ${rank ? `<span class="gp-rank">رتبهٔ این هفته <b>${FD(rank)}</b></span>` : ''}
-      <div class="gp-lv"><span class="gp-star"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR}"/></svg><b>${FD(L.lv)}</b></span>
-        <span class="gp-prog"><span class="gp-bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span>
-        <span class="gp-row"><b>${LV_TITLE(L.lv)}</b><span>${stats.games ? `بازی ${FD(stats.games)} · برد ${FD(stats.wins)}` : 'اولین بازی‌ات را شروع کن'}</span></span></span></div>`;
-    GCPreview.watch($('gpBanner'));
+    $('gpLvl').innerHTML = `<span class="gp-star"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR}"/></svg><b>${FD(L.lv)}</b></span>
+      <span class="gp-prog"><span class="gp-row"><b>${LV_TITLE(L.lv)} · سطح ${FD(L.lv)} در ${opt.title}</b><span>${rank ? `رتبهٔ ${FD(rank)} این هفته` : stats.games ? `${FD(stats.games)} بازی، ${FD(stats.wins)} برد` : 'اولین بازی‌ات را شروع کن'}</span></span>
+      <span class="gp-bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span></span>`;
   }
+  // وقتی در جعبه از بالای صفحه رد شد، نوار وضعیت گوشی رنگ زمینه می گیرد تا تب ها زیرش خوانا بمانند
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => document.body.classList.toggle('lid-off', !es[0].isIntersecting), { rootMargin: '-90px 0px 0px 0px' }).observe($('gpLid'));
 
   /* ---------- تب بازی: سه ردیف چیپ (حالت، حریف، ورودی) و نوار شناور با خلاصه و یک دکمه ---------- */
   const WHO = [['online', 'آنلاین', 'globe'], ['friends', 'دوستان', 'link'], ['group', 'گروه', 'users'], ['bot', 'ربات', 'bot']];

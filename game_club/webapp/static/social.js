@@ -79,7 +79,7 @@ function addSheet(myName, onChange) {
       blocked: `<button class="btn btn-light btn-block" data-do="unblock">رفع بلاک</button>`,
       self: '<p class="hint">این یوزرنیم خودت است</p>',
     }[r.relation] || '';
-    res.innerHTML = `<div class="fr-found">${face(u)}<span class="t"><b class="uname">${esc(u.name)}</b><small>سطح ${FD(L.lv)} · ${fa(u.games)} بازی</small>${u.bio ? `<small dir="auto">${esc(u.bio)}</small>` : ''}</span></div>${btn}`;
+    res.innerHTML = `<div class="fr-found">${face(u)}<span class="t"><b class="uname">${esc(u.name)}</b><small>سطح ${FD(L.lv)}، ${fa(u.games)} بازی</small>${u.bio ? `<small dir="auto">${esc(u.bio)}</small>` : ''}</span></div>${btn}`;
     res.querySelectorAll('[data-do]').forEach(b => b.onclick = async () => {
       b.disabled = true;
       try {

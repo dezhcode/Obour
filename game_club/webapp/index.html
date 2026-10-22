@@ -10,122 +10,129 @@
 <link rel="stylesheet" href="static/cards.css">
 <link rel="stylesheet" href="static/preview.css">
 <style>
-/* خانه «سالن شب»: هدر با حلقهٔ سطح، کارت بزرگ بالا (ادامهٔ بازی نیمه‌تمام یا حکم)، کارهای سریع،
-   کاشی بازی ها با اجزای واقعی هر بازی (ورق و میز خود بازیکن، مهرهٔ فلزی و توپ، صفحه و مهرهٔ منچ)
-   و جایگاه بازیکن در رده‌بندی هفته. */
-.page.home-page{gap:var(--space-5);padding-block-start:var(--space-3)}
+/* خانه «کاشی‌ها»: هدر روشن (عکس، نام و سطح، زنگ، موجودی)، پرسش «چی بازی کنیم؟»، کاشی هر بازی در دنیای
+   خود همان بازی (ماهوت و ورق خود بازیکن، صفحه و مهرهٔ منچ، زمین فوتبال، میز بیلیارد، نمد دیوار) که اجزایش
+   از قاب بیرون زده، میزهای دیگرم، کارهای سریع و دوستان آنلاین. بازی نیمه‌تمام یک نوار شناور بالای ناوبری است. */
+.page.home-page{gap:var(--space-5);padding-block-start:var(--space-2)}
+.page.home-page.has-cont{padding-block-end:calc(196px + var(--sa-b,0px))}
 
-/* ---------- هدر: عکس با حلقهٔ سطح، سلام و پیشرفت، زنگ اعلان، موجودی ---------- */
+/* ---------- هدر ---------- */
 .me-chip{display:flex;align-items:center;gap:var(--space-3);min-width:0}
-.lv{position:relative;flex:none;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;
-  background:conic-gradient(var(--gold) calc(var(--p,0)*1%),rgba(255,255,255,.12) 0)}
-.lv .avatar{--size:46px;--ring:#0E1E19}
-.lv b{position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);min-width:20px;height:18px;padding:0 5px;border-radius:9px;
-  background:var(--gold);color:var(--gold-ink);font-size:11px;line-height:18px;font-weight:900;text-align:center;box-shadow:0 0 0 2px #0E1E19}
-.me-name{display:block;font-weight:900;font-size:16.5px;line-height:23px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-chip .avatar{--size:44px;--ring:#fff;box-shadow:0 0 0 1px var(--line)}
+.me-name{display:block;font-weight:900;font-size:16px;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .me-sub{display:flex;align-items:center;gap:6px;font-size:11.5px;line-height:17px;color:var(--ink-muted);white-space:nowrap}
-.me-sub .bar{width:56px;height:5px;flex:none;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
-.me-sub .bar i{display:block;height:100%;border-radius:3px;background:var(--gold)}
+.me-sub .bar{width:52px;height:5px;flex:none;border-radius:3px;background:var(--line);overflow:hidden}
+.me-sub .bar i{display:block;height:100%;border-radius:3px;background:var(--acc)}
 .me-sub.bad{color:var(--danger)}
 .hd-acts{display:flex;align-items:center;gap:var(--space-2);flex:none}
-.bell{position:relative;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-.bell .badge{position:absolute;top:2px;left:2px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#F0505F;color:#fff;font-size:10.5px;line-height:17px;font-weight:800;text-align:center;box-shadow:0 0 0 2px #0F201B}
-.appbar .pill{background:rgba(255,255,255,.07);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);padding:4px 6px 4px 12px;font-size:15px}
-.appbar .pill .plus{background:var(--gold);color:var(--gold-ink)}
+.bell{position:relative}
+.bell .badge{position:absolute;top:-3px;left:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#F0465B;color:#fff;font-size:10.5px;line-height:17px;font-weight:800;text-align:center;box-shadow:0 0 0 2px #fff}
+.appbar .pill{padding:4px 6px 4px 12px;font-size:15px}
 
-/* ---------- کارت بزرگ بالا ---------- */
-.hero{position:relative;min-height:178px;border-radius:26px;overflow:hidden;padding:var(--space-4);display:flex;flex-direction:column;justify-content:space-between;gap:var(--space-3);
-  box-shadow:inset 0 0 0 1px rgba(245,196,81,.35)}
-.hero.felt{box-shadow:var(--rim,none),inset 0 0 0 1px rgba(245,196,81,.35),inset 0 0 30px rgba(0,0,0,.35)}
-.hero .txt{position:relative;z-index:2;display:grid;gap:3px;max-width:58%}
-.hero .kick{justify-self:start;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;background:rgba(0,0,0,.3);font-size:11.5px;font-weight:700}
-.hero .kick i{width:7px;height:7px;border-radius:50%;background:#3DDC84}
-.hero h1{font-size:24px;line-height:34px;font-weight:900}
-.hero p{font-size:12.5px;line-height:20px;color:rgba(255,255,255,.85)}
-.hero .acts{position:relative;z-index:2;display:flex;gap:var(--space-2)}
-.hero .go{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 18px;border-radius:23px;background:var(--gold);color:var(--gold-ink);font-size:15px;font-weight:900}
-.hero .go:active{transform:scale(.97)}
-.hero .go svg{width:18px;height:18px}
-.hero .glass{display:inline-flex;align-items:center;height:46px;padding:0 16px;border-radius:23px;background:rgba(0,0,0,.25);color:#fff;font-size:14px;font-weight:800;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
-.hero .art{position:absolute;inset-inline-end:8px;top:10px;width:150px;height:130px;z-index:1;pointer-events:none}
-.hero .art .ra{position:absolute;inset:0}
+.home-q{font-size:28px;line-height:36px;font-weight:900;margin-top:var(--space-1)}
+
+/* ---------- کاشی بازی ها ---------- */
+.hm-bento{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:30px}
+.hm-tl{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:flex-end;min-height:104px;padding:12px 14px;border-radius:22px;color:#fff;
+  box-shadow:0 14px 22px -16px var(--sh,rgba(15,63,29,.75));transition:transform .25s cubic-bezier(.3,.7,.3,1);-webkit-tap-highlight-color:transparent}
+.hm-tl.hm-w2{grid-column:span 2}
+.hm-tl.hm-t2{grid-row:span 2}
+.hm-tl>.bg{position:absolute;inset:0;z-index:-1;border-radius:inherit;overflow:hidden}
+.hm-tl>.bg>.pv,.hm-tl>.bg>.ra{position:absolute;inset:0}
+.hm-tl>.bg::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.58),rgba(0,0,0,0) 64%);pointer-events:none}
+.hm-tl>b{position:relative;font-family:var(--font-rokh);font-size:22px;line-height:28px;font-weight:900;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.hm-tl>small{position:relative;font-size:11.5px;line-height:17px;font-weight:600;opacity:.92}
+.hm-tl.hm-w2.hm-big>b{font-size:30px;line-height:38px}
+.hm-tl:active{transform:scale(.98)}
+.hm-tl .hm-bdg{position:absolute;top:10px;right:10px;z-index:4;height:22px;padding:0 8px;border-radius:8px;font-size:11px;line-height:22px;font-weight:800}
+.hm-bdg.hot{background:var(--gold);color:var(--gold-ink)}
+.hm-bdg.new{background:rgba(255,255,255,.94);color:var(--ink)}
+.hm-bdg.open{background:#3DDC84;color:#08331B}
+/* اجزای بازی که از قاب بیرون زده اند */
+.hm-tl .hm-out{position:absolute;z-index:3;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.3));transition:transform .3s cubic-bezier(.3,.7,.3,1)}
+.hm-tl .hm-out img,.hm-tl .hm-out svg{display:block;width:100%;height:auto;overflow:visible}
+@media (hover:hover){.hm-tl:hover{transform:translateY(-3px)}.hm-tl:hover .hm-out{transform:translateY(-5px) rotate(-3deg)}}
+.hm-tl .hm-fan{position:absolute;inset:0;z-index:3;pointer-events:none}
+.hm-tl .hm-fan .hk-card{font-size:46px;filter:drop-shadow(0 6px 7px rgba(0,0,0,.28))}
+.hm-tl .hm-ludo{position:absolute;left:-14px;bottom:62px;width:112px;transform:rotate(-10deg);filter:drop-shadow(0 8px 10px rgba(0,0,0,.4))}
+.hm-tl .hm-ludo svg{display:block;width:100%;height:auto;border-radius:12px}
+/* تکهٔ دیوار و مهرهٔ دیوار (همان رنگ و نور خود بازی) */
+.hm-dvw{display:block;width:108px;height:9px;border-radius:99px;background:linear-gradient(180deg,#C9DCFF,#4C8DFF 42%,#2B57A8);box-shadow:0 2px 3px rgba(0,0,0,.35)}
+.hm-dvp{display:block;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 34% 24%,rgba(255,255,255,.95),rgba(255,255,255,0) 42%),conic-gradient(from 200deg,#8e98a1,#f1f4f7,#848e96,#e2e7ec,#8e98a1);position:relative}
+.hm-dvp::after{content:"";position:absolute;inset:15%;border-radius:50%;background:radial-gradient(circle at 36% 26%,rgba(255,255,255,.75) 0 10%,rgba(255,255,255,0) 34%),radial-gradient(circle at 50% 62%,#FF8A96,#FF5A6A 45%,#C93447)}
+.hm-tl.hm-soon{grid-column:span 2;min-height:0;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;color:var(--ink);background:none;box-shadow:none;border:1.5px dashed #CDD2DE;padding:10px 12px}
+.hm-tl.hm-soon:active{transform:none}
+.hm-tl.hm-soon .hm-lt{display:flex;gap:3px}
+.hm-tl.hm-soon .hm-lt span{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-family:var(--font-rokh);font-size:13px;font-weight:900}
+.hm-tl.hm-soon .t{flex:1;display:grid;min-width:0}
+.hm-tl.hm-soon .t b{font-family:var(--font-rokh);font-size:16px;font-weight:900}
+.hm-tl.hm-soon .t small{font-size:11.5px;color:var(--ink-muted)}
+.hm-notify{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding-inline:12px;position:relative;border-radius:var(--radius-pill);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);font-size:12px;font-weight:800;white-space:nowrap}
+.hm-notify::after{content:"";position:absolute;inset:-4px -2px}
+.hm-notify svg{width:14px;height:14px}
+.hm-notify.on{background:var(--success-tint);color:var(--success);box-shadow:none}
+
+/* ---------- بازی نیمه‌تمام: نوار شناور بالای ناوبری ---------- */
+.hm-cont{position:fixed;z-index:calc(var(--z-nav) - 1);inset-inline:max(12px,calc(50% - 228px));bottom:calc(84px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));
+  display:flex;align-items:center;gap:10px;padding:8px 8px 8px 12px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line),0 14px 28px -12px rgba(20,25,40,.38);animation:contIn .35s cubic-bezier(.2,.9,.3,1.2) both}
+.hm-cont .g-art{width:44px;height:44px;border-radius:13px;flex:none;display:grid;place-items:center;overflow:hidden}
+.hm-cont .g-art svg{display:block;width:76%;height:76%}
+.hm-cont .t{flex:1;min-width:0;display:grid}
+.hm-cont .t b{font-size:13.5px;line-height:20px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-cont .t small{display:flex;align-items:center;gap:6px;font-size:11.5px;line-height:17px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-cont .t small .live{width:7px;height:7px;border-radius:50%;background:#2FC584;flex:none}
+.hm-cont.turn{box-shadow:0 0 0 2px var(--acc),0 14px 28px -12px rgba(47,111,235,.45)}
+.hm-cont .go{display:inline-flex;align-items:center;gap:4px;height:40px;padding:0 14px;border-radius:13px;background:var(--acc);color:var(--acc-ink);font-size:13.5px;font-weight:800;flex:none}
+.hm-cont .go svg{width:15px;height:15px}
+@keyframes contIn{from{opacity:0;transform:translateY(14px)}}
+
+/* ---------- میزهای دیگرم ---------- */
+.tables{display:grid;gap:var(--space-2)}
+.tbl{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-2);padding-inline-end:var(--space-3);
+  border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line);overflow:hidden;animation:tblIn .45s cubic-bezier(.2,.9,.3,1.2) both}
+.tbl:active{transform:scale(.985)}
+.tbl.turn{box-shadow:0 0 0 2px var(--acc)}
+.tbl .g-art{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;overflow:hidden}
+.tbl .g-art svg{display:block;width:76%;height:76%}
+.tbl-txt{display:grid;gap:2px;min-width:0}
+.tbl-txt b{display:flex;align-items:center;gap:6px;font-family:var(--font-rokh);font-size:15px;line-height:22px;font-weight:900}
+.tbl-tag{font-family:var(--font-peyda);font-size:11px;line-height:16px;font-weight:800;padding:0 7px;border-radius:var(--radius-pill);background:var(--surface-sunk);color:var(--ink-muted)}
+.tbl-st{display:flex;align-items:center;gap:6px;font-size:12px;line-height:18px;color:var(--ink-muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbl-st .live{width:7px;height:7px;border-radius:50%;background:#2FC584;flex:none}
+.tbl-st .spinner{width:12px;height:12px;border-width:2px}
+.tbl-st .myturn{color:var(--acc);font-weight:900}
+.tbl-go{display:inline-flex;align-items:center;gap:4px;min-height:38px;padding-inline:12px;border-radius:12px;background:var(--surface-sunk);color:var(--ink);font-size:13px;font-weight:800}
+.tbl.turn .tbl-go{background:var(--acc);color:var(--acc-ink)}
+.tbl-go svg{width:15px;height:15px}
+@keyframes tblIn{from{opacity:0;transform:translateY(10px) scale(.97)}}
+@media (prefers-reduced-motion:reduce){.tbl,.hm-cont{animation:none}.hm-tl,.hm-tl .hm-out{transition:none}}
 
 /* ---------- کارهای سریع ---------- */
 .quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
-.qa{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:18px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);text-align:center}
+.qa{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px 10px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line);text-align:center}
 .qa:active{transform:scale(.97)}
 .qa .ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center}
-.qa .ic svg{width:22px;height:22px}
+.qa .ic svg{width:21px;height:21px}
 .qa b{font-size:12.5px;line-height:18px;font-weight:800}
-.qa small{font-size:11.5px;line-height:16px;color:var(--ink-muted)}
+.qa small{font-size:11px;line-height:16px;color:var(--ink-muted)}
 
-/* ---------- کاشی بازی ها با اجزای واقعی ---------- */
-.games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.gt{position:relative;display:flex;flex-direction:column;justify-content:flex-end;height:156px;padding:12px;border-radius:22px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
-a.gt:active{transform:scale(.98)}
-.gt>b{position:relative;z-index:2;font-family:var(--font-rokh);font-size:17px;line-height:24px;font-weight:900}
-.gt>small{position:relative;z-index:2;font-size:11.5px;line-height:16px;color:rgba(255,255,255,.85)}
-.gt::after{content:"";position:absolute;inset:auto 0 0;height:62%;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.45));z-index:1;pointer-events:none}
-.gt .bdg{position:absolute;top:10px;right:10px;z-index:3;height:22px;padding:0 8px;border-radius:11px;font-size:11.5px;line-height:22px;font-weight:800}
-.bdg.hot{background:var(--gold);color:var(--gold-ink)}
-.bdg.new{background:#4D8DFF;color:#fff}
-.bdg.open{background:#3DDC84;color:#08331B}
-.bdg.soon{background:rgba(255,255,255,.14);color:#E6EEEA}
-.gt .ra{position:absolute;inset:0;z-index:0}
-.gt.soon{background:var(--surface)}
-.gt .notify{position:absolute;left:10px;top:10px;z-index:3}
-.notify{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding-inline:12px;position:relative;border-radius:var(--radius-pill);background:rgba(255,255,255,.12);color:var(--ink);font-size:11.5px;font-weight:800;white-space:nowrap}
-.notify::after{content:"";position:absolute;inset:-4px -2px}
-.notify svg{width:14px;height:14px}
-.notify.on{background:var(--success-tint);color:var(--success)}
-/* حکم: ماهوت و ورق خود بازیکن */
-.ra-hokm .hk-card{font-size:34px}
-/* فوتبال: زمین چمن، مهره های فلزی و توپ */
-.ra-ludo{background:radial-gradient(120% 90% at 50% 40%,#1F4A37,var(--game-bg) 62%,#0B1714)}
-.ra-ludo .bd{position:absolute;left:50%;top:10px;width:92px;margin-left:-46px;transform:perspective(420px) rotateX(28deg) rotateZ(-8deg);filter:drop-shadow(0 10px 10px rgba(0,0,0,.45))}
-.ra-ludo .bd svg{display:block;width:100%;border-radius:10px}
-.ra-ludo .pw{position:absolute;z-index:2;width:26px;filter:drop-shadow(0 4px 4px rgba(0,0,0,.4))}
-.ra-ludo .pw svg{display:block;width:100%}
-/* اسم فامیل */
-.ra-esm{display:flex;justify-content:flex-start;gap:6px;padding:48px 12px 0}
-.ra-esm span{width:38px;height:40px;border-radius:12px;display:grid;place-items:center;font-family:var(--font-rokh);font-size:22px;font-weight:900}
-
-/* ---------- رده‌بندی هفته ---------- */
-.rank-card{display:flex;align-items:center;gap:var(--space-3);padding:12px 14px;border-radius:20px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+/* ---------- دوستان آنلاین ---------- */
+.rank-card{display:flex;align-items:center;gap:var(--space-3);padding:12px 14px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
 .rank-card:active{transform:scale(.985)}
-.rank-card .pos{width:44px;height:44px;flex:none;border-radius:14px;display:grid;place-items:center;background:rgba(245,196,81,.16);color:var(--gold);font-family:var(--font-rokh);font-size:16px;font-weight:900}
+.rank-card .pos{width:44px;height:44px;flex:none;border-radius:14px;display:grid;place-items:center;background:var(--acc-tint);color:var(--acc)}
+.rank-card .pos svg{width:22px;height:22px}
 .rank-card .t{flex:1;min-width:0;display:grid}
 .rank-card .t b{font-size:14px;line-height:21px;font-weight:800}
 .rank-card .t small{font-size:11.5px;line-height:17px;color:var(--ink-muted)}
 .rank-card .faces{display:flex;flex:none}
-.rank-card .faces .avatar{--size:28px;--ring:var(--surface);margin-inline-start:-8px}
+.rank-card .faces .avatar{--size:30px;--ring:#fff;margin-inline-start:-8px}
 .rank-card .chev{color:var(--ink-muted);display:grid}
 .rank-card .chev svg{width:18px;height:18px}
 
-/* ---------- میزهای دیگرم ---------- */
-.tables{display:grid;gap:var(--space-2)}
-.tbl{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-2);padding-inline-end:var(--space-3);
-  border-radius:20px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);overflow:hidden;animation:tblIn .45s cubic-bezier(.2,.9,.3,1.2) both}
-.tbl:active{transform:scale(.985)}
-.tbl.turn{box-shadow:inset 0 0 0 2px var(--gold)}
-.tbl .g-art{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;overflow:hidden}
-.tbl .g-art svg{display:block;width:76%;height:76%}
-.tbl-txt{display:grid;gap:2px;min-width:0}
-.tbl-txt b{display:flex;align-items:center;gap:6px;font-family:var(--font-rokh);font-size:15px;line-height:22px;font-weight:900}
-.tbl-tag{font-family:var(--font-peyda);font-size:11.5px;line-height:16px;font-weight:800;padding:0 7px;border-radius:var(--radius-pill);background:var(--surface-sunk);color:var(--ink-muted)}
-.tbl-st{display:flex;align-items:center;gap:6px;font-size:12px;line-height:18px;color:var(--ink-muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tbl-st .live{width:7px;height:7px;border-radius:50%;background:#3DDC84;flex:none}
-.tbl-st .spinner{width:12px;height:12px;border-width:2px}
-.tbl-st .myturn{color:var(--gold);font-weight:900}
-.tbl-go{display:inline-flex;align-items:center;gap:4px;min-height:40px;padding-inline:12px;border-radius:var(--radius-pill);background:var(--gold);color:var(--gold-ink);font-size:13px;font-weight:900}
-.tbl-go svg{width:15px;height:15px}
-@keyframes tblIn{from{opacity:0;transform:translateY(10px) scale(.97)}}
-@media (prefers-reduced-motion:reduce){.tbl{animation:none}}
-
 .sec-head h2{display:flex;align-items:center;gap:8px}
-.note-bar{display:flex;align-items:center;gap:var(--space-2);background:var(--coin-tint);color:var(--coin-text);border-radius:var(--radius-lg);padding:var(--space-3);font-weight:800;font-size:13.5px;line-height:22px}
+.note-bar{display:flex;align-items:center;gap:var(--space-2);background:var(--acc-tint);color:var(--acc-deep);border-radius:var(--radius-lg);padding:var(--space-3);font-weight:800;font-size:13.5px;line-height:22px}
 .note-bar svg{width:20px;height:20px;flex:none}
-.note-bar.bad{background:rgba(255,107,122,.16);color:var(--danger)}
+.note-bar.bad{background:#FDE8EB;color:var(--danger)}
 .adm-link{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-3)}
 .adm-link .ic-box{background:var(--obour-night);color:var(--obour-aqua);font-size:20px}
 .adm-link b{display:block;font-weight:900}
@@ -137,8 +144,8 @@ a.gt:active{transform:scale(.98)}
 .ntf .ic svg{width:21px;height:21px}
 .ntf b{display:block;font-weight:800;font-size:14px;line-height:21px}
 .ntf small{display:block;font-size:12px;line-height:18px;color:var(--ink-muted)}
-.name-hint{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px 12px;padding:14px;border-radius:var(--radius-lg);background:var(--surface);box-shadow:inset 0 0 0 1px rgba(245,196,81,.35)}
-.nh-ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(245,196,81,.15);color:var(--gold)}
+.name-hint{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px 12px;padding:14px;border-radius:var(--radius-lg);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.nh-ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--acc-tint);color:var(--acc)}
 .nh-ic svg{width:22px;height:22px}
 .nh-tx{display:grid;min-width:0}
 .nh-tx small{font-size:12.5px;line-height:18px;color:var(--ink-muted)}
@@ -152,7 +159,7 @@ a.gt:active{transform:scale(.98)}
   <div class="appbar-cap"><span lang="en" dir="ltr">Game Club</span></div>
   <div class="appbar-in">
     <a class="me-chip" href="profile.html" aria-label="پروفایل من">
-      <span class="lv" id="lv" style="--p:0"><span id="meAv"></span><b id="lvNum">۱</b></span>
+      <span id="meAv"></span>
       <span style="min-width:0"><span class="me-name" id="meName">سلام!</span><span class="me-sub" id="meSub">…</span></span>
     </a>
     <div class="hd-acts">
@@ -161,7 +168,7 @@ a.gt:active{transform:scale(.98)}
     </div>
   </div>
 </header>
-<main class="page home-page">
+<main class="page home-page" id="homePage">
   <div class="note-bar" id="noteBar" hidden><span id="noteIc"></span><span id="noteTx"></span></div>
   <a class="card card-link adm-link" id="admLink" href="admin.html" hidden><span class="ic-box">⚙︎</span><span><b>پنل مدیریت</b><small>کاربران، میزها، پیام همگانی و تنظیمات</small></span><span aria-hidden="true">‹</span></a>
 
@@ -171,7 +178,10 @@ a.gt:active{transform:scale(.98)}
     <span class="nh-acts"><button class="btn btn-light btn-sm" id="nhOk">همین خوبه</button><button class="btn btn-sm" id="nhEdit">عوضش کن</button></span>
   </section>
 
-  <section class="hero" id="hero" aria-live="polite"></section>
+  <section aria-labelledby="hGames">
+    <h1 class="home-q" id="hGames">چی بازی کنیم؟</h1>
+    <div class="hm-bento" id="games"></div>
+  </section>
 
   <section id="tablesSec" aria-labelledby="hTables" hidden>
     <div class="sec-head"><h2 id="hTables">میزهای دیگرت</h2></div>
@@ -179,14 +189,9 @@ a.gt:active{transform:scale(.98)}
   </section>
 
   <section class="quick" aria-label="کارهای سریع">
-    <button class="qa" id="invite"><span class="ic" style="background:rgba(77,141,255,.16);color:#7FAEFF"><i data-ic="userAdd"></i></span><b>دعوت دوست</b><small>با هم بازی کنیم</small></button>
-    <a class="qa" href="shop.html"><span class="ic" style="background:rgba(245,196,81,.16);color:var(--gold)"><i data-ic="cards"></i></span><b>ورق و میز</b><small>ظاهر حکم</small></a>
-    <a class="qa" href="help.html"><span class="ic" style="background:rgba(61,220,132,.14);color:#5FE39A"><i data-ic="help"></i></span><b>راهنما</b><small>قانون بازی‌ها</small></a>
-  </section>
-
-  <section aria-labelledby="hGames">
-    <div class="sec-head"><h2 id="hGames">بازی‌ها</h2></div>
-    <div class="games" id="games"></div>
+    <button class="qa" id="invite"><span class="ic" style="background:var(--acc-tint);color:var(--acc)"><i data-ic="userAdd"></i></span><b>دعوت دوست</b><small>با هم بازی کنیم</small></button>
+    <a class="qa" href="shop.html"><span class="ic" style="background:#E3F1E8;color:#1F6B3B"><i data-ic="cards"></i></span><b>ورق و میز</b><small>ظاهر حکم</small></a>
+    <a class="qa" href="help.html"><span class="ic" style="background:var(--surface-sunk);color:var(--ink-muted)"><i data-ic="help"></i></span><b>راهنما</b><small>قانون بازی‌ها</small></a>
   </section>
 
   <a class="rank-card" id="rankCard" href="friends.html" aria-label="دوستان">
@@ -204,6 +209,8 @@ a.gt:active{transform:scale(.98)}
       <ul class="list" id="shopTeaser"></ul>
     </div>
   </section>
+
+  <div class="hm-cont" id="cont" aria-live="polite" hidden></div>
 </main>
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
@@ -224,20 +231,21 @@ a.gt:active{transform:scale(.98)}
   if (spw && !spSeen) { location.replace(`${spw[1]}.html?watch=${spw[2]}`); return; }
   let me = null, style = { table: 'a', cards: 'a' }, notify = [], tables = [];
 
-  /* ---------- اجزای واقعی هر بازی (برای کاشی ها و کارت بالا) ---------- */
-  const REAL = {
-    // ماهوت و طرح ورقی که خود بازیکن انتخاب کرده؛ آس پیک، شاه دل و بی بی خشت در دست
-    hokm: (k = 1) => `<div class="ra ra-hokm felt tbl-${style.table} cards-${style.cards}" aria-hidden="true">${
-      C.face(10 + 13 * 2, '', `left:calc(50% - ${46 * k}px);top:${16 * k}px;transform:rotate(-16deg);font-size:${34 * k}px`)}${
-      C.face(11 + 13, '', `left:calc(50% - ${17 * k}px);top:${8 * k}px;transform:rotate(-2deg);font-size:${34 * k}px`)}${
-      C.face(12, '', `left:calc(50% + ${12 * k}px);top:${14 * k}px;transform:rotate(14deg);font-size:${34 * k}px`)}</div>`,
-    // فوتبال و بیلیارد: همان پیش نمایش زندهٔ لابی، از تصویرهای واقعی خود بازی (static/previews)
-    football: () => `<div class="ra">${GCPreview.html('football')}</div>`,
-    billiard: () => `<div class="ra">${GCPreview.html('billiard')}</div>`,
-    divar: () => `<div class="ra">${GCPreview.html('divar')}</div>`,
-    ludo: () => `<div class="ra ra-ludo" aria-hidden="true"><span class="bd">${GC.boardArt()}</span><span class="pw" style="left:22px;top:46px">${GC.pawn('red')}</span><span class="pw" style="right:24px;top:38px">${GC.pawn('blue')}</span></div>`,
-    esm: () => '<div class="ra ra-esm" aria-hidden="true"><span style="background:#FFA552;color:#3A2000;transform:rotate(-8deg)">ب</span><span style="background:#FF7A85;color:#3A0A10;transform:rotate(6deg)">م</span><span style="background:#8E7CF8;color:#fff;transform:rotate(-3deg)">الف</span></div>',
+  /* ---------- کاشی هر بازی: دنیای همان بازی و اجزایی که از قاب بیرون زده ---------- */
+  const PV = 'static/previews/';
+  const TILE = {
+    // ماهوت و طرح ورقی که خود بازیکن انتخاب کرده؛ سه برگ از بالای کاشی بیرون زده اند
+    hokm: () => ({ cls: `hm-w2 hm-big cards-${style.cards}`, sh: 'rgba(15,63,29,.75)', bg: `<span class="ra felt tbl-${style.table}"></span>`,
+      out: `<span class="hm-fan" aria-hidden="true">${C.face(10 + 13 * 2, '', 'left:16px;top:-30px;transform:rotate(-14deg)')}${C.face(11 + 13, '', 'left:58px;top:-40px;transform:rotate(-1deg)')}${C.face(12, '', 'left:100px;top:-30px;transform:rotate(13deg)')}</span>` }),
+    // صفحهٔ خود منچ روی سبز شب؛ مهرهٔ آبی و زرد روی لبهٔ کاشی ایستاده اند
+    ludo: () => ({ cls: 'hm-t2', sh: 'rgba(11,36,28,.8)', bg: `<span class="ra" style="background:radial-gradient(90% 90% at 50% 35%,#1F4A37,#0F2A22)"><span class="hm-ludo">${GC.boardArt()}</span></span>`,
+      out: `<span class="hm-out" style="right:18px;top:-30px;width:40px">${GC.pawn('blue')}</span><span class="hm-out" style="right:58px;top:-15px;width:29px">${GC.pawn('yellow')}</span>` }),
+    // زمین، مهره ها و توپ واقعی فوتبال؛ مهرهٔ عقاب ها از گوشه بیرون زده
+    football: () => ({ cls: '', sh: 'rgba(29,90,37,.8)', bg: GCPreview.html('football'), out: `<span class="hm-out" style="left:-12px;top:-14px;width:46px"><img src="${PV}fb-disc-eagles.webp" alt=""></span>` }),
+    billiard: () => ({ cls: '', sh: 'rgba(74,42,24,.8)', bg: GCPreview.html('billiard'), out: `<span class="hm-out" style="left:-9px;bottom:-11px;width:30px"><img src="${PV}bl-ball-8.webp" alt=""></span>` }),
+    divar: () => ({ cls: 'hm-w2', sh: 'rgba(10,42,28,.8)', bg: GCPreview.html('divar'), out: '<span class="hm-out" style="left:44px;top:-6px"><i class="hm-dvw"></i></span><span class="hm-out" style="left:-12px;top:-16px"><i class="hm-dvp"></i></span>' }),
   };
+  const ESM = '<span class="hm-lt" aria-hidden="true"><span style="background:#FFA552;color:#3A2000;transform:rotate(-8deg)">ب</span><span style="background:#FF7A85;color:#3A0A10;transform:rotate(6deg)">م</span><span style="background:#8E7CF8;color:#fff;transform:rotate(-3deg)">الف</span></span>';
 
   /* ---------- یوزرنیم تازه: یک بار نشان داده می شود تا کاربر ببیند یا عوضش کند ---------- */
   function renderNameHint() {
@@ -252,25 +260,22 @@ a.gt:active{transform:scale(.98)}
   /* ---------- هدر ---------- */
   function renderHeader() {
     const p = me.player, L = GC.level(p);
-    $('meAv').innerHTML = face(p, '#0E1E19');
-    $('lv').style.setProperty('--p', Math.round(L.frac * 100));
-    $('lvNum').textContent = FD(L.lv);
-    $('lv').setAttribute('aria-label', `سطح ${FD(L.lv)}`);
+    $('meAv').innerHTML = face(p, '#fff');
     const nm = document.createElement('bdi'); nm.className = 'uname'; nm.textContent = p.name || '';
     $('meName').replaceChildren(nm);
     const sub = $('meSub');
     if (!me.obour.linked) { sub.className = 'me-sub bad'; sub.textContent = 'هنوز در ربات عبور نیستی'; }
-    else { sub.className = 'me-sub'; sub.innerHTML = `<span class="bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span>${FD(L.left)} تا سطح ${FD(L.lv + 1)}`; }
+    else { sub.className = 'me-sub'; sub.innerHTML = `سطح ${FD(L.lv)}<span class="bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span>`; sub.title = `${FD(L.left)} امتیاز تا سطح ${FD(L.lv + 1)}`; }
   }
   // اعلان ها: میزی که نوبت توست، میزی که منتظر توست و پیام مدیریت
   function alerts() {
     const out = [];
     for (const t of tables) {
       const g = GC.GAMES.find(x => x.id === t.game) || GC.GAMES[2];
-      if (t.kind === 'playing' && t.my_turn) out.push({ href: g.id + '.html', game: t.game, id: t.id, k: t.kind, ic: 'clock', c: 'var(--gold)', bg: 'rgba(245,196,81,.16)', t: `نوبت شماست در ${g.name}`, s: 'سر میز برگرد تا وقتت نسوزد' });
-      else if (t.kind === 'lobby') out.push({ href: g.href, ic: 'users', c: '#7FAEFF', bg: 'rgba(77,141,255,.16)', t: `میز ${g.name} منتظر است`, s: `${FD(t.found)} از ${FD(t.need)} نفر نشسته‌اند` });
+      if (t.kind === 'playing' && t.my_turn) out.push({ href: g.id + '.html', game: t.game, id: t.id, k: t.kind, ic: 'clock', c: 'var(--acc)', bg: 'var(--acc-tint)', t: `نوبت شماست در ${g.name}`, s: 'سر میز برگرد تا وقتت نسوزد' });
+      else if (t.kind === 'lobby') out.push({ href: g.href, ic: 'users', c: '#1F6B3B', bg: '#E3F1E8', t: `میز ${g.name} منتظر است`, s: `${FD(t.found)} از ${FD(t.need)} نفر نشسته‌اند` });
     }
-    if (me && me.notice) out.push({ ic: 'bell', c: '#5FE39A', bg: 'rgba(61,220,132,.14)', t: 'پیام Game Club', s: me.notice });
+    if (me && me.notice) out.push({ ic: 'bell', c: 'var(--ink-muted)', bg: 'var(--surface-sunk)', t: 'پیام Game Club', s: me.notice });
     return out;
   }
   function renderBell() {
@@ -287,7 +292,6 @@ a.gt:active{transform:scale(.98)}
 
   /* ---------- کارت بزرگ بالا: ادامهٔ بازی یا حکم ---------- */
   const KEY = { hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid', divar: 'dmid' };
-  const heroBg = { hokm: () => `felt tbl-${style.table}`, football: () => 't-green', ludo: () => 't-violet', billiard: () => 't-green', divar: () => 't-green' };
   function heroTable() {
     const playing = tables.filter(t => t.kind === 'playing');
     return playing.find(t => t.my_turn) || playing[0] || tables[0] || null;
@@ -298,24 +302,18 @@ a.gt:active{transform:scale(.98)}
     const sc = t.score ? `ما ${FD(t.score[0])} – ${FD(t.score[1])} آنها · تا ${FD(t.target)}` : t.left != null ? `تا مقصد ${FD(t.left)} قدم مانده` : 'بازی در جریان است';
     return { k: 'بازی نیمه‌تمام', h: t.my_turn ? 'نوبت شماست!' : 'بازی در جریان است', p: sc };
   }
-  function renderHero() {
-    const h = $('hero'), t = heroTable();
-    if (t) {
-      const g = GC.GAMES.find(x => x.id === t.game) || GC.GAMES[2], st = stateLine(t);
-      const href = t.kind === 'playing' ? g.id + '.html' : g.href;
-      h.className = 'hero ' + (heroBg[g.id] || heroBg.ludo)();
-      h.innerHTML = `<div class="art">${(REAL[g.id] || REAL.ludo)(1.2)}</div>
-        <div class="txt"><span class="kick"><i></i>${st.k} · ${g.name}</span><h1>${st.h}</h1><p>${st.p}</p></div>
-        <div class="acts"><a class="go" href="${href}" data-k="${t.kind}" data-g="${g.id}" data-id="${t.id || ''}">برگرد سر میز${icon('fwd')}</a></div>`;
-      h.querySelector('.go').addEventListener('click', e => { const a = e.currentTarget; if (a.dataset.k === 'playing' && a.dataset.id) store.set(KEY[a.dataset.g], a.dataset.id); GC.haptic('light'); });
-    } else {
-      h.className = `hero felt tbl-${style.table}`;
-      h.innerHTML = `<div class="art">${REAL.hokm(1.2)}</div>
-        <div class="txt"><span class="kick"><i></i>بازی محبوب</span><h1>حکم چهارنفره</h1><p>با یارت در برابر دو حریف؛ آنلاین، با دوست یا ربات.</p></div>
-        <div class="acts"><a class="go" href="hokm-lobby.html">بازی کن${icon('fwd')}</a><a class="glass" href="help.html#hokm">راهنما</a></div>`;
-    }
-    // هنر کارت بالا کمی بزرگ تر از کاشی است
-    h.querySelectorAll('.art .ra').forEach(r => { r.style.height = '130px'; r.style.background = 'none'; });
+  // نوار شناور بالای ناوبری: میزی که نوبت توست، یا بازی در جریان، یا صف و میز دوستانه
+  function renderCont() {
+    const c = $('cont'), t = heroTable();
+    $('homePage').classList.toggle('has-cont', !!t);
+    if (!t) { c.hidden = true; c.innerHTML = ''; return; }
+    const g = GC.GAMES.find(x => x.id === t.game) || GC.GAMES[2], st = stateLine(t);
+    const href = t.kind === 'playing' ? g.id + '.html' : g.href;
+    c.hidden = false; c.classList.toggle('turn', !!t.my_turn);
+    c.innerHTML = `<span class="g-art ${g.tint}">${GAME_ART[g.id]()}</span>
+      <span class="t"><b>${t.my_turn ? `نوبت شماست در ${g.name}` : `${st.k} · ${g.name}`}</b><small>${t.kind === 'playing' ? '<i class="live"></i>' : '<span class="spinner"></span>'}${st.p}</small></span>
+      <a class="go" href="${href}" data-k="${t.kind}" data-g="${g.id}" data-id="${t.id || ''}">${t.my_turn ? 'بازی کن' : 'برگرد'}${icon('fwd')}</a>`;
+    c.querySelector('.go').addEventListener('click', e => { const a = e.currentTarget; if (a.dataset.k === 'playing' && a.dataset.id) store.set(KEY[a.dataset.g], a.dataset.id); GC.haptic('light'); });
   }
 
   /* ---------- میزهای دیگر ---------- */
@@ -337,13 +335,11 @@ a.gt:active{transform:scale(.98)}
   /* ---------- کاشی بازی ها ---------- */
   function renderGames() {
     const open = new Set(tables.map(t => t.game));
-    const badge = { hokm: '<span class="bdg hot">محبوب</span>', football: '<span class="bdg new">جدید</span>', billiard: '<span class="bdg new">جدید</span>', divar: '<span class="bdg new">جدید</span>' };
+    const badge = { hokm: '<span class="hm-bdg hot">محبوب</span>', football: '<span class="hm-bdg new">تازه</span>', billiard: '<span class="hm-bdg new">تازه</span>', divar: '<span class="hm-bdg new">تازه</span>' };
     $('games').innerHTML = GC.GAMES.map(g => {
-      const b = g.soon ? '' : open.has(g.id) ? '<span class="bdg open">میز باز داری</span>' : (badge[g.id] || '');
-      const bg = g.id === 'hokm' ? `felt tbl-${style.table}` : '';
-      return g.soon
-        ? `<div class="gt soon">${b}${REAL[g.id]()}<b>${g.name}</b><small>به‌زودی می‌آید</small><button class="notify" data-notify="${g.id}"></button></div>`
-        : `<a class="gt ${bg}" href="${g.href}">${b}${REAL[g.id]()}<b>${g.name}</b><small>${g.sub.split(' · ')[0]}</small></a>`;
+      if (g.soon) return `<div class="hm-tl hm-soon">${ESM}<span class="t"><b>${g.name}</b><small>به‌زودی می‌آید</small></span><button class="hm-notify" data-notify="${g.id}"></button></div>`;
+      const T = (TILE[g.id] || TILE.divar)(), b = open.has(g.id) ? '<span class="hm-bdg open">میز باز داری</span>' : (badge[g.id] || '');
+      return `<a class="hm-tl ${T.cls}" href="${g.href}" style="--sh:${T.sh}"><span class="bg" aria-hidden="true">${T.bg}</span>${T.out}${b}<b>${g.name}</b><small>${g.sub}</small></a>`;
     }).join('');
     document.querySelectorAll('[data-notify]').forEach(b => {
       const sync = () => { const on = notify.includes(b.dataset.notify); b.classList.toggle('on', on); b.innerHTML = on ? icon('check', 3) + 'خبرت می‌کنیم' : icon('bell', 2.6) + 'خبرم کن'; };
@@ -356,7 +352,7 @@ a.gt:active{transform:scale(.98)}
   }
 
   function renderAll() {
-    renderHero();
+    renderCont();
     const rest = tables.filter(t => t !== heroTable());
     $('tablesSec').hidden = !rest.length;
     $('tables').innerHTML = rest.map(tableHtml).join('');

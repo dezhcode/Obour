@@ -10,33 +10,48 @@
 <link rel="stylesheet" href="static/cards.css">
 <link rel="stylesheet" href="static/preview.css">
 <style>
-/* بازی ها: دسته ها، بازی ویژه و کاشی ها؛ تصویر هر کاشی همان اجزای خود بازی است که حرکت می کند */
+/* بازی ها (تاس وسط ناوبری): دسته ها و یک کاشی پهن برای هر بازی در دنیای خود همان بازی، با جزئیات بیشتر
+   از خانه (چند نفره، مدت یا اندازه) و اجزایی که از قاب بیرون زده اند. */
 .gm-cats{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-inline:calc(var(--space-4) * -1);padding-inline:var(--space-4)}
 .gm-cats::-webkit-scrollbar{display:none}
-.gm-cat{flex:none;display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 16px;border-radius:14px;background:var(--surface);color:var(--ink);font-size:14px;font-weight:700}
-.gm-cat svg{width:18px;height:18px}
-.gm-cat[aria-pressed="true"]{background:var(--gold);color:var(--gold-ink);font-weight:900}
-.gm-hero{position:relative;display:block;height:210px;border-radius:24px;overflow:hidden;color:#fff;--cs:52px;--es:30px}
-.gm-hero:active,.gm-tile:active{transform:scale(.985)}
-.gm-shade{position:absolute;inset:auto 0 0;height:58%;background:linear-gradient(180deg,rgba(6,14,11,0),rgba(6,14,11,.86));pointer-events:none}
-.gm-hero .gm-tag{position:absolute;top:14px;right:14px}
-.gm-tag{height:26px;padding:0 10px;border-radius:13px;background:var(--gold);color:var(--gold-ink);font-size:12px;font-weight:900;display:inline-grid;place-items:center}
-.gm-tag.new{background:var(--success);color:#0B2A1C}
-.gm-hero .gm-txt{position:absolute;right:18px;bottom:14px;left:18px;display:grid}
-.gm-hero b{font-family:var(--font-rokh);font-size:30px;line-height:40px;font-weight:900}
-.gm-txt small{font-size:13px;line-height:20px;color:rgba(255,255,255,.85)}
-.gm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.gm-tile{position:relative;display:block;height:160px;border-radius:20px;overflow:hidden;color:#fff;--cs:30px}
-.gm-tile .gm-tag{position:absolute;top:10px;right:10px}
-.gm-tile .gm-txt{position:absolute;right:14px;bottom:10px;left:14px;display:grid}
-.gm-tile b{font-family:var(--font-rokh);font-size:19px;line-height:26px;font-weight:900}
-.gm-tile small{font-size:12px;line-height:17px}
-.gm-soon{display:flex;align-items:center;gap:14px;min-height:84px;padding:10px 12px 10px 14px;border-radius:20px;background:var(--surface)}
-.gm-soon .art{width:84px;height:64px;flex:none;border-radius:14px;overflow:hidden;--es:13px}
+.gm-cat{flex:none;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:12px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);font-size:13.5px;font-weight:700}
+.gm-cat svg{width:17px;height:17px;color:var(--ink-muted)}
+.gm-cat[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink);box-shadow:none;font-weight:800}
+.gm-cat[aria-pressed="true"] svg{color:currentColor}
+.gm-list{display:grid;gap:16px;margin-top:22px}
+.gm-ct{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:center;gap:4px;height:122px;padding:14px 16px;border-radius:22px;color:#fff;
+  box-shadow:0 14px 22px -16px var(--sh,rgba(15,63,29,.75));transition:transform .25s cubic-bezier(.3,.7,.3,1)}
+.gm-ct:active{transform:scale(.985)}
+.gm-ct>.bg{position:absolute;inset:0;z-index:-1;border-radius:inherit;overflow:hidden}
+.gm-ct>.bg>.pv,.gm-ct>.bg>.ra{position:absolute;inset:0}
+.gm-ct>.bg::after{content:"";position:absolute;inset:0;background:linear-gradient(to left,rgba(0,0,0,.66),rgba(0,0,0,.28) 55%,rgba(0,0,0,0) 82%);pointer-events:none}
+.gm-ct>b{position:relative;font-family:var(--font-rokh);font-size:25px;line-height:32px;font-weight:900;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.gm-ct>small{position:relative;max-width:62%;font-size:12px;line-height:18px;opacity:.94}
+.gm-ct .gm-facts{position:relative;display:flex;gap:8px;margin-top:4px}
+.gm-ct .gm-facts span{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px 0 7px;border-radius:8px;background:rgba(255,255,255,.2);font-size:11.5px;font-weight:700}
+.gm-ct .gm-facts svg{width:13px;height:13px}
+.gm-ct .gm-tag{position:absolute;bottom:12px;left:12px;z-index:4;height:22px;padding:0 8px;border-radius:8px;font-size:11px;line-height:22px;font-weight:800;background:var(--gold);color:var(--gold-ink)}
+.gm-ct .gm-tag.new{background:rgba(255,255,255,.94);color:var(--ink)}
+.gm-ct .gm-out{position:absolute;z-index:3;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.3));transition:transform .3s cubic-bezier(.3,.7,.3,1)}
+.gm-ct .gm-out img,.gm-ct .gm-out svg{display:block;width:100%;height:auto;overflow:visible}
+@media (hover:hover){.gm-ct:hover{transform:translateY(-3px)}.gm-ct:hover .gm-out{transform:translateY(-5px) rotate(-3deg)}}
+.gm-ct .gm-fan{position:absolute;inset:0;z-index:3;pointer-events:none}
+.gm-ct .gm-fan .hk-card{font-size:40px;filter:drop-shadow(0 6px 7px rgba(0,0,0,.28))}
+.gm-ct .gm-ludo{position:absolute;left:12px;top:-14px;width:104px;transform:rotate(-8deg);filter:drop-shadow(0 8px 10px rgba(0,0,0,.4))}
+.gm-ct .gm-ludo svg{display:block;width:100%;height:auto;border-radius:12px}
+.gm-dvw{display:block;width:100px;height:9px;border-radius:99px;background:linear-gradient(180deg,#FFC9CF,#FF5A6A 42%,#A82B3B);box-shadow:0 2px 3px rgba(0,0,0,.35)}
+.gm-soon{display:flex;align-items:center;gap:12px;padding:12px;border-radius:20px;border:1.5px dashed #CDD2DE}
+.gm-soon .lt{display:flex;gap:3px}
+.gm-soon .lt span{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-family:var(--font-rokh);font-size:13px;font-weight:900}
 .gm-soon .t{flex:1;display:grid;min-width:0}
 .gm-soon b{font-family:var(--font-rokh);font-size:17px;font-weight:900}
-.gm-soon small{font-size:12.5px;color:var(--ink-muted)}
+.gm-soon small{font-size:12px;color:var(--ink-muted)}
+.gm-notify{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding-inline:12px;position:relative;border-radius:var(--radius-pill);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);font-size:12px;font-weight:800;white-space:nowrap}
+.gm-notify::after{content:"";position:absolute;inset:-4px -2px}
+.gm-notify svg{width:14px;height:14px}
+.gm-notify.on{background:var(--success-tint);color:var(--success);box-shadow:none}
 .gm-empty{padding:28px 16px;text-align:center;color:var(--ink-muted);font-size:14px}
+@media (prefers-reduced-motion:reduce){.gm-ct,.gm-ct .gm-out{transition:none}}
 </style>
 </head>
 <body>
@@ -49,7 +64,7 @@
 </header>
 <main class="page">
   <div class="gm-cats" role="group" aria-label="دسته‌بندی بازی‌ها" id="gmCats"></div>
-  <div id="gmList" class="stack" style="gap:12px"></div>
+  <div id="gmList" class="gm-list"></div>
 </main>
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
@@ -63,21 +78,36 @@
   const CATS = [['all', 'همه', 'pad'], ['card', 'کارتی', 'cards'], ['board', 'تخته‌ای', 'dice'], ['sport', 'ورزشی', 'ball']];
   let cat = 'all', style = { table: 'a', cards: 'a' }, notify = [];
 
+  const C = window.GCCards, PV = 'static/previews/';
+  // هر بازی: توضیح کوتاه، دو واقعیت (چند نفره و مدت یا اندازه)، دنیای خودش و اجزایی که بیرون زده
+  const INFO = {
+    hokm: { d: 'با یارت در برابر دو حریف', f: [['users', '۴ نفره'], ['clock', '۱۰ تا ۲۵ دقیقه']], sh: 'rgba(15,63,29,.75)',
+      bg: () => `<span class="ra felt tbl-${style.table}"></span>`,
+      out: () => `<span class="gm-fan cards-${style.cards}" aria-hidden="true">${C.face(10 + 13 * 2, '', 'left:10px;top:-24px;transform:rotate(-14deg)')}${C.face(11 + 13, '', 'left:46px;top:-32px;transform:rotate(-1deg)')}${C.face(12, '', 'left:82px;top:-24px;transform:rotate(13deg)')}</span>` },
+    football: { d: 'نوبتی شوت بزن و گل بزن', f: [['users', '۲ نفره'], ['ball', 'تا دو، سه یا پنج گل']], sh: 'rgba(29,90,37,.8)',
+      bg: () => GCPreview.html('football'), out: () => `<span class="gm-out" style="left:20px;top:-14px;width:34px"><img src="${PV}fb-ball.webp" alt=""></span>` },
+    ludo: { d: 'مهره‌ها را دور صفحه ببر و به خانه برسان', f: [['users', '۲ یا ۴ نفره'], ['clock', '۵ تا ۱۵ دقیقه']], sh: 'rgba(11,36,28,.8)',
+      bg: () => '<span class="ra" style="background:radial-gradient(90% 120% at 30% 40%,#1F4A37,#0F2A22)"></span>',
+      out: () => `<span class="gm-ludo" aria-hidden="true">${GC.boardArt()}</span><span class="gm-out" style="left:100px;top:-22px;width:30px">${GC.pawn('red')}</span>` },
+    billiard: { d: 'توپ‌هایت را بینداز، آخر از همه توپ ۸', f: [['users', '۲ یا ۴ نفره'], ['spark', '۸ توپ']], sh: 'rgba(74,42,24,.8)',
+      bg: () => GCPreview.html('billiard'), out: () => `<span class="gm-out" style="left:26px;top:-14px;width:32px"><img src="${PV}bl-ball-8.webp" alt=""></span>` },
+    divar: { d: 'راه حریف را ببند و زودتر برس', f: [['users', '۲ یا ۴ نفره'], ['grid', '۹×۹ یا ۱۱×۱۱']], sh: 'rgba(10,42,28,.8)',
+      bg: () => GCPreview.html('divar'), out: () => '<span class="gm-out" style="left:18px;top:-8px"><i class="gm-dvw"></i></span>' },
+  };
+  const ESM = '<span class="lt" aria-hidden="true"><span style="background:#FFA552;color:#3A2000;transform:rotate(-8deg)">ب</span><span style="background:#FF7A85;color:#3A0A10;transform:rotate(6deg)">م</span><span style="background:#8E7CF8;color:#fff;transform:rotate(-3deg)">الف</span></span>';
+
   function render() {
     $('gmCats').innerHTML = CATS.map(([id, label, ic]) => `<button class="gm-cat" data-c="${id}" aria-pressed="${cat === id}">${icon(ic)}${label}</button>`).join('');
     const list = GC.GAMES.filter(g => cat === 'all' || g.cat === cat);
     const live = list.filter(g => !g.soon), soon = list.filter(g => g.soon);
-    const [hero, ...rest] = live;
-    const pv = (g, o) => GCPreview.html(g.id, o);
-    let html = '';
-    if (hero) html += `<a class="gm-hero" href="${hero.href}">${pv(hero, { style })}<span class="gm-shade"></span>
-      ${hero.tag ? `<span class="gm-tag${hero.tag === 'تازه' ? ' new' : ''}">${hero.tag}</span>` : ''}
-      <span class="gm-txt"><b>${hero.name}</b><small>${hero.sub}</small></span></a>`;
-    if (rest.length) html += `<div class="gm-grid">${rest.map(g => `<a class="gm-tile" href="${g.href}">${pv(g, { style })}<span class="gm-shade"></span>
-      ${g.tag ? `<span class="gm-tag${g.tag === 'تازه' ? ' new' : ''}">${g.tag}</span>` : ''}
-      <span class="gm-txt"><b>${g.name}</b><small>${g.sub}</small></span></a>`).join('')}</div>`;
-    html += soon.map(g => `<div class="gm-soon"><span class="art">${pv(g)}</span><span class="t"><b>${g.name}</b><small>به‌زودی می‌آید</small></span>
-      <button class="notify${notify.includes(g.id) ? ' on' : ''}" data-notify="${g.id}" aria-pressed="${notify.includes(g.id)}">${icon(notify.includes(g.id) ? 'check' : 'bell')}${notify.includes(g.id) ? 'خبرت می‌کنیم' : 'خبرم کن'}</button></div>`).join('');
+    let html = live.map(g => {
+      const I = INFO[g.id] || INFO.divar;
+      return `<a class="gm-ct" href="${g.href}" style="--sh:${I.sh}"><span class="bg" aria-hidden="true">${I.bg()}</span>${I.out()}
+        ${g.tag ? `<span class="gm-tag${g.tag === 'تازه' ? ' new' : ''}">${g.tag}</span>` : ''}
+        <b>${g.name}</b><small>${I.d}</small><span class="gm-facts">${I.f.map(([i, t]) => `<span>${icon(i)}${t}</span>`).join('')}</span></a>`;
+    }).join('');
+    html += soon.map(g => `<div class="gm-soon">${ESM}<span class="t"><b>${g.name}</b><small>به‌زودی می‌آید</small></span>
+      <button class="gm-notify${notify.includes(g.id) ? ' on' : ''}" data-notify="${g.id}" aria-pressed="${notify.includes(g.id)}">${icon(notify.includes(g.id) ? 'check' : 'bell')}${notify.includes(g.id) ? 'خبرت می‌کنیم' : 'خبرم کن'}</button></div>`).join('');
     $('gmList').innerHTML = html || '<p class="gm-empty">بازی‌ای در این دسته نیست</p>';
     GCPreview.watch($('gmList'));
     mount();
