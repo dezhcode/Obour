@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="static/gc.css">
 <link rel="stylesheet" href="static/cards.css">
 <link rel="stylesheet" href="static/preview.css">
+<link rel="stylesheet" href="static/divar.css">
 <style>
 /* لابی دیوار: دو نفره یا چهار نفره (کلاسیک یا ستاره)، آزاد یا با امتیاز. صف و دعوت در برگه */
 .seatline{display:flex;justify-content:center;gap:var(--space-3);flex-wrap:wrap}
@@ -42,6 +43,7 @@
 <script src="static/demo-divar.js"></script>
 <script src="static/cards.js"></script>
 <script src="static/preview.js"></script>
+<script src="static/divar-themes.js"></script>
 <script src="static/gamepage.js"></script>
 <script>
 (() => {
@@ -154,6 +156,12 @@
       ['وقت:', 'اگر وقت نوبتت تمام شود، یک قدم در کوتاه‌ترین راه به جایت برداشته می‌شود. در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت.'],
       ['ترفند:', 'دیوارهایت را زود خرج نکن؛ وقتی حریف نزدیک مقصد است دیوار بگذار و قبل از هر دیوار راه خودت را هم نگاه کن.']],
     play,
+    // میزهای رایگان: انتخاب همین جا ذخیره می شود و سر میز بعدی همان دیده می شود
+    looks: {
+      html: () => `<p class="gp-sub" style="margin:0 4px">همهٔ میزها رایگان‌اند. ظاهر فقط برای خودت عوض می‌شود.</p>
+        <div class="dv-looks">${DVThemes.LIST.map(t => `<button class="dv-look" data-look="${t.id}" aria-pressed="${DVThemes.get() === t.id}">${DVThemes.mini(t.id)}<b>${t.name}</b><small${DVThemes.get() === t.id ? ' class="use"' : ''}>${DVThemes.get() === t.id ? 'در حال استفاده' : t.sub}</small></button>`).join('')}</div>`,
+      click: e => { const b = e.target.closest('[data-look]'); if (!b || b.dataset.look === DVThemes.get()) return false; DVThemes.set(b.dataset.look); return true; },
+    },
   });
 
   (async () => {

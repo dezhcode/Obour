@@ -10,11 +10,13 @@
 <link rel="stylesheet" href="static/divar.css">
 </head>
 <body class="divar">
+<script>try { var dvt = JSON.parse(localStorage.getItem("gclub_dvTheme") || "null"); if (dvt && dvt !== "felt") document.body.classList.add("dvt-" + dvt); } catch (e) {}</script>
 <header class="appbar" id="appbar">
   <div class="appbar-cap"><span>دیوار</span></div>
   <div class="appbar-in">
     <button class="dv-ib" id="exit" aria-label="خروج از بازی"><i data-ic="exit"></i></button>
     <div class="dv-title"><b>دیوار</b><span class="dv-chip" id="mode"></span></div>
+    <button class="dv-ib" id="look" aria-label="انتخاب میز"><i data-ic="grid"></i></button>
     <button class="dv-ib" id="snd" aria-pressed="true"></button>
   </div>
 </header>
@@ -34,6 +36,7 @@
 <script src="static/divar-engine.js"></script>
 <script src="static/demo-divar.js"></script>
 <script src="static/tchat.js"></script>
+<script src="static/divar-themes.js"></script>
 <script src="static/divar.js"></script>
 </body>
 </html>

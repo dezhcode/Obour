@@ -5,13 +5,14 @@
 const { fa, FD, icon, face, toast, errText, sheet, sheetHead, close, sfx, haptic, mount, store } = GC;
 const LV_TITLE = lv => lv < 3 ? 'تازه‌کار' : lv < 6 ? 'آشنا' : lv < 10 ? 'حرفه‌ای' : 'استاد';
 const STAR = 'M12 1.8 15 8l6.8.8-5 4.7 1.3 6.8L12 17l-6.1 3.3 1.3-6.8-5-4.7L9 8z';
-const TABS = [['play', 'بازی'], ['shop', 'فروشگاه'], ['board', 'رده‌بندی'], ['rules', 'آموزش']];
+const TABS = [['play', 'بازی'], ['shop', 'فروشگاه'], ['looks', 'میز'], ['board', 'رده‌بندی'], ['rules', 'آموزش']];
 
 function build(opt) {
   const root = document.getElementById('gp');
   let tab = 'play', period = 'week', settings = { stake: true, entries: [50, 100, 250, 500] }, style = { table: 'a', cards: 'a' };
   let stats = { games: 0, wins: 0 }, rank = 0, board = null, sty = null;
-  const tabs = TABS.filter(([id]) => id !== 'shop' || opt.shop);
+  // «میز»: ظاهرهای رایگان بازی (opt.looks.html و opt.looks.click)؛ «فروشگاه»: میز و ورق خریدنی حکم
+  const tabs = TABS.filter(([id]) => (id !== 'shop' || opt.shop) && (id !== 'looks' || opt.looks));
   root.innerHTML = `<section class="gp-banner" id="gpBanner" aria-label="پیشرفت تو در ${opt.title}"></section>
     <div class="gp-tabs" role="tablist" id="gpTabs">${tabs.map(([id, l]) => `<button role="tab" data-t="${id}">${l}</button>`).join('')}</div>
     <div class="gp-panel" id="gpPanel" role="tabpanel"></div>
@@ -140,7 +141,7 @@ function build(opt) {
 
   function draw() {
     $('gpTabs').querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === tab)));
-    $('gpPanel').innerHTML = tab === 'play' ? play() : tab === 'shop' ? shop() : tab === 'board' ? boardHtml() : rules();
+    $('gpPanel').innerHTML = tab === 'play' ? play() : tab === 'shop' ? shop() : tab === 'looks' ? opt.looks.html() : tab === 'board' ? boardHtml() : rules();
     mount($('gpPanel')); dock(); mount($('gpDock'));
   }
   $('gpDock').onclick = e => { const b = e.target.closest('#gpGo'); if (b && !b.disabled) start(b); };
@@ -158,6 +159,7 @@ function build(opt) {
       store.set('gp:' + opt.game, pick); sfx.tap(); haptic('light'); draw(); return;
     }
     const it = e.target.closest('[data-item]'); if (it) { pickItem(it.dataset.item); return; }
+    if (tab === 'looks' && opt.looks.click(e)) { sfx.tap(); haptic('light'); draw(); return; }
     const p = e.target.closest('#gpPer [data-v]'); if (p && p.dataset.v !== period) { period = p.dataset.v; loadBoard(); }
   };
 
