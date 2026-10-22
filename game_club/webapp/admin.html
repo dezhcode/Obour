@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
 <title>Game Club · پنل مدیریت</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -78,7 +79,7 @@ textarea{min-height:130px;resize:vertical;line-height:24px}
 .step{display:flex;align-items:center;gap:6px}
 .step button{width:34px;height:34px;border-radius:50%;background:var(--surface-sunk);font-size:18px;font-weight:900}
 .step b{min-width:34px;text-align:center}
-.warn{background:#FFF1E0;color:#8A4B00;border-radius:var(--radius-lg);padding:var(--space-3);font-weight:800;font-size:13.5px;display:flex;gap:var(--space-2);align-items:center}
+.warn{background:color-mix(in srgb,#F0A23A 16%,var(--surface));color:color-mix(in srgb,#8A4B00 55%,var(--ink));border-radius:var(--radius-lg);padding:var(--space-3);font-weight:800;font-size:13.5px;display:flex;gap:var(--space-2);align-items:center}
 .warn svg{width:20px;height:20px;flex:none}
 .more{justify-self:center}
 .empty{padding:var(--space-5) var(--space-3);text-align:center;color:var(--ink-muted);font-weight:700}
@@ -96,7 +97,7 @@ textarea{min-height:130px;resize:vertical;line-height:24px}
 .emo-row small{display:block;font-size:11.5px;color:var(--ink-muted);direction:ltr;text-align:start}
 .emo-row .acts2{display:flex;gap:6px}
 .emo-row .acts2 button{height:34px;padding:0 10px;border-radius:17px;background:var(--surface-sunk);font-size:12.5px;font-weight:800}
-.t-pro{background:#EFE7FF;color:#5B2DB8}
+.t-pro{background:var(--violet-tint);color:color-mix(in srgb,#7C66F2 75%,var(--ink))}
 .demo-tag{position:fixed;inset-inline-start:12px;bottom:calc(12px + var(--sa-b,0px));z-index:30}
 </style>
 </head>

@@ -151,8 +151,8 @@ body.watching .dv-tray{display:none}
 
 /* پایان بازی */
 .dv-res{display:grid;justify-items:center;gap:10px;text-align:center}
-.dv-res .ic{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;background:var(--gold);color:var(--gold-ink)}
-.dv-res .ic.lost{background:var(--surface-sunk);color:var(--ink-muted)}
+.dv-res .ic{width:68px;height:68px;border-radius:22px;display:grid;place-items:center;background:var(--coin-tint);color:var(--coin-text)}
+.dv-res .ic.lost{background:var(--surface-sunk);box-shadow:none;color:var(--ink-muted)}
 .dv-res .ic svg{width:34px;height:34px}
 .dv-res h2{font-size:24px;font-weight:900;margin:0}
 .dv-res p{margin:0;color:var(--ink-muted)}

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
 <title>Game Club · پروفایل</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -16,7 +17,7 @@
 .pf-cbtn{position:absolute;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.32)}
 .pf-cbtn svg{width:20px;height:20px}
 .pf-cbtn.set-btn{top:8px;inset-inline-end:8px}
-.pf-cbtn.add-btn{bottom:8px;inset-inline-end:8px;width:38px;height:38px;background:rgba(255,255,255,.94);color:var(--ink)}
+.pf-cbtn.add-btn{bottom:8px;inset-inline-end:8px;width:38px;height:38px;background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--ink)}
 .pf-me{display:grid;justify-items:center;gap:6px;margin-top:-56px;padding:0 16px;text-align:center;position:relative}
 .pf-ring{position:relative;width:108px;height:108px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--acc) calc(var(--p,0)*1%),var(--line) 0);box-shadow:0 0 0 5px var(--surface)}
 .pf-ring .avatar{--size:96px;--ring:var(--surface)}
@@ -78,7 +79,7 @@
 .pbdg .m{width:54px;height:54px;border-radius:17px;display:grid;place-items:center}
 .pbdg .m svg{width:24px;height:24px}
 .pbdg small{font-size:11.5px;color:var(--ink-muted);font-weight:600}
-.pbdg.off .m{background:#E6E9F0!important;color:#A3A9B6!important}
+.pbdg.off .m{background:var(--surface-sunk)!important;color:var(--ink-muted)!important}
 .pbdg.off{color:var(--ink-muted)}
 .sets{display:grid;padding:4px 14px;border-radius:var(--radius-xl);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
 .set{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:56px}
@@ -94,6 +95,8 @@
 .pf-cv small{font-size:12px;color:var(--success);padding-inline:4px}
 .set b{display:block;font-weight:800;font-size:14px}
 .set small{display:block;font-size:12px;line-height:18px;color:var(--ink-muted)}
+.set .seg{flex:none;padding:3px}
+.set .seg button{padding:6px 11px;font-size:13px;line-height:18px}
 </style>
 </head>
 <body>
@@ -154,8 +157,10 @@
   <section aria-labelledby="hSet">
     <div class="sec-head"><h2 id="hSet">تنظیمات</h2></div>
     <div class="sets">
+      <div class="set"><span><b>پوسته</b><small>خودکار: مثل تلگرام</small></span><div class="seg" id="segTheme" role="group" aria-label="پوسته"><button data-m="auto">خودکار</button><button data-m="light">روشن</button><button data-m="dark">تیره</button></div></div>
       <div class="set"><span><b>صدای بازی</b><small>صدای ورق، تاس، توپ و جمعیت</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
       <div class="set"><span><b>نمایش من در فهرست خرج</b><small>در رده‌بندی «بیشترین خرج» دیده شوی</small></span><button class="switch" role="switch" id="swSpend" aria-label="نمایش من در فهرست خرج"></button></div>
+      <div class="set"><span><b>تکان برگ‌ها در حکم</b><small>با کج کردن گوشی، برگ‌های وسط میز سُر می‌خورند</small></span><button class="switch" role="switch" id="swTilt" aria-label="تکان برگ‌ها در حکم"></button></div>
     </div>
   </section>
 </main>
@@ -190,6 +195,7 @@
     $('lvTxt').textContent = `${FD(L.left)} تجربه تا سطح ${FD(L.lv + 1)} · هر بازی ۱۰ و هر برد ۱۵`;
     $('kPts').textContent = fa(p.points);
     $('swSound').setAttribute('aria-checked', String(!!S.sound));
+    $('swTilt').setAttribute('aria-checked', String(S.tilt !== false));
     $('swSpend').setAttribute('aria-checked', String(!!p.show_spend));
   }
   // کلکسیون: میزها، ورق ها و کاورهایی که داری
@@ -236,6 +242,11 @@
     $('badges').innerHTML = B.map(([t, ic, bg, fg, on, sub]) => `<div class="pbdg${on ? '' : ' off'}"><span class="m" style="background:${bg};color:${fg}">${icon(on ? ic : 'shield')}</span>${t}<small>${on ? 'گرفتی' : sub}</small></div>`).join('');
   }
   $('swSound').onclick = () => { setSound(!S.sound); $('swSound').setAttribute('aria-checked', String(!!S.sound)); GC.data.setFlag('sound', S.sound).catch(() => {}); };
+  $('swTilt').onclick = () => { S.tilt = S.tilt === false; GC.save(); $('swTilt').setAttribute('aria-checked', String(S.tilt)); GC.haptic('select'); };
+  // پوسته: همان لحظه عوض می شود و روی همین گوشی می ماند
+  const syncTheme = () => $('segTheme').querySelectorAll('[data-m]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === GCTheme.mode())));
+  $('segTheme').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; GCTheme.set(b.dataset.m); GC.haptic('select'); syncTheme(); };
+  syncTheme();
   $('swSpend').onclick = async () => {
     const on = $('swSpend').getAttribute('aria-checked') !== 'true';
     $('swSpend').setAttribute('aria-checked', String(on));

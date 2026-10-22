@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
 <title>Game Club · چت</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -37,7 +38,7 @@ body{background:var(--ground)}
 .ch-empty{margin:40px auto 0;display:grid;justify-items:center;gap:8px;text-align:center;color:var(--ink-muted);font-size:13.5px;line-height:22px;max-width:260px}
 .ch-empty .avatar{--size:72px}
 .ch-empty b{color:var(--ink);font-size:16px}
-.ch-bar{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);background:rgba(255,255,255,.97);border-top:1px solid var(--line);
+.ch-bar{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);background:color-mix(in srgb,var(--surface) 97%,transparent);border-top:1px solid var(--line);
   padding:8px 12px calc(10px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)))}
 .ch-bar-in{max-width:480px;margin:0 auto;display:grid;gap:8px}
 .ch-quick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}

@@ -454,7 +454,7 @@ function tickSetup() {
 function openSetup(g) {
   setupEnds = Date.now() + (g.setup_ms || 0);
   if (g.players[me] && g.players[me].ready) setupStep = 'wait';
-  if (!setupEl) { setupEl = document.createElement('div'); setupEl.className = 'fb-layer fb-setup'; document.body.appendChild(setupEl); }
+  if (!setupEl) { setupEl = document.createElement('div'); setupEl.className = 'fb-layer fb-setup gc-ui'; document.body.appendChild(setupEl); }
   renderSetup();
 }
 function closeSetup() { if (setupEl) { setupEl.remove(); setupEl = null; } }
@@ -475,9 +475,9 @@ function renderSetup() {
     const opt = (kind, f) => `<button class="fb-opt" data-k="${kind}" data-f="${f}" aria-pressed="${choice[kind === 'a' ? 'fa' : 'fd'] === f}"><span class="fb-mini"><i style="left:50%;top:90%"></i>${MINI[kind][f].map(([x, y]) => `<i style="left:${x}%;top:${y}%"></i>`).join('')}</span>${FORM_FA[f]}</button>`;
     el.innerHTML = `<div class="top"><button class="fb-ib" id="setBack" aria-label="برگشت به انتخاب تیم">${icon('back')}</button>${cd()}</div>
       <div><h1>چیدمان تیم</h1><p class="sub">بعد از هر گل مهره‌ها با همین چیدمان سر جایشان برمی‌گردند.</p></div>
-      <section class="fb-forms"><div class="h"><i style="background:rgba(61,123,255,.2);color:#8DB4FF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i><b>حمله</b><span>وقتی شروع با توست</span></div>
+      <section class="fb-forms"><div class="h"><i style="background:var(--sky-tint);color:var(--sky)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i><b>حمله</b><span>وقتی شروع با توست</span></div>
         <div class="row">${FORM_IDS.map(f => opt('a', f)).join('')}</div></section>
-      <section class="fb-forms"><div class="h"><i style="background:rgba(242,96,63,.2);color:#FF9F86"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/></svg></i><b>دفاع</b><span>وقتی شروع با حریف است</span></div>
+      <section class="fb-forms"><div class="h"><i style="background:color-mix(in srgb,#F2603F 16%,var(--surface));color:#E4532F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/></svg></i><b>دفاع</b><span>وقتی شروع با حریف است</span></div>
         <div class="row">${FORM_IDS.map(f => opt('d', f)).join('')}</div></section>
       <div style="flex:1"></div>
       <button class="fb-go" id="setOk">تایید و آماده‌ام</button>`;
@@ -493,7 +493,7 @@ function renderSetup() {
   } else {
     el.innerHTML = `<div class="top"><span></span>${cd()}</div>
       <div class="fb-wait">${discHtml(choice.team, 'home', 110)}<b>${TEAM[choice.team] ? TEAM[choice.team].fa : ''} آماده است</b>
-        <span>${oppReady ? 'حریف هم آماده است؛ الان شروع می‌شود…' : 'منتظر حریف که تیمش را انتخاب کند…'}</span><span class="spinner" style="border-color:rgba(255,255,255,.25);border-top-color:#fff"></span></div>`;
+        <span>${oppReady ? 'حریف هم آماده است؛ الان شروع می‌شود…' : 'منتظر حریف که تیمش را انتخاب کند…'}</span><span class="spinner"></span></div>`;
   }
   tickSetup(); mount(el);
 }

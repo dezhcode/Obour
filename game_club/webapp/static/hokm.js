@@ -119,7 +119,7 @@ function renderPile(g) {
   const tr = g ? g.trump : null;
   const w = pileShown.length >= 2 && tr != null ? winnerOf(pileShown, tr) : null;
   const tip = w != null && pileShown.length < 4 ? `فعلا برگ ${nameOf(String(w))} بالاست` : '';
-  const one = ([i, c], k) => { const [x, y, r] = slotOf(i, c); return cardHtml(c, '', `left:${x}px;top:${y}px;z-index:${k + 1};transform:rotate(${r}deg)`); };
+  const one = ([i, c], k) => { const [x, y, r] = slotOf(i, c); return cardHtml(c, 'tc', `left:${x}px;top:${y}px;z-index:${k + 1};transform:rotate(${r}deg)`); };
   const prev = pile._shown;
   // برگ تازه روی همان توده: فقط همان اضافه می شود و بقیهٔ برگ ها دست نمی خورند
   if (prev && pile.firstChild === pile._n && prev.length <= pileShown.length && prev.every((x, k) => x[0] === pileShown[k][0] && x[1] === pileShown[k][1])) {
@@ -128,6 +128,7 @@ function renderPile(g) {
     if (tip) { if (!t) { pile.insertAdjacentHTML('afterbegin', '<span class="hk-tip"></span>'); t = pile.firstElementChild; } t.textContent = tip; } else if (t) t.remove();
   } else pile.innerHTML = (tip ? `<span class="hk-tip">${tip}</span>` : '') + pileShown.map(one).join('');
   pile._shown = pileShown.map(x => x.slice()); pile._n = pile.firstChild;
+  if (pileShown.length) motion.kick();
 }
 function renderPick(g) {
   const pile = $('pile');
@@ -325,7 +326,7 @@ async function collectTrick(w, tricks) {
   setTimeout(() => sfx.card.square(pan * .5), D * .85);
   const anims = cards.map((card, i) => {
     const r = card.getBoundingClientRect(), [x0, y0] = [r.left + r.width / 2, r.top + r.height / 2];
-    const rot = +((card.style.transform.match(/-?[\d.]+/) || [0])[0]), jit = (i - 1.5) * 3;
+    const rot = +((card.style.transform.match(/-?[\d.]+/) || [0])[0]) + (parseFloat(card.style.rotate) || 0), jit = (i - 1.5) * 3;
     // روی برگ در مسیر کم کم پشت رو می شود (پشت ورق روی آن پیدا می شود)
     const clone = document.createElement('div'); clone.className = 'hk-thrown';
     clone.innerHTML = cardHtml(+card.dataset.card) + backHtml('', 'left:0;top:0;opacity:0');
@@ -705,7 +706,7 @@ function over(v) {
     : won ? `شما و ${pa.name || 'یارت'} با ${FD(mine)} به ${FD(theirs)} بردید.` : `${o1.name || 'حریف'} و ${o2.name || 'یارش'} با ${FD(theirs)} به ${FD(mine)} بردند.`;
   const team = (cls, a, b, names, score, win) => `<div class="e-tm ${cls}${win ? ' e-won' : ''}">
       ${win ? `<span class="e-rib">${svgP(CROWN)}برنده</span>` : ''}
-      <span class="e-duo">${face(a, cls === 'us' ? '#9BE3B8' : '#FFFFFF')}${face(b, cls === 'us' ? '#9BE3B8' : '#FFFFFF')}</span>
+      <span class="e-duo">${face(a, cls === 'us' ? '#9BE3B8' : 'var(--surface)')}${face(b, cls === 'us' ? '#9BE3B8' : 'var(--surface)')}</span>
       <b class="e-sc" data-n="${score}" data-at="350">${FD(score)}</b><span class="e-nm">${names}</span></div>`;
   const reward = stake
     ? (won ? `<div class="e-rw e-gold"><span class="e-coin">${GC.coin()}</span><span><b data-n="${r.prize || 0}" data-pre="+" data-at="700">+${fa(r.prize || 0)}</b><small>جایزه به کیف امتیازت اضافه شد</small></span></div>`
@@ -713,10 +714,10 @@ function over(v) {
       : `<div class="e-rw e-dim"><span class="e-ic">${icon('wallet')}</span><span><b>−${fa(r.lost || v.cfg.entry)} امتیاز</b><small>ورودی این بازی؛ دست بعد جبران کن</small></span></div>`)
     : `<div class="e-rw"><span class="e-ic">${icon('users')}</span><span><b>بازی آزاد</b><small>${won ? 'جایزه نداشت؛ ولی برد برد است!' : 'چیزی از دست ندادی'}</small></span></div>`;
   const el = document.createElement('div');
-  el.className = 'hk-end ' + kind; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'endT');
-  el.innerHTML = `${kind === 'win' ? `<div class="e-rays" aria-hidden="true"></div>${reduced() ? '' : confetti()}` : ''}
+  el.className = 'hk-end gc-ui ' + kind; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'endT');
+  el.innerHTML = `${kind === 'win' && !reduced() ? confetti() : ''}
     <div class="e-in">
-      <div class="e-hd">
+      <div class="e-hd">${kind === 'win' ? '<div class="e-rays" aria-hidden="true"></div>' : ''}
         <span class="e-medal" aria-hidden="true"><span>${svgP(kind === 'lose' ? SP[0] : CROWN)}</span></span>
         <small class="e-kick">پایان بازی · تا ${FD(g.target)} امتیاز</small>
         <h1 id="endT">${title}</h1><p>${line}</p>
@@ -765,7 +766,7 @@ function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake', g = snap.game, P = g.players || {}, pa = P[String((+me + 2) % 4)] || {};
   haptic('light');
-  exitEl = document.createElement('div'); exitEl.className = 'hk-exit';
+  exitEl = document.createElement('div'); exitEl.className = 'hk-exit gc-ui';
   exitEl.innerHTML = `<div class="x-sh" role="alertdialog" aria-modal="true" aria-labelledby="exT" aria-describedby="exD">
       <span class="x-grab" aria-hidden="true"></span>
       <div class="x-swap" aria-hidden="true">${face(Object.assign({}, P[me], { name: 'شما' }), '#9BE3B8')}<span class="x-arr"><i></i><i></i><i></i></span>${face({ bot: true, av: 9 }, 'var(--gold)')}</div>
@@ -809,6 +810,102 @@ function fit() {
   $('pile').style.setProperty('--pile', k.toFixed(3));
 }
 GC.onFit(fit);   // فقط وقتی اندازهٔ صفحه واقعا عوض شد؛ باز شدن کیبورد گفتگو بازی را دوباره نمی چیند
+
+/* ---------- برگ های وسط میز: تکان گوشی و کشیدن با انگشت ----------
+   گوشی که کج شود یا تکان بخورد، برگ های روی میز کمی روی ماهوت سُر می خورند (برگ رویی بیشتر و
+   با کمی تاخیر) و وقتی گوشی آرام ماند، کم کم سر جایشان برمی گردند. هر برگ را می شود با انگشت
+   کنار کشید تا برگ زیرش پیدا شود؛ همان جا می ماند تا دور جمع شود. فقط نمایش است و به سرور نمی رسد.
+   جابه جایی با ویژگی های translate و rotate است تا transform (چرخش برگ که collectTrick می خواند) بماند.
+   حسگر: DeviceOrientation تلگرام (نسخهٔ ۸ به بعد)، وگرنه deviceorientation مرورگر. با تنظیم
+   «تکان برگ‌ها» در نمایه خاموش می شود و با «کاهش حرکت» گوشی روشن نمی شود. */
+const motion = (() => {
+  const pile = $('pile'), tw = window.Telegram && Telegram.WebApp || null;
+  const viaTg = !!(tw && tw.isVersionAtLeast && tw.isVersionAtLeast('8.0') && tw.DeviceOrientation);
+  const can = viaTg || 'DeviceOrientationEvent' in window;
+  let tx = 0, ty = 0, base = null, lastT = 0, raf = 0, prev = 0, live = false, held = null;
+  const cards = () => pile.querySelectorAll(':scope > .hk-card.tc');
+  // حالت هر برگ: جابه جایی از تکان (x,y و سرعتش) + جابه جایی با انگشت (dx,dy)؛ k لایهٔ برگ (۰ زیرین)
+  const st = el => el._m || (el._m = { x: 0, y: 0, vx: 0, vy: 0, dx: 0, dy: 0, k: Math.max(0, +el.style.zIndex - 1), s: hash01(+el.dataset.card, 7) });
+  const paint = (el, m) => {
+    el.style.translate = `${(m.x + m.dx).toFixed(2)}px ${(m.y + m.dy).toFixed(2)}px`;
+    el.style.rotate = `${((m.s - .5) * m.x * .3).toFixed(2)}deg`;
+  };
+  const wrap = d => ((d % 360) + 540) % 360 - 180;
+  const dead = d => Math.sign(d) * Math.max(0, Math.abs(d) - 1.5);   // لرزش دست برگ ها را تکان ندهد
+  // b کجی جلو و عقب، g کجی چپ و راست، به درجه
+  function feed(b, g) {
+    if (b == null || g == null || !isFinite(b) || !isFinite(g)) return;
+    const now = performance.now(), dt = lastT ? Math.min(500, now - lastT) : 0; lastT = now;
+    if (!base) base = { b, g };
+    // «حالت عادی دست» آرام دنبال گوشی می آید؛ پس فقط کج شدن و تکان تازه برگ ها را می بَرد
+    const a = 1 - Math.exp(-dt / 1800);
+    base.b += wrap(b - base.b) * a; base.g += wrap(g - base.g) * a;
+    const nx = Math.max(-1, Math.min(1, dead(wrap(g - base.g)) / 12));
+    const ny = Math.max(-1, Math.min(1, dead(wrap(b - base.b)) / 12));
+    if (Math.abs(nx - tx) + Math.abs(ny - ty) < .004) return;
+    tx = nx; ty = ny; kick();
+  }
+  function kick() { if (!raf && pile.querySelector(':scope > .hk-card.tc')) { prev = 0; raf = requestAnimationFrame(step); } }
+  // فنر میرا: برگ زیرین روی ماهوت سفت تر، رویی روی برگ ها رهاتر و کمی بیشتر می لغزد
+  function step(t) {
+    raf = 0;
+    const dt = prev ? Math.min(.034, (t - prev) / 1000) : .016; prev = t;
+    let moving = false;
+    for (const el of cards()) {
+      const m = st(el), A = (6 + 4 * m.k) * (.8 + .4 * m.s), K = 70 - 10 * Math.min(3, m.k), C = Math.sqrt(K);
+      const gx = live ? tx * A : 0, gy = live ? ty * A : 0;
+      m.vx += ((gx - m.x) * K - m.vx * C) * dt; m.vy += ((gy - m.y) * K - m.vy * C) * dt;
+      m.x += m.vx * dt; m.y += m.vy * dt;
+      if (Math.abs(gx - m.x) + Math.abs(gy - m.y) > .05 || Math.abs(m.vx) + Math.abs(m.vy) > .5) moving = true;
+      else { m.x = gx; m.y = gy; m.vx = m.vy = 0; }
+      paint(el, m);
+    }
+    if (moving) raf = requestAnimationFrame(step);
+  }
+  const tgFeed = () => { const d = tw.DeviceOrientation; if (d.beta != null) feed(d.beta * 180 / Math.PI, d.gamma * 180 / Math.PI); };
+  const webFeed = e => feed(e.beta, e.gamma);
+  function start() {
+    if (live || !can || S.tilt === false || reduced() || document.hidden) return;
+    live = true; base = null; lastT = 0; pile.classList.add('tilt');
+    if (viaTg) {
+      tw.onEvent('deviceOrientationChanged', tgFeed);
+      try { tw.DeviceOrientation.start({ refresh_rate: 50 }, ok => { if (!ok) stop(); }); } catch (e) { stop(); }
+    } else addEventListener('deviceorientation', webFeed);
+  }
+  function stop() {
+    if (!live) return;
+    live = false; base = null; tx = ty = 0; pile.classList.remove('tilt');
+    if (viaTg) { try { tw.offEvent('deviceOrientationChanged', tgFeed); tw.DeviceOrientation.stop(); } catch (e) {} }
+    else removeEventListener('deviceorientation', webFeed);
+    kick();
+  }
+  document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+  addEventListener('pagehide', stop);
+  if (tw) { try { tw.onEvent('deactivated', stop); tw.onEvent('activated', start); } catch (e) {} }
+
+  // کشیدن با انگشت: برگ زیر انگشت می آید و هر جا رها شود می ماند (کمی بیرون از توده هم)
+  pile.addEventListener('pointerdown', e => {
+    const el = e.target.closest('.hk-card.tc');
+    if (!el || e.button > 0 || (held && held.el.isConnected)) return;
+    const m = st(el);
+    held = { el, m, id: e.pointerId, x: e.clientX, y: e.clientY, dx: m.dx, dy: m.dy, k: pileScale(), moved: false };
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    el.classList.add('held');
+  });
+  pile.addEventListener('pointermove', e => {
+    const h = held; if (!h || e.pointerId !== h.id) return;
+    const m = h.m, L = parseFloat(h.el.style.left) || 0, T = parseFloat(h.el.style.top) || 0;
+    m.dx = Math.max(-30 - L, Math.min(172 - L, h.dx + (e.clientX - h.x) / h.k));
+    m.dy = Math.max(-30 - T, Math.min(176 - T, h.dy + (e.clientY - h.y) / h.k));
+    if (!h.moved && Math.hypot(m.dx - h.dx, m.dy - h.dy) > 6) { h.moved = true; haptic('light'); sfx.card.slide(.22, 0, 0); }
+    paint(h.el, m);
+  });
+  const drop = e => { if (!held || e.pointerId !== held.id) return; held.el.classList.remove('held'); held = null; };
+  pile.addEventListener('pointerup', drop);
+  pile.addEventListener('pointercancel', drop);
+  return { start, stop, kick };
+})();
+motion.start();
 
 /* ---------- شروع ---------- */
 function applyStyle(st) {

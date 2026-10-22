@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
 <title>Game Club · دوستان</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -14,14 +15,14 @@
 .fl-search{display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;border-radius:14px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink-muted)}
 .fl-search svg{width:20px;height:20px;flex:none}
 .fl-search input{flex:1;min-width:0;border:0;outline:0;background:none;color:var(--ink);font-size:14.5px}
-.fl-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border-radius:16px;background:#E6E9F0}
+.fl-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border-radius:16px;background:var(--ground-deep)}
 .fl-tabs button{height:40px;border-radius:12px;color:var(--ink-muted);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
 .fl-tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:900;box-shadow:0 1px 3px rgba(20,25,40,.15)}
 .fl-k{font-weight:700;color:var(--ink-muted)}
 .fl-n{min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:#F0465B;color:#fff;font-size:11.5px;line-height:20px;font-weight:900}
 .fl-h{margin:2px 4px -4px;font-size:13px;line-height:20px;font-weight:800;color:var(--ink-muted)}
 /* شمار کنار عنوان در یک قرص جدا (نقطهٔ «·» کنار رقم فارسی شبیه صفر است: «آنلاین · ۱» مثل ۱۰ خوانده می شد) */
-.fl-h i{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-inline-start:2px;border-radius:10px;background:#E6E9F0;color:var(--ink);font-style:normal;font-size:11.5px;font-weight:800}
+.fl-h i{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-inline-start:2px;border-radius:10px;background:var(--surface-sunk);color:var(--ink);font-style:normal;font-size:11.5px;font-weight:800}
 .fl-list{list-style:none;margin:0;padding:0;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line);overflow:hidden}
 .fl-row{display:flex;align-items:center;gap:10px;min-height:68px;padding:0 10px 0 14px;border-bottom:1px solid var(--line)}
 .fl-row:last-child{border-bottom:0}
