@@ -66,7 +66,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         raise GCError("banned")
     # تعمیرات: میز تازه ساخته نمی شود؛ بازی های در جریان ادامه دارند
     if gc.maintenance and method == "POST" and not admin.is_admin(tg) and \
-            re.match(r"^(ludo|hokm|football|billiard)/(queue|queue/bots|invite|join)$", name):
+            re.match(r"^(ludo|hokm|football|billiard|divar)/(queue|queue/bots|invite|join)$", name):
         raise GCError("maintenance")
 
     # ---------- خود من ----------
@@ -191,9 +191,9 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         kind = "spend" if q.get("kind") == "spend" else "top"
         return await service.leaderboard(gdb, tg, kind, q.get("period") or "week")
 
-    # ---------- میزها: منچ، حکم، فوتبال و بیلیارد (ludo/...، hokm/...، ...) با یک سرویس ----------
+    # ---------- میزها: منچ، حکم، فوتبال، بیلیارد و دیوار (ludo/...، hokm/...، ...) با یک سرویس ----------
     game, _, op = name.partition("/")
-    if game in ("ludo", "hokm", "football", "billiard") and op:
+    if game in ("ludo", "hokm", "football", "billiard", "divar") and op:
         def cfg_in() -> dict:
             c = body.get("cfg") or {}
             return {**c, "game": game} if isinstance(c, dict) else {"game": game}
@@ -226,7 +226,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
                 out["lobby"]["link"] = invite_link(out["lobby"]["code"] or "", service.game_of(out["cfg"]))
             return out
         acts = {"ludo": ("roll", "move"), "hokm": ("trump", "play"), "football": ("setup", "shot"),
-                "billiard": ("shot", "aim")}[game]
+                "billiard": ("shot", "aim"), "divar": ("move", "wall")}[game]
         if op in acts and method == "POST":
             return await service.act(gdb, tg, str(body.get("match") or ""), op, body.get("k"),
                                      int(body.get("since") or 0), body)

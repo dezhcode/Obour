@@ -43,6 +43,20 @@ const ART = {
       <span class="pv-layer pv-bl-cb">${ball(0, 50, 33)}</span>
       <span class="pv-layer pv-bl-stick"><img class="pv-cue" src="static/previews/bl-cue.webp" alt="" draggable="false"></span></div></div>`;
   },
+  // صفحهٔ نمد دیوار: مهرهٔ آبی (تو) یک خانه بالا می رود و یک دیوار طلایی جلوی مهرهٔ قرمز فرود می آید
+  divar() {
+    const X = i => (3 + i * 10.63).toFixed(2), S = 8.93;
+    const cells = Array.from({ length: 81 }, (_, k) => `<i style="left:${X(k % 9)}%;top:${X(Math.floor(k / 9))}%"></i>`).join('');
+    const pawn = (r, c, col) => `<b class="pv-dvp" style="left:${(+X(c) + S * .13).toFixed(2)}%;top:${(+X(r) + S * .13).toFixed(2)}%;--pc:${col}"></b>`;
+    const wall = (o, r, c, cls = '') => o === 'h'
+      ? `<s class="pv-dvw h ${cls}" style="left:${X(c)}%;top:${(+X(r + 1) - .85 - .9).toFixed(2)}%"></s>`
+      : `<s class="pv-dvw v ${cls}" style="top:${X(r)}%;left:${(+X(c + 1) - .85 - .9).toFixed(2)}%"></s>`;
+    return `<div class="pv pv-dv" aria-hidden="true"><div class="pv-dv-in">
+      <span class="pv-dve pv-dve-t"></span><span class="pv-dve pv-dve-b"></span>${cells}
+      ${wall('h', 3, 1)}${wall('v', 3, 6)}${wall('h', 5, 6)}${pawn(2, 4, '#FF5A6A')}
+      <span class="pv-layer pv-dv-wall">${wall('h', 2, 4)}</span>
+      <span class="pv-layer pv-dv-step">${pawn(6, 4, '#4C8DFF')}</span></div></div>`;
+  },
   esm() {
     return '<div class="pv pv-esm" aria-hidden="true"><span style="--d:0s;--r:-8deg">الف</span><span style="--d:.25s;--r:5deg">ب</span><span style="--d:.5s;--r:-3deg">م</span></div>';
   },

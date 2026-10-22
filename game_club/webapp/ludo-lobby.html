@@ -157,7 +157,7 @@
       gp.load(me);
       const url = new URL(location.href);
       const code = (url.searchParams.get('join') || '').trim() || (GC.startParam().startsWith('ludo_') ? GC.startParam().slice(5) : '');
-      const other = { hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'] }[me.active_game];
+      const other = { hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'] }[me.active_game];
       if (me.active_match && other && GC.live) { $('resume').hidden = false; $('resume').href = other[1]; const t = $('resume').querySelector('.muted'); if (t) t.textContent = `یک بازی ${other[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
       else if (me.active_match) {
         const v = await GC.ludo.match(me.active_match, 0).catch(() => null);

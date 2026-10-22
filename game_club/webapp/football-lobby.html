@@ -160,7 +160,7 @@
       gp.load(me);
       const url = new URL(location.href);
       const code = (url.searchParams.get('join') || '').trim() || (GC.startParam().startsWith('football_') ? GC.startParam().slice(9) : '');
-      const OTHER = { ludo: ['منچ', 'ludo.html'], hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'] };
+      const OTHER = { ludo: ['منچ', 'ludo.html'], hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'] };
       if (me.active_match && (me.active_game || 'football') === 'football' && GC.live) {
         const v = await GC.football.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);

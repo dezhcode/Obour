@@ -1,7 +1,7 @@
 """بازی در گروه های تلگرام: ربات یک «کارت میز» در گروه می فرستد؛ دکمه ها داخل خود پیام اند
 (پیام غنی Bot API 10.3 با بلوک دکمه)، نه کیبورد شیشه ای زیر پیام.
 
-- /hokm، /ludo، /football، /billiard (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
+- /hokm، /ludo، /football، /billiard، /divar (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
   (طول بازی، تعداد بازیکن، مدل) را انتخاب می کند و «باز کردن میز» را می زند؛ سازنده خودش می نشیند.
 - با هر نشستن یا بلند شدن، کارت عوض می شود: چه کسانی نشسته اند (با منشن) و چند جای خالی مانده.
 - وقتی میز پر شد یا سازنده «شروع» را زد، دکمه های میز می روند و کارت «بازی شروع شد» می شود با اسم
@@ -53,6 +53,10 @@ GAMES = {
                           ("passes", "پاس‌ها", [(0, "بدون محدودیت"), (3, "3 پاس"), (6, "6 پاس")])], "def": {"target": 3, "passes": 0}},
     "billiard": {"name": "بیلیارد", "icon": "🎱", "base": {"game": "billiard", "mode": "free", "entry": 0},
                  "opts": [("players", "تعداد بازیکن", [(2, "2 نفره · رو در رو"), (4, "4 نفره · یاری")])], "def": {"players": 2}},
+    # دیوار: یک انتخاب برای تعداد و نوع (۲ نفره، ۴ نفرهٔ کلاسیک، ۴ نفرهٔ ستاره)؛ cfg_of به players و variant تبدیلش می کند
+    "divar": {"name": "دیوار", "icon": "🧱", "base": {"game": "divar", "mode": "free", "entry": 0},
+              "opts": [("kind", "حالت بازی", [(2, "2 نفره · 9×9"), (4, "4 نفره · کلاسیک"), (5, "4 نفره · ستارهٔ وسط")])],
+              "def": {"kind": 2}},
 }
 OPEN_TTL = 15 * 60       # میز یا کارت تنظیمی که این مدت شروع نشود بسته می شود
 fd = str   # عددهای پیام های ربات لاتین اند
@@ -65,11 +69,14 @@ def cfg_of(game: str, picks: dict) -> dict:
     for key, _, opts in g["opts"]:
         v = picks.get(key)
         out[key] = v if v in [o[0] for o in opts] else g["def"][key]
+    if game == "divar":
+        out["players"] = 2 if out["kind"] == 2 else 4
+        out["variant"] = "star" if out["kind"] == 5 else "classic"
     return out
 
 
 def need_of(game: str, cfg: dict) -> int:
-    return int(cfg.get("players") or 0) if game in ("ludo", "billiard") else 4 if game == "hokm" else 2
+    return int(cfg.get("players") or 0) if game in ("ludo", "billiard", "divar") else 4 if game == "hokm" else 2
 
 
 def summary(game: str, cfg: dict) -> str:
@@ -78,6 +85,9 @@ def summary(game: str, cfg: dict) -> str:
         return f"آزاد · {n} نفره · تا {fd(cfg.get('target', 7))} دست"
     if game == "ludo":
         return f"آزاد · {n} نفره · {'کلاسیک' if cfg.get('pawns') == 4 else 'سریع'} ({fd(cfg.get('pawns', 2))} مهره)"
+    if game == "divar":
+        kind = "ستارهٔ وسط · 11×11" if cfg.get("variant") == "star" else "9×9"
+        return f"آزاد · {n} نفره · {kind} · هر نفر {fd(10 if n == '2' else 7 if cfg.get('variant') == 'star' else 5)} دیوار"
     if game == "billiard":
         return f"آزاد · {n} نفره · {'یاری (دو تیم دونفره)' if cfg.get('players') == 4 else 'رو در رو'} · ۸ توپ"
     return f"آزاد · {n} نفره · تا {fd(cfg.get('target', 3))} گل"
@@ -94,7 +104,7 @@ def watch_link(game: str, match_id: str) -> str:
 
 
 # ---------- اجزای پیام غنی (قالب متنی عبور در یک پاراگراف + ردیف دکمه های داخل پیام) ----------
-OPT_ICON = {"target": "time", "players": "users", "pawns": "ludo", "passes": "users"}
+OPT_ICON = {"target": "time", "players": "users", "pawns": "ludo", "passes": "users", "kind": "divar"}
 
 
 def who(tg: int, name: str) -> list:
@@ -380,7 +390,7 @@ async def open_table(db: GCDatabase, d: dict) -> str | None:
     return None
 
 
-@router.message(GROUP, Command("hokm", "ludo", "football", "billiard"))
+@router.message(GROUP, Command("hokm", "ludo", "football", "billiard", "divar"))
 async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
     game = (message.text or "").split()[0].lstrip("/").split("@")[0].lower()
     if not message.from_user or game not in GAMES:
@@ -509,7 +519,8 @@ async def on_old_inline(cq: CallbackQuery) -> None:
 
 # ---------- حالت اینلاین (@ربات hokm در هر چتی) و «فرستادن به گروه» از مینی اپ ----------
 INLINE_ALIASES = {"hokm": ("hokm", "حکم", "hk"), "ludo": ("ludo", "منچ", "mench"), "football": ("football", "فوتبال", "fb", "soccer"),
-                  "billiard": ("billiard", "بیلیارد", "pool", "8ball", "snooker")}
+                  "billiard": ("billiard", "بیلیارد", "pool", "8ball", "snooker"),
+                  "divar": ("divar", "دیوار", "quoridor", "wall", "kooridor")}
 
 
 async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArticle:

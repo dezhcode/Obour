@@ -1,0 +1,154 @@
+/* دیوار: طرح «نمد شب» — نمد سبز با قاب طلایی، کاشی های پخ دار برجسته، دیوارهای طلایی باریک،
+   مهره های فلزی با گنبد رنگی، لبهٔ مقصد مثل چراغ نورانی و چراغی بالای میز که آرام تاب می خورد
+   (جای نور و جهت سایهٔ همه چیز با هم جابه جا می شود). */
+html:has(body.divar){overflow:hidden}
+@property --lx{syntax:'<percentage>';inherits:true;initial-value:28%}
+@property --ly{syntax:'<percentage>';inherits:true;initial-value:12%}
+@property --sx{syntax:'<length>';inherits:true;initial-value:2px}
+@property --sy{syntax:'<length>';inherits:true;initial-value:4px}
+@property --li{syntax:'<number>';inherits:true;initial-value:1}
+@keyframes dv-sway{0%{--lx:10%;--ly:6%;--sx:3.6px;--sy:4.4px;--li:1}30%{--li:1.12}50%{--lx:32%;--ly:15%;--sx:1.8px;--sy:3.4px;--li:.95}75%{--li:1.08}100%{--lx:58%;--ly:10%;--sx:-.6px;--sy:4.2px;--li:1}}
+body.divar{--gold:#F5C451;--gold-ink:#3A2A00;--me:#4C8DFF;--wc:var(--me);
+  margin:0;height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;color:#EAF4EF;
+  background:radial-gradient(80% 40% at 50% 0,rgba(255,255,255,.08),transparent 70%),radial-gradient(120% 70% at 50% 40%,#1d5a3f,#0b231a 74%) fixed;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;animation:dv-sway 7s ease-in-out infinite alternate}
+body.divar .appbar{background:transparent;color:#fff;flex:none}
+body.divar .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(--space-2)}
+.dv-ib{width:42px;height:42px;flex:none;border-radius:14px;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 10px rgba(0,0,0,.25)}
+.dv-ib svg{width:20px;height:20px}
+.dv-ib:active{transform:scale(.94)}
+.dv-title{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px}
+.dv-title b{font-family:var(--font-rokh);font-weight:900;font-size:20px}
+.dv-chip{font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:99px;background:rgba(0,0,0,.28);white-space:nowrap}
+.dv-chip:empty{display:none}
+
+/* بازیکن ها؛ تایمر فقط بالای سر کسی که نوبتش است */
+.dv-players{flex:none;display:flex;justify-content:center;gap:6px;padding:16px 12px 4px;direction:rtl}
+.dv-pl{position:relative;flex:1 1 0;min-width:0;max-width:170px;display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:16px;background:rgba(0,0,0,.24);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),inset 0 -2px 0 rgba(0,0,0,.25),0 6px 12px rgba(0,0,0,.28);transition:background .25s,box-shadow .25s}
+.dv-pl.on{background:rgba(0,0,0,.36);box-shadow:inset 0 0 0 2px var(--pc),0 0 16px color-mix(in srgb,var(--pc) 45%,transparent),0 6px 12px rgba(0,0,0,.28)}
+.dv-pl.out{opacity:.55}
+.dv-players.four .dv-pl{flex-direction:column;gap:3px;padding:7px 4px 5px}
+.dv-pl .avatar{--size:34px;flex:none;--ring:var(--pc)}
+.dv-pl .tx{display:grid;min-width:0;line-height:1.3}
+.dv-players.four .dv-pl .tx{justify-items:center}
+.dv-pl .nm{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.dv-pl .wc{display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;opacity:.85;font-variant-numeric:tabular-nums}
+.dv-pl .wc i{width:12px;height:3.5px;border-radius:3px;background:var(--gold)}
+.dv-pl .tm{position:absolute;left:50%;top:-13px;transform:translateX(-50%);display:none;align-items:center;gap:3px;color:#fff}
+.dv-pl.on .tm.live{display:flex}
+.dv-pl .tm svg{width:11px;height:11px}
+.dv-pl .tm .tr{width:44px;height:7px;border-radius:9px;background:#0b0f0d;padding:1.5px;box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.dv-pl .tm .tr i{display:block;height:100%;width:100%;border-radius:9px;background:var(--gold);transition:width .25s linear,background .3s}
+
+.dv-status{flex:none;display:flex;justify-content:center;height:30px;align-items:center}
+.dv-pill{display:inline-flex;align-items:center;gap:8px;padding:4px 14px;border-radius:999px;background:rgba(0,0,0,.32);font-size:13px;font-weight:800;transition:background .2s;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-pill.mine{background:var(--me)}
+.dv-pill.warn{background:#C93447}
+
+/* صفحه */
+.dv-arena{flex:1;min-height:0;display:grid;place-items:center;direction:ltr;padding:6px 12px}
+.dv-board{position:relative;width:300px;height:300px;border-radius:20px;touch-action:none;
+  background:radial-gradient(ellipse 70% 55% at 32% 18%,rgba(255,255,255,.16),transparent 70%),radial-gradient(circle at 50% 45%,#2f8a5a,#14462f 82%);
+  box-shadow:0 0 0 4px #0a1d15,0 0 0 6px #B98222,0 0 0 7px rgba(255,226,154,.55),0 0 0 9px #0a1d15,0 28px 40px -8px rgba(0,0,0,.75),0 10px 16px rgba(0,0,0,.4),inset 0 0 44px rgba(0,0,0,.5),inset 0 4px 10px rgba(0,0,0,.55)}
+.dv-board::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:.16;mix-blend-mode:overlay;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
+.dv-board::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;mix-blend-mode:soft-light;
+  background:radial-gradient(ellipse 85% 75% at var(--lx) var(--ly),rgba(255,250,225,calc(.36 * var(--li))),rgba(255,250,225,calc(.1 * var(--li))) 45%,transparent 70%),radial-gradient(ellipse 120% 120% at var(--lx) var(--ly),transparent 55%,rgba(0,10,5,.4))}
+.dv-cell,.dv-dot,.dv-wall,.dv-pawn,.dv-edge,.dv-star,.dv-pv{position:absolute}
+/* کاشی پخ دار: بدنه نور را از بالا چپ می گیرد، رویهٔ تخت با ::before */
+.dv-cell{border-radius:24%;background:linear-gradient(135deg,#6fd09b 0%,#3e9f68 38%,#23704a 70%,#1a5a3b 100%);
+  box-shadow:calc(var(--sx) * .25) 1px 1px rgba(0,0,0,.45),calc(var(--sx) * .75) calc(var(--sy) * .75) 4px rgba(0,0,0,.28)}
+.dv-cell::before{content:"";position:absolute;inset:9%;border-radius:20%;background:linear-gradient(160deg,#47ad75,#35915e 55%,#2c8052)}
+.dv-cell::after{content:"";position:absolute;inset:12% 16% 55% 16%;border-radius:40%;background:linear-gradient(rgba(255,255,255,.12),transparent)}
+/* لبهٔ مقصد مثل چراغ */
+.dv-edge{border-radius:99px;z-index:2;pointer-events:none;animation:dv-lamp 2.8s ease-in-out infinite;
+  background:linear-gradient(90deg,transparent,var(--gc) 18%,color-mix(in srgb,var(--gc) 70%,#fff) 50%,var(--gc) 82%,transparent);
+  box-shadow:0 0 8px 1px color-mix(in srgb,var(--gc) 80%,transparent),0 0 22px 4px color-mix(in srgb,var(--gc) 45%,transparent)}
+.dv-edge[data-side="1"],.dv-edge[data-side="3"]{background:linear-gradient(180deg,transparent,var(--gc) 18%,color-mix(in srgb,var(--gc) 70%,#fff) 50%,var(--gc) 82%,transparent)}
+.dv-edge::after{content:"";position:absolute;pointer-events:none}
+.dv-edge[data-side="0"]::after{left:4%;right:4%;top:50%;height:70px;background:radial-gradient(ellipse 60% 100% at 50% 0,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
+.dv-edge[data-side="2"]::after{left:4%;right:4%;bottom:50%;height:70px;background:radial-gradient(ellipse 60% 100% at 50% 100%,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
+.dv-edge[data-side="1"]::after{top:4%;bottom:4%;right:50%;width:70px;background:radial-gradient(ellipse 100% 60% at 100% 50%,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
+.dv-edge[data-side="3"]::after{top:4%;bottom:4%;left:50%;width:70px;background:radial-gradient(ellipse 100% 60% at 0 50%,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
+@keyframes dv-lamp{50%{filter:brightness(1.25)}}
+.dv-star{display:grid;place-items:center;z-index:2;pointer-events:none}
+.dv-star svg{width:80%;height:80%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35)) drop-shadow(0 0 8px rgba(245,196,81,.6));animation:dv-twinkle 2.4s ease-in-out infinite}
+@keyframes dv-twinkle{50%{scale:1.1;rotate:8deg}}
+
+/* دیوار طلایی باریک */
+.dv-wall{z-index:4;pointer-events:none;border-radius:99px;background:linear-gradient(180deg,#FFF3C9,#FFD86B 30%,#E9A93A 62%,#A06A16);
+  box-shadow:calc(var(--sx) * .5) calc(var(--sy) * .4) 1px rgba(0,0,0,.4),var(--sx) var(--sy) 5px rgba(0,0,0,.25),inset 0 -1px 0 rgba(90,55,5,.55)}
+.dv-wall.v{background:linear-gradient(90deg,#FFF3C9,#FFD86B 30%,#E9A93A 62%,#A06A16);
+  box-shadow:calc(var(--sx) * .6) calc(var(--sy) * .3) 1px rgba(0,0,0,.4),calc(var(--sx) + 1.5px) calc(var(--sy) * .7) 5px rgba(0,0,0,.25),inset -1px 0 0 rgba(90,55,5,.55)}
+.dv-wall::after{content:"";position:absolute;border-radius:99px;background:rgba(255,255,255,calc(.62 * var(--li)))}
+.dv-wall.h::after{left:10%;right:22%;top:16%;height:22%}
+.dv-wall.v::after{top:10%;bottom:22%;left:16%;width:22%}
+.dv-wall.drop{animation:dv-drop .4s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes dv-drop{0%{transform:translateY(-16px) scale(1.2);opacity:0}60%{opacity:1}100%{transform:none}}
+.dv-pv{z-index:6;pointer-events:none;opacity:.6}
+.dv-pv.bad{opacity:.9;filter:saturate(0) brightness(.85) sepia(1) hue-rotate(-45deg) saturate(5)}
+
+/* مهرهٔ فلزی با گنبد رنگی */
+.dv-pawn{z-index:5;border-radius:50%;pointer-events:none;transition:left .3s cubic-bezier(.3,.7,.3,1),top .3s cubic-bezier(.3,.7,.3,1),opacity .3s;
+  background:radial-gradient(circle at 34% 24%,rgba(255,255,255,.95),rgba(255,255,255,0) 42%),conic-gradient(from 200deg,#8e98a1,#f1f4f7,#848e96,#e2e7ec,#8e98a1);
+  box-shadow:calc(var(--sx) * .5) calc(var(--sy) * .5) 1.5px rgba(0,0,0,.4),var(--sx) var(--sy) 5px rgba(0,0,0,.18),inset 0 -2px 3px rgba(0,0,0,.3),inset 0 1.5px 1px rgba(255,255,255,.85)}
+.dv-pawn b{position:absolute;inset:15%;border-radius:50%;background:radial-gradient(circle at 36% 26%,rgba(255,255,255,.75) 0 10%,rgba(255,255,255,0) 34%),radial-gradient(circle at 50% 62%,color-mix(in srgb,var(--pc) 85%,#fff),var(--pc) 45%,var(--pd));
+  box-shadow:inset 0 2.5px 3px rgba(0,0,0,.45),inset 0 -1.5px 2px rgba(255,255,255,.3),0 1px 0 rgba(255,255,255,.55)}
+.dv-pawn b::after{content:"";position:absolute;inset:30%;background:#fff;opacity:.9;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.dv-pawn.me{z-index:6}
+.dv-pawn.turn{animation:dv-glow 1.6s ease-in-out infinite}
+@keyframes dv-glow{50%{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--pc) 80%,#fff))}}
+.dv-pawn.hop{animation:dv-hop .32s ease-out}
+@keyframes dv-hop{50%{scale:1.22;filter:drop-shadow(0 10px 6px rgba(0,0,0,.3))}}
+.dv-pawn.out{opacity:.55}
+.dv-pawn.win{animation:dv-win 1s ease-in-out infinite}
+@keyframes dv-win{50%{scale:1.25;filter:drop-shadow(0 0 12px #FFD86B)}}
+
+/* خانهٔ مجاز: حلقهٔ نورانی رنگ من و یک دانهٔ براق وسطش */
+.dv-dot{display:grid;place-items:center;cursor:pointer;z-index:3;border:0;padding:0;background:none}
+.dv-dot::before{content:"";position:absolute;inset:7%;border-radius:22%;pointer-events:none;background:color-mix(in srgb,var(--me) 16%,transparent);
+  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--me) 70%,#fff),inset 0 0 12px color-mix(in srgb,var(--me) 55%,transparent),0 0 10px color-mix(in srgb,var(--me) 55%,transparent);animation:dv-breathe 1.6s ease-in-out infinite}
+.dv-dot::after{content:"";width:32%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,color-mix(in srgb,var(--me) 35%,#fff) 60%,color-mix(in srgb,var(--me) 70%,#fff));
+  box-shadow:0 1px 1.5px rgba(0,0,0,.4),0 0 8px color-mix(in srgb,var(--me) 70%,transparent);transition:transform .15s}
+.dv-dot:hover::after{transform:scale(1.35)}
+.dv-dot:active::before{inset:10%;box-shadow:inset 0 2px 5px rgba(0,0,0,.45),inset 0 0 0 2px color-mix(in srgb,var(--me) 70%,#fff)}
+@keyframes dv-breathe{50%{opacity:.6}}
+
+/* سینی دیوار */
+.dv-tray{flex:none;display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 12px 8px;padding:8px 12px;border-radius:20px;background:rgba(0,0,0,.26);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 16px rgba(0,0,0,.3);direction:ltr}
+.dv-slot{width:84px;height:46px;border-radius:14px;display:grid;place-items:center;background:rgba(0,0,0,.3);box-shadow:inset 0 3px 6px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.06);touch-action:none;cursor:grab;transition:opacity .2s,transform .15s}
+.dv-slot:active{transform:scale(.96)}
+.dv-slot .dv-wall{position:relative;animation:none}
+.dv-slot .dv-wall.h{width:62px;height:6px}
+.dv-slot .dv-wall.v{width:6px;height:36px}
+.dv-tray.off .dv-slot{opacity:.38;cursor:not-allowed}
+.dv-cnt{display:grid;justify-items:center;line-height:1.2;min-width:52px;direction:rtl}
+.dv-cnt b{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+.dv-cnt span{font-size:11px;opacity:.75}
+.dv-ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;transition:opacity .12s}
+.dv-ghost.back{transition:transform .25s ease-in,opacity .25s}
+body.watching .dv-tray{display:none}
+
+/* نوار پیام مثل بیلیارد */
+.dv-bar{flex:none;display:flex;align-items:center;gap:14px;min-height:56px;box-sizing:border-box;
+  padding:6px max(14px,var(--sa-r,0px)) calc(6px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px))) max(18px,var(--sa-l,0px));background:#141414}
+.dv-say{flex:1;min-width:0;height:40px;border-radius:20px;background:#1d2330;color:rgba(255,255,255,.75);font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;padding:0 14px}
+.dv-say svg{width:18px;height:18px}
+
+/* پایان بازی */
+.dv-res{display:grid;justify-items:center;gap:10px;text-align:center}
+.dv-res .ic{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;background:var(--gold);color:var(--gold-ink)}
+.dv-res .ic.lost{background:var(--surface-sunk);color:var(--ink-muted)}
+.dv-res .ic svg{width:34px;height:34px}
+.dv-res h2{font-size:24px;font-weight:900;margin:0}
+.dv-res p{margin:0;color:var(--ink-muted)}
+.dv-res .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.dv-res .facts div{display:grid;gap:2px;background:var(--surface-sunk);border-radius:14px;padding:8px 4px}
+.dv-res .facts b{font-size:18px;font-weight:900}
+.dv-res .facts span{font-size:11.5px;color:var(--ink-muted)}
+.dv-res .prize{font-size:24px;font-weight:900}
+
+@media (max-height:640px){.dv-players{padding-top:13px}.dv-pl .avatar{--size:28px}.dv-tray{padding:5px 10px;margin-bottom:5px}.dv-slot{height:38px}}
+@media (prefers-reduced-motion:reduce){body.divar{animation:none}}
