@@ -236,6 +236,16 @@ def leave(st: dict, c: str, now: float, why: str = "left") -> None:
         _begin_turn(st, now, 0.8)
 
 
+# کارهای زمان دار (ربات، جمع کردن دور، دست بعد) را از زمانِ موعدشان حساب می کنیم نه از لحظهٔ poll؛
+# وگرنه هر ربات منتظر poll بعدی می ماند و با سه ربات نوبت آدم چند ثانیه دیرتر می رسد.
+# اگر کسی مدت زیادی نپرسیده، از همین لحظه (تا مهلت نفر بعد بی دلیل نسوزد).
+CATCHUP = 2.0
+
+
+def _due(st: dict, now: float) -> float:
+    return st["next_at"] if 0 <= now - st["next_at"] <= CATCHUP else now
+
+
 def tick(st: dict, now: float, die: Rng = server_die) -> bool:
     """ربات ها و نوبت های تمام شده را جلو می برد. True یعنی چیزی عوض شد."""
     changed = False
@@ -247,10 +257,11 @@ def tick(st: dict, now: float, die: Rng = server_die) -> bool:
         if p["bot"]:
             if now < st["next_at"]:
                 break
+            t = _due(st, now)
             if st["phase"] == "roll":
-                roll(st, c, now, die())
+                roll(st, c, t, die())
             else:
-                move(st, c, best_move(st, c, st["dice"], st["movable"]), now)
+                move(st, c, best_move(st, c, st["dice"], st["movable"]), t)
             changed = True
             continue
         if now < st["deadline"]:

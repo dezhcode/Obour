@@ -243,8 +243,8 @@ function renderStatus(g) {
   else { const q = g.players[g.turn] || {}; html = `${g.kickoff ? (q.name || 'حریف') + ' شوت شروع را می‌زند' : 'نوبت ' + (q.name || 'حریف')}<em>${q.bot || q.out ? 'فکر می‌کند…' : g.passes ? `پاس‌ها: ${FD(g.chain)}/${FD(g.passes)}` : ''}</em>`; }
   // هر پرسش سرور همین متن را می آورد؛ فقط وقتی عوض شده بنویس (وگرنه هر بار چیدمان و نقاشی دوباره)
   if (html !== st.dataset.k || !st.firstChild) { st.dataset.k = html; st.innerHTML = html; }
-  setDeadline(g.deadline_ms);
-  readyAt = Date.now() + (g.ready_ms || 0);
+  setDeadline(g.deadline_ms, g._at);
+  readyAt = (g._at || Date.now()) + (g.ready_ms || 0);
   turnMs = g.turn_ms || 15000;
 }
 function syncTurn() {
@@ -256,8 +256,8 @@ function syncTurn() {
 function renderAll(g) { renderHead(g); renderStatus(g); syncTurn(); mount($('head')); tickTimer(); }
 // مهلت نوبت: پرسش های پی در پی سرور با تاخیر شبکه کمی جابه جایش می کنند؛ فقط تغییر
 // واقعی (نوبت تازه) را بپذیر تا حلقه زمان یکنواخت کم شود و هشدار یک بار بیاید
-function setDeadline(ms) {
-  const d = ms ? Date.now() + ms : 0;
+function setDeadline(ms, at) {
+  const d = ms ? (at || Date.now()) + ms : 0;
   if (!d) { deadlineAt = 0; return; }
   if (!deadlineAt || Math.abs(d - deadlineAt) > 1500) warned = false;
   if (!deadlineAt || Math.abs(d - deadlineAt) > 700) deadlineAt = d;
@@ -530,6 +530,7 @@ async function apply(next, anim = true) {
   if (next && next.chat && !overShown && next.status !== 'over' && next.status !== 'cancelled') chatIn(next.chat);
   if (next && next.status === 'cancelled') return cancelled();
   if (!next || !next.game) return;
+  next.game._at = Date.now();   // زمان رسیدن پاسخ: مهلت و «آماده» از همین لحظه حساب می شوند، نه بعد از انیمیشن
   busy = true;
   try {
     snap = Object.assign({}, snap || {}, next);

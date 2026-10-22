@@ -839,14 +839,14 @@ function stateMsg(g) {
 }
 function renderAll(g) {
   renderPlayers(g);
-  setDeadline(g.deadline_ms);
-  readyAt = Date.now() + (g.ready_ms || 0);
+  setDeadline(g.deadline_ms, g._at);
+  readyAt = (g._at || Date.now()) + (g.ready_ms || 0);
   turnMs = g.turn_ms || 30000;
   frameEl.classList.toggle('wait', !myTurnNow());
   tickTimer();
 }
-function setDeadline(ms) {
-  const d = ms ? Date.now() + ms : 0;
+function setDeadline(ms, at) {
+  const d = ms ? (at || Date.now()) + ms : 0;
   if (!d) { deadlineAt = 0; return; }
   if (!deadlineAt || Math.abs(d - deadlineAt) > 1500) warned = false;
   if (!deadlineAt || Math.abs(d - deadlineAt) > 700) deadlineAt = d;
@@ -1121,6 +1121,7 @@ async function apply(next, animate = true) {
   if (next && next.chat && !overShown && next.status !== 'over' && next.status !== 'cancelled') chatIn(next.chat);
   if (next && next.status === 'cancelled') return cancelled();
   if (!next || !next.game) return;
+  next.game._at = Date.now();   // زمان رسیدن پاسخ: مهلت و «آماده» از همین لحظه حساب می شوند، نه بعد از انیمیشن
   busy = true;
   try {
     snap = Object.assign({}, snap || {}, next);

@@ -135,7 +135,7 @@ function renderTurn(g) {
     dock(FD(g.dice) + ' آوردی', 'مهره‌ای را که بالا و پایین می‌پرد بزن؛ دایرهٔ خط‌چین مقصدش است', 'pick');
     showHints(g.dice, g.movable);
   } else dock('نوبت ' + nameOf(g.turn), g.players[g.turn] && g.players[g.turn].bot ? 'ربات فکر می‌کند…' : WATCH ? 'منتظر حرکت…' : 'منتظر حرکت حریف…', 'wait');
-  setDeadline(g.deadline_ms); turnMs = g.turn_ms || 20000; tickTimer();
+  setDeadline(g.deadline_ms, g._at); turnMs = g.turn_ms || 20000; tickTimer();
 }
 function clearHints() {
   for (const c in els) els[c].forEach(e => e.classList.remove('can'));
@@ -156,8 +156,8 @@ function showHints(d, moves) {
 /* ---------- تایمر نوبت ---------- */
 // مهلت نوبت: پرسش های پی در پی سرور با تاخیر شبکه کمی جابه جایش می کنند؛ فقط تغییر
 // واقعی (نوبت تازه) را بپذیر تا حلقه زمان یکنواخت کم شود و هشدار یک بار بیاید
-function setDeadline(ms) {
-  const d = ms ? Date.now() + ms : 0;
+function setDeadline(ms, at) {
+  const d = ms ? (at || Date.now()) + ms : 0;
   if (!d) { deadlineAt = 0; return; }
   if (!deadlineAt || Math.abs(d - deadlineAt) > 1500) warned = false;
   if (!deadlineAt || Math.abs(d - deadlineAt) > 700) deadlineAt = d;
@@ -250,6 +250,7 @@ async function apply(next) {
   if (next && next.chat && !overShown && next.status !== 'over' && next.status !== 'cancelled') chatIn(next.chat);
   if (next && next.status === 'cancelled') return cancelled();
   if (!next || !next.game) return;
+  next.game._at = Date.now();   // زمان رسیدن پاسخ: مهلت از همین لحظه حساب می شود، نه بعد از انیمیشن
   busy = true;
   try {
     const g = next.game;
