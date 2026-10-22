@@ -97,7 +97,7 @@
 .pv-dve{position:absolute;left:3%;right:3%;height:1.2%;border-radius:99px;z-index:1}
 .pv-dve-t{top:.9%;background:linear-gradient(90deg,transparent,#4C8DFF 18%,#9CC2FF 50%,#4C8DFF 82%,transparent);box-shadow:0 0 10px 2px rgba(76,141,255,.6)}
 .pv-dve-b{bottom:.9%;background:linear-gradient(90deg,transparent,#FF5A6A 18%,#FFA0A9 50%,#FF5A6A 82%,transparent);box-shadow:0 0 10px 2px rgba(255,90,106,.6)}
-.pv-dv-step{animation:pv-dv-step 4s cubic-bezier(.3,.7,.3,1) infinite}
-.pv-dv-wall{animation:pv-dv-wall 4s cubic-bezier(.2,1.4,.4,1) infinite}
+.pv-dv-step{will-change:transform;animation:pv-dv-step 4s cubic-bezier(.3,.7,.3,1) infinite}
+.pv-dv-wall{will-change:transform,opacity;animation:pv-dv-wall 4s cubic-bezier(.2,1.4,.4,1) infinite}
 @keyframes pv-dv-step{0%,14%{transform:none}24%,62%{transform:translateY(-10.63%)}72%,100%{transform:translateY(-21.26%)}}
 @keyframes pv-dv-wall{0%,36%{transform:translateY(-6%) scale(1.15);opacity:0}48%{transform:none;opacity:1}88%{opacity:1}96%,100%{opacity:0}}

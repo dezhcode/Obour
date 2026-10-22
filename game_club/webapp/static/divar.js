@@ -48,7 +48,8 @@ function build(force) {
   if (!force && sig === built) return;
   built = sig;
   const b = $('board'), q = geo();
-  b.innerHTML = '';
+  b.innerHTML = '<span class="dv-lampbox"><span class="dv-lamp"></span></span>';
+  dotsKey = '';
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const el = document.createElement('i'); el.className = 'dv-cell';
     Object.assign(el.style, { left: q.x(c) + 'px', top: q.x(r) + 'px', width: q.S + 'px', height: q.S + 'px' }); b.appendChild(el);
@@ -113,9 +114,14 @@ function hop(s) { const el = els.pawns[s]; if (!el) return; el.classList.remove(
 
 /* ---------- خانه های مجاز ---------- */
 function myTurnNow() { const g = G(); return !!(g && !WATCH && !g.over && g.turn === me && !busy && !acting); }
+// فقط وقتی خانه های مجاز عوض شده اند دوباره ساخته می شوند (نه با هر پرسش از سرور)
+let dotsKey = '';
 function renderDots() {
+  const g = G(), show = myTurnNow() && g.moves, key = show ? JSON.stringify(g.moves) + W + rot : '';
+  if (key === dotsKey) return;
+  dotsKey = key;
   const b = $('board'); b.querySelectorAll('.dv-dot').forEach(d => d.remove());
-  const g = G(); if (!myTurnNow() || !g.moves) return;
+  if (!show) return;
   const q = geo();
   for (const m of g.moves) {
     const [r, c] = cellV(m), d = document.createElement('button'); d.className = 'dv-dot'; d.setAttribute('aria-label', 'برو به این خانه');
@@ -125,7 +131,11 @@ function renderDots() {
 }
 
 /* ---------- سربرگ و وضعیت ---------- */
+let playersKey = '';
 function renderPlayers(g) {
+  const key = JSON.stringify([g.turn, g.over, me, g.order.map(s => { const p = g.players[s] || {}; return [p.name, p.pic, p.walls, p.out]; })]);
+  if (key === playersKey) { tickTimer(); return; }
+  playersKey = key;
   const box = $('players'), order = g.order.slice();
   // من اول (راست)، بقیه به ترتیب نوبت
   while (order[0] !== me && order.includes(me)) order.push(order.shift());
@@ -169,7 +179,7 @@ function tickTimer() {
   tm.classList.toggle('live', !!deadlineAt);
   if (!deadlineAt) return;
   const fr = Math.max(0, Math.min(1, (deadlineAt - Date.now()) / turnMs));
-  bar.style.width = (fr * 100).toFixed(1) + '%'; bar.style.background = fr > .25 ? '#F5C451' : '#e8503f';
+  bar.style.transform = `scaleX(${fr.toFixed(3)})`; bar.style.background = fr > .25 ? '#F5C451' : '#e8503f';
   const g = G(); if (g && isMe(g.turn) && fr < .25 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
 }
 setInterval(tickTimer, 250);
@@ -204,7 +214,7 @@ async function doMove(m) {
   if (!myTurnNow()) return;
   const prev = vpos[me];
   vpos[me] = m; placePawn(me); hop(me); sfx.step();
-  $('board').querySelectorAll('.dv-dot').forEach(d => d.remove());
+  $('board').querySelectorAll('.dv-dot').forEach(d => d.remove()); dotsKey = '';
   const ok = await act(() => GC.divar.move(mid, m[0], m[1], since));
   if (!ok) { vpos[me] = prev; placePawn(me); }
 }

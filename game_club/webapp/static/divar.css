@@ -1,17 +1,12 @@
 /* دیوار: طرح «نمد شب» — نمد سبز با قاب طلایی، کاشی های پخ دار برجسته، دیوارهای باریک به رنگ کسی که گذاشته،
-   مهره های فلزی با گنبد رنگی، لبهٔ مقصد مثل چراغ نورانی و چراغی بالای میز که آرام تاب می خورد
-   (جای نور و جهت سایهٔ همه چیز با هم جابه جا می شود). */
+   مهره های فلزی با گنبد رنگی، لبهٔ مقصد مثل چراغ نورانی و چراغی بالای میز که آرام تاب می خورد.
+   کارایی: هر چیز متحرک فقط transform یا opacity عوض می کند؛ نه filter متحرک، نه blend mode، نه متغیر متحرک. */
 html:has(body.divar){overflow:hidden}
-@property --lx{syntax:'<percentage>';inherits:true;initial-value:28%}
-@property --ly{syntax:'<percentage>';inherits:true;initial-value:12%}
-@property --sx{syntax:'<length>';inherits:true;initial-value:2px}
-@property --sy{syntax:'<length>';inherits:true;initial-value:4px}
-@property --li{syntax:'<number>';inherits:true;initial-value:1}
-@keyframes dv-sway{0%{--lx:10%;--ly:6%;--sx:3.6px;--sy:4.4px;--li:1}30%{--li:1.12}50%{--lx:32%;--ly:15%;--sx:1.8px;--sy:3.4px;--li:.95}75%{--li:1.08}100%{--lx:58%;--ly:10%;--sx:-.6px;--sy:4.2px;--li:1}}
-body.divar{--gold:#F5C451;--gold-ink:#3A2A00;--me:#4C8DFF;--wc:var(--me);
+/* نور و سایه ثابت اند (انیمیشن متغیرها همهٔ سایه ها را هر فریم دوباره می کشید)؛ چراغِ متحرک یک لایهٔ جداست که فقط transform می گیرد */
+body.divar{--gold:#F5C451;--gold-ink:#3A2A00;--me:#4C8DFF;--wc:var(--me);--sx:2px;--sy:4px;--li:1;--lx:28%;--ly:12%;
   margin:0;height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;color:#EAF4EF;
-  background:radial-gradient(80% 40% at 50% 0,rgba(255,255,255,.08),transparent 70%),radial-gradient(120% 70% at 50% 40%,#1d5a3f,#0b231a 74%) fixed;
-  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;animation:dv-sway 7s ease-in-out infinite alternate}
+  background:radial-gradient(80% 40% at 50% 0,rgba(255,255,255,.08),transparent 70%),radial-gradient(120% 70% at 50% 40%,#1d5a3f,#0b231a 74%);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
 body.divar .appbar{background:transparent;color:#fff;flex:none}
 body.divar .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(--space-2)}
 .dv-ib{width:42px;height:42px;flex:none;border-radius:14px;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 10px rgba(0,0,0,.25)}
@@ -39,7 +34,7 @@ body.divar .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(--sp
 .dv-pl.on .tm.live{display:flex}
 .dv-pl .tm svg{width:11px;height:11px}
 .dv-pl .tm .tr{width:44px;height:7px;border-radius:9px;background:#0b0f0d;padding:1.5px;box-shadow:0 1px 2px rgba(0,0,0,.5)}
-.dv-pl .tm .tr i{display:block;height:100%;width:100%;border-radius:9px;background:var(--gold);transition:width .25s linear,background .3s}
+.dv-pl .tm .tr i{display:block;height:100%;width:100%;border-radius:9px;background:var(--gold);transform-origin:left center;transition:transform .25s linear,background .3s}
 
 .dv-status{flex:none;display:flex;justify-content:center;height:30px;align-items:center}
 .dv-pill{display:inline-flex;align-items:center;gap:8px;padding:4px 14px;border-radius:999px;background:rgba(0,0,0,.32);font-size:13px;font-weight:800;transition:background .2s;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -51,10 +46,17 @@ body.divar .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(--sp
 .dv-board{position:relative;width:300px;height:300px;border-radius:20px;touch-action:none;
   background:radial-gradient(ellipse 70% 55% at 32% 18%,rgba(255,255,255,.16),transparent 70%),radial-gradient(circle at 50% 45%,#2f8a5a,#14462f 82%);
   box-shadow:0 0 0 4px #0a1d15,0 0 0 6px #B98222,0 0 0 7px rgba(255,226,154,.55),0 0 0 9px #0a1d15,0 28px 40px -8px rgba(0,0,0,.75),0 10px 16px rgba(0,0,0,.4),inset 0 0 44px rgba(0,0,0,.5),inset 0 4px 10px rgba(0,0,0,.55)}
-.dv-board::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:.16;mix-blend-mode:overlay;
+.dv-board::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:.05;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
-.dv-board::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;mix-blend-mode:soft-light;
-  background:radial-gradient(ellipse 85% 75% at var(--lx) var(--ly),rgba(255,250,225,calc(.36 * var(--li))),rgba(255,250,225,calc(.1 * var(--li))) 45%,transparent 70%),radial-gradient(ellipse 120% 120% at var(--lx) var(--ly),transparent 55%,rgba(0,10,5,.4))}
+.dv-board{contain:layout style}
+.dv-board::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse 120% 120% at 30% 15%,transparent 55%,rgba(0,10,5,.32))}
+/* چراغ بالای میز: یک لکهٔ نور بزرگ که آرام از چپ به راست تاب می خورد؛ فقط transform (روی کارت گرافیک) */
+.dv-lampbox{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:1}
+.dv-lamp{position:absolute;left:-30%;top:-35%;width:100%;height:100%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,250,225,.16),rgba(255,250,225,.06) 55%,transparent);
+  will-change:transform;animation:dv-sway 7s ease-in-out infinite alternate}
+@keyframes dv-sway{0%{transform:translate(0,0)}50%{transform:translate(22%,8%)}100%{transform:translate(48%,3%)}}
 .dv-cell,.dv-dot,.dv-wall,.dv-pawn,.dv-edge,.dv-star,.dv-pv{position:absolute}
 /* کاشی پخ دار: بدنه نور را از بالا چپ می گیرد، رویهٔ تخت با ::before */
 .dv-cell{border-radius:24%;background:linear-gradient(135deg,#6fd09b 0%,#3e9f68 38%,#23704a 70%,#1a5a3b 100%);
@@ -62,25 +64,25 @@ body.divar .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(--sp
 .dv-cell::before{content:"";position:absolute;inset:9%;border-radius:20%;background:linear-gradient(160deg,#47ad75,#35915e 55%,#2c8052)}
 .dv-cell::after{content:"";position:absolute;inset:12% 16% 55% 16%;border-radius:40%;background:linear-gradient(rgba(255,255,255,.12),transparent)}
 /* لبهٔ مقصد مثل چراغ */
-.dv-edge{border-radius:99px;z-index:2;pointer-events:none;animation:dv-lamp 2.8s ease-in-out infinite;
+.dv-edge{border-radius:99px;z-index:2;pointer-events:none;
   background:linear-gradient(90deg,transparent,var(--gc) 18%,color-mix(in srgb,var(--gc) 70%,#fff) 50%,var(--gc) 82%,transparent);
   box-shadow:0 0 8px 1px color-mix(in srgb,var(--gc) 80%,transparent),0 0 22px 4px color-mix(in srgb,var(--gc) 45%,transparent)}
 .dv-edge[data-side="1"],.dv-edge[data-side="3"]{background:linear-gradient(180deg,transparent,var(--gc) 18%,color-mix(in srgb,var(--gc) 70%,#fff) 50%,var(--gc) 82%,transparent)}
-.dv-edge::after{content:"";position:absolute;pointer-events:none}
+.dv-edge::after{content:"";position:absolute;pointer-events:none;opacity:.75;will-change:opacity;animation:dv-lamp 2.8s ease-in-out infinite}
 .dv-edge[data-side="0"]::after{left:4%;right:4%;top:50%;height:70px;background:radial-gradient(ellipse 60% 100% at 50% 0,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
 .dv-edge[data-side="2"]::after{left:4%;right:4%;bottom:50%;height:70px;background:radial-gradient(ellipse 60% 100% at 50% 100%,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
 .dv-edge[data-side="1"]::after{top:4%;bottom:4%;right:50%;width:70px;background:radial-gradient(ellipse 100% 60% at 100% 50%,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
 .dv-edge[data-side="3"]::after{top:4%;bottom:4%;left:50%;width:70px;background:radial-gradient(ellipse 100% 60% at 0 50%,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
-@keyframes dv-lamp{50%{filter:brightness(1.25)}}
+@keyframes dv-lamp{50%{opacity:1}}
 /* ستارهٔ وسط: سکوی برجستهٔ چهار رنگ؛ هر ربع و هر پرتو به رنگ بازیکنی که از آن ضلع می آید (--cT/--cR/--cB/--cL) */
 .dv-star{display:grid;place-items:center;z-index:3;pointer-events:none}
 .dv-star .plat{position:absolute;inset:2%;border-radius:22%;background:conic-gradient(from 45deg,var(--cR) 0 25%,var(--cB) 0 50%,var(--cL) 0 75%,var(--cT) 0 100%);
   box-shadow:calc(var(--sx) * .6) calc(var(--sy) * .6) 2px rgba(0,0,0,.45),var(--sx) var(--sy) 8px rgba(0,0,0,.3)}
 .dv-star .plat::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(160deg,rgba(255,255,255,.45),transparent 45%,rgba(0,0,0,.3))}
 .dv-star .plat::after{content:"";position:absolute;inset:16%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#1f6a45,#0f3a26);box-shadow:inset 0 2px 4px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.35)}
-.dv-star svg{position:relative;width:58%;height:58%;filter:drop-shadow(0 0 5px rgba(255,216,107,.8));animation:dv-float 2.6s ease-in-out infinite}
+.dv-star svg{position:relative;width:58%;height:58%;filter:drop-shadow(0 0 5px rgba(255,216,107,.8));will-change:transform;animation:dv-float 2.6s ease-in-out infinite}
 @keyframes dv-float{50%{transform:translateY(-6%) scale(1.06)}}
-.dv-beam{position:absolute;z-index:2;pointer-events:none;opacity:.55;animation:dv-beam 2.6s ease-in-out infinite}
+.dv-beam{position:absolute;z-index:2;pointer-events:none;opacity:.55;will-change:opacity;animation:dv-beam 2.6s ease-in-out infinite}
 @keyframes dv-beam{50%{opacity:.9}}
 
 /* دیوار: میلهٔ فلزی باریک به رنگ کسی که گذاشته (--wc) با یک خط براق درست وسط و تراز در طول آن */
@@ -105,13 +107,15 @@ body.divar .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(--sp
   box-shadow:inset 0 2.5px 3px rgba(0,0,0,.45),inset 0 -1.5px 2px rgba(255,255,255,.3),0 1px 0 rgba(255,255,255,.55)}
 .dv-pawn b::after{content:"";position:absolute;inset:30%;background:#fff;opacity:.9;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
 .dv-pawn.me{z-index:6}
-.dv-pawn.turn{animation:dv-glow 1.6s ease-in-out infinite}
-@keyframes dv-glow{50%{filter:drop-shadow(0 0 7px color-mix(in srgb,var(--pc) 80%,#fff))}}
+.dv-pawn::before{content:"";position:absolute;inset:-14%;border-radius:50%;opacity:0;pointer-events:none;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--pc) 70%,#fff),0 0 10px 2px color-mix(in srgb,var(--pc) 70%,transparent)}
+.dv-pawn.turn::before{will-change:opacity,transform;animation:dv-glow 1.6s ease-in-out infinite}
+@keyframes dv-glow{0%,100%{opacity:.2;transform:scale(.92)}50%{opacity:1;transform:scale(1.04)}}
 .dv-pawn.hop{animation:dv-hop .32s ease-out}
-@keyframes dv-hop{50%{scale:1.22;filter:drop-shadow(0 10px 6px rgba(0,0,0,.3))}}
+@keyframes dv-hop{50%{scale:1.2}}
 .dv-pawn.out{opacity:.55}
 .dv-pawn.win{animation:dv-win 1s ease-in-out infinite}
-@keyframes dv-win{50%{scale:1.25;filter:drop-shadow(0 0 12px #FFD86B)}}
+@keyframes dv-win{50%{scale:1.25}}
 
 /* خانهٔ مجاز: حلقهٔ نورانی رنگ من و یک دانهٔ براق وسطش */
 .dv-dot{display:grid;place-items:center;cursor:pointer;z-index:3;border:0;padding:0;background:none}
@@ -159,4 +163,4 @@ body.watching .dv-tray{display:none}
 .dv-res .prize{font-size:24px;font-weight:900}
 
 @media (max-height:640px){.dv-players{padding-top:13px}.dv-pl .avatar{--size:28px}.dv-tray{padding:5px 10px;margin-bottom:5px}.dv-slot{height:38px}}
-@media (prefers-reduced-motion:reduce){body.divar{animation:none}}
+@media (prefers-reduced-motion:reduce){.dv-lamp,.dv-edge::after,.dv-pawn.turn::before,.dv-star svg,.dv-beam,.dv-dot::before{animation:none}}
