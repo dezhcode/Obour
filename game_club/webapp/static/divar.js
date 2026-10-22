@@ -9,6 +9,7 @@ const E = DVEngine;
 const COLORS = [{ pc: '#4C8DFF', pd: '#2B62D6' }, { pc: '#2FC584', pd: '#1E8A5E' }, { pc: '#FF5A6A', pd: '#C93447' }, { pc: '#FFC531', pd: '#C98A00' }];
 const ROT = { 0: 0, 1: 3, 2: 2, 3: 1 };          // چند بار ۹۰ درجهٔ ساعتگرد تا ضلع من پایین بیاید
 const GOAL_SIDE = { 0: 0, 1: 1, 2: 2, 3: 3 };    // ضلع مقصد هر صندلی روی صفحهٔ سرور (۰ بالا، ۱ راست، ۲ پایین، ۳ چپ)
+const START_SIDE = { 0: 2, 1: 3, 2: 0, 3: 1 };   // ضلع شروع هر صندلی (همان شماره گذاری)
 const STAR = '<svg viewBox="0 0 24 24"><path fill="#F5C451" stroke="#B9801E" stroke-width="1" d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>';
 const CLOCK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="4.6"/><path d="M6 3.4V6l1.8 1.1" stroke-linecap="round"/></svg>';
 
@@ -53,8 +54,23 @@ function build(force) {
     Object.assign(el.style, { left: q.x(c) + 'px', top: q.x(r) + 'px', width: q.S + 'px', height: q.S + 'px' }); b.appendChild(el);
   }
   if (g.star) {
-    const m = (N - 1) / 2, el = document.createElement('i'); el.className = 'dv-star'; el.innerHTML = STAR;
-    Object.assign(el.style, { left: q.x(m) + 'px', top: q.x(m) + 'px', width: q.S + 'px', height: q.S + 'px' }); b.appendChild(el);
+    // سکوی چهار رنگ: هر ربع و هر پرتو به رنگ بازیکنی که از همان ضلع می آید
+    const m = (N - 1) / 2, el = document.createElement('i'); el.className = 'dv-star';
+    el.innerHTML = '<span class="plat"></span>' + STAR;
+    Object.assign(el.style, { left: q.x(m) + 'px', top: q.x(m) + 'px', width: q.S + 'px', height: q.S + 'px' });
+    const mid = q.x(m) + q.S / 2, bw = q.S * .34, bl = q.S * 1.4;
+    for (const s of g.order) {
+      const side = (START_SIDE[s] + rot) % 4, col = colorOf(s).pc;
+      el.style.setProperty(['--cT', '--cR', '--cB', '--cL'][side], col);
+      const bm = document.createElement('i'); bm.className = 'dv-beam';
+      bm.style.background = `linear-gradient(${['0deg', '90deg', '180deg', '270deg'][side]},${col},transparent)`;
+      Object.assign(bm.style, side === 0 ? { left: mid - bw / 2 + 'px', top: q.x(m) - bl + 'px', width: bw + 'px', height: bl + 'px' }
+        : side === 2 ? { left: mid - bw / 2 + 'px', top: q.x(m) + q.S + 'px', width: bw + 'px', height: bl + 'px' }
+        : side === 1 ? { top: mid - bw / 2 + 'px', left: q.x(m) + q.S + 'px', width: bl + 'px', height: bw + 'px' }
+        : { top: mid - bw / 2 + 'px', left: q.x(m) - bl + 'px', width: bl + 'px', height: bw + 'px' });
+      b.appendChild(bm);
+    }
+    b.appendChild(el);
   } else {
     const t = Math.max(3, q.P * .35), len = W - 2 * q.P;
     for (const s of g.order) {
@@ -85,6 +101,7 @@ function addWall(w, anim) {
   const k = wkey(w[0], w[1], w[2]); if (els.walls[k]) return;
   const [o, r, c] = wallV(w[0], w[1], w[2]), el = document.createElement('i');
   el.className = 'dv-wall ' + o + (anim ? ' drop' : ''); setRect(el, wallRect(o, r, c));
+  if (w[3] != null) el.style.setProperty('--wc', colorOf(w[3]).pc);   // رنگ کسی که دیوار را گذاشته
   $('board').appendChild(el); els.walls[k] = el;
 }
 function placePawn(s) {
