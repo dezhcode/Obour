@@ -36,17 +36,20 @@ function applyInsets() {
   root.classList.toggle('is-fs', !!tg.isFullscreen);
 }
 const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
-// رنگ نوار تلگرام با زمینه صفحه یکی است تا درز دیده نشود: صفحهٔ خود بازی ها تیره، بقیه روشن
+// رنگ نوار تلگرام با زمینه صفحه یکی است تا درز دیده نشود: صفحهٔ خود بازی ها سبز تیره، بقیه پوستهٔ اپ
+// (روشن یا تیره؛ theme.js). با عوض شدن پوسته دوباره رنگ می شود.
 function paintBars() {
-  const dark = document.body.matches('.game,.hokm,.divar,.football,.billiard');
-  try { tg.setHeaderColor(dark ? '#0C1915' : '#F4F5F8'); tg.setBackgroundColor(dark ? '#0C1915' : '#F4F5F8'); } catch (e) {}
-  try { ver('7.10') && tg.setBottomBarColor(dark ? '#08120F' : '#FFFFFF'); } catch (e) {}
+  const game = document.body.matches('.game,.hokm,.divar,.football,.billiard'), night = document.documentElement.dataset.theme === 'dark';
+  const top = game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8', bottom = game ? '#08120F' : night ? '#181C24' : '#FFFFFF';
+  try { tg.setHeaderColor(top); tg.setBackgroundColor(top); } catch (e) {}
+  try { ver('7.10') && tg.setBottomBarColor(bottom); } catch (e) {}
 }
 if (live) {
   try { tg.ready(); tg.expand(); } catch (e) {}
   paintBars();
   // برگشت از حافظهٔ مرورگر (bfcache) اسکریپت را دوباره اجرا نمی کند؛ رنگ صفحه ای که برگشته از نو
   addEventListener('pageshow', e => { if (e.persisted) paintBars(); });
+  addEventListener('gc-theme', paintBars);
   // کشیدن عمودی (مثلا هنگام بازی) نباید مینی اپ را ببندد
   try { ver('7.7') && tg.disableVerticalSwipes(); } catch (e) {}
   ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged', 'fullscreenFailed']
@@ -404,7 +407,8 @@ function toast(t) {
 let layer;
 function sheet(html, { center = false, dismiss = true, onClose } = {}) {
   if (!layer) { layer = document.createElement('div'); document.body.appendChild(layer); }
-  layer.innerHTML = `<div class="scrim${center ? ' center' : ''}"><div class="sheet" role="dialog" aria-modal="true">${center ? '' : '<span class="grab"></span>'}${html}</div></div>`;
+  // gc-ui: برگه ها در صفحهٔ بازی هم رنگ های خود اپ (روشن یا تیره) و رنگ همان بازی را دارند
+  layer.innerHTML = `<div class="scrim gc-ui${center ? ' center' : ''}"><div class="sheet" role="dialog" aria-modal="true">${center ? '' : '<span class="grab"></span>'}${html}</div></div>`;
   const sc = layer.firstChild, sh = sc.firstChild;
   sc.addEventListener('click', e => { if (e.target === sc && dismiss) { close(); onClose && onClose(); } });
   sh.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { close(); onClose && onClose(); }));

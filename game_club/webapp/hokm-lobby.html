@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
 <title>Game Club · میز حکم</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -21,42 +22,42 @@
 .resume{display:grid;gap:4px;justify-items:start}
 .resume b{font-size:18px;font-weight:900}
 .count{font-size:44px;line-height:52px;font-weight:900;text-align:center;color:var(--acc-deep)}
-/* پیش از شروع: انتخاب میز و ورق (مثل انتخاب تیم فوتبال)؛ قفل ها با قیمت، خرید همین جا */
-.hs-layer{--gold:#F5C451;--gold-ink:#3A2A00;position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;gap:12px;overflow-y:auto;color:#fff;
-  background:radial-gradient(120% 60% at 50% 0%,#1F4A37 0%,#10261E 55%,#0B1714 100%);
+/* پیش از شروع: انتخاب میز و ورق (مثل انتخاب تیم فوتبال)؛ قفل ها با قیمت، خرید همین جا.
+   به سبک تازهٔ اپ (رنگ های اپ روشن یا تیره و سبز حکم)؛ ماهوت و ورق ها همان طرح خود بازی اند */
+.hs-layer{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;gap:12px;overflow-y:auto;color:var(--ink);background:var(--ground);
   padding:calc(10px + var(--sa-t,0px) + var(--csa-t,0px)) 16px calc(16px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));animation:hs-in .25s ease-out}
 @keyframes hs-in{from{opacity:0}}
 .hs-layer .top{display:flex;align-items:center;justify-content:space-between}
-.hs-ib{width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.3)}
+.hs-ib{width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--ink);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
 .hs-ib svg{width:20px;height:20px}
-.hs-bal{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.25);font-weight:800;font-size:14px}
+.hs-bal{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--surface);box-shadow:0 0 0 1px var(--line);font-weight:800;font-size:14px}
 .hs-bal .coin svg{width:18px;height:18px}
-.hs-layer h1{margin:0;font-size:24px;font-weight:800}
-.hs-layer .sub{margin:2px 0 0;font-size:13px;line-height:21px;color:rgba(255,255,255,.72)}
-.hs-pv{position:relative;flex:none;height:200px;border-radius:24px;overflow:hidden;box-shadow:var(--rim,none),inset 0 0 30px rgba(0,0,0,.4)}
+.hs-layer h1{margin:0;font-family:var(--font-rokh);font-size:26px;line-height:34px;font-weight:900}
+.hs-layer .sub{margin:2px 0 0;font-size:13px;line-height:21px;color:var(--ink-muted)}
+.hs-pv{position:relative;flex:none;height:200px;border-radius:24px;overflow:hidden;box-shadow:var(--rim,none),inset 0 0 30px rgba(0,0,0,.4),0 16px 28px -20px rgba(0,0,0,.6)}
 .hs-pv .hk-card,.hs-pv .hk-back{font-size:58px;transition:transform .3s}
-.hs-sec{border-radius:22px;background:#17302A;padding:12px 10px;display:flex;flex-direction:column;gap:10px}
+.hs-sec{border-radius:22px;background:var(--surface);box-shadow:0 0 0 1px var(--line);padding:12px 10px;display:flex;flex-direction:column;gap:10px}
 .hs-sec .h{display:flex;align-items:baseline;gap:8px;padding-inline:4px}
-.hs-sec .h b{font-size:16px;font-weight:800}
-.hs-sec .h span{font-size:12px;color:rgba(255,255,255,.6)}
+.hs-sec .h b{font-family:var(--font-rokh);font-size:17px;font-weight:900}
+.hs-sec .h span{font-size:12px;color:var(--ink-muted)}
 .hs-row{display:grid;gap:8px}
 .hs-row.r3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .hs-row.r4{grid-template-columns:repeat(4,minmax(0,1fr))}
-.hs-t{display:flex;flex-direction:column;align-items:center;gap:5px;color:rgba(255,255,255,.6);font-size:12.5px;font-weight:800;min-width:0}
-.hs-t .sw{position:relative;width:100%;height:62px;border-radius:14px;overflow:hidden;box-sizing:border-box;border:2px solid rgba(255,255,255,.1);box-shadow:var(--rim,none);transition:border-color .15s,box-shadow .15s}
+.hs-t{display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--ink-muted);font-size:12.5px;font-weight:800;min-width:0}
+.hs-t .sw{position:relative;width:100%;height:62px;border-radius:14px;overflow:hidden;box-sizing:border-box;border:2px solid var(--surface);box-shadow:var(--rim,none),0 0 0 1px var(--line);transition:box-shadow .15s}
 .hs-t .sw.cs{height:76px;background:#0F201B}
 .hs-t .sw .hk-card,.hs-t .sw .hk-back{font-size:34px}
-.hs-t small{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:800;color:var(--gold);min-height:16px}
-.hs-t small.own{color:rgba(255,255,255,.45);font-weight:600}
+.hs-t small{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:800;color:var(--coin-text);min-height:16px}
+.hs-t small.own{color:var(--ink-muted);font-weight:600}
 .hs-t small .coin svg{width:13px;height:13px}
-.hs-t[aria-pressed="true"]{color:#fff}
-.hs-t[aria-pressed="true"] .sw{border-color:var(--gold);box-shadow:var(--rim,none)}
-.hs-foot{position:sticky;bottom:0;z-index:2;display:grid;gap:8px;padding-top:10px;margin-top:auto;background:linear-gradient(rgba(11,23,20,0),#0B1714 26px)}
-.hs-go{flex:none;width:100%;min-height:54px;border-radius:27px;background:var(--gold);color:var(--gold-ink);font-size:16px;font-weight:800;padding:0 18px}
+.hs-t[aria-pressed="true"]{color:var(--ink)}
+.hs-t[aria-pressed="true"] .sw{box-shadow:var(--rim,none),0 0 0 2.5px var(--acc)}
+.hs-foot{position:sticky;bottom:0;z-index:2;display:grid;gap:8px;padding-top:10px;margin-top:auto;background:linear-gradient(color-mix(in srgb,var(--ground) 0%,transparent),var(--ground) 26px)}
+.hs-go{flex:none;width:100%;min-height:54px;border-radius:27px;background:var(--acc);color:var(--acc-ink);font-size:16px;font-weight:900;padding:0 18px}
 .hs-go:active{transform:translateY(3px)}
 .hs-go.buy{background:var(--gold);color:var(--gold-ink)}
-.hs-go:disabled{background:#24423A;color:rgba(255,255,255,.7);box-shadow:none}
-.hs-note{font-size:12.5px;line-height:20px;text-align:center;color:rgba(255,255,255,.75);margin:0}
+.hs-go:disabled{background:var(--surface-sunk);color:var(--ink-muted);box-shadow:none}
+.hs-note{font-size:12.5px;line-height:20px;text-align:center;color:var(--ink-muted);margin:0}
 </style>
 </head>
 <body>

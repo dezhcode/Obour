@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
 <title>Game Club</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
@@ -18,7 +19,7 @@
 
 /* ---------- هدر ---------- */
 .me-chip{display:flex;align-items:center;gap:var(--space-3);min-width:0}
-.me-chip .avatar{--size:44px;--ring:#fff;box-shadow:0 0 0 1px var(--line)}
+.me-chip .avatar{--size:44px;--ring:var(--surface);box-shadow:0 0 0 1px var(--line)}
 .me-name{display:block;font-weight:900;font-size:16px;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .me-sub{display:flex;align-items:center;gap:6px;font-size:11.5px;line-height:17px;color:var(--ink-muted);white-space:nowrap}
 .me-sub .bar{width:52px;height:5px;flex:none;border-radius:3px;background:var(--line);overflow:hidden}
@@ -26,7 +27,7 @@
 .me-sub.bad{color:var(--danger)}
 .hd-acts{display:flex;align-items:center;gap:var(--space-2);flex:none}
 .bell{position:relative}
-.bell .badge{position:absolute;top:-3px;left:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#F0465B;color:#fff;font-size:10.5px;line-height:17px;font-weight:800;text-align:center;box-shadow:0 0 0 2px #fff}
+.bell .badge{position:absolute;top:-3px;left:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#F0465B;color:#fff;font-size:10.5px;line-height:17px;font-weight:800;text-align:center;box-shadow:0 0 0 2px var(--surface)}
 .appbar .pill{padding:4px 6px 4px 12px;font-size:15px}
 
 .home-q{font-size:28px;line-height:36px;font-weight:900;margin-top:var(--space-1)}
@@ -46,7 +47,7 @@
 .hm-tl:active{transform:scale(.98)}
 .hm-tl .hm-bdg{position:absolute;top:10px;right:10px;z-index:4;height:22px;padding:0 8px;border-radius:8px;font-size:11px;line-height:22px;font-weight:800}
 .hm-bdg.hot{background:var(--gold);color:var(--gold-ink)}
-.hm-bdg.new{background:rgba(255,255,255,.94);color:var(--ink)}
+.hm-bdg.new{background:rgba(255,255,255,.94);color:#161922}
 .hm-bdg.open{background:#3DDC84;color:#08331B}
 /* اجزای بازی که از قاب بیرون زده اند */
 .hm-tl .hm-out{position:absolute;z-index:3;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.3));transition:transform .3s cubic-bezier(.3,.7,.3,1)}
@@ -60,7 +61,7 @@
 .hm-dvw{display:block;width:108px;height:9px;border-radius:99px;background:linear-gradient(180deg,#C9DCFF,#4C8DFF 42%,#2B57A8);box-shadow:0 2px 3px rgba(0,0,0,.35)}
 .hm-dvp{display:block;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 34% 24%,rgba(255,255,255,.95),rgba(255,255,255,0) 42%),conic-gradient(from 200deg,#8e98a1,#f1f4f7,#848e96,#e2e7ec,#8e98a1);position:relative}
 .hm-dvp::after{content:"";position:absolute;inset:15%;border-radius:50%;background:radial-gradient(circle at 36% 26%,rgba(255,255,255,.75) 0 10%,rgba(255,255,255,0) 34%),radial-gradient(circle at 50% 62%,#FF8A96,#FF5A6A 45%,#C93447)}
-.hm-tl.hm-soon{grid-column:span 2;min-height:0;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;color:var(--ink);background:none;box-shadow:none;border:1.5px dashed #CDD2DE;padding:10px 12px}
+.hm-tl.hm-soon{grid-column:span 2;min-height:0;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;color:var(--ink);background:none;box-shadow:none;border:1.5px dashed color-mix(in srgb,var(--ink-muted) 40%,transparent);padding:10px 12px}
 .hm-tl.hm-soon:active{transform:none}
 .hm-tl.hm-soon .hm-lt{display:flex;gap:3px}
 .hm-tl.hm-soon .hm-lt span{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-family:var(--font-rokh);font-size:13px;font-weight:900}
@@ -125,14 +126,14 @@
 .rank-card .t b{font-size:14px;line-height:21px;font-weight:800}
 .rank-card .t small{font-size:11.5px;line-height:17px;color:var(--ink-muted)}
 .rank-card .faces{display:flex;flex:none}
-.rank-card .faces .avatar{--size:30px;--ring:#fff;margin-inline-start:-8px}
+.rank-card .faces .avatar{--size:30px;--ring:var(--surface);margin-inline-start:-8px}
 .rank-card .chev{color:var(--ink-muted);display:grid}
 .rank-card .chev svg{width:18px;height:18px}
 
 .sec-head h2{display:flex;align-items:center;gap:8px}
 .note-bar{display:flex;align-items:center;gap:var(--space-2);background:var(--acc-tint);color:var(--acc-deep);border-radius:var(--radius-lg);padding:var(--space-3);font-weight:800;font-size:13.5px;line-height:22px}
 .note-bar svg{width:20px;height:20px;flex:none}
-.note-bar.bad{background:#FDE8EB;color:var(--danger)}
+.note-bar.bad{background:color-mix(in srgb,var(--danger) 12%,var(--surface));color:var(--danger)}
 .adm-link{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-3)}
 .adm-link .ic-box{background:var(--obour-night);color:var(--obour-aqua);font-size:20px}
 .adm-link b{display:block;font-weight:900}
@@ -260,7 +261,7 @@
   /* ---------- هدر ---------- */
   function renderHeader() {
     const p = me.player, L = GC.level(p);
-    $('meAv').innerHTML = face(p, '#fff');
+    $('meAv').innerHTML = face(p, 'var(--surface)');
     const nm = document.createElement('bdi'); nm.className = 'uname'; nm.textContent = p.name || '';
     $('meName').replaceChildren(nm);
     const sub = $('meSub');

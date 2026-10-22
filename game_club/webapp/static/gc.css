@@ -4,8 +4,9 @@
 /* ---------- تم روشن (صفحه های اصلی و لابی ها) ----------
    «کاشی برای مرور، جعبه برای ورود»: زمینهٔ روشن و خنثی تا رنگ و تصویر خود بازی ها دیده شود.
    رنگ تاکید اپ آبی است (دکمهٔ اصلی، انتخاب، تمرکز)؛ داخل لابی هر بازی رنگ همان بازی جایش را می گیرد
-   (gamepage.js کلاس lobby-<بازی> را روی body می گذارد). طلایی فقط برای امتیاز. */
-:root{color-scheme:light;
+   (gamepage.js کلاس lobby-<بازی> را روی body می گذارد). طلایی فقط برای امتیاز.
+   پنجره های داخل صفحهٔ بازی (برگه ها، خروج، نتیجه، انتخاب تیم؛ کلاس gc-ui) هم همین رنگ های اپ را دارند. */
+:root,body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui{color-scheme:light;
   --ground:#F4F5F8;--ground-deep:#E9ECF2;--surface:#FFFFFF;--surface-sunk:#EEF0F5;--line:#E3E6EE;
   --ink:#161922;--ink-muted:#6B7080;--night:#161922;
   --sky:#2F6FEB;--sky-deep:#1F55C4;--sky-tint:#E9F0FE;--violet-tint:#EFEBFF;
@@ -17,6 +18,22 @@
   --depth-sm:0 0 0 1px var(--line);--depth-md:0 0 0 1px var(--line),0 10px 22px -16px rgba(20,25,40,.3);
   --lift:0 18px 40px -14px rgba(20,25,40,.32);--press:inset 0 -3px 0 rgba(0,0,0,.12);--press-sm:inset 0 -2px 0 rgba(0,0,0,.1);
   --scrim:rgba(14,18,26,.5)}
+
+/* ---------- پوستهٔ تیرهٔ اپ (theme.js: html[data-theme=dark]) ----------
+   همان طرح روشن با زمینهٔ خنثی تیره (کمی آبی، نه سیاه مطلق)، سطح ها یک پله روشن تر و خط های کم رنگ؛
+   رنگ تاکید روشن تر تا روی زمینهٔ تیره خوانا بماند. خود میزهای بازی همان قبلی اند. */
+:root[data-theme="dark"],:root[data-theme="dark"] body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui{color-scheme:dark;
+  --ground:#0F1218;--ground-deep:#0A0C11;--surface:#181C24;--surface-sunk:#20252F;--line:#2A303C;
+  --ink:#ECEFF5;--ink-muted:#9098A8;--night:#0A0C11;
+  --sky:#4C8DFF;--sky-deep:#8DB4FF;--sky-tint:rgba(76,141,255,.16);--violet-tint:rgba(124,102,242,.2);
+  --gold:#F5C451;--gold-ink:#3A2A00;
+  --acc:#3D7EF5;--acc-deep:#8DB4FF;--acc-ink:#FFFFFF;--acc-tint:rgba(61,126,245,.18);
+  --coin-tint:rgba(245,196,81,.14);--coin-text:#F5C451;
+  --success:#3DD68C;--success-tint:rgba(61,214,140,.15);--danger:#FF6B7A;
+  --depth-sm:0 0 0 1px var(--line);--depth-md:0 0 0 1px var(--line),0 12px 24px -16px rgba(0,0,0,.7);
+  --lift:0 18px 40px -14px rgba(0,0,0,.7);--press:inset 0 -3px 0 rgba(0,0,0,.25);--press-sm:inset 0 -2px 0 rgba(0,0,0,.22);
+  --scrim:rgba(0,0,0,.62)}
+.gc-ui{color:var(--ink)}
 
 /* ---------- تم تیره: فقط صفحهٔ خود بازی ها (دست نخورده) ----------
    «سالن شب»: زمینه سبز-سرمه ای خیلی تیره، کارت های کمی روشن تر، متن عاجی و رنگ تاکید طلایی
@@ -86,6 +103,7 @@ h1,h2,h3,p{margin:0}
 /* دکمه دوم: سفید با خط نازک داخلی؛ در صفحهٔ بازی (تیره) شیشه ای نیمه شفاف */
 .btn.btn-light{--bg:var(--surface);--fg:var(--ink);--edge:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 body:is(.game,.hokm,.divar,.football,.billiard) .btn.btn-light{--bg:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui .btn.btn-light{--bg:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
 .btn-soft{--bg:var(--acc-tint);--fg:var(--acc-deep);--edge:transparent}
 .btn-sm{min-height:38px;padding-inline:var(--space-4);font-size:14px;box-shadow:var(--press-sm)}
 .btn-block{width:100%}
@@ -157,7 +175,7 @@ body:is(.game,.hokm,.divar,.football,.billiard) .btn.btn-light{--bg:rgba(255,255
 
 /* ---------- سوییچ ---------- */
 .switch{position:relative;width:48px;height:28px;border-radius:var(--radius-pill);background:var(--line);flex:none;transition:background .15s}
-.switch::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);box-shadow:var(--depth-sm);transition:inset-inline-start .15s}
+.switch::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:22px;height:22px;border-radius:50%;background:#FFFFFF;box-shadow:var(--depth-sm);transition:inset-inline-start .15s}
 .switch[aria-checked="true"]{background:var(--acc)}
 .switch[aria-checked="true"]::after{inset-inline-start:23px}
 
@@ -168,7 +186,7 @@ body:is(.game,.hokm,.divar,.football,.billiard) .btn.btn-light{--bg:rgba(255,255
 .nav{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);display:flex;justify-content:center;pointer-events:none}
 .nav-in{position:relative;pointer-events:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;width:100%;max-width:480px;
   padding:6px 8px calc(6px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));
-  background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  background:color-mix(in srgb,var(--surface) 97%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   box-shadow:0 -1px 0 var(--line),0 -10px 24px -18px rgba(20,25,40,.35)}
 .nav-pill{position:absolute;top:0;left:0;width:0;height:3px;pointer-events:none;will-change:transform;opacity:0}
 .nav-pill::after{content:"";position:absolute;top:0;left:50%;width:26px;height:3px;margin-left:-13px;border-radius:0 0 3px 3px;background:var(--acc)}
@@ -179,7 +197,7 @@ body:is(.game,.hokm,.divar,.football,.billiard) .btn.btn-light{--bg:rgba(255,255
 .nav-in>[aria-current="page"] svg{stroke-width:2.4}
 .nav-in>[aria-current="page"] .nl{font-weight:800}
 .nav-in>a:active{opacity:.75}
-.nav-badge{position:absolute;top:2px;left:calc(50% + 3px);min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#F0465B;color:#fff;font-size:10.5px;line-height:18px;font-weight:800;text-align:center;box-shadow:0 0 0 2px #fff}
+.nav-badge{position:absolute;top:2px;left:calc(50% + 3px);min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#F0465B;color:#fff;font-size:10.5px;line-height:18px;font-weight:800;text-align:center;box-shadow:0 0 0 2px var(--surface)}
 .nav-in>.nav-play{color:var(--ink)}
 .nav-play .np{width:52px;height:52px;margin-top:-30px;margin-bottom:1px;border-radius:16px;background:#fff;transform:rotate(-9deg);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:11px;
   box-shadow:inset 0 -5px 0 #E3E6EE,0 0 0 1px #E3E6EE,0 10px 16px -4px rgba(20,25,40,.32);transition:box-shadow .2s}
@@ -377,6 +395,7 @@ body.game .dock{background:rgba(16,38,30,.74);color:var(--on-fill);-webkit-backd
 body.game .dock-txt span{color:var(--game-ink)}
 body.game .sheet{color:var(--ink)}
 body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-fill)}
+body.game .gc-ui .spinner{border-color:var(--line);border-top-color:var(--acc)}
 
 /* تاسی که حرکت نمی دهد: «نه» (لرزش افقی، حلقه قرمز)، مهره ها می لرزند، برچسب وسط صفحه */
 .die{position:relative}
@@ -460,7 +479,7 @@ body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-f
    بعد ردیف خود صفحه. در نوار تلگرام فقط یک عنوان کوچک وسط می نشیند،
    هیچ دکمه ای زیر دکمه های تلگرام نمی رود.
    =================================================================== */
-.appbar{position:sticky;top:0;z-index:var(--z-nav);color:var(--ink);background:rgba(244,245,248,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding-top:var(--sa-t,0px)}
+.appbar{position:sticky;top:0;z-index:var(--z-nav);color:var(--ink);background:color-mix(in srgb,var(--ground) 92%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding-top:var(--sa-t,0px)}
 .appbar-cap{height:var(--csa-t,0px);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .appbar-cap span{font-size:13px;line-height:18px;font-weight:900;letter-spacing:.3px;opacity:.85;max-width:50%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .appbar-in{max-width:480px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
@@ -526,27 +545,32 @@ body.game .appbar .turnbar .time{width:44px}
    برچسب سفید نام بازی گوشهٔ پایین است و زیرش لبهٔ جعبه به رنگ همان بازی */
 body.lobby .appbar{position:absolute;inset:0 0 auto 0;background:transparent;color:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}
 body.lobby .appbar h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-body.lobby .appbar .icon-btn,body.lobby .appbar .pill{background:rgba(255,255,255,.94);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.18)}
+body.lobby .appbar .icon-btn,body.lobby .appbar .pill{background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.18)}
 body.lobby .appbar .pill .plus{background:var(--acc);color:var(--acc-ink)}
 body.lobby.lid-off::before{content:"";position:fixed;inset:0 0 auto 0;z-index:calc(var(--z-nav) + 1);height:calc(var(--sa-t,0px) + var(--csa-t,0px));background:var(--ground)}
 .gp-lid{position:relative;height:calc(244px + var(--sa-t,0px) + var(--csa-t,0px));margin-inline:calc(var(--space-4) * -1);overflow:hidden;color:#fff;background:#0F2A22;--cs:46px;--es:28px}
 .gp-lid>.pv{position:absolute;inset:0}
 .gp-lid::before{content:"";position:absolute;inset:0 0 auto 0;z-index:1;height:calc(110px + var(--sa-t,0px) + var(--csa-t,0px));background:linear-gradient(rgba(0,0,0,.34),rgba(0,0,0,0));pointer-events:none}
 .gp-lid .pv-ludo .pv-board{margin-left:18px;margin-right:auto}
-.gp-label{position:absolute;right:16px;bottom:16px;z-index:2;display:grid;line-height:1.3;padding:8px 14px 10px;border-radius:14px;background:#fff;color:var(--ink);box-shadow:0 4px 12px rgba(0,0,0,.28)}
+.gp-label{position:absolute;right:16px;bottom:16px;z-index:2;display:grid;line-height:1.3;padding:8px 14px 10px;border-radius:14px;background:var(--surface);color:var(--ink);box-shadow:0 4px 12px rgba(0,0,0,.28)}
 .gp-label b{font-family:var(--font-rokh);font-size:28px;line-height:36px;font-weight:900}
 .gp-label small{font-size:12px;line-height:18px;color:var(--ink-muted)}
 .gp-tag{position:absolute;right:16px;bottom:104px;z-index:2;height:24px;padding:0 9px;border-radius:8px;font-size:11.5px;line-height:24px;font-weight:800;background:var(--gold);color:var(--gold-ink)}
-.gp-tag.new{background:rgba(255,255,255,.94);color:var(--ink)}
+.gp-tag.new{background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--ink)}
 .gp-edge{position:relative;height:12px;margin:0 calc(var(--space-4) * -1 + 6px);border-radius:0 0 16px 16px;background:var(--edge,#0F3F1D)}
 .gp-edge::after{content:"";position:absolute;left:10px;right:10px;bottom:3px;height:1.5px;border-radius:2px;background:rgba(255,255,255,.18)}
 body.lobby-divar .gp-edge{background:linear-gradient(#B98222 0 2px,var(--edge) 2px)}
 /* رنگ هر جعبه: لبه، و رنگ تاکید که همهٔ دکمه ها، انتخاب ها و برگه های این لابی می خوانند */
-body.lobby-hokm{--edge:#0F3F1D;--acc:#1F6B3B;--acc-deep:#1F6B3B;--acc-ink:#FFFFFF;--acc-tint:#E3F1E8}
-body.lobby-ludo{--edge:#0B241C;--acc:#2B62D6;--acc-deep:#2B62D6;--acc-ink:#FFFFFF;--acc-tint:#E7EEFC}
-body.lobby-football{--edge:#1D5A25;--acc:#2E7D32;--acc-deep:#2E7D32;--acc-ink:#FFFFFF;--acc-tint:#E5F2E6}
-body.lobby-billiard{--edge:#4A2A18;--acc:#7A4022;--acc-deep:#7A4022;--acc-ink:#FFFFFF;--acc-tint:#F4EBE5}
-body.lobby-divar{--edge:#0A2A1C;--acc:#123F2E;--acc-deep:#123F2E;--acc-ink:#F5C451;--acc-tint:#E2EEE8}
+body.lobby-hokm,body.hokm .gc-ui{--edge:#0F3F1D;--acc:#1F6B3B;--acc-deep:#1F6B3B;--acc-ink:#FFFFFF;--acc-tint:#E3F1E8}
+body.lobby-ludo,body.game .gc-ui{--edge:#0B241C;--acc:#2B62D6;--acc-deep:#2B62D6;--acc-ink:#FFFFFF;--acc-tint:#E7EEFC}
+body.lobby-football,body.football .gc-ui{--edge:#1D5A25;--acc:#2E7D32;--acc-deep:#2E7D32;--acc-ink:#FFFFFF;--acc-tint:#E5F2E6}
+body.lobby-billiard,body.billiard .gc-ui{--edge:#4A2A18;--acc:#7A4022;--acc-deep:#7A4022;--acc-ink:#FFFFFF;--acc-tint:#F4EBE5}
+body.lobby-divar,body.divar .gc-ui{--edge:#0A2A1C;--acc:#123F2E;--acc-deep:#123F2E;--acc-ink:#F5C451;--acc-tint:#E2EEE8}
+:root[data-theme="dark"] :is(body.lobby-hokm,body.hokm .gc-ui){--acc:#2B8A50;--acc-deep:#7ED6A1;--acc-tint:rgba(43,138,80,.22)}
+:root[data-theme="dark"] :is(body.lobby-ludo,body.game .gc-ui){--acc:#3D74E6;--acc-deep:#9BBBFF;--acc-tint:rgba(61,116,230,.22)}
+:root[data-theme="dark"] :is(body.lobby-football,body.football .gc-ui){--acc:#3A8F3F;--acc-deep:#8BD48F;--acc-tint:rgba(58,143,63,.22)}
+:root[data-theme="dark"] :is(body.lobby-billiard,body.billiard .gc-ui){--acc:#A0582F;--acc-deep:#E4A57D;--acc-tint:rgba(160,88,47,.24)}
+:root[data-theme="dark"] :is(body.lobby-divar,body.divar .gc-ui){--acc:#1E6B4E;--acc-ink:#F5C451;--acc-deep:#F5C451;--acc-tint:rgba(30,107,78,.3)}
 .gp-lvl{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
 .gp-star{position:relative;width:42px;height:42px;flex:none;display:grid;place-items:center}
 .gp-star svg{position:absolute;inset:0;width:100%;height:100%;fill:var(--gold);stroke:#C99A2E;stroke-width:.8}
