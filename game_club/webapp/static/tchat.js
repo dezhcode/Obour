@@ -57,11 +57,30 @@ const TChat = (() => {
     if (bar.tagName === 'FORM') bar.addEventListener('submit', submit);
     else { bar.querySelector('.tc-send').onclick = submit; input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(e); }); }
 
-    // ---------- جای نوار و پیام ها (کیبورد آیفون) ----------
+    // ---------- نوار همیشگی (بیلیارد، فوتبال) هنگام نوشتن ----------
+    // صفحهٔ بازی با کیبورد کوتاه نمی شود (GC: --app-h)؛ پس نوار هنگام نوشتن فقط خودش (با transform،
+    // بی آن که چیدمان صفحه تکان بخورد) بالای کیبورد می رود
+    function lift(on) {
+      if (!persistent || on === bar.classList.contains('tc-kb')) return;
+      bar.classList.toggle('tc-kb', on);
+      if (!on) bar.style.transform = '';
+      place();
+    }
+    if (persistent) {
+      input.addEventListener('focus', () => lift(true));
+      input.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== input) lift(false); }, 120));
+    }
+
+    // ---------- جای نوار و پیام ها (کیبورد) ----------
     function place() {
       const vv = window.visualViewport;
       const kb = vv ? Math.max(0, innerHeight - vv.height - vv.offsetTop) : 0;
       if (!persistent) bar.style.bottom = kb + 'px';
+      else if (bar.classList.contains('tc-kb')) {
+        bar.style.transform = '';
+        const up = Math.max(0, bar.getBoundingClientRect().bottom - (vv ? vv.offsetTop + vv.height : innerHeight));
+        bar.style.transform = up ? `translateY(${-up}px)` : '';
+      }
       const shown = persistent ? !bar.hidden : open;
       // نوار شناور هنگام باز شدن هنوز در حال لغزیدن است؛ جایش از اندازهٔ خودش حساب می شود
       const top = !shown ? innerHeight - (o.rest ? o.rest() : 120) : persistent ? bar.getBoundingClientRect().top : innerHeight - kb - bar.offsetHeight;

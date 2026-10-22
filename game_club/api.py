@@ -216,7 +216,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             await service.lobby_start(gdb, tg, str(body.get("match") or ""))
             return {"ok": True}
         if op == "match" and method == "GET":
-            mid = q.get("id") or await gdb.active_match_of(tg) or ""
+            mid = q.get("id") or await gdb.active_match_of(tg, game) or ""
             if not mid:
                 raise GCError("not_found")
             chat = q.get("chat")

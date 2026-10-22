@@ -96,7 +96,13 @@ const clone = o => JSON.parse(JSON.stringify(o));
 const nameOf = c => { const p = snap && snap.game.players[c]; return !p ? '' : p.me ? 'تو' : p.name; };
 
 /* ---------- صندلی ها، نوبت، داک ---------- */
+// صندلی ها و راهنمای حرکت فقط وقتی داده شان عوض شده دوباره ساخته می شوند: پرسش های پی در پی سرور
+// پرش مهره های قابل حرکت را از نو شروع نمی کنند و دکمهٔ مقصد زیر انگشت عوض نمی شود
+let seatsKey = '', hintKey = '';
 function renderSeats(g) {
+  const key = JSON.stringify([g.turn, g.done, g.last, ORDER.map(c => { const p = g.players[c]; return p ? [p.name, p.pic, p.av, p.out, p.me, (g.pawns[c] || []).length] : 0; })]);
+  if (key === seatsKey) return;
+  seatsKey = key;
   document.querySelectorAll('.seat').forEach(el => { el.className = 'seat' + (+el.dataset.corner === 1 || +el.dataset.corner === 2 ? ' right' : '') + ' empty'; el.innerHTML = ''; });
   for (const c of ORDER) {
     const yard = document.querySelector(`[data-yard="${c}"]`), pl = g.players[c];
@@ -129,15 +135,15 @@ function renderTurn(g) {
   tb.className = 'turnbar c-' + g.turn;
   const mine = g.turn === me;
   $('turnTxt').textContent = mine ? 'نوبت شماست' : 'نوبت ' + nameOf(g.turn);
-  clearHints();
+  const hk = mine && g.phase === 'move' ? JSON.stringify([g.dice, g.movable, shown[me]]) : '';
+  if (hk !== hintKey) { clearHints(); hintKey = hk; if (hk) showHints(g.dice, g.movable); }
   if (mine && g.phase === 'roll') dock('نوبت شماست', 'روی تاس بزن تا بریزد', 'roll');
-  else if (mine && g.phase === 'move') {
-    dock(FD(g.dice) + ' آوردی', 'مهره‌ای را که بالا و پایین می‌پرد بزن؛ دایرهٔ خط‌چین مقصدش است', 'pick');
-    showHints(g.dice, g.movable);
-  } else dock('نوبت ' + nameOf(g.turn), g.players[g.turn] && g.players[g.turn].bot ? 'ربات فکر می‌کند…' : WATCH ? 'منتظر حرکت…' : 'منتظر حرکت حریف…', 'wait');
+  else if (mine && g.phase === 'move') dock(FD(g.dice) + ' آوردی', 'مهره‌ای را که بالا و پایین می‌پرد بزن؛ دایرهٔ خط‌چین مقصدش است', 'pick');
+  else dock('نوبت ' + nameOf(g.turn), g.players[g.turn] && g.players[g.turn].bot ? 'ربات فکر می‌کند…' : WATCH ? 'منتظر حرکت…' : 'منتظر حرکت حریف…', 'wait');
   setDeadline(g.deadline_ms, g._at); turnMs = g.turn_ms || 20000; tickTimer();
 }
 function clearHints() {
+  hintKey = '';
   for (const c in els) els[c].forEach(e => e.classList.remove('can'));
   document.querySelectorAll('#layer .dest').forEach(e => e.remove());
 }
@@ -258,7 +264,7 @@ async function apply(next) {
     ensurePawns(g);
     for (const e of (g.events || []).filter(e => e.seq > since).sort((a, b) => a.seq - b.seq)) { await play(e); since = e.seq; }
     since = Math.max(since, g.seq);
-    shown = clone(g.pawns); ensurePawns(g); clearHints(); layout();
+    shown = clone(g.pawns); ensurePawns(g); layout();
     renderSeats(g); renderTurn(g);
     if (next.status === 'over' && !overShown) { overShown = true; over(next); }
   } finally { busy = false; }
@@ -368,14 +374,13 @@ $('rules').onclick = () => sheet(`${sheetHead('قوانین منچ')}
 /* ---------- اندازه صفحه: هر چه ارتفاع جا بدهد، بدون اسکرول ---------- */
 function fitBoard() {
   const frame = $('frame'), page = document.querySelector('.page');
-  const H = (window.Telegram && Telegram.WebApp && Telegram.WebApp.viewportStableHeight) || window.innerHeight;
+  const H = GC.appHeight();
   const other = $('appbar').offsetHeight + $('seatsTop').offsetHeight + $('seatsBot').offsetHeight + $('feed').offsetHeight + $('dock').offsetHeight
     + 6 * 8 + 16 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sa-b')) || 0);
   const w = page.clientWidth - 2 * parseFloat(getComputedStyle(page).paddingInlineStart || 16);
   frame.style.setProperty('--board', Math.max(240, Math.min(w, H - other)) + 'px');
 }
-window.addEventListener('resize', fitBoard);
-try { Telegram.WebApp.onEvent('viewportChanged', fitBoard); Telegram.WebApp.onEvent('fullscreenChanged', () => setTimeout(fitBoard, 50)); } catch (e) {}
+GC.onFit(fitBoard);   // فقط وقتی اندازهٔ صفحه واقعا عوض شد؛ باز شدن کیبورد گفتگو تخته را کوچک نمی کند
 
 /* ---------- شروع ---------- */
 async function start() {

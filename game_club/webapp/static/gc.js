@@ -71,6 +71,42 @@ if (!live) {
     }
   } catch (e) {}
 }
+/* ---------- ارتفاع پایدار صفحهٔ بازی ----------
+   باز شدن کیبورد (نوشتن در گفتگو) صفحه را کوتاه می کند. اگر بازی با آن دوباره چیده شود، میز می پرد و
+   بوم ها از نو کشیده می شوند (کند و پر لرزش). صفحهٔ بازی ارتفاعش را از --app-h می گیرد که هنگام نوشتن
+   ثابت می ماند (کیبورد روی بازی می آید و نوار گفتگو بالای آن)؛ GC.onFit کار چیدن هر بازی را فقط وقتی
+   اندازهٔ واقعی صفحه عوض شد و یک بار در هر فریم صدا می زند. بعد از بستن کیبورد صفحهٔ بازی به بالا
+   برمی گردد (آیفون گاهی جابه جا رهایش می کند). */
+const editing = () => { const a = document.activeElement; return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable); };
+const gameBody = () => !!document.body && document.body.matches('.game,.hokm,.divar,.football,.billiard');
+let appW = 0, appH = 0, fitRaf = 0, fitForce = false;
+const fits = [];
+function syncApp() {
+  fitRaf = 0;
+  const w = innerWidth, h = innerHeight, force = fitForce; fitForce = false;
+  if (appH && editing() && w === appW) return;            // کیبورد باز است: چیدمان همان بماند
+  if (w === appW && h === appH && !force) return;
+  appW = w; appH = h;
+  root.style.setProperty('--app-h', h + 'px');
+  root.classList.toggle('h700', h <= 700); root.classList.toggle('h640', h <= 640);   // چیدمان فشرده تر صفحه های کوتاه
+  for (const fn of fits) { try { fn(); } catch (e) {} }
+}
+function queueFit(force) { if (force === true) fitForce = true; if (!fitRaf) fitRaf = requestAnimationFrame(syncApp); }
+syncApp();
+addEventListener('resize', queueFit);
+document.addEventListener('focusout', () => setTimeout(() => {
+  if (editing()) return;
+  if (gameBody() && (scrollX || scrollY)) scrollTo(0, 0);
+  queueFit();
+}, 80));
+if (tg) ['viewportChanged', 'fullscreenChanged', 'safeAreaChanged', 'contentSafeAreaChanged'].forEach(ev => { try { tg.onEvent(ev, () => queueFit(true)); } catch (e) {} });
+const onFit = fn => { fits.push(fn); };
+const appHeight = () => appH || innerHeight;
+
+// فایل های بازی روی گوشی می مانند (sw.js)؛ بعد از بار شدن صفحه تا با خود صفحه رقابت نکند
+if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') {
+  addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {}); });
+}
 /* دکمه برگشت بومی تلگرام؛ دکمه برگشت داخل صفحه فقط بیرون از تلگرام دیده می شود.
    هر بار فقط یک کار به دکمه وصل است (کار قبلی جدا می شود)؛ برگشت به یکی از چهار بخش اصلی
    صفحه را دوباره بار نمی کند (پایین: «بخش های اصلی») */
@@ -892,6 +928,6 @@ window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, gu
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
   get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver };
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver, onFit, queueFit, appHeight, editing };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();

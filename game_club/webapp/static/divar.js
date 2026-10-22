@@ -401,8 +401,7 @@ const syncSnd = () => { sndBtn.innerHTML = icon(S.sound ? 'soundOn' : 'soundOff'
 sndBtn.onclick = () => { setSound(!S.sound); syncSnd(); if (S.sound) GC.loadSamples(); };
 syncSnd();
 document.addEventListener('pointerdown', () => GC.loadSamples(), { once: true });
-window.addEventListener('resize', fit);
-try { Telegram.WebApp.onEvent('viewportChanged', fit); Telegram.WebApp.onEvent('fullscreenChanged', () => setTimeout(fit, 50)); } catch (e) {}
+GC.onFit(fit);   // فقط وقتی اندازهٔ صفحه واقعا عوض شد؛ باز شدن کیبورد گفتگو بازی را دوباره نمی چیند
 
 /* ---------- شروع ---------- */
 async function start() {

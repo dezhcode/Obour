@@ -509,6 +509,12 @@ TURN_S = 30
 _rng = random.SystemRandom()
 
 
+def _jit() -> list:
+    """دو عدد تصادفی بریک بعدی (قدرت و کجی). از پیش ساخته می شود و در نمای بازی هست تا گوشی
+    بریک را هم همان لحظهٔ ضربه، عیناً مثل سرور، نشان بدهد."""
+    return [round(_rng.random(), 6), round(_rng.random(), 6)]
+
+
 def seats_of(players: int) -> tuple:
     return SEATS4 if players == 4 else SEATS2
 
@@ -530,7 +536,7 @@ def new_state(seats: list[dict], now: float, turn_s: int, stake: bool, players: 
         "bih": True, "breaking": True, "msg": "break", "phase": "play",
         "next_at": now + INTRO, "deadline": now + INTRO + TURN_S, "turn_s": min(max(int(turn_s), TURN_S), 60),
         "stake": stake, "events": [], "seq": 0, "turn_id": 0, "winner": None, "over": False, "started": now,
-        "stats": {s: {"shots": 0, "pots": 0, "fouls": 0} for s in order}, "breaks": 0,
+        "stats": {s: {"shots": 0, "pots": 0, "fouls": 0} for s in order}, "breaks": 0, "bj": _jit(),
     }
     _event(st, t="start", balls=st["balls"], turn=order[st["turn"]])
     _wait(st, now, INTRO)
@@ -626,9 +632,12 @@ def shot(st: dict, i: int, angle, power, sx=0.0, sy=0.0, cx=None, cy=None, now: 
         sx, sy = sx / sl, sy / sl
     s = st["order"][i]
     breaking = st["breaking"]
-    if breaking and power > BREAK_MIN:
-        power *= BREAK_BONUS + _rng.random() * BREAK_RAND
-        angle += _rng.random() * BREAK_JIT * 2 - BREAK_JIT
+    if breaking:
+        bj = st.get("bj") or _jit()
+        st["bj"] = _jit()                  # اگر بریک دوباره شد (چیدن از نو) عدد تازه دارد
+        if power > BREAK_MIN:
+            power *= BREAK_BONUS + bj[0] * BREAK_RAND
+            angle += bj[1] * BREAK_JIT * 2 - BREAK_JIT
     pos0 = [p[:] if p else None for p in st["balls"]]
     need = targets(st, i)                  # هدف های مجاز پیش از ضربه (قاعدهٔ برخورد اول)
     res = simulate(pos0, angle, power, (sx, sy), breaking)
@@ -997,6 +1006,7 @@ def view(st: dict, me: str | None, since: int, now: float) -> dict:
         "solids": st["solids"],
         "bih": st["bih"],
         "breaking": st["breaking"],
+        "bj": st.get("bj") if st["breaking"] else None,
         "msg": st["msg"],
         "targets": targets(st, st["turn"]) if cur is not None else [],
         "mine": targets(st, mi) if mi is not None and not st["over"] else [],

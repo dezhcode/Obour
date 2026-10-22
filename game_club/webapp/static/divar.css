@@ -4,7 +4,7 @@
 html:has(body.divar){overflow:hidden}
 /* نور و سایه ثابت اند (انیمیشن متغیرها همهٔ سایه ها را هر فریم دوباره می کشید)؛ چراغِ متحرک یک لایهٔ جداست که فقط transform می گیرد */
 body.divar{--gold:#F5C451;--gold-ink:#3A2A00;--me:#4C8DFF;--wc:var(--me);--sx:2px;--sy:4px;--li:1;--lx:28%;--ly:12%;
-  margin:0;height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;color:#EAF4EF;
+  margin:0;height:100vh;height:var(--app-h,100dvh);overflow:hidden;display:flex;flex-direction:column;color:#EAF4EF;
   background:radial-gradient(80% 40% at 50% 0,rgba(255,255,255,.08),transparent 70%),radial-gradient(120% 70% at 50% 40%,#1d5a3f,#0b231a 74%);
   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
 body.divar .appbar{background:transparent;color:#fff;flex:none}
@@ -162,7 +162,8 @@ body.watching .dv-tray{display:none}
 .dv-res .facts span{font-size:11.5px;color:var(--ink-muted)}
 .dv-res .prize{font-size:24px;font-weight:900}
 
-@media (max-height:640px){.dv-players{padding-top:13px}.dv-pl .avatar{--size:28px}.dv-tray{padding:5px 10px;margin-bottom:5px}.dv-slot{height:38px}}
+/* صفحهٔ کوتاه از ارتفاع پایدار (کلاس h640 از gc.js)، نه max-height که با کیبورد گفتگو عوض می شود */
+.h640 .dv-players{padding-top:13px}.h640 .dv-pl .avatar{--size:28px}.h640 .dv-tray{padding:5px 10px;margin-bottom:5px}.h640 .dv-slot{height:38px}
 @media (prefers-reduced-motion:reduce){.dv-lamp,.dv-edge::after,.dv-pawn.turn::before,.dv-star svg,.dv-beam,.dv-dot::before{animation:none}}
 
 /* ================= تم های میز (رایگان؛ کلاس dvt-* روی body در بازی و روی پیش نمایش در لابی) =================
