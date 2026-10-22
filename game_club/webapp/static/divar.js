@@ -99,7 +99,9 @@ function wallRect(o, r, c) {
 }
 function setRect(el, R) { for (const k in R) el.style[k] = R[k] + 'px'; }
 function addWall(w, anim) {
-  const k = wkey(w[0], w[1], w[2]); if (els.walls[k]) return;
+  const k = wkey(w[0], w[1], w[2]);
+  // دیوار موجود: فقط رنگ صاحبش به روز شود (اگر پیش تر بی صاحب کشیده شده بود)
+  if (els.walls[k]) { if (w[3] != null) els.walls[k].style.setProperty('--wc', colorOf(w[3]).pc); return; }
   const [o, r, c] = wallV(w[0], w[1], w[2]), el = document.createElement('i');
   el.className = 'dv-wall ' + o + (anim ? ' drop' : ''); setRect(el, wallRect(o, r, c));
   if (w[3] != null) el.style.setProperty('--wc', colorOf(w[3]).pc);   // رنگ کسی که دیوار را گذاشته
@@ -193,7 +195,7 @@ async function play(e) {
     await sleep(isMe(e.c) ? 120 : 330); return;
   }
   if (e.t === 'wall') {
-    if (!vwalls.some(w => wkey(w[0], w[1], w[2]) === wkey(...e.w))) { vwalls.push([...e.w, e.c]); addWall(e.w, true); sfx.enter(); }
+    if (!vwalls.some(w => wkey(w[0], w[1], w[2]) === wkey(...e.w))) { vwalls.push([...e.w, e.c]); addWall([...e.w, e.c], true); sfx.enter(); }
     if (!isMe(e.c)) flashMsg(`${nameOf(e.c)} دیوار گذاشت`);
     await sleep(isMe(e.c) ? 120 : 300); return;
   }
