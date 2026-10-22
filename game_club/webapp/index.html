@@ -216,11 +216,11 @@ a.gt:active{transform:scale(.98)}
   const $ = id => document.getElementById(id);
   GC.back(null);
   // آمده از لینک میز گروه تلگرام (t.me/<bot>?startapp=hokm_CODE): مستقیم سر همان میز، فقط یک بار در هر نشست
-  const sp = GC.startParam(), spm = sp.match(/^(hokm|ludo|football|billiard)_([A-Za-z0-9]{4,12})$/);
+  const sp = GC.startParam(), spm = sp.match(/^(hokm|ludo|football|billiard|divar)_([A-Za-z0-9]{4,12})$/);
   let spSeen = false; try { spSeen = sessionStorage.getItem('gc_sp') === sp; sessionStorage.setItem('gc_sp', sp); } catch (e) {}
   if (spm && !spSeen) { location.replace(`${spm[1]}-lobby.html?join=${spm[2]}`); return; }
   // دکمهٔ «دیدن بازی» کارت گروه: startapp=w_hokm_MATCHID ← صفحهٔ بازی در حالت تماشا (اگر خودش بازیکن باشد، بازی خودش)
-  const spw = sp.match(/^w_(hokm|ludo|football|billiard)_([A-Za-z0-9]{6,16})$/);
+  const spw = sp.match(/^w_(hokm|ludo|football|billiard|divar)_([A-Za-z0-9]{6,16})$/);
   if (spw && !spSeen) { location.replace(`${spw[1]}.html?watch=${spw[2]}`); return; }
   let me = null, style = { table: 'a', cards: 'a' }, notify = [], tables = [];
 
@@ -234,6 +234,7 @@ a.gt:active{transform:scale(.98)}
     // فوتبال و بیلیارد: همان پیش نمایش زندهٔ لابی، از تصویرهای واقعی خود بازی (static/previews)
     football: () => `<div class="ra">${GCPreview.html('football')}</div>`,
     billiard: () => `<div class="ra">${GCPreview.html('billiard')}</div>`,
+    divar: () => `<div class="ra">${GCPreview.html('divar')}</div>`,
     ludo: () => `<div class="ra ra-ludo" aria-hidden="true"><span class="bd">${GC.boardArt()}</span><span class="pw" style="left:22px;top:46px">${GC.pawn('red')}</span><span class="pw" style="right:24px;top:38px">${GC.pawn('blue')}</span></div>`,
     esm: () => '<div class="ra ra-esm" aria-hidden="true"><span style="background:#FFA552;color:#3A2000;transform:rotate(-8deg)">ب</span><span style="background:#FF7A85;color:#3A0A10;transform:rotate(6deg)">م</span><span style="background:#8E7CF8;color:#fff;transform:rotate(-3deg)">الف</span></div>',
   };
@@ -281,12 +282,12 @@ a.gt:active{transform:scale(.98)}
     const list = alerts();
     const sh = sheet(`${sheetHead('اعلان‌ها')}<div class="ntf">${list.length ? list.map(a => `<${a.href ? `a href="${a.href}" data-g="${a.game || ''}" data-id="${a.id || ''}" data-k="${a.k || ''}"` : 'div'}><span class="ic" style="background:${a.bg};color:${a.c}">${icon(a.ic)}</span><span><b>${a.t}</b><small>${a.s}</small></span><span>${a.href ? icon('fwd') : ''}</span></${a.href ? 'a' : 'div'}>`).join('')
       : '<p class="hint">اعلان تازه‌ای نداری. وقتی نوبتت شد یا میزی منتظرت بود، اینجا می‌بینی.</p>'}</div>`);
-    sh.querySelectorAll('a[data-id]').forEach(a => a.addEventListener('click', () => { const g = GC.GAMES.find(x => x.id === a.dataset.g); if (a.dataset.k === 'playing' && a.dataset.id && g) store.set({ hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid' }[g.id], a.dataset.id); }));
+    sh.querySelectorAll('a[data-id]').forEach(a => a.addEventListener('click', () => { const g = GC.GAMES.find(x => x.id === a.dataset.g); if (a.dataset.k === 'playing' && a.dataset.id && g) store.set({ hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid', divar: 'dmid' }[g.id], a.dataset.id); }));
   };
 
   /* ---------- کارت بزرگ بالا: ادامهٔ بازی یا حکم ---------- */
-  const KEY = { hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid' };
-  const heroBg = { hokm: () => `felt tbl-${style.table}`, football: () => 't-green', ludo: () => 't-violet', billiard: () => 't-green' };
+  const KEY = { hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid', divar: 'dmid' };
+  const heroBg = { hokm: () => `felt tbl-${style.table}`, football: () => 't-green', ludo: () => 't-violet', billiard: () => 't-green', divar: () => 't-green' };
   function heroTable() {
     const playing = tables.filter(t => t.kind === 'playing');
     return playing.find(t => t.my_turn) || playing[0] || tables[0] || null;
@@ -294,7 +295,7 @@ a.gt:active{transform:scale(.98)}
   function stateLine(t) {
     if (t.kind === 'queue') return { k: 'دنبال حریف', h: 'در صف بازی', p: `${FD(t.found)} از ${FD(t.need)} نفر پیدا شد` };
     if (t.kind === 'lobby') return { k: 'میز دوستانه', h: t.host ? 'منتظر دوستانت' : 'منتظر بقیه', p: `${FD(t.found)} از ${FD(t.need)} نفر نشسته‌اند` };
-    const sc = t.score ? `ما ${FD(t.score[0])} – ${FD(t.score[1])} آنها · تا ${FD(t.target)}` : 'بازی در جریان است';
+    const sc = t.score ? `ما ${FD(t.score[0])} – ${FD(t.score[1])} آنها · تا ${FD(t.target)}` : t.left != null ? `تا مقصد ${FD(t.left)} قدم مانده` : 'بازی در جریان است';
     return { k: 'بازی نیمه‌تمام', h: t.my_turn ? 'نوبت شماست!' : 'بازی در جریان است', p: sc };
   }
   function renderHero() {
@@ -336,7 +337,7 @@ a.gt:active{transform:scale(.98)}
   /* ---------- کاشی بازی ها ---------- */
   function renderGames() {
     const open = new Set(tables.map(t => t.game));
-    const badge = { hokm: '<span class="bdg hot">محبوب</span>', football: '<span class="bdg new">جدید</span>', billiard: '<span class="bdg new">جدید</span>' };
+    const badge = { hokm: '<span class="bdg hot">محبوب</span>', football: '<span class="bdg new">جدید</span>', billiard: '<span class="bdg new">جدید</span>', divar: '<span class="bdg new">جدید</span>' };
     $('games').innerHTML = GC.GAMES.map(g => {
       const b = g.soon ? '' : open.has(g.id) ? '<span class="bdg open">میز باز داری</span>' : (badge[g.id] || '');
       const bg = g.id === 'hokm' ? `felt tbl-${style.table}` : '';

@@ -17,7 +17,7 @@ import re
 import secrets
 import time
 
-from . import billiard, football, hokm, ludo, names
+from . import billiard, divar, football, hokm, ludo, names
 from .config import gc
 from .db import GCDatabase, pic_url
 
@@ -28,7 +28,8 @@ _ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 # هر بازی: موتور قواعد، نام فارسی و صفحه میز
 GAMES = {"ludo": (ludo, "منچ", "ludo.html"), "hokm": (hokm, "حکم", "hokm.html"),
-         "football": (football, "فوتبال", "football.html"), "billiard": (billiard, "بیلیارد", "billiard.html")}
+         "football": (football, "فوتبال", "football.html"), "billiard": (billiard, "بیلیارد", "billiard.html"),
+         "divar": (divar, "دیوار", "divar.html")}
 
 
 def game_of(cfg: dict) -> str:
@@ -58,6 +59,8 @@ def _seat_order(cfg: dict) -> tuple:
     if g == "billiard":
         # چهار نفره: مثل حکم اولین مهمان یار سازنده می شود
         return billiard.LOBBY_ORDER4 if cfg.get("players") == 4 else billiard.SEATS2
+    if g == "divar":
+        return divar.LOBBY_ORDER4 if cfg.get("players") == 4 else divar.SEATS2
     return ludo.SEATS[cfg["players"]]
 
 
@@ -66,6 +69,8 @@ def _current(st: dict) -> str | None:
         return football.current(st)
     if st.get("game") == "billiard":
         return billiard.current(st)
+    if st.get("game") == "divar":
+        return divar.current(st)
     if st.get("game") == "hokm":
         return hokm.SEATS[st["hakem"] if st["phase"] == "trump" else st["turn"]] if st["phase"] in ("trump", "play") else None
     return ludo.current(st)
@@ -78,6 +83,8 @@ def _winners(st: dict) -> set:
         return football.winners(st)
     if st.get("game") == "billiard":
         return billiard.winners(st)
+    if st.get("game") == "divar":
+        return divar.winners(st)
     return {st["winner"]} if st.get("winner") else set()
 
 
@@ -171,6 +178,21 @@ def norm_cfg(raw: dict) -> dict:
         else:
             entry = 0
         return {"game": "billiard", "mode": mode, "entry": entry, "players": players}
+    if raw.get("game") == "divar":
+        try:
+            players = int(raw.get("players") or 2)
+            entry = int(raw.get("entry") or 0)
+        except (TypeError, ValueError):
+            raise GCError("bad_cfg") from None
+        variant = "star" if raw.get("variant") == "star" else "classic"
+        if players not in (2, 4) or (variant == "star" and players != 4):
+            raise GCError("bad_cfg")
+        if mode == "stake":
+            if entry not in gc.entries:
+                raise GCError("bad_entry")
+        else:
+            entry = 0
+        return {"game": "divar", "mode": mode, "entry": entry, "players": players, "variant": variant}
     try:
         players = int(raw.get("players") or 2)
         pawns = int(raw.get("pawns") or 2)
@@ -192,6 +214,8 @@ def cfg_key(cfg: dict) -> str:
         return f"{game_of(cfg)}:{cfg['mode']}:{cfg['entry']}:{cfg['target']}"
     if game_of(cfg) == "billiard":
         return f"billiard:{cfg['mode']}:{cfg['entry']}:{cfg['players']}"
+    if game_of(cfg) == "divar":
+        return f"divar:{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg.get('variant', 'classic')}"
     return f"{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg['pawns']}"
 
 
@@ -255,6 +279,9 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
         state = football.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
     elif game_of(cfg) == "billiard":
         state = billiard.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["players"])
+    elif game_of(cfg) == "divar":
+        state = divar.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["players"],
+                                cfg.get("variant", "classic"))
     else:
         first = random.choice([s["color"] for s in seats if not s["bot"]])
         state = ludo.new_state(seats, cfg["pawns"], time.time(), gc.turn_seconds, cfg["mode"] == "stake", first)
@@ -387,7 +414,7 @@ def prize_shares(st: dict, rows: list[dict]) -> dict:
     pot = sum(r["paid"] for r in rows)
     prize = pot - pot * gc.rake_percent // 100
     got = [r for r in rows if r["color"] in winners
-           and not (st.get("game") in ("hokm", "billiard") and st["players"].get(r["color"], {}).get("out"))]
+           and not (st.get("game") in ("hokm", "billiard", "divar") and st["players"].get(r["color"], {}).get("out"))]
     if not got or not prize:
         return {}
     return {r["tg_id"]: prize // len(got) for r in got}
@@ -772,6 +799,8 @@ async def my_tables(db: GCDatabase, tg: int) -> list[dict]:
                 sc = billiard.score(st)
                 t["score"] = [sc[mine], sc[1 - mine]]
                 t["target"] = 7
+            if t["game"] == "divar" and me is not None:
+                t["left"] = divar.dist(st, me)
             if t["game"] == "hokm" and me is not None:
                 mine = int(me) % 2
                 t["score"] = [st["score"][mine], st["score"][1 - mine]]
@@ -793,12 +822,14 @@ async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
     if await db.ping_count(f"turn:{m['id']}:{uid}:") >= 2:
         return
     hk, fb, bl = st.get("game") == "hokm", st.get("game") == "football", st.get("game") == "billiard"
-    team_game = hk or (bl and st.get("n") == 4)
+    dv = st.get("game") == "divar"
+    team_game = hk or ((bl or dv) and st.get("n") == 4)
     extra = (" تو بازی امتیازی 3 بار غیبت یعنی بیرون رفتن از بازی." if team_game else " تو بازی امتیازی 3 بار غیبت یعنی باخت.") \
         if st.get("stake") else ""
     what = ("حکم رو انتخاب کن" if st["phase"] == "trump" else "برگت رو بنداز") if hk \
         else "شوتت رو بزن، وگرنه توپ می‌ره دست حریف" if fb \
-        else "ضربه‌ت رو بزن، وگرنه حریف توپ در دست می‌گیره 🎱" if bl else "وگرنه ربات جات تاس می‌ریزه 🎲"
+        else "ضربه‌ت رو بزن، وگرنه حریف توپ در دست می‌گیره 🎱" if bl \
+        else "یه قدم برو یا یه دیوار بذار، وگرنه یه قدم به جات برمی‌داریم 🧱" if dv else "وگرنه ربات جات تاس می‌ریزه 🎲"
     await _notify(db, uid, f"turn:{m['id']}:{uid}:{st.get('turn_id', 0)}",
                   f"نوبت توئه توی {_gname(m['cfg'])}! {st.get('turn_s', gc.turn_seconds)} ثانیه وقت داری؛ {what}.{extra}",
                   _gpage(m["cfg"]))
@@ -866,6 +897,12 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
         elif eng is football and action == "shot":
             d = data or {}
             err = football.shot(st, int(color), d.get("i"), d.get("dx"), d.get("dy"), d.get("p"), now)
+        elif eng is divar and action == "move":
+            d = data or {}
+            err = divar.move(st, st["order"].index(color), d.get("r"), d.get("c"), now)
+        elif eng is divar and action == "wall":
+            d = data or {}
+            err = divar.wall(st, st["order"].index(color), d.get("o"), d.get("r"), d.get("c"), now)
         elif eng is billiard and action == "shot":
             d = data or {}
             err = billiard.shot(st, st["order"].index(color), d.get("a"), d.get("p"), d.get("sx"), d.get("sy"),
@@ -920,7 +957,7 @@ async def leaderboard(db: GCDatabase, tg: int, kind: str, period: str) -> dict:
 
 async def game_leaderboard(db: GCDatabase, tg: int, game: str, period: str) -> dict:
     """رده بندی هر بازی جدا (صفحهٔ همان بازی): بیشترین برد در این بازه."""
-    if game not in ("ludo", "hokm", "football", "billiard"):
+    if game not in ("ludo", "hokm", "football", "billiard", "divar"):
         raise GCError("bad_game")
     span = PERIODS.get(period, PERIODS["week"])
     since = int(time.time() - span) if span else 0

@@ -115,7 +115,7 @@ const ERR = {
   need_players: 'بازی امتیازی بدون حریف واقعی شروع نمی‌شود', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
   plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
   rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
-  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_place: 'توپ سفید را جای خالی بگذار (در بریک: پشت خط سر)', bad_pack: 'این بسته در دسترس نیست',
+  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', no_walls: 'دیوارهایت تمام شده؛ فقط می‌توانی حرکت کنی', wall_taken: 'این‌جا دیوار نمی‌شود گذاشت؛ روی دیوار دیگری می‌افتد', wall_blocks: 'این دیوار راه یک نفر را کامل می‌بندد؛ مجاز نیست', bad_wall: 'جای دیوار درست نیست', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_place: 'توپ سفید را جای خالی بگذار (در بریک: پشت خط سر)', bad_pack: 'این بسته در دسترس نیست',
 };
 const errText = e => {
   const c = String((e && e.code) || '');
@@ -207,6 +207,21 @@ const liveBilliard = {
   // a زاویه (رادیان، مختصات میز)، p قدرت ۰ تا ۱، sx/sy پیچ، cx/cy جای توپ سفید وقتی توپ در دست است
   shot: (match, a, p, sx, sy, cx, cy, since) => api('billiard/shot', { body: Object.assign({ match, a, p, sx, sy, since }, cx == null ? {} : { cx, cy }) }),
   leave: match => api('billiard/leave', { body: { match } }),
+};
+const liveDivar = {
+  queueJoin: cfg => api('divar/queue', { body: { cfg } }),
+  queueStatus: () => api('divar/queue'),
+  queueLeave: () => api('divar/queue/leave', { body: {} }),
+  queueBots: () => api('divar/queue/bots', { body: {} }),
+  invite: cfg => api('divar/invite', { body: { cfg } }),
+  join: code => api('divar/join', { body: { code } }),
+  start: match => api('divar/start', { body: { match } }),
+  match: (id, since = 0, chat = null) => api('divar/match', { q: Object.assign(id ? { id, since } : { since }, chat == null ? {} : { chat }) }),
+  chat: (match, text) => api('divar/chat', { body: { match, text } }),
+  move: (match, r, c, since) => api('divar/move', { body: { match, r, c, since } }),
+  // o: "h" افقی یا "v" عمودی؛ r و c گوشهٔ بالا چپ دیوار دو خانه ای
+  wall: (match, o, r, c, since) => api('divar/wall', { body: { match, o, r, c, since } }),
+  leave: match => api('divar/leave', { body: { match } }),
 };
 const liveHokm = {
   queueJoin: cfg => api('hokm/queue', { body: { cfg } }),
@@ -747,6 +762,7 @@ const GAME_ART = {
   football: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="6" y="4" width="52" height="56" rx="4" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/><path d="M6 32h52" stroke="#fff" stroke-width="2.5" opacity=".9"/><circle cx="32" cy="32" r="8" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/><circle cx="20" cy="44" r="7" fill="#DDE3EA"/><circle cx="20" cy="44" r="5" fill="#1E5BD8"/><circle cx="44" cy="20" r="7" fill="#DDE3EA"/><circle cx="44" cy="20" r="5" fill="#D7263D"/><circle cx="33" cy="33" r="4" fill="#fff" stroke="#1c1f2a" stroke-width="1.2"/></svg>',
   ludo: () => boardArt(),
   billiard: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="9" y="3" width="46" height="58" rx="7" fill="#6B3A1F"/><rect x="14" y="8" width="36" height="48" rx="3" fill="#1E8A4C"/><g fill="#0B0F0D"><circle cx="15" cy="9" r="3.4"/><circle cx="49" cy="9" r="3.4"/><circle cx="15" cy="55" r="3.4"/><circle cx="49" cy="55" r="3.4"/><circle cx="14" cy="32" r="3"/><circle cx="50" cy="32" r="3"/></g><circle cx="32" cy="20" r="4.6" fill="#FEC625"/><circle cx="27.4" cy="26.5" r="4.6" fill="#1937A5"/><circle cx="36.6" cy="26.5" r="4.6" fill="#111"/><circle cx="35.6" cy="25.2" r="1.7" fill="#fff"/><circle cx="32" cy="45" r="4.6" fill="#F4F1E8"/><path d="M33 50L46 63" stroke="#D9B27C" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  divar: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="10" fill="#18543a"/><g fill="#3a9d68">' + [10, 22, 34, 46].map(y => [10, 22, 34, 46].map(x => `<rect x="${x}" y="${y}" width="9" height="9" rx="2.4"/>`).join('')).join('') + '</g><rect x="8.5" y="31" width="22" height="3.2" rx="1.6" fill="#F5C451"/><rect x="43.2" y="9" width="3.2" height="22" rx="1.6" fill="#F5C451"/><circle cx="26.5" cy="50.5" r="5.2" fill="#DDE3EA"/><circle cx="26.5" cy="50.5" r="3.6" fill="#4C8DFF"/><circle cx="38.5" cy="14.5" r="5.2" fill="#DDE3EA"/><circle cx="38.5" cy="14.5" r="3.6" fill="#FF5A6A"/></svg>',
   esm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>',
 };
 const GAMES = [
@@ -754,6 +770,7 @@ const GAMES = [
   { id: 'football', name: 'فوتبال', sub: '۲ نفره · نوبتی', href: 'football-lobby.html', tint: 't-green', cat: 'sport', tag: 'تازه' },
   { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره', href: 'ludo-lobby.html', tint: 't-violet', cat: 'board' },
   { id: 'billiard', name: 'بیلیارد', sub: '۲ نفره یا ۴ نفره یاری', href: 'billiard-lobby.html', tint: 't-green', cat: 'sport', tag: 'تازه' },
+  { id: 'divar', name: 'دیوار', sub: '۲ یا ۴ نفره · راه را ببند', href: 'divar-lobby.html', tint: 't-green', cat: 'board', tag: 'تازه' },
   { id: 'esm', name: 'اسم فامیل', sub: 'به‌زودی', tint: 't-orange', cat: 'word', soon: true },
 ];
 function quickPlay() {
@@ -860,7 +877,7 @@ document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
-  get billiard() { return live ? liveBilliard : GC.demo.billiard; }, loadSamples,
+  get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
   PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver };
 document.addEventListener('DOMContentLoaded', () => mount());

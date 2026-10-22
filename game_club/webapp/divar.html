@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<title>Game Club · دیوار</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<link rel="stylesheet" href="static/divar.css">
+</head>
+<body class="divar">
+<header class="appbar" id="appbar">
+  <div class="appbar-cap"><span>دیوار</span></div>
+  <div class="appbar-in">
+    <button class="dv-ib" id="exit" aria-label="خروج از بازی"><i data-ic="exit"></i></button>
+    <div class="dv-title"><b>دیوار</b><span class="dv-chip" id="mode"></span></div>
+    <button class="dv-ib" id="snd" aria-pressed="true"></button>
+  </div>
+</header>
+<div class="dv-players" id="players" aria-live="polite"></div>
+<div class="dv-status"><span class="dv-pill" id="status">در حال وصل شدن…</span></div>
+<main class="dv-arena" id="arena">
+  <div class="dv-board" id="board" aria-label="صفحهٔ دیوار"></div>
+</main>
+<div class="dv-tray" id="tray">
+  <button class="dv-slot" data-o="v" aria-label="دیوار عمودی را بکش"><i class="dv-wall v"></i></button>
+  <div class="dv-cnt"><b id="cnt">۰</b><span>دیوار</span></div>
+  <button class="dv-slot" data-o="h" aria-label="دیوار افقی را بکش"><i class="dv-wall h"></i></button>
+</div>
+<footer class="dv-bar" id="chatbar"></footer>
+<script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/divar-engine.js"></script>
+<script src="static/demo-divar.js"></script>
+<script src="static/tchat.js"></script>
+<script src="static/divar.js"></script>
+</body>
+</html>

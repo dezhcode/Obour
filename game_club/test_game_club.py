@@ -1245,7 +1245,7 @@ def test_inline_tables():
             assert "حالت بازی" in P(rm) and f"gs:open:{token}" in [b.callback_data for b in B(rm)]
             iq.query = ""
             await groups.on_inline(iq, gdb=db)
-            assert len(got[-1][0]) == 4          # حکم، منچ، فوتبال، بیلیارد
+            assert len(got[-1][0]) == 5          # حکم، منچ، فوتبال، بیلیارد، دیوار
             # فقط سازنده تنظیم می کند؛ شناسهٔ پیام اینلاین از همین لمس ثبت می شود
             cq = _CQ(32, f"gs:open:{token}", imid="IM1")
             await groups.on_setup(cq, gdb=db)
@@ -1483,7 +1483,7 @@ def test_emoji_admin_and_tone():
             cq = CQ("ge:h")
             await gbot.on_emoji_button(cq, gdb=db)
             text, kb = cq.views[-1]
-            assert "0 از 39" in flat(text) and not persian.search(text) and "ge:c:0:0" in datas(kb) and "ge:o" in datas(kb)
+            assert f"0 از {len(emo.CATALOG)}" in flat(text) and not persian.search(text) and "ge:c:0:0" in datas(kb) and "ge:o" in datas(kb)
             cq = CQ("ge:c:1:1")                 # دستهٔ «میز و دکمه ها» صفحهٔ دوم (8 تا در هر صفحه)
             await gbot.on_emoji_button(cq, gdb=db)
             text, kb = cq.views[-1]
@@ -1706,6 +1706,160 @@ def test_billiard_service_flow():
 
     asyncio.run(run())
 
+
+
+def _dv(players=2, variant="classic", bots=False, first=0):
+    from game_club import divar as Dv
+    seats = [{"color": c, "uid": None if bots else i + 1, "name": c, "bot": bots} for i, c in enumerate(Dv.seats_of(players))]
+    return Dv, Dv.new_state(seats, 0.0, 20, False, players, variant, first)
+
+
+def test_divar_rules():
+    Dv, st = _dv()
+    assert st["size"] == 9 and st["order"] == ["0", "2"] and st["players"]["0"]["walls"] == 10
+    assert st["players"]["0"]["pos"] == [8, 4] and st["players"]["2"]["pos"] == [0, 4]
+    t = st["next_at"]
+    # حرکت عادی و حرکت غیرمجاز
+    assert Dv.move(st, 0, 6, 4, t) == "illegal_move"
+    assert Dv.move(st, 1, 1, 4, t) == "not_your_turn"
+    assert Dv.move(st, 0, 7, 4, t) is None and st["players"]["0"]["pos"] == [7, 4]
+    # پرش از روی مهره و حرکت کج وقتی پشتش دیوار است
+    st["players"]["0"]["pos"], st["players"]["2"]["pos"] = [4, 4], [3, 4]
+    st["turn"] = 0
+    assert sorted(Dv.moves(st, "0")) == sorted([[5, 4], [2, 4], [4, 5], [4, 3]])
+    st["walls"].append(["h", 2, 4, "2"])
+    assert sorted(Dv.moves(st, "0")) == sorted([[5, 4], [3, 5], [3, 3], [4, 5], [4, 3]])
+    # دیوار روی دیوار، ضربدری، کنار هم با هم پوشانی، بیرون صفحه
+    assert Dv.wall_error(st, "h", 2, 4) == "wall_taken"
+    assert Dv.wall_error(st, "h", 2, 5) == "wall_taken"
+    assert Dv.wall_error(st, "v", 2, 4) == "wall_taken"
+    assert Dv.wall_error(st, "h", 2, 6) is None
+    assert Dv.wall_error(st, "h", 8, 0) == "bad_wall"
+    Dv2, s2 = _dv()
+    # جعبهٔ بسته: [7..8,3..4] فقط از ستون 5 راه دارد؛ بستنش ممنوع است
+    s2["walls"] = [["h", 6, 3, "2"], ["v", 7, 2, "2"]]
+    assert Dv2.wall_error(s2, "v", 7, 4) == "wall_blocks"
+    # دیوار: کم شدن موجودی، تمام شدن دیوار
+    Dv3, s3 = _dv()
+    t = s3["next_at"]
+    assert Dv3.wall(s3, 0, "h", 3, 3, t) is None and s3["players"]["0"]["walls"] == 9 and s3["turn"] == 1
+    s3["players"]["2"]["walls"] = 0
+    assert Dv3.wall(s3, 1, "h", 5, 5, s3["next_at"]) == "no_walls"
+    # برنده: رسیدن به ضلع روبه رو
+    Dv4, s4 = _dv()
+    s4["players"]["0"]["pos"] = [1, 0]
+    assert Dv4.move(s4, 0, 0, 0, s4["next_at"]) is None and s4["over"] and Dv4.winners(s4) == {"0"}
+    # ستاره: مقصد خانهٔ وسط، ۱۱×۱۱ و ۷ دیوار
+    Dv5, s5 = _dv(4, "star")
+    assert s5["size"] == 11 and all(p["walls"] == 7 for p in s5["players"].values())
+    assert s5["players"]["1"]["pos"] == [5, 0] and Dv5.at_goal(s5, "3", 5, 5) and not Dv5.at_goal(s5, "3", 5, 0)
+    Dv6, s6 = _dv(4)
+    assert all(p["walls"] == 5 for p in s6["players"].values()) and Dv6.at_goal(s6, "1", 3, 8)
+
+
+def test_divar_bot_games_and_leave():
+    from game_club import divar as Dv
+    random.seed(7)
+    for players, variant in ((2, "classic"), (4, "classic"), (4, "star")):
+        for _ in range(4):
+            _, st = _dv(players, variant, bots=True)
+            t, k = 0.0, 0
+            while not st["over"] and k < 3000:
+                t = max(t + 0.01, st["next_at"])
+                Dv.tick(st, t)
+                k += 1
+                assert all(Dv.path(st, s) for s in st["order"])
+            assert st["over"] and st["winner"] in st["order"]
+            w = st["players"][st["winner"]]["pos"]
+            assert Dv.at_goal(st, st["winner"], *w)
+    # وقت تمام شد: یک قدم به جای بازیکن در کوتاه ترین راه
+    _, st = _dv()
+    Dv.tick(st, st["deadline"] + 0.1)
+    assert st["players"]["0"]["pos"] == [7, 4] and st["players"]["0"]["misses"] == 1
+    # دو نفره: خروج یعنی برد حریف؛ چهار نفره: ربات جای او بازی می کند
+    _, st = _dv()
+    Dv.leave(st, "0", 1.0)
+    assert st["over"] and Dv.winners(st) == {"2"}
+    _, st = _dv(4)
+    Dv.leave(st, "1", 1.0)
+    assert not st["over"] and st["players"]["1"]["out"]
+
+
+def test_divar_service_flow():
+    from game_club import groups, service
+    from game_club.db import GCDatabase
+    tmp = tempfile.mkdtemp()
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        real = service.time.time
+        clock = [90_000.0]
+        service.time.time = lambda: clock[0]
+        try:
+            for tg in (1, 2, 3, 4):
+                await db.player(tg, f"p{tg}")
+                await db.credit(tg, 1000)
+            # تنظیم نامعتبر: ستاره فقط چهار نفره
+            try:
+                service.norm_cfg({"game": "divar", "players": 2, "variant": "star"})
+                raise AssertionError("bad cfg passed")
+            except service.GCError as e:
+                assert e.code == "bad_cfg"
+            # تمرین با ربات
+            r = await service.queue_join(db, 1, {"game": "divar", "mode": "free", "players": 2, "solo": True})
+            mid = r["match"]
+            v = await service.match_view(db, 1, mid)
+            g = v["game"]
+            assert g["size"] == 9 and g["n"] == 2 and v["me"] in g["order"]
+            for _ in range(20):
+                m = await db.get_match(mid)
+                st = m["state"]
+                clock[0] = max(clock[0], st["next_at"]) + 0.2
+                if st["order"][st["turn"]] == v["me"] and not st["over"]:
+                    break
+                await service.match_view(db, 1, mid)
+            v = await service.match_view(db, 1, mid)
+            mv = v["game"]["moves"]
+            assert mv
+            v = await service.act(db, 1, mid, "move", data={"r": mv[0][0], "c": mv[0][1]})
+            assert v["game"]["players"][v["me"]]["pos"] == mv[0]
+            try:
+                await service.act(db, 1, mid, "wall", data={"o": "h", "r": 3, "c": 3})
+                raise AssertionError("acted out of turn")
+            except service.GCError as e:
+                assert e.code in ("not_your_turn", "not_ready")
+            assert (await service.my_tables(db, 1))[0]["game"] == "divar"
+            await service.leave_any(db, 1, mid)
+            assert (await db.get_match(mid))["status"] == "over"
+            # چهار نفرهٔ ستاره با امتیاز: یک برنده همهٔ جایزه را می برد
+            cfg = {"game": "divar", "mode": "stake", "entry": 100, "players": 4, "variant": "star"}
+            inv = await service.invite_create(db, 1, cfg)
+            for tg in (2, 3, 4):
+                await service.invite_join(db, tg, inv["code"])
+            m = await db.get_match(inv["match"])
+            assert m["status"] == "playing" and m["state"]["size"] == 11
+            rows = {r["tg_id"]: r["color"] for r in await db.match_players(inv["match"])}
+            assert rows == {1: "0", 2: "2", 3: "1", 4: "3"}
+
+            def win(mm):
+                from game_club import divar
+                divar._finish(mm["state"], "1")
+                mm["status"] = "over"
+                return True, None
+            await service.mutate(db, inv["match"], win)
+            pts = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)}
+            prize = 400 - 400 * service.gc.rake_percent // 100
+            assert pts == {1: 900, 2: 900, 3: 900 + prize, 4: 900}, pts
+            # گروه: انتخاب «۴ نفره · ستاره» به players و variant تبدیل می شود
+            c = groups.cfg_of("divar", {"kind": 5})
+            assert c["players"] == 4 and c["variant"] == "star" and service.norm_cfg(c)["variant"] == "star"
+            assert groups.cfg_of("divar", {})["players"] == 2 and groups.need_of("divar", groups.cfg_of("divar", {"kind": 4})) == 4
+        finally:
+            service.time.time = real
+            await db.close()
+
+    asyncio.run(run())
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):

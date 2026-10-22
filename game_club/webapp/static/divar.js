@@ -1,0 +1,383 @@
+/* صفحهٔ بازی دیوار (کوریدور). وضعیت از سرور می آید (game_club/divar.py)؛ این صفحه فقط نشان می دهد،
+   حرکت و دیوار را می فرستد و پیش از فرستادن، جای مجاز دیوار را با همان قواعد (divar-engine.js) نشان می دهد.
+   صفحه طوری چرخانده می شود که هر کس خودش را پایین ببیند؛ رنگ من همیشه آبی است. */
+(() => {
+const { FD, fa, store, S, setSound, icon, sheet, toast, sfx, haptic, sleep, errText, face, amount } = GC;
+const $ = id => document.getElementById(id);
+const E = DVEngine;
+// رنگ ها نسبت به من: من آبی، نفر بعد (چپ) سبز، روبه رو قرمز، راست زرد
+const COLORS = [{ pc: '#4C8DFF', pd: '#2B62D6' }, { pc: '#2FC584', pd: '#1E8A5E' }, { pc: '#FF5A6A', pd: '#C93447' }, { pc: '#FFC531', pd: '#C98A00' }];
+const ROT = { 0: 0, 1: 3, 2: 2, 3: 1 };          // چند بار ۹۰ درجهٔ ساعتگرد تا ضلع من پایین بیاید
+const GOAL_SIDE = { 0: 0, 1: 1, 2: 2, 3: 3 };    // ضلع مقصد هر صندلی روی صفحهٔ سرور (۰ بالا، ۱ راست، ۲ پایین، ۳ چپ)
+const STAR = '<svg viewBox="0 0 24 24"><path fill="#F5C451" stroke="#B9801E" stroke-width="1" d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg>';
+const CLOCK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="4.6"/><path d="M6 3.4V6l1.8 1.1" stroke-linecap="round"/></svg>';
+
+const watchMid = GC.watchId();
+let WATCH = false;
+let mid = watchMid || store.get('dmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
+let N = 9, rot = 0, built = '', deadlineAt = 0, turnMs = 25000, warned = false, flash = null, lastTurn = null;
+const vpos = {};               // جای نمایش هر مهره (مختصات سرور)
+let vwalls = [];               // دیوارهای نمایش (مختصات سرور) [o, r, c, صاحب]
+const els = { pawns: {}, walls: {} };
+const G = () => snap && snap.game;
+const isMe = c => c === me && !WATCH;
+const nameOf = c => isMe(c) ? 'تو' : (G() && G().players[c] ? G().players[c].name : 'حریف');
+const colorOf = c => COLORS[((+c) - (+me) + 4) % 4];
+const wkey = (o, r, c) => o + r + ',' + c;
+
+/* ---------- چرخش صفحه (سرور ↔ نمایش) ---------- */
+function cellV([r, c]) { let a = r, b = c; for (let i = 0; i < rot; i++) [a, b] = [b, N - 1 - a]; return [a, b]; }
+function wallV(o, r, c) { for (let i = 0; i < rot; i++) [o, r, c] = [o === 'h' ? 'v' : 'h', c, N - 2 - r]; return [o, r, c]; }
+function wallB(o, r, c) { for (let i = 0; i < (4 - rot) % 4; i++) [o, r, c] = [o === 'h' ? 'v' : 'h', c, N - 2 - r]; return [o, r, c]; }
+
+/* ---------- اندازه و ساختن صفحه ---------- */
+let W = 300;
+function geo() {
+  const P = W * .03, Gp = W * (N === 9 ? .017 : .014), Sz = (W - 2 * P - (N - 1) * Gp) / N;
+  return { W, P, G: Gp, S: Sz, x: i => P + i * (Sz + Gp), T: Math.max(3.5, Gp * 1.1) };
+}
+function fit() {
+  const r = $('arena').getBoundingClientRect();
+  const w = Math.floor(Math.max(200, Math.min(r.width - 24, r.height - 14, 560)));
+  if (w !== W) { W = w; const b = $('board'); b.style.width = b.style.height = W + 'px'; build(true); }
+}
+function build(force) {
+  const g = G(); if (!g) return;
+  const sig = [N, rot, W, g.order.join(), g.star].join('|');
+  if (!force && sig === built) return;
+  built = sig;
+  const b = $('board'), q = geo();
+  b.innerHTML = '';
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const el = document.createElement('i'); el.className = 'dv-cell';
+    Object.assign(el.style, { left: q.x(c) + 'px', top: q.x(r) + 'px', width: q.S + 'px', height: q.S + 'px' }); b.appendChild(el);
+  }
+  if (g.star) {
+    const m = (N - 1) / 2, el = document.createElement('i'); el.className = 'dv-star'; el.innerHTML = STAR;
+    Object.assign(el.style, { left: q.x(m) + 'px', top: q.x(m) + 'px', width: q.S + 'px', height: q.S + 'px' }); b.appendChild(el);
+  } else {
+    const t = Math.max(3, q.P * .35), len = W - 2 * q.P;
+    for (const s of g.order) {
+      const side = (GOAL_SIDE[s] + rot) % 4, e = document.createElement('i'); e.className = 'dv-edge'; e.dataset.side = side;
+      e.style.setProperty('--gc', colorOf(s).pc);
+      Object.assign(e.style, side % 2 === 0 ? { left: q.P + 'px', width: len + 'px', height: t + 'px', top: (side === 0 ? q.P * .5 - t / 2 : W - q.P * .5 - t / 2) + 'px' }
+        : { top: q.P + 'px', height: len + 'px', width: t + 'px', left: (side === 1 ? W - q.P * .5 - t / 2 : q.P * .5 - t / 2) + 'px' });
+      b.appendChild(e);
+    }
+  }
+  els.walls = {};
+  for (const w of vwalls) addWall(w, false);
+  els.pawns = {};
+  for (const s of g.order) {
+    const el = document.createElement('i'); el.className = 'dv-pawn' + (isMe(s) ? ' me' : '');
+    const col = colorOf(s); el.style.setProperty('--pc', col.pc); el.style.setProperty('--pd', col.pd); el.innerHTML = '<b></b>';
+    b.appendChild(el); els.pawns[s] = el; placePawn(s);
+  }
+  const pv = document.createElement('i'); pv.className = 'dv-pv dv-wall'; pv.id = 'pv'; pv.hidden = true; b.appendChild(pv);
+  renderDots();
+}
+function wallRect(o, r, c) {
+  const q = geo(), L = 2 * q.S + q.G;
+  return o === 'h' ? { left: q.x(c), top: q.x(r + 1) - q.G / 2 - q.T / 2, width: L, height: q.T } : { left: q.x(c + 1) - q.G / 2 - q.T / 2, top: q.x(r), width: q.T, height: L };
+}
+function setRect(el, R) { for (const k in R) el.style[k] = R[k] + 'px'; }
+function addWall(w, anim) {
+  const k = wkey(w[0], w[1], w[2]); if (els.walls[k]) return;
+  const [o, r, c] = wallV(w[0], w[1], w[2]), el = document.createElement('i');
+  el.className = 'dv-wall ' + o + (anim ? ' drop' : ''); setRect(el, wallRect(o, r, c));
+  $('board').appendChild(el); els.walls[k] = el;
+}
+function placePawn(s) {
+  const el = els.pawns[s], p = vpos[s]; if (!el || !p) return;
+  const q = geo(), sz = q.S * .74, o = (q.S - sz) / 2, [r, c] = cellV(p);
+  Object.assign(el.style, { left: q.x(c) + o + 'px', top: q.x(r) + o + 'px', width: sz + 'px', height: sz + 'px' });
+}
+function hop(s) { const el = els.pawns[s]; if (!el) return; el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); }
+
+/* ---------- خانه های مجاز ---------- */
+function myTurnNow() { const g = G(); return !!(g && !WATCH && !g.over && g.turn === me && !busy && !acting); }
+function renderDots() {
+  const b = $('board'); b.querySelectorAll('.dv-dot').forEach(d => d.remove());
+  const g = G(); if (!myTurnNow() || !g.moves) return;
+  const q = geo();
+  for (const m of g.moves) {
+    const [r, c] = cellV(m), d = document.createElement('button'); d.className = 'dv-dot'; d.setAttribute('aria-label', 'برو به این خانه');
+    Object.assign(d.style, { left: q.x(c) + 'px', top: q.x(r) + 'px', width: q.S + 'px', height: q.S + 'px' });
+    d.onclick = () => doMove(m); b.appendChild(d);
+  }
+}
+
+/* ---------- سربرگ و وضعیت ---------- */
+function renderPlayers(g) {
+  const box = $('players'), order = g.order.slice();
+  // من اول (راست)، بقیه به ترتیب نوبت
+  while (order[0] !== me && order.includes(me)) order.push(order.shift());
+  box.classList.toggle('four', g.n === 4);
+  box.innerHTML = order.map(s => {
+    const p = g.players[s] || {}, col = colorOf(s);
+    return `<div class="dv-pl${g.turn === s ? ' on' : ''}${p.out ? ' out' : ''}" data-seat="${s}" style="--pc:${col.pc}"><span class="tm">${CLOCK}<span class="tr"><i></i></span></span>${face(p, col.pc)}<span class="tx"><span class="nm">${isMe(s) ? 'شما' : (p.name || '').replace(/[<>&]/g, '')}</span><span class="wc"><i></i>${FD(p.walls)}</span></span></div>`;
+  }).join('');
+  tickTimer();
+}
+function renderStatus(g) {
+  const el = $('status');
+  let t, cls = '';
+  if (flash && Date.now() < flash.until) { t = flash.t; cls = flash.warn ? 'warn' : ''; }
+  else if (g.over) t = 'پایان بازی';
+  else if (!g.turn) t = '…';
+  else if (isMe(g.turn)) { t = 'نوبت توست · یک قدم برو یا دیوار بگذار'; cls = 'mine'; }
+  else t = `نوبت ${nameOf(g.turn)}…`;
+  el.textContent = t; el.className = 'dv-pill' + (cls ? ' ' + cls : '');
+}
+function flashMsg(t, warn) { flash = { t, warn, until: Date.now() + 2400 }; if (G()) renderStatus(G()); setTimeout(() => { if (G()) renderStatus(G()); }, 2500); }
+function renderTray(g) {
+  const mine = g.players[me];
+  $('cnt').textContent = FD(mine ? mine.walls : 0);
+  $('tray').classList.toggle('off', !myTurnNow() || !mine || mine.walls <= 0);
+}
+function renderAll(g) {
+  N = g.size; rot = WATCH ? 0 : ROT[me] || 0;
+  build(false);
+  for (const s of g.order) { if (els.pawns[s]) { els.pawns[s].classList.toggle('turn', g.turn === s && !g.over); els.pawns[s].classList.toggle('out', !!g.players[s].out); } }
+  renderPlayers(g); renderStatus(g); renderTray(g); renderDots();
+  $('mode').textContent = g.n === 2 ? '۲ نفره' : g.star ? '۴ نفره · ستاره' : '۴ نفره';
+  const d = g.deadline_ms ? Date.now() + g.deadline_ms : 0;
+  if (!d) deadlineAt = 0; else { if (!deadlineAt || Math.abs(d - deadlineAt) > 1500) warned = false; if (!deadlineAt || Math.abs(d - deadlineAt) > 700) deadlineAt = d; }
+  turnMs = g.turn_ms || 25000;
+  if (g.turn !== lastTurn) { lastTurn = g.turn; if (isMe(g.turn) && !g.over) { sfx.turn(); haptic('light'); } }
+}
+function tickTimer() {
+  const pl = document.querySelector('.dv-pl.on'); if (!pl) return;
+  const tm = pl.querySelector('.tm'), bar = pl.querySelector('.tr i');
+  tm.classList.toggle('live', !!deadlineAt);
+  if (!deadlineAt) return;
+  const fr = Math.max(0, Math.min(1, (deadlineAt - Date.now()) / turnMs));
+  bar.style.width = (fr * 100).toFixed(1) + '%'; bar.style.background = fr > .25 ? '#F5C451' : '#e8503f';
+  const g = G(); if (g && isMe(g.turn) && fr < .25 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
+}
+setInterval(tickTimer, 250);
+
+/* ---------- رویدادها ---------- */
+async function play(e) {
+  const g = G();
+  if (e.t === 'move') {
+    vpos[e.c] = e.to; placePawn(e.c); hop(e.c);
+    sfx.step(); if (e.jump) haptic('light');
+    await sleep(isMe(e.c) ? 120 : 330); return;
+  }
+  if (e.t === 'wall') {
+    if (!vwalls.some(w => wkey(w[0], w[1], w[2]) === wkey(...e.w))) { vwalls.push([...e.w, e.c]); addWall(e.w, true); sfx.enter(); }
+    if (!isMe(e.c)) flashMsg(`${nameOf(e.c)} دیوار گذاشت`);
+    await sleep(isMe(e.c) ? 120 : 300); return;
+  }
+  if (e.t === 'timeout') { if (WATCH) return; flashMsg(isMe(e.c) ? 'وقتت تمام شد؛ یک قدم به جایت برداشتیم' : `${nameOf(e.c)} دیر کرد`, true); return; }
+  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}${g && g.n === 4 ? '؛ ربات جایش بازی می‌کند' : ''}`); return; }
+  if (e.t === 'win') { const el = els.pawns[e.c]; if (el) el.classList.add('win'); }
+}
+function syncFrom(g) {
+  for (const s of g.order) { const p = g.players[s].pos; if (!vpos[s] || vpos[s][0] !== p[0] || vpos[s][1] !== p[1]) { vpos[s] = p; placePawn(s); } }
+  const keys = new Set(g.walls.map(w => wkey(w[0], w[1], w[2])));
+  for (const k of Object.keys(els.walls)) if (!keys.has(k)) { els.walls[k].remove(); delete els.walls[k]; }
+  vwalls = g.walls.map(w => w.slice());
+  for (const w of vwalls) addWall(w, false);
+}
+
+/* ---------- حرکت و دیوار من ---------- */
+async function doMove(m) {
+  if (!myTurnNow()) return;
+  const prev = vpos[me];
+  vpos[me] = m; placePawn(me); hop(me); sfx.step();
+  $('board').querySelectorAll('.dv-dot').forEach(d => d.remove());
+  const ok = await act(() => GC.divar.move(mid, m[0], m[1], since));
+  if (!ok) { vpos[me] = prev; placePawn(me); }
+}
+async function doWall(o, r, c) {
+  const b = wallB(o, r, c), k = wkey(...b);
+  vwalls.push([...b, me]); addWall(b, true); sfx.enter(); haptic('light');
+  const ok = await act(() => GC.divar.wall(mid, b[0], b[1], b[2], since));
+  if (!ok) { vwalls = vwalls.filter(w => wkey(w[0], w[1], w[2]) !== k); if (els.walls[k]) { els.walls[k].remove(); delete els.walls[k]; } }
+}
+// برای نمایش جای مجاز: وضعیت فعلی با مختصات سرور
+function engineState() {
+  const g = G();
+  return { size: N, star: g.star, order: g.order, players: Object.fromEntries(g.order.map(s => [s, { pos: vpos[s] || g.players[s].pos }])), walls: vwalls };
+}
+document.querySelectorAll('.dv-slot').forEach(slot => slot.addEventListener('pointerdown', e => {
+  const g = G(), mine = g && g.players[me];
+  if (!myTurnNow() || !mine || mine.walls <= 0) {
+    if (g && !g.over && !WATCH) flashMsg(!mine || mine.walls > 0 ? 'صبر کن تا نوبتت شود' : 'دیوارهایت تمام شده؛ فقط می‌توانی حرکت کنی', true);
+    return;
+  }
+  e.preventDefault();
+  slot.setPointerCapture(e.pointerId);
+  const o = slot.dataset.o, q = geo(), L = 2 * q.S + q.G, gw = o === 'h' ? L : q.T, gh = o === 'h' ? q.T : L;
+  const lift = e.pointerType === 'mouse' ? 0 : 48;
+  const ghost = document.createElement('i'); ghost.className = 'dv-wall dv-ghost ' + o;
+  ghost.style.width = gw + 'px'; ghost.style.height = gh + 'px'; document.body.appendChild(ghost);
+  const pv = $('pv'); let key = null, ok = false;
+  const at = ev => {
+    const br = $('board').getBoundingClientRect(), x = ev.clientX, y = ev.clientY - lift;
+    ghost.style.transform = `translate(${x - gw / 2}px,${y - gh / 2}px) scale(1.08)`;
+    const bx = x - br.left, by = y - br.top;
+    if (bx < -q.S || by < -q.S || bx > W + q.S || by > W + q.S) { key = null; pv.hidden = true; ghost.style.opacity = 1; return; }
+    const cl = v => Math.max(1, Math.min(N - 1, Math.round((v - q.P + q.G / 2) / (q.S + q.G))));
+    const i = cl(bx), j = cl(by), k = wkey(o, j - 1, i - 1);
+    if (k !== key) {
+      key = k; ok = !E.wallError(engineState(), ...wallB(o, j - 1, i - 1));
+      pv.className = 'dv-pv dv-wall ' + o + (ok ? '' : ' bad'); setRect(pv, wallRect(o, j - 1, i - 1));
+      if (ok) haptic('light');
+    }
+    pv.hidden = false; ghost.style.opacity = .3;
+  };
+  at(e);
+  const mv = ev => at(ev);
+  const up = () => {
+    slot.removeEventListener('pointermove', mv); slot.removeEventListener('pointerup', up); slot.removeEventListener('pointercancel', up);
+    pv.hidden = true;
+    if (key && ok) { ghost.remove(); const [, oo, r, c] = key.match(/^([hv])(\d+),(\d+)$/); doWall(oo, +r, +c); return; }
+    if (key && !ok) { flashMsg('این‌جا نمی‌شود؛ روی دیوار دیگر می‌افتد یا راه کسی را کامل می‌بندد', true); sfx.error(); }
+    const sr = slot.getBoundingClientRect();
+    ghost.classList.add('back'); ghost.style.transform = `translate(${sr.left + sr.width / 2 - gw / 2}px,${sr.top + sr.height / 2 - gh / 2}px) scale(.7)`; ghost.style.opacity = 0;
+    setTimeout(() => ghost.remove(), 260);
+  };
+  slot.addEventListener('pointermove', mv); slot.addEventListener('pointerup', up); slot.addEventListener('pointercancel', up);
+}));
+
+/* ---------- گفتگو: نوار پایین و پیام های شناور مثل بیلیارد (tchat.js) ---------- */
+const QUICK = ['سلام!', 'خوش‌بازی!', 'عجب دیواری!', 'راهمو بستی 😅', 'زود باش', 'یک دست دیگه؟'];
+const chat = TChat.init({
+  bar: $('chatbar'), quick: QUICK, face: m => face(m, colorOf(m.color).pc),
+  canSend: () => mid && !WATCH,
+  send: async text => { await GC.divar.chat(mid, text); return (await GC.divar.match(mid, since, chat.last())).chat; },
+  onNew: () => sfx.tap(), onError: e => { sfx.error(); toast(errText(e)); },
+});
+const chatIn = (list, quiet) => chat.add(list, quiet);
+
+/* ---------- همگام سازی با سرور ---------- */
+async function apply(next, anim = true) {
+  if (next && next.chat && !overShown && next.status !== 'over' && next.status !== 'cancelled') chatIn(next.chat);
+  if (next && next.status === 'cancelled') return cancelled();
+  if (!next || !next.game) return;
+  busy = true;
+  try {
+    const first = !snap;
+    snap = Object.assign({}, snap || {}, next);
+    const g = next.game;
+    N = g.size; rot = WATCH ? 0 : ROT[me] || 0;
+    if (first) { for (const s of g.order) vpos[s] = g.players[s].pos; vwalls = g.walls.map(w => w.slice()); }
+    build(false);
+    const evs = (g.events || []).filter(e => e.seq > since).sort((a, b) => a.seq - b.seq);
+    for (const e of evs) { if (anim) await play(e); since = e.seq; }
+    since = Math.max(since, g.seq);
+    syncFrom(g);
+    if (g.over && g.winner && els.pawns[g.winner]) els.pawns[g.winner].classList.add('win');
+  } finally { busy = false; }
+  renderAll(G());
+  if (next.status === 'over' && !overShown) { overShown = true; setTimeout(() => over(next), 900); }
+}
+function pollMs() { const g = G(); if (!g || g.over) return 1500; return g.turn && g.turn !== me ? 700 : 1500; }
+async function poll() {
+  clearTimeout(pollT);
+  if (document.hidden || overShown) { pollT = setTimeout(poll, pollMs()); return; }
+  if (!busy && !acting) {
+    try { await apply(await GC.divar.match(mid, since, chat.last())); }
+    catch (e) { if (e.code === 'not_found') return noMatch(); }
+  }
+  pollT = setTimeout(poll, pollMs());
+}
+async function act(fn) {
+  if (acting) return false;
+  acting = true; renderDots(); renderTray(G());
+  try { const res = await fn(); acting = false; await apply(res); return true; }
+  catch (e) { acting = false; sfx.error(); haptic('error'); toast(errText(e)); if (G()) renderAll(G()); return false; }
+  finally { acting = false; }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
+
+/* ---------- پایان، خروج ---------- */
+const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
+function over(v) {
+  const g = v.game;
+  if (WATCH) { sfx.win(); return GC.watchOver('divar', 'بازی تمام شد', g.winner == null ? 'بازی بدون برنده بسته شد.' : `${nameOf(g.winner)} اول رسید و برد.`); }
+  chat.end();
+  const r = v.result || {}, won = !!r.won;
+  GC.guardClose(false); store.set('dmid', null);
+  won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
+  const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { moves: 0, walls: 0 };
+  const stake = v.cfg.mode === 'stake', ended = g.winner == null, left = g.n === 2 && Object.values(g.players).some(p => !p.me && p.out);
+  sheet(`<div class="dv-res">
+      <span class="ic${won ? '' : ' lost'}">${TROPHY}</span>
+      <h2>${ended ? 'بازی تمام شد' : won ? (left ? 'حریف رفت؛ تو بردی!' : 'اول رسیدی؛ بردی!') : `${nameOf(g.winner)} زودتر رسید`}</h2>
+      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه به کیف امتیازت اضافه شد.</p>` : ended ? '<p>ورودی‌ها برگشت.</p>' : `<p>ورودی این بازی (${fa(r.lost || v.cfg.entry)} امتیاز) را باختی.</p>`)
+        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت.' : 'بازی آزاد بود؛ چیزی از دست ندادی.'}</p>`}
+      <div class="facts"><div><b>${FD(st.moves)}</b><span>قدم</span></div><div><b>${FD(st.walls)}</b><span>دیوار گذاشتی</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
+    </div>
+    <a class="btn btn-block" href="divar-lobby.html">یک بازی دیگر</a>
+    <a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+  GC.refreshMe().catch(() => {});
+}
+function cancelled() {
+  if (overShown) return;
+  overShown = true;
+  if (WATCH) { GC.watchOver('divar', 'این بازی بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
+  chat.end(); GC.guardClose(false); store.set('dmid', null); GC.refreshMe().catch(() => {});
+  sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
+      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازی را بست و ورودی همه به کیف امتیازشان برگشت.</p>
+      <div class="dlg-acts"><a class="btn" href="divar-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+}
+function noMatch() {
+  if (watchMid) { GC.watchOver('divar', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
+  store.set('dmid', null);
+  sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
+      <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز وارد بازی‌ای نشده‌ای.</p>
+      <div class="dlg-acts"><a class="btn" href="divar-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+}
+function askExit() {
+  if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
+  const stake = snap.cfg.mode === 'stake', four = G() && G().n === 4;
+  const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
+      <span class="dlg-ic warn">${icon('exit')}</span>
+      <h2 id="dT">از بازی بیرون می‌روی؟</h2>
+      <p id="dD">${four ? 'خروج یعنی باخت تو؛ ربات جایت تا آخر بازی می‌کند.' : 'خروج یعنی باخت همین بازی و حریف برنده می‌شود.'}</p>
+      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
+      <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ بازی می‌ماند</button>
+      <p class="dlg-fine">بازی در صفحهٔ خانه می‌ماند و با یک لمس برمی‌گردی. تا نیستی، وقت هر نوبتت که تمام شود یک قدم به جایت برداشته می‌شود${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}.</p>
+    </div>`, { center: true });
+  sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
+  sh.querySelector('#leave').onclick = async () => {
+    try { await GC.divar.leave(mid); } catch (e) {}
+    GC.guardClose(false); store.set('dmid', null); location.href = 'index.html';
+  };
+}
+$('exit').onclick = askExit;
+GC.back(askExit);
+const sndBtn = $('snd');
+const syncSnd = () => { sndBtn.innerHTML = icon(S.sound ? 'soundOn' : 'soundOff'); sndBtn.setAttribute('aria-pressed', String(!!S.sound)); sndBtn.setAttribute('aria-label', S.sound ? 'خاموش کردن صدا' : 'روشن کردن صدا'); };
+sndBtn.onclick = () => { setSound(!S.sound); syncSnd(); if (S.sound) GC.loadSamples(); };
+syncSnd();
+document.addEventListener('pointerdown', () => GC.loadSamples(), { once: true });
+window.addEventListener('resize', fit);
+try { Telegram.WebApp.onEvent('viewportChanged', fit); Telegram.WebApp.onEvent('fullscreenChanged', () => setTimeout(fit, 50)); } catch (e) {}
+
+/* ---------- شروع ---------- */
+async function start() {
+  GC.portrait(true);
+  let first;
+  try { first = await GC.divar.match(mid, 0, 0); }
+  catch (e) { return e.code === 'not_found' ? noMatch() : (toast(errText(e)), setTimeout(start, 2500)); }
+  WATCH = !!first.watch;
+  if (first.status === 'lobby') { if (watchMid) return noMatch(); location.href = 'divar-lobby.html'; return; }
+  if (first.status === 'cancelled') return cancelled();
+  mid = first.id; me = WATCH ? (first.game ? first.game.order[0] : '0') : first.me;
+  // تماشاگر چیزی نمی نویسد: جای نوار پیام، برچسب «در حال تماشا»
+  if (WATCH) { $('chatbar').innerHTML = '<button class="dv-say" id="chatBtn"></button>'; GC.watchPill(); } else store.set('dmid', mid);
+  if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
+  chatIn(first.chat, true);
+  since = first.game ? first.game.seq : 0;
+  fit();
+  await apply(first, false); fit();
+  poll();
+}
+start();
+})();
