@@ -130,8 +130,6 @@
   /* ---------- صفحهٔ بازی ---------- */
   async function play(how, cfg, btn) {
     const c = Object.assign({ game: 'divar' }, cfg);
-    // انتخاب «حالت» میز خصوصی (۲، ۴ کلاسیک، ۴ ستاره) به players و variant
-    if (c.kind != null) { c.players = c.kind === 2 ? 2 : 4; c.variant = c.kind === 5 ? 'star' : 'classic'; delete c.kind; }
     if (how === 'bot') { c.mode = 'free'; c.entry = 0; c.solo = true; }
     if (c.mode === 'stake' && GC.points < c.entry) { sfx.error(); haptic('error'); toast(errText({ code: 'insufficient' })); return; }
     if (btn) btn.disabled = true;
@@ -143,16 +141,10 @@
   }
   gp = GCGame.build({
     game: 'divar', title: 'دیوار', help: 'help.html#hDivar',
-    privateSub: 'دو نفره، چهار نفره یا چهار نفرهٔ ستاره',
-    privateFields: [{ key: 'kind', label: 'حالت بازی', opts: [[2, '۲ نفره', '۹×۹ · ۱۰ دیوار'], [4, '۴ نفره', 'کلاسیک · ۵ دیوار'], [5, '۴ نفره ستاره', '۱۱×۱۱ · ۷ دیوار']] }],
-    privateDefaults: () => Object.assign({ kind: 2 }, store.get('dvPriv', {})),
-    queues: s => [
-      { title: 'بازی سریع', sub: 'آزاد · ۲ نفره · ۹×۹ · ۱۰ دیوار', ic: icon('bolt'), hot: true, how: 'online', cfg: { mode: 'free', entry: 0, players: 2, variant: 'classic' } },
-      { title: 'چهار نفره', sub: 'آزاد · هر کس به ضلع روبه‌رو · ۵ دیوار', ic: icon('users'), how: 'online', cfg: { mode: 'free', entry: 0, players: 4, variant: 'classic' } },
-      { title: 'چهار نفرهٔ ستاره', sub: 'آزاد · ۱۱×۱۱ · همه به ستارهٔ وسط', ic: icon('users'), how: 'online', cfg: { mode: 'free', entry: 0, players: 4, variant: 'star' } },
-      ...(s.stake ? s.entries.map(v => ({ title: `ورودی ${fa(v)}`, sub: `با امتیاز · ۲ نفره · برنده ${fa(v * 2)} می‌برد`, ic: GC.coin(), coin: true, how: 'online', cfg: { mode: 'stake', entry: v, players: 2, variant: 'classic' } })) : []),
-      { title: 'تمرین با ربات', sub: 'همیشه آزاد، بدون انتظار · ۲ نفره', ic: icon('bot'), how: 'bot', cfg: { mode: 'free', entry: 0, players: 2, variant: 'classic' } },
-      { title: 'چهار نفره با ربات‌ها', sub: 'تو مقابل سه ربات · ستارهٔ وسط', ic: icon('bot'), how: 'bot', cfg: { mode: 'free', entry: 0, players: 4, variant: 'star' } },
+    modes: [
+      { v: 'd2', label: '۲ نفره', ic: icon('user'), desc: 'رو در رو روی صفحهٔ ۹×۹، هر نفر ۱۰ دیوار. اول به ضلع روبه‌رو برس.', short: '۹×۹ · هر نفر ۱۰ دیوار', cfg: { players: 2, variant: 'classic' } },
+      { v: 'd4', label: '۴ نفره', ic: icon('users'), desc: 'چهار نفر از چهار طرف، هر کس به ضلع روبه‌رو. هر نفر ۵ دیوار.', short: '۹×۹ · هر نفر ۵ دیوار', cfg: { players: 4, variant: 'classic' } },
+      { v: 'd5', label: 'ستاره', ic: icon('spark'), desc: 'چهار نفره روی صفحهٔ ۱۱×۱۱؛ همه به ستارهٔ وسط. هر نفر ۷ دیوار.', short: '۱۱×۱۱ · همه به وسط', cfg: { players: 4, variant: 'star' } },
     ],
     rules: [['هدف:', 'زودتر از بقیه مهره‌ات را به ضلع روبه‌رو برسان (در «ستاره» به خانهٔ ستارهٔ وسط صفحه). اولین کسی که برسد برنده است و بازی همان لحظه تمام می‌شود.'],
       ['هر نوبت یکی از این دو:', 'یک خانه بالا، پایین، چپ یا راست برو (خانه‌های روشن)، یا یک دیوار را از سینی پایین بگیر و روی شیار بین خانه‌ها رها کن.'],
@@ -161,7 +153,7 @@
       ['تعداد دیوار:', '۲ نفره هر نفر ۱۰ دیوار، ۴ نفره ۵ دیوار و ۴ نفرهٔ ستاره ۷ دیوار.'],
       ['وقت:', 'اگر وقت نوبتت تمام شود، یک قدم در کوتاه‌ترین راه به جایت برداشته می‌شود. در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت.'],
       ['ترفند:', 'دیوارهایت را زود خرج نکن؛ وقتی حریف نزدیک مقصد است دیوار بگذار و قبل از هر دیوار راه خودت را هم نگاه کن.']],
-    play: (how, cfg, btn) => { if (how === 'invite') store.set('dvPriv', { kind: cfg.kind }); play(how, cfg, btn); },
+    play,
   });
 
   (async () => {

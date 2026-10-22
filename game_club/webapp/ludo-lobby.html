@@ -134,21 +134,19 @@
   }
   gp = GCGame.build({
     game: 'ludo', title: 'منچ', help: 'help.html#hLudo',
-    privateFields: [{ key: 'players', label: 'تعداد بازیکن', opts: [[2, '۲ نفره', 'رودررو'], [4, '۴ نفره', 'شلوغ و هیجانی']] },
-      { key: 'pawns', label: 'مدل', opts: [[2, 'سریع', '۲ مهره · ۵ دقیقه'], [4, 'کلاسیک', '۴ مهره · ۱۵ دقیقه']] }],
-    privateDefaults: () => Object.assign({ players: 2, pawns: 2 }, store.get('ludoPriv', {})),
-    queues: s => [
-      { title: 'سریع دونفره', sub: 'آزاد · ۲ نفره · ۲ مهره', ic: icon('bolt'), hot: true, how: 'online', cfg: { mode: 'free', entry: 0, players: 2, pawns: 2 } },
-      { title: 'کلاسیک چهارنفره', sub: 'آزاد · ۴ نفره · ۴ مهره', ic: icon('users'), how: 'online', cfg: { mode: 'free', entry: 0, players: 4, pawns: 4 } },
-      ...(s.stake ? s.entries.map(v => ({ title: `ورودی ${fa(v)}`, sub: `با امتیاز · ۲ نفره · برنده ${fa(v * 2)} می‌برد`, ic: GC.coin(), coin: true, how: 'online', cfg: { mode: 'stake', entry: v, players: 2, pawns: 2 } })) : []),
-      { title: 'تمرین با ربات', sub: '۴ نفره با ربات‌ها، بدون انتظار', ic: icon('bot'), how: 'bot', cfg: { mode: 'free', entry: 0, players: 4, pawns: 2 } },
+    privateSub: 'لینک بفرست و با دوستانت منچ بزن',
+    modes: [
+      { v: 'l22', label: 'سریع ۲ نفره', ic: icon('bolt'), desc: 'رو در رو با ۲ مهره؛ هر کس زودتر هر دو مهره را به خانه برساند می‌برد. حدود ۵ دقیقه.', short: '۲ مهره · حدود ۵ دقیقه', cfg: { players: 2, pawns: 2 } },
+      { v: 'l44', label: 'کلاسیک ۴ نفره', ic: icon('users'), desc: 'منچ کامل چهار نفره با ۴ مهره؛ شلوغ و هیجانی. حدود ۱۵ دقیقه.', short: '۴ مهره · حدود ۱۵ دقیقه', cfg: { players: 4, pawns: 4 } },
+      { v: 'l42', label: 'سریع ۴ نفره', ic: icon('dice'), desc: 'چهار نفره با ۲ مهره؛ شلوغ ولی کوتاه.', short: '۲ مهره · حدود ۸ دقیقه', cfg: { players: 4, pawns: 2 } },
+      { v: 'l24', label: 'کلاسیک ۲ نفره', ic: icon('user'), desc: 'رو در رو با ۴ مهره؛ بازی کامل و حساب‌شده.', short: '۴ مهره · حدود ۱۲ دقیقه', cfg: { players: 2, pawns: 4 } },
     ],
     rules: [['رنگ تو زرد است', 'و پایین سمت چپ می‌نشینی؛ هر بازیکن صفحه را از سمت خودش می‌بیند.'],
       ['با ۶', 'مهره از خانه بیرون می‌آید و یک تاس دیگر هم می‌ریزی.'],
       ['مهره‌ها', 'در جهت فلش‌ها دور صفحه می‌چرخند، وارد راهروی رنگ خودت می‌شوند و به مرکز می‌رسند.'],
       ['اگر روی مهرهٔ حریف بنشینی', 'آن مهره به خانه برمی‌گردد؛ خانه‌های ستاره‌دار امن‌اند.'],
       ['هر کس', 'زودتر همهٔ مهره‌هایش را به مرکز برساند برنده است.']],
-    play: (how, cfg, btn) => { if (how === 'invite') store.set('ludoPriv', { players: cfg.players, pawns: cfg.pawns }); play(how, cfg, btn); },
+    play,
   });
 
   (async () => {

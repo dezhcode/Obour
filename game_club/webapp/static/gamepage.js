@@ -1,8 +1,8 @@
 /* صفحهٔ هر بازی (حکم، منچ، فوتبال): بنر با پیش نمایش زندهٔ بازی و سطح تو در همان بازی، و چهار تب
-   «بازی · فروشگاه · رده‌بندی · آموزش». تب بازی: ساخت میز خصوصی و صف های آماده؛ هر صف فقط یک دکمه است.
-   منطق صف، دعوت و شروع در خود صفحهٔ لابی می ماند (opt.play)؛ اینجا فقط چیدمان و انتخاب است. */
+   «بازی · فروشگاه · رده‌بندی · آموزش». تب بازی: چیپ های حالت، حریف و ورودی و یک نوار شناور با خلاصه و تنها دکمهٔ شروع؛
+   انتخاب آخر هر بازی یادش می ماند. منطق صف، دعوت و شروع در خود صفحهٔ لابی می ماند (opt.play)؛ اینجا فقط چیدمان و انتخاب است. */
 (function () {
-const { fa, FD, icon, face, toast, errText, sheet, sheetHead, close, sfx, haptic, mount } = GC;
+const { fa, FD, icon, face, toast, errText, sheet, sheetHead, close, sfx, haptic, mount, store } = GC;
 const LV_TITLE = lv => lv < 3 ? 'تازه‌کار' : lv < 6 ? 'آشنا' : lv < 10 ? 'حرفه‌ای' : 'استاد';
 const STAR = 'M12 1.8 15 8l6.8.8-5 4.7 1.3 6.8L12 17l-6.1 3.3 1.3-6.8-5-4.7L9 8z';
 const TABS = [['play', 'بازی'], ['shop', 'فروشگاه'], ['board', 'رده‌بندی'], ['rules', 'آموزش']];
@@ -14,7 +14,8 @@ function build(opt) {
   const tabs = TABS.filter(([id]) => id !== 'shop' || opt.shop);
   root.innerHTML = `<section class="gp-banner" id="gpBanner" aria-label="پیشرفت تو در ${opt.title}"></section>
     <div class="gp-tabs" role="tablist" id="gpTabs">${tabs.map(([id, l]) => `<button role="tab" data-t="${id}">${l}</button>`).join('')}</div>
-    <div class="gp-panel" id="gpPanel" role="tabpanel"></div>`;
+    <div class="gp-panel" id="gpPanel" role="tabpanel"></div>
+    <div class="gp-dock" id="gpDock" hidden></div>`;
   const $ = id => document.getElementById(id);
 
   function banner() {
@@ -27,20 +28,58 @@ function build(opt) {
     GCPreview.watch($('gpBanner'));
   }
 
-  /* ---------- تب بازی ---------- */
+  /* ---------- تب بازی: سه ردیف چیپ (حالت، حریف، ورودی) و نوار شناور با خلاصه و یک دکمه ---------- */
+  const WHO = [['online', 'آنلاین', 'globe'], ['friends', 'دوستان', 'link'], ['group', 'گروه', 'users'], ['bot', 'ربات', 'bot']];
+  const WHO_DESC = {
+    online: 'با بازیکن‌های واقعی، ناشناس',
+    friends: opt.privateSub || 'لینک دعوت می‌سازی و برای دوستانت می‌فرستی',
+    group: 'کارت میز را در گروه تلگرام می‌فرستی؛ هر کس بخواهد می‌نشیند',
+    bot: 'تمرین، همیشه آزاد و بدون انتظار',
+  };
+  const GO = { online: ['پیدا کردن حریف', 'play'], friends: ['ساختن لینک دعوت', 'link'], group: ['فرستادن به گروه', 'send'], bot: ['شروع با ربات', 'play'] };
+  const saved = store.get('gp:' + opt.game, {});
+  const pick = Object.assign({ mode: opt.modes[0].v, who: 'online', entry: 0 }, saved);
+  pick.extra = Object.assign({}, ...(opt.extras || []).map(x => ({ [x.key]: x.opts[0][0] })), saved.extra || {});
+  if (!opt.modes.some(m => m.v === pick.mode)) pick.mode = opt.modes[0].v;
+  if (!WHO.some(([v]) => v === pick.who)) pick.who = 'online';
+  const modeOf = () => opt.modes.find(m => m.v === pick.mode);
+  // ورودی فقط برای آنلاین و دوستان؛ ربات و گروه همیشه آزادند (گروه تنظیماتش را در خود کارت می پرسد)
+  const staked = () => settings.stake && (pick.who === 'online' || pick.who === 'friends');
+  const entryOf = () => staked() && settings.entries.includes(pick.entry) ? pick.entry : 0;
+  // جایزه: همهٔ ورودی ها به برنده؛ در حالت تیمی (حکم، بیلیارد یاری) بین دو یار تقسیم می شود
+  const payout = v => modeOf().team ? v * 2 : v * (modeOf().cfg.players || 2);
+  const prize = v => `${modeOf().team ? 'هر برنده' : 'برنده'} ${fa(payout(v))} می‌برد`;
+  const cfgOf = () => {
+    const e = entryOf();
+    return Object.assign({}, modeOf().cfg, pick.who === 'friends' ? pick.extra : {}, { mode: e ? 'stake' : 'free', entry: e });
+  };
+  const chip = (key, v, label, ic, on, extra = '') => `<button class="chip gp-c" data-k="${key}" data-v="${v}" aria-pressed="${on}"${extra}>${ic || ''}${label}</button>`;
   function play() {
-    const pts = GC.points, rows = opt.queues(settings);
-    return `<button class="gp-private" id="gpPriv"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.5 3.5L12 5l4.5 6.5L21 8l-2 10H5z"/></svg></span>
-        <span class="t"><b>ساخت میز خصوصی</b><small>${opt.privateSub || 'دوستانت را دعوت کن و با هم بازی کنید'}</small></span><span class="go">${icon('fwd')}</span></button>
-      <button class="gp-private gp-share" id="gpShare"><span class="ic">${icon('users')}</span>
-        <span class="t"><b>فرستادن به گروه</b><small>کارت میز را در گروه یا چت دوستانت بفرست</small></span><span class="go">${icon('send')}</span></button>
-      <h2 class="gp-h">صف‌های بازی</h2>
-      <ul class="gp-q">${rows.map((q, i) => {
-        const short = q.cfg.mode === 'stake' && pts < q.cfg.entry;
-        return `<li><span class="ic${q.coin ? ' coin' : ''}">${q.ic}</span>
-          <span class="t"><b>${q.title}${q.hot ? '<span class="hot">محبوب</span>' : ''}</b><small>${q.sub}</small></span>
-          <button class="gp-join${q.hot ? ' hot' : ''}" data-q="${i}"${short ? ' disabled' : ''}>${short ? 'امتیاز کم' : q.how === 'bot' ? 'شروع' : 'بپیوند'}</button></li>`;
-      }).join('')}</ul>`;
+    const m = modeOf(), e = entryOf();
+    return `<h2 class="gp-h">حالت بازی</h2>
+      <div class="chips">${opt.modes.map(x => chip('mode', x.v, x.label, x.ic, x.v === pick.mode)).join('')}</div>
+      <p class="gp-desc">${icon('info')}<span><b>${m.label}:</b> ${m.desc}</span></p>
+      <h2 class="gp-h">حریف</h2>
+      <div class="chips">${WHO.map(([v, l, ic]) => chip('who', v, l, icon(ic), v === pick.who)).join('')}</div>
+      <p class="gp-sub">${WHO_DESC[pick.who]}</p>
+      ${pick.who === 'friends' ? (opt.extras || []).map(x => `<h2 class="gp-h">${x.label}</h2>
+        <div class="chips">${x.opts.map(([v, l, s]) => chip('x:' + x.key, v, l + (s ? ` <small>${s}</small>` : ''), '', String(pick.extra[x.key]) === String(v))).join('')}</div>`).join('') : ''}
+      ${staked() ? `<h2 class="gp-h">ورودی</h2>
+        <div class="chips">${chip('entry', 0, 'آزاد', '', !e)}${settings.entries.map(v => chip('entry', v, `${fa(v)} <small>← ${fa(payout(v))}</small>`, GC.coin(), e === v, GC.points < v ? ' disabled' : '')).join('')}</div>
+        <p class="gp-sub">${e ? `هر نفر ${fa(e)} امتیاز می‌دهد · ${prize(e)}` : 'بدون امتیاز؛ فقط برای سرگرمی'}</p>` : ''}`;
+  }
+  function dock() {
+    const el = $('gpDock'); el.hidden = tab !== 'play'; if (el.hidden) return;
+    const m = modeOf(), e = entryOf(), short = e && GC.points < e, [label, ic] = GO[pick.who];
+    const who = WHO.find(([v]) => v === pick.who)[1];
+    el.innerHTML = `<span class="t"><b>${m.label} · ${who} · ${e ? `ورودی ${fa(e)}` : 'آزاد'}</b><small>${m.short || m.desc}</small></span>
+      <button class="btn gp-go" id="gpGo"${short ? ' disabled' : ''}>${short ? 'امتیاز کم' : `${icon(ic)}${label}`}</button>`;
+  }
+  function start(btn) {
+    const cfg = cfgOf();
+    if (pick.who === 'group') { share(btn); return; }
+    if (cfg.mode === 'stake' && GC.points < cfg.entry) { sfx.error(); toast(errText({ code: 'insufficient' })); return; }
+    opt.play(pick.who === 'friends' ? 'invite' : pick.who, cfg, btn);
   }
   /* فرستادن کارت میز به گروه یا چت: تلگرام پنجرهٔ انتخاب چت را باز می کند (WebApp 8.0+)؛
      در تلگرام قدیمی تر حالت اینلاین (@ربات hokm) با انتخاب چت باز می شود */
@@ -56,31 +95,6 @@ function build(opt) {
     } catch (e) { if (!inline()) toast(errText(e)); }
     btn.disabled = false;
   }
-  function privateSheet() {
-    const f = Object.assign({ mode: 'free', entry: settings.entries[0] }, opt.privateDefaults());
-    if (!settings.stake) f.mode = 'free';
-    const sh = sheet(`${sheetHead('میز خصوصی')}<p class="gp-lead">میز را بساز و لینکش را برای دوستانت بفرست.</p>
-      <div id="gpPf" class="stack"></div><button class="btn btn-block" id="gpMake">${icon('link')}ساختن میز و دعوت</button>`);
-    const box = sh.querySelector('#gpPf');
-    const seg = (key, opts) => `<div class="seg" data-f="${key}">${opts.map(([v, l, s]) => `<button data-v="${v}" aria-pressed="${String(f[key]) === String(v)}">${l}${s ? `<small>${s}</small>` : ''}</button>`).join('')}</div>`;
-    const draw = () => {
-      box.innerHTML = `${settings.stake ? `<div class="gp-f"><span>نوع بازی</span>${seg('mode', [['free', 'آزاد', 'بدون امتیاز'], ['stake', 'با امتیاز', 'برنده جایزه می‌برد']])}</div>` : ''}
-        ${f.mode === 'stake' ? `<div class="gp-f"><span>ورودی هر نفر</span><div class="chips" data-f="entry">${settings.entries.map(v => `<button class="chip" data-v="${v}" aria-pressed="${f.entry === v}"${GC.points < v ? ' disabled' : ''}>${GC.coin()}${fa(v)}</button>`).join('')}</div></div>` : ''}
-        ${opt.privateFields.map(x => `<div class="gp-f"><span>${x.label}</span>${seg(x.key, x.opts)}</div>`).join('')}`;
-      mount(box);
-    };
-    box.onclick = e => {
-      const g = e.target.closest('[data-f]'), b = e.target.closest('[data-v]'); if (!g || !b || b.disabled) return;
-      const v = b.dataset.v; f[g.dataset.f] = isNaN(+v) ? v : +v; sfx.tap(); draw();
-    };
-    sh.querySelector('#gpMake').onclick = () => {
-      const cfg = Object.assign({}, f, { entry: f.mode === 'stake' ? f.entry : 0 });
-      if (cfg.mode === 'stake' && GC.points < cfg.entry) { sfx.error(); toast(errText({ code: 'insufficient' })); return; }
-      close(); opt.play('invite', cfg);
-    };
-    draw();
-  }
-
   /* ---------- تب فروشگاه (ظاهر میز و ورق) ---------- */
   function shop() {
     if (!sty) return '<div class="gp-skel"></div><div class="gp-skel"></div>';
@@ -127,8 +141,9 @@ function build(opt) {
   function draw() {
     $('gpTabs').querySelectorAll('[data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === tab)));
     $('gpPanel').innerHTML = tab === 'play' ? play() : tab === 'shop' ? shop() : tab === 'board' ? boardHtml() : rules();
-    mount($('gpPanel'));
+    mount($('gpPanel')); dock(); mount($('gpDock'));
   }
+  $('gpDock').onclick = e => { const b = e.target.closest('#gpGo'); if (b && !b.disabled) start(b); };
   $('gpTabs').onclick = e => {
     const b = e.target.closest('[data-t]'); if (!b || b.dataset.t === tab) return;
     tab = b.dataset.t; sfx.tap(); draw();
@@ -136,10 +151,12 @@ function build(opt) {
     if (tab === 'shop' && !sty) GC.data.style().then(r => { sty = r; if (tab === 'shop') draw(); }).catch(e => toast(errText(e)));
   };
   $('gpPanel').onclick = e => {
-    if (e.target.closest('#gpPriv')) { privateSheet(); return; }
-    const sb = e.target.closest('#gpShare'); if (sb) { share(sb); return; }
-    const j = e.target.closest('[data-q]');
-    if (j && !j.disabled) { const q = opt.queues(settings)[+j.dataset.q]; opt.play(q.how, Object.assign({}, q.cfg), j); return; }
+    const c = e.target.closest('.gp-c');
+    if (c && !c.disabled) {
+      const k = c.dataset.k, v = isNaN(+c.dataset.v) ? c.dataset.v : +c.dataset.v;
+      if (k.startsWith('x:')) pick.extra[k.slice(2)] = v; else pick[k] = v;
+      store.set('gp:' + opt.game, pick); sfx.tap(); haptic('light'); draw(); return;
+    }
     const it = e.target.closest('[data-item]'); if (it) { pickItem(it.dataset.item); return; }
     const p = e.target.closest('#gpPer [data-v]'); if (p && p.dataset.v !== period) { period = p.dataset.v; loadBoard(); }
   };

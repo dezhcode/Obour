@@ -143,14 +143,9 @@
   gp = GCGame.build({
     game: 'billiard', title: 'بیلیارد', help: 'help.html#hBilliard',
     privateSub: 'دو نفره رو در رو، یا چهار نفره با یارت',
-    privateFields: [{ key: 'players', label: 'تعداد بازیکن', opts: [[2, '۲ نفره', 'رو در رو'], [4, '۴ نفره', 'یاری · دو تیم']] }],
-    privateDefaults: () => Object.assign({ players: 2 }, store.get('blPriv', {})),
-    queues: s => [
-      { title: 'بازی سریع', sub: 'آزاد · ۲ نفره · ۸ توپ', ic: icon('bolt'), hot: true, how: 'online', cfg: { mode: 'free', entry: 0, players: 2 } },
-      { title: 'بازی یاری', sub: 'آزاد · ۴ نفره · دو تیم دونفره', ic: icon('users'), how: 'online', cfg: { mode: 'free', entry: 0, players: 4 } },
-      ...(s.stake ? s.entries.map(v => ({ title: `ورودی ${fa(v)}`, sub: `با امتیاز · ۲ نفره · برنده ${fa(v * 2)} می‌برد`, ic: GC.coin(), coin: true, how: 'online', cfg: { mode: 'stake', entry: v, players: 2 } })) : []),
-      { title: 'تمرین با ربات', sub: 'همیشه آزاد، بدون انتظار · ۲ نفره', ic: icon('bot'), how: 'bot', cfg: { mode: 'free', entry: 0, players: 2 } },
-      { title: 'یاری با ربات‌ها', sub: 'تو و یار رباتت مقابل دو ربات', ic: icon('bot'), how: 'bot', cfg: { mode: 'free', entry: 0, players: 4 } },
+    modes: [
+      { v: 'b2', label: '۲ نفره', ic: icon('user'), desc: 'رو در رو، ۸ توپ؛ توپ‌های خودت را بنداز و آخر از همه توپ ۸.', short: 'رو در رو · ۸ توپ', cfg: { players: 2 } },
+      { v: 'b4', label: 'یاری ۴ نفره', ic: icon('users'), team: true, desc: 'دو تیم دونفره؛ یارها به نوبت می‌زنند و جایزه بین دو یار تقسیم می‌شود.', short: 'دو تیم دونفره', cfg: { players: 4 } },
     ],
     rules: [['نشانه‌گیری:', 'یک بار روی میز بزن تا نوک چوب همان‌جا را بگیرد؛ با کشیدن انگشت دور توپ سفید، چوب همراه انگشت می‌چرخد؛ آرام بکشی خیلی ظریف و دقیق می‌چرخد و تند بکشی سریع؛ خط سفید مسیر توپ سفید و خط رنگی مسیر توپ هدف است.'],
       ['ضربه:', 'نوار قدرت کنار میز را پایین بکش و رها کن؛ هر چه بیشتر بکشی محکم‌تر می‌زنی.'],
@@ -159,7 +154,7 @@
       ['خطا:', 'افتادن سفید، خوردن اول به توپ حریف یا نخوردن به هیچ توپی = حریف «توپ در دست» می‌گیرد و هر جا خواست سفید را می‌گذارد.'],
       ['برد:', 'گروهت را پاک کن و بعد توپ ۸ را بینداز. ۸ زودتر یا همراه خطا = باخت.'],
       ['یاری:', 'در چهار نفره یارت روبه‌رویت است و نوبت یکی در میان بین دو تیم می‌چرخد.']],
-    play: (how, cfg, btn) => { if (how === 'invite') store.set('blPriv', { players: cfg.players }); play(how, cfg, btn); },
+    play,
   });
 
   (async () => {
