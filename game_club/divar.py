@@ -342,6 +342,16 @@ def bot_turn(st: dict, i: int) -> tuple:
     return ("move", m[0], m[1]) if m else ("pass",)
 
 
+# کارهای زمان دار (ربات، جمع کردن دور، دست بعد) را از زمانِ موعدشان حساب می کنیم نه از لحظهٔ poll؛
+# وگرنه هر ربات منتظر poll بعدی می ماند و با سه ربات نوبت آدم چند ثانیه دیرتر می رسد.
+# اگر کسی مدت زیادی نپرسیده، از همین لحظه (تا مهلت نفر بعد بی دلیل نسوزد).
+CATCHUP = 2.0
+
+
+def _due(st: dict, now: float) -> float:
+    return st["next_at"] if 0 <= now - st["next_at"] <= CATCHUP else now
+
+
 def tick(st: dict, now: float) -> bool:
     changed = False
     for _ in range(4):
@@ -353,13 +363,13 @@ def tick(st: dict, now: float) -> bool:
         if _auto(st, i):
             if now < st["next_at"]:
                 break
-            act = bot_turn(st, i)
+            act, t = bot_turn(st, i), _due(st, now)
             if act[0] == "wall":
-                wall(st, i, act[1], act[2], act[3], now)
+                wall(st, i, act[1], act[2], act[3], t)
             elif act[0] == "move":
-                move(st, i, act[1], act[2], now)
+                move(st, i, act[1], act[2], t)
             else:
-                _next(st, now)
+                _next(st, t)
             changed = True
             continue
         if now < st["deadline"]:

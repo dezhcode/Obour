@@ -187,7 +187,7 @@ function renderMe(g) {
   const timer = (mine && g.phase === 'play') || (g.phase === 'trump' && hakemMe);
   $('meBar').innerHTML = `<div class="hk-mb${timer ? ' mine' : ''}">${face(Object.assign({}, p, { name: p.name }), timer ? 'var(--gold)' : '#9BE3B8', timer ? 'timer' : '')}
     <span class="txt"><b>${t}${timer && g.deadline_ms ? '<span class="clock" id="clock"></span>' : ''}</b>${sub ? `<span>${sub}</span>` : ''}</span></div>`;
-  setDeadline(g.deadline_ms); turnMs = g.turn_ms || 20000;
+  setDeadline(g.deadline_ms, g._at); turnMs = g.turn_ms || 20000;
 }
 function renderAll(g, anim = false) {
   renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); renderStacks(g.tricks); mount($('meBar')); tickTimer();
@@ -196,8 +196,8 @@ function renderAll(g, anim = false) {
 /* ---------- تایمر نوبت ---------- */
 // مهلت نوبت: پرسش های پی در پی سرور با تاخیر شبکه کمی جابه جایش می کنند؛ فقط تغییر
 // واقعی (نوبت تازه) را بپذیر تا حلقه زمان یکنواخت کم شود و هشدار یک بار بیاید
-function setDeadline(ms) {
-  const d = ms ? Date.now() + ms : 0;
+function setDeadline(ms, at) {
+  const d = ms ? (at || Date.now()) + ms : 0;
   if (!d) { deadlineAt = 0; return; }
   if (!deadlineAt || Math.abs(d - deadlineAt) > 1500) warned = false;
   if (!deadlineAt || Math.abs(d - deadlineAt) > 700) deadlineAt = d;
@@ -557,6 +557,7 @@ async function apply(next, anim = true) {
   if (next && next.chat && !overShown && next.status !== 'over' && next.status !== 'cancelled') chatIn(next.chat);
   if (next && next.status === 'cancelled') return cancelled();
   if (!next || !next.game) return;
+  next.game._at = Date.now();   // زمان رسیدن پاسخ: مهلت و «آماده» از همین لحظه حساب می شوند، نه بعد از انیمیشن
   busy = true;
   try {
     snap = Object.assign({}, snap || {}, next);

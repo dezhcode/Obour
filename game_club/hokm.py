@@ -323,6 +323,16 @@ def bot_card(st: dict, i: int) -> int:
     return low(plain) if plain else low(ok)
 
 
+# کارهای زمان دار (ربات، جمع کردن دور، دست بعد) را از زمانِ موعدشان حساب می کنیم نه از لحظهٔ poll؛
+# وگرنه هر ربات منتظر poll بعدی می ماند و با سه ربات نوبت آدم چند ثانیه دیرتر می رسد.
+# اگر کسی مدت زیادی نپرسیده، از همین لحظه (تا مهلت نفر بعد بی دلیل نسوزد).
+CATCHUP = 2.0
+
+
+def _due(st: dict, now: float) -> float:
+    return st["next_at"] if 0 <= now - st["next_at"] <= CATCHUP else now
+
+
 # ---------- زمان ----------
 def tick(st: dict, now: float) -> bool:
     """ربات ها، نوبت های تمام شده و مکث های بین دور و دست را جلو می برد."""
@@ -334,13 +344,13 @@ def tick(st: dict, now: float) -> bool:
         if ph == "collect":
             if now < st["next_at"]:
                 break
-            _after_collect(st, now)
+            _after_collect(st, _due(st, now))
             changed = True
             continue
         if ph == "handover":
             if now < st["next_at"]:
                 break
-            _start_hand(st, now)
+            _start_hand(st, _due(st, now))
             changed = True
             continue
         i = st["hakem"] if ph == "trump" else st["turn"]
@@ -359,10 +369,11 @@ def tick(st: dict, now: float) -> bool:
                 changed = True
                 continue
         auto = not p["bot"]
+        t = _due(st, now) if _auto(st, i) else now
         if ph == "trump":
-            choose_trump(st, i, bot_trump(st, i), now, auto=auto)
+            choose_trump(st, i, bot_trump(st, i), t, auto=auto)
         else:
-            play(st, i, bot_card(st, i), now, auto=auto)
+            play(st, i, bot_card(st, i), t, auto=auto)
         changed = True
     return changed
 

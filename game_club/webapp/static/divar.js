@@ -16,7 +16,7 @@ const CLOCK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke
 const watchMid = GC.watchId();
 let WATCH = false;
 let mid = watchMid || store.get('dmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
-let N = 9, rot = 0, built = '', deadlineAt = 0, turnMs = 25000, warned = false, flash = null, lastTurn = null;
+let N = 9, rot = 0, built = '', deadlineAt = 0, readyAt = 0, turnMs = 25000, warned = false, flash = null, lastTurn = null;
 const vpos = {};               // جای نمایش هر مهره (مختصات سرور)
 let vwalls = [];               // دیوارهای نمایش (مختصات سرور) [o, r, c, صاحب]
 const els = { pawns: {}, walls: {} };
@@ -115,7 +115,7 @@ function placePawn(s) {
 function hop(s) { const el = els.pawns[s]; if (!el) return; el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop'); }
 
 /* ---------- خانه های مجاز ---------- */
-function myTurnNow() { const g = G(); return !!(g && !WATCH && !g.over && g.turn === me && !busy && !acting); }
+function myTurnNow() { const g = G(); return !!(g && !WATCH && !g.over && g.turn === me && !busy && !acting && Date.now() >= readyAt - 250); }
 // فقط وقتی خانه های مجاز عوض شده اند دوباره ساخته می شوند (نه با هر پرسش از سرور)
 let dotsKey = '';
 function renderDots() {
@@ -165,12 +165,15 @@ function renderTray(g) {
   $('tray').classList.toggle('off', !myTurnNow() || !mine || mine.walls <= 0);
 }
 function renderAll(g) {
+  // تا لحظهٔ «آماده» سرور حرکت قبول نمی شود؛ همان لحظه خانه ها و سینی دیوار روشن می شوند
+  readyAt = (g._at || Date.now()) + (g.ready_ms || 0);
+  if (Date.now() < readyAt - 250) setTimeout(() => { if (G() === g) { renderDots(); renderTray(g); } }, readyAt - 250 - Date.now() + 20);
   N = g.size; rot = WATCH ? 0 : ROT[me] || 0;
   build(false);
   for (const s of g.order) { if (els.pawns[s]) { els.pawns[s].classList.toggle('turn', g.turn === s && !g.over); els.pawns[s].classList.toggle('out', !!g.players[s].out); } }
   renderPlayers(g); renderStatus(g); renderTray(g); renderDots();
   $('mode').textContent = g.n === 2 ? '۲ نفره' : g.star ? '۴ نفره · ستاره' : '۴ نفره';
-  const d = g.deadline_ms ? Date.now() + g.deadline_ms : 0;
+  const d = g.deadline_ms ? (g._at || Date.now()) + g.deadline_ms : 0;
   if (!d) deadlineAt = 0; else { if (!deadlineAt || Math.abs(d - deadlineAt) > 1500) warned = false; if (!deadlineAt || Math.abs(d - deadlineAt) > 700) deadlineAt = d; }
   turnMs = g.turn_ms || 25000;
   if (g.turn !== lastTurn) { lastTurn = g.turn; if (isMe(g.turn) && !g.over) { sfx.turn(); haptic('light'); } }
@@ -287,6 +290,7 @@ async function apply(next, anim = true) {
   if (next && next.chat && !overShown && next.status !== 'over' && next.status !== 'cancelled') chatIn(next.chat);
   if (next && next.status === 'cancelled') return cancelled();
   if (!next || !next.game) return;
+  next.game._at = Date.now();   // زمان رسیدن پاسخ: مهلت و «آماده» از همین لحظه حساب می شوند، نه بعد از انیمیشن
   busy = true;
   try {
     const first = !snap;

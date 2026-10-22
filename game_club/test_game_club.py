@@ -403,6 +403,24 @@ def test_hokm_bot_games_finish():
         assert max(st["score"]) >= st["target"]
 
 
+def test_bots_catch_up_on_late_poll():
+    """سه ربات پشت سر هم: اگر poll کمی دیر برسد همه در همان poll بازی می کنند (از موعد خودشان)،
+    نه هر کدام یک poll؛ و اگر خیلی دیر باشد از همان لحظه حساب می شود تا مهلت آدم نسوزد."""
+    seats = [{"color": s, "uid": 1 if s == "0" else None, "name": s, "bot": s != "0"} for s in hokm.SEATS]
+    st = hokm.new_state(seats, 0.0, 20, False, 7, hakem=0)
+    assert hokm.choose_trump(st, 0, 0, 10.0) is None
+    hokm.tick(st, 20.0)                                   # پخش تمام شد؛ نوبت حاکم (آدم)
+    assert st["phase"] == "play" and st["turn"] == 0
+    assert hokm.play(st, 0, hokm.legal(st, 0)[0], 20.0) is None
+    hokm.tick(st, 20.0 + 3 * hokm.BOT_THINK + 0.2)
+    assert len(st["trick"]) == 4 or st["phase"] == "collect"
+    st2 = hokm.new_state(seats, 0.0, 20, False, 7, hakem=0)
+    hokm.choose_trump(st2, 0, 0, 10.0); hokm.tick(st2, 20.0)
+    hokm.play(st2, 0, hokm.legal(st2, 0)[0], 20.0)
+    hokm.tick(st2, 500.0)                                 # خیلی دیر: از لحظهٔ poll
+    assert st2["next_at"] >= 500.0
+
+
 def test_hokm_service_flow():
     """تمرین با ربات تا آخر، و میز دعوت امتیازی: اولین مهمان یار سازنده است و جایزه بین دو برنده تقسیم می شود."""
     tmp = tempfile.mkdtemp()
