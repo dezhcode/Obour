@@ -29,6 +29,8 @@ const svgP = (d, fill = 'currentColor') => `<svg viewBox="0 0 24 24" aria-hidden
 const suitSvg = s => svgP(SP[s], red(s) ? '#D62839' : '#1C2230');
 // ورق واقعی (خال چینی، تصویر دوسر، پشت ورق) از static/cards.js؛ طرحش با کلاس cards-* روی body
 const C = window.GCCards;
+// فیزیک برگ روی میز (جاذبه، اصطکاک، پرتاب): static/card-physics.js
+const CP = window.CardPhysics;
 const cardHtml = (c, cls = '', style = '') => C.face(c, cls, style);
 const backHtml = (cls = '', style = '') => C.back(cls, style);
 // صدای ورق هر بازیکن از سمت خودش: چپ، راست، روبه رو (وسط)
@@ -128,7 +130,7 @@ function renderPile(g) {
     if (tip) { if (!t) { pile.insertAdjacentHTML('afterbegin', '<span class="hk-tip"></span>'); t = pile.firstElementChild; } t.textContent = tip; } else if (t) t.remove();
   } else pile.innerHTML = (tip ? `<span class="hk-tip">${tip}</span>` : '') + pileShown.map(one).join('');
   pile._shown = pileShown.map(x => x.slice()); pile._n = pile.firstChild;
-  if (pileShown.length) motion.kick();
+  motion.changed();
 }
 function renderPick(g) {
   const pile = $('pile');
@@ -260,51 +262,51 @@ function throwPower(s, c) {
   }
   return p;
 }
-/* پرتاب برگ: در هوا کج است و می چرخد و با مقاومت هوا آرام می شود؛ کمی جلوتر روی ماهوت
-   می خورد، اگر محکم بود یک جهش کوچک می کند و بعد تا جای خودش سُر می خورد (روی برگ دیگر کمتر).
-   هر چه محکم تر: سریع تر، چرخش و سُر بیشتر، صدای تیزتر و بلندتر. جای نهایی برای همه یکی است. */
-async function throwCard(s, c, from) {
-  const [x, y, r] = slotOf(s, c), k = pileScale();
+/* پرتاب برگ با فیزیک (static/card-physics.js): از دست بازیکن با جاذبه و مقاومت هوا در هوا می چرخد،
+   به میز می خورد، اگر محکم بود جهش کوتاهی می کند و بعد با اصطکاک (روی برگ دیگر لغزنده تر) تا ایستادن
+   سُر می خورد. نقطهٔ برخورد و چرخش طوری حساب می شود که روی میز صاف، برگ درست در جای خودش بایستد؛
+   اگر میز (گوشی) کج باشد، همان شیب مسیرش را عوض می کند. همهٔ حرکت از پیش حساب و با keyframe اجرا
+   می شود تا روی رشتهٔ کمپوزیتور روان بماند؛ بعد برگ به موتور زندهٔ میز (motion) سپرده می شود.
+   هر چه محکم تر: سریع تر، چرخش و جهش و سُر بیشتر، صدای تیزتر. power/dir: از تند کشیدن انگشت. */
+async function throwCard(s, c, from, power, dir) {
+  const [x, y, r] = slotOf(s, c), k = pileScale(), D = Math.PI / 180;
   const [tx, ty] = pilePoint(x, y);
   const [ox, oy] = from ? center(from) : [tx, ty + 200];
-  const R = rel(String(s)), pan = panOf(s), mine = String(s) === me, P = throwPower(s, c);
+  const R = rel(String(s)), pan = panOf(s), mine = String(s) === me, P = power != null ? power : throwPower(s, c);
   const el = document.createElement('div'); el.className = 'hk-thrown';
   el.style.left = (tx - 32) + 'px'; el.style.top = (ty - 45) + 'px';
   el.innerHTML = '<i class="air"></i>' + cardHtml(c);
   $('fly').appendChild(el);
-  const dx = ox - tx, dy = oy - ty, dist = Math.hypot(dx, dy) || 1, ux = dx / dist, uy = dy / dist;
-  const dur = Math.max(400, Math.min(720, (330 + dist * .6) * (1.18 - .42 * P)));
-  const onCard = pileShown.some(([i2, c2]) => { const [x2, y2] = slotOf(i2, c2); return Math.abs(x2 - x) < 52 && Math.abs(y2 - y) < 72; });
-  const slide = (onCard ? 7 + 9 * P : 11 + 17 * P) * (.8 + Math.random() * .4);
-  // کمی کج از مسیر مستقیم سُر می خورد (پیچ دست)
-  const side = (Math.random() * 2 - 1) * .35;
-  const sx = (ux - uy * side) * slide, sy = (uy + ux * side) * slide;
-  const spin = (mine ? 10 : 0) + 30 * P * (Math.random() < .5 ? -1 : 1);
-  const r0 = (mine ? r - 10 : R === 1 ? 78 : R === 3 ? -78 : 172) + spin;
-  const tilt = 16 + 22 * P;
-  const rx = R === 0 ? tilt : R === 2 ? -tilt : 0, ry = R === 1 ? -tilt : R === 3 ? tilt : 0;
-  const hop = P > .45 || Math.random() < .35 ? (1.5 + 6 * P) * (.7 + Math.random() * .6) : 0;
-  const T = (tx_, ty_, rot, ax, ay, sc) => `perspective(700px) translate(${tx_.toFixed(1)}px,${ty_.toFixed(1)}px) rotate(${rot.toFixed(1)}deg) rotateX(${ax.toFixed(1)}deg) rotateY(${ay.toFixed(1)}deg) scale(${sc.toFixed(3)})`;
-  const land = .55, rl = r + (r0 - r) * .1;
-  const frames = [{ transform: T(dx, dy, r0, rx, ry, mine ? 1.04 : .5) },
-    { transform: T(sx, sy, rl, rx * .15, ry * .15, k * 1.04), offset: land, easing: 'cubic-bezier(.3,.6,.4,1)' }];
-  if (hop) {
-    frames.push({ transform: T(sx * .72, sy * .72 - hop, rl + (r - rl) * .35, rx * .12 * P, ry * .12 * P, k * (1 + .035 * P)), offset: land + .08 });
-    frames.push({ transform: T(sx * .5, sy * .5, rl + (r - rl) * .6, 0, 0, k), offset: land + .17, easing: 'cubic-bezier(.2,.7,.3,1)' });
-  } else frames.push({ transform: T(sx * .45, sy * .45, rl + (r - rl) * .55, 0, 0, k), offset: land + .14, easing: 'cubic-bezier(.2,.7,.3,1)' });
-  frames.push({ transform: T(0, 0, r, 0, 0, k) });
-  const ease = 'cubic-bezier(.2,.65,.35,1)';
+  const g = motion.geo(), sg = dir != null && Math.abs(dir) > 150 ? Math.sign(dir) : Math.random() < .5 ? -1 : 1;
+  const spin = (mine ? 10 : 0) + 30 * P * sg;
+  const o = { sx: (ox - g.pr.left) / g.k, sy: (oy - g.pr.top) / g.k, h0: mine ? 30 : 45, tx: x + 32, ty: y + 45,
+    a0: ((mine ? r - 10 : R === 1 ? 78 : R === 3 ? -78 : 172) + spin) * D, a1: r * D, P, B: motion.bodies(), box: g.box };
+  o.T = Math.max(.2, Math.min(.46, (.16 + Math.hypot(o.tx - o.sx, o.ty - o.sy) * .0006) * (1.2 - .45 * P)));
+  const A = CP.aim(o), run = CP.fly(o, A.lx, A.ly, A.w0, motion.env, true);
+  const T1 = run.lands[0].t, end = run.t;
+  // در هوا کج است (رو به کسی که انداخته) و هر چه پایین تر صاف تر؛ برگ حریف از کنار دستش بزرگ می شود
+  const tilt = 16 + 22 * P, rx0 = R === 0 ? tilt : R === 2 ? -tilt : 0, ry0 = R === 1 ? -tilt : R === 3 ? tilt : 0;
+  const keys = [], shade = [];
+  for (const f of run.frames) {
+    const q = f.t, off = Math.min(1, q / end), lift = Math.min(1, f.h / 25) * Math.exp(-2.5 * q);
+    const grow = mine ? 1.04 - .04 * Math.min(1, q / T1) : .5 + .5 * (1 - Math.pow(1 - Math.min(1, q / (T1 * .7)), 2));
+    keys.push({ offset: off, transform: `perspective(700px) translate(${((f.x - o.tx) * k).toFixed(1)}px,${((f.y - o.ty) * k).toFixed(1)}px) rotate(${(f.a / D).toFixed(1)}deg) rotateX(${(rx0 * lift).toFixed(1)}deg) rotateY(${(ry0 * lift).toFixed(1)}deg) scale(${(k * grow * (1 + f.h / 700)).toFixed(3)})` });
+    // سایه روی ماهوت: نور از بالا چپ، هر چه بالاتر دورتر و کم رنگ تر (در قاب چرخیدهٔ برگ)
+    const sx = f.h * .3, sy = f.h * .55, ca = Math.cos(f.a), sa = Math.sin(f.a);
+    shade.push({ offset: off, opacity: f.h > .5 ? +(.2 + .25 * Math.min(1, f.h / 90)).toFixed(3) : 0, transform: `translate(${(sx * ca + sy * sa).toFixed(1)}px,${(sy * ca - sx * sa).toFixed(1)}px) scale(${(1 + f.h / 300).toFixed(3)})` });
+  }
   sfx.card.throw(pan);
-  const anim = el.animate(frames, { duration: dur, easing: 'linear' });
-  el.firstChild.animate([
-    { opacity: .32 + .2 * P, transform: `translate(${14 + 10 * P}px,${26 + 16 * P}px) scale(1.06)` }, { opacity: .2, transform: 'translate(4px,8px)', offset: land }, { opacity: hop ? .12 : 0, transform: 'translate(2px,4px)', offset: land + .08 }, { opacity: 0, transform: 'none', offset: land + .17 }, { opacity: 0 },
-  ], { duration: dur, easing: ease });
-  const tLand = dur * land;
-  setTimeout(() => { sfx.card.place(P, pan); if (mine) haptic(P > .7 ? 'medium' : 'light'); }, tLand);
-  if (hop) setTimeout(() => sfx.card.place(P * .3, pan), tLand + dur * .17);
-  sfx.card.slide(P * (onCard ? .7 : 1), pan, (tLand + dur * (hop ? .17 : .05)) / 1000);
-  if (P > .85 && R !== 0) setTimeout(() => jolt(), tLand);
+  run.lands.forEach((l, i) => setTimeout(() => {
+    if (i) { sfx.card.place(Math.min(.5, l.v / 1600), pan); return; }
+    sfx.card.place(P, pan); if (mine) haptic(P > .7 ? 'medium' : 'light');
+    if (P > .85 && R !== 0) jolt();
+  }, l.t * 1000));
+  const last = run.lands[run.lands.length - 1];
+  if (last.vh > 30) sfx.card.slide(Math.max(.15, Math.min(1, last.vh / 700)) * (last.on ? .7 : 1), pan, last.t);
+  const anim = el.animate(keys, { duration: end * 1000, easing: 'linear' });
+  el.firstChild.animate(shade, { duration: end * 1000, easing: 'linear' });
   await anim.finished.catch(() => {});
+  motion.land(c, { x: run.x, y: run.y, a: run.a, vx: run.vx, vy: run.vy, w: run.w });
   pileShown.push([+s, c]);
   renderPile(snap && snap.game);
   el.remove();
@@ -619,7 +621,8 @@ async function act(fn, before) {
     if (snap && snap.game) renderAll(snap.game);
   } finally { acting = false; }
 }
-function playCard(el) {
+// flick: از تند کشیدن انگشت (قدرت پرتاب و سمت چرخش)؛ با زدن ساده خالی است
+function playCard(el, flick) {
   if (!el || acting || busy || !snap || WATCH) return;
   const g = snap.game, c = +el.dataset.card;
   if (g.turn !== me || g.phase !== 'play' || !g.legal.includes(c)) { el.style.translate = ''; el.classList.remove('drag'); return; }
@@ -628,17 +631,18 @@ function playCard(el) {
   const r = el.getBoundingClientRect(), ghost = document.createElement('span');
   ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
   $('fly').appendChild(ghost); el.remove(); setTimeout(() => ghost.remove(), 700);
-  act(() => GC.hokm.play(mid, c, since), () => throwCard(me, c, ghost));
+  act(() => GC.hokm.play(mid, c, since), () => throwCard(me, c, ghost, flick && flick.P, flick && flick.dx));
 }
 // برگ را بزن، یا بگیر و رو به میز بکش و رها کن (کشیدن کوتاه = برگشت سر جایش)
 $('hand').addEventListener('click', e => { if (dragged) { dragged = false; return; } playCard(e.target.closest('.hk-card.ok')); });
 $('hand').addEventListener('pointerdown', e => {
   const el = e.target.closest('.hk-card.ok'); if (!el || acting || busy) return;
-  drag = { el, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false };
+  drag = { el, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, hist: [[e.timeStamp, e.clientX, e.clientY]] };
 });
 $('hand').addEventListener('pointermove', e => {
   if (!drag || e.pointerId !== drag.id) return;
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.hist.push([e.timeStamp, e.clientX, e.clientY]); if (drag.hist.length > 8) drag.hist.shift();
   if (!drag.moved && Math.hypot(dx, dy) < 8) return;
   if (!drag.moved) { drag.moved = true; drag.el.classList.add('drag'); try { drag.el.setPointerCapture(drag.id); } catch (err) {} }
   drag.el.style.translate = `${dx.toFixed(0)}px ${Math.min(12, dy).toFixed(0)}px`;
@@ -651,7 +655,12 @@ const endDrag = e => {
   if (!d.moved) { if (w) setTimeout(() => { if (!acting && !drag) renderHand(w); }, 0); return; }
   dragged = true; setTimeout(() => { dragged = false; }, 60);
   const dy = e ? e.clientY - d.y : 0;
-  if (dy < -55) playCard(d.el);
+  if (dy < -55) {
+    // سرعت انگشت در ۱۰۰ میلی ثانیهٔ آخر: کشیدن آرام = پرتاب آرام، تند کشیدن = محکم
+    const h = d.hist, z = h[h.length - 1], a = h.find(p => z[0] - p[0] <= 100) || h[0], t = Math.max(16, z[0] - a[0]) / 1000;
+    const vx = (z[1] - a[1]) / t, vy = (z[2] - a[2]) / t;
+    playCard(d.el, { P: Math.max(.05, Math.min(1, (-vy - 250) / 2200)), dx: vx });
+  }
   else { d.el.classList.remove('drag'); d.el.style.translate = ''; if (w) renderHand(w); }
 };
 $('hand').addEventListener('pointerup', endDrag);
@@ -808,102 +817,204 @@ function fit() {
   const c = $('center').getBoundingClientRect();
   const k = Math.max(.72, Math.min(1.12, c.height / 236, c.width / 206));
   $('pile').style.setProperty('--pile', k.toFixed(3));
+  motion.resize();
 }
 GC.onFit(fit);   // فقط وقتی اندازهٔ صفحه واقعا عوض شد؛ باز شدن کیبورد گفتگو بازی را دوباره نمی چیند
 
-/* ---------- برگ های وسط میز: تکان گوشی و کشیدن با انگشت ----------
-   گوشی که کج شود یا تکان بخورد، برگ های روی میز کمی روی ماهوت سُر می خورند (برگ رویی بیشتر و
-   با کمی تاخیر) و وقتی گوشی آرام ماند، کم کم سر جایشان برمی گردند. هر برگ را می شود با انگشت
-   کنار کشید تا برگ زیرش پیدا شود؛ همان جا می ماند تا دور جمع شود. فقط نمایش است و به سرور نمی رسد.
-   جابه جایی با ویژگی های translate و rotate است تا transform (چرخش برگ که collectTrick می خواند) بماند.
-   حسگر: DeviceOrientation تلگرام (نسخهٔ ۸ به بعد)، وگرنه deviceorientation مرورگر. با تنظیم
-   «تکان برگ‌ها» در نمایه خاموش می شود و با «کاهش حرکت» گوشی روشن نمی شود. */
+/* ---------- برگ های وسط میز: میز واقعی با جاذبه ----------
+   گوشی همان میز است: کج که شود، برگ ها با جاذبه سُر می خورند (اصطکاک ایستا نگهشان می دارد تا شیب
+   کافی شود؛ برگ روی برگ زودتر از برگ روی ماهوت راه می افتد)، به لبهٔ میز می خورند و برمی گردند و
+   همان جا که ایستادند می مانند. تکان تند گوشی هم با لختی برگ ها را جابه جا می کند. هر برگ را می شود
+   با انگشت هل داد (از گوشه بگیری دورش می چرخد) و پرت کرد؛ برگ های رویش با آن می آیند مگر تند کشیده
+   شود. همه فقط نمایش است و به سرور نمی رسد؛ با جمع شدن دور تمام می شود. فیزیک: static/card-physics.js.
+   «میز صاف» حالت عادی دست است: اول هر دور زود و وسط دور آرام دنبال گوشی می آید، پس فقط کج کردن
+   و تکان دادن برگ ها را می بَرد، نه طرز گرفتن گوشی.
+   حسگر: شتاب سنج تلگرام (نسخهٔ ۸ به بعد؛ جهت و واحدش از چند نمونهٔ اول شناخته می شود)، اگر نبود
+   زاویهٔ گوشی از تلگرام، بیرون از تلگرام devicemotion یا deviceorientation مرورگر. با تنظیم «تکان
+   برگ‌ها» در نمایه یا «کاهش حرکت» گوشی حسگر روشن نمی شود (کشیدن و پرتاب همچنان فیزیکی است). */
 const motion = (() => {
   const pile = $('pile'), tw = window.Telegram && Telegram.WebApp || null;
-  const viaTg = !!(tw && tw.isVersionAtLeast && tw.isVersionAtLeast('8.0') && tw.DeviceOrientation);
-  const can = viaTg || 'DeviceOrientationEvent' in window;
-  let tx = 0, ty = 0, base = null, lastT = 0, raf = 0, prev = 0, live = false, held = null;
-  const cards = () => pile.querySelectorAll(':scope > .hk-card.tc');
-  // حالت هر برگ: جابه جایی از تکان (x,y و سرعتش) + جابه جایی با انگشت (dx,dy)؛ k لایهٔ برگ (۰ زیرین)
-  const st = el => el._m || (el._m = { x: 0, y: 0, vx: 0, vy: 0, dx: 0, dy: 0, k: Math.max(0, +el.style.zIndex - 1), s: hash01(+el.dataset.card, 7) });
-  const paint = (el, m) => {
-    el.style.translate = `${(m.x + m.dx).toFixed(2)}px ${(m.y + m.dy).toFixed(2)}px`;
-    el.style.rotate = `${((m.s - .5) * m.x * .3).toFixed(2)}deg`;
-  };
-  const wrap = d => ((d % 360) + 540) % 360 - 180;
-  const dead = d => Math.sign(d) * Math.max(0, Math.abs(d) - 1.5);   // لرزش دست برگ ها را تکان ندهد
-  // b کجی جلو و عقب، g کجی چپ و راست، به درجه
-  function feed(b, g) {
-    if (b == null || g == null || !isFinite(b) || !isFinite(g)) return;
-    const now = performance.now(), dt = lastT ? Math.min(500, now - lastT) : 0; lastT = now;
-    if (!base) base = { b, g };
-    // «حالت عادی دست» آرام دنبال گوشی می آید؛ پس فقط کج شدن و تکان تازه برگ ها را می بَرد
-    const a = 1 - Math.exp(-dt / 1800);
-    base.b += wrap(b - base.b) * a; base.g += wrap(g - base.g) * a;
-    const nx = Math.max(-1, Math.min(1, dead(wrap(g - base.g)) / 12));
-    const ny = Math.max(-1, Math.min(1, dead(wrap(b - base.b)) / 12));
-    if (Math.abs(nx - tx) + Math.abs(ny - ty) < .004) return;
-    tx = nx; ty = ny; kick();
+  const tg8 = !!(tw && tw.isVersionAtLeast && tw.isVersionAtLeast('8.0'));
+  const R2D = 180 / Math.PI, GPX = CP.G * CP.PX;
+  const env = { ax: 0, ay: 0, gn: GPX };
+  const bodies = new Map(), landed = new Map();
+  let order = [], geo = null, raf = 0, prev = 0, held = null, live = false, src = '';
+
+  // ---- حسگر: بردار «پایین» (شتاب ظاهری روی برگ، متر بر ثانیه^۲) در محورهای گوشی: x راست، y بالا، z بیرون صفحه
+  let cal = [], sign = 0, unit = 1, flipB = null, F = null, ref = null, lastT = 0;
+  const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
+  const unitv = v => { const m = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / m, v[1] / m, v[2] / m]; };
+  function feed(A) {
+    const now = performance.now(), dt = lastT ? Math.min(.5, (now - lastT) / 1000) : 0; lastT = now;
+    F = F ? F.map((v, i) => v + (A[i] - v) * (1 - Math.exp(-dt / .04))) : A.slice();   // لرزش حسگر
+    const m = Math.hypot(F[0], F[1], F[2]); if (m < 2) return;
+    const u = [F[0] / m, F[1] / m, F[2] / m];
+    ref = ref ? unitv(ref.map((v, i) => v + (u[i] - v) * (1 - Math.exp(-dt / (bodies.size ? 6 : .5))))) : u;
+    // صفحهٔ میز وقتی صاف است عمود بر ref است؛ محور X راست صفحه، Y رو به بالای صفحه
+    const X = unitv([1 - ref[0] * ref[0], -ref[0] * ref[1], -ref[0] * ref[2]]);
+    if (Math.abs(ref[0]) > .95) return;              // گوشی روی لبهٔ کناری اش
+    const Y = [X[1] * ref[2] - X[2] * ref[1], X[2] * ref[0] - X[0] * ref[2], X[0] * ref[1] - X[1] * ref[0]];
+    env.ax = dot(F, X) * CP.PX; env.ay = -dot(F, Y) * CP.PX; env.gn = Math.max(.2 * CP.G, dot(F, ref)) * CP.PX;
+    if (bodies.size && Math.hypot(env.ax, env.ay) > CP.CARD.s * env.gn * .9) kick();
   }
-  function kick() { if (!raf && pile.querySelector(':scope > .hk-card.tc')) { prev = 0; raf = requestAnimationFrame(step); } }
-  // فنر میرا: برگ زیرین روی ماهوت سفت تر، رویی روی برگ ها رهاتر و کمی بیشتر می لغزد
-  function step(t) {
-    raf = 0;
-    const dt = prev ? Math.min(.034, (t - prev) / 1000) : .016; prev = t;
-    let moving = false;
-    for (const el of cards()) {
-      const m = st(el), A = (6 + 4 * m.k) * (.8 + .4 * m.s), K = 70 - 10 * Math.min(3, m.k), C = Math.sqrt(K);
-      const gx = live ? tx * A : 0, gy = live ? ty * A : 0;
-      m.vx += ((gx - m.x) * K - m.vx * C) * dt; m.vy += ((gy - m.y) * K - m.vy * C) * dt;
-      m.x += m.vx * dt; m.y += m.vy * dt;
-      if (Math.abs(gx - m.x) + Math.abs(gy - m.y) > .05 || Math.abs(m.vx) + Math.abs(m.vy) > .5) moving = true;
-      else { m.x = gx; m.y = gy; m.vx = m.vy = 0; }
-      paint(el, m);
+  // شتاب سنج: بعضی گوشی ها نیروی تکیه گاه را می دهند (رو به بالا)، بعضی خود جاذبه را؛ بعضی متر بر ثانیه^۲، بعضی g.
+  // گوشی معمولا رو به آدم و سر بالا گرفته می شود، پس «پایین» باید سمت پایین صفحه و پشت گوشی باشد.
+  function accel(x, y, z) {
+    if (!isFinite(x) || !isFinite(y) || !isFinite(z) || x == null) return;
+    if (!sign) {
+      cal.push([x, y, z]); if (cal.length < 6) return;
+      const M = [0, 1, 2].map(i => cal.reduce((a, v) => a + v[i], 0) / cal.length), m = Math.hypot(...M);
+      cal = [];
+      if (m < .5 || (m > 1.6 && m < 5)) return useOrient();   // جاذبه در آن نیست: از زاویهٔ گوشی
+      unit = m <= 1.6 ? CP.G : 1; sign = M[1] + M[2] > 0 ? -1 : 1;
     }
-    if (moving) raf = requestAnimationFrame(step);
+    feed([x * sign * unit, y * sign * unit, z * sign * unit]);
   }
-  const tgFeed = () => { const d = tw.DeviceOrientation; if (d.beta != null) feed(d.beta * 180 / Math.PI, d.gamma * 180 / Math.PI); };
-  const webFeed = e => feed(e.beta, e.gamma);
+  // زاویهٔ گوشی (درجه، قرارداد W3C). اگر جلو و عقب برعکس گزارش شود (گوشیِ سر بالا منفی)، برگردانده می شود
+  function orient(b, g) {
+    if (b == null || g == null || !isFinite(b) || !isFinite(g)) return;
+    if (flipB == null) { cal.push(b); if (cal.length < 5) return; flipB = cal.sort((p, q) => p - q)[2] < -10; cal = []; }
+    const B = (flipB ? -b : b) / R2D, Gm = g / R2D, cb = Math.cos(B);
+    feed([CP.G * cb * Math.sin(Gm), -CP.G * Math.sin(B), -CP.G * cb * Math.cos(Gm)]);
+  }
+  const tgAcc = () => { const a = tw.Accelerometer; accel(a.x, a.y, a.z); };
+  const tgOri = () => { const o = tw.DeviceOrientation; if (o.beta != null) orient(o.beta * R2D, o.gamma * R2D); };
+  // مرورگر گاهی اول یک رویداد خالی می فرستد؛ فقط اگر پشت سر هم خالی آمد سراغ زاویهٔ گوشی برو
+  let empty = 0;
+  const webAcc = e => { const a = e.accelerationIncludingGravity; if (a && a.x != null) { empty = 0; accel(a.x, a.y, a.z); } else if (++empty > 8) useOrient(); };
+  const webOri = e => orient(e.beta, e.gamma);
+  function begin(s) {
+    src = s; cal = []; sign = 0; flipB = null; F = null; ref = null; lastT = 0;
+    try {
+      if (s === 'tgAcc') { tw.onEvent('accelerometerChanged', tgAcc); tw.Accelerometer.start({ refresh_rate: 25 }, ok => { if (!ok && src === s) useOrient(); }); }
+      else if (s === 'tgOri') { tw.onEvent('deviceOrientationChanged', tgOri); tw.DeviceOrientation.start({ refresh_rate: 25 }, ok => { if (!ok && src === s) end(); }); }
+      else if (s === 'webAcc') addEventListener('devicemotion', webAcc);
+      else if (s === 'webOri') addEventListener('deviceorientation', webOri);
+    } catch (e) { end(); }
+  }
+  function end() {
+    const s = src; src = '';
+    try {
+      if (s === 'tgAcc') { tw.offEvent('accelerometerChanged', tgAcc); tw.Accelerometer.stop(); }
+      else if (s === 'tgOri') { tw.offEvent('deviceOrientationChanged', tgOri); tw.DeviceOrientation.stop(); }
+      else if (s === 'webAcc') removeEventListener('devicemotion', webAcc);
+      else if (s === 'webOri') removeEventListener('deviceorientation', webOri);
+    } catch (e) {}
+    env.ax = env.ay = 0; env.gn = GPX;
+  }
+  function useOrient() {
+    const tg = src.startsWith('tg'); end();
+    if (live) begin(tg && tw.DeviceOrientation ? 'tgOri' : 'webOri');
+  }
   function start() {
-    if (live || !can || S.tilt === false || reduced() || document.hidden) return;
-    live = true; base = null; lastT = 0; pile.classList.add('tilt');
-    if (viaTg) {
-      tw.onEvent('deviceOrientationChanged', tgFeed);
-      try { tw.DeviceOrientation.start({ refresh_rate: 50 }, ok => { if (!ok) stop(); }); } catch (e) { stop(); }
-    } else addEventListener('deviceorientation', webFeed);
+    if (live || S.tilt === false || reduced() || document.hidden) return;
+    live = true;
+    begin(tg8 && tw.Accelerometer ? 'tgAcc' : tg8 && tw.DeviceOrientation ? 'tgOri' : 'DeviceMotionEvent' in window ? 'webAcc' : 'webOri');
   }
-  function stop() {
-    if (!live) return;
-    live = false; base = null; tx = ty = 0; pile.classList.remove('tilt');
-    if (viaTg) { try { tw.offEvent('deviceOrientationChanged', tgFeed); tw.DeviceOrientation.stop(); } catch (e) {} }
-    else removeEventListener('deviceorientation', webFeed);
-    kick();
-  }
+  function stop() { if (!live) return; live = false; end(); }
   document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
   addEventListener('pagehide', stop);
   if (tw) { try { tw.onEvent('deactivated', stop); tw.onEvent('activated', start); } catch (e) {} }
 
-  // کشیدن با انگشت: برگ زیر انگشت می آید و هر جا رها شود می ماند (کمی بیرون از توده هم)
+  // ---- برگ های میز: هر برگ یک جسم با جای خودش (bx,by,br) که از آن جابه جا شده
+  function measure() {
+    const pr = pile.getBoundingClientRect(), k = pileScale(), t = $('table'), tr = t.getBoundingClientRect();
+    const wall = (parseFloat(getComputedStyle(t).getPropertyValue('--wall')) || 6) + 2;
+    geo = { pr, k, box: { l: (tr.left + wall - pr.left) / k, t: (tr.top + wall - pr.top) / k, r: (tr.right - wall - pr.left) / k, b: (tr.bottom - wall - pr.top) / k } };
+    return geo;
+  }
+  function paint(b) {
+    const t = `${(b.x - b.bx).toFixed(2)}px ${(b.y - b.by).toFixed(2)}px`, r = `${((b.a - b.br) * R2D).toFixed(2)}deg`;
+    if (t !== b.pt) { b.pt = t; b.el.style.translate = t; }
+    if (r !== b.pr) { b.pr = r; b.el.style.rotate = r; }
+  }
+  function sync() {
+    const seen = new Set();
+    for (const el of pile.querySelectorAll(':scope > .hk-card.tc')) {
+      const c = +el.dataset.card; seen.add(c);
+      let b = bodies.get(c);
+      if (!b) {
+        const bx = parseFloat(el.style.left) + 32, by = parseFloat(el.style.top) + 45, br = +((el.style.transform.match(/-?[\d.]+/) || [0])[0]) / R2D;
+        b = { c, bx, by, br, x: bx, y: by, a: br, vx: 0, vy: 0, w: 0, ax: 0, ay: 0, z: +el.style.zIndex || 0 };
+        const h = landed.get(c); if (h) { Object.assign(b, h); landed.delete(c); }
+        bodies.set(c, b);
+      }
+      if (b.el !== el) { b.el = el; b.pt = b.pr = ''; paint(b); }
+    }
+    for (const c of bodies.keys()) if (!seen.has(c)) bodies.delete(c);
+    order = [...bodies.values()].sort((p, q) => p.z - q.z);
+    if (held && !bodies.has(held.c)) held = null;
+  }
+  // صدای برگ ها: خوردن به لبهٔ میز و راه افتادن روی ماهوت
+  let hitAt = 0, slideAt = 0;
+  const panX = x => Math.max(-1, Math.min(1, (x - 103) / 140)) * .6;
+  function feel(hits) {
+    const now = performance.now();
+    let top = null; for (const h of hits) if (!top || h.v > top.v) top = h;
+    if (top && top.v > 120 && now - hitAt > 90) { hitAt = now; sfx.card.place(Math.min(1, top.v / 1800) * .7, panX(top.b.x)); if (top.v > 900) haptic('light'); }
+    for (const b of order) {
+      const v = Math.hypot(b.vx, b.vy);
+      if (b.slip && !b.ws && !b.held && v > 80 && now - slideAt > 250) { slideAt = now; sfx.card.slide(Math.min(1, v / 1200) * .6, panX(b.x), .01); }
+      b.ws = b.slip;
+    }
+  }
+  function frame(t) {
+    raf = 0;
+    if (order.length && !order[0].el.isConnected) sync();   // توده بی خبر خالی شد (پخش ورق، انتخاب حکم)
+    if (!order.length) { prev = 0; return; }
+    const g = geo || measure(), dt = prev ? Math.min(.05, (t - prev) / 1000) : 1 / 60; prev = t;
+    const n = Math.max(1, Math.ceil(dt * 240)), h = dt / n, hits = [];
+    let moving = false;
+    for (let i = 0; i < n; i++) moving = CP.step(order, env, h, g.box, hits);
+    for (const b of order) paint(b);
+    feel(hits);
+    if (moving || held) raf = requestAnimationFrame(frame); else prev = 0;
+  }
+  function kick() { if (!raf && order.length) raf = requestAnimationFrame(frame); }
+
+  // ---- انگشت: برگ را از همان نقطه که گرفته شده هل می دهد؛ رها کردن با سرعت انگشت پرتش می کند
+  const local = e => { const g = geo || measure(); return [(e.clientX - g.pr.left) / g.k, (e.clientY - g.pr.top) / g.k]; };
   pile.addEventListener('pointerdown', e => {
     const el = e.target.closest('.hk-card.tc');
-    if (!el || e.button > 0 || (held && held.el.isConnected)) return;
-    const m = st(el);
-    held = { el, m, id: e.pointerId, x: e.clientX, y: e.clientY, dx: m.dx, dy: m.dy, k: pileScale(), moved: false };
+    if (!el || e.button > 0 || held) return;
+    sync();
+    const b = bodies.get(+el.dataset.card); if (!b) return;
+    const [x, y] = local(e), c = Math.cos(b.a), s = Math.sin(b.a), dx = x - b.x, dy = y - b.y;
+    b.pin = { x, y, rx: dx * c + dy * s, ry: dy * c - dx * s };
+    b.held = true; b.vx = b.vy = b.w = 0;
+    held = { c: b.c, id: e.pointerId, x, y, moved: false };
     try { el.setPointerCapture(e.pointerId); } catch (err) {}
-    el.classList.add('held');
+    el.classList.add('held'); kick();
   });
-  pile.addEventListener('pointermove', e => {
-    const h = held; if (!h || e.pointerId !== h.id) return;
-    const m = h.m, L = parseFloat(h.el.style.left) || 0, T = parseFloat(h.el.style.top) || 0;
-    m.dx = Math.max(-30 - L, Math.min(172 - L, h.dx + (e.clientX - h.x) / h.k));
-    m.dy = Math.max(-30 - T, Math.min(176 - T, h.dy + (e.clientY - h.y) / h.k));
-    if (!h.moved && Math.hypot(m.dx - h.dx, m.dy - h.dy) > 6) { h.moved = true; haptic('light'); sfx.card.slide(.22, 0, 0); }
-    paint(h.el, m);
+  document.addEventListener('pointermove', e => {
+    if (!held || e.pointerId !== held.id) return;
+    const b = bodies.get(held.c); if (!b) { held = null; return; }
+    const [x, y] = local(e), box = geo.box;
+    b.pin.x = Math.max(box.l + 6, Math.min(box.r - 6, x)); b.pin.y = Math.max(box.t + 6, Math.min(box.b - 6, y));
+    if (!held.moved && Math.hypot(x - held.x, y - held.y) > 6) { held.moved = true; haptic('light'); }
+    kick();
   });
-  const drop = e => { if (!held || e.pointerId !== held.id) return; held.el.classList.remove('held'); held = null; };
-  pile.addEventListener('pointerup', drop);
-  pile.addEventListener('pointercancel', drop);
-  return { start, stop, kick };
+  const drop = e => {
+    if (!held || e.pointerId !== held.id) return;
+    const b = bodies.get(held.c); held = null;
+    if (b) {
+      b.held = false; delete b.pin;
+      const v = Math.hypot(b.vx, b.vy); if (v > 2600) { b.vx *= 2600 / v; b.vy *= 2600 / v; }
+      if (b.el) b.el.classList.remove('held');
+    }
+    kick();
+  };
+  document.addEventListener('pointerup', drop);
+  document.addEventListener('pointercancel', drop);
+
+  return {
+    start, stop, env,
+    changed() { sync(); kick(); },                 // توده عوض شد (برگ تازه یا جمع شدن دور)
+    land(c, s) { landed.set(c, s); },               // برگ پرتاب شده با همان جا و سرعتی که ایستاد به میز سپرده می شود
+    bodies: () => order,
+    geo: () => geo || measure(),
+    resize() { geo = null; },
+  };
 })();
 motion.start();
 
