@@ -223,20 +223,16 @@
   gp = GCGame.build({
     game: 'hokm', title: 'حکم', shop: true, help: 'help.html#hokm',
     privateSub: 'یارت را خودت دعوت کن؛ نفرهای بعدی حریف می‌شوند',
-    privateFields: [{ key: 'target', label: 'طول بازی', opts: [[3, '۳ دست', 'سریع · ۱۰ دقیقه'], [7, '۷ دست', 'کامل · ۲۵ دقیقه']] }],
-    privateDefaults: () => Object.assign({ target: 7 }, store.get('hokmPriv', {})),
-    queues: s => [
-      { title: 'بازی سریع', sub: 'آزاد · ۴ نفره · ۳ دست', ic: icon('bolt'), hot: true, how: 'online', cfg: { mode: 'free', entry: 0, target: 3 } },
-      { title: 'بازی کامل', sub: 'آزاد · ۴ نفره · ۷ دست', ic: icon('cards'), how: 'online', cfg: { mode: 'free', entry: 0, target: 7 } },
-      ...(s.stake ? s.entries.map(v => ({ title: `ورودی ${fa(v)}`, sub: `با امتیاز · ۷ دست · هر برنده ${fa(v * 2)} می‌برد`, ic: GC.coin(), coin: true, how: 'online', cfg: { mode: 'stake', entry: v, target: 7 } })) : []),
-      { title: 'تمرین با ربات', sub: 'همیشه آزاد، بدون انتظار', ic: icon('bot'), how: 'bot', cfg: { mode: 'free', entry: 0, target: 3 } },
+    modes: [
+      { v: 'h3', label: '۳ دست', ic: icon('bolt'), team: true, desc: 'چهار نفره، دو تیم دونفره؛ تیمی که زودتر ۳ دست ببرد برنده است. حدود ۱۰ دقیقه.', short: '۴ نفره · دو تیم · حدود ۱۰ دقیقه', cfg: { target: 3 } },
+      { v: 'h7', label: '۷ دست', ic: icon('cards'), team: true, desc: 'بازی کامل چهار نفره، دو تیم دونفره تا ۷ دست. حدود ۲۵ دقیقه.', short: '۴ نفره · دو تیم · حدود ۲۵ دقیقه', cfg: { target: 7 } },
     ],
     rules: [['دو تیم دونفره.', 'یارت روبه‌رویت می‌نشیند و با هم امتیاز می‌گیرید.'],
       ['حاکم', 'با دیدن پنج برگ اول، خال حکم را انتخاب می‌کند.'],
       ['هم‌خال بازی کن.', 'اگر از خال شروع‌شده نداری، می‌توانی حکم بزنی یا برگ دیگری بیندازی.'],
       ['هر دست', 'را بالاترین برگِ خال شروع یا بالاترین حکم می‌برد.'],
       ['هر تیم', 'که ۷ دست ببرد، آن دور را برده؛ بازی تا ۳ یا ۷ دور ادامه دارد.']],
-    play: (how, cfg, btn) => { if (how === 'invite') store.set('hokmPriv', { target: cfg.target }); play(how, cfg, btn); },
+    play,
   });
 
   (async () => {

@@ -516,30 +516,26 @@ body.game .appbar .turnbar .time{width:44px}
 .gp-panel{display:grid;gap:12px;margin-top:14px}
 .gp-sample{justify-self:start}
 .gp-h{margin:4px 4px -2px;font-size:13px;line-height:20px;font-weight:800;color:var(--ink-muted)}
-.gp-private{display:flex;align-items:center;gap:14px;min-height:72px;padding:0 14px;border-radius:20px;background:var(--surface);text-align:start}
-.gp-private .ic{width:48px;height:48px;flex:none;border-radius:50%;display:grid;place-items:center;background:rgba(245,196,81,.15)}
-.gp-private .ic svg{width:26px;height:26px;fill:var(--gold)}
-.gp-private .t,.gp-q .t{flex:1;display:grid;min-width:0}
-.gp-private b{font-size:16px;line-height:24px;font-weight:900}
-.gp-private small,.gp-q small{font-size:12.5px;line-height:18px;color:var(--ink-muted)}
-.gp-share{margin-top:-4px}
-.gp-share .ic svg{fill:none;stroke:var(--gold);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.gp-private .go svg{width:20px;height:20px;color:var(--ink-muted)}
-.gp-q{list-style:none;margin:0;padding:0;border-radius:20px;background:var(--surface);overflow:hidden}
-.gp-q li{display:flex;align-items:center;gap:12px;min-height:72px;padding:8px 12px 8px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
-.gp-q li:last-child{border-bottom:0}
-.gp-q .ic{width:46px;height:46px;flex:none;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.07);font-size:13px;font-weight:900}
-.gp-q .ic.coin{background:rgba(245,196,81,.16);color:var(--coin-text)}
-.gp-q .ic svg{width:22px;height:22px}
-.gp-q b{font-size:15px;line-height:22px;font-weight:900}
-.gp-q .hot{margin-inline-start:6px;padding:1px 7px;border-radius:8px;background:rgba(255,107,122,.16);color:#FF8A96;font-size:11.5px;font-weight:800}
-.gp-join{flex:none;min-width:80px;height:42px;padding:0 14px;border-radius:21px;background:rgba(245,196,81,.15);color:var(--acc-deep);font-size:14px;font-weight:900}
-.gp-join.hot{background:var(--gold);color:var(--gold-ink)}
-.gp-join:disabled{background:var(--surface-sunk);color:var(--ink-muted);font-weight:700}
-.gp-join:not(:disabled):active{transform:scale(.96)}
+.gp-panel .chips{gap:6px}
+.gp-c{min-height:38px;padding-inline:12px;gap:6px;font-size:13.5px;font-weight:800;background:var(--surface);border:0;box-shadow:inset 0 0 0 1px var(--line)}
+.gp-c svg{width:16px;height:16px;color:var(--ink-muted)}
+.gp-c small{font-size:11px;font-weight:600;color:var(--ink-muted)}
+.gp-c .coin svg{width:15px;height:15px}
+.gp-c[aria-pressed="true"]{background:rgba(245,196,81,.12);color:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold)}
+.gp-c[aria-pressed="true"] svg{color:var(--gold)}
+.gp-c:disabled{opacity:.45}
+.gp-desc{display:flex;gap:8px;align-items:flex-start;margin:0;padding:10px 12px;border-radius:14px;background:var(--surface);font-size:12.5px;line-height:20px;color:var(--ink-muted)}
+.gp-desc svg{width:16px;height:16px;flex:none;margin-top:2px;color:var(--gold)}
+.gp-desc b{color:var(--ink)}
+.gp-sub{margin:-4px 4px 0;font-size:12px;line-height:18px;color:var(--ink-muted)}
+.gp-dock{position:sticky;bottom:calc(var(--space-3) + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));z-index:3;margin-top:18px;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:18px;background:color-mix(in srgb,var(--surface) 94%,transparent);box-shadow:var(--lift),inset 0 0 0 1px var(--line);backdrop-filter:blur(8px)}
+.gp-dock .t{flex:1;display:grid;min-width:0;line-height:1.35}
+.gp-dock b{font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gp-dock small{font-size:11.5px;color:var(--ink-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gp-go{flex:none;height:44px;padding:0 16px;border-radius:14px;font-size:14px;gap:6px}
+.gp-go svg{width:16px;height:16px}
+.gp-go:not(:disabled):active{transform:scale(.96)}
 .gp-lead{font-size:14px;line-height:23px;color:var(--ink-muted)}
-.gp-f{display:grid;gap:8px}
-.gp-f>span{font-size:13px;font-weight:800;color:var(--ink-muted)}
 .gp-items{display:grid;gap:10px}
 .gp-items.r3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .gp-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 6px 10px;border-radius:16px;background:var(--surface);text-align:center;box-shadow:inset 0 0 0 2px transparent}
