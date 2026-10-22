@@ -44,6 +44,7 @@ const watchMid = GC.watchId();
 let WATCH = false;
 let mid = watchMid || store.get('hmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
 let deadlineAt = 0, turnMs = 20000, warned = false, pick = null, selfPlayed = null, pileShown = [], handShown = [];
+let drag = null, dragged = false, handWait = null;
 const rel = s => (+s - +me + 4) % 4;
 const teamUs = () => +me % 2;
 const P = () => (snap && snap.game ? snap.game.players : {});
@@ -59,22 +60,35 @@ const slotOf = (s, c) => {
 };
 
 /* ---------- نمایش ---------- */
+/* هر بخش فقط وقتی داده اش عوض شده (یا کد دیگری محتوایش را برداشته) دوباره ساخته می شود: پرسش های
+   پی در پی سرور که چیزی را عوض نکرده اند به صفحه دست نمی زنند؛ نه لرزش روی گوشی، نه برگی که زیر انگشت
+   است و ناگهان عوض می شود */
+function stale(el, data) {
+  const k = JSON.stringify(data);
+  if (el._k === k && el.firstChild === el._n) return false;
+  el._k = k; return true;
+}
+const painted = el => { el._n = el.firstChild; };   // بعد از نوشتن محتوا
 function renderScore(g) {
   const us = teamUs(), tr = g.trump;
+  if (!stale($('score'), [us, tr, g.score, g.target, g.tricks, WATCH])) return;
   $('score').innerHTML = `
     <div class="tm us"><span>${WATCH ? 'تیم ۱' : 'شما'}</span><b>${FD(g.score[us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[us])} دست</em></div>
     <div class="hk-trump"><span class="disc${tr == null ? ' unset' : ''}" id="trumpDisc">${tr == null ? '؟' : suitSvg(tr)}</span><small>${tr == null ? 'حکم' : 'حکم ' + SUIT_FA[tr]}</small></div>
     <div class="tm"><span>${WATCH ? 'تیم ۲' : 'حریف'}</span><b>${FD(g.score[1 - us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[1 - us])} دست</em></div>`;
+  painted($('score'));
 }
 function renderSeats(g) {
   for (const s of g.order) {
     if (s === me) continue;
     const p = g.players[s], el = document.querySelector(`.hk-seat[data-rel="${rel(s)}"]`);
     const partner = p.team === teamUs(), hk = g.hakem === s, turn = g.turn === s;
+    if (!stale(el, [s, p.name, p.pic, p.av, p.out, p.count, partner, hk, turn, WATCH])) continue;
     el.dataset.seat = s;
     el.classList.toggle('out', !!p.out);
     el.innerHTML = `${hk ? `<span class="hk-crown" title="حاکم">${svgP(CROWN, '#3A2A00')}</span>` : ''}${face(p, turn ? 'var(--gold)' : partner ? '#9BE3B8' : '#FFFFFF', turn ? 'timer' : '')}
       <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner && !WATCH ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جایش' : FD(p.count) + ' برگ'].filter(Boolean).join('، ')}</em>${fanHtml(p.count, rel(s))}`;
+    painted(el);
   }
 }
 // برگ های حریف ها: یار روبه رو یک بادبزن افقی زیر اسمش، حریف های چپ و راست یک ستون برگ
@@ -92,10 +106,11 @@ function fanHtml(n, r) {
 function renderStacks(tricks, drop = -1) {
   const us = teamUs();
   [[$('stackUs'), tricks ? tricks[us] : 0, drop === us], [$('stackThem'), tricks ? tricks[1 - us] : 0, drop === 1 - us]].forEach(([el, n, d]) => {
-    if (!el) return;
+    if (!el || !stale(el, [n, d])) return;
     el.innerHTML = Array.from({ length: n }, (_, i) => backHtml(d && i === n - 1 ? 'drop' : '',
       `transform:translate(${(i * .8).toFixed(1)}px,${(-i * 1.4).toFixed(1)}px) rotate(${(i % 2 ? 90 : 0) + ((i * 37) % 9) - 4}deg);z-index:${i + 1}`)).join('')
       + (n ? `<span class="n">${FD(n)} دست</span>` : '');
+    painted(el);
   });
 }
 function renderPile(g) {
@@ -103,12 +118,16 @@ function renderPile(g) {
   if (g && g.phase === 'trump' && !g.over) return renderPick(g);
   const tr = g ? g.trump : null;
   const w = pileShown.length >= 2 && tr != null ? winnerOf(pileShown, tr) : null;
-  let tip = '';
-  if (w != null && pileShown.length < 4) tip = `<span class="hk-tip">فعلا برگ ${nameOf(String(w))} بالاست</span>`;
-  pile.innerHTML = tip + pileShown.map(([i, c], k) => {
-    const [x, y, r] = slotOf(i, c);
-    return cardHtml(c, '', `left:${x}px;top:${y}px;z-index:${k + 1};transform:rotate(${r}deg)`);
-  }).join('');
+  const tip = w != null && pileShown.length < 4 ? `فعلا برگ ${nameOf(String(w))} بالاست` : '';
+  const one = ([i, c], k) => { const [x, y, r] = slotOf(i, c); return cardHtml(c, '', `left:${x}px;top:${y}px;z-index:${k + 1};transform:rotate(${r}deg)`); };
+  const prev = pile._shown;
+  // برگ تازه روی همان توده: فقط همان اضافه می شود و بقیهٔ برگ ها دست نمی خورند
+  if (prev && pile.firstChild === pile._n && prev.length <= pileShown.length && prev.every((x, k) => x[0] === pileShown[k][0] && x[1] === pileShown[k][1])) {
+    for (let k = prev.length; k < pileShown.length; k++) pile.insertAdjacentHTML('beforeend', one(pileShown[k], k));
+    let t = pile.querySelector(':scope > .hk-tip');
+    if (tip) { if (!t) { pile.insertAdjacentHTML('afterbegin', '<span class="hk-tip"></span>'); t = pile.firstElementChild; } t.textContent = tip; } else if (t) t.remove();
+  } else pile.innerHTML = (tip ? `<span class="hk-tip">${tip}</span>` : '') + pileShown.map(one).join('');
+  pile._shown = pileShown.map(x => x.slice()); pile._n = pile.firstChild;
 }
 function renderPick(g) {
   const pile = $('pile');
@@ -142,13 +161,17 @@ function order(cards, tr) {
 }
 function renderHand(g, anim = false) {
   const hand = $('hand');
+  if (drag && !anim) { handWait = g; return; }   // برگی زیر انگشت است: بعد از رها کردن
+  handWait = null;
   if (WATCH) { // تماشاگر برگ کسی را نمی بیند؛ فقط پشت برگ های بازیکن پایین
     const n = Math.min(13, (g.players[me] || {}).count || 0), step = n > 1 ? Math.min(6.5, 31 / (n - 1)) : 0;
+    if (!stale(hand, ['w', n])) return;
     hand.innerHTML = Array.from({ length: n }, (_, i) => backHtml('', `transform:rotate(${(((n - 1) / 2 - i) * step).toFixed(2)}deg);z-index:${n - i}`)).join('');
-    handShown = []; return;
+    painted(hand); handShown = []; return;
   }
   const cards = order(g.hand || [], g.trump), n = cards.length;
   const mine = g.turn === me && g.phase === 'play', ok = new Set(mine ? g.legal : []);
+  if (!stale(hand, [cards, mine, mine ? g.legal : 0]) && !anim) return;
   // نوبت من: برگ هایی که می شود انداخت جدا از بقیه، با فاصلهٔ بیشتر (هر کدام کامل دیده و زده شود)
   // و بالاتر؛ بقیه فشرده تر، پایین تر و کم رنگ
   const split = mine && ok.size > 0 && ok.size < n, GAP = 1.1;
@@ -170,7 +193,7 @@ function renderHand(g, anim = false) {
     return cardHtml(c, cls, `--a:${a.toFixed(2)}deg;--jx:${jx.toFixed(1)}px;--jy:${jy.toFixed(1)}px;z-index:${n - i};animation-delay:${fresh.indexOf(c) * 45}ms`);
   }).join('');
   hand.querySelectorAll('.hk-card').forEach(el => { el.setAttribute('role', 'button'); el.tabIndex = el.classList.contains('ok') ? 0 : -1; });
-  handShown = cards;
+  painted(hand); handShown = cards;
 }
 function renderMe(g) {
   const p = g.players[me], mine = g.turn === me && !WATCH, hakemMe = g.hakem === me && !WATCH;
@@ -185,12 +208,14 @@ function renderMe(g) {
   else if (g.phase === 'collect') { t = 'دور تمام شد'; }
   else { t = 'دست بعد…'; sub = 'ورق‌ها بُر می‌خورد'; }
   const timer = (mine && g.phase === 'play') || (g.phase === 'trump' && hakemMe);
-  $('meBar').innerHTML = `<div class="hk-mb${timer ? ' mine' : ''}">${face(Object.assign({}, p, { name: p.name }), timer ? 'var(--gold)' : '#9BE3B8', timer ? 'timer' : '')}
+  const html = `<div class="hk-mb${timer ? ' mine' : ''}">${face(Object.assign({}, p, { name: p.name }), timer ? 'var(--gold)' : '#9BE3B8', timer ? 'timer' : '')}
     <span class="txt"><b>${t}${timer && g.deadline_ms ? '<span class="clock" id="clock"></span>' : ''}</b>${sub ? `<span>${sub}</span>` : ''}</span></div>`;
+  const bar = $('meBar');
+  if (stale(bar, html)) { bar.innerHTML = html; painted(bar); mount(bar); }
   setDeadline(g.deadline_ms, g._at); turnMs = g.turn_ms || 20000;
 }
 function renderAll(g, anim = false) {
-  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); renderStacks(g.tricks); mount($('meBar')); tickTimer();
+  renderScore(g); renderSeats(g); renderPile(g); renderHand(g, anim); renderMe(g); renderStacks(g.tricks); tickTimer();
 }
 
 /* ---------- تایمر نوبت ---------- */
@@ -589,6 +614,7 @@ async function act(fn, before) {
   } catch (e) {
     sfx.error(); haptic('error'); toast(errText(e));
     if (selfPlayed != null) { pileShown = pileShown.filter(([, c]) => c !== selfPlayed); selfPlayed = null; }
+    $('hand')._k = null;                     // برگی که از دست برداشته شده بود برگردد
     if (snap && snap.game) renderAll(snap.game);
   } finally { acting = false; }
 }
@@ -604,7 +630,6 @@ function playCard(el) {
   act(() => GC.hokm.play(mid, c, since), () => throwCard(me, c, ghost));
 }
 // برگ را بزن، یا بگیر و رو به میز بکش و رها کن (کشیدن کوتاه = برگشت سر جایش)
-let drag = null, dragged = false;
 $('hand').addEventListener('click', e => { if (dragged) { dragged = false; return; } playCard(e.target.closest('.hk-card.ok')); });
 $('hand').addEventListener('pointerdown', e => {
   const el = e.target.closest('.hk-card.ok'); if (!el || acting || busy) return;
@@ -620,14 +645,20 @@ $('hand').addEventListener('pointermove', e => {
 const endDrag = e => {
   if (!drag || (e && e.pointerId !== drag.id)) return;
   const d = drag; drag = null;
-  if (!d.moved) return;
+  const w = handWait; handWait = null;
+  // لمس ساده: اگر برگی انداخته نشد (کلیک بعدش)، دستِ تازه رسیده همین حالا کشیده می شود
+  if (!d.moved) { if (w) setTimeout(() => { if (!acting && !drag) renderHand(w); }, 0); return; }
   dragged = true; setTimeout(() => { dragged = false; }, 60);
   const dy = e ? e.clientY - d.y : 0;
   if (dy < -55) playCard(d.el);
-  else { d.el.classList.remove('drag'); d.el.style.translate = ''; }
+  else { d.el.classList.remove('drag'); d.el.style.translate = ''; if (w) renderHand(w); }
 };
 $('hand').addEventListener('pointerup', endDrag);
-$('hand').addEventListener('pointercancel', () => { if (drag) { drag.el.classList.remove('drag'); drag.el.style.translate = ''; drag = null; } });
+$('hand').addEventListener('pointercancel', () => {
+  if (!drag) return;
+  drag.el.classList.remove('drag'); drag.el.style.translate = ''; drag = null;
+  const w = handWait; handWait = null; if (w) renderHand(w);
+});
 $('hand').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('ok')) { e.preventDefault(); e.target.click(); } });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 
@@ -777,8 +808,7 @@ function fit() {
   const k = Math.max(.72, Math.min(1.12, c.height / 236, c.width / 206));
   $('pile').style.setProperty('--pile', k.toFixed(3));
 }
-window.addEventListener('resize', fit);
-try { Telegram.WebApp.onEvent('viewportChanged', fit); Telegram.WebApp.onEvent('fullscreenChanged', () => setTimeout(fit, 50)); } catch (e) {}
+GC.onFit(fit);   // فقط وقتی اندازهٔ صفحه واقعا عوض شد؛ باز شدن کیبورد گفتگو بازی را دوباره نمی چیند
 
 /* ---------- شروع ---------- */
 function applyStyle(st) {

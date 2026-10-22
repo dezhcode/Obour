@@ -277,6 +277,9 @@ class GCDatabase:
         self._conn = await aiosqlite.connect(self.path, timeout=15)
         self._conn.row_factory = aiosqlite.Row
         await self._conn.execute("PRAGMA journal_mode=WAL")
+        # در WAL، NORMAL یعنی هر commit بدون fsync (فقط در checkpoint)؛ هر حرکت و هر پرسش بازی
+        # چند برابر زودتر نوشته می شود و پایگاه خراب نمی شود (فقط با قطع برق، چند لحظهٔ آخر می تواند برگردد)
+        await self._conn.execute("PRAGMA synchronous=NORMAL")
         await self._conn.execute("PRAGMA busy_timeout=8000")
         await self._conn.executescript(SCHEMA)
         # ستون های تازه روی دیتابیس قدیمی: عکس پروفایل تلگرام و کلید آدرس عکس
@@ -748,11 +751,13 @@ class GCDatabase:
     async def match_players(self, match_id: str) -> list[dict]:
         return await self.all("SELECT * FROM match_players WHERE match_id = ?", (match_id,))
 
-    async def active_match_of(self, tg_id: int) -> str | None:
+    async def active_match_of(self, tg_id: int, game: str | None = None) -> str | None:
+        """تازه ترین میز باز کاربر؛ با game فقط از همان بازی (صفحهٔ دیوار نباید میز بیلیارد را بگیرد)."""
         row = await self.one(
             "SELECT mp.match_id FROM match_players mp JOIN matches m ON m.id = mp.match_id "
-            "WHERE mp.tg_id = ? AND mp.active = 1 AND m.status IN ('lobby','playing') "
-            "ORDER BY m.created_at DESC LIMIT 1", (tg_id,))
+            "WHERE mp.tg_id = ? AND mp.active = 1 AND m.status IN ('lobby','playing')"
+            + (" AND m.game = ?" if game else "") + " ORDER BY m.created_at DESC LIMIT 1",
+            (tg_id, game) if game else (tg_id,))
         return row["match_id"] if row else None
 
     async def active_matches_of(self, tg_id: int) -> list[str]:

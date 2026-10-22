@@ -31,7 +31,7 @@ let WATCH = false;
 let mid = watchMid || store.get('bmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
 let deadlineAt = 0, readyAt = 0, turnMs = 30000, warned = false, flash = null;
 let angle = -Math.PI / 2, power = 0, spin = [0, 0], showLines = store.get('blEye', true);
-let place = null, placing = false, aiming = false, anim = null, strike = null, lastInput = 0;
+let place = null, placing = false, aiming = false, anim = null, strike = null, lastInput = 0, pred = null;
 // چوبِ نوبت دارِ دیگر (حریف، یار، یا ربات) مثل remoteStickRotated / remotePowerChanged پلاتو:
 // a زاویهٔ نمایش، p کشیدگی، cue جای توپ سفید در دستش؛ هر مقدار با tween به هدف تازه می رسد.
 const rem = { a: null, p: 0, cue: null, key: '', turn: null };
@@ -68,16 +68,21 @@ const TABLE_RECT = [75, 250, 450, 820];            // جای میز در قاب 
 // کوتاه تر) به جای کوچک شدن همه چیز، فاصلهٔ خالی بالا و پایین میز کم می شود: قاب تا FH_MIN کوتاه
 // می شود و میز و دکمه های کنارش به اندازهٔ نصف آن (dy) بالا می آیند؛ نوار پیام پایین قاب می ماند.
 const FH_MIN = 1100;
+let fitKey = '';
 function fit() {
   const w = $('wrap'), cs = getComputedStyle(w);
   const aw = w.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const ah = w.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  // همان اندازه: بوم و کش ها دست نخورند (از نو ساختن شان روی گوشی گران است)
+  const key = [aw, ah, window.devicePixelRatio].join();
+  if (key === fitKey) return;
+  fitKey = key;
   u = Math.max(.3, Math.min(aw / 600, ah / FH_MIN));
   const fh = Math.max(FH_MIN, Math.min(1280, ah / u));
   dy = (1280 - fh) / 2;
   frameEl.style.setProperty('--u', u + 'px'); document.body.style.setProperty('--u', u + 'px');
   frameEl.style.setProperty('--fh', fh.toFixed(2)); frameEl.style.setProperty('--dy', dy.toFixed(2));
-  dpr = Math.min(2.5, window.devicePixelRatio || 1);
+  dpr = Math.min(2, window.devicePixelRatio || 1);     // بیشتر از ۲ روی گوشی فرقی دیده نمی شود ولی هر فریم پیکسل بیشتری می خواهد
   cw = 600 * u; ch = fh * u;
   cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
   const [tx, ty, tw, th] = [TABLE_RECT[0], TABLE_RECT[1] - dy, TABLE_RECT[2], TABLE_RECT[3]].map(v => v * u);
@@ -590,7 +595,7 @@ function drawAim(ang = angle, valid = (G() || {}).mine) {
 }
 
 /* ---------- حلقهٔ رسم ---------- */
-function myTurnNow() { const g = G(); return !!(g && !WATCH && snap.status === 'playing' && g.turn === me && !g.over && !anim); }
+function myTurnNow() { const g = G(); return !!(g && !WATCH && snap.status === 'playing' && g.turn === me && !g.over && !anim && !pred); }
 /* هالهٔ راهنمای سفید (Mc و highlight8Ball پلاتو) روی توپ های مجازِ خودم:
    شروع نوبت: scale .25→1 و alpha .36→.75 در ۳۰۰ms (quadOut)، ۱۰۰ms مکث، scale→.3 و alpha→.1 در ۵۰۰ms
    (quadIn)، ۳ ثانیه صبر و تکرار — تا وقتی چوب رو به یک توپ مجاز بچرخد: اگر یک دور کامل شده
@@ -648,6 +653,18 @@ function remRotate(a) {
 }
 const remPower = (p, dur) => Math.abs(p - rem.p) < 1e-4 ? Promise.resolve() : tween(rem, 'p', p, dur);
 function remoteTurn(g) { return !!(g && g.turn && !g.over && !isMe(g.turn) && snap.status === 'playing'); }
+/* صحنهٔ بی تغییر دوباره کشیده نمی شود (گوشی خنک تر، باتری کمتر): هر چه روی میز دیده می شود در یک
+   امضای کوتاه می آید و تا عوض نشده، فریم رد می شود. وقتی چیزی در جریان است (ضربه، چوب، هاله، افتادن
+   توپ، چرخش چوب حریف) همیشه کشیده می شود. */
+let lastSig = '';
+function sceneSig(now) {
+  if (anim || strike || tweens.length || (halo && haloAt(now)) || balls.some(b => b.sink)) return '';
+  const g = G();
+  let sg = [cw, ch, dpr, !!ART.ui, !!ART.table, !!ART.head, g ? g.seq : -1, g ? g.turn : '', snap && snap.status, myTurnNow(), placing, showLines,
+    angle, power, rem.a, rem.p, rem.cue ? rem.cue.x + ',' + rem.cue.y : ''].join('|');
+  for (const b of balls) sg += b.on ? `|${b.x},${b.y},${b.q[0]},${b.q[1]},${b.q[2]}` : '|-';
+  return sg;
+}
 function frame(now) {
   requestAnimationFrame(frame);
   if (document.hidden) return;
@@ -655,6 +672,9 @@ function frame(now) {
   stepTweens(now);
   const g0 = G();
   if (rem.cue && !anim && remoteTurn(g0) && g0.bih) { balls[0].x = rem.cue.x; balls[0].y = rem.cue.y; balls[0].on = true; }
+  const sig = sceneSig(now);
+  if (sig && sig === lastSig) return;
+  lastSig = sig;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cw, ch);
   if (ART.table) {
     ctx.drawImage(tableImage(), ox, oy, W * s, H * s);               // سایهٔ نرم لبه خودِ کاشی پلاتوست
@@ -714,22 +734,35 @@ function frame(now) {
 }
 
 /* ---------- پخش یک ضربه از فریم های سرور ---------- */
+const potOf = p => ({ k: p[0], cap: p[1], end: p[2], p: p[3] });
+// e.sim: شبیه سازی خود گوشی که هم پای پخش جلو می رود؛ e.at: لحظه ای که چوب به توپ می خورد
 function playShot(e) {
   return new Promise(done => {
     const ids = e.ids || [], F = e.frames || [];
     if (!F.length) { done(); return; }
-    const hits = (e.hits || []).slice(), pots = (e.pots || []).map(p => ({ k: p[0], cap: p[1], end: p[2], p: p[3] }));
+    const hits = (e.hits || []).slice(), pots = (e.pots || []).map(potOf);
     for (const k of ids) { const b = balls[k]; b.on = true; b.sink = null; }
-    anim = { e, ids, F, hits, pots, t0: performance.now(), done };
+    anim = { e, ids, F, hits, pots, t0: e.at || performance.now(), done, sim: e.sim || null, hj: 0, pj: 0 };
   });
 }
 function stepAnim(now) {
   // زمان rAF گاهی کمی پیش از performance.now() لحظهٔ شروع است
-  const a = anim, t = Math.max(0, (now - a.t0) / 1000), fi = t * 30, i0 = Math.min(a.F.length - 1, Math.floor(fi)), i1 = Math.min(a.F.length - 1, i0 + 1), f = Math.min(1, fi - i0);
+  const a = anim, t = Math.max(0, (now - a.t0) / 1000);
+  if (a.sim) {
+    // ۰٫۶۵ ثانیه جلوتر از پخش: توپی که تا این لحظه به جیب رسیده، افتادنش هم حساب شده است
+    const S = E.advance(a.sim, t + .65);
+    while (a.hj < S.hits.length) a.hits.push(S.hits[a.hj++]);
+    while (a.pj < S.pots.length) a.pots.push(potOf(S.pots[a.pj++]));
+  }
+  const fi = t * 30, i0 = Math.min(a.F.length - 1, Math.floor(fi)), i1 = Math.min(a.F.length - 1, i0 + 1), f = Math.min(1, fi - i0);
+  const bl = a.blend, q = bl ? Math.min(1, (now - bl.t0) / 160) : 1;
+  if (bl && q >= 1) a.blend = null;
   a.ids.forEach((k, j) => {
     const b = balls[k], x0 = a.F[i0][2 * j], y0 = a.F[i0][2 * j + 1], x1 = a.F[i1][2 * j], y1 = a.F[i1][2 * j + 1];
     if (x1 < 0 && x0 < 0) { b.on = false; b.sink = null; return; }
-    const nx = x1 < 0 ? x0 : x0 + (x1 - x0) * f, ny = y1 < 0 ? y0 : y0 + (y1 - y0) * f;
+    let nx = x1 < 0 ? x0 : x0 + (x1 - x0) * f, ny = y1 < 0 ? y0 : y0 + (y1 - y0) * f;
+    const from = bl && bl.from.get(k);
+    if (from && q < 1) { nx = from[0] + (nx - from[0]) * q; ny = from[1] + (ny - from[1]) * q; }
     if (b.on) roll(b, nx - b.x, ny - b.y);
     b.x = nx; b.y = ny;
   });
@@ -743,7 +776,45 @@ function stepAnim(now) {
     if (kind === 'b') snd.ball(gg, hx); else snd.rail(gg * (kind === 'r' ? 1 : .6), hx);
     if (kind === 'b' && gg > .6) haptic('light');
   }
-  if (t >= a.F.length / 30) { anim = null; a.done(); }
+  if ((!a.sim || a.sim.done) && t >= a.F.length / 30) { anim = null; a.done(); }
+}
+/* ضربهٔ خودم: همان لحظهٔ رها کردن، با همان فیزیک سرور روی خود گوشی پخش می شود (منتظر جواب سرور
+   نمی ماند). بریک هم دو عدد تصادفی اش را از نمای بازی (bj) دارد، پس عیناً مثل سرور است. */
+function predict(g, a, p, sp, pl, at) {
+  if (!E.start || !g || !g.balls || (g.breaking && !g.bj)) return false;
+  let pw = Math.min(1, Math.max(E.MIN_POWER, p)), ang = a;
+  if (g.breaking && pw > E.BREAK_MIN) { pw *= E.BREAK_BONUS + g.bj[0] * E.BREAK_RAND; ang += g.bj[1] * E.BREAK_JIT * 2 - E.BREAK_JIT; }
+  const pos = g.balls.map(q => q ? [q[0], q[1]] : null);
+  if (pl) pos[0] = pl.slice();
+  if (!pos[0]) return false;
+  const S = E.start(pos, ang, pw, sp, !!g.breaking);
+  pred = { S };
+  pred.done = playShot({ ids: S.balls.map(b => b.n), frames: S.frames, sim: S, at });
+  anim.pred = pred;
+  return true;
+}
+/* جواب سرور رسید: از همین لحظه فریم های سرور (مرجع) پخش می شوند. تا این جا دو طرف یکی بوده اند
+   (همان فیزیک)؛ اگر نه، توپ ها در ۱۶۰ms به جای سرور می لغزند تا پرشی دیده نشود. */
+function adopt(e) {
+  const a = anim; if (!a || !a.sim) return;
+  const now = performance.now(), t = Math.max(0, (now - a.t0) / 1000), S = a.sim, li = new Map(S.balls.map((b, j) => [b.n, j]));
+  const sf = e.frames || [], ids = e.ids || [], n = Math.min(sf.length, S.frames.length);
+  let off = 0;
+  for (let f = 0; f < n; f++) ids.forEach((k, j) => {
+    const i = li.get(k); if (i == null) { off = 99; return; }
+    off = Math.max(off, Math.abs(sf[f][2 * j] - S.frames[f][2 * i]), Math.abs(sf[f][2 * j + 1] - S.frames[f][2 * i + 1]));
+  });
+  if (off > 1.5) a.blend = { t0: now, from: new Map(ids.map(k => [k, [balls[k].x, balls[k].y]])) };
+  a.sim = null;
+  if (sf.length) { a.ids = ids; a.F = sf; }
+  a.hits = (e.hits || []).filter(h => h[0] > t);
+  a.pots = (e.pots || []).map(potOf);
+  for (const k of ids) { const b = balls[k], pt = a.pots.find(p => p.k === k); if (!pt || t < pt.cap) { b.on = true; b.sink = null; } }
+}
+function cancelPred() {
+  const p = pred; pred = null;
+  if (anim && anim.pred === p) { const a = anim; anim = null; a.done(); }
+  const g = G(); if (g) setBalls(g.balls);
 }
 function setBalls(pos) { pos.forEach((p, k) => { const b = balls[k]; b.sink = null; if (p) { b.on = true; b.x = p[0]; b.y = p[1]; } else b.on = false; }); }
 
@@ -1036,15 +1107,17 @@ $('eye').onclick = () => { showLines = !showLines; store.set('blEye', showLines)
 /* ---------- ضربه ---------- */
 async function shoot() {
   const g = G(); if (!canAct() || !g) { power = 0; drawPower(); return; }
-  const p = power, c = balls[0], pl = g.bih && place ? place.slice() : null;
+  // جای توپ در دست دو رقم اعشار (مثل سرور) تا هر دو طرف با همان عدد حساب کنند
+  const p = power, c = balls[0], pl = g.bih && place ? [+place[0].toFixed(2), +place[1].toFixed(2)] : null;
   if (pl && !E.validPlace(cur().map((q, i) => i ? q : null), g.breaking, pl[0], pl[1])) { toast(errText({ code: 'bad_place' })); power = 0; drawPower(); return; }
   strike = { x: c.x, y: c.y, a: angle, p, t0: performance.now(), dur: 100 * (2 - p), hold: true, alpha: 1 };
   snd.cue(p, c.x); haptic('medium');
   hideBanner(); halo = null;
-  sendAimNow(p);
   power = 0; drawPower();
-  const sp = spin.slice();
+  // پیچ کمی کمتر از یک: سرور آن را دوباره «یکه» نمی کند و هر دو طرف همان عدد را دارند
+  let sp = spin.slice(); const sl = Math.hypot(sp[0], sp[1]); if (sl > .999999) sp = [sp[0] / sl * .999999, sp[1] / sl * .999999];
   spin = [0, 0]; pop.classList.remove('open'); drawSpin();     // پیچ همان لحظهٔ ضربه به وسط برمی گردد (مثل پلاتو)
+  if (predict(g, angle, p, sp, pl, strike.t0 + strike.dur)) strike.hold = false;
   await act(() => GC.billiard.shot(mid, angle, p, sp[0], sp[1], pl ? pl[0] : null, pl ? pl[1] : null, since));
   if (strike) strike.hold = false;
   place = null;
@@ -1066,6 +1139,11 @@ async function play(e) {
       strike = { x: e.cue[0], y: e.cue[1], a: e.a, p, t0: performance.now(), dur: 100 * (2 - p), hold: false, alpha: isMe(e.c) ? 1 : .35 };
       await sleep(strike.dur); snd.cue(p, e.cue[0]);
       rem.p = 0;
+    } else if (pred) {
+      // ضربهٔ خودم که همین حالا روی گوشی در حال پخش است: بقیه اش با فریم های سرور
+      const p = pred; pred = null;
+      if (anim && anim.pred === p) { adopt(e); await p.done; }
+      return;
     } else if (strike) strike.hold = false;
     await playShot(e);
     if (e.auto && isMe(e.c)) toast('وقتت تمام شد؛ ربات جای تو زد');
@@ -1165,7 +1243,6 @@ function sendAim(v) {
   sentAim = Object.assign({ t: performance.now() }, v);
   GC.billiard.aim(mid, +v.a.toFixed(4), +v.p.toFixed(3), v.cue ? +v.cue[0].toFixed(1) : null, v.cue ? +v.cue[1].toFixed(1) : null).catch(() => {});
 }
-function sendAimNow(p) { if (!WATCH && mid) sendAim(Object.assign(aimNow(), { p })); }
 setInterval(() => {
   if (WATCH || !mid || !myTurnNow() || acting || strike || !GC.billiard.aim) return;
   const v = aimNow();
@@ -1186,7 +1263,7 @@ async function act(fn) {
   if (acting) return;
   acting = true;
   try { const res = await fn(); acting = false; await apply(res); }
-  catch (e) { strike = null; sfx.error(); haptic('error'); toast(errText(e)); if (snap && snap.game) renderAll(snap.game); }
+  catch (e) { strike = null; if (pred) cancelPred(); sfx.error(); haptic('error'); toast(errText(e)); if (snap && snap.game) renderAll(snap.game); }
   finally { acting = false; }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
@@ -1256,9 +1333,9 @@ function askExit() {
 $('exit').onclick = askExit;
 GC.back(askExit);
 syncSnd(); syncEye(); drawPower(); drawSpin();
-window.addEventListener('resize', fit);
-try { new ResizeObserver(fit).observe($('wrap')); } catch (e) {}
-try { Telegram.WebApp.onEvent('viewportChanged', fit); Telegram.WebApp.onEvent('fullscreenChanged', () => setTimeout(fit, 50)); Telegram.WebApp.onEvent('safeAreaChanged', fit); Telegram.WebApp.onEvent('contentSafeAreaChanged', fit); } catch (e) {}
+// فقط وقتی اندازه واقعا عوض شد (fit خودش هم اندازهٔ تکراری را رد می کند)؛ کیبورد گفتگو میز را دوباره نمی چیند
+GC.onFit(fit);
+try { new ResizeObserver(() => { if (!GC.editing()) fit(); }).observe($('wrap')); } catch (e) {}
 document.addEventListener('pointerdown', () => GC.loadSamples(), { once: true });
 
 /* ---------- شروع ---------- */

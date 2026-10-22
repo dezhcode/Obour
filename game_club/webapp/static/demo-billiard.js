@@ -11,6 +11,8 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const team = i => i % 2;
 const seatsOf = n => n === 4 ? ['0', '1', '2', '3'] : ['0', '1'];
 
+// دو عدد بریک بعدی از پیش (مثل سرور) تا گوشی بریک را هم همان لحظه نشان بدهد
+const jit = () => [+Math.random().toFixed(6), +Math.random().toFixed(6)];
 function ev(st, e) { e.seq = ++st.seq; st.events.push(e); if (st.events.length > 40) st.events = st.events.slice(-40); }
 const auto = (st, i) => st.players[st.order[i]].bot || st.players[st.order[i]].out;
 function wait(st, t, d) { if (auto(st, st.turn)) d += BOT_THINK; st.turn_id = st.seq; st.next_at = t + d; st.deadline = t + d + st.turn_s; }
@@ -30,7 +32,7 @@ function newState(seats, n) {
   const order = seatsOf(n), players = {};
   for (const s of seats) players[s.color] = { name: s.name, av: s.av || 1, bot: !!s.bot, out: false, misses: 0 };
   const t = now();
-  const st = { game: 'billiard', order, n: order.length, players, balls: E.rack(), solids: -1, turn: 0, bih: true, breaking: true, msg: 'break', phase: 'play',
+  const st = { game: 'billiard', order, n: order.length, players, balls: E.rack(), solids: -1, turn: 0, bih: true, breaking: true, msg: 'break', phase: 'play', bj: jit(),
     next_at: t + INTRO, deadline: t + INTRO + TURN_S, turn_s: TURN_S, events: [], seq: 0, turn_id: 0, winner: null, over: false, started: t,
     stats: Object.fromEntries(order.map(s => [s, { shots: 0, pots: 0, fouls: 0 }])) };
   ev(st, { t: 'start', balls: st.balls, turn: order[0] });
@@ -45,7 +47,10 @@ function shot(st, i, angle, power, sx, sy, cx, cy, t, isAuto) {
   power = Math.min(1, Math.max(E.MIN_POWER, power));
   const sl = Math.hypot(sx, sy); if (sl > 1) { sx /= sl; sy /= sl; }
   const s = st.order[i], breaking = st.breaking;
-  if (breaking && power > E.BREAK_MIN) { power *= E.BREAK_BONUS + Math.random() * E.BREAK_RAND; angle += Math.random() * E.BREAK_JIT * 2 - E.BREAK_JIT; }
+  if (breaking) {
+    const bj = st.bj || jit(); st.bj = jit();
+    if (power > E.BREAK_MIN) { power *= E.BREAK_BONUS + bj[0] * E.BREAK_RAND; angle += bj[1] * E.BREAK_JIT * 2 - E.BREAK_JIT; }
+  }
   const pos0 = st.balls.map(p => p ? p.slice() : null), need = targets(st, i);
   const res = E.simulate(pos0, angle, power, [sx, sy], breaking);
   for (const e of st.events) if (e.t === 'shot') delete e.frames;
@@ -186,7 +191,7 @@ function aim(st, i, a, p, cx, cy, t) {
 function view(st, me, since) {
   const t = now(), cur = current(st), mi = st.order.indexOf(me), au = cur != null && auto(st, st.order.indexOf(cur));
   const lv = st.live && cur != null && st.live.id === st.turn_id && st.live.c === cur ? { c: st.live.c, a: st.live.a, p: st.live.p, cue: st.live.cue } : null;
-  return { order: st.order, n: st.n, me, phase: st.phase, turn: cur, balls: st.balls, solids: st.solids, bih: st.bih, breaking: st.breaking, msg: st.msg,
+  return { order: st.order, n: st.n, me, phase: st.phase, turn: cur, balls: st.balls, solids: st.solids, bih: st.bih, breaking: st.breaking, bj: st.breaking ? st.bj : null, msg: st.msg,
     players: Object.fromEntries(st.order.map((s, k) => { const p = st.players[s]; return [s, { name: p.name, av: p.av, pic: '', bot: p.bot, out: p.out, me: s === me, team: team(k), group: st.solids < 0 ? null : (st.solids === team(k) ? 'solids' : 'stripes') }]; })),
     targets: cur != null ? targets(st, st.turn) : [], mine: mi >= 0 && !st.over ? targets(st, mi) : [], score: score(st),
     ready_ms: cur != null ? Math.max(0, Math.round((st.next_at - t) * 1000)) : 0,

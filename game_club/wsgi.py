@@ -123,23 +123,65 @@ def _versioned(html: bytes) -> bytes:
     return _ASSET_RE.sub(sub, html)
 
 
-def _file(start_response, rel: str):
+# فایل های ثابت در حافظهٔ پروسه: بایت ها، نسخهٔ فشرده و ETag (تا تغییر mtime)
+_static_cache: dict[str, tuple] = {}
+_GZIP_TYPES = ("text/", "application/javascript", "application/json", "image/svg+xml")
+
+
+def _gz(data: bytes) -> bytes:
+    return gzip.compress(data, compresslevel=6, mtime=0)
+
+
+def _file(start_response, rel: str, environ: dict | None = None):
+    """صفحه ها و فایل های ثابت.
+
+    - فایل نسخه دار (?v=<هش همان فایل>، همهٔ css و js صفحه ها): یک سال و immutable؛ گوشی دیگر نمی پرسد.
+    - بقیهٔ فایل ها (عکس، صدا، فونت): یک روز، صفحه ها و css/js بی نسخه: کوتاه؛ همه با ETag تا پرسش
+      دوباره فقط ۳۰۴ (بی بدنه) بگیرد.
+    - متن ها (html، css، js، svg) فشرده (gzip) می روند؛ نسخهٔ فشرده هم در حافظه می ماند."""
+    environ = environ or {}
     rel = rel.lstrip("/")
     full = os.path.realpath(os.path.join(WEB_DIR, rel))
     if not full.startswith(os.path.realpath(WEB_DIR) + os.sep) or not os.path.isfile(full):
         return _send(start_response, "404 Not Found", b"not found", "text/plain")
-    with open(full, "rb") as fh:
-        data = fh.read()
     ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
     if full.endswith(".woff2"):
         ctype = "font/woff2"
     if ctype.startswith("text/") or ctype in ("application/javascript",):
         ctype += "; charset=utf-8"
     page = full.endswith(".html")
-    extra = [("Cache-Control", "no-cache" if page else "public, max-age=3600")]
+    mtime = os.path.getmtime(full)
+    hit = _static_cache.get(full)
+    if page or not hit or hit[0] != mtime:
+        with open(full, "rb") as fh:
+            data = fh.read()
+        if page:
+            data = _versioned(data)          # نشانی css و js با هش تازه؛ پس صفحه هر بار ساخته می شود
+        zipped = _gz(data) if len(data) > 1024 and ctype.startswith(_GZIP_TYPES) else None
+        hit = (mtime, data, zipped, '"' + hashlib.sha1(data).hexdigest()[:16] + '"')
+        if not page:
+            _static_cache[full] = hit
+    _, data, zipped, etag = hit
+    q = environ.get("QUERY_STRING") or ""
+    if page or rel == "sw.js":
+        cache = "no-cache"
+    elif q.startswith("v=") and q[2:12] == _asset_ver(rel):
+        cache = "public, max-age=31536000, immutable"
+    elif rel.endswith((".js", ".css")):
+        cache = "public, max-age=300"
+    else:
+        cache = "public, max-age=86400"
+    extra = [("Cache-Control", cache), ("ETag", etag)]
+    if zipped is not None:
+        extra.append(("Vary", "Accept-Encoding"))
     if page:
-        data = _versioned(data)
         extra.append(("Content-Security-Policy", _CSP))
+    if environ.get("HTTP_IF_NONE_MATCH") == etag:
+        start_response("304 Not Modified", extra)
+        return [b""]
+    if zipped is not None and "gzip" in (environ.get("HTTP_ACCEPT_ENCODING") or ""):
+        extra.append(("Content-Encoding", "gzip"))
+        return _send(start_response, "200 OK", zipped, ctype, extra)
     return _send(start_response, "200 OK", data, ctype, extra)
 
 
@@ -238,9 +280,11 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
     if method != "GET":
         return _send(start_response, "405 Method Not Allowed", b"method", "text/plain")
     if sub in ("/", "/index.html"):
-        return _file(start_response, "index.html")
+        return _file(start_response, "index.html", environ)
     if sub.lstrip("/") in PAGES:
-        return _file(start_response, sub.lstrip("/"))
+        return _file(start_response, sub.lstrip("/"), environ)
+    if sub == "/sw.js":                  # service worker: باید از ریشهٔ مینی اپ داده شود تا همه صفحه ها را بگیرد
+        return _file(start_response, "sw.js", environ)
     if sub.startswith("/static/"):
-        return _file(start_response, sub)
+        return _file(start_response, sub, environ)
     return _send(start_response, "404 Not Found", b"not found", "text/plain")

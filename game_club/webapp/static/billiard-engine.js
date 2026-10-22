@@ -145,24 +145,30 @@ function sinkStep(b, h) {
   return b.sinkT >= SINK_TIME || (settled && b.sinkT > .18);
 }
 
-/* simulate: همان خروجی سرور (فریم ها با ids، توپ های افتاده، برخورد اول، ریل ها، صداها) */
-function simulate(pos, angle, power, spin, breaking) {
+/* شبیه سازی گام به گام: start ← advance(تا زمان t) ← finish. همان عمل ها به همان ترتیب پایتون، پس
+   فریم ها با سرور یکی است. مینی اپ ضربهٔ خودش را با همین، همان لحظه و ذره ذره (هم پای پخش) حساب
+   می کند تا گوشی منتظر سرور نماند و یک جا هم کار سنگینی نکند. simulate همهٔ ضربه را یک جا می دهد. */
+function start(pos, angle, power, spin, breaking) {
   const balls = []; pos.forEach((p, n) => { if (p) balls.push(mkBall(n, p[0], p[1])); });
   const cue = balls.find(b => b.n === 0), nx = Math.cos(angle), ny = Math.sin(angle), imp = power * IMPULSE;
   if (spin[1]) { cue.sx = nx * spin[1] * power * SPIN_ANG; cue.sy = ny * spin[1] * power * SPIN_ANG; }
   cue.vx = nx * imp; cue.vy = ny * imp;
   if (spin[0]) { const s = angle + spin[0] * SPIN_MAX, px = Math.cos(s) * R, py = Math.sin(s) * R; cue.w = (px * ny * imp - py * nx * imp) * INV_I; }
   const [step, iters] = breaking ? STEP_BREAK : STEP_SHOT;
-  let t = 0, nextF = 1 / FPS;
-  const frames = [], pots = [], hits = [], moved = new Set([0]);
-  const frame = () => { const f = []; for (const b of balls) { if (b.potted) f.push(-1, -1); else f.push(Math.round(b.x), Math.round(b.y)); } frames.push(f); };
-  const moving = () => balls.some(b => !b.potted && (b.sink || (b.vx * b.vx + b.vy * b.vy >= SLEEP_V * SLEEP_V) || (!b.asleep && (b.vx || b.vy))));
-  frame();
-  while (t < MAX_SIM && moving()) {
+  const S = { balls, cue, step, iters, t: 0, nextF: 1 / FPS, frames: [], pots: [], hits: [], moved: new Set([0]), done: false };
+  frameOf(S);
+  return S;
+}
+function frameOf(S) { const f = []; for (const b of S.balls) { if (b.potted) f.push(-1, -1); else f.push(Math.round(b.x), Math.round(b.y)); } S.frames.push(f); }
+const moving = balls => balls.some(b => !b.potted && (b.sink || (b.vx * b.vx + b.vy * b.vy >= SLEEP_V * SLEEP_V) || (!b.asleep && (b.vx || b.vy))));
+function advance(S, until) {
+  const { balls, step, iters, pots, hits, moved } = S;
+  while (!S.done && S.t < until) {
+    if (!(S.t < MAX_SIM && moving(balls))) { S.done = true; frameOf(S); break; }
     let vmax = 0; for (const b of balls) if (!b.potted) vmax = Math.max(vmax, Math.hypot(b.vx, b.vy));
     const n = Math.max(1, Math.min(16, Math.ceil(vmax * step / (R * .25)))), h = step / n;
     for (let s = 0; s < n; s++) {
-      t += h;
+      S.t += h; const t = S.t;
       for (const b of balls) {
         if (b.potted || b.sink) continue;
         for (let pi = 0; pi < POCKETS.length; pi++) {
@@ -198,15 +204,20 @@ function simulate(pos, angle, power, spin, breaking) {
         else { b.sleepT = 0; b.asleep = false; moved.add(b.n); }
       }
     }
-    if (t >= nextF) { frame(); nextF += 1 / FPS; }
+    if (S.t >= S.nextF) { frameOf(S); S.nextF += 1 / FPS; }
   }
-  frame();
-  const ids = balls.map(b => b.n), keep = []; ids.forEach((n, i) => { if (moved.has(n)) keep.push(i); });
+  return S;
+}
+/* خروجی مثل سرور: فقط توپ هایی که تکان خوردند در فریم ها */
+function finish(S) {
+  const { balls, frames, cue } = S;
+  const ids = balls.map(b => b.n), keep = []; ids.forEach((n, i) => { if (S.moved.has(n)) keep.push(i); });
   const outF = frames.map(f => { const o = []; for (const i of keep) o.push(f[2 * i], f[2 * i + 1]); return o; });
   const fin = new Array(16).fill(null); for (const b of balls) if (!b.potted) fin[b.n] = [+b.x.toFixed(2), +b.y.toFixed(2)];
-  return { pos: fin, ids: keep.map(i => ids[i]), frames: outF, dur: +(frames.length / FPS).toFixed(2), pots, first: cue.first,
-    rails: balls.filter(b => b.rail).map(b => b.n).sort((a, b) => a - b), hits };
+  return { pos: fin, ids: keep.map(i => ids[i]), frames: outF, dur: +(frames.length / FPS).toFixed(2), pots: S.pots, first: cue.first,
+    rails: balls.filter(b => b.rail).map(b => b.n).sort((a, b) => a - b), hits: S.hits };
 }
+function simulate(pos, angle, power, spin, breaking) { return finish(advance(start(pos, angle, power, spin, breaking), Infinity)); }
 
 /* ---------- چیدمان و جای خالی ---------- */
 function free(pos, me, x, y) { for (let i = 0; i < pos.length; i++) { const p = pos[i]; if (i !== me && p && (p[0] - x) ** 2 + (p[1] - y) ** 2 < D * D - 1e-6) return false; } return true; }
@@ -265,5 +276,5 @@ function aim(balls, angle) {
 }
 
 window.BLEngine = { W, H, R, D, HEAD, MIN_X, MAX_X, MIN_Y, MAX_Y, BREAK_MIN_Y, CUE_START, POCKETS, RAILS, MOUTHS, EDGES,
-  IMPULSE, MIN_POWER, BREAK_MIN, BREAK_BONUS, BREAK_RAND, BREAK_JIT, simulate, rack, spot, cueSpot, free, validPlace, aim };
+  IMPULSE, MIN_POWER, BREAK_MIN, BREAK_BONUS, BREAK_RAND, BREAK_JIT, FPS, simulate, start, advance, finish, rack, spot, cueSpot, free, validPlace, aim };
 })();

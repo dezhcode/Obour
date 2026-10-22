@@ -718,14 +718,16 @@ async def chat_view(db: GCDatabase, tg: int, match_id: str, since_id: int) -> li
              "me": r["tg_id"] == tg} for r in rows]
 
 
-async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, chat_since: int | None = None) -> dict:
+async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, chat_since: int | None = None,
+                     fresh: dict | None = None) -> dict:
+    """fresh: میزی که همین الان (در همین درخواست) خوانده و نوشته شده؛ دوباره خوانده نمی شود."""
     rows = await db.match_players(match_id)
     color = _color_of(rows, tg)
     if color is None:   # تماشاگر: فقط میزهای گروه، فقط وقتی بازی شروع شده؛ بدون برگ کسی و بدون چت
         return await _watch_view(db, match_id, since)
     await db.touch(match_id, tg)
     now = time.time()
-    m, _ = await mutate(db, match_id, _ticker(now))
+    m = fresh if fresh is not None else (await mutate(db, match_id, _ticker(now)))[0]
     if m["status"] == "playing":
         await _ping_turn(db, m, tg, now)
     cfg = m["cfg"]
@@ -932,7 +934,8 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
         raise GCError(err)
     if action == "aim":                          # پاسخ سبک: کلاینت نمای کامل را با poll می گیرد
         return {"ok": True}
-    return await match_view(db, tg, match_id, since)
+    # میز همین الان خوانده و (با tick) نوشته شد؛ نما از همان ساخته می شود، نه یک بار دیگر از پایگاه
+    return await match_view(db, tg, match_id, since, fresh=m)
 
 
 async def leave_any(db: GCDatabase, tg: int, match_id: str) -> dict:

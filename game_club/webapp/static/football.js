@@ -330,12 +330,12 @@ $('pitch').addEventListener('pointerup', () => {
   kickedAt = Date.now(); sfx.fb.kick(a.p); haptic('medium');
   $('pitch').classList.remove('myturn');
   const wdx = Math.round(dx * 10000) / 10000, wdy = Math.round(dy * 10000) / 10000, wp = Math.round(a.p * 1000) / 1000;
-  // همان فیزیک سرور همین جا اجرا می شود تا شوت بی تاخیر دیده شود؛ جواب سرور فقط تایید یا اصلاحش است
+  // همان فیزیک سرور همین جا اجرا می شود تا شوت بی تاخیر دیده شود؛ جواب سرور فقط تایید یا اصلاحش است.
+  // شوت یک جا حساب نمی شود: ذره ذره و هم پای پخش جلو می رود تا لحظهٔ رها کردن گوشی گیر نکند
   const PH = window.FBPhysics, g = snap.game, imp = PH && PH.impulse(wdx, wdy, wp);
-  if (imp && g.pos && g.pos.length === 13) {
-    const res = PH.runShot(g.pos, (+me) * 6 + k, imp[0], imp[1], +me, !g.passes || g.chain < g.passes);
-    const hits = res.hits.slice(0, 24).map(h => [h[0], h[1], Math.round(Math.min(1, h[2] / 2000) * 100) / 100]);
-    pred = { pos: res.pos.map(q => [PH.rd2(q[0]), PH.rd2(q[1])]), done: playFrames({ frames: res.frames, ids: res.ids, hits, c: me }) };
+  if (imp && g.pos && g.pos.length === 13 && PH.startShot) {
+    const S = PH.startShot(g.pos, (+me) * 6 + k, imp[0], imp[1], +me, !g.passes || g.chain < g.passes);
+    pred = { S, done: playFrames({ sim: S, c: me }) };
   }
   act(() => GC.football.shot(mid, k, wdx, wdy, wp, since));
 });
@@ -364,17 +364,28 @@ function jolt(g) {
   p.classList.remove('jolt'); void p.offsetWidth; p.classList.add('jolt');
   if (g > .8) haptic('light');
 }
+// e.sim: شوت خودم که فیزیکش هم پای پخش جلو می رود (فریم ها برای هر ۱۳ مهره، صداها از برخوردهای همان)
+const ALL = [...Array(13).keys()];
 function playFrames(e) {
   return new Promise(done => {
-    const F = e.frames, ids = e.ids, n = F.length, hits = (e.hits || []).slice(), t0 = performance.now();
+    const S = e.sim, PH = window.FBPhysics, F = S ? [] : e.frames, ids = S ? ALL : e.ids, hits = (e.hits || []).slice(), t0 = performance.now();
+    let hj = 0;
     if (!e.quiet && !(e.c === me && Date.now() - kickedAt < 4000)) sfx.fb.kick(.8);
     kickedAt = 0;
     const put = (fr, j, id) => setPos(id, [fr[2 * j], fr[2 * j + 1]]);
     let lastA = -1;
     const step = t => {
       const el = Math.max(0, (t - t0) / 1000), f = el * FPS;  // زمان rAF می تواند کمی قبل از t0 باشد
+      if (S) {
+        PH.advanceShot(S, el + .12);
+        while (F.length < S.frames.length) { const [xs, ys] = S.frames[F.length], row = []; for (const q of ALL) row.push(PH.rd2(xs[q]), PH.rd2(ys[q])); F.push(row); }
+        const sh = S.sim.hits;
+        while (hj < sh.length && hj < 24) { const h = sh[hj++]; hits.push([h[0], h[1], Math.round(Math.min(1, h[2] / 2000) * 100) / 100]); }
+      }
+      const n = F.length;
       while (hits.length && hits[0][0] <= el) { const [, kd, g] = hits.shift(); (kd === 'w' ? sfx.fb.wall : kd === 'p' ? sfx.fb.post : kd === 'b' ? sfx.fb.ball : sfx.fb.clack)(g); if (g > .55 && kd !== 'b') jolt(g); }
-      if (f >= n - 1) { ids.forEach((id, j) => put(F[n - 1], j, id)); done(); return; }
+      if (f >= n - 1 && (!S || S.done)) { ids.forEach((id, j) => put(F[n - 1], j, id)); done(); return; }
+      if (Math.floor(f) + 1 >= n) { requestAnimationFrame(step); return; }
       const a = Math.floor(f), u = f - a, A = F[a], B = F[a + 1], z = a !== lastA; lastA = a;
       ids.forEach((id, j) => setPos(id, [A[2 * j] + (B[2 * j] - A[2 * j]) * u, A[2 * j + 1] + (B[2 * j + 1] - A[2 * j + 1]) * u], z));
       requestAnimationFrame(step);
@@ -494,7 +505,8 @@ async function play(e) {
   if (e.t === 'shot') {
     if (pred && e.c === me && !e.auto) {
       const p = pred; pred = null; await p.done;
-      const off = e.pos.some((q, i) => !p.pos[i] || Math.hypot(q[0] - p.pos[i][0], q[1] - p.pos[i][1]) > 2);
+      const sim = p.S.sim, pp = sim.x.map((x, q) => [window.FBPhysics.rd2(x), window.FBPhysics.rd2(sim.y[q])]);
+      const off = e.pos.some((q, i) => !pp[i] || Math.hypot(q[0] - pp[i][0], q[1] - pp[i][1]) > 2);
       if (off) await glide(e.pos, 300); else setAll(e.pos);
     } else if (e.frames && e.frames.length) {
       await playFrames(e);
@@ -639,8 +651,7 @@ const syncSnd = () => { sndBtn.innerHTML = icon(S.sound ? 'soundOn' : 'soundOff'
 sndBtn.onclick = () => { setSound(!S.sound); syncSnd(); if (S.sound) { GC.loadSamples(); if (!overShown) sfx.fb.crowd(true); } };
 syncSnd();
 document.addEventListener('pointerdown', () => { GC.loadSamples(); if (!overShown) sfx.fb.crowd(true); }, { once: true });
-window.addEventListener('resize', fit);
-try { Telegram.WebApp.onEvent('viewportChanged', fit); Telegram.WebApp.onEvent('fullscreenChanged', () => setTimeout(fit, 50)); } catch (e) {}
+GC.onFit(fit);   // فقط وقتی اندازهٔ صفحه واقعا عوض شد؛ باز شدن کیبورد گفتگو بازی را دوباره نمی چیند
 
 /* ---------- شروع ---------- */
 async function start() {

@@ -342,21 +342,27 @@ function pack(sim, frames, x0, force) {
   const ids = [...moved].sort((a, b) => a - b);
   return { ids, out: frames.map(f => { const row = []; for (const q of ids) { row.push(rd2(f[0][q])); row.push(rd2(f[1][q])); } return row; }) };
 }
-function runShot(pos, k, ix, iy, team, passOk) {
+/* شوت گام به گام: startShot ← advanceShot(تا زمان t) ← finishShot؛ همان گام ها به همان ترتیب runShot.
+   مینی اپ شوت خودش را با این ذره ذره و هم پای پخش حساب می کند تا لحظهٔ رها کردن گوشی گیر نکند. */
+function startShot(pos, k, ix, iy, team, passOk) {
   const sim = new Sim(pos, team, passOk);
   sim.setImpulse(k, ix, iy);
-  const x0 = [sim.x.slice(), sim.y.slice()], frames = [[sim.x.slice(), sim.y.slice()]];
-  let steps = 0;
-  for (;;) {
-    sim.step(); steps++;
-    if (steps % FRAME_EVERY === 0) frames.push([sim.x.slice(), sim.y.slice()]);
-    if (sim.allAsleep() || steps >= MAX_STEPS) break;
-  }
-  sim.demagnetize(false);
-  frames.push([sim.x.slice(), sim.y.slice()]);
-  const { ids, out } = pack(sim, frames, x0, [k]);
-  return { pos: sim.x.map((_, q) => [sim.x[q], sim.y[q]]), ids, frames: out, steps, dur: rd2(steps * DT), goal: sim.goal, shooter: sim.shooter, receiver: sim.receiver, hits: sim.hits };
+  return { sim, k, x0: [sim.x.slice(), sim.y.slice()], frames: [[sim.x.slice(), sim.y.slice()]], steps: 0, done: false };
 }
+function advanceShot(S, until) {
+  const sim = S.sim;
+  while (!S.done && S.steps * DT < until) {
+    sim.step(); S.steps++;
+    if (S.steps % FRAME_EVERY === 0) S.frames.push([sim.x.slice(), sim.y.slice()]);
+    if (sim.allAsleep() || S.steps >= MAX_STEPS) { sim.demagnetize(false); S.frames.push([sim.x.slice(), sim.y.slice()]); S.done = true; }
+  }
+  return S;
+}
+function finishShot(S) {
+  const sim = S.sim, { ids, out } = pack(sim, S.frames, S.x0, [S.k]);
+  return { pos: sim.x.map((_, q) => [sim.x[q], sim.y[q]]), ids, frames: out, steps: S.steps, dur: rd2(S.steps * DT), goal: sim.goal, shooter: sim.shooter, receiver: sim.receiver, hits: sim.hits };
+}
+function runShot(pos, k, ix, iy, team, passOk) { return finishShot(advanceShot(startShot(pos, k, ix, iy, team, passOk), Infinity)); }
 
 // کنترل بعد از پاس: گیرنده پشت توپ و رو به دروازه می نشیند (سرور مرجع است؛ این نسخه برای نمایشی)
 function secureDist(pos, k) { const t = radiusOf(k) + BALL_R * MAGNET_CTRL; return t < pos[k][0] && pos[k][0] < W - t && GOAL_H + t < pos[k][1] && pos[k][1] < H - GOAL_H - t; }
@@ -421,5 +427,5 @@ function impulse(dx, dy, power) {
   return [dx * f, dy * f];
 }
 root.FBPhysics = { W, H, GOAL_W, BALL_R, REG_R, KEEP_R, GOAL_H, POST_R, BOX_W, BALL, N, CONTROL_RADIUS, IMPULSE_MAX, IMPULSE_MULT, DT, FRAME_EVERY,
-  GOALS, radiusOf, runShot, runControl, impulse, rd2, Sim };
+  GOALS, radiusOf, runShot, startShot, advanceShot, finishShot, runControl, impulse, rd2, Sim };
 })(typeof window !== 'undefined' ? window : globalThis);

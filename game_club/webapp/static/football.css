@@ -2,7 +2,7 @@
    فلزی با نشان تیم. طرح: صفحه طراحی «فوتبال Game Club»، سبک A و مهره مدل ۱. */
 html:has(body.football){overflow:hidden}
 body.football{--gold:#F5C451;--gold-ink:#3A2A00;--me:#2F80ED;--rail:#e9edf1;
-  margin:0;height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;color:#fff;
+  margin:0;height:100vh;height:var(--app-h,100dvh);overflow:hidden;display:flex;flex-direction:column;color:#fff;
   background:radial-gradient(120% 60% at 50% 45%,#3d7d2f 0%,#2a5c22 70%,#214a1b 100%) fixed;
   -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
 body.football .appbar{background:transparent;color:#fff;flex:none}

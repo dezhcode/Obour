@@ -1742,6 +1742,52 @@ def test_billiard_teams_and_bot_games():
     assert st2["over"] and Bl.winners(st2) == {"1"}
 
 
+def test_static_cache_headers():
+    """فایل های ثابت: نسخه دار یک ساله و immutable، بقیه با ETag (پرسش دوباره = ۳۰۴)، متن ها فشرده؛ sw.js و صفحه ها no-cache."""
+    import gzip as gz
+    from game_club import wsgi as W
+
+    def get(rel, **env):
+        got = {}
+        body = b"".join(W._file(lambda st, h: got.update(status=st, h=dict(h)), rel, env))
+        return got["status"], got["h"], body
+    ver = W._asset_ver("static/gc.js")
+    st, h, body = get("static/gc.js", QUERY_STRING="v=" + ver, HTTP_ACCEPT_ENCODING="gzip, br")
+    assert st == "200 OK" and "immutable" in h["Cache-Control"] and h["Content-Encoding"] == "gzip"
+    raw = gz.decompress(body)
+    assert raw == open(os.path.join(W.WEB_DIR, "static", "gc.js"), "rb").read() and len(body) < len(raw) / 2
+    assert "immutable" not in get("static/gc.js", QUERY_STRING="v=old")[1]["Cache-Control"]
+    st, h, body = get("static/gc.js", HTTP_IF_NONE_MATCH=h["ETag"])
+    assert st == "304 Not Modified" and body == b""
+    assert get("static/gc.js")[1].get("Content-Encoding") is None          # بدون gzip در درخواست
+    st, h, _ = get("sw.js")
+    assert st == "200 OK" and h["Cache-Control"] == "no-cache"
+    st, h, body = get("index.html", HTTP_ACCEPT_ENCODING="gzip")
+    assert h["Cache-Control"] == "no-cache" and "Content-Security-Policy" in h
+    assert b'static/gc.js?v=' + ver.encode() in gz.decompress(body)
+    assert get("../wsgi.py")[0].startswith("404")
+
+
+def test_billiard_break_known_in_advance():
+    """دو عدد تصادفی بریک از پیش در نمای بازی است (bj)، تا گوشی بریک را همان لحظه عیناً مثل سرور نشان بدهد."""
+    import math
+    Bl, st = _bl_state()
+    bj = st["bj"]
+    v = Bl.view(st, "0", 0, 0.0)
+    assert v["breaking"] and v["bj"] == bj and all(0 <= x < 1 for x in bj)
+    pos0 = [p[:] if p else None for p in st["balls"]]
+    a, p = -math.pi / 2 + 0.01, 0.9
+    assert Bl.shot(st, 0, a, p, 0, 0, None, None, 10.0) is None
+    e = next(x for x in st["events"] if x["t"] == "shot")
+    pw, ang = p * (Bl.BREAK_BONUS + bj[0] * Bl.BREAK_RAND), a + (bj[1] * Bl.BREAK_JIT * 2 - Bl.BREAK_JIT)
+    assert e["p"] == round(pw, 3) and e["a"] == round(ang, 4)
+    # همان ورودی ها، همان فریم ها (همان چیزی که گوشی پیش از رسیدن جواب پخش کرده)
+    assert Bl.simulate(pos0, ang, pw, (0.0, 0.0), True)["frames"] == e["frames"]
+    assert st["bj"] != bj                       # بریک بعدی (اگر میز دوباره چیده شد) عدد تازه دارد
+    if not st["breaking"]:
+        assert Bl.view(st, "0", 0, 20.0)["bj"] is None
+
+
 def test_billiard_live_aim():
     from game_club import billiard as Bl
     random.seed(9)
@@ -1942,6 +1988,8 @@ def test_divar_service_flow():
             # تمرین با ربات
             r = await service.queue_join(db, 1, {"game": "divar", "mode": "free", "players": 2, "solo": True})
             mid = r["match"]
+            # صفحهٔ هر بازی بی شناسه فقط میز همان بازی را می گیرد
+            assert await db.active_match_of(1, "divar") == mid and await db.active_match_of(1, "billiard") is None
             v = await service.match_view(db, 1, mid)
             g = v["game"]
             assert g["size"] == 9 and g["n"] == 2 and v["me"] in g["order"]
