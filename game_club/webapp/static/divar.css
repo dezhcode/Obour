@@ -1,4 +1,4 @@
-/* دیوار: طرح «نمد شب» — نمد سبز با قاب طلایی، کاشی های پخ دار برجسته، دیوارهای طلایی باریک،
+/* دیوار: طرح «نمد شب» — نمد سبز با قاب طلایی، کاشی های پخ دار برجسته، دیوارهای باریک به رنگ کسی که گذاشته،
    مهره های فلزی با گنبد رنگی، لبهٔ مقصد مثل چراغ نورانی و چراغی بالای میز که آرام تاب می خورد
    (جای نور و جهت سایهٔ همه چیز با هم جابه جا می شود). */
 html:has(body.divar){overflow:hidden}
@@ -72,18 +72,26 @@ body.divar .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(--sp
 .dv-edge[data-side="1"]::after{top:4%;bottom:4%;right:50%;width:70px;background:radial-gradient(ellipse 100% 60% at 100% 50%,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
 .dv-edge[data-side="3"]::after{top:4%;bottom:4%;left:50%;width:70px;background:radial-gradient(ellipse 100% 60% at 0 50%,color-mix(in srgb,var(--gc) 70%,transparent),transparent 72%)}
 @keyframes dv-lamp{50%{filter:brightness(1.25)}}
-.dv-star{display:grid;place-items:center;z-index:2;pointer-events:none}
-.dv-star svg{width:80%;height:80%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35)) drop-shadow(0 0 8px rgba(245,196,81,.6));animation:dv-twinkle 2.4s ease-in-out infinite}
-@keyframes dv-twinkle{50%{scale:1.1;rotate:8deg}}
+/* ستارهٔ وسط: سکوی برجستهٔ چهار رنگ؛ هر ربع و هر پرتو به رنگ بازیکنی که از آن ضلع می آید (--cT/--cR/--cB/--cL) */
+.dv-star{display:grid;place-items:center;z-index:3;pointer-events:none}
+.dv-star .plat{position:absolute;inset:2%;border-radius:22%;background:conic-gradient(from 45deg,var(--cR) 0 25%,var(--cB) 0 50%,var(--cL) 0 75%,var(--cT) 0 100%);
+  box-shadow:calc(var(--sx) * .6) calc(var(--sy) * .6) 2px rgba(0,0,0,.45),var(--sx) var(--sy) 8px rgba(0,0,0,.3)}
+.dv-star .plat::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(160deg,rgba(255,255,255,.45),transparent 45%,rgba(0,0,0,.3))}
+.dv-star .plat::after{content:"";position:absolute;inset:16%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#1f6a45,#0f3a26);box-shadow:inset 0 2px 4px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.35)}
+.dv-star svg{position:relative;width:58%;height:58%;filter:drop-shadow(0 0 5px rgba(255,216,107,.8));animation:dv-float 2.6s ease-in-out infinite}
+@keyframes dv-float{50%{transform:translateY(-6%) scale(1.06)}}
+.dv-beam{position:absolute;z-index:2;pointer-events:none;opacity:.55;animation:dv-beam 2.6s ease-in-out infinite}
+@keyframes dv-beam{50%{opacity:.9}}
 
-/* دیوار طلایی باریک */
-.dv-wall{z-index:4;pointer-events:none;border-radius:99px;background:linear-gradient(180deg,#FFF3C9,#FFD86B 30%,#E9A93A 62%,#A06A16);
-  box-shadow:calc(var(--sx) * .5) calc(var(--sy) * .4) 1px rgba(0,0,0,.4),var(--sx) var(--sy) 5px rgba(0,0,0,.25),inset 0 -1px 0 rgba(90,55,5,.55)}
-.dv-wall.v{background:linear-gradient(90deg,#FFF3C9,#FFD86B 30%,#E9A93A 62%,#A06A16);
-  box-shadow:calc(var(--sx) * .6) calc(var(--sy) * .3) 1px rgba(0,0,0,.4),calc(var(--sx) + 1.5px) calc(var(--sy) * .7) 5px rgba(0,0,0,.25),inset -1px 0 0 rgba(90,55,5,.55)}
-.dv-wall::after{content:"";position:absolute;border-radius:99px;background:rgba(255,255,255,calc(.62 * var(--li)))}
-.dv-wall.h::after{left:10%;right:22%;top:16%;height:22%}
-.dv-wall.v::after{top:10%;bottom:22%;left:16%;width:22%}
+/* دیوار: میلهٔ فلزی باریک به رنگ کسی که گذاشته (--wc) با یک خط براق درست وسط و تراز در طول آن */
+.dv-wall{z-index:4;pointer-events:none;border-radius:99px;--wc:var(--me);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--wc) 30%,#fff),var(--wc) 42%,color-mix(in srgb,var(--wc) 55%,#000));
+  box-shadow:calc(var(--sx) * .5) calc(var(--sy) * .4) 1px rgba(0,0,0,.4),var(--sx) var(--sy) 5px rgba(0,0,0,.25),0 0 7px color-mix(in srgb,var(--wc) 45%,transparent)}
+.dv-wall.v{background:linear-gradient(90deg,color-mix(in srgb,var(--wc) 30%,#fff),var(--wc) 42%,color-mix(in srgb,var(--wc) 55%,#000));
+  box-shadow:calc(var(--sx) * .6) calc(var(--sy) * .3) 1px rgba(0,0,0,.4),calc(var(--sx) + 1.5px) calc(var(--sy) * .7) 5px rgba(0,0,0,.25),0 0 7px color-mix(in srgb,var(--wc) 45%,transparent)}
+.dv-wall::after{content:"";position:absolute;border-radius:99px;background:linear-gradient(90deg,transparent,rgba(255,255,255,calc(.75 * var(--li))) 12%,rgba(255,255,255,calc(.75 * var(--li))) 88%,transparent)}
+.dv-wall.h::after{left:6%;right:6%;top:50%;height:28%;transform:translateY(-50%)}
+.dv-wall.v::after{top:6%;bottom:6%;left:50%;width:28%;transform:translateX(-50%);background:linear-gradient(180deg,transparent,rgba(255,255,255,calc(.75 * var(--li))) 12%,rgba(255,255,255,calc(.75 * var(--li))) 88%,transparent)}
 .dv-wall.drop{animation:dv-drop .4s cubic-bezier(.2,1.4,.4,1) both}
 @keyframes dv-drop{0%{transform:translateY(-16px) scale(1.2);opacity:0}60%{opacity:1}100%{transform:none}}
 .dv-pv{z-index:6;pointer-events:none;opacity:.6}
