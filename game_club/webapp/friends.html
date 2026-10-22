@@ -9,32 +9,35 @@
 <link rel="stylesheet" href="static/gc.css">
 <style>
 /* دوستان: دو تب «دوستان | درخواست‌ها»؛ آنلاین ها بالا. لمس هر ردیف برگهٔ همان دوست را باز می کند */
-.fl-add{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 16px 0 14px;border-radius:22px;background:var(--gold);color:var(--gold-ink);font-size:14px;font-weight:900}
+.fl-add{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 16px 0 14px;border-radius:21px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);font-size:14px;font-weight:800}
 .fl-add svg{width:20px;height:20px}
-.fl-search{display:flex;align-items:center;gap:10px;height:48px;padding:0 14px;border-radius:24px;background:var(--surface-sunk);color:var(--ink-muted)}
+.fl-search{display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;border-radius:14px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink-muted)}
 .fl-search svg{width:20px;height:20px;flex:none}
 .fl-search input{flex:1;min-width:0;border:0;outline:0;background:none;color:var(--ink);font-size:14.5px}
-.fl-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border-radius:22px;background:var(--surface-sunk)}
-.fl-tabs button{height:42px;border-radius:18px;color:var(--ink-muted);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
-.fl-tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:900;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
-.fl-n{min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:#FF6B7A;color:#2A0B0F;font-size:11.5px;line-height:20px;font-weight:900}
+.fl-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border-radius:16px;background:#E6E9F0}
+.fl-tabs button{height:40px;border-radius:12px;color:var(--ink-muted);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
+.fl-tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:900;box-shadow:0 1px 3px rgba(20,25,40,.15)}
+.fl-k{font-weight:700;color:var(--ink-muted)}
+.fl-n{min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:#F0465B;color:#fff;font-size:11.5px;line-height:20px;font-weight:900}
 .fl-h{margin:2px 4px -4px;font-size:13px;line-height:20px;font-weight:800;color:var(--ink-muted)}
-.fl-list{list-style:none;margin:0;padding:0;border-radius:20px;background:var(--surface);overflow:hidden}
-.fl-row{display:flex;align-items:center;gap:10px;min-height:68px;padding:0 10px 0 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+/* شمار کنار عنوان در یک قرص جدا (نقطهٔ «·» کنار رقم فارسی شبیه صفر است: «آنلاین · ۱» مثل ۱۰ خوانده می شد) */
+.fl-h i{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-inline-start:2px;border-radius:10px;background:#E6E9F0;color:var(--ink);font-style:normal;font-size:11.5px;font-weight:800}
+.fl-list{list-style:none;margin:0;padding:0;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line);overflow:hidden}
+.fl-row{display:flex;align-items:center;gap:10px;min-height:68px;padding:0 10px 0 14px;border-bottom:1px solid var(--line)}
 .fl-row:last-child{border-bottom:0}
 .fl-who{flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:start;min-height:56px}
 .fl-who .t{min-width:0;display:grid}
 .fl-who b{font-size:15px;line-height:22px;font-weight:800;justify-self:start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fl-who small{font-size:12.5px;line-height:18px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fl-who small.on{color:var(--success)}.fl-who small.play{color:var(--acc-deep)}
-.fl-ib{position:relative;width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.07);color:var(--ink)}
+.fl-ib{position:relative;width:42px;height:42px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink)}
 .fl-ib svg{width:21px;height:21px}
-.fl-ib.gold{background:rgba(245,196,81,.15);color:var(--gold)}
-.fl-ib .u{position:absolute;top:2px;left:0;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#FF6B7A;color:#2A0B0F;font-size:11px;line-height:18px;font-weight:900;box-shadow:0 0 0 2px var(--surface)}
-.fl-acc{height:44px;padding:0 16px;flex:none;border-radius:22px;background:var(--gold);color:var(--gold-ink);font-size:14px;font-weight:900}
-.fl-lite{height:40px;padding:0 14px;flex:none;border-radius:20px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);color:var(--ink);font-size:13px;font-weight:800}
-.fl-empty{display:grid;justify-items:center;gap:8px;padding:32px 16px;border-radius:22px;background:var(--surface);text-align:center}
-.fl-empty .ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:rgba(245,196,81,.15);color:var(--gold)}
+.fl-ib.gold{background:var(--acc);color:var(--acc-ink);box-shadow:none}
+.fl-ib .u{position:absolute;top:-2px;left:-2px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#F0465B;color:#fff;font-size:11px;line-height:18px;font-weight:900;box-shadow:0 0 0 2px var(--surface)}
+.fl-acc{height:42px;padding:0 16px;flex:none;border-radius:13px;background:var(--acc);color:var(--acc-ink);font-size:14px;font-weight:800}
+.fl-lite{height:40px;padding:0 14px;flex:none;border-radius:13px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink);font-size:13px;font-weight:800}
+.fl-empty{display:grid;justify-items:center;gap:8px;padding:32px 16px;border-radius:22px;background:var(--surface);box-shadow:0 0 0 1px var(--line);text-align:center}
+.fl-empty .ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--acc-tint);color:var(--acc)}
 .fl-empty .ic svg{width:30px;height:30px}
 .fl-empty b{font-size:16px;font-weight:900}
 .fl-empty small{font-size:13px;line-height:21px;color:var(--ink-muted)}
@@ -77,7 +80,7 @@
 
   function render() {
     const nIn = data ? data.incoming.length : 0;
-    $('flTabs').innerHTML = `<button role="tab" data-t="friends" aria-selected="${tab === 'friends'}">دوستان${data ? ' ' + FD(data.friends.length) : ''}</button>
+    $('flTabs').innerHTML = `<button role="tab" data-t="friends" aria-selected="${tab === 'friends'}">دوستان${data ? `<span class="fl-k">${FD(data.friends.length)}</span>` : ''}</button>
       <button role="tab" data-t="req" aria-selected="${tab === 'req'}">درخواست‌ها${nIn ? `<span class="fl-n">${FD(nIn)}</span>` : ''}</button>`;
     $('flQ').closest('.fl-search').hidden = tab !== 'friends';
     if (!data) return;
@@ -88,11 +91,11 @@
       if (!data.friends.length) html = empty('users', 'هنوز دوستی نداری', 'با یوزرنیم دوستانت را پیدا کن و با هم بازی کنید.', `<button class="btn" data-add>${icon('userAdd')}افزودن دوست</button>`);
       else if (!list.length) html = empty('search', 'پیدا نشد', 'در دوستانت کسی با این اسم نیست.');
       else {
-        if (on.length) html += `<h2 class="fl-h">آنلاین · ${FD(on.length)}</h2><ul class="fl-list">${on.map(row).join('')}</ul>`;
-        if (off.length) html += `<h2 class="fl-h">آفلاین · ${FD(off.length)}</h2><ul class="fl-list">${off.map(row).join('')}</ul>`;
+        if (on.length) html += `<h2 class="fl-h">آنلاین <i>${FD(on.length)}</i></h2><ul class="fl-list">${on.map(row).join('')}</ul>`;
+        if (off.length) html += `<h2 class="fl-h">آفلاین <i>${FD(off.length)}</i></h2><ul class="fl-list">${off.map(row).join('')}</ul>`;
       }
     } else {
-      if (data.incoming.length) html += `<h2 class="fl-h">درخواست‌های تازه · ${FD(data.incoming.length)}</h2><ul class="fl-list">${data.incoming.map(f => reqRow(f, 'in')).join('')}</ul>`;
+      if (data.incoming.length) html += `<h2 class="fl-h">درخواست‌های تازه <i>${FD(data.incoming.length)}</i></h2><ul class="fl-list">${data.incoming.map(f => reqRow(f, 'in')).join('')}</ul>`;
       if (data.outgoing.length) html += `<h2 class="fl-h">فرستاده‌ای</h2><ul class="fl-list">${data.outgoing.map(f => reqRow(f, 'out')).join('')}</ul>`;
       if (data.blocked.length) html += `<h2 class="fl-h">بلاک شده‌ها</h2><ul class="fl-list">${data.blocked.map(f => reqRow(f, 'blk')).join('')}</ul>`;
       if (!html) html = empty('userAdd', 'درخواستی نداری', 'وقتی کسی برایت درخواست دوستی بفرستد اینجا می‌بینی.');

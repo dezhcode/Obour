@@ -1,22 +1,38 @@
 @property --t{syntax:'<number>';inherits:true;initial-value:1}
 /* Game Club — components. همه رنگ ها و اندازه ها از tokens.css (ساخته شده از design/tokens.json) */
 
-/* ---------- تم تیره ----------
-   «سالن شب»: همه صفحه ها هم رنگ میزهای بازی اند؛ زمینه سبز-سرمه ای خیلی تیره، کارت های کمی روشن تر،
-   متن عاجی و رنگ تاکید طلایی (همان طلای ورق و میز).
-   فقط رنگ ها اینجا عوض می شوند؛ اجزا همان توکن ها را می خوانند. */
-:root{color-scheme:dark;
+/* ---------- تم روشن (صفحه های اصلی و لابی ها) ----------
+   «کاشی برای مرور، جعبه برای ورود»: زمینهٔ روشن و خنثی تا رنگ و تصویر خود بازی ها دیده شود.
+   رنگ تاکید اپ آبی است (دکمهٔ اصلی، انتخاب، تمرکز)؛ داخل لابی هر بازی رنگ همان بازی جایش را می گیرد
+   (gamepage.js کلاس lobby-<بازی> را روی body می گذارد). طلایی فقط برای امتیاز. */
+:root{color-scheme:light;
+  --ground:#F4F5F8;--ground-deep:#E9ECF2;--surface:#FFFFFF;--surface-sunk:#EEF0F5;--line:#E3E6EE;
+  --ink:#161922;--ink-muted:#6B7080;--night:#161922;
+  --sky:#2F6FEB;--sky-deep:#1F55C4;--sky-tint:#E9F0FE;--violet-tint:#EFEBFF;
+  --gold:#F5C451;--gold-ink:#3A2A00;
+  --acc:#2F6FEB;--acc-deep:#1F55C4;--acc-ink:#FFFFFF;--acc-tint:#E9F0FE;
+  --game-bg:#12291F;--game-deep:#0A1914;--game-glass:rgba(255,255,255,.08);--game-ink:#D3E2DA;
+  --coin-tint:#FFF4D6;--coin-text:#8A6200;
+  --success:#1E8A5E;--success-tint:#E1F5EA;--danger:#D63447;
+  --depth-sm:0 0 0 1px var(--line);--depth-md:0 0 0 1px var(--line),0 10px 22px -16px rgba(20,25,40,.3);
+  --lift:0 18px 40px -14px rgba(20,25,40,.32);--press:inset 0 -3px 0 rgba(0,0,0,.12);--press-sm:inset 0 -2px 0 rgba(0,0,0,.1);
+  --scrim:rgba(14,18,26,.5)}
+
+/* ---------- تم تیره: فقط صفحهٔ خود بازی ها (دست نخورده) ----------
+   «سالن شب»: زمینه سبز-سرمه ای خیلی تیره، کارت های کمی روشن تر، متن عاجی و رنگ تاکید طلایی
+   (همان طلای ورق و میز). روی body صفحهٔ بازی تعریف می شود تا همه چیز داخلش، از جمله برگه ها، همین را بخوانند. */
+body:is(.game,.hokm,.divar,.football,.billiard){color-scheme:dark;
   --ground:#0C1915;--ground-deep:#08120F;--surface:#17302A;--surface-sunk:#11251F;--line:rgba(255,255,255,.1);
   --ink:#F3F1E8;--ink-muted:#9DB0A8;--night:#07110E;
   --sky:#3D7BFF;--sky-deep:#9BBBFF;--sky-tint:rgba(61,123,255,.18);--violet-tint:rgba(124,102,242,.2);
   --gold:#F5C451;--gold-ink:#3A2A00;
-  /* تنها رنگ تاکید: همه دکمه های اصلی، انتخاب ها، سوییچ ها و تمرکز طلایی اند (آبی فقط برای رنگ تیم) */
   --acc:#F5C451;--acc-deep:#F7CF6A;--acc-ink:#3A2A00;--acc-tint:rgba(245,196,81,.15);
   --game-bg:#12291F;--game-deep:#0A1914;--game-glass:rgba(255,255,255,.08);--game-ink:#D3E2DA;
   --coin-tint:rgba(255,201,60,.14);--coin-text:#FFD25E;
   --success:#3DD68C;--success-tint:rgba(61,214,140,.16);--danger:#FF6B7A;
   --depth-sm:none;--depth-md:none;--lift:none;--press:none;--press-sm:none;
   --scrim:rgba(4,10,8,.66)}
+:root:has(>body:is(.game,.hokm,.divar,.football,.billiard)){color-scheme:dark}
 
 /* ---------- پایه ---------- */
 *{box-sizing:border-box}
@@ -24,7 +40,8 @@
 /* فروشگاه در دوره آزمایشی خاموش است؛ هر چیز مربوط به خرید فقط با html.shop-on دیده می شود */
 html:not(.shop-on) .shop-only{display:none!important}
 html{-webkit-text-size-adjust:100%;direction:rtl}
-body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--font-peyda);font-size:14.5px;line-height:24px;font-weight:400;background:linear-gradient(180deg,#0F201B 0,#0B1714 55%,#09130F) fixed var(--ground)}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--font-peyda);font-size:14.5px;line-height:24px;font-weight:400;background:var(--ground)}
+body:is(.game,.hokm,.divar,.football,.billiard){background:linear-gradient(180deg,#0F201B 0,#0B1714 55%,#09130F) fixed var(--ground)}
 /* رخ فقط برای عنوان ها؛ بقیه متن ها با پیدا (فونت ربات عبور) */
 h1,h2,h3,.wordmark,.sheet-head h2,.t-display,.t-title,.t-heading,.t-subhead,.appbar-cap span,.me-name,.gtile b,.choice b{font-family:var(--font-rokh)}
 button,input{font:inherit;color:inherit}
@@ -66,8 +83,9 @@ h1,h2,h3,p{margin:0}
 .btn-success{--fg:var(--on-fill);--bg:var(--success);--edge:var(--success)}
 .btn-violet{--fg:var(--on-fill);--bg:var(--violet);--edge:var(--violet)}
 .btn-danger{--fg:var(--on-fill);--bg:var(--danger);--edge:var(--danger)}
-/* دکمه دوم: روی کارت هم دیده می شود (زمینه نیمه شفاف + خط نازک داخلی، بدون سایه) */
-.btn.btn-light{--bg:rgba(255,255,255,.07);--fg:var(--ink);--edge:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
+/* دکمه دوم: سفید با خط نازک داخلی؛ در صفحهٔ بازی (تیره) شیشه ای نیمه شفاف */
+.btn.btn-light{--bg:var(--surface);--fg:var(--ink);--edge:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+body:is(.game,.hokm,.divar,.football,.billiard) .btn.btn-light{--bg:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.13)}
 .btn-soft{--bg:var(--acc-tint);--fg:var(--acc-deep);--edge:transparent}
 .btn-sm{min-height:38px;padding-inline:var(--space-4);font-size:14px;box-shadow:var(--press-sm)}
 .btn-block{width:100%}
@@ -123,7 +141,7 @@ h1,h2,h3,p{margin:0}
 .avatar{--ring:var(--surface);--size:44px;display:inline-block;position:relative;width:var(--size);height:var(--size);flex:none;border-radius:50%;padding:3px;background:var(--ring)}
 .avatar>span{position:relative;display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--sky-tint)}
 .avatar svg{display:block;width:100%;height:100%}
-.avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;background:var(--sky-tint)}
+.avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .avatar .ini{position:absolute;inset:0;display:grid;place-items:center;color:var(--on-fill);font-weight:900;font-size:calc(var(--size) * .4)}
 .avatar.timer{background:conic-gradient(var(--ring) calc(var(--t,1)*360deg),rgba(255,255,255,.55) 0)}
 
@@ -144,30 +162,35 @@ h1,h2,h3,p{margin:0}
 .switch[aria-checked="true"]::after{inset-inline-start:23px}
 
 /* ---------- ناوبری پایین ---------- */
-/* پنج بخش فقط با آیکون (نام هر بخش برای صفحه خوان در aria-label است). بخش فعلی طلایی است با یک قرص
-   کم رنگ پشتش؛ قرص یک لایهٔ جداست که هنگام رفتن به بخش دیگر فقط با transform سر می خورد (gc.js).
-   «بازی‌ها» دایرهٔ طلایی وسط است که کمی بالاتر از نوار نشسته */
+/* نوار سفید با نام هر بخش زیر آیکونش. بخش فعلی آبی است با یک خط کوتاه بالای آن؛ این خط لایهٔ جدایی
+   (nav-pill) است که هنگام رفتن به بخش دیگر فقط با transform سر می خورد (gc.js).
+   «بازی‌ها» تاس سفید وسط است که کمی بالاتر از نوار نشسته */
 .nav{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);display:flex;justify-content:center;pointer-events:none}
-.nav-in{position:relative;pointer-events:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;width:100%;max-width:480px;
-  padding:8px 10px calc(8px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));
-  background:rgba(16,33,27,.97);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-  border-top:1px solid rgba(255,255,255,.08)}
-.nav-pill{position:absolute;top:10px;left:0;width:0;height:44px;border-radius:22px;background:rgba(245,196,81,.15);
-  transform-origin:0 50%;pointer-events:none;will-change:transform;opacity:0}
-.nav-in>a{position:relative;z-index:1;height:48px;display:grid;place-items:center;border-radius:22px;color:#8FA39A;transition:color .2s;-webkit-tap-highlight-color:transparent}
-.nav-in svg{width:26px;height:26px}
-.nav-in>[aria-current="page"]{color:var(--gold)}
-.nav-in>[aria-current="page"] svg{stroke-width:2.3}
+.nav-in{position:relative;pointer-events:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;width:100%;max-width:480px;
+  padding:6px 8px calc(6px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));
+  background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  box-shadow:0 -1px 0 var(--line),0 -10px 24px -18px rgba(20,25,40,.35)}
+.nav-pill{position:absolute;top:0;left:0;width:0;height:3px;pointer-events:none;will-change:transform;opacity:0}
+.nav-pill::after{content:"";position:absolute;top:0;left:50%;width:26px;height:3px;margin-left:-13px;border-radius:0 0 3px 3px;background:var(--acc)}
+.nav-in>a{position:relative;z-index:1;height:52px;display:grid;justify-items:center;align-content:center;gap:3px;color:var(--ink-muted);transition:color .2s;-webkit-tap-highlight-color:transparent}
+.nav-in svg{width:24px;height:24px}
+.nl{font-size:10.5px;line-height:14px;font-weight:700;white-space:nowrap}
+.nav-in>[aria-current="page"]{color:var(--acc)}
+.nav-in>[aria-current="page"] svg{stroke-width:2.4}
+.nav-in>[aria-current="page"] .nl{font-weight:800}
 .nav-in>a:active{opacity:.75}
-.nav-in>.nav-play{height:48px}
-.nav-badge{position:absolute;top:4px;left:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#FF6B7A;color:#2A0B0F;font-size:11px;line-height:18px;font-weight:900;text-align:center;box-shadow:0 0 0 2px rgba(16,33,27,.97)}
-.nav-play .np{width:60px;height:60px;margin-top:-26px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--gold-ink);box-shadow:0 0 0 6px rgba(16,33,27,.97);transition:box-shadow .2s}
-.nav-play .np svg{width:30px;height:30px}
+.nav-badge{position:absolute;top:2px;left:calc(50% + 3px);min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#F0465B;color:#fff;font-size:10.5px;line-height:18px;font-weight:800;text-align:center;box-shadow:0 0 0 2px #fff}
+.nav-in>.nav-play{color:var(--ink)}
+.nav-play .np{width:52px;height:52px;margin-top:-30px;margin-bottom:1px;border-radius:16px;background:#fff;transform:rotate(-9deg);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:11px;
+  box-shadow:inset 0 -5px 0 #E3E6EE,0 0 0 1px #E3E6EE,0 10px 16px -4px rgba(20,25,40,.32);transition:box-shadow .2s}
+.nav-play .np i{display:grid;place-items:center}
+.nav-play .np i.p::before{content:"";width:7.5px;height:7.5px;border-radius:50%;background:var(--ink)}
+.nav-in>.nav-play[aria-current="page"]{color:var(--acc)}
+.nav-in>.nav-play[aria-current="page"] .np{box-shadow:inset 0 -5px 0 #D8E2FA,0 0 0 2px var(--acc),0 10px 16px -4px rgba(47,111,235,.38)}
+.nav-play .np.roll{animation:np-roll .55s cubic-bezier(.2,.8,.3,1)}
+@keyframes np-roll{0%{transform:rotate(-9deg)}45%{transform:rotate(190deg) scale(1.1)}100%{transform:rotate(351deg)}}
 /* آیکن فایلی (static/icons): شکلش از فایل، رنگش از جای خودش */
 .ic-file{display:block;width:24px;height:24px;background:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}
-.nav-play .np .ic-file{width:34px;height:34px}
-.nav-in>.nav-play[aria-current="page"] .np{box-shadow:0 0 0 6px rgba(16,33,27,.97),0 0 0 9px rgba(245,196,81,.35)}
-.nav-in>.nav-play[aria-current="page"]{color:var(--gold-ink)}
 /* هر بخش اصلی (خانه، رده بندی، کیف، فروشگاه) یک لایه است؛ فقط یکی دیده می شود */
 .view[hidden]{display:none!important}
 /* رنگ زمینهٔ تصویر کوچک هر بازی */
@@ -176,6 +199,9 @@ h1,h2,h3,p{margin:0}
 .t-orange{background:linear-gradient(150deg,#FFC27A,var(--tile-orange))}
 .t-coral{background:linear-gradient(150deg,#FF9AA2,var(--tile-coral))}
 .t-green{background:repeating-linear-gradient(180deg,#5bb041 0 12px,#50a038 12px 24px)}
+.t-ludo{background:radial-gradient(circle at 45% 40%,#22533E,#0F2A22 75%)}
+.t-bil{background:radial-gradient(circle at 50% 40%,#1F5A36,#0E2C1C 80%)}
+.t-dv{background:radial-gradient(circle at 50% 40%,#1D5A3F,#0B231A 80%)}
 /* برگهٔ «بازی‌ها» از نوار پایین */
 .qp{display:grid;gap:var(--space-2)}
 .qp a,.qp div{display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-2);padding-inline-end:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-sunk)}
@@ -183,7 +209,7 @@ h1,h2,h3,p{margin:0}
 .qp .g-art svg{display:block;width:76%;height:76%}
 .qp b{display:block;font-family:var(--font-rokh);font-size:16px;line-height:24px;font-weight:900}
 .qp small{display:block;font-size:12px;line-height:18px;color:var(--ink-muted)}
-.qp .go{color:var(--gold);display:grid}
+.qp .go{color:var(--acc);display:grid}
 .qp .go svg{width:20px;height:20px}
 .qp .soon{opacity:.6}
 
@@ -432,7 +458,7 @@ body.game .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--on-f
    بعد ردیف خود صفحه. در نوار تلگرام فقط یک عنوان کوچک وسط می نشیند،
    هیچ دکمه ای زیر دکمه های تلگرام نمی رود.
    =================================================================== */
-.appbar{position:sticky;top:0;z-index:var(--z-nav);color:var(--ink);background:rgba(14,30,25,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding-top:var(--sa-t,0px)}
+.appbar{position:sticky;top:0;z-index:var(--z-nav);color:var(--ink);background:rgba(244,245,248,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding-top:var(--sa-t,0px)}
 .appbar-cap{height:var(--csa-t,0px);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .appbar-cap span{font-size:13px;line-height:18px;font-weight:900;letter-spacing:.3px;opacity:.85;max-width:50%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .appbar-in{max-width:480px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
@@ -478,15 +504,15 @@ body.game .appbar .turnbar .time{width:44px}
 .un-n{font-size:12px;font-weight:700;color:var(--ink-muted)}
 .un-msg{min-height:22px;margin-top:-10px;font-size:13.5px;line-height:22px;font-weight:700;color:var(--ink-muted)}
 .un-good .un-msg{color:var(--success)}
-.un-err .un-msg{color:#FF8A96}
+.un-err .un-msg{color:var(--danger)}
 .un-sug{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:-8px}
 .un-sug>span{font-size:12.5px;color:var(--ink-muted)}
 .un-rules{list-style:none;margin:0;padding:14px;border-radius:var(--radius-md);background:var(--surface-sunk);display:grid;gap:8px}
 .un-rules li{display:flex;align-items:center;gap:10px;font-size:13.5px;line-height:22px;color:var(--ink-muted)}
-.un-rules i{width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 0 2px rgba(255,255,255,.22)}
+.un-rules i{width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 0 2px var(--line)}
 .un-rules i svg{width:13px;height:13px}
-.un-rules .ok{color:var(--ink)}.un-rules .ok i{background:var(--success);color:#0B2A1C;box-shadow:none}
-.un-rules .bad{color:#FF8A96}.un-rules .bad i{background:var(--danger);color:#2A0B0F;box-shadow:none}
+.un-rules .ok{color:var(--ink)}.un-rules .ok i{background:var(--success);color:#fff;box-shadow:none}
+.un-rules .bad{color:var(--danger)}.un-rules .bad i{background:var(--danger);color:#fff;box-shadow:none}
 .un-note{margin-top:-8px;font-size:12.5px;line-height:20px;text-align:center;color:var(--ink-muted)}
 /* یوزرنیم لاتین وسط متن فارسی جدا می ماند تا ترتیب کلمه ها به هم نریزد */
 .uname{unicode-bidi:isolate;direction:ltr}
@@ -494,25 +520,45 @@ body.game .appbar .turnbar .time{width:44px}
 /* ---------- صفحهٔ هر بازی (static/gamepage.js) ---------- */
 .gp{display:grid}
 .page>.gp:first-child{margin-top:calc(var(--space-4) * -1)}
-.gp-banner{position:relative;height:178px;margin-inline:calc(var(--space-4) * -1);overflow:hidden;color:#fff;--cs:46px;--es:28px}
-.gp-banner>.pv{position:absolute;inset:0}
-.gp-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,14,11,.15) 0,rgba(6,14,11,.25) 40%,rgba(6,14,11,.88) 100%);pointer-events:none}
-.gp-rank{position:absolute;top:12px;inset-inline-end:16px;display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 6px 0 12px;border-radius:16px;background:rgba(0,0,0,.45);font-size:12.5px;font-weight:700}
-.gp-rank b{height:24px;min-width:24px;padding:0 8px;border-radius:12px;background:var(--gold);color:var(--gold-ink);font-size:13px;font-weight:900;display:grid;place-items:center}
-.gp-lv{position:absolute;inset:auto 16px 14px;display:flex;align-items:center;gap:12px}
-.gp-star{position:relative;width:54px;height:54px;flex:none;display:grid;place-items:center}
-.gp-star svg{position:absolute;inset:0;width:100%;height:100%;fill:var(--gold);stroke:#fff;stroke-width:1}
-.gp-star b{position:relative;margin-top:2px;font-size:16px;font-weight:900;color:var(--gold-ink)}
+/* در جعبه: پیش نمایش زندهٔ خود بازی تمام عرض بالای صفحه؛ نوار بالا شفاف روی آن (دکمه ها سفید شیشه ای).
+   برچسب سفید نام بازی گوشهٔ پایین است و زیرش لبهٔ جعبه به رنگ همان بازی */
+body.lobby .appbar{position:absolute;inset:0 0 auto 0;background:transparent;color:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}
+body.lobby .appbar h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body.lobby .appbar .icon-btn,body.lobby .appbar .pill{background:rgba(255,255,255,.94);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.18)}
+body.lobby .appbar .pill .plus{background:var(--acc);color:var(--acc-ink)}
+body.lobby.lid-off::before{content:"";position:fixed;inset:0 0 auto 0;z-index:calc(var(--z-nav) + 1);height:calc(var(--sa-t,0px) + var(--csa-t,0px));background:var(--ground)}
+.gp-lid{position:relative;height:calc(244px + var(--sa-t,0px) + var(--csa-t,0px));margin-inline:calc(var(--space-4) * -1);overflow:hidden;color:#fff;background:#0F2A22;--cs:46px;--es:28px}
+.gp-lid>.pv{position:absolute;inset:0}
+.gp-lid::before{content:"";position:absolute;inset:0 0 auto 0;z-index:1;height:calc(110px + var(--sa-t,0px) + var(--csa-t,0px));background:linear-gradient(rgba(0,0,0,.34),rgba(0,0,0,0));pointer-events:none}
+.gp-lid .pv-ludo .pv-board{margin-left:18px;margin-right:auto}
+.gp-label{position:absolute;right:16px;bottom:16px;z-index:2;display:grid;line-height:1.3;padding:8px 14px 10px;border-radius:14px;background:#fff;color:var(--ink);box-shadow:0 4px 12px rgba(0,0,0,.28)}
+.gp-label b{font-family:var(--font-rokh);font-size:28px;line-height:36px;font-weight:900}
+.gp-label small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.gp-tag{position:absolute;right:16px;bottom:104px;z-index:2;height:24px;padding:0 9px;border-radius:8px;font-size:11.5px;line-height:24px;font-weight:800;background:var(--gold);color:var(--gold-ink)}
+.gp-tag.new{background:rgba(255,255,255,.94);color:var(--ink)}
+.gp-edge{position:relative;height:12px;margin:0 calc(var(--space-4) * -1 + 6px);border-radius:0 0 16px 16px;background:var(--edge,#0F3F1D)}
+.gp-edge::after{content:"";position:absolute;left:10px;right:10px;bottom:3px;height:1.5px;border-radius:2px;background:rgba(255,255,255,.18)}
+body.lobby-divar .gp-edge{background:linear-gradient(#B98222 0 2px,var(--edge) 2px)}
+/* رنگ هر جعبه: لبه، و رنگ تاکید که همهٔ دکمه ها، انتخاب ها و برگه های این لابی می خوانند */
+body.lobby-hokm{--edge:#0F3F1D;--acc:#1F6B3B;--acc-deep:#1F6B3B;--acc-ink:#FFFFFF;--acc-tint:#E3F1E8}
+body.lobby-ludo{--edge:#0B241C;--acc:#2B62D6;--acc-deep:#2B62D6;--acc-ink:#FFFFFF;--acc-tint:#E7EEFC}
+body.lobby-football{--edge:#1D5A25;--acc:#2E7D32;--acc-deep:#2E7D32;--acc-ink:#FFFFFF;--acc-tint:#E5F2E6}
+body.lobby-billiard{--edge:#4A2A18;--acc:#7A4022;--acc-deep:#7A4022;--acc-ink:#FFFFFF;--acc-tint:#F4EBE5}
+body.lobby-divar{--edge:#0A2A1C;--acc:#123F2E;--acc-deep:#123F2E;--acc-ink:#F5C451;--acc-tint:#E2EEE8}
+.gp-lvl{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.gp-star{position:relative;width:42px;height:42px;flex:none;display:grid;place-items:center}
+.gp-star svg{position:absolute;inset:0;width:100%;height:100%;fill:var(--gold);stroke:#C99A2E;stroke-width:.8}
+.gp-star b{position:relative;margin-top:2px;font-size:14px;font-weight:900;color:var(--gold-ink)}
 .gp-prog{flex:1;display:grid;gap:6px;min-width:0}
-.gp-prog .gp-bar{height:10px;border-radius:5px;background:rgba(0,0,0,.4);overflow:hidden}
-.gp-prog .gp-bar i{display:block;height:100%;border-radius:5px;background:var(--success)}
-.gp-prog .gp-row{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:700}
-.gp-prog .gp-row b{font-weight:900}
-.gp-prog .gp-row span{color:rgba(255,255,255,.85);white-space:nowrap}
-.gp-tabs{position:sticky;top:calc(var(--sa-t,0px) + var(--csa-t,0px) + 56px);z-index:3;display:flex;margin:0 calc(var(--space-4) * -1);padding:0 var(--space-4);background:var(--ground);border-bottom:1px solid var(--line)}
+.gp-prog .gp-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.gp-prog .gp-bar i{display:block;height:100%;border-radius:3px;background:var(--acc)}
+.gp-prog .gp-row{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;line-height:18px;font-weight:700}
+.gp-prog .gp-row b{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gp-prog .gp-row span{color:var(--ink-muted);white-space:nowrap}
+.gp-tabs{position:sticky;top:calc(var(--sa-t,0px) + var(--csa-t,0px));z-index:3;display:flex;margin:10px calc(var(--space-4) * -1) 0;padding:0 var(--space-4);background:var(--ground);border-bottom:1px solid var(--line)}
 .gp-tabs button{position:relative;flex:1;height:50px;color:var(--ink-muted);font-size:14.5px;font-weight:700}
-.gp-tabs button[aria-selected="true"]{color:var(--gold);font-weight:900}
-.gp-tabs button[aria-selected="true"]::after{content:"";position:absolute;inset:auto 22% 0;height:3px;border-radius:3px 3px 0 0;background:var(--gold)}
+.gp-tabs button[aria-selected="true"]{color:var(--ink);font-weight:900}
+.gp-tabs button[aria-selected="true"]::after{content:"";position:absolute;inset:auto 22% 0;height:3px;border-radius:3px 3px 0 0;background:var(--acc)}
 .gp-panel{display:grid;gap:12px;margin-top:14px}
 .gp-sample{justify-self:start}
 .gp-h{margin:4px 4px -2px;font-size:13px;line-height:20px;font-weight:800;color:var(--ink-muted)}
@@ -521,11 +567,11 @@ body.game .appbar .turnbar .time{width:44px}
 .gp-c svg{width:16px;height:16px;color:var(--ink-muted)}
 .gp-c small{font-size:11px;font-weight:600;color:var(--ink-muted)}
 .gp-c .coin svg{width:15px;height:15px}
-.gp-c[aria-pressed="true"]{background:rgba(245,196,81,.12);color:var(--gold);box-shadow:inset 0 0 0 1.5px var(--gold)}
-.gp-c[aria-pressed="true"] svg{color:var(--gold)}
+.gp-c[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink);box-shadow:none}
+.gp-c[aria-pressed="true"] svg,.gp-c[aria-pressed="true"] small{color:currentColor;opacity:.85}
 .gp-c:disabled{opacity:.45}
-.gp-desc{display:flex;gap:8px;align-items:flex-start;margin:0;padding:10px 12px;border-radius:14px;background:var(--surface);font-size:12.5px;line-height:20px;color:var(--ink-muted)}
-.gp-desc svg{width:16px;height:16px;flex:none;margin-top:2px;color:var(--gold)}
+.gp-desc{display:flex;gap:8px;align-items:flex-start;margin:0;padding:10px 12px;border-radius:14px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);font-size:12.5px;line-height:20px;color:var(--ink-muted)}
+.gp-desc svg{width:16px;height:16px;flex:none;margin-top:2px;color:var(--acc)}
 .gp-desc b{color:var(--ink)}
 .gp-sub{margin:-4px 4px 0;font-size:12px;line-height:18px;color:var(--ink-muted)}
 .gp-dock{position:sticky;bottom:calc(var(--space-3) + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));z-index:3;margin-top:18px;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:18px;background:color-mix(in srgb,var(--surface) 94%,transparent);box-shadow:var(--lift),inset 0 0 0 1px var(--line);backdrop-filter:blur(8px)}
@@ -538,8 +584,8 @@ body.game .appbar .turnbar .time{width:44px}
 .gp-lead{font-size:14px;line-height:23px;color:var(--ink-muted)}
 .gp-items{display:grid;gap:10px}
 .gp-items.r3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.gp-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 6px 10px;border-radius:16px;background:var(--surface);text-align:center;box-shadow:inset 0 0 0 2px transparent}
-.gp-item.on{box-shadow:inset 0 0 0 2px var(--gold)}
+.gp-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 6px 10px;border-radius:16px;background:var(--surface);text-align:center;box-shadow:inset 0 0 0 1px var(--line)}
+.gp-item.on{box-shadow:inset 0 0 0 2px var(--acc)}
 .gp-item .sw{position:relative;width:100%;height:62px;border-radius:12px;overflow:hidden}
 .gp-item .sw.cs{background:#0F201B}
 .gp-item .sw .hk-card,.gp-item .sw .hk-back{font-size:32px}
@@ -548,8 +594,8 @@ body.game .appbar .turnbar .time{width:44px}
 .gp-item small.use{color:var(--success);font-weight:800}
 .gp-item small.price{color:var(--coin-text);font-weight:800}
 .gp-item small .coin svg{width:13px;height:13px}
-.gp-board{list-style:none;margin:0;padding:0;border-radius:20px;background:var(--surface);overflow:hidden}
-.gp-board li{display:flex;align-items:center;gap:12px;min-height:58px;padding:0 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+.gp-board{list-style:none;margin:0;padding:0;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line);overflow:hidden}
+.gp-board li{display:flex;align-items:center;gap:12px;min-height:58px;padding:0 14px;border-bottom:1px solid var(--line)}
 .gp-board li:last-child{border-bottom:0}
 .gp-board li.me{background:var(--acc-tint)}
 .gp-board .n{width:24px;text-align:center;font-size:15px;font-weight:900}
@@ -557,21 +603,21 @@ body.game .appbar .turnbar .time{width:44px}
 .gp-board .nm{flex:1;min-width:0;font-size:14.5px;font-weight:800;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gp-board .w{font-size:12px;color:var(--ink-muted)}
 .gp-board .w b{font-size:14px;color:var(--ink);font-weight:900}
-.gp-mine{display:flex;align-items:center;gap:12px;min-height:62px;padding:0 14px;border-radius:20px;background:var(--surface);box-shadow:inset 0 0 0 2px var(--gold)}
+.gp-mine{display:flex;align-items:center;gap:12px;min-height:62px;padding:0 14px;border-radius:20px;background:var(--surface);box-shadow:inset 0 0 0 2px var(--acc)}
 .gp-mine .n{min-width:24px;text-align:center;font-size:15px;font-weight:900;color:var(--acc-deep)}
 .gp-mine .t{display:grid}
 .gp-mine b{font-size:14.5px;font-weight:800}
 .gp-mine small{font-size:12px;color:var(--ink-muted)}
-.gp-empty{display:grid;justify-items:center;gap:6px;padding:28px 16px;border-radius:20px;background:var(--surface);text-align:center}
-.gp-empty svg{width:34px;height:34px;color:var(--gold)}
+.gp-empty{display:grid;justify-items:center;gap:6px;padding:28px 16px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line);text-align:center}
+.gp-empty svg{width:34px;height:34px;color:var(--acc)}
 .gp-empty b{font-size:15px;font-weight:900}
 .gp-empty small{font-size:13px;color:var(--ink-muted)}
 .gp-rules{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.gp-rules li{display:flex;gap:12px;padding:14px;border-radius:18px;background:var(--surface);font-size:14px;line-height:23px}
-.gp-rules i{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--gold-ink);font-style:normal;font-size:14px;font-weight:900}
+.gp-rules li{display:flex;gap:12px;padding:14px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line);font-size:14px;line-height:23px}
+.gp-rules i{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:var(--acc-ink);font-style:normal;font-size:14px;font-weight:900}
 .gp-more{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border-radius:24px;color:var(--acc-deep);font-size:14px;font-weight:800}
 .gp-more svg{width:20px;height:20px}
-.gp-skel{height:64px;border-radius:18px;background:linear-gradient(90deg,var(--surface) 0,#1E3A33 50%,var(--surface) 100%);background-size:200% 100%;animation:gp-sk 1.2s linear infinite}
+.gp-skel{height:64px;border-radius:18px;background:linear-gradient(90deg,var(--surface) 0,var(--surface-sunk) 50%,var(--surface) 100%);background-size:200% 100%;animation:gp-sk 1.2s linear infinite}
 @keyframes gp-sk{to{background-position:-200% 0}}
 
 /* ---------- کاور پروفایل ----------
@@ -589,7 +635,7 @@ body.game .appbar .turnbar .time{width:44px}
 .fr-av{position:relative;flex:none;display:inline-block}
 .fr-av .avatar{--size:46px}
 .fr-av.big .avatar{--size:84px}
-.fr-av .dot{position:absolute;bottom:1px;left:1px;width:13px;height:13px;border-radius:50%;background:#53645D;box-shadow:0 0 0 2.5px var(--surface)}
+.fr-av .dot{position:absolute;bottom:1px;left:1px;width:13px;height:13px;border-radius:50%;background:#B5BBC8;box-shadow:0 0 0 2.5px var(--surface)}
 .fr-av.big .dot{width:18px;height:18px;bottom:4px;left:4px}
 .fr-av .dot.on{background:var(--success)}.fr-av .dot.play{background:var(--gold)}
 .fr-lead{font-size:14px;line-height:23px;color:var(--ink-muted)}
@@ -605,7 +651,7 @@ body.game .appbar .turnbar .time{width:44px}
 .fr-card .fr-av.big{box-shadow:0 0 0 5px var(--surface);border-radius:50%}
 .fr-card>b{margin-top:6px;font-size:20px;line-height:28px;font-weight:900}
 .fr-st{font-size:12.5px;color:var(--ink-muted)}.fr-st.on{color:var(--success)}.fr-st.play{color:var(--acc-deep)}
-.fr-bio{margin-top:4px;font-size:14px;line-height:22px;color:#C9D6D0}
+.fr-bio{margin-top:4px;font-size:14px;line-height:22px;color:var(--ink)}
 .fr-nums{display:flex;gap:22px;margin-top:8px;min-height:44px}
 .fr-nums span{display:grid;font-size:12px;color:var(--ink-muted)}
 .fr-nums b{font-family:var(--font-rokh);font-size:18px;color:var(--ink);font-weight:900}
@@ -613,7 +659,7 @@ body.game .appbar .turnbar .time{width:44px}
 .fr-act{display:flex;align-items:center;gap:14px;min-height:52px;padding:0 16px;font-size:15px;font-weight:700;color:var(--ink);text-align:start}
 .fr-act+.fr-act{border-top:1px solid var(--line)}
 .fr-act svg{width:22px;height:22px}
-.fr-act.bad{color:#FF8A96}
+.fr-act.bad{color:var(--danger)}
 .fr-res{display:grid;gap:12px}
 .fr-found{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:var(--surface-sunk)}
 .fr-found .avatar{--size:56px}

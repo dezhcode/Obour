@@ -18,15 +18,15 @@ body{background:var(--ground)}
 .ch-who small{font-size:12px;line-height:16px;color:var(--ink-muted)}
 .ch-who small.on{color:var(--success)}.ch-who small.play{color:var(--acc-deep)}
 .ch-ib{width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--ink)}
-.ch-ib.gold{background:rgba(245,196,81,.15);color:var(--gold)}
+.ch-ib.gold{background:var(--acc);color:var(--acc-ink)}
 .ch-ib svg{width:22px;height:22px}
 .ch-log{max-width:480px;margin:0 auto;padding:14px 14px calc(150px + var(--sa-b,0px));display:flex;flex-direction:column;gap:6px}
-.ch-day{align-self:center;margin:8px 0 2px;height:26px;padding:0 12px;border-radius:13px;background:rgba(255,255,255,.07);font-size:12px;font-weight:700;color:var(--ink-muted);display:grid;place-items:center}
+.ch-day{align-self:center;margin:8px 0 2px;height:26px;padding:0 12px;border-radius:13px;background:var(--surface-sunk);font-size:12px;font-weight:700;color:var(--ink-muted);display:grid;place-items:center}
 .ch-m{max-width:78%;padding:8px 12px 6px;border-radius:18px;font-size:14.5px;line-height:23px;word-wrap:break-word;overflow-wrap:anywhere}
 .ch-m.them{align-self:flex-end;background:var(--surface);border-end-end-radius:6px}
-.ch-m.me{align-self:flex-start;background:var(--gold);color:var(--gold-ink);border-end-start-radius:6px}
+.ch-m.me{align-self:flex-start;background:var(--acc);color:var(--acc-ink);border-end-start-radius:6px}
 .ch-m time{display:block;text-align:left;font-size:11px;line-height:14px;opacity:.7}
-.ch-inv{width:78%;display:grid;gap:10px;padding:12px;border-radius:20px;background:var(--surface);box-shadow:inset 0 0 0 1px rgba(245,196,81,.35)}
+.ch-inv{width:78%;display:grid;gap:10px;padding:12px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line),0 8px 18px -12px rgba(20,25,40,.3)}
 .ch-inv.them{align-self:flex-end}.ch-inv.me{align-self:flex-start}
 .ch-inv .h{display:flex;align-items:center;gap:10px}
 .ch-inv .g-art{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;flex:none;overflow:hidden}
@@ -37,16 +37,16 @@ body{background:var(--ground)}
 .ch-empty{margin:40px auto 0;display:grid;justify-items:center;gap:8px;text-align:center;color:var(--ink-muted);font-size:13.5px;line-height:22px;max-width:260px}
 .ch-empty .avatar{--size:72px}
 .ch-empty b{color:var(--ink);font-size:16px}
-.ch-bar{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);background:rgba(15,32,27,.97);border-top:1px solid var(--line);
+.ch-bar{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);background:rgba(255,255,255,.97);border-top:1px solid var(--line);
   padding:8px 12px calc(10px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)))}
 .ch-bar-in{max-width:480px;margin:0 auto;display:grid;gap:8px}
 .ch-quick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .ch-quick::-webkit-scrollbar{display:none}
-.ch-quick button{flex:none;height:36px;padding:0 12px;border-radius:18px;background:rgba(245,196,81,.15);color:var(--acc-deep);font-size:13px;font-weight:800}
+.ch-quick button{flex:none;height:36px;padding:0 12px;border-radius:18px;background:var(--acc-tint);color:var(--acc-deep);font-size:13px;font-weight:800}
 .ch-form{display:flex;align-items:center;gap:8px}
-.ch-form input{flex:1;min-width:0;height:48px;padding:0 16px;border:0;border-radius:24px;background:var(--surface);color:var(--ink);font:inherit;font-size:14.5px;outline:2px solid transparent}
-.ch-form input:focus{outline-color:rgba(245,196,81,.5)}
-.ch-send{width:48px;height:48px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:var(--gold-ink)}
+.ch-form input{flex:1;min-width:0;height:48px;padding:0 16px;border:0;border-radius:24px;background:var(--surface-sunk);color:var(--ink);font:inherit;font-size:14.5px;outline:2px solid transparent}
+.ch-form input:focus{outline-color:rgba(47,111,235,.45)}
+.ch-send{width:48px;height:48px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--acc);color:var(--acc-ink)}
 .ch-send svg{width:22px;height:22px}
 .ch-off{padding:12px;border-radius:16px;background:var(--surface);text-align:center;font-size:13.5px;color:var(--ink-muted)}
 </style>
@@ -79,7 +79,7 @@ body{background:var(--ground)}
   const $ = id => document.getElementById(id);
   GC.back('friends.html');
   const uid = new URL(location.href).searchParams.get('u') || '';
-  let user = null, rel = 'friend', msgs = [], last = 0, sending = false;
+  let user = null, rel = 'friend', msgs = [], last = 0, sending = false, avHtml = '';
 
   const clock = t => new Date(t * 1000).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
   const dayOf = t => { const d = new Date(t * 1000), n = new Date(); const y = new Date(n); y.setDate(n.getDate() - 1);
@@ -88,7 +88,9 @@ body{background:var(--ground)}
   function head() {
     if (!user) return;
     const st = SO.status(user);
-    $('chAv').innerHTML = SO.av(user); $('chName').textContent = user.name;
+    // هر بار گرفتن پیام ها سر را تازه می کند؛ عکس فقط وقتی عوض شده دوباره ساخته می شود تا چشمک نزند
+    const a = SO.av(user); if (a !== avHtml) { avHtml = a; $('chAv').innerHTML = a; }
+    $('chName').textContent = user.name;
     $('chSt').textContent = st.text; $('chSt').className = st.cls;
     document.title = 'Game Club · ' + user.name;
   }

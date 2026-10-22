@@ -11,7 +11,7 @@
 <style>
 /* فروشگاه و کیف: کارت موجودی و کارهای کیف (شارژ، انتقال، تاریخچه)، میز و ورق حکم، خدمات عبور
    (فقط وقتی روشن است)، تاریخچهٔ امتیاز به تفکیک روز و قانون امتیاز */
-.wcard{position:relative;overflow:hidden;display:grid;gap:18px;padding:18px 18px 20px;border-radius:26px;background:var(--gold);color:var(--gold-ink)}
+.wcard{position:relative;overflow:hidden;display:grid;gap:18px;padding:18px 18px 20px;border-radius:24px;background:linear-gradient(140deg,#FFD873,#F5C451 55%,#E8A92B);color:var(--gold-ink);box-shadow:0 16px 26px -16px rgba(180,120,0,.7)}
 .wcard::before,.wcard::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
 .wcard::before{left:-60px;top:-80px;width:220px;height:220px;border:26px solid rgba(255,255,255,.2)}
 .wcard::after{left:50px;bottom:-110px;width:210px;height:210px;border:18px solid rgba(255,255,255,.13)}
@@ -19,15 +19,15 @@
 .wc-top .coin{width:30px;height:30px}
 .wc-mid{position:relative;display:grid}
 .wc-mid small{font-size:12.5px;font-weight:700;opacity:.8}
-.wc-mid b{font-family:var(--font-rokh);font-size:42px;line-height:52px;font-weight:900}
+.wc-mid b{font-family:var(--font-peyda);font-size:40px;line-height:50px;font-weight:800;font-variant-numeric:tabular-nums}
 .wacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
 html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
 .wact{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12.5px;line-height:18px;font-weight:800;color:var(--ink)}
-.wact .ic{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--surface)}
+.wact .ic{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
 .wact .ic svg{width:24px;height:24px}
 .wact.gold .ic{background:var(--gold);color:var(--gold-ink)}
 .wact:active .ic{transform:scale(.95)}
-.hist{display:grid;gap:2px;padding:6px 14px;border-radius:var(--radius-xl);background:var(--surface)}
+.hist{display:grid;gap:2px;padding:6px 14px;border-radius:var(--radius-xl);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
 .hist .day{font-size:12px;font-weight:700;color:var(--ink-muted);padding:8px 2px 2px}
 .tx{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:10px 0}
 .tx+.tx{border-top:1px solid var(--line)}
@@ -37,7 +37,7 @@ html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
 .tx .meta{display:block;font-size:12px;line-height:18px;font-weight:500;color:var(--ink-muted)}
 .tx .v{font-weight:900;font-size:15px}
 .plus-a{color:var(--success)}.minus-a{color:var(--danger)}
-.rules{background:var(--surface);border-radius:var(--radius-xl);padding:var(--space-3) var(--space-4)}
+.rules{background:var(--surface);border-radius:var(--radius-xl);padding:var(--space-3) var(--space-4);box-shadow:0 0 0 1px var(--line)}
 .rules summary{display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-weight:900;list-style:none;min-height:40px}
 .rules summary::-webkit-details-marker{display:none}
 .rules summary svg{width:18px;height:18px;transition:transform .2s}

@@ -197,9 +197,9 @@ function drawDash() {
   view(`
     ${dash.maintenance ? `<div class="warn">${ic('warn')}حالت تعمیرات روشن است؛ میز تازه ساخته نمی‌شود.</div>` : ''}
     <div class="kpis">
-      <div class="kpi hot"><span><i class="dot"></i>آنلاین الان</span><b>${fa(s.online)}</b><small>${fa(a.playing)} میز در بازی · ${fa(a.queue)} در صف</small></div>
+      <div class="kpi hot"><span><i class="dot"></i>آنلاین الان</span><b>${fa(s.online)}</b><small>${fa(a.playing)} میز در بازی، ${fa(a.queue)} در صف</small></div>
       <div class="kpi"><span>بازیکن‌ها</span><b>${fa(a.players)}</b><small>+${fa(s.new_day)} امروز · +${fa(s.new_week)} این هفته</small></div>
-      <div class="kpi"><span>فعال</span><b>${fa(s.active_day)}</b><small>۲۴ ساعت · ${fa(s.active_week)} در ۷ روز</small></div>
+      <div class="kpi"><span>فعال</span><b>${fa(s.active_day)}</b><small>۲۴ ساعت، ${fa(s.active_week)} در ۷ روز</small></div>
       <div class="kpi"><span>امتیاز در گردش</span><b>${fa(a.points)}</b><small>${fa(a.points * rate)} تومان</small></div>
     </div>
     <section class="card stack">
@@ -219,8 +219,8 @@ function drawDash() {
       <div class="chart-x"><span>${date(dash.daily[0].t).split('،')[0]}</span><span>امروز: ${fa(dash.daily[dash.daily.length - 1][chartKey])}</span></div>
     </section>
     <section class="card stack">
-      <div class="sec-head" style="margin:0"><h2>بازی‌ها</h2><span class="aside">در بازی الان · ۷ روز</span></div>
-      <div class="games3">${Object.entries(GAME).map(([k, [t]]) => `<div><b>${fa(live[k] || 0)}</b><span>${t} · ${fa(week[k] || 0)} بازی</span></div>`).join('')}</div>
+      <div class="sec-head" style="margin:0"><h2>بازی‌ها</h2><span class="aside">در بازی الان، ۷ روز</span></div>
+      <div class="games3">${Object.entries(GAME).map(([k, [t]]) => `<div><b>${fa(live[k] || 0)}</b><span>${t}، ${fa(week[k] || 0)} بازی</span></div>`).join('')}</div>
     </section>
     ${(dash.bc || []).map(b => bcCard(b)).join('')}
     <section class="card stack">

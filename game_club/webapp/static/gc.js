@@ -36,11 +36,17 @@ function applyInsets() {
   root.classList.toggle('is-fs', !!tg.isFullscreen);
 }
 const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
+// رنگ نوار تلگرام با زمینه صفحه یکی است تا درز دیده نشود: صفحهٔ خود بازی ها تیره، بقیه روشن
+function paintBars() {
+  const dark = document.body.matches('.game,.hokm,.divar,.football,.billiard');
+  try { tg.setHeaderColor(dark ? '#0C1915' : '#F4F5F8'); tg.setBackgroundColor(dark ? '#0C1915' : '#F4F5F8'); } catch (e) {}
+  try { ver('7.10') && tg.setBottomBarColor(dark ? '#08120F' : '#FFFFFF'); } catch (e) {}
+}
 if (live) {
   try { tg.ready(); tg.expand(); } catch (e) {}
-  // رنگ نوار تلگرام با زمینه صفحه یکی است تا درز دیده نشود؛ همه صفحه ها تیره اند
-  try { tg.setHeaderColor('#0C1915'); tg.setBackgroundColor('#0C1915'); } catch (e) {}
-  try { ver('7.10') && tg.setBottomBarColor('#08120F'); } catch (e) {}
+  paintBars();
+  // برگشت از حافظهٔ مرورگر (bfcache) اسکریپت را دوباره اجرا نمی کند؛ رنگ صفحه ای که برگشته از نو
+  addEventListener('pageshow', e => { if (e.persisted) paintBars(); });
   // کشیدن عمودی (مثلا هنگام بازی) نباید مینی اپ را ببندد
   try { ver('7.7') && tg.disableVerticalSwipes(); } catch (e) {}
   ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged', 'fullscreenFailed']
@@ -619,8 +625,11 @@ function nav(active) {
   if (mountingView) return;
   if (navEl) { setActive(active, false); return; }
   const n = navEl = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
+  // نام هر بخش زیر آیکونش؛ «بازی‌ها» وسط یک تاس است که کمی بالاتر از نوار نشسته و با لمس می چرخد
+  const die = [1, 0, 1, 0, 1, 0, 1, 0, 1].map(p => `<i${p ? ' class="p"' : ''}></i>`).join('');
   n.innerHTML = `<div class="nav-in"><span class="nav-pill" aria-hidden="true"></span>${NAV.map(([id, href, label, ic]) =>
-    `<a href="${href}" data-id="${id}" aria-label="${label}"${id === 'games' ? ' class="nav-play"' : ''}>${id === 'games' ? `<span class="np">${fileIcon('navGames')}</span>` : icon(ic)}${id === 'friends' ? '<span class="nav-badge" hidden></span>' : ''}</a>`).join('')}</div>`;
+    `<a href="${href}" data-id="${id}"${id === 'games' ? ' class="nav-play"' : ''}>${id === 'games' ? `<span class="np" aria-hidden="true">${die}</span>` : icon(ic)}<span class="nl">${label}</span>${id === 'friends' ? '<span class="nav-badge" hidden></span>' : ''}</a>`).join('')}</div>`;
+  n.addEventListener('pointerdown', e => { const d = e.target.closest('.nav-play'); if (!d || reduced()) return; const np = d.querySelector('.np'); np.classList.remove('roll'); void np.offsetWidth; np.classList.add('roll'); }, { passive: true });
   // دانلود زودهنگام: با لمس دکمه، صفحهٔ آن بخش همان لحظه گرفته می شود
   n.addEventListener('pointerdown', e => { const a = e.target.closest('a[href]'); if (a) fetchPage(a.getAttribute('href')); }, { passive: true });
   document.body.appendChild(n);
@@ -772,9 +781,9 @@ const GAME_ART = {
 const GAMES = [
   { id: 'hokm', name: 'حکم', sub: '۴ نفره · با یار، ناشناس یا ربات', href: 'hokm-lobby.html', tint: 't-felt', cat: 'card', tag: 'محبوب' },
   { id: 'football', name: 'فوتبال', sub: '۲ نفره · نوبتی', href: 'football-lobby.html', tint: 't-green', cat: 'sport', tag: 'تازه' },
-  { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره', href: 'ludo-lobby.html', tint: 't-violet', cat: 'board' },
-  { id: 'billiard', name: 'بیلیارد', sub: '۲ نفره یا ۴ نفره یاری', href: 'billiard-lobby.html', tint: 't-green', cat: 'sport', tag: 'تازه' },
-  { id: 'divar', name: 'دیوار', sub: '۲ یا ۴ نفره · راه را ببند', href: 'divar-lobby.html', tint: 't-green', cat: 'board', tag: 'تازه' },
+  { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره', href: 'ludo-lobby.html', tint: 't-ludo', cat: 'board' },
+  { id: 'billiard', name: 'بیلیارد', sub: '۲ نفره یا ۴ نفره یاری', href: 'billiard-lobby.html', tint: 't-bil', cat: 'sport', tag: 'تازه' },
+  { id: 'divar', name: 'دیوار', sub: '۲ یا ۴ نفره · راه را ببند', href: 'divar-lobby.html', tint: 't-dv', cat: 'board', tag: 'تازه' },
   { id: 'esm', name: 'اسم فامیل', sub: 'به‌زودی', tint: 't-orange', cat: 'word', soon: true },
 ];
 function quickPlay() {
