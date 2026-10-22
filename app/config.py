@@ -173,14 +173,32 @@ class Config:
     channel_id: str = os.getenv("CHANNEL_ID", "")
     join_for_trial: bool = _bool("JOIN_FOR_TRIAL", "true")
 
-    # ===== خدمات هوش مصنوعی (canboso.com) =====
-    # کلید خریدار (tgb_...) از ربات canboso. اگر خالی باشد، کلیدی که
+    # ===== خدمات هوش مصنوعی (ssondigitalworks Reseller API) =====
+    # کلید API فروشنده (Authorization: Bearer). اگر خالی باشد، کلیدی که
     # ادمین در پنل گذاشته استفاده می شود.
-    canboso_api_key: str = os.getenv("CANBOSO_API_KEY", "").strip()
-    # وب سرویس فروش عمده aitoolifystudio (کلید sk_live_...). اگر تنظیم باشد
-    # به جای canboso استفاده می شود.
-    aitoolify_api_key: str = os.getenv("AITOOLIFY_API_KEY", "").strip()
-    aitoolify_base_url: str = os.getenv("AITOOLIFY_BASE_URL", "").strip().rstrip("/")
+    sson_api_key: str = os.getenv("SSON_API_KEY", "").strip()
+    # فقط اگر فروشنده آدرس را عوض کرد؛ پیش فرض
+    # https://ssondigitalworks.online/api/reseller
+    sson_base_url: str = os.getenv("SSON_BASE_URL", "").strip().rstrip("/")
+
+    # ===== شماره مجازی (SMSBurner، smsburner.com) =====
+    # seed حساب SMSBurner (۱۶ حرف، مثل AbC3-dEf4-gHj5-kLm6)؛ تنها اعتبار
+    # حساب و خرج کننده موجودی است. اگر خالی باشد، seed ای که ادمین در
+    # پنل گذاشته استفاده می شود.
+    smsburner_seed: str = os.getenv("SMSBURNER_SEED", "").strip()
+    # فقط اگر سرویس دهنده آدرس را عوض کرد؛ پیش فرض https://smsburner.com/api/v1
+    smsburner_base_url: str = os.getenv("SMSBURNER_BASE_URL", "").strip().rstrip("/")
+    # اگر هاست به smsburner.com دسترسی ندارد: http://host:port یا socks5://...
+    smsburner_proxy: str = os.getenv("SMSBURNER_PROXY", "").strip()
+
+    # ===== خدمات تلگرام (MarketApp، marketapp.org؛ MARKETAPP_FA.md) =====
+    # توکن API از marketapp.org/api-token. اگر خالی باشد، توکنی که ادمین در
+    # پنل گذاشته استفاده می شود.
+    marketapp_token: str = os.getenv("MARKETAPP_TOKEN", "").strip()
+    # فقط اگر آدرس عوض شد؛ پیش فرض https://api.marketapp.org
+    marketapp_base_url: str = os.getenv("MARKETAPP_BASE_URL", "").strip().rstrip("/")
+    # اگر هاست به api.marketapp.org دسترسی ندارد: http://host:port یا socks5://...
+    marketapp_proxy: str = os.getenv("MARKETAPP_PROXY", "").strip()
 
     # ===== دستیار هوش مصنوعی (وب سرویس dezhcode) =====
     # کلید فقط در .env می ماند. بدون کلید همه بخش های هوشمند خاموش اند و

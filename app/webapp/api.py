@@ -165,7 +165,7 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
         "features": {
             key: features.is_on(key)
             for key in ("shop_vpn", "shop_ai", "shop_custom", "shop_trial",
-                        "shop_wallet", "shop_referral", "shop_locations")
+                        "shop_wallet", "shop_referral", "shop_locations", "shop_telegram")
         },
         # بخش های هوشمند (هر کدام فقط وقتی کلید هست و ادمین روشنش گذاشته)
         "ai": {
@@ -187,10 +187,35 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
         # روش های شارژ این کاربر؛ کارت به کارت فقط برای فارسی
         "pay_methods": (methods := await payments_svc.available(db, telegram_id=wuser.id)),
         "crypto": payments_svc.CRYPTO in methods,
+        # شماره مجازی: فروش واقعی وقتی seed و نرخ تتر تنظیم شده؛ وگرنه همان پیش نمایش
+        "numbers": {"ready": await _numbers_ready(db)},
+        # پرمیوم و استارز تلگرام (MarketApp): ready با توکن و نرخ تتر؛ demo یعنی خرید نمایشی
+        "telegram": await _telegram_state(db),
         # فقط برای نمایش ردیف «پنل مدیریت»؛ هر درخواست ادمین جدا بررسی می شود
         "is_admin": wuser.id in config.admin_ids,
         "readonly": False,
     }
+
+
+async def _telegram_state(db: "Database") -> dict:
+    """سبک: بدون توکن هیچ کار اضافه ای (مثل خواندن نرخ) در مسیر پرتردد bootstrap نمی شود."""
+    from app.services import marketapp as mk
+
+    try:
+        ready = features.is_on("shop_telegram") and bool(await mk.token(db)) and await mk.ready(db)
+        return {"ready": ready, "demo": await mk.mode(db) == mk.DEMO}
+    except Exception:  # noqa: BLE001
+        return {"ready": False, "demo": True}
+
+
+async def _numbers_ready(db: "Database") -> bool:
+    """سبک: بدون seed هیچ کار اضافه ای (مثل خواندن نرخ) در مسیر پرتردد bootstrap نمی شود."""
+    from app.services import numbers_shop as ns
+
+    try:
+        return features.is_on("shop_numbers") and bool(await ns.seed(db)) and await ns.ready(db)
+    except Exception:  # noqa: BLE001
+        return False
 
 
 async def services_list(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
@@ -750,7 +775,8 @@ async def ai_check(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, 
     o = await db.get_ai_order(int(order_id))
     if not o or o["user_id"] != user["id"]:
         raise ApiError("سفارش پیدا نشد", 404, "not_found")
-    if o["status"] not in (ai_shop.UNKNOWN, "pending") or not o.get("idem_key"):
+    # «در انتظار فروشنده» هم: لینک با همان شناسه یکتا دوباره گرفته می شود
+    if not (ai_shop.can_refetch(o) or (o["status"] in (ai_shop.UNKNOWN, "pending") and o.get("idem_key"))):
         return {"ok": True, "status": o["status"], "order": _ai_order_out(o, full=True)}
     if not await db.acquire_lock(f"aichk:{o['id']}", ttl_seconds=30):
         raise ApiError("همین الان بررسی شد؛ کمی بعد دوباره امتحان کن", 429, "rate")
@@ -775,6 +801,331 @@ async def ai_notify(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
     """ثبت نام در فهرست «وقتی موجود شد خبرم کن»."""
     user = await _require_user(db, wuser)
     return {"ok": True, "added": await db.ai_waitlist_add(user["id"])}
+
+
+# ═══════════════════ شماره مجازی ═══════════════════
+
+
+def _num_order_out(o: dict) -> dict:
+    """سفارش شماره برای مینی اپ. کد پیامک فقط برای صاحب سفارش می رسد (همین تابع بعد از چک مالکیت)."""
+    from app.services import numbers_shop as ns
+
+    left = 0
+    if o["status"] == ns.ACTIVE and o.get("expires_at"):
+        try:
+            from datetime import datetime
+
+            from app.utils import now
+
+            left = max(0, int((datetime.fromisoformat(o["expires_at"]) - now()).total_seconds()))
+        except (TypeError, ValueError):
+            left = 0
+    return {
+        "id": o["id"],
+        "code": o.get("code") or "",
+        "status": o["status"],
+        "service": o.get("service_name") or "",
+        "service_id": o.get("service_id") or "",
+        "cc": o.get("country") or "",
+        "flag": ns.flag(o.get("country") or ""),
+        "country": ns.country_label(o),
+        "phone": o.get("phone") or "",
+        "sms_code": o.get("sms_code") or "",
+        "sms_text": (o.get("sms_text") or "")[:500],
+        "price": int(o.get("price") or 0),
+        "created_at": o["created_at"],
+        "left": left,
+    }
+
+
+async def numbers_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """ویترین شماره مجازی: سرویس ها با ارزان ترین قیمت، دسته ها و شماره های خود کاربر.
+
+    ready=False یعنی هنوز seed یا نرخ تتر تنظیم نشده؛ مینی اپ آن وقت همان
+    پیش نمایش «به زودی» را نشان می دهد.
+    """
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    on = features.is_on("shop_numbers")
+    ready = on and await ns.ready(db)
+    out: dict = {"enabled": on, "ready": ready, "balance": int(user["balance"]), "services": [], "popular": [],
+                 "categories": [], "orders": [], "down": False}
+    if not ready:
+        return out
+    try:
+        cat = await ns.catalog(db)
+    except CanbosoError as exc:
+        log.warning("کاتالوگ شماره مجازی خوانده نشد: %s", exc)
+        cat = {"rows": []}
+        out["down"] = True
+    services = ns.services_of(cat)
+    out["services"] = [{"id": s["id"], "name": s["name"], "slug": s["slug"], "category": s["category"],
+                        "from": s["from"], "n": s["n"]} for s in services]
+    out["popular"] = [s["id"] for s in services if s["slug"] in ns.POPULAR][:12]
+    # نام های فارسی رایج هر سرویس، برای جستجوی فارسی (مثل «واتساپ») در مینی اپ
+    aliases: dict[str, list[str]] = {}
+    for alias, slug in ns.FA_ALIASES.items():
+        aliases.setdefault(slug, []).append(ns.norm_query(alias))
+    out["aliases"] = {slug: "|".join(v) for slug, v in aliases.items()}
+    used = {s["category"] for s in services}
+    keys = [k for k in ns.CATEGORIES if k in used] + sorted(k for k in used if k not in ns.CATEGORIES)
+    out["categories"] = [{"key": k, "title": i18n.t(ns.cat_title(k)[0]), "emoji": ns.cat_title(k)[1]} for k in keys]
+    out["orders"] = [_num_order_out(o) for o in await db.user_number_orders(user["id"], limit=20)]
+    return out
+
+
+async def numbers_countries(db: "Database", panel: "Panel | None", wuser: WebAppUser, service_id: str) -> dict:
+    """کشورهای یک سرویس، ارزان ترین اول، با قیمت تومانی."""
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_numbers") or not await ns.ready(db):
+        raise ApiError("این بخش فعلا در دسترس نیست", 503, "not_ready")
+    try:
+        cat = await ns.catalog(db)
+    except CanbosoError:
+        raise ApiError("سرویس دهنده الان جواب نمی ده", 503, "provider")
+    rows = ns.countries_of(cat, str(service_id))
+    return {"service": rows[0]["service"] if rows else "", "balance": int(user["balance"]),
+            "items": [{"cc": r["cc"], "flag": ns.flag(r["cc"]), "title": ns.country_title(r["cc"], r["country"]),
+                       "price": r["price"]} for r in rows]}
+
+
+async def numbers_operators(db: "Database", panel: "Panel | None", wuser: WebAppUser, service_id: str, cc: str) -> dict:
+    """نوع شماره (مجازی / فیزیکی / پریمیوم) برای یک سرویس و کشور، با قیمت تومانی.
+
+    items خالی یعنی انتخابی نیست و خرید با نوع پیش فرض سایت انجام می شود."""
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_numbers") or not await ns.ready(db):
+        raise ApiError("این بخش فعلا در دسترس نیست", 503, "not_ready")
+    try:
+        cat = await ns.catalog(db)
+    except CanbosoError:
+        raise ApiError("سرویس دهنده الان جواب نمی ده", 503, "provider")
+    row = ns.row_of(cat, str(service_id), str(cc).lower())
+    if row is None:
+        raise ApiError("برای این سرویس و کشور الان شماره‌ای نیست؛ پولی کم نشد", 409, "unavailable")
+    ops = await ns.operators_of(db, cat, str(service_id), row["cc"])
+    return {"balance": int(user["balance"]), "default_price": row["price"],
+            "items": [{"id": o["id"], "name": o["name"], "type": o["type"],
+                       "label": i18n.t(ns.OP_LABELS.get(o["type"], ns.OP_LABELS["virtual"])[0]), "price": o["price"]}
+                      for o in ops]}
+
+
+async def numbers_order(db: "Database", panel: "Panel | None", wuser: WebAppUser, order_id: int, bot=None) -> dict:  # noqa: ANN001
+    """یک شماره با پیگیری تازه از سرویس دهنده (حداکثر هر ۴ ثانیه برای هر سفارش)."""
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    o = await db.get_number_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    if o["status"] == ns.ACTIVE and await db.acquire_lock(f"numchk:{o['id']}", ttl_seconds=4):
+        r = await ns.check(db, o)
+        o = r["order"]
+        if bot is not None and r.get("event"):
+            from app.handlers.numbers import notify_event
+
+            await notify_event(bot, db, r)
+    fresh = await db.get_user(user["id"])
+    return {"order": _num_order_out(o), "balance": int((fresh or user)["balance"])}
+
+
+# وضعیت خرید -> (کد HTTP، پیام) برای وقت هایی که شماره ای صادر نشده
+_NUM_ERRORS = {
+    "insufficient": (402, "موجودی کیف پولت کافی نیست"),
+    "unavailable": (409, "برای این سرویس و کشور الان شماره‌ای نیست؛ پولی کم نشد"),
+    "locked": (409, "یه خرید دیگه همین حالا در جریانه"),
+    "not_configured": (503, "فروش این بخش فعلا در دسترس نیست"),
+    "provider_error": (503, "ارتباط با سرویس دهنده برقرار نشد؛ پولی کم نشد"),
+}
+
+
+async def numbers_buy(
+    db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+    service_id: str, cc: str, nonce: str, operator_id: str = "", bot=None,  # noqa: ANN001
+) -> dict:
+    """گرفتن شماره از مینی اپ (با نوع شماره ی دلخواه)؛ همان numbers_shop.buy که ربات دارد (دروازه ها هم همان).
+
+    nonce هر بار زدن دکمه تازه است؛ ارسال دوباره همان nonce (دابل کلیک، شبکه
+    ضعیف) خرید دوم نمی سازد.
+    """
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_numbers"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    if not user.get("rules_accepted_at") and await db.get_setting("rules_enabled", "1") == "1":
+        raise ApiError("اول باید قوانین را در ربات بپذیری", 403, "rules")
+    if not await db.acquire_lock(f"numnonce:{wuser.id}:{nonce}", ttl_seconds=86400):
+        raise ApiError("این خرید در حال پردازشه", 409, "duplicate")
+
+    r = await ns.buy(db, bot, user, str(service_id), str(cc), str(operator_id or "") or None)
+    return await _num_buy_result(db, user, r, bot)
+
+
+async def _num_buy_result(db: "Database", user: dict, r: dict, bot) -> dict:  # noqa: ANN001
+    """نتیجه ی buy یا reroll برای مینی اپ: سفارش یا خطای قابل نمایش."""
+    from app.services import numbers_shop as ns
+
+    status, order = r["status"], r.get("order")
+    fresh = await db.get_user(user["id"])
+    balance = int((fresh or user)["balance"])
+    if status in (ns.ACTIVE, ns.COMPLETED, ns.UNKNOWN) and order:
+        if bot is not None and status != ns.UNKNOWN:
+            # صفحه شماره در چت ربات هم می آید و کد بعدی همان جا خبر داده می شود
+            from app.handlers.numbers import send_order
+
+            await send_order(bot, db, order)
+        return {"ok": True, "status": status, "balance": balance, "order": _num_order_out(order)}
+    if order and status in (ns.NO_FUNDS, ns.PROVIDER_ERROR, ns.UNAVAILABLE, ns.NOT_CONFIGURED):
+        raise ApiError("شماره‌ای صادر نشد؛ پولت به کیف پول برگشت", 502, "refunded")
+    code, msg = _NUM_ERRORS.get(status, (400, "خرید انجام نشد"))
+    raise ApiError(msg, code, status)
+
+
+async def numbers_reroll(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+                         order_id: int, nonce: str, bot=None) -> dict:  # noqa: ANN001
+    """«شماره ی دیگه»: لغو شماره ی منتظر کد (پولش برمی گردد) و گرفتن یکی تازه از همان سرویس، کشور و نوع."""
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_numbers"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    o = await db.get_number_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    if not await db.acquire_lock(f"numnonce:{wuser.id}:{nonce}", ttl_seconds=86400):
+        raise ApiError("این خرید در حال پردازشه", 409, "duplicate")
+    r = await ns.reroll(db, bot, user, o)
+    if "old" not in r:
+        if r["status"] == ns.LOCKED:
+            raise ApiError("چند ثانیه صبر کن و دوباره امتحان کن", 429, "cooldown")
+        if r["status"] == ns.COMPLETED:
+            raise ApiError("کد رسیده بود؛ لغو نشد", 409, "completed")
+        raise ApiError("الان نمی‌شه لغو کرد؛ کمی بعد دوباره امتحان کن", 409, "cant_cancel")
+    return await _num_buy_result(db, user, r, bot)
+
+
+async def numbers_cancel(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, order_id: int, bot=None) -> dict:  # noqa: ANN001
+    """لغو شماره و برگشت پول (فقط اگر کدی نیامده)."""
+    from app.services import numbers_shop as ns
+
+    user = await _require_user(db, wuser)
+    o = await db.get_number_order(int(order_id))
+    if not o or o["user_id"] != user["id"]:
+        raise ApiError("سفارش پیدا نشد", 404, "not_found")
+    r = await ns.cancel(db, o)
+    if r["status"] in (ns.CANT_CANCEL, ns.PROVIDER_ERROR):
+        raise ApiError("الان نمی‌شه لغو کرد؛ کمی بعد دوباره امتحان کن", 409, "cant_cancel")
+    if bot is not None and r.get("event"):
+        from app.handlers.numbers import notify_event
+
+        await notify_event(bot, db, r)
+    fresh = await db.get_user(user["id"])
+    return {"ok": True, "status": r["status"], "balance": int((fresh or user)["balance"]),
+            "order": _num_order_out(r.get("order") or o)}
+
+
+# ═══════════════════ پرمیوم و استارز تلگرام (MarketApp) ═══════════════════
+
+
+async def tg_info(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
+    """ویترین پرمیوم و استارز: قیمت های تومانی، گیرنده های اخیر و سفارش های کاربر.
+
+    demo=True یعنی خرید نمایشی است (marketapp.DEMO)؛ مینی اپ این را به کاربر می گوید.
+    """
+    from app.services import marketapp as mk
+
+    user = await _require_user(db, wuser)
+    on = features.is_on("shop_telegram")
+    ready = on and await mk.ready(db)
+    out: dict = {"enabled": on, "ready": ready, "demo": await mk.mode(db) == mk.DEMO, "balance": int(user["balance"]),
+                 "premium": [], "best": 12, "packs": [], "per_star": 0, "min": mk.STARS_MIN, "max": mk.STARS_MAX,
+                 "me": mk.clean_username(wuser.username or user.get("username") or "") or "",
+                 "recents": [], "orders": [], "down": False}
+    if not ready:
+        return out
+    out["recents"] = await db.user_tg_recipients(user["id"])
+    out["orders"] = [mk.order_out(o) for o in await db.user_tg_orders(user["id"], limit=10)]
+    try:
+        cat = await mk.catalog(db)
+    except mk.MarketAppError as exc:
+        log.warning("قیمت های MarketApp خوانده نشد: %s", exc)
+        out["down"] = True
+        return out
+    out["premium"] = [{"months": p["months"], "price": p["price"], "per_month": p["per_month"]} for p in cat["premium"]]
+    out["best"] = cat["best"]
+    out["packs"] = cat["packs"]
+    out["per_star"] = round(cat["per_star"])
+    return out
+
+
+async def _tg_gate(db: "Database", wuser: WebAppUser) -> dict:
+    from app.services import marketapp as mk
+
+    user = await _require_user(db, wuser)
+    if not features.is_on("shop_telegram"):
+        raise ApiError("این بخش فعلا خاموش است", 403, "feature_off")
+    if not await mk.ready(db):
+        raise ApiError(mk.MESSAGES[mk.NOT_CONFIGURED], 503, mk.NOT_CONFIGURED)
+    return user
+
+
+async def tg_recipient(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, kind: str, username: str) -> dict:
+    """بررسی گیرنده با MarketApp: {ok, username, name, photo} یا {ok: False, error, message}."""
+    from app.services import marketapp as mk
+
+    await _tg_gate(db, wuser)
+    if not await db.acquire_lock(f"tgrcp:{wuser.id}", ttl_seconds=1):
+        raise ApiError("کمی آهسته‌تر؛ یک لحظه صبر کن", 429, "rate")
+    return await mk.recipient(db, kind, username)
+
+
+async def tg_quote(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, kind: str, amount: str) -> dict:
+    """قیمت دقیق همین لحظه برای تایید خرید (و تعداد دلخواه استارز)."""
+    from app.services import marketapp as mk
+
+    await _tg_gate(db, wuser)
+    n = mk.valid_amount(kind, amount)
+    if kind not in mk.KINDS or n is None:
+        raise ApiError(mk.MESSAGES[mk.BAD_AMOUNT], 400, mk.BAD_AMOUNT)
+    try:
+        q = await mk.quote(db, kind, n)
+    except mk.MarketAppError as exc:
+        log.warning("قیمت MarketApp خوانده نشد: %s", exc)
+        raise ApiError(mk.MESSAGES[mk.PROVIDER], 503, mk.PROVIDER) from exc
+    return {"kind": kind, "amount": n, "price": q["price"]}
+
+
+async def tg_buy(
+    db: "Database", panel: "Panel | None", wuser: WebAppUser, *,
+    kind: str, amount: str, username: str, nonce: str,
+) -> dict:
+    """سفارش پرمیوم یا استارز؛ همان marketapp.buy که ربات دارد. فعلا نمایشی: پولی کم نمی شود.
+
+    nonce هر بار زدن دکمه تازه است؛ ارسال دوباره همان nonce سفارش دوم نمی سازد.
+    """
+    from app.services import marketapp as mk
+
+    user = await _tg_gate(db, wuser)
+    if not user.get("rules_accepted_at") and await db.get_setting("rules_enabled", "1") == "1":
+        raise ApiError("اول باید قوانین را در ربات بپذیری", 403, "rules")
+    if not await db.acquire_lock(f"tgnonce:{wuser.id}:{nonce}", ttl_seconds=86400):
+        raise ApiError("این سفارش در حال پردازشه", 409, "duplicate")
+    r = await mk.buy(db, user, kind, username, amount)
+    if not r["ok"]:
+        status = {mk.PROVIDER: 503, mk.LOCKED: 409, mk.NOT_CONFIGURED: 503}.get(r["error"], 400)
+        raise ApiError(r["message"], status, r["error"])
+    return {"demo": r["demo"], "order": mk.order_out(r["order"]), "balance": r["balance"],
+            "recipient": {"username": r["recipient"]["username"], "name": r["recipient"]["name"],
+                          "photo": r["recipient"]["photo"]}}
 
 
 def _latin(text: str) -> str:
@@ -1304,6 +1655,8 @@ ROUTES = {
     "tickets": tickets,
     "ai": ai_catalog,
     "ai/orders": ai_orders,
+    "numbers": numbers_info,
+    "tg": tg_info,
     "topup": topup_info,
     "crypto": crypto_info,
     "stars": stars_info,
@@ -1315,4 +1668,6 @@ ROUTES = {
     "ticket/related": ticket_related,
 }
 
-__all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase"]
+__all__ = ["ROUTES", "ApiError", "service_detail", "ai_order", "ai_buy", "ai_check", "ai_notify", "ticket_thread", "qr_payload", "qr_svg", "purchase",
+           "numbers_countries", "numbers_operators", "numbers_order", "numbers_buy", "numbers_reroll", "numbers_cancel",
+           "tg_recipient", "tg_quote", "tg_buy"]

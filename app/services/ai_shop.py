@@ -1,8 +1,11 @@
 """فروش خدمات هوش مصنوعی — مستقل از رابط.
 
-سرویس دهنده: aitoolifystudio (app/aitoolify.py) وقتی AITOOLIFY_API_KEY
-تنظیم باشد یا کلید پنل با sk_ شروع شود؛ وگرنه canboso (app/canboso.py).
-هر دو یک رابط و یک شکل خروجی دارند.
+سرویس دهنده: ssondigitalworks (app/sson.py). کلاس آن همان رابط و شکل
+خروجی canboso را دارد؛ خطاها هم همان کلاس های app/canboso.py هستند.
+
+قیمت کاربر: هزینه عمده × نرخ ارز + سود. سود هر محصول را ادمین جدا
+تنظیم می کند (مبلغ ثابت یا درصد)؛ اگر تنظیم نکرده باشد سود کلی پنل
+(app/pricing.py) اعمال می شود.
 
 ترتیب خرید عمدی است، چون تحویل **برگشت ناپذیر** است:
 
@@ -23,13 +26,14 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from app import i18n, pricing, texts
-from app.canboso import Canboso, CanbosoError, CanbosoNoFunds, CanbosoUnknown, accounts_of
+from app.canboso import CanbosoError, CanbosoNoFunds, CanbosoUnknown, accounts_of
 from app.config import config
 from app.utils import esc
 
@@ -53,27 +57,25 @@ NOT_CONFIGURED = "not_configured"
 BAD_INPUT = "bad_input"
 
 
+# کلید پنل جدا از کلید سرویس دهنده های قبلی (ai_api_key) ذخیره می شود تا
+# کلید قدیمی canboso یا aitoolify هیچ وقت برای فروشنده تازه فرستاده نشود.
+KEY_SETTING = "sson_api_key"
+PROVIDER = "sson"
+
+
 async def api_key(db: "Database") -> str:
-    """کلید از .env (AITOOLIFY_API_KEY یا CANBOSO_API_KEY)، وگرنه همان که ادمین در پنل گذاشته."""
-    return (config.aitoolify_api_key or config.canboso_api_key
-            or (await db.get_setting("ai_api_key", "") or "").strip())
+    """کلید از .env (SSON_API_KEY)، وگرنه همان که ادمین در پنل گذاشته."""
+    return config.sson_api_key or (await db.get_setting(KEY_SETTING, "") or "").strip()
 
 
-def is_aitoolify(key: str) -> bool:
-    return bool(key) and (key == config.aitoolify_api_key or key.startswith("sk_"))
+async def client(db: "Database"):  # noqa: ANN201  (رابط یکسان با Canboso)
+    from app.sson import Sson
 
-
-async def client(db: "Database"):  # noqa: ANN201  (Canboso یا Aitoolify؛ رابط یکسان)
-    key = await api_key(db)
-    if is_aitoolify(key):
-        from app.aitoolify import Aitoolify
-
-        return Aitoolify(key, config.aitoolify_base_url or None)
-    return Canboso(key)
+    return Sson(await api_key(db), config.sson_base_url or None)
 
 
 async def provider_name(db: "Database") -> str:
-    return "aitoolify" if is_aitoolify(await api_key(db)) else "canboso"
+    return PROVIDER
 
 
 # ═══════════════════ محصول ═══════════════════
@@ -102,8 +104,11 @@ def delivery_kind(p: dict) -> str:
     t = str(p.get("productType") or "account")
     if t != "account":
         return t
+    if p.get("deliveryKind"):
+        # سرویس دهنده خودش گفته (product_type: link)
+        return str(p["deliveryKind"])
     name = str(p.get("name") or "")
-    if re.search(r"manual", name, re.I):
+    if re.search(r"manual", name, re.I) or re.search(r"manual delivery", str(p.get("description") or ""), re.I):
         return "manual"
     if _LINK_RE.search(name) or re.search(r"redeem link|voucher link|coupon", str(p.get("description") or ""), re.I):
         return "link"
@@ -237,6 +242,44 @@ def guide_of(p: dict, meta: dict | None) -> str:
     return ((meta or {}).get("guide") or str(p.get("description") or "")).strip()
 
 
+# ═══════════════════ سود هر محصول ═══════════════════
+
+_FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+RESET_WORDS = ("", "-", "default", "reset", "پیش فرض", "پیش‌فرض", "کلی", "حذف")
+MAX_PERCENT = 1000.0
+MAX_TOMAN = 1_000_000_000
+
+
+def parse_markup(raw: str) -> dict | None:
+    """ورودی ادمین ← سود محصول. «150000» مبلغ ثابت تومانی، «20%» درصد،
+    «-» یا خالی برگشت به سود کلی (None). ورودی نامعتبر ValueError."""
+    text = str(raw or "").strip().translate(_FA_DIGITS)
+    if text.lower() in RESET_WORDS:
+        return None
+    text = text.replace(",", "").replace("،", "").replace("٬", "").replace("تومان", "").strip()
+    percent = text.endswith(("%", "٪")) or text.startswith(("%", "٪"))
+    num = text.strip("%٪ ").replace("٫", ".")
+    value = float(num)
+    if value < 0 or not math.isfinite(value):
+        raise ValueError("negative")
+    if percent:
+        if value > MAX_PERCENT:
+            raise ValueError("too big")
+        return {"percent": round(value, 2)}
+    if value > MAX_TOMAN:
+        raise ValueError("too big")
+    return {"toman": int(round(value))}
+
+
+async def set_markup(db: "Database", pid: str, markup: dict | None) -> None:
+    """سود اختصاصی محصول را ذخیره می کند؛ None یعنی برگشت به سود کلی."""
+    await db.set_product_meta(
+        str(pid),
+        markup_toman=int(markup["toman"]) if markup and "toman" in markup else None,
+        markup_percent=float(markup["percent"]) if markup and "percent" in markup else None,
+    )
+
+
 # ═══════════════════ نمایش و موجودی ═══════════════════
 
 VISIBLE_KEY = "ai_products_on"
@@ -326,7 +369,10 @@ async def catalog(db: "Database", force: bool = False, admin: bool = False) -> d
         stock = effective_stock(api_stock, wallet)
         if req["months"] and not months:
             stock = 0
-        price_of = (lambda c: pricing.compute(c, cfg, cur).final) if priced else (lambda c: 0)
+        meta = metas.get(pid) or {}
+        markup = pricing.markup_of(meta)
+        price_of = (lambda c: pricing.compute(c, cfg, cur, markup).final) if priced else (lambda c: 0)
+        first_b = pricing.compute(cost_of(p, first), cfg, cur, markup) if priced else None
         item = {
             "id": pid,
             "name": str(p.get("name") or ""),
@@ -356,6 +402,10 @@ async def catalog(db: "Database", force: bool = False, admin: bool = False) -> d
             "months": req["months"] if admin else months,
             "month_prices": {m: price_of(cost_of(p, m)) for m in (req["months"] if admin else months)},
             "needs_email": req["email"],
+            # سود اختصاصی همین محصول (None = سود کلی پنل)
+            "markup": markup,
+            "markup_label": pricing.markup_label(markup),
+            "profit": first_b.net_profit if first_b else 0,
         }
         if admin:
             item["raw"] = p
@@ -382,7 +432,7 @@ async def buy(
         try:
             cat = await cb.catalog(force=True)
         except CanbosoError as exc:
-            log.warning("خواندن محصولات canboso نشد: %s", exc)
+            log.warning("خواندن محصولات سرویس دهنده نشد: %s", exc)
             return {"status": FAILED, "error": str(exc)}
         p = next((x for x in cat["products"] if str(x.get("productId")) == str(product_id)), None)
         ids = await enabled_ids(db)
@@ -397,7 +447,8 @@ async def buy(
         if not pricing.is_configured(cfg, currency):
             return {"status": NOT_CONFIGURED}
         cost = cost_of(p, months if req["months"] else None)
-        b = pricing.compute(cost, cfg, currency)
+        meta = await db.product_meta(str(product_id))
+        b = pricing.compute(cost, cfg, currency, pricing.markup_of(meta))
 
         # موجودی خودمان قبل از کسر پول کاربر
         bal = await cb.balance()
@@ -415,9 +466,9 @@ async def buy(
         )
         request = {"product_id": str(product_id), "months": months if req["months"] else None,
                    "email": email if req["email"] else None, "expected_cost": cost,
-                   "guide": guide_of(p, await db.product_meta(str(product_id)))[:2500],
+                   "guide": guide_of(p, meta)[:2500],
                    "category": auto_category(p), "brand": str(p.get("emoji") or ""), "kind": delivery_kind(p),
-                   "provider": getattr(cb, "name", "canboso")}
+                   "provider": getattr(cb, "name", PROVIDER)}
         idem = f"obour-{order['code']}-{uuid.uuid4().hex[:16]}"
         await db.set_ai_request(order["id"], idem, json.dumps(request, ensure_ascii=False), currency)
         order = await db.get_ai_order(order["id"])
@@ -435,12 +486,111 @@ def provider_of(order: dict) -> str:
 
 
 def can_retry(order: dict) -> bool:
-    """فقط canboso کلید یکتای خرید دارد؛ فرستادن دوباره سفارش aitoolify ممکن است دوبار خرید کند."""
-    return provider_of(order) == "canboso"
+    """سفارش فقط به همان سرویس دهنده ای دوباره فرستاده می شود که ثبتش کرده و
+    شناسه یکتای سفارش دارد (external_order_id). سفارش های مانده از canboso یا
+    aitoolify با کلید فعلی پرسیدنی نیستند و دستی بسته می شوند."""
+    return provider_of(order) == PROVIDER
+
+
+def raw_text(result: dict, limit: int = 3500) -> str:
+    """پاسخ خام سرویس دهنده برای ذخیره کنار سفارش (بدون کلید؛ کلید فقط در هدر است)."""
+    try:
+        return json.dumps(result.get("raw", result), ensure_ascii=False, default=str)[:limit]
+    except (TypeError, ValueError):
+        return ""
+
+
+def can_refetch(order: dict) -> bool:
+    """سفارش «در انتظار فروشنده» که می شود تحویلش را دوباره گرفت.
+
+    طبق مستند ssondigitalworks: «تکرار با همان external_order_id همان سفارش
+    قبلی را برمی گرداند و دوباره پول کم نمی کند». API عمل جدایی برای
+    وضعیت سفارش ندارد؛ پس دریافت دوباره لینک یعنی همان درخواست با همان شناسه.
+    """
+    return order.get("status") == PROCESSING and bool(order.get("idem_key")) and can_retry(order)
+
+
+async def refetch(db: "Database", bot, order: dict) -> dict:  # noqa: ANN001
+    """تحویل سفارش «در انتظار فروشنده» را با همان شناسه یکتا دوباره می گیرد.
+
+    هیچ وقت پول برنمی گرداند: سفارش را فروشنده پذیرفته و هزینه را کم کرده؛
+    خطای این درخواست فقط یعنی این بار جوابی نگرفتیم و سفارش در انتظار می ماند.
+    unchanged=True یعنی هنوز چیزی نیامده (به خریدار دوباره پیام نمی رود).
+    """
+    if not can_refetch(order):
+        return {"status": order["status"], "order": order, "unchanged": True}
+    req = json.loads(order.get("request") or "{}")
+    cb = await client(db)
+    try:
+        result = await cb.purchase(
+            req["product_id"], idempotency_key=order["idem_key"], quantity=1,
+            customer_email=req.get("email"), slot_months=req.get("months"),
+        )
+    except CanbosoError as exc:
+        log.info("دریافت دوباره سفارش %s نشد: %s", order["code"], exc)
+        return {"status": PROCESSING, "order": order, "unchanged": True, "error": str(exc)}
+    finally:
+        await cb.close()
+
+    o = result.get("order") or {}
+    new_code = str(o.get("orderCode") or "")
+    old_code = str(order.get("provider_order_id") or "")
+    if old_code and new_code and new_code != old_code:
+        # نباید پیش بیاید (همان شناسه باید همان سفارش را بدهد)؛ اگر آمد ادمین باید بداند
+        await _alert_admins(bot, f"🚨 دریافت دوباره سفارش <code>{order['code']}</code> کد سفارش تازه ای از فروشنده "
+                                 f"برگرداند: <code>{esc(new_code)}</code> به جای <code>{esc(old_code)}</code>. "
+                                 "در پنل فروشنده بررسی کن دوبار خرید نشده باشد.")
+    delivery = delivery_of(order)
+    accounts = accounts_of(result)
+    delivery["provider_raw"] = raw_text(result)
+    if accounts:
+        delivery["accounts"] = accounts
+        delivery["fulfillment"] = o.get("status") or delivery.get("fulfillment")
+    status = DELIVERED if accounts else PROCESSING
+    await db.finish_ai_order(order["id"], status, provider_order_id=old_code or new_code,
+                             products=json.dumps(delivery, ensure_ascii=False))
+    log.info("دریافت دوباره سفارش %s: %s", order["code"], status)
+    return {"status": status, "order": await db.get_ai_order(order["id"]), "result": result,
+            "unchanged": not accounts}
+
+
+REFETCH_HOURS = 72      # تا چند ساعت بعد از خرید، تحویل خودکار دوباره پرسیده شود
+REFETCH_GAP = 600       # هر سفارش حداکثر هر ۱۰ دقیقه یک بار
+
+
+async def sweep(db: "Database", bot) -> int:  # noqa: ANN001
+    """کار دوره ای: سفارش های «در انتظار فروشنده» را دوباره می پرسد و اگر لینک یا
+    اطلاعات تحویل آمد، برای خریدار می فرستد. تعداد تحویل شده ها را برمی گرداند."""
+    from datetime import datetime, timedelta
+
+    from app.utils import TZ
+
+    if not await api_key(db):
+        return 0
+    cutoff = (datetime.now(TZ) - timedelta(hours=REFETCH_HOURS)).replace(tzinfo=None)
+    done = 0
+    for order in await db.ai_orders_by_status(PROCESSING, limit=15):
+        try:
+            if datetime.fromisoformat(str(order["created_at"])).replace(tzinfo=None) < cutoff:
+                continue
+        except (TypeError, ValueError):
+            continue
+        if not can_refetch(order) or not await db.acquire_lock(f"aifetch:{order['id']}", ttl_seconds=REFETCH_GAP):
+            continue
+        r = await refetch(db, bot, order)
+        if r["status"] == DELIVERED and bot is not None:
+            done += 1
+            from app.handlers.ai import notify_buyer
+
+            await notify_buyer(bot, db, r)
+    return done
 
 
 async def resolve(db: "Database", bot, order: dict) -> dict:  # noqa: ANN001
-    """سفارش مبهم (یا pending جا مانده) را با همان Idempotency-Key دوباره می پرسد."""
+    """سفارش مبهم (یا pending جا مانده) را با همان شناسه یکتا دوباره می پرسد.
+    سفارش «در انتظار فروشنده» هم تحویلش دوباره گرفته می شود (refetch)."""
+    if order["status"] == PROCESSING:
+        return await refetch(db, bot, order)
     if order["status"] not in (UNKNOWN, "pending") or not order.get("idem_key"):
         return {"status": order["status"], "order": order}
     if not can_retry(order):
@@ -453,7 +603,7 @@ async def resolve(db: "Database", bot, order: dict) -> dict:  # noqa: ANN001
         await cb.close()
 
 
-async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, first: bool) -> dict:  # noqa: ANN001
+async def _send(db: "Database", bot, cb, user: dict, order: dict, *, first: bool) -> dict:  # noqa: ANN001
     req = json.loads(order.get("request") or "{}")
     try:
         result = await cb.purchase(
@@ -478,7 +628,7 @@ async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, fi
 
     o = result.get("order") or {}
     # بدون اطلاعات ورود، «تحویل شد» معنا ندارد (مثل محصولات Manual Delivery
-    # که canboso بعدا تحویل می دهد): در انتظار فروشنده می ماند.
+    # که فروشنده بعدا تحویل می دهد): در انتظار فروشنده می ماند.
     status = DELIVERED if accounts_of(result) else PROCESSING
     delivery = {
         "accounts": accounts_of(result),
@@ -487,6 +637,8 @@ async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, fi
         "payment": result.get("payment") or {},
         "fulfillment": o.get("fulfillmentStatus") or o.get("status"),
         "guide": req.get("guide") or "",
+        # پاسخ خام فروشنده: اگر تحویل جایی آمد که ربات نشناخت، ادمین می بیند
+        "provider_raw": raw_text(result),
     }
     await db.finish_ai_order(order["id"], status, provider_order_id=str(o.get("orderCode") or ""),
                              products=json.dumps(delivery, ensure_ascii=False))
@@ -494,7 +646,9 @@ async def _send(db: "Database", bot, cb: Canboso, user: dict, order: dict, *, fi
     if status == PROCESSING and not req.get("email") and first:
         # محصول ایمیلی (slot) عادی است؛ ولی account بی تحویل را ادمین باید ببیند
         await _alert_admins(bot, f"⏳ سفارش <code>{order['code']}</code> ({esc(order['title'])}) پذیرفته شد ولی "
-                                 f"اطلاعات تحویل نیامد. کد canboso: <code>{esc(str(o.get('orderCode') or '-'))}</code>")
+                                 f"اطلاعات تحویل نیامد. کد سفارش فروشنده: <code>{esc(str(o.get('orderCode') or '-'))}</code>\n"
+                                 "ربات هر چند دقیقه خودکار دوباره می پرسد (همان شناسه، بدون خرید دوباره).\n\n"
+                                 f"پاسخ خام فروشنده:\n<pre>{esc(raw_text(result, 1500))}</pre>")
 
     # اگر هزینه واقعی بیشتر از برآورد شد (مثلا تخفیف یا قیمت ماهانه)،
     # از کاربر چیزی اضافه کم نمی شود؛ فقط ادمین باخبر می شود.

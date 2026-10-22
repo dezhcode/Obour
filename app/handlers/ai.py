@@ -1,4 +1,4 @@
-"""خرید خدمات هوش مصنوعی از canboso (کاتالوگ کامل، نه یک محصول ثابت).
+"""خرید خدمات هوش مصنوعی از سرویس دهنده (ssondigitalworks؛ کاتالوگ کامل، نه یک محصول ثابت).
 
 منطق خرید، قیمت و حل سفارش مبهم در app/services/ai_shop.py است؛ اینجا
 فقط گفتگوی ربات:
@@ -39,7 +39,7 @@ async def _items(db: Database) -> list[dict] | None:
     try:
         return (await ai_shop.catalog(db))["items"]
     except CanbosoError as exc:
-        log.warning("کاتالوگ canboso خوانده نشد: %s", exc)
+        log.warning("کاتالوگ سرویس دهنده خوانده نشد: %s", exc)
         return None
 
 
@@ -315,8 +315,33 @@ async def cb_ai_orders(call: CallbackQuery, db: Database, user: dict) -> None:
             links=("\n" + info) if info and o["status"] in (ai_shop.DELIVERED, ai_shop.PROCESSING) else "",
         ))
     await edit_or_send(call.message, texts.AI_ORDERS.format(count=len(orders), rows="\n\n".join(blocks)),
-                       keyboards.back_to_shop_kb())
+                       keyboards.ai_orders_kb([o for o in orders if ai_shop.can_refetch(o)]))
     await call.answer()
+
+
+@router.callback_query(F.data.startswith("ai:rf:"))
+async def cb_ai_refetch(call: CallbackQuery, db: Database, user: dict) -> None:
+    """خریدار تحویل سفارش «در انتظار فروشنده» را دوباره می گیرد.
+
+    همان درخواست با همان external_order_id؛ طبق مستند فروشنده همان سفارش
+    قبلی برمی گردد و دوباره پولی کم نمی شود.
+    """
+    try:
+        order = await db.get_ai_order(int(call.data.split(":")[2]))
+    except (TypeError, ValueError):
+        order = None
+    if not order or order["user_id"] != user["id"]:
+        return await call.answer(_t("سفارش پیدا نشد."), show_alert=True)
+    if not ai_shop.can_refetch(order):
+        return await call.answer(texts.AI_STATUS.get(order["status"], order["status"]), show_alert=True)
+    if not await db.acquire_lock(f"aichk:{order['id']}", ttl_seconds=30):
+        return await call.answer(_t("همین الان بررسی شد؛ کمی بعد دوباره امتحان کن"), show_alert=True)
+    await call.answer(_t("در حال بررسی…"))
+    r = await ai_shop.refetch(db, call.bot, order)
+    if r["status"] == ai_shop.DELIVERED:
+        return await show_result(call.message, r)
+    await call.message.answer(_t("هنوز لینک یا اطلاعات تحویل از فروشنده نیامده. ربات خودکار هم دوباره می‌پرسد و "
+                                 "به محض رسیدن برایت می‌فرستد."), reply_markup=keyboards.ai_delivered_kb())
 
 
 async def notify_buyer(bot, db: Database, r: dict) -> None:  # noqa: ANN001
@@ -326,6 +351,9 @@ async def notify_buyer(bot, db: Database, r: dict) -> None:  # noqa: ANN001
     ورود یا لینک فعال سازی، همراه آموزش، در چت هم می ماند.
     """
     order = r.get("order") or {}
+    if r.get("unchanged"):
+        # دریافت دوباره ای که چیز تازه ای نیاورد: پیام تکراری «در انتظار» نمی فرستیم
+        return
     user = await db.get_user(order.get("user_id")) if order else None
     if not user or r["status"] not in (ai_shop.DELIVERED, ai_shop.PROCESSING, ai_shop.FAILED, ai_shop.NO_FUNDS):
         return

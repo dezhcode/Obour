@@ -226,7 +226,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
                 out["lobby"]["link"] = invite_link(out["lobby"]["code"] or "", service.game_of(out["cfg"]))
             return out
         acts = {"ludo": ("roll", "move"), "hokm": ("trump", "play"), "football": ("setup", "shot"),
-                "billiard": ("shot",), "divar": ("move", "wall")}[game]
+                "billiard": ("shot", "aim"), "divar": ("move", "wall")}[game]
         if op in acts and method == "POST":
             return await service.act(gdb, tg, str(body.get("match") or ""), op, body.get("k"),
                                      int(body.get("since") or 0), body)

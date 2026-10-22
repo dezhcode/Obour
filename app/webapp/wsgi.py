@@ -257,6 +257,7 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                    "/api/rules/accept", "/api/ticket/send", "/api/ticket/close", "/api/ticket/rate", "/api/lang", "/api/soon/join",
                    "/api/crypto/start", "/api/crypto/pay", "/api/crypto/cancel",
                    "/api/stars/start", "/api/ai/buy", "/api/ai/check", "/api/ai/notify",
+                   "/api/numbers/buy", "/api/numbers/cancel", "/api/numbers/reroll", "/api/tg/buy",
                    "/api/admin/charge", "/api/admin/balance", "/api/admin/block",
                    "/api/admin/plan", "/api/admin/setting", "/api/admin/feature",
                    "/api/admin/pay", "/api/admin/ai/product", "/api/admin/ai/meta", "/api/admin/ai/image",
@@ -672,6 +673,74 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                 db, panel, wuser, product_id=pid, months=months, email=str(body.get("email") or ""),
                 nonce=nonce, bot=runtime.bot), timeout=170))
 
+        # ---------- شماره مجازی: کشورها، پیگیری، خرید، لغو ----------
+        if name == "numbers/countries":
+            return _json(start_response, runtime.run(webapi.numbers_countries(
+                db, panel, wuser, str(query.get("service") or "")[:20]), timeout=25))
+        if name == "numbers/operators":
+            return _json(start_response, runtime.run(webapi.numbers_operators(
+                db, panel, wuser, str(query.get("service") or "")[:20], str(query.get("cc") or "")[:3]), timeout=25))
+        if name == "numbers/order":
+            try:
+                oid = int(query.get("id") or 0)
+            except (TypeError, ValueError):
+                oid = 0
+            return _json(start_response, runtime.run(webapi.numbers_order(
+                db, panel, wuser, oid, bot=runtime.bot), timeout=25))
+        if name in ("numbers/buy", "numbers/cancel", "numbers/reroll"):
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=512)
+            if name in ("numbers/cancel", "numbers/reroll"):
+                try:
+                    oid = int(body.get("id") or 0)
+                except (TypeError, ValueError):
+                    oid = 0
+                if oid <= 0:
+                    return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+                if name == "numbers/reroll":
+                    nonce = str(body.get("nonce") or "")[:64]
+                    if len(nonce) < 8:
+                        return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+                    return _json(start_response, runtime.run(webapi.numbers_reroll(
+                        db, panel, wuser, order_id=oid, nonce=nonce, bot=runtime.bot), timeout=100))
+                return _json(start_response, runtime.run(webapi.numbers_cancel(
+                    db, panel, wuser, order_id=oid, bot=runtime.bot), timeout=45))
+            sid = str(body.get("service_id") or "")[:20]
+            cc = str(body.get("cc") or "")[:3].lower()
+            nonce = str(body.get("nonce") or "")[:64]
+            opid = str(body.get("operator_id") or "")[:10]
+            if not sid or len(cc) != 2 or len(nonce) < 8 or (opid and not opid.isdigit()):
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            # تایم اوت بلند: گرفتن شماره تا چند ده ثانیه طول می کشد. اگر همین هم گذشت،
+            # خرید در پس زمینه تمام می شود و نتیجه اش در «شماره های من» پیداست.
+            return _json(start_response, runtime.run(webapi.numbers_buy(
+                db, panel, wuser, service_id=sid, cc=cc, nonce=nonce, operator_id=opid, bot=runtime.bot), timeout=100))
+
+        # ---------- پرمیوم و استارز تلگرام: گیرنده، قیمت، سفارش (فعلا نمایشی) ----------
+        if name == "tg/recipient":
+            return _json(start_response, runtime.run(webapi.tg_recipient(
+                db, panel, wuser, kind=str(query.get("kind") or "premium")[:10],
+                username=str(query.get("u") or "")[:64]), timeout=30))
+        if name == "tg/quote":
+            return _json(start_response, runtime.run(webapi.tg_quote(
+                db, panel, wuser, kind=str(query.get("kind") or "")[:10], amount=str(query.get("n") or "")[:10]),
+                timeout=30))
+        if name == "tg/buy":
+            if method != "POST":
+                return _json(start_response, {"error": "فقط POST", "code": "bad_method"}, "405 Method Not Allowed")
+            if not _write_rate_ok(wuser.id):
+                return _json(start_response, {"error": "درخواست های زیادی فرستادی، کمی صبر کن", "code": "rate"}, "429 Too Many Requests")
+            body = _body(environ, limit=512)
+            nonce = str(body.get("nonce") or "")[:64]
+            if len(nonce) < 8:
+                return _json(start_response, {"error": "درخواست ناقص", "code": "bad_request"}, "400 Bad Request")
+            return _json(start_response, runtime.run(webapi.tg_buy(
+                db, panel, wuser, kind=str(body.get("kind") or "")[:10], amount=str(body.get("amount") or "")[:10],
+                username=str(body.get("username") or "")[:64], nonce=nonce), timeout=60))
+
         # ---------- دستیار هوش مصنوعی ----------
         if name.startswith("assist/"):
             from app.webapp import assist_api
@@ -779,7 +848,8 @@ def handle(environ, start_response, runtime):  # noqa: ANN001, ANN201
                 return _json(start_response, runtime.run(admin_api.ai_meta_set(
                     db, panel, wuser, pid=str(body.get("id") or "")[:80], category=body.get("category"),
                     guide=body.get("guide"), desc_fa=body.get("desc_fa"),
-                    featured=(bool(body.get("featured")) if "featured" in body else None)), timeout=30))
+                    featured=(bool(body.get("featured")) if "featured" in body else None),
+                    markup=(str(body.get("markup") or "")[:40] if "markup" in body else None)), timeout=30))
             if name == "admin/ai/image":
                 return _json(start_response, runtime.run(admin_api.ai_image_set(
                     db, panel, wuser, pid=str(body.get("id") or "")[:80], image=str(body.get("image") or ""),

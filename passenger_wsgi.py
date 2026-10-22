@@ -15,6 +15,8 @@
   GET   /img/<name>               تصویرهای داخل ربات (app/assets)
   GET   /rates                    نرخ تتر و تون از tgju.org (JSON، تومان)
   GET   /status?key=SECRET        وضعیت کامل
+  GET   /marketapp-check?key=SECRET[&user=..&channel=..&ads=..]
+                                  تست زنده MarketApp؛ گزارش کامل به صورت فایل متنی (app/services/marketapp_check.py)
   GET   /setwebhook?key=SECRET    ثبت وبهوک روی تلگرام + فهرست دستورها
   GET   /setcommands?key=SECRET   ثبت فقط فهرست دستورها
   GET   /delwebhook?key=SECRET    حذف وبهوک
@@ -252,7 +254,6 @@ def application(environ, start_response):  # noqa: ANN001, ANN201
     # هم برای پیش نمایش لینک (که file_id را قبول نمی کند).
     if path.startswith("/img/") and method == "GET":
         import mimetypes
-        import os
 
         name = os.path.basename(path[5:])  # جلوگیری از ../
         fpath = os.path.join(os.path.dirname(__file__), "app", "assets", name)
@@ -320,6 +321,52 @@ def application(environ, start_response):  # noqa: ANN001, ANN201
         except Exception as exc:  # noqa: BLE001
             return _respond(start_response, "503 Service Unavailable",
                             json.dumps({"error": str(exc)[:200]}, ensure_ascii=False), "application/json; charset=utf-8")
+
+    # ---------- تست زنده MarketApp ----------
+    # همه endpointها را با داده واقعی صدا می زند و کل گزارش را یک فایل متنی
+    # برمی گرداند. چیزی امضا یا ارسال نمی شود (MARKETAPP_FA.md). همان تست
+    # «تنظیمات ← 💎 خدمات تلگرام ← 🧪 تست کامل API» ربات. توکن از .env یا پنل
+    # ادمین؛ اگر نبود از پارامتر mt (که در access log هاست می ماند، پس فقط
+    # برای توکن موقت). گیرنده پیش فرض: یوزرنیم اولین ادمین.
+    if path == "/marketapp-check" and method == "GET":
+        if not _authorized(environ):
+            return _respond(start_response, "403 Forbidden", "forbidden")
+        try:
+            from datetime import datetime
+
+            from app.services import marketapp_check
+            from app.services import marketapp as mk
+
+            q = _query(environ)
+            runtime.ensure_started()
+            token = (runtime.run(mk.token(runtime.db), timeout=30) or _query_raw(environ, "mt")).strip()
+            if not token:
+                return _respond(start_response, "400 Bad Request", "MARKETAPP_TOKEN در .env نیست (یا پارامتر mt=)")
+            user = (q.get("user") or "").strip().lstrip("@")
+            if not user and config.admin_ids:
+                chat = runtime.run(runtime.bot.get_chat(config.admin_ids[0]), timeout=30)
+                user = chat.username or ""
+            if not user:
+                return _respond(start_response, "400 Bad Request", "پارامتر user= لازم است (ادمین اول یوزرنیم ندارد)")
+            lines: list[str] = []
+            marketapp_check.run(token, user, (q.get("channel") or "").strip().lstrip("@") or None,
+                                q.get("ads") or None, raw=True, out=lines.append, budget=100)
+            body = "\n".join(lines)
+            for secret in (token, (config.admin_key or "").strip()):
+                if secret:
+                    body = body.replace(secret, "***")
+            data = body.encode("utf-8")
+            name = f"marketapp_check_{datetime.now():%Y%m%d_%H%M%S}.txt"
+            start_response("200 OK", [
+                ("Content-Type", "text/plain; charset=utf-8"),
+                ("Content-Disposition", f'attachment; filename="{name}"'),
+                ("Content-Length", str(len(data))),
+                ("Cache-Control", "no-store"),
+            ])
+            return [data]
+        except Exception:  # noqa: BLE001
+            sys.stderr.write(traceback.format_exc())
+            return _respond(start_response, "500 Internal Server Error", "marketapp check failed")
 
     if path == "/status":
         if not _authorized(environ):

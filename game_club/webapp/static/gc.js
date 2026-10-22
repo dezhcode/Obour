@@ -206,6 +206,8 @@ const liveBilliard = {
   chat: (match, text) => api('billiard/chat', { body: { match, text } }),
   // a زاویه (رادیان، مختصات میز)، p قدرت ۰ تا ۱، sx/sy پیچ، cx/cy جای توپ سفید وقتی توپ در دست است
   shot: (match, a, p, sx, sy, cx, cy, since) => api('billiard/shot', { body: Object.assign({ match, a, p, sx, sy, since }, cx == null ? {} : { cx, cy }) }),
+  // نشانه گیری زنده برای دیدن بقیه (چرخش چوب، قدرت، جای توپ در دست) — پاسخ فقط {ok}
+  aim: (match, a, p, cx, cy) => api('billiard/aim', { body: Object.assign({ match, a, p }, cx == null ? {} : { cx, cy }) }),
   leave: match => api('billiard/leave', { body: { match } }),
 };
 const liveDivar = {

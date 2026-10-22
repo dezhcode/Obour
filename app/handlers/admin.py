@@ -1241,7 +1241,7 @@ async def _ai_home(message: Message, db: Database) -> None:
     await edit_or_send(
         message,
         texts.ADMIN_AI.format(
-            key=("از .env ✅" if config.canboso_api_key else "تنظیم شده ✅") if key else "تنظیم نشده ❌",
+            key=("از .env ✅" if config.sson_api_key else "تنظیم شده ✅") if key else "تنظیم نشده ❌",
             wallet=wallet,
             fields="\n".join(lines),
             delivered=stats.get("delivered") or 0,
@@ -1289,13 +1289,15 @@ async def cb_ai_field(call: CallbackQuery, state: FSMContext) -> None:
 async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> None:
     from app import pricing
 
+    from app.services import ai_shop
+
     data = await state.get_data()
     field = data.get("ai_field")
     await state.clear()
     raw = message.text.strip()
 
     if field == "ai_api_key":
-        await db.set_setting("ai_api_key", raw)
+        await db.set_setting(ai_shop.KEY_SETTING, raw)
         # کلید می تواند پول خرج کند: پیام حاوی آن پاک می شود
         try:
             await message.delete()
@@ -1303,6 +1305,95 @@ async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> Non
             pass
         await message.answer(texts.ADMIN_AI_KEY_SAVED)
         return await _ai_home(message, db)
+
+    if field == "tgs_token":
+        from app.services import marketapp as mk
+
+        # توکن می تواند تراکنش خرید بسازد: پیام حاوی آن در هر حال پاک می شود
+        try:
+            await message.delete()
+        except Exception:  # noqa: BLE001
+            pass
+        if not mk.valid_token(raw):
+            return await message.answer(texts.ADMIN_TGS_KEY_BAD)
+        await db.set_setting(mk.KEY_SETTING, raw)
+        await message.answer(texts.ADMIN_TGS_KEY_SAVED)
+        return await _tgs_home(message, db)
+
+    if field and field.startswith("tgs_") and field not in ("tgs_token", "tgs_user", "tgs_channel"):
+        from app.services import marketapp as mk
+
+        if field not in mk.FIELDS:
+            return await message.answer("این تنظیم پیدا نشد.")
+        try:
+            value = float(raw.replace(",", "").replace("،", ""))
+            if value < 0:
+                raise ValueError
+        except ValueError:
+            return await message.answer("یک عدد معتبر بفرست.")
+        await db.set_setting(field, str(int(value) if value.is_integer() else value))
+        await message.answer(texts.ADMIN_AI_SAVED)
+        return await _tgs_home(message, db)
+
+    if field in ("tgs_user", "tgs_channel"):
+        from app.services import marketapp as mk
+
+        key = mk.USER_SETTING if field == "tgs_user" else mk.CHANNEL_SETTING
+        if raw in ("-", "—"):
+            await db.set_setting(key, "")
+        else:
+            name = mk.clean_username(raw)
+            if not name:
+                return await message.answer(texts.ADMIN_TGS_NAME_BAD)
+            await db.set_setting(key, name)
+        await message.answer(texts.ADMIN_AI_SAVED)
+        return await _tgs_home(message, db)
+
+    if field == "num_seed":
+        import re as _re
+
+        from app.services import numbers_shop as ns
+
+        # seed می تواند موجودی را خرج کند: پیام حاوی آن در هر حال پاک می شود
+        try:
+            await message.delete()
+        except Exception:  # noqa: BLE001
+            pass
+        if not _re.fullmatch(r"[A-Za-z0-9]{4}(-[A-Za-z0-9]{4}){3}", raw):
+            return await message.answer(texts.ADMIN_NUM_SEED_BAD)
+        await db.set_setting(ns.KEY_SETTING, raw)
+        await message.answer(texts.ADMIN_NUM_SEED_SAVED)
+        return await _num_home(message, db)
+
+    if field and field.startswith("num_"):
+        from app.services import numbers_shop as ns
+
+        if field not in ns.FIELDS:
+            return await message.answer("این تنظیم پیدا نشد.")
+        try:
+            value = float(raw.replace(",", "").replace("،", ""))
+            if value < 0:
+                raise ValueError
+        except ValueError:
+            return await message.answer("یک عدد معتبر بفرست.")
+        await db.set_setting(field, str(int(value) if value.is_integer() else value))
+        await message.answer(texts.ADMIN_AI_SAVED)
+        return await _num_home(message, db)
+
+    if field == "markup":
+        # سود اختصاصی یک محصول
+        pid = str(data.get("ai_pid") or "")
+        if not pid:
+            return await message.answer("محصول مشخص نیست؛ دوباره از فهرست محصولات روی 💰 بزن.")
+        try:
+            markup = ai_shop.parse_markup(raw)
+        except ValueError:
+            await state.set_state(Admin.waiting_ai_field)
+            await state.update_data(ai_field="markup", ai_pid=pid, ai_page=data.get("ai_page") or 0)
+            return await message.answer("نامعتبر بود. مثل 150000 (تومان) یا 20% (درصد) بفرست؛ - یعنی سود کلی.")
+        await ai_shop.set_markup(db, pid, markup)
+        await message.answer(f"✅ سود این محصول: {pricing.markup_label(markup)}")
+        return await _ai_products(message, db, int(data.get("ai_page") or 0))
 
     try:
         value = float(raw.replace(",", "").replace("،", ""))
@@ -1317,7 +1408,7 @@ async def msg_ai_field(message: Message, db: Database, state: FSMContext) -> Non
 
 @router.callback_query(F.data == "adm:ai:preview")
 async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
-    """قیمت همه محصولات canboso با تنظیمات فعلی: قیمت API ← قیمت کاربر."""
+    """قیمت همه محصولات با تنظیمات فعلی (و سود هر محصول): قیمت API ← قیمت کاربر."""
     from app import pricing
     from app.canboso import CanbosoError
     from app.services import ai_shop
@@ -1332,11 +1423,12 @@ async def cb_ai_preview(call: CallbackQuery, db: Database) -> None:
     cfg = await pricing.load(db)
     rows = []
     for x in cat["items"][:25]:
-        b = pricing.compute(x["cost"], cfg, x["currency"])
+        b = pricing.compute(x["cost"], cfg, x["currency"], x.get("markup"))
         stock = "∞" if x["stock"] is None else x["stock"]
         rows.append(f"{'•' if x['visible'] else '🔴'} <b>{esc(x['name'])}</b> ({stock})\n   {x['cost']:g} {x['currency']} → {b.final:,} تومان"
-                    + (f" · سود {b.net_profit:,}" if b.net_profit else ""))
-    first = pricing.compute(cat["items"][0]["cost"], cfg, cat["items"][0]["currency"])
+                    + (f" · سود {b.net_profit:,}" if b.net_profit else "")
+                    + (f" (💰 {esc(x['markup_label'])})" if x.get("markup") else ""))
+    first = pricing.compute(cat["items"][0]["cost"], cfg, cat["items"][0]["currency"], cat["items"][0].get("markup"))
     await call.message.answer("🧮 <b>قیمت محصولات برای کاربر</b>\n\n" + "\n".join(rows) + "\n\n" + pricing.explain(first))
     await call.answer()
 
@@ -1382,9 +1474,11 @@ async def cb_ai_restock(call: CallbackQuery, db: Database) -> None:
 @router.callback_query(F.data == "adm:ai:unknown")
 async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
     """سفارش هایی که وضعیتشان مبهم مانده و دست ادمین را می خواهند."""
+    from app.services import ai_shop
+
     rows = await db.ai_orders_by_status("unknown") + [
         o for o in await db.ai_orders_by_status("pending") if o.get("idem_key")
-    ]
+    ] + [o for o in await db.ai_orders_by_status("processing") if ai_shop.can_refetch(o)]
     if not rows:
         return await call.answer("سفارش مبهمی نیست ✅", show_alert=True)
     body = "\n\n".join(
@@ -1393,7 +1487,7 @@ async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
             user=o["telegram_id"],
             price=f"{o['price']:,}",
             when=fmt_dt(o["created_at"]),
-            error=esc((o.get("error") or "-")[:60]),
+            error=esc((o.get("error") or ("⏳ در انتظار فروشنده (لینک نیامده)" if o["status"] == "processing" else "-"))[:60]),
         )
         for o in rows
     )
@@ -1407,7 +1501,7 @@ async def cb_ai_unknown(call: CallbackQuery, db: Database) -> None:
 
 @router.callback_query(F.data.startswith("adm:ai:rs:"))
 async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
-    """سفارش مبهم را با همان Idempotency-Key از canboso دوباره می پرسد.
+    """سفارش مبهم را با همان شناسه یکتا (external_order_id) از سرویس دهنده دوباره می پرسد.
 
     اگر اولی انجام شده بود همان پاسخ برمی گردد و تحویل می شود؛ اگر نه،
     همین حالا انجام می شود (پول کاربر از قبل کم شده) یا اگر قطعا ممکن
@@ -1422,14 +1516,14 @@ async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
     if not ai_shop.can_retry(order):
         return await call.answer("این سفارش دوباره فرستاده نمی‌شه؛ از «برگشت پول» یا «تحویل شد» استفاده کن.",
                                  show_alert=True)
-    await call.answer("در حال پرسیدن از canboso…")
+    await call.answer("در حال پرسیدن از سرویس دهنده…")
     r = await ai_shop.resolve(db, call.bot, order)
     await notify_buyer(call.bot, db, r)
     label = {
         ai_shop.DELIVERED: "✅ تحویل شد و برای کاربر فرستاده شد",
         ai_shop.PROCESSING: "⏳ پذیرفته شد؛ در انتظار فروشنده",
         ai_shop.FAILED: "↩️ انجام نشد؛ پول کاربر برگشت",
-        ai_shop.NO_FUNDS: "↩️ موجودی canboso کم است؛ پول کاربر برگشت",
+        ai_shop.NO_FUNDS: "↩️ موجودی سرویس دهنده کم است؛ پول کاربر برگشت",
         ai_shop.UNKNOWN: "🔎 هنوز مبهم است؛ کمی بعد دوباره امتحان کن",
     }.get(r["status"], r["status"])
     await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
@@ -1438,14 +1532,17 @@ async def cb_ai_resolve(call: CallbackQuery, db: Database) -> None:
 
 @router.callback_query(F.data.regexp(r"^adm:ai:(rf|dn):\d+$"))
 async def cb_ai_settle_ask(call: CallbackQuery, db: Database) -> None:
-    """سفارش مبهم aitoolify: اول در پنل سرویس دهنده نگاه کن، بعد تصمیم بگیر."""
+    """سفارش مبهمی که دوباره فرستادنش ممکن نیست (مثل سفارش های مانده از سرویس دهنده
+    قبلی): اول در پنل همان سرویس دهنده نگاه کن، بعد تصمیم بگیر."""
+    from app.services import ai_shop
+
     _, _, act, oid = call.data.split(":")
     order = await db.get_ai_order(int(oid))
     if not order or order["status"] not in ("unknown", "pending"):
         return await call.answer("این سفارش دیگر مبهم نیست.", show_alert=True)
     refund = act == "rf"
     body = (f"سفارش <code>{order['code']}</code> · {esc(order['title'])} · {order['price']:,} تومان\n\n"
-            "اول در پنل aitoolifystudio نگاه کن این سفارش ثبت شده یا نه.\n\n")
+            f"اول در پنل سرویس دهنده ({esc(ai_shop.provider_of(order))}) نگاه کن این سفارش ثبت شده یا نه.\n\n")
     body += ("اگه <b>ثبت نشده</b>، پول کاربر به کیف پولش برمی‌گرده و بهش خبر داده می‌شه."
              if refund else
              "اگه <b>ثبت شده</b> و محتوا رو از پشتیبانی به کاربر دادی، سفارش «تحویل شد» علامت می‌خوره. "
@@ -1471,13 +1568,356 @@ async def cb_ai_settle(call: CallbackQuery, db: Database) -> None:
     await cb_ai_unknown(call, db)
 
 
+# ---------- شماره مجازی (SMSBurner) ----------
+async def _num_home(message: Message, db: Database) -> None:
+    from app.services import numbers_shop as ns
+
+    from app.smsburner import SmsBadSeed
+
+    cfg = await ns.load_cfg(db)
+    sd = await ns.seed(db)
+    rate = await ns.usdt_rate(db)
+    stats = await db.number_stats()
+    ps = await ns.price_status(db)
+    prices = (f"{ps['fresh']} از {ps['total']} کشور تازه" if ps["total"] else "خوانده نشد")
+    if ps["total"] and ps["fresh"] < ps["total"]:
+        prices += " (در حال به روزرسانی…)"
+
+    # موجودی نزد سرویس دهنده همین جا دیده می شود: صفر یعنی هیچ خریدی موفق نمی شود
+    wallet, mode = "—", ""
+    if sd:
+        sb = await ns.client(db)
+        try:
+            bal = await sb.balance()
+            wallet = (f"{bal['balance']:g} دلار" + (" ⚠️ خالی" if bal["balance"] <= 0 else "")) if bal else "خوانده نشد"
+            if isinstance(sb.balance_error(), SmsBadSeed):
+                wallet = "❌ seed نامعتبر (نه Bearer و نه ورود نشست کوکی)"
+            mode = sb.mode_label()
+        except Exception:  # noqa: BLE001
+            wallet = "خوانده نشد"
+        finally:
+            await sb.close()
+    lines = []
+    for field, (title, _default, _d) in ns.FIELDS.items():
+        val = cfg.get(field, 0)
+        shown = f"{int(val):,}" if val >= 1000 else f"{val:g}"
+        lines.append(f"├ {title}: ⁨{shown}⁩")
+    await edit_or_send(
+        message,
+        texts.ADMIN_NUM.format(
+            seed=(("از .env ✅" if config.smsburner_seed else "تنظیم شده ✅") + (f" · {mode}" if mode else ""))
+            if sd else "تنظیم نشده ❌",
+            wallet=wallet,
+            rate=f"{int(rate):,}" if rate else "تنظیم نشده ❌",
+            prices=prices,
+            fields="\n".join(lines),
+            active=stats.get("active") or 0,
+            completed=stats.get("completed") or 0,
+            unknown=stats.get("unknown") or 0,
+            revenue=f"{stats.get('revenue') or 0:,}",
+            usd_cost=f"{(stats.get('usd_cost') or 0):.2f}",
+        ),
+        keyboards.admin_num_kb(bool(sd)),
+    )
+
+
+@router.callback_query(F.data == "adm:num")
+async def cb_num_home(call: CallbackQuery, db: Database, state: FSMContext) -> None:
+    await state.clear()
+    await _num_home(call.message, db)
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:num:key")
+async def cb_num_key(call: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field="num_seed")
+    await edit_or_send(call.message, texts.ADMIN_NUM_SEED_ASK, None)
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("adm:num:f:"))
+async def cb_num_field(call: CallbackQuery, state: FSMContext) -> None:
+    from app.services import numbers_shop as ns
+
+    field = call.data.split(":")[3]
+    if field not in ns.FIELDS:
+        return await call.answer("این تنظیم پیدا نشد.", show_alert=True)
+    title, default, desc = ns.FIELDS[field]
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field=field)
+    await edit_or_send(call.message, texts.ADMIN_AI_FIELD_ASK.format(title=title, desc=desc, default=default), None)
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:num:prices")
+async def cb_num_prices(call: CallbackQuery, db: Database) -> None:
+    """شروع خواندن قیمت همه ی کشورها در پس زمینه (حدود یک درخواست در ثانیه؛ چند دقیقه)."""
+    from app.services import numbers_shop as ns
+
+    ns.ensure_refresher(db)
+    await call.answer("شروع شد. خواندن قیمت ۱۱۶ کشور چند دقیقه طول می‌کشه؛ بعدش «تازه کردن» رو بزن.",
+                      show_alert=True)
+
+
+@router.callback_query(F.data == "adm:num:preview")
+async def cb_num_preview(call: CallbackQuery, db: Database) -> None:
+    """قیمت ارزان ترین کشورهای سرویس های پرطرفدار با تنظیمات فعلی: هزینه دلاری ← قیمت کاربر."""
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    try:
+        cat = await ns.catalog(db, force=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن کاتالوگ نشد: {exc}", show_alert=True)
+    if not cat["rows"]:
+        return await call.answer("ردیفی نیامد؛ نرخ تتر را تنظیم کرده ای و seed درسته؟", show_alert=True)
+    rate = cat["rate"]
+    out = []
+    for s in ns.services_of(cat)[:10]:
+        for r in ns.countries_of(cat, s["id"])[:2]:
+            profit = int(r["price"] - r["usd"] * rate)
+            out.append(f"• <b>{esc(s['name'])}</b> {ns.flag(r['cc'])} {esc(r['country'])}: "
+                       f"{r['usd']:g}$ → {r['price']:,} تومان (سود {profit:,})")
+    await call.message.answer("🧮 <b>قیمت شماره ها برای کاربر</b> (ارزان ترین کشورها)\n\n" + "\n".join(out)
+                              + f"\n\nنرخ تتر: {int(rate):,} تومان")
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:num:balance")
+async def cb_num_balance(call: CallbackQuery, db: Database) -> None:
+    from app.services import numbers_shop as ns
+
+    sb = await ns.client(db)
+    try:
+        bal = await sb.balance()
+    finally:
+        await sb.close()
+    await call.answer(f"موجودی شما نزد SMSBurner: {bal['balance']:g} دلار" if bal is not None
+                      else "موجودی خوانده نشد.", show_alert=True)
+
+
+@router.callback_query(F.data == "adm:num:raw")
+async def cb_num_raw(call: CallbackQuery, db: Database) -> None:
+    """پاسخ خام سرویس دهنده (کوتاه شده) برای دیدن شکل واقعی فیلدها. seed در فایل نیست."""
+    import json as _json
+
+    from aiogram.types import BufferedInputFile
+
+    from app.canboso import CanbosoError
+    from app.services import numbers_shop as ns
+
+    await call.answer("در حال گرفتن خروجی…")
+    sb = await ns.client(db)
+    try:
+        raw = await sb.debug()
+    finally:
+        await sb.close()
+    try:
+        cat = await ns.catalog(db, force=True)
+        seen = {"rows": len(cat["rows"]), "services": len(ns.services_of(cat)), "sample": cat["rows"][:5]}
+    except CanbosoError as exc:
+        seen = {"error": str(exc)}
+    doc = {"requests": {"account": "GET /api/v1/account  (Authorization: Bearer ***)",
+                        "countries": "GET /api/v1/countries", "catalog": "GET /api/v1/catalog",
+                        "operators": "GET /api.php?action=operators&country=us  (نوع شماره؛ فقط در api.php)",
+                        "buy": 'POST /api/v1/numbers {"service_id": 1, "country": "US"}',
+                        "poll": "GET /api/v1/numbers/{id}", "cancel": "POST /api/v1/numbers/{id}/cancel"},
+           "responses": raw, "bot_view": seen}
+    data = _json.dumps(doc, ensure_ascii=False, indent=2, default=str)
+    sd = await ns.seed(db)
+    if sd:
+        data = data.replace(sd, "***")
+    acc, cat_r = raw.get("/account", {}), raw.get("/catalog", {})
+    await call.message.answer_document(
+        BufferedInputFile(data.encode("utf-8"), filename="smsburner_check.json"),
+        caption=(f"🧪 خروجی خام SMSBurner\n"
+                 f"account → HTTP {acc.get('status')} · {acc.get('ms', '-')}ms\n"
+                 f"catalog → HTTP {cat_r.get('status')} · {cat_r.get('ms', '-')}ms · {seen.get('rows', 0)} ردیف\n"
+                 "responses = پاسخ خام · bot_view = برداشت ربات"),
+    )
+
+
+@router.callback_query(F.data == "adm:num:unknown")
+async def cb_num_unknown(call: CallbackQuery, db: Database) -> None:
+    """خریدهایی که وضعیتشان مبهم مانده؛ چون خرید کلید یکتا ندارد، فقط دستی بسته می شوند."""
+    from app.services import numbers_shop as ns
+
+    rows = await db.number_orders_by_status((ns.UNKNOWN, ns.PENDING))
+    if not rows:
+        return await call.answer("سفارش مبهمی نیست ✅", show_alert=True)
+    body = "\n\n".join(texts.ADMIN_NUM_UNKNOWN_ROW.format(
+        code=o["code"], service=esc(o.get("service_name") or ""), flag=ns.flag(o["country"]),
+        user=o["telegram_id"], price=f"{o['price']:,}", error=esc((o.get("error") or "-")[:60])) for o in rows)
+    await edit_or_send(
+        call.message,
+        texts.ADMIN_AI_UNKNOWN_LIST.format(count=len(rows), rows=body).replace(
+            "تاریخچه سرویس دهنده را چک کن: اگه انجام شده لینک را دستی بفرست،",
+            "اول در smsburner.com ← سفارش ها نگاه کن: اگه شماره خریده شده، کدش را دستی بفرست و «تحویل شد» بزن؛"),
+        keyboards.admin_num_unknown_kb(rows),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.regexp(r"^adm:num:(rf|dn):\d+$"))
+async def cb_num_settle_ask(call: CallbackQuery, db: Database) -> None:
+    from app.services import numbers_shop as ns
+
+    _, _, act, oid = call.data.split(":")
+    order = await db.get_number_order(int(oid))
+    if not order or order["status"] not in (ns.UNKNOWN, ns.PENDING):
+        return await call.answer("این سفارش دیگر مبهم نیست.", show_alert=True)
+    refund = act == "rf"
+    body = (f"سفارش <code>{order['code']}</code> · {esc(order.get('service_name') or '')} · "
+            f"{order['price']:,} تومان\n\nاول در حساب smsburner.com نگاه کن این شماره خریده شده یا نه.\n\n")
+    body += ("اگه <b>خریده نشده</b>، پول کاربر به کیف پولش برمی‌گرده و بهش خبر داده می‌شه."
+             if refund else
+             "اگه <b>خریده شده</b> و کد رو دستی به کاربر دادی، سفارش «تحویل شد» علامت می‌خوره. پولی برنمی‌گرده.")
+    await edit_or_send(call.message, body, keyboards.admin_num_settle_kb(order["id"], refund))
+    await call.answer()
+
+
+@router.callback_query(F.data.regexp(r"^adm:num:(rfy|dny):\d+$"))
+async def cb_num_settle(call: CallbackQuery, db: Database) -> None:
+    from app.handlers.numbers import notify_event
+    from app.services import numbers_shop as ns
+
+    _, _, act, oid = call.data.split(":")
+    order = await db.get_number_order(int(oid))
+    if not order:
+        return await call.answer("سفارش پیدا نشد.", show_alert=True)
+    r = await ns.settle_manual(db, order, refund=act == "rfy")
+    if r["status"] == ns.FAILED:
+        await notify_event(call.bot, db, r)
+    label = {ns.FAILED: "↩️ پول کاربر برگشت", ns.COMPLETED: "✅ تحویل شد علامت خورد"}.get(r["status"], r["status"])
+    await call.message.answer(f"سفارش <code>{order['code']}</code>: {label}")
+    await cb_num_unknown(call, db)
+
+
+# ---------- خدمات تلگرام (MarketApp) ----------
+
+
+async def _tgs_home(message: Message, db: Database) -> None:
+    from app.services import marketapp as mk
+
+    tok = await mk.token(db)
+    saved = bool((await db.get_setting(mk.KEY_SETTING, "") or "").strip())
+    user = await db.get_setting(mk.USER_SETTING, "") or ""
+    channel = await db.get_setting(mk.CHANNEL_SETTING, "") or ""
+    rate, cfg, st = await mk.usdt_rate(db), await mk.load_cfg(db), await db.tg_stats()
+    lines = []
+    for field, (title, _default, _d) in mk.FIELDS.items():
+        val = cfg.get(field, 0)
+        lines.append(f"├ {title}: ⁨{int(val):,}⁩" if val >= 1000 else f"├ {title}: ⁨{val:g}⁩")
+    await edit_or_send(
+        message,
+        texts.ADMIN_TGS.format(
+            token=("از .env ✅" if config.marketapp_token else "تنظیم شده ✅") if tok else "تنظیم نشده ❌",
+            rate=f"{int(rate):,}" if rate else "تنظیم نشده ❌",
+            mode="🧪 نمایشی" if await mk.mode(db) == mk.DEMO else "✅ واقعی",
+            proxy="دارد ✅" if config.marketapp_proxy else "ندارد",
+            fields="\n".join(lines),
+            orders=st.get("total") or 0, demo=st.get("demo") or 0,
+            premium=st.get("premium") or 0, stars=st.get("stars") or 0,
+            user=f"@{user}" if user else "یوزرنیم خودت",
+            channel=f"@{channel}" if channel else "—",
+        ),
+        keyboards.admin_tgs_kb(bool(tok), saved),
+    )
+
+
+@router.callback_query(F.data.startswith("adm:tgs:f:"))
+async def cb_tgs_field(call: CallbackQuery, state: FSMContext) -> None:
+    from app.services import marketapp as mk
+
+    field = call.data.split(":")[3]
+    if field not in mk.FIELDS:
+        return await call.answer("این تنظیم پیدا نشد.", show_alert=True)
+    title, default, desc = mk.FIELDS[field]
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field=field)
+    await edit_or_send(call.message, texts.ADMIN_AI_FIELD_ASK.format(title=title, desc=desc, default=default), None)
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:tgs:mode")
+async def cb_tgs_mode(call: CallbackQuery) -> None:
+    await call.answer(texts.ADMIN_TGS_LIVE_LOCKED, show_alert=True)
+
+
+@router.callback_query(F.data == "adm:tgs:preview")
+async def cb_tgs_preview(call: CallbackQuery, db: Database) -> None:
+    """قیمت زنده MarketApp (دلار) ← قیمت کاربر (تومان) با تنظیمات فعلی."""
+    from app.services import marketapp as mk
+
+    try:
+        cat = await mk.catalog(db, force=True)
+    except mk.MarketAppError as exc:
+        return await call.answer(f"قیمت ها خوانده نشد: {exc}"[:190], show_alert=True)
+    rate = cat["rate"]
+    out = []
+    for p in cat["premium"]:
+        out.append(f"• <b>پرمیوم {p['months']} ماه</b>: {p['usd']:.2f}$ ({p['ton']:g} TON) → {p['price']:,} تومان "
+                   f"(سود {int(p['price'] - p['usd'] * rate):,})")
+    for p in cat["packs"]:
+        out.append(f"• <b>{p['qty']:,} استارز</b> → {p['price']:,} تومان")
+    await call.message.answer("🧮 <b>قیمت خدمات تلگرام برای کاربر</b> (زنده از MarketApp)\n\n" + "\n".join(out)
+                              + f"\n\nنرخ تتر: {int(rate):,} تومان · هر استار ~{round(cat['per_star']):,} تومان")
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:tgs")
+async def cb_tgs_home(call: CallbackQuery, db: Database, state: FSMContext) -> None:
+    await state.clear()
+    await _tgs_home(call.message, db)
+    await call.answer()
+
+
+@router.callback_query(F.data.in_({"adm:tgs:key", "adm:tgs:user", "adm:tgs:ch"}))
+async def cb_tgs_ask(call: CallbackQuery, state: FSMContext) -> None:
+    field, ask = {
+        "adm:tgs:key": ("tgs_token", texts.ADMIN_TGS_KEY_ASK),
+        "adm:tgs:user": ("tgs_user", texts.ADMIN_TGS_USER_ASK),
+        "adm:tgs:ch": ("tgs_channel", texts.ADMIN_TGS_CHANNEL_ASK),
+    }[call.data]
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field=field)
+    await edit_or_send(call.message, ask, None)
+    await call.answer()
+
+
+@router.callback_query(F.data == "adm:tgs:del")
+async def cb_tgs_del(call: CallbackQuery, db: Database) -> None:
+    from app.services import marketapp as mk
+
+    await db.set_setting(mk.KEY_SETTING, "")
+    await call.answer(texts.ADMIN_TGS_KEY_DELETED, show_alert=True)
+    await _tgs_home(call.message, db)
+
+
+@router.callback_query(F.data == "adm:tgs:test")
+async def cb_tgs_test(call: CallbackQuery, db: Database) -> None:
+    """تست کامل API در پس زمینه؛ فایل گزارش حدود یک دقیقه بعد در همین چت می آید."""
+    from app.services import marketapp as mk
+
+    if mk.check_running():
+        return await call.answer("یک تست در حال اجراست؛ صبر کن تا فایلش بیاد.", show_alert=True)
+    user = await db.get_setting(mk.USER_SETTING, "") or call.from_user.username or ""
+    if not user:
+        return await call.answer("یوزرنیم تلگرام نداری؛ از «👤 گیرنده تست» یک یوزرنیم بده.", show_alert=True)
+    channel = await db.get_setting(mk.CHANNEL_SETTING, "") or None
+    if not await mk.start_check(call.bot, db, call.message.chat.id, user, channel):
+        return await call.answer("توکن تنظیم نشده.", show_alert=True)
+    await call.answer(texts.ADMIN_TGS_CHECK_STARTED, show_alert=True)
+
+
 # ---------- محصولات هوش مصنوعی: نمایش و موجودی ----------
 def _stock_txt(v) -> str:  # noqa: ANN001
     return "∞" if v is None else str(v)
 
 
 async def _ai_products(message: Message, db: Database, page: int) -> None:
-    """همه محصولات canboso با روشن/خاموش نمایش و سه عدد موجودی:
+    """همه محصولات سرویس دهنده با روشن/خاموش نمایش، سود هر محصول و سه عدد موجودی:
     موجودی API، تعدادی که پول کیف پول ما می رسد، و کمترینِ این دو که به
     کاربر نشان داده می شود."""
     from app.canboso import CanbosoError
@@ -1497,21 +1937,25 @@ async def _ai_products(message: Message, db: Database, page: int) -> None:
         state = "ناموجود" if not x["available"] else f"نمایش: {_stock_txt(x['stock'])}"
         price = f"{x['price']:,} تومان" if x["priced"] else f"⚠️ نرخ {x['currency']} تنظیم نشده"
         months = f" · ماه ها: {', '.join(map(str, x['months']))}" if x["months"] else ""
+        profit = (f"   💰 سود: {esc(x['markup_label'])}" + (" (اختصاصی)" if x.get("markup") else "")
+                  + (f" · {x['profit']:,} تومان" if x["priced"] else "") + "\n")
         rows.append(
             f"{mark} <b>{esc(x['name'])}</b>\n"
             f"   <code>{esc(x['id'])}</code> · {esc(x['type'])}{months}\n"
             f"   {x['cost']:g} {x['currency']} → {price}\n"
+            + profit +
             f"   موجودی API: {_stock_txt(x['api_stock'])} · با کیف پول: {_stock_txt(x['wallet_stock'])} → {state}"
         )
     on = sum(1 for x in items if x["visible"])
     body = (
-        "╮── 🗂 محصولات canboso\n"
+        "╮── 🗂 محصولات سرویس دهنده\n"
         f"│   {on} از {len(items)} محصول روشن\n\n"
-        f"💼 کیف پول شما نزد canboso: <b>{esc(wallet)}</b>\n\n"
+        f"💼 کیف پول شما نزد سرویس دهنده: <b>{esc(wallet)}</b>\n\n"
         + ("\n\n".join(rows) or "محصولی نیامد.")
         + "\n\n<blockquote>موجودی که کاربر می بیند کمترینِ «موجودی API» و «تعدادی که با کیف پول شما خریدنی است» است. "
           "🟢 یعنی در ربات و مینی اپ نمایش داده می شود؛ برای عوض کردن روی محصول بزن. "
           "🔥 یعنی «پرفروش»: ویترین دسته و برچسب روی کارت محصول؛ با دکمه ☆/🔥 کنار هر محصول عوضش کن. "
+          "💰 کنار هر محصول سود همان محصول را جدا تنظیم می کند (مبلغ ثابت یا درصد). "
           "محصول تازه سرویس دهنده تا روشنش نکنی نمایش داده نمی شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی).</blockquote>"
     )
     await edit_or_send(message, body, keyboards.admin_ai_products_kb(items, page))
@@ -1519,7 +1963,7 @@ async def _ai_products(message: Message, db: Database, page: int) -> None:
 
 @router.callback_query(F.data.startswith("adm:ai:pl:"))
 async def cb_ai_products(call: CallbackQuery, db: Database) -> None:
-    await call.answer("در حال خواندن از canboso…")
+    await call.answer("در حال خواندن از سرویس دهنده…")
     await _ai_products(call.message, db, int(call.data.split(":")[3] or 0))
 
 
@@ -1535,7 +1979,7 @@ async def cb_ai_product_toggle(call: CallbackQuery, db: Database) -> None:
         return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
     item = next((x for x in cat["items"] if x["id"] == pid), None)
     if not item:
-        return await call.answer("این محصول دیگر در canboso نیست.", show_alert=True)
+        return await call.answer("این محصول دیگر در سرویس دهنده نیست.", show_alert=True)
     await ai_shop.set_visible(db, pid, not item["visible"], [x["id"] for x in cat["items"]])
     await call.answer("روشن شد ✅" if not item["visible"] else "خاموش شد")
     await _ai_products(call.message, db, int(page or 0))
@@ -1549,6 +1993,42 @@ async def cb_ai_product_featured(call: CallbackQuery, db: Database) -> None:
     await db.set_product_meta(pid, featured=1 if on else None)
     await call.answer("🔥 پرفروش شد" if on else "از پرفروش ها برداشته شد")
     await _ai_products(call.message, db, int(page or 0))
+
+
+@router.callback_query(F.data.startswith("adm:ai:pm:"))
+async def cb_ai_product_markup(call: CallbackQuery, db: Database, state: FSMContext) -> None:
+    """سود اختصاصی یک محصول: مبلغ ثابت تومانی یا درصد، یا برگشت به سود کلی."""
+    from app import pricing
+    from app.canboso import CanbosoError
+    from app.services import ai_shop
+
+    _, _, _, page, pid = call.data.split(":", 4)
+    try:
+        cat = await ai_shop.catalog(db, admin=True)
+    except CanbosoError as exc:
+        return await call.answer(f"خواندن محصولات نشد: {exc}", show_alert=True)
+    item = next((x for x in cat["items"] if x["id"] == pid), None)
+    if not item:
+        return await call.answer("این محصول دیگر در سرویس دهنده نیست.", show_alert=True)
+    await state.set_state(Admin.waiting_ai_field)
+    await state.update_data(ai_field="markup", ai_pid=pid, ai_page=int(page or 0))
+    price = f"{item['price']:,} تومان (سود {item['profit']:,})" if item["priced"] else "نرخ ارز تنظیم نشده"
+    await edit_or_send(
+        call.message,
+        "╮── 💰 سود این محصول\n"
+        f"│   {esc(item['name'])}\n\n"
+        f"├ قیمت API: {item['cost']:g} {esc(item['currency'])}\n"
+        f"├ سود فعلی: {esc(pricing.markup_label(item['markup']))}\n"
+        f"├ قیمت کاربر الان: {price}\n\n"
+        "سود تازه را بفرست:\n"
+        "• <code>150000</code> یعنی قیمت API + ۱۵۰٬۰۰۰ تومان\n"
+        "• <code>20%</code> یعنی قیمت API + ۲۰ درصد\n"
+        "• <code>-</code> یعنی برگشت به سود کلی پنل\n\n"
+        "<blockquote>سود این محصول بر سود کلی (درصد سود، کارمزد، حاشیه نوسان، حداقل سود و سود ثابت) "
+        "مقدم است؛ فقط نرخ ارز و رند کردن از تنظیمات کلی می آید.</blockquote>",
+        None,
+    )
+    await call.answer()
 
 
 @router.callback_query(F.data.startswith("adm:ai:pa:"))
@@ -1568,10 +2048,10 @@ async def cb_ai_products_all(call: CallbackQuery, db: Database) -> None:
 
 @router.callback_query(F.data == "adm:ai:raw")
 async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
-    """پاسخ خام canboso و برداشت ربات از آن، کنار هم، در یک فایل JSON.
+    """پاسخ خام سرویس دهنده و برداشت ربات از آن، کنار هم، در یک فایل JSON.
 
     برای مقایسه درخواست ها و دریافتی ها با آنچه ربات نشان می دهد. کلید API
-    در فایل نیست (فقط در query string درخواست می رود).
+    در فایل نیست (فقط در هدر Authorization می رود).
     """
     import json as _json
 
@@ -1594,14 +2074,15 @@ async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
         parsed = {"error": str(exc)}
     key = await ai_shop.api_key(db)
     prov = await ai_shop.provider_name(db)
-    base = ("https://bot.aitoolifystudio.io/api/reseller/v1" if prov == "aitoolify"
-            else "https://canboso.com/api/v2/telegram-buyer")
-    auth = "  (Authorization: Bearer ***)" if prov == "aitoolify" else "?key=***"
+    base = getattr(cb, "base_url", "")
+    auth = "  (Authorization: Bearer ***)"
     doc = {
         "provider": prov,
         "requests": {
-            "products": f"GET {base}/products{auth}",
-            "balance": f"GET {base}/balance{auth}",
+            "products": f"GET {base}?action=products{auth}",
+            "balance": f"GET {base}?action=balance{auth}",
+            "order": f"POST {base}?action=order{auth}  "
+                     '{"product_id": "...", "quantity": 1, "external_order_id": "..."}',
         },
         "responses": raw,
         "bot_view": parsed,
@@ -1609,14 +2090,14 @@ async def cb_ai_raw(call: CallbackQuery, db: Database) -> None:
     data = _json.dumps(doc, ensure_ascii=False, indent=2, default=str)
     if key:
         data = data.replace(key, "***")
-    prod = raw.get("/products", {})
-    bal = raw.get("/balance", {})
-    n = len(((prod.get("body") or {}) if isinstance(prod.get("body"), dict) else {}).get("products") or [])
+    prod = raw.get("products", {})
+    bal = raw.get("balance", {})
+    n = len(parsed.get("items") or [])
     await call.message.answer_document(
         BufferedInputFile(data.encode("utf-8"), filename=f"{prov}_check.json"),
         caption=(f"🧪 خروجی خام {prov}\n"
-                 f"/products → HTTP {prod.get('status')} · {prod.get('ms', '-')}ms · {n} محصول\n"
-                 f"/balance → HTTP {bal.get('status')} · {bal.get('ms', '-')}ms\n"
+                 f"products → HTTP {prod.get('status')} · {prod.get('ms', '-')}ms · {n} محصول\n"
+                 f"balance → HTTP {bal.get('status')} · {bal.get('ms', '-')}ms\n"
                  "responses = پاسخ خام · bot_view = برداشت ربات (قیمت تومانی و موجودی)"),
     )
 

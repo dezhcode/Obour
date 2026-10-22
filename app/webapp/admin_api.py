@@ -295,7 +295,7 @@ async def pay_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, k
 
 
 async def ai_products(db: "Database", panel: "Panel | None", wuser: WebAppUser) -> dict:
-    """محصولات canboso برای ادمین: نمایش، قیمت و سه عدد موجودی."""
+    """محصولات سرویس دهنده برای ادمین: نمایش، قیمت، سود هر محصول و سه عدد موجودی."""
     from app.canboso import CanbosoError
     from app.services import ai_shop
 
@@ -313,7 +313,8 @@ async def ai_products(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
                     "currency": bal["currency"]} if bal else None),
         "items": [dict({k: x[k] for k in ("id", "name", "type", "kind", "brand", "visible", "priced", "available", "stock",
                                           "api_stock", "wallet_stock", "currency", "cost", "price", "months", "category",
-                                          "auto_category", "category_set", "guide", "provider_image")},
+                                          "auto_category", "category_set", "guide", "provider_image",
+                                          "markup", "markup_label", "profit")},
                        image=ai_shop.image_url(x["image"]), description=x["provider_description"][:1500],
                        desc_fa=x["desc_fa"]) for x in cat["items"]],
         "categories": [{"key": k, "title": t} for k, (t, _e) in ai_shop.CATEGORIES.items()],
@@ -321,8 +322,9 @@ async def ai_products(db: "Database", panel: "Panel | None", wuser: WebAppUser) 
 
 
 async def ai_meta_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, pid: str,
-                      category=None, guide=None, desc_fa=None, featured=None) -> dict:  # noqa: ANN001
-    """دسته ("" = خودکار)، آموزش فعال سازی و توضیح فارسی ("" = متن سرویس دهنده)."""
+                      category=None, guide=None, desc_fa=None, featured=None, markup=None) -> dict:  # noqa: ANN001
+    """دسته ("" = خودکار)، آموزش فعال سازی، توضیح فارسی ("" = متن سرویس دهنده)
+    و سود اختصاصی محصول (markup: «150000»، «20%» یا "" = سود کلی)."""
     from app.services import ai_shop
 
     _require_admin(wuser)
@@ -340,6 +342,13 @@ async def ai_meta_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
         fields["desc_fa"] = str(desc_fa).strip()[:1500] or None
     if featured is not None:
         fields["featured"] = 1 if featured else None
+    if markup is not None:
+        try:
+            m = ai_shop.parse_markup(str(markup))
+        except ValueError as exc:
+            raise ApiError("سود نامعتبر است؛ مثل 150000 یا 20%", 400, "bad_request") from exc
+        fields["markup_toman"] = int(m["toman"]) if m and "toman" in m else None
+        fields["markup_percent"] = float(m["percent"]) if m and "percent" in m else None
     await db.set_product_meta(pid, **fields)
     log.info("ادمین %s تنظیمات محصول %s را عوض کرد: %s", wuser.id, pid, list(fields))
     return {"ok": True}
@@ -347,7 +356,7 @@ async def ai_meta_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, 
 
 async def ai_image_set(db: "Database", panel: "Panel | None", wuser: WebAppUser, *, pid: str,
                        image: str = "", fetch: bool = False, remove: bool = False) -> dict:
-    """تصویر محصول: آپلود (data URL)، برداشتن تصویر خود canboso، یا حذف."""
+    """تصویر محصول: آپلود (data URL)، برداشتن تصویر خود سرویس دهنده، یا حذف."""
     import base64
     import binascii
 
@@ -367,16 +376,16 @@ async def ai_image_set(db: "Database", panel: "Panel | None", wuser: WebAppUser,
         item = next((x for x in cat["items"] if x["id"] == pid), None)
         path = (item or {}).get("provider_image") or ""
         if not path:
-            raise ApiError("canboso برای این محصول تصویری ندارد", 404, "no_image")
+            raise ApiError("سرویس دهنده برای این محصول تصویری ندارد", 404, "no_image")
         import httpx
 
-        url = path if path.startswith("http") else "https://canboso.com" + ("" if path.startswith("/") else "/") + path
+        url = path if path.startswith("http") else "https://ssondigitalworks.online" + ("" if path.startswith("/") else "/") + path
         try:
             async with httpx.AsyncClient(timeout=20, follow_redirects=True) as http:
                 r = await http.get(url)
             data = r.content if r.status_code == 200 else b""
         except Exception as exc:  # noqa: BLE001
-            raise ApiError("دریافت تصویر از canboso نشد", 502, "fetch") from exc
+            raise ApiError("دریافت تصویر از سرویس دهنده نشد", 502, "fetch") from exc
     else:
         raw = image.split(",", 1)[1] if image.startswith("data:") else image
         try:
@@ -406,7 +415,7 @@ async def ai_product_set(db: "Database", panel: "Panel | None", wuser: WebAppUse
         await ai_shop.set_all_visible(db, ids if on else [])
     else:
         if pid not in ids:
-            raise ApiError("این محصول دیگر در canboso نیست", 404, "not_found")
+            raise ApiError("این محصول دیگر در سرویس دهنده نیست", 404, "not_found")
         await ai_shop.set_visible(db, pid, bool(on), ids)
     return {"ok": True}
 
@@ -545,8 +554,12 @@ async def ai_order_full(db: "Database", panel: "Panel | None", wuser: WebAppUser
     if not o:
         raise ApiError("سفارش پیدا نشد", 404, "not_found")
     u = await db.get_user(o["user_id"]) or {}
+    from app.services import ai_shop
+
     return {**_ai_order_out(o, full=True), "user": _who(u), "error": o.get("error") or "",
-            "cost": o.get("usd_cost"), "cost_currency": norm_currency(o.get("cost_currency") or "USDT")}
+            "cost": o.get("usd_cost"), "cost_currency": norm_currency(o.get("cost_currency") or "USDT"),
+            # پاسخ خام فروشنده (فقط ادمین): اگر لینک جایی آمد که ربات نشناخت
+            "provider_raw": str(ai_shop.delivery_of(o).get("provider_raw") or "")[:3500]}
 
 
 async def purchases(db: "Database", panel: "Panel | None", wuser: WebAppUser, *,

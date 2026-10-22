@@ -47,10 +47,16 @@ async def cb_shop_hub(
     """
     await _clear_discount(state)
     vpn, ai = features.is_on("shop_vpn"), features.is_on("shop_ai")
+    from app.services import numbers_shop
 
-    if vpn and not ai:
+    from app.services import marketapp
+
+    nums = features.is_on("shop_numbers") and await numbers_shop.ready(db)
+    tgs = features.is_on("shop_telegram") and await marketapp.ready(db)
+
+    if vpn and not (ai or nums or tgs):
         return await cb_buy(call, db, state, user)
-    if not vpn and not ai:
+    if not vpn and not (ai or nums or tgs):
         await edit_or_send(call.message, texts.SHOP_CLOSED, keyboards.back_menu())
         return await call.answer()
 
@@ -60,7 +66,7 @@ async def cb_shop_hub(
     await edit_or_send(
         call.message,
         texts.SHOP_HUB.format(balance=f"{user['balance']:,}"),
-        keyboards.shop_hub_kb(cats),
+        keyboards.shop_hub_kb(cats, numbers=nums, telegram=tgs),
     )
     await call.answer()
 
@@ -74,7 +80,7 @@ async def _ai_ready(db: Database) -> bool:
 
 @router.callback_query(F.data == "buy:ai")
 async def cb_ai_shop(call: CallbackQuery, db: Database, user: dict) -> None:
-    """بخش خدمات هوش مصنوعی: کاتالوگ canboso با قیمت تومانی."""
+    """بخش خدمات هوش مصنوعی: کاتالوگ سرویس دهنده با قیمت تومانی."""
     if not features.is_on("shop_ai"):
         return await call.answer(texts.SECTION_OFF, show_alert=True)
     if not await _ai_ready(db):

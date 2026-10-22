@@ -57,38 +57,52 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-ads span{writing-mode:vertical-rl;transform:rotate(180deg);font-family:system-ui,sans-serif;font-size:6.5px;font-weight:800;letter-spacing:2px;color:#9cc2ff}
 .fb-ads.r{margin-inline:3px 0}
 .fb-ads.r span{transform:none;color:#F5C451}
+/* زمین: جعبهٔ مختصات (همهٔ ۱۰۴۲×۱۹۲۰ شامل جیب دروازه ها)؛ چمن فقط بین دو خط دروازه است */
+.fb-pitch{position:relative;isolation:isolate;z-index:0;margin-inline:calc(var(--s,.4)*23px)}
 /* چمن: راه‌راه چمن‌زنی، دانه و رگه، نور از بالا و تاریکی لبه ها */
-.fb-pitch{position:relative;isolation:isolate;z-index:0;border-radius:2px;
+.fb-grass{position:absolute;z-index:0;pointer-events:none;
   background:
     radial-gradient(130% 60% at 50% -5%,rgba(255,252,220,.16),transparent 60%),
     radial-gradient(150% 110% at 50% 50%,transparent 58%,rgba(0,20,0,.32) 100%),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .05 0 0 0 0 .2 0 0 0 0 .02 0 0 0 .55 -.2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.03 .55' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 1 0 0 0 0 .7 0 0 0 .22 -.07'/%3E%3C/filter%3E%3Crect width='90' height='90' filter='url(%23g)'/%3E%3C/svg%3E"),
-    repeating-linear-gradient(180deg,#5cb444 0 calc(var(--s)*80px),#4fa23a calc(var(--s)*80px) calc(var(--s)*160px));
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 calc(var(--s)*14px) calc(var(--s)*16px) calc(var(--s)*-8px) rgba(0,0,0,.35),
-    0 0 0 4px #f4f6f8,0 0 0 5px #c3cad2,0 0 0 6.5px #7f8994,0 3px 0 6.5px #5e6872,0 16px 28px rgba(0,0,0,.45)}
+    repeating-linear-gradient(180deg,#5cb444 0 var(--stripe),#4fa23a var(--stripe) calc(var(--stripe)*2));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+/* دیواره: لبهٔ روشن بیرونی، رویهٔ خاکستری سمت زمین و درز هر ۱۴۰ واحد؛ سایه روی چمن بیرون زمین می افتد */
+.fb-rail{position:absolute;z-index:2;pointer-events:none;box-sizing:border-box;
+  background:
+    repeating-linear-gradient(var(--sd),transparent 0 calc(var(--s)*138px),rgba(36,34,56,.38) calc(var(--s)*138px) calc(var(--s)*140px)),
+    linear-gradient(var(--ld),#f6f3f0 0,#e4e0e0 var(--lip),#a9a7b6 var(--lip),#8b8999 100%);
+  box-shadow:calc(var(--sx,0)*var(--s)*9px) calc(var(--sy,0)*var(--s)*9px) calc(var(--s)*12px) rgba(0,0,0,.42),inset 0 0 0 .5px rgba(255,255,255,.35)}
+/* سایهٔ هر تکه دیواره فقط سمت چمن می افتد (روی دهانهٔ دروازه سایه نیست) */
+.fb-rail.l{--sx:1}.fb-rail.r{--sx:-1}.fb-rail.tl,.fb-rail.tr{--sy:1}.fb-rail.bl,.fb-rail.br{--sy:-1}
 .fb-ln{position:absolute;border:0 solid rgba(255,255,255,.86);pointer-events:none;box-sizing:border-box}
-/* دروازه: تیرک و تیر افقی سفید با سایه، تور با عمق */
+/* جیب دروازه (بیرون چمن): کف تیره با خط دروازه سمت زمین؛ تور و تیرک روی آن */
+.fb-pocket{position:absolute;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(90deg,#2c5a25 0 calc(var(--s)*59px),#32672b calc(var(--s)*59px) calc(var(--s)*118px));
+  box-shadow:inset 0 0 calc(var(--s)*28px) rgba(0,18,0,.65)}
+.fb-pk-t{border-bottom:max(1.5px,calc(var(--s)*5.5px)) solid rgba(255,255,255,.88)}
+.fb-pk-b{border-top:max(1.5px,calc(var(--s)*5.5px)) solid rgba(255,255,255,.88)}
 /* تور و تیر دروازه روی مهره و توپ: هر چه وارد دروازه شود زیر تور دیده می شود */
 .fb-net{position:absolute;pointer-events:none;z-index:3000}
-.fb-net .mesh{position:absolute;inset:0;border:2px solid rgba(235,240,245,.9);
+.fb-net .mesh{position:absolute;inset:0;border:max(1.5px,calc(var(--s)*6px)) solid rgba(240,243,247,.92);
   background:repeating-linear-gradient(90deg,rgba(255,255,255,.5) 0 1px,transparent 1px 5px),repeating-linear-gradient(0deg,rgba(255,255,255,.5) 0 1px,transparent 1px 5px),
-    linear-gradient(var(--deep,180deg),rgba(0,0,0,.3),rgba(0,0,0,.04));box-shadow:0 4px 8px rgba(0,0,0,.35)}
-.fb-goal-top .mesh{border-bottom:0;border-radius:6px 6px 0 0;--deep:180deg}
-.fb-goal-bot .mesh{border-top:0;border-radius:0 0 6px 6px;--deep:0deg}
+    linear-gradient(var(--deep,180deg),rgba(0,0,0,.34),rgba(0,0,0,.04));box-shadow:0 4px 8px rgba(0,0,0,.35)}
+.fb-goal-top .mesh{border-bottom:0;border-radius:3px 3px 0 0;--deep:180deg}
+.fb-goal-bot .mesh{border-top:0;border-radius:0 0 3px 3px;--deep:0deg}
 .fb-net .bar{position:absolute;left:-3px;right:-3px;height:5px;border-radius:3px;background:linear-gradient(180deg,#fff,#cfd5dc);box-shadow:0 2px 3px rgba(0,0,0,.45)}
 .fb-goal-top .bar{bottom:-2.5px}
 .fb-goal-bot .bar{top:-2.5px}
-.fb-net .post{position:absolute;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#b8c0c8);box-shadow:0 2px 3px rgba(0,0,0,.5)}
+.fb-net .post{position:absolute;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#b8c0c8);box-shadow:0 2px 3px rgba(0,0,0,.5)}
 .fb-net .post.l{left:-5px}.fb-net .post.r{right:-5px}
-.fb-goal-top .post{bottom:-4px}.fb-goal-bot .post{top:-4px}
+.fb-goal-top .post{bottom:-4.5px}.fb-goal-bot .post{top:-4.5px}
 .fb-net.shake .mesh{animation:fb-shake .55s ease-out}
 .fb-goal-top.shake .mesh{transform-origin:50% 100%}.fb-goal-bot.shake .mesh{transform-origin:50% 0}
 @keyframes fb-shake{30%{transform:scale(1.07,1.25)}60%{transform:scale(.97,.92)}}
-.fb-flag{position:absolute;width:12px;height:19px;pointer-events:none;filter:drop-shadow(1px 2px 1px rgba(0,0,0,.4))}
+.fb-flag{position:absolute;width:12px;height:19px;pointer-events:none;filter:drop-shadow(1px 2px 1px rgba(0,0,0,.4));transform-origin:0 0;z-index:4}
 .fb-flag svg{display:block;width:100%;height:100%}
-.fb-flag.tl{left:-9px;top:-17px}.fb-flag.tr{right:-9px;top:-17px;transform:scaleX(-1)}
-.fb-flag.bl{left:-9px;bottom:-4px}.fb-flag.br{right:-9px;bottom:-4px;transform:scaleX(-1)}
+.fb-flag.tl,.fb-flag.bl{transform:translate(-1.7px,-100%)}
+.fb-flag.tr,.fb-flag.br{transform:scaleX(-1) translate(-1.7px,-100%)}
 
 /* مهره سه بعدی: لبه فلزی پخ دار با ضخامت، نشان فرورفته با برق، سایه روی چمن */
 .fd{--d:40px;position:absolute;left:0;top:0;border-radius:50%;box-sizing:border-box;will-change:transform;z-index:2;contain:layout style;
@@ -98,10 +112,10 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
     conic-gradient(from 215deg,#ffffff,#aab2bb 55deg,#eef1f4 115deg,#7a848f 190deg,#d9dee3 250deg,#9aa3ad 310deg,#ffffff);
   --bevel:inset 0 calc(var(--d)*.045) calc(var(--d)*.03) rgba(255,255,255,.95),inset 0 calc(var(--d)*-.05) calc(var(--d)*.05) rgba(0,0,0,.4);
   --thick:0 calc(var(--d)*.025) 0 #a2aab3,0 calc(var(--d)*.05) 0 #7c858e,0 calc(var(--d)*.07) 0 #59626b;
-  /* مهره روی چمن نشسته است: سایه تماسی تیره درست زیر لبه، بعد هاله کوتاه و نرم؛ بدون فاصله */
-  --cast:calc(var(--d)*.015) calc(var(--d)*.075) calc(var(--d)*.02) rgba(0,0,0,.6),
-    calc(var(--d)*.025) calc(var(--d)*.09) calc(var(--d)*.07) rgba(0,0,0,.38),
-    calc(var(--d)*.04) calc(var(--d)*.1) calc(var(--d)*.16) rgba(0,25,0,.22);
+  /* مهره روی چمن نشسته است: مثل پلاتو یک قرص سایهٔ تخت ۱٫۲ برابر قطر مهره دورش (آلفا ≈۰٫۲۷)، بعد سایهٔ تماسی زیر لبه */
+  --cast:0 0 calc(var(--d)*.025) calc(var(--d)*.1) rgba(0,0,0,.27),
+    calc(var(--d)*.015) calc(var(--d)*.075) calc(var(--d)*.02) rgba(0,0,0,.5),
+    calc(var(--d)*.025) calc(var(--d)*.09) calc(var(--d)*.07) rgba(0,0,0,.3);
   box-shadow:var(--bevel),var(--thick),var(--cast)}
 .fd .in{position:relative;display:block;width:100%;height:100%;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1.5px rgba(30,36,44,.6)}
 .fd .in svg{display:block;width:100%;height:100%}
@@ -114,14 +128,15 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-pitch.myturn .fb-halo{opacity:.85}
 .fb-halo.aim{opacity:1!important;box-shadow:0 0 0 3.5px #fff}
 .fd .in svg{transform-origin:50% 50%}
+.fb-passtag.last{background:#FFE08A;color:#7A3B00}
 .fb-passtag{position:absolute;z-index:3100;transform:translate(-50%,-120%);padding:2px 10px;border-radius:999px;background:#fff;color:#1B5E20;font-size:12.5px;font-weight:800;
   pointer-events:none;animation:fb-passup 1.5s ease-out forwards}
 @keyframes fb-passup{0%{opacity:0;transform:translate(-50%,-60%) scale(.6)}15%{opacity:1;transform:translate(-50%,-120%) scale(1.1)}25%{transform:translate(-50%,-120%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-200%)}}
 
 .fb-ball{position:absolute;left:0;top:0;border-radius:50%;will-change:transform;z-index:3}
 .fb-ball svg{position:relative;display:block;width:100%;height:100%}
-.fb-ball .sh{position:absolute;left:6%;top:16%;width:100%;height:100%;border-radius:50%;
-  background:radial-gradient(closest-side,rgba(0,0,0,.6),rgba(0,0,0,.35) 62%,rgba(0,20,0,.12) 85%,transparent)}
+.fb-ball .sh{position:absolute;left:-7.5%;top:-4%;width:115%;height:115%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(0,0,0,.34) 0,rgba(0,0,0,.3) 78%,rgba(0,0,0,.26) 90%,transparent)}
 .fb-aim{position:absolute;inset:0;overflow:visible;pointer-events:none;z-index:1}
 
 /* پایین: راهنما و گفتگو */

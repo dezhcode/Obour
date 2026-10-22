@@ -27,7 +27,7 @@ body.billiard .sheet{color:var(--ink)}
 #timer i{display:block;width:calc(16 * var(--u));height:calc(16 * var(--u));
   background:var(--atlas) no-repeat;background-size:calc(1343 * var(--u) * 16 / 30) auto;
   background-position:calc(-1303 * var(--u) * 16 / 30) calc(-323 * var(--u) * 16 / 30)}
-#timerTrack{width:calc(62 * var(--u));height:calc(11 * var(--u));border-radius:99px;background:#111;padding:calc(1.5 * var(--u));overflow:hidden}
+#timerTrack{width:calc(62 * var(--u));height:calc(11 * var(--u));border-radius:99px;background:#383830;padding:calc(1.5 * var(--u));overflow:hidden}
 #timerBar{height:100%;width:100%;border-radius:99px;background:#f2c832}
 #vs{left:calc(300 * var(--u));top:calc(36 * var(--u));transform:translateX(-50%);font-weight:900;font-size:calc(22 * var(--u));letter-spacing:calc(1 * var(--u))}
 .pl{position:absolute;z-index:5;top:calc(30 * var(--u));width:calc(110 * var(--u));margin-left:calc(-55 * var(--u));display:flex;flex-direction:column;align-items:center}
@@ -47,6 +47,10 @@ body.billiard .sheet{color:var(--ink)}
 #msg{left:calc(300 * var(--u));top:calc(242 * var(--u));transform:translateX(-50%);z-index:7;min-width:calc(255 * var(--u));max-width:calc(440 * var(--u));
   min-height:calc(40 * var(--u));padding:calc(6 * var(--u)) calc(18 * var(--u));border-radius:calc(8 * var(--u));background:rgba(28,27,32,.95);
   font-weight:700;font-size:calc(16 * var(--u));display:flex;align-items:center;justify-content:center;gap:calc(8 * var(--u));text-align:center;direction:rtl;pointer-events:none}
+/* status label پلاتو: از چپ بیرون صفحه با ۴۰۰ms quadOut می لغزد و همان طور برمی گردد */
+#msg{transform:translateX(calc(-50% - 640 * var(--u)));visibility:hidden;
+  transition:transform .4s cubic-bezier(.25,.46,.45,.94),visibility 0s linear .4s}
+#msg.show{transform:translateX(-50%);visibility:visible;transition:transform .4s cubic-bezier(.25,.46,.45,.94),visibility 0s}
 #msg em{font-style:normal;color:#f2c832}
 #msg.foul{color:#ffb0a8}
 
@@ -80,7 +84,8 @@ body.billiard .sheet{color:var(--ink)}
 #frame.wait #power,#frame.wait #english,#frame.wait .fine{opacity:.5}
 
 /* ---------- نوار پیام ---------- */
-#chatbar{left:0;right:0;bottom:0;height:calc(74 * var(--u));background:#141414;display:flex;align-items:center;gap:calc(14 * var(--u));
+#frame .tc-dim{position:absolute;z-index:31}
+#chatbar{z-index:32 !important;left:0;right:0;bottom:0;height:calc(74 * var(--u));background:#141414;display:flex;align-items:center;gap:calc(14 * var(--u));
   padding:0 calc(24 * var(--u)) 0 calc(28 * var(--u));z-index:6}
 #chatbar button{background:none;border:0;padding:0;display:flex;position:relative}
 #chatbar svg{width:calc(32 * var(--u));height:calc(32 * var(--u))}

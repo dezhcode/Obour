@@ -40,7 +40,13 @@ const TChat = (() => {
     pop.innerHTML = (o.quick || []).map(q => `<button type="button" data-q>${esc(q)}</button>`).join('');
     document.body.appendChild(pop);
 
-    const typing = () => bar.classList.toggle('typing', document.activeElement === input || !!input.value.trim());
+    // پس زمینهٔ تیره پشت نوار و پیام ها وقتی گفتگو باز است (مثل پلاتو)؛ لمسش گفتگو را می بندد
+    const dim = document.createElement('div');
+    dim.className = 'tc-dim';
+    if (persistent) bar.parentNode.insertBefore(dim, bar); else document.body.appendChild(dim);
+    dim.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); input.blur(); setOpen(false); });
+    const dimSync = () => { const on = persistent ? document.activeElement === input : open; dim.classList.toggle('on', on); document.body.classList.toggle('tc-dim-on', on); };
+    const typing = () => { bar.classList.toggle('typing', document.activeElement === input || !!input.value.trim()); dimSync(); };
     input.addEventListener('focus', typing); input.addEventListener('blur', () => setTimeout(typing, 120)); input.addEventListener('input', typing);
     input.addEventListener('keydown', e => e.stopPropagation());
     bar.querySelector('.tc-ic').onclick = () => input.focus();
@@ -68,7 +74,7 @@ const TChat = (() => {
 
     function setOpen(v) {
       if (persistent || open === v) return;
-      open = v; bar.classList.toggle('on', v); document.body.classList.toggle('tc-open', v);
+      open = v; bar.classList.toggle('on', v); document.body.classList.toggle('tc-open', v); dimSync();
       if (v) { unread = 0; badge(); input.focus(); } else { pop.hidden = true; input.blur(); }
       place(); render();
     }

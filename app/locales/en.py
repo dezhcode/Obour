@@ -79,7 +79,7 @@ TEXTS = {
     },
     "INVALID_AMOUNT": "╭── ⚠️ Invalid amount\n│   Send it again\n\n╰─ Send a number in toman. Minimum top-up is {min_charge} toman.",
     "SERVICES_EMPTY": "╭── 🌐 Your services\n│   Nothing yet\n\nPick a plan in the shop.\n╰─ It only takes a few seconds.",
-    "SERVICES_HUB": "╭── 👤 My services\n│   Everything from Obour in one place\n\n🌐 Configs: {vpn} services ({vpn_active} active)\n🤖 AI subscriptions: {ai} orders\n📱 Virtual numbers: coming soon\n💳 Visa card: coming soon\n\n╰─ 🟢 Active · 🟠 Running low · 🔴 Ended",
+    "SERVICES_HUB": "╭── 👤 My services\n│   Everything from Obour in one place\n\n🌐 Configs: {vpn} services ({vpn_active} active)\n🤖 AI subscriptions: {ai} orders\n{num_line}\n💳 Visa card: coming soon\n\n╰─ 🟢 Active · 🟠 Running low · 🔴 Ended",
     "SUPPORT_WEBAPP": "╭── 🆘 Obour support\n│   In the mini app\n\nTickets with subject and screenshots, status tracking, the smart assistant and the help center are all in the mini app. Support replies still arrive right here in the bot.\n╰─ Tap the button below.",
     "HELP_HUB": "╭── 📖 Help center\n│   Frequent questions by section\n\nPick the section your question is about: configs, AI, virtual numbers, Visa card or wallet.\n╰─ Step-by-step connection guides are at the bottom of this page.",
     "SOON_LIVE": "╭── 🔔 Good news\n│   {title} is live\n\nYou asked us to tell you when {title} opened in Obour; you can use it in the mini app now.\n╰─ Tap the button below.",
@@ -229,6 +229,7 @@ TEXTS = {
         "referral": "Referral reward",
         "admin_adjust": "Manual adjustment by admin",
         "ai_purchase": "AI purchase",
+        "number_purchase": "Virtual number purchase",
         "refund": "Refund",
     },
     "TXN_STATUS": {
@@ -682,8 +683,9 @@ PHRASES.update({
 PHRASES.update({
     "محصول مشخص نیست": "No product specified",
     "این دسته وجود ندارد": "That category doesn't exist",
-    "canboso برای این محصول تصویری ندارد": "canboso has no image for this product",
-    "دریافت تصویر از canboso نشد": "Couldn't fetch the image from canboso",
+    "سرویس دهنده برای این محصول تصویری ندارد": "The provider has no image for this product",
+    "دریافت تصویر از سرویس دهنده نشد": "Couldn't fetch the image from the provider",
+    "سود نامعتبر است؛ مثل 150000 یا 20%": "Invalid margin; e.g. 150000 or 20%",
     "فقط عکس JPG، PNG یا WEBP تا ۳ مگابایت": "Only JPG, PNG or WEBP images up to 3 MB",
     "خواندن محصولات نشد": "Couldn't read the products",
     "شارژ با Stars": "Top up with Stars",
@@ -781,4 +783,98 @@ PHRASES.update({
 
 PHRASES.update({
     "متن کامل قوانین و مقررات": "Full terms and conditions",
+})
+
+
+# شماره مجازی (SMSBurner)
+TEXTS.update({
+    "NUM_HUB": "╭── 📱 Virtual numbers\n│   Verification codes for Telegram, WhatsApp, Google and more\n\nPick the service you need a code for. You get a foreign number instantly and the code arrives within 20 minutes; if it doesn't, you're fully refunded.\n\n💰 Balance\n╰─ {balance} toman",
+    "NUM_CATS": "╭── 🔎 All services\n│   {count} services\n\nPick a category.\n╰─ The most popular ones were on the previous page.",
+    "NUM_SERVICES": "╭── {emoji} {title}\n│   {count} services\n\nPick a service. The cheapest price is on each button.\n╰─ Page {page} of {pages}",
+    "NUM_COUNTRIES": "╭── 📱 {service}\n│   Pick the number's country\n\nThe cheapest countries come first; each price is on its button.\n\n💰 Balance\n╰─ {balance} toman · page {page} of {pages}",
+    "NUM_CONFIRM": "╭── ✅ Confirm number purchase\n│   {service} · {flag} {country}\n\n⏱ The code arrives within 20 minutes. If it doesn't, it's cancelled automatically (or with one tap) and you get a full refund.\n<blockquote>The number is single-use and only for this one verification code. Be ready to request the code in that service right after confirming.</blockquote>\n\n💰 Price: <b>{price}</b> toman\n╰─ Your balance: {balance} toman",
+    "NUM_WORKING": "╭── 📱 Getting your number\n│   One moment\n\nWe're getting a number for you. Please don't close this message.\n╰─ It can take up to 30 seconds.",
+    "NUM_ACTIVE": "╭── 📱 Your number is ready\n│   {service} · {flag} {country}\n\n📞 Number (tap to copy)\n├ <code>{phone}</code>\n\nEnter this number in {service} and request the code. It will appear right here.\n⏳ We'll wait for the code for {left} more minutes.\n<blockquote>If no code arrives, you're refunded automatically. You can also cancel yourself.</blockquote>\n╰─ Tracking code <code>{code}</code>",
+    "NUM_CODE": "╭── ✅ Code received\n│   {service} · {flag} {country}\n\n📞 Number\n├ <code>{phone}</code>\n🔑 Verification code\n├ <code>{sms_code}</code>\n{sms_text}╰─ Tracking code <code>{code}</code>",
+    "NUM_REFUNDED": "╭── ↩️ You've been refunded\n│   {service} · {flag} {country}\n\nNo code arrived and {price} toman went back to your wallet.\n╰─ Feel free to try another number or country.",
+    "NUM_FAILED_REFUNDED": "╭── ⚠️ It didn't go through\n│   You've been refunded\n\nNo number was issued and {price} toman went back to your wallet.\n╰─ Try again in a few minutes or with another country.",
+    "NUM_PENDING_REVIEW": "╭── ⏳ Under review\n│   {code}\n\nThe provider didn't answer in time, so your order's status is unclear. Support has just been notified and will check.\n\n<blockquote>If the number was issued, its code will be sent to you. If not, you'll get a full refund.</blockquote>\n╰─ Keep the code above.",
+    "NUM_UNAVAILABLE": "╭── 📱 Out of stock\n│   Virtual numbers\n\nThere's no number for this service and country right now, and you were not charged.\n╰─ Try another country.",
+    "NUM_CANCEL_ASK": "╭── ❌ Cancel number\n│   Refund\n\nAre you sure? The number will be cancelled and {price} toman returned to your wallet.\n╰─ If the code has already arrived, it can't be cancelled and we'll show you the code.",
+    "NUM_EMPTY_CAT": "This category has no services right now.",
+    "NUM_CANT_CANCEL": "It can't be cancelled right now: {error}\nTry again in a moment.",
+    "NUM_STILL_WAITING": "No code yet. Tap again in a few seconds 🔄",
+    "NUM_NOT_CONFIGURED": "This section isn't fully set up yet. Please tell support.",
+    "NUM_PROVIDER_DOWN": "The provider isn't responding right now. Try again in a few minutes.",
+    "NUM_IN_PROGRESS": "One of your purchases is being processed right now. Please wait for it to finish.",
+    "NUM_NO_ORDER": "This order wasn't found.",
+    "NUM_SOON": "╭── 📱 Virtual numbers\n│   Coming soon\n\nThis section is being prepared. Soon you'll be able to get a foreign number for verification codes right here.\n\n💰 Balance\n╰─ {balance} toman",
+    "NUM_ORDERS": "╭── 📱 My numbers\n│   {count} orders\n\n{rows}\n\n╰─ Tap any active number to fetch its code.",
+    "NUM_ORDER_ROW": "├ {status} {service} · {flag}\n│  <code>{phone}</code> · {price} toman{code_line}",
+    "NUM_ORDERS_EMPTY": "╭── 📱 My numbers\n│   Nothing yet\n\nYou haven't got a number yet.\n╰─ Get your first one from «Virtual numbers».",
+    "NUM_STATUS": {"pending": "⏳ In progress", "active": "📨 Waiting for code", "completed": "✅ Code received", "failed": "❌ Failed", "refunded": "↩️ Refunded", "unknown": "🔎 Under review"},
+})
+
+PHRASES.update({
+    "همه سرویس ها": "All services",
+    "شماره های من": "My numbers",
+    "بررسی کد": "Check code",
+    "لغو و برگشت پول": "Cancel & refund",
+    "بله، لغو کن": "Yes, cancel",
+    "نه، منتظر می مونم": "No, I'll wait",
+    "یه شماره‌ی دیگه": "Another number",
+    "شماره جدید": "New number",
+    "بعدی": "Next",
+    "شماره": "numbers",
+    "به زودی": "coming soon",
+    "شبکه اجتماعی و پیام رسان": "Social & messaging",
+    "ابزار و فناوری": "Tools & tech",
+    "مالی و کریپتو": "Finance & crypto",
+    "خرید آنلاین": "Online shopping",
+    "موزیک و فیلم": "Music & video",
+    "بازی": "Gaming",
+    "دوست یابی": "Dating",
+    "تاکسی و غذا": "Rides & food",
+    "سایر": "Other",
+})
+
+
+# شماره مجازی: پیام های سمت سرور مینی اپ
+PHRASES.update({
+    "برای این سرویس و کشور الان شماره‌ای نیست؛ پولی کم نشد": "There's no number for this service and country right now; you weren't charged",
+    "ارتباط با سرویس دهنده برقرار نشد؛ پولی کم نشد": "Couldn't reach the provider; you weren't charged",
+    "شماره‌ای صادر نشد؛ پولت به کیف پول برگشت": "No number was issued; your money went back to your wallet",
+    "الان نمی‌شه لغو کرد؛ کمی بعد دوباره امتحان کن": "It can't be cancelled right now; try again in a moment",
+    "این بخش فعلا در دسترس نیست": "This section isn't available right now",
+    "سرویس دهنده الان جواب نمی ده": "The provider isn't responding right now",
+})
+
+
+# شماره مجازی: جستجو، نوع شماره، شماره ی دیگه
+TEXTS.update({
+    "NUM_SEARCH_ASK": "╭── 🔎 Search a service\n│   Type the service name\n\nFor example: Telegram, WhatsApp, Google, Instagram, binance\n╰─ Persian or English both work.",
+    "NUM_SEARCH_RESULTS": "╭── 🔎 Search results\n│   “{query}” · {count} services\n\nPick a service. The cheapest price is on each button.\n╰─ You can also type another name.",
+    "NUM_SEARCH_EMPTY": "Nothing found for “{query}”. Type another name (Persian or English).",
+    "NUM_OPERATORS": "╭── 📶 Number type\n│   {service} · {flag} {country}\n\nEach type has its own price and success rate:\n📞 <b>Virtual</b>: cheaper; some services may reject it\n📱 <b>Physical</b>: a real SIM; higher success\n⭐ <b>Premium</b>: fastest (about 10 seconds) and the highest success\n\n💰 Balance\n╰─ {balance} toman",
+    "NUM_REROLL_ASK": "╭── 🔁 Another number\n│   Same service and country\n\nYour current number is cancelled ({price} toman goes back to you) and you get a fresh one from the same service and country. The new price may differ slightly.\n╰─ If the code has already arrived, it can't be cancelled and we'll show you the code.",
+    "NUM_REROLL_COOLDOWN": "Wait a few seconds and try again.",
+})
+
+PHRASES.update({
+    "جستجوی سرویس": "Search a service",
+    "جستجوی دیگر": "Search again",
+    "پیش فرض سایت": "Site default",
+    "مجازی": "Virtual",
+    "فیزیکی": "Physical",
+    "پریمیوم": "Premium",
+    "شماره‌ی دیگه": "Another number",
+    "بله، شماره‌ی دیگه": "Yes, another number",
+    "نه، همین رو نگه دار": "No, keep this one",
+})
+
+
+# شماره مجازی: پیام های سمت سرور مینی اپ
+PHRASES.update({
+    "چند ثانیه صبر کن و دوباره امتحان کن": "Wait a few seconds and try again",
+    "کد رسیده بود؛ لغو نشد": "The code had arrived; not cancelled",
 })

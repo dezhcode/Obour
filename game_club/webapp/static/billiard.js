@@ -5,8 +5,9 @@
 
    چیدمان صفحه همان طرح بازی است (قاب مرجع ۶۰۰×۱۲۸۰): هدر با بازیکن ها و VS، پیام روی
    میز، ستون توپ های هر طرف کنار میز، ITEMS و نوار قدرت چپ، خط راهنما و پیچ و FINE AIM
-   راست، نوار پیام پایین. کنترل: یک لمس = نوک چوب همان جا؛ کشیدن = چوب برعکس جهت انگشت می چرخد · نوار قدرت را پایین بکش و
-   رها کن · FINE AIM نگه داشتن = چرخش آرام ۱ درجه در ثانیه. */
+   راست، نوار پیام پایین. کنترل: یک لمس = نوک چوب همان جا؛ کشیدن = چوب همراه انگشت دور توپ سفید می چرخد
+   (آرام = یک دهم، تند = همراه انگشت؛ مثل پلاتو) · نوار قدرت را پایین بکش و رها کن · FINE AIM نگه داشتن = ۱ درجه در ثانیه.
+   نشانه گیری نوبت دار زنده برای بقیه فرستاده می شود (aim) و چوب حریف لحظه به لحظه با همان نرمی پلاتو می چرخد. */
 (() => {
 const { S, fa, FD, store, face, icon, sheet, sheetHead, toast, sleep, sfx, haptic, errText, setSound, amount } = GC;
 const E = BLEngine, W = E.W, H = E.H, R = E.R, D = E.D;
@@ -30,7 +31,12 @@ let WATCH = false;
 let mid = watchMid || store.get('bmid', null), me = '0', snap = null, since = 0, busy = false, acting = false, pollT = null, overShown = false;
 let deadlineAt = 0, readyAt = 0, turnMs = 30000, warned = false, flash = null;
 let angle = -Math.PI / 2, power = 0, spin = [0, 0], showLines = store.get('blEye', true);
-let place = null, placing = false, aiming = false, anim = null, strike = null, hintAt = 0, lastInput = 0;
+let place = null, placing = false, aiming = false, anim = null, strike = null, lastInput = 0;
+// چوبِ نوبت دارِ دیگر (حریف، یار، یا ربات) مثل remoteStickRotated / remotePowerChanged پلاتو:
+// a زاویهٔ نمایش، p کشیدگی، cue جای توپ سفید در دستش؛ هر مقدار با tween به هدف تازه می رسد.
+const rem = { a: null, p: 0, cue: null, key: '', turn: null };
+let tweens = [];
+let halo = null, sentAim = null, lastShot = null, justGroups = false, bannerT = null;
 const balls = [...Array(16)].map((_, k) => ({ k, x: 0, y: 0, on: false, q: startQuat(), sink: null, _rc: null }));
 function startQuat() {   // شماره رو به بیننده (مثل GAP_Q پلاتو: ۱۸۰° حول y) با کمی کجی تصادفی
   const a = (Math.random() - .5) * .9, b = (Math.random() - .5) * .9, h = Math.PI / 2;
@@ -456,23 +462,57 @@ function drawShadows() {
 
 /* ---------- ستون توپ های هر طرف کنار میز: چپ حریف، راست تو؛ آخرش جای ۸ ---------- */
 const GAP = {};
-function drawColumns() {
-  const g = G(); if (!g || g.solids < 0) return;
-  const mt = WATCH ? 1 : myTeam();
-  [[1 - mt, 36.5], [mt, 562.5]].forEach(([tm, cx]) => {
-    const solids = g.solids === tm, base = solids ? 1 : 9, list = [];
-    for (let k = base; k < base + 7; k++) if (g.balls[k]) list.push(k);
-    const eight = !list.length && g.balls[8];
-    const active = g.turn != null && teamOf(g.turn) === tm;
-    ctx.save(); ctx.globalAlpha = active ? 1 : .55;
-    for (let i = 0; i <= list.length; i++) {
-      const x = cx * u, y = (280 - dy + i * 29) * u, r = 11.5 * u, k = i < list.length ? list[i] : (eight ? 8 : -1);
-      if (k < 0) { ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.arc(x, y, r * .86, 0, Math.PI * 2); ctx.fill(); continue; }
-      const gb = GAP[k] || (GAP[k] = { k, q: [0, 0, 1, 0], _rc: null, _pc: null });   // شماره رو به بیننده (GAP_Q پلاتو)
-      ballSprite(gb, x, y, r, 43);
-    }
-    ctx.restore();
+/* ستون توپ های کنار میز (gap balls پلاتو):
+   - میز باز: اگر توپی افتاده، بالای ستونِ تیمِ نوبت دار «پاکت شد» و زیرش توپ های افتاده
+   - بعد از تعیین گروه: چپ گروه حریف، راست گروه خودم، فقط توپ های باقی مانده از بالا (بی خانهٔ خالی)؛
+     وقتی گروهی تمام شد توپ ۸ بالای همان ستون می آید
+   - توپی که می افتد در ۵۰۰ms (backIn) از کنار صفحه بیرون می رود و بقیه بعد از ۲۵۰ms در ۲۵۰ms (quadInOut) بالا می آیند
+   - ستون تیمی که نوبت ندارد alpha .5 (میز باز: هر دو ۱) */
+const GAP_X = { L: 36.5, R: 562.5 }, GAP_STEP = 29;
+const gapAt = new Map();      // کلید (شماره+سمت) ← {k, side, slot, out}
+const backIn = k => k * k * (2.70158 * k - 1.70158);
+function colLists(g) {
+  const mt = WATCH ? 1 : myTeam(), on = k => balls[k].on, list = [];
+  if (g.solids < 0) {
+    if (g.over) return { list, label: null };
+    const side = g.turn != null && teamOf(g.turn) === mt ? 'R' : 'L';
+    let i = 1;
+    for (let k = 1; k < 16; k++) if (k !== 8 && !on(k)) list.push([k, side, i++]);
+    return { list, label: list.length ? side : null };
+  }
+  [[1 - mt, 'L'], [mt, 'R']].forEach(([tm, side]) => {
+    const sol = g.solids === tm; let i = 0;
+    for (let k = sol ? 1 : 9; k < (sol ? 8 : 16); k++) if (on(k)) list.push([k, side, i++]);
+    if (!i && on(8)) list.push([8, side, 0]);
   });
+  return { list, label: null };
+}
+function drawColumns() {
+  const g = G(); if (!g) return;
+  const { list, label } = colLists(g), seen = new Set();
+  for (const [k, side, slot] of list) {
+    const key = k + side; seen.add(key);
+    const e = gapAt.get(key);
+    if (!e || e.out != null) { gapAt.set(key, { k, side, slot, out: null }); continue; }
+    if (e.to !== slot && e.slot !== slot) { e.to = slot; setTimeout(() => { if (e.to === slot) tween(e, 'slot', slot, 250, quadInOut); }, 250); }
+  }
+  for (const [key, e] of gapAt) if (!seen.has(key) && e.out == null) {
+    e.out = 0; tween(e, 'out', 1, 500, backIn).then(() => { if (gapAt.get(key) === e) gapAt.delete(key); });
+  }
+  const turnSide = g.turn == null ? null : (teamOf(g.turn) === (WATCH ? 1 : myTeam()) ? 'R' : 'L');
+  const y0 = (280 - dy) * u, r = 11.5 * u;
+  if (label) {
+    ctx.save(); ctx.fillStyle = '#fff'; ctx.font = `700 ${12 * u}px ${getComputedStyle(document.body).fontFamily}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('پاکت شد', GAP_X[label] * u, y0); ctx.restore();
+  }
+  for (const e of gapAt.values()) {
+    const x0 = GAP_X[e.side] * u, edge = e.side === 'L' ? -r * 2 : cw + r * 2;
+    const x = e.out == null ? x0 : x0 + (edge - x0) * e.out, y = y0 + e.slot * GAP_STEP * u;
+    ctx.save(); ctx.globalAlpha = g.solids < 0 || e.side === turnSide ? 1 : .5;
+    const gb = GAP[e.k] || (GAP[e.k] = { k: e.k, q: [0, 0, 1, 0], _rc: null, _pc: null });   // شماره رو به بیننده (GAP_Q پلاتو)
+    ballSprite(gb, x, y, r, 43);
+    ctx.restore();
+  }
 }
 
 /* ---------- چوب و خط های نشانه ---------- */
@@ -487,9 +527,12 @@ function cueFill(c, len) {
   st(.7, '#3d1608'); st(.71, '#c79b3c'); st(.716, '#3d1608'); st(.86, '#2e1006'); st(.865, '#c79b3c'); st(.87, '#2e1006'); st(.975, '#2a0e05'); st(.976, '#111'); st(1, '#111');
   return g;
 }
-function drawCue(cx, cy, a, pull) {
-  const [sx, sy] = toS(cx, cy), gap = (D * .8 + 250 * pull) * s;    // فاصلهٔ نوک تا مرکز توپ
-  ctx.save(); ctx.translate(sx, sy); ctx.rotate(a); ctx.translate(-gap, 0);
+// فاصلهٔ نوک تا مرکز توپ سفید در پلاتو: قطر×.8 + ۲۵۰×قدرت (eS)؛ لحظهٔ برخورد R×(۱ − ۲×max(.1، قدرت))
+const cueGap = pull => D * .8 + 250 * pull;
+const hitGap = p => R * (1 - Math.max(.1, p) * 2);
+function drawCue(cx, cy, a, pull, gapT = null, alpha = 1) {
+  const [sx, sy] = toS(cx, cy), gap = (gapT != null ? gapT : cueGap(pull)) * s;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(sx, sy); ctx.rotate(a); ctx.translate(-gap, 0);
   if (ART.ui) {
     const len = 1022 * s, th = 30 * s;                              // اندازهٔ چوب پلاتو (Qh×Vv)
     // سایهٔ پلاتو: دور از مرکز میز (نور بالای مرکز است) — مثلِ سایهٔ توپ ها
@@ -523,13 +566,13 @@ function stroke(pts, color) {
   ctx.strokeStyle = color; ctx.lineWidth = 6 * s; ctx.stroke(); ctx.restore();
 }
 function cur() { return balls.map(b => b.on && !b.sink ? [b.x, b.y] : null); }
-function drawAim() {
+function drawAim(ang = angle, valid = (G() || {}).mine) {
   if (!showLines) return;
   const pos = cur(); if (!pos[0]) return;
-  const a = E.aim(pos, angle); if (!a) return;
-  const c = pos[0], dx = Math.cos(angle), dy = Math.sin(angle), ln = a.dist - D;
+  const a = E.aim(pos, ang); if (!a) return;
+  const c = pos[0], dx = Math.cos(ang), dy = Math.sin(ang), ln = a.dist - D;
   if (ln > 0) stroke([[c[0] + dx * R, c[1] + dy * R], [c[0] + dx * (a.dist - R), c[1] + dy * (a.dist - R)]], AIM_COLORS[0]);
-  const g = G(), invalid = a.hit > 0 && g && g.solids >= 0 && g.mine && g.mine.indexOf(a.hit) < 0;
+  const g = G(), invalid = a.hit > 0 && g && g.solids >= 0 && valid && valid.indexOf(a.hit) < 0;
   const gr = R - 10 * .2;                                             // حلقهٔ توپ شبح: R − حاشیه×.2 = ۱۸
   const ring = [...Array(40)].map((_, i) => [a.ghost[0] + Math.cos(i / 40 * Math.PI * 2) * gr, a.ghost[1] + Math.sin(i / 40 * Math.PI * 2) * gr]);
   stroke(ring, invalid ? '#ff0000' : AIM_COLORS[0]);
@@ -548,20 +591,70 @@ function drawAim() {
 
 /* ---------- حلقهٔ رسم ---------- */
 function myTurnNow() { const g = G(); return !!(g && !WATCH && snap.status === 'playing' && g.turn === me && !g.over && !anim); }
-/* انیمیشن هالهٔ راهنما (کلاس Mc پلاتو): scale .25→1 و alpha .36→.75 در ۳۰۰ms، ۱۰۰ms مکث،
-   بعد scale→.3 و alpha→.1 در ۵۰۰ms، سپس ۳ ثانیه خاموش و تکرار */
-function hintPulse(t) {
-  t = t % 3.9;
-  let k;
-  if (t < .3) { k = t / .3; k = 1 - (1 - k) * (1 - k); return { s: .25 + .75 * k, a: .36 + .39 * k }; }
-  if (t < .4) return { s: 1, a: .75 };
-  if (t < .9) { k = (t - .4) / .5; k = k * k; return { s: 1 - .7 * k, a: .75 - .65 * k }; }
-  return null;
+/* هالهٔ راهنمای سفید (Mc و highlight8Ball پلاتو) روی توپ های مجازِ خودم:
+   شروع نوبت: scale .25→1 و alpha .36→.75 در ۳۰۰ms (quadOut)، ۱۰۰ms مکث، scale→.3 و alpha→.1 در ۵۰۰ms
+   (quadIn)، ۳ ثانیه صبر و تکرار — تا وقتی چوب رو به یک توپ مجاز بچرخد: اگر یک دور کامل شده
+   در ۲۰۰ms جمع می شود، وگرنه بعد از همین دور. نسخهٔ کوتاه (لمس توپ های ستون کنار میز) .85 و یک بار. */
+const quadOut = k => 1 - (1 - k) * (1 - k), quadIn = k => k * k;
+const quadInOut = k => k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+function haloStart(short = false) {
+  if (short && halo && !halo.short && !halo.hide) return;
+  halo = { t0: performance.now(), short, req: false, hide: null };
 }
+function haloAimed(now) {     // onBallAimed(true)
+  if (!halo || halo.short || halo.hide) return;
+  const t = (now - halo.t0) / 1000;
+  if (t >= .9) { const v = haloAt(now) || { s: .25, a: .1 }; halo.hide = { t0: now, s: v.s, a: v.a }; } else halo.req = true;
+}
+function haloAt(now) {
+  if (!halo) return null;
+  if (halo.hide) {
+    const k = Math.min(1, (now - halo.hide.t0) / 200);
+    if (k >= 1) { halo = null; return null; }
+    const q = quadIn(k); return { s: halo.hide.s + (.3 - halo.hide.s) * q, a: halo.hide.a + (.1 - halo.hide.a) * q };
+  }
+  let t = (now - halo.t0) / 1000;
+  if (halo.short) { if (t >= .9) { halo = null; return null; } }
+  else {
+    if (halo.req && t >= .9) { halo = null; return null; }
+    t %= 3.9;
+  }
+  const top = halo.short ? .85 : 1;
+  if (t < .3) { const k = quadOut(t / .3); return { s: .25 + (top - .25) * k, a: .36 + .39 * k }; }
+  if (t < .4) return { s: top, a: .75 };
+  if (t < .9) { const k = quadIn((t - .4) / .5); return { s: top + (.3 - top) * k, a: .75 - .65 * k }; }
+  return null;                 // صبر ۳ ثانیه ای (اسپرایت با scale .25 زیر خود توپ پنهان است)
+}
+// tween ساده با زمان واقعی (به جای تایمر ۱۶ms پلاتو)
+function tween(obj, key, to, dur, ease) {
+  tweens = tweens.filter(t => !(t.obj === obj && t.key === key));
+  return new Promise(res => tweens.push({ obj, key, from: obj[key], to, t0: performance.now(), dur, ease, res }));
+}
+function stepTweens(now) {
+  if (!tweens.length) return;
+  tweens = tweens.filter(t => {
+    const k = Math.min(1, Math.max(0, (now - t.t0) / t.dur)), q = t.ease ? t.ease(k) : k;
+    t.obj[t.key] = t.from + (t.to - t.from) * q;
+    if (k >= 1) { t.res(); return false; }
+    return true;
+  });
+}
+const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
+// چرخش چوب دیگری به زاویهٔ تازه از کوتاه ترین سمت، خطی در ~۵۰۰ms (۳۱ گام ۱۶ms پلاتو)
+function remRotate(a) {
+  if (rem.a == null) { rem.a = a; return Promise.resolve(); }
+  const d = wrapA(a - rem.a); if (Math.abs(d) < 1e-6) return Promise.resolve();
+  return tween(rem, 'a', rem.a + d, 500);
+}
+const remPower = (p, dur) => Math.abs(p - rem.p) < 1e-4 ? Promise.resolve() : tween(rem, 'p', p, dur);
+function remoteTurn(g) { return !!(g && g.turn && !g.over && !isMe(g.turn) && snap.status === 'playing'); }
 function frame(now) {
   requestAnimationFrame(frame);
   if (document.hidden) return;
   if (anim) stepAnim(now);
+  stepTweens(now);
+  const g0 = G();
+  if (rem.cue && !anim && remoteTurn(g0) && g0.bih) { balls[0].x = rem.cue.x; balls[0].y = rem.cue.y; balls[0].on = true; }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cw, ch);
   if (ART.table) {
     ctx.drawImage(tableImage(), ox, oy, W * s, H * s);               // سایهٔ نرم لبه خودِ کاشی پلاتوست
@@ -571,12 +664,16 @@ function frame(now) {
   }
   drawColumns();
   drawShadows();
-  // هالهٔ راهنما روی توپ های خودم (شروع نوبت و وقتی مدتی دست نزده ام) — اسپرایت پلاتو
+  // هالهٔ راهنما روی توپ های مجاز خودم (اسپرایت valid_ball_highlight پلاتو)
   const g = G(), mine = myTurnNow() && g.solids >= 0 ? g.mine || [] : [];
+  if (halo && !mine.length) halo = null;
+  if (halo && !halo.short && !placing && balls[0].on) {
+    const am = E.aim(cur(), angle);
+    if (am && am.hit > 0 && mine.indexOf(am.hit) >= 0) haloAimed(now);
+  }
   if (mine.length) {
-    const idle = now - Math.max(lastInput, hintAt);
-    if (idle < 900 || now - lastInput > 3000) {
-      const hl = hintPulse(idle / 1000);
+    {
+      const hl = haloAt(now);
       if (hl) for (const n of mine) {
         const b = balls[n]; if (!b.on) continue;
         const [sx, sy] = toS(b.x, b.y);
@@ -600,11 +697,19 @@ function frame(now) {
     ctx.save(); ctx.setLineDash([5 * u, 4 * u]); ctx.lineWidth = 2.2 * u; ctx.strokeStyle = ok ? 'rgba(245,196,81,.95)' : '#ff3b30';
     ctx.beginPath(); ctx.arc(sx, sy, R * s * 1.8, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
-  if (myTurnNow() && !placing && balls[0].on) { drawAim(); drawCue(balls[0].x, balls[0].y, angle, power); }
+  if (myTurnNow() && !placing && balls[0].on && !strike) { drawAim(); drawCue(balls[0].x, balls[0].y, angle, power); }
+  // چوب نوبت دار دیگر: کم رنگ (alpha .35 پلاتو) با خط نشانه اش، لحظه به لحظه
+  if (!strike && !anim && remoteTurn(g) && balls[0].on && rem.a != null) {
+    drawAim(rem.a, g.targets);
+    drawCue(balls[0].x, balls[0].y, rem.a, rem.p, null, .35);
+  }
+  // ضربه (animateShoot پلاتو): از جای کشیده تا برخورد در ۱۰۰×(۲−قدرت) ms، بعد ۳۰۰ms و پنهان
   if (strike) {
-    const k = Math.min(1, (now - strike.t0) / strike.dur), pull = strike.p * (k < .7 ? 1 - k / .7 * .15 : (1 - (k - .7) / .3) * .85) - (k > .95 ? .1 : 0);
-    drawCue(strike.x, strike.y, strike.a, Math.max(-.12, pull));
-    if (k >= 1 && !strike.hold) strike = null;
+    const t = now - strike.t0, k = Math.min(1, t / strike.dur);
+    const gap = cueGap(strike.p) + (hitGap(strike.p) - cueGap(strike.p)) * k;
+    if (!(k >= 1 && strike.end && now > strike.end)) drawCue(strike.x, strike.y, strike.a, 0, gap, strike.alpha);
+    if (k >= 1 && !strike.end && !strike.hold) strike.end = now + 300;
+    if (strike.end && now > strike.end) strike = null;
   }
 }
 
@@ -675,28 +780,65 @@ function renderPlayers(g) {
     return `<div class="pl${turn ? ' turn' : ''}${isMe(c) ? ' mine' : ''}${p.out ? ' out' : ''}" data-seat="${c}" style="left:calc(${x} * var(--u))">${face(p, 'transparent')}<span class="pname">${(p.name || '').replace(/[<>&]/g, '')}</span><span class="yturn">Your Turn</span></div>`;
   }).join('');
 }
-function msgText(g) {
-  if (flash && Date.now() < flash.until) return flash;
-  if (g.over) return { t: 'پایان بازی' };
-  if (!g.turn) return { t: '…' };
-  if (isMe(g.turn)) {
-    if (g.breaking) return { t: 'بریک با توست' };
-    if (g.bih) return { t: 'توپ در دست؛ سفید را بگذار' };
-    if (g.solids < 0) return { t: MSG.open };
-    const grp = g.players[me] && g.players[me].group;
-    return { t: g.mine && g.mine.length === 1 && g.mine[0] === 8 ? MSG.on_8 : `گروه تو: ${GROUP_FA[grp] || ''}` };
+/* ---------- برچسب وضعیت بالای میز (status label و getTurnMsg پلاتو، متن های فارسی خود پلاتو) ----------
+   با هر تغییر نوبت از کنار می لغزد (۴۰۰ms quadOut)، ۵ ثانیه بعد برمی گردد و با شروع ضربه پنهان می شود.
+   نوبت عادی بی پیام است (sl_turn ← پنهان). */
+const pname = c => (P()[c] && P()[c].name) || 'حریف';
+const SL_ONE = { true: 'توپر', false: 'راه راه' }, SL_MANY = { true: 'توپرها', false: 'راه راه ها' };
+function banner(text, foul) {
+  const el = $('msg'); clearTimeout(bannerT);
+  if (!text) { el.classList.remove('show'); return; }
+  el.textContent = text; el.classList.toggle('foul', !!foul);
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  bannerT = setTimeout(() => el.classList.remove('show'), 5000);
+}
+function hideBanner() { clearTimeout(bannerT); $('msg').classList.remove('show'); }
+const flashMsg = banner;
+// گروه بازیکن c با وضعیت توپ ها و solids داده شده؛ null یعنی میز باز
+const solidsFor = (c, solids) => solids < 0 ? null : solids === teamOf(c);
+const leftOf = (balls, sol) => { let n = 0; for (let k = sol ? 1 : 9; k < (sol ? 8 : 16); k++) if (balls[k]) n++; return n; };
+function turnMsg(e) {
+  const last = lastShot ? lastShot.c : e.c, g = G() || {};
+  switch (e.foul) {
+    case 'scratch': return [`${pname(last)} توپ سفید را انداخت`, 1];
+    case 'hit_8_first': return [`${pname(last)} نتوانست ابتدا توپ-8 را بزند`, 1];
+    case 'wrong_first': {
+      const sol = solidsFor(last, e.solids);
+      return [sol == null ? `${pname(last)} در زدن توپ ناموفق بود` : `${pname(last)} موفق نشد ابتدا ${SL_ONE[sol]} را بزند`, 1];
+    }
+    case 'no_hit': return [`${pname(last)} در زدن توپ ناموفق بود`, 1];
+    case 'no_rail': return ['هیچ توپی بعد از ضربه، به ریل برخورد نکرد', 1];
+    case 'jump': return [`${pname(last)} توپ را از میز بیرون انداخت`, 1];
+    case 'timeout': return [`وقت ${pname(last)} تمام شد`, 1];
   }
-  const q = g.players[g.turn] || {}, mate = !WATCH && teamOf(g.turn) === myTeam();
-  return { t: `نوبت ${mate ? 'یارت ' : ''}${q.name || 'حریف'}`, em: q.bot || q.out ? 'فکر می‌کند…' : '' };
+  if (e.bih && e.msg === 'break') return [`نوبت ${pname(e.c)} است تا بریک کند`];
+  if (justGroups && e.solids >= 0) {
+    const sol = solidsFor(e.c, e.solids);
+    if (g.n === 4) { const tm = g.order.filter((c, k) => k % 2 === teamOf(e.c)); return [`${pname(tm[0])} و ${pname(tm[1])} ${SL_MANY[sol]} هستند`]; }
+    return [`${pname(e.c)} توپ ${SL_MANY[sol]} را دارد`];
+  }
+  const sol = solidsFor(e.c, e.solids);
+  if (sol != null && !leftOf(e.balls, sol) && e.balls[8]) return [`${pname(e.c)} می تواند توپ-8 را پاکت کند!`];
+  if (e.solids < 0) return ['میز باز است'];
+  if (lastShot) {
+    const ls = solidsFor(lastShot.c, e.solids), inn = (lastShot.pots || []).map(q => q[0]).filter(n => n && n !== 8);
+    const good = inn.filter(n => (n < 8) === ls), bad = inn.length - good.length;
+    if (good.length === 1) return [`${pname(lastShot.c)} توپ-${good[0]} را پاکت کرد`];
+    if (good.length > 1) return [`${pname(lastShot.c)} ${good.length} توپ را پاکت کرد`];
+    if (bad > 0) return [`${pname(lastShot.c)} توپ اشتباه را پاکت کرد`, 1];
+  }
+  return [''];
 }
-function renderMsg(g) {
-  const m = msgText(g), el = $('msg'), html = `${m.t}${m.em ? `<em>${m.em}</em>` : ''}`;
-  if (html !== el.dataset.k) { el.dataset.k = html; el.innerHTML = html; }
-  el.classList.toggle('foul', !!m.foul);
+// وقتی صفحه تازه باز می شود (onSynchronize): همان پیام از روی وضعیت فعلی
+function stateMsg(g) {
+  if (!g.turn || g.over) return '';
+  if (g.breaking && g.bih) return `نوبت ${pname(g.turn)} است تا بریک کند`;
+  if (g.solids < 0) return 'میز باز است';
+  const sol = solidsFor(g.turn, g.solids);
+  return !leftOf(g.balls, sol) && g.balls[8] ? `${pname(g.turn)} می تواند توپ-8 را پاکت کند!` : '';
 }
-function flashMsg(t, foul) { flash = { t, foul, until: Date.now() + 2600 }; if (G()) renderMsg(G()); setTimeout(() => { if (G()) renderMsg(G()); }, 2700); }
 function renderAll(g) {
-  renderPlayers(g); renderMsg(g);
+  renderPlayers(g);
   setDeadline(g.deadline_ms);
   readyAt = Date.now() + (g.ready_ms || 0);
   turnMs = g.turn_ms || 30000;
@@ -712,37 +854,56 @@ function setDeadline(ms) {
 function tickTimer() {
   const g = G(); if (!g) return;
   const left = deadlineAt ? Math.max(0, deadlineAt - Date.now()) : 0, fr = deadlineAt ? Math.min(1, left / turnMs) : 1;
-  const bar = $('timerBar'); bar.style.width = (fr * 100).toFixed(1) + '%'; bar.style.background = fr > .25 ? '#f2c832' : '#e8503f';
-  if (isMe(g.turn) && deadlineAt && fr < .25 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
+  const bar = $('timerBar'); bar.style.width = (fr * 100).toFixed(1) + '%'; bar.style.background = fr > .25 ? '#f4d144' : '#ec4934';
+  if (isMe(g.turn) && deadlineAt && left < 8000 && !warned) { warned = true; sfx.tick(); haptic('warning'); }
 }
-setInterval(tickTimer, 250);
+setInterval(tickTimer, 500);
 
 /* ---------- ورودی: نشانه گیری و توپ در دست ---------- */
 function pt(ev) { const r = cv.getBoundingClientRect(); return toT((ev.clientX - r.left) * cw / r.width, (ev.clientY - r.top) * ch / r.height); }
 const canAct = () => myTurnNow() && !acting && !busy && Date.now() >= readyAt - 250;
-// یک لمس (بدون کشیدن): نوک چوب به همان نقطه نشانه می رود.
-// کشیدن: چوب برعکس جهت کشیدن می چرخد؛ ته چوب خلاف جهت انگشت می رود و چوب دور توپ سفید
-// می چرخد (بی پرش، نسبت به جای شروع کشیدن). اهرم بلند = چرخش آرام تر و نشانه گیری دقیق تر.
-const DRAG_PX = 7, LEVER = 520;      // آستانهٔ تشخیص کشیدن (پیکسل صفحه) و طول اهرم (واحد میز)
+// دقیقاً مثل پلاتو (StickInputArea + Stick):
+// یک لمس (بدون کشیدن): نوک چوب رو به همان نقطه می چرخد.
+// کشیدن: چوب به اندازهٔ زاویه ای که انگشت دور توپ سفید جارو می کند (از نقطهٔ قبلی تا فعلی) می چرخد،
+// ضرب در ضریب سرعت clamp(√گام، ۱، ۱۰) / ۱۰؛ گام = جابه جایی انگشت در هر رویداد به واحد منطقی پلاتو
+// (عرض صفحه ۱۰۸۰). حرکت آرام = یک دهم زاویه (نشانه گیری ظریف)، حرکت تند = همراه انگشت.
+// دو رویداد اول کشیدن با گام ۱ حساب می شوند (همان dragCount<2 پلاتو).
+const DRAG_PX = 6, LOG_PER_U = 1080 / 600;   // آستانهٔ تشخیص کشیدن (پیکسل صفحه)، واحد منطقی پلاتو در هر u
 let grab = null;
+// توپ ستون (کنار میز) زیر نقطهٔ لمس؛ فقط ستون تیمی که نوبت دارد (alpha ۱ در پلاتو)
+function columnHit(ev) {
+  const g = G(); if (!g || g.solids < 0 || g.turn == null) return false;
+  const r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) * cw / r.width, y = (ev.clientY - r.top) * ch / r.height;
+  const mt = WATCH ? 1 : myTeam(), tm = teamOf(g.turn), cx = (tm === mt ? 562.5 : 36.5) * u;
+  if (Math.abs(x - cx) > 16 * u) return false;
+  const k = (y / u - (280 - dy)) / 29;
+  return k > -.6 && k < 7.6;
+}
 cv.addEventListener('pointerdown', ev => {
   GC.loadSamples(); closeMenu();
+  if (columnHit(ev)) { if (myTurnNow()) haloStart(true); return; }
   if (!canAct()) return;
   const [x, y] = pt(ev), g = G(), c = balls[0];
   lastInput = performance.now();
   try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
   if (g.bih && c.on && Math.hypot(x - c.x, y - c.y) < R * 3) { placing = true; movePlace(x, y); return; }
   aiming = true;
-  grab = { x, y, cx: ev.clientX, cy: ev.clientY, a: angle, moved: false };
+  grab = { x, y, cx: ev.clientX, cy: ev.clientY, px: x, py: y, lx: ev.clientX, ly: ev.clientY, n: 0, moved: false };
 });
 cv.addEventListener('pointermove', ev => {
   if (!placing && !aiming) return;
   const [x, y] = pt(ev); lastInput = performance.now();
   if (placing) { movePlace(x, y); return; }
   if (!grab) return;
-  if (!grab.moved && Math.hypot(ev.clientX - grab.cx, ev.clientY - grab.cy) < DRAG_PX) return;
-  grab.moved = true;
-  dragButt(grab.x - x, grab.y - y);     // برعکس جهت انگشت
+  if (!grab.moved) {
+    if (Math.hypot(ev.clientX - grab.cx, ev.clientY - grab.cy) < DRAG_PX) return;
+    grab.moved = true; haptic('light');
+  }
+  const r = cv.getBoundingClientRect();
+  const step = grab.n < 2 ? 1 : Math.hypot(ev.clientX - grab.lx, ev.clientY - grab.ly) * cw / r.width / u * LOG_PER_U;
+  grab.n++;
+  dragRotate(grab.px, grab.py, x, y, step);
+  grab.px = x; grab.py = y; grab.lx = ev.clientX; grab.ly = ev.clientY;
 });
 const endPtr = ev => {
   if (placing) { placing = false; const g = G(); if (g && !E.validPlace(cur().map((p, i) => i ? p : null), g.breaking, balls[0].x, balls[0].y)) toast(errText({ code: 'bad_place' })); }
@@ -751,10 +912,11 @@ const endPtr = ev => {
 };
 cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
 function aimAt(x, y) { const c = balls[0]; if (Math.hypot(x - c.x, y - c.y) > R * .6) angle = Math.atan2(y - c.y, x - c.x); }
-// ته چوب (پشت توپ سفید، روی امتداد مخالف نشانه) به اندازهٔ جابه جایی داده شده جابه جا می شود
-function dragButt(dx, dy) {
-  const c = balls[0], bx = c.x - Math.cos(grab.a) * LEVER + dx, by = c.y - Math.sin(grab.a) * LEVER + dy;
-  if (Math.hypot(c.x - bx, c.y - by) > R) angle = Math.atan2(c.y - by, c.x - bx);
+// زاویهٔ علامت دار جاروشده دور توپ سفید از (px,py) تا (x,y) × ضریب سرعت پلاتو
+function dragRotate(px, py, x, y, step) {
+  const c = balls[0], ax = px - c.x, ay = py - c.y, bx = x - c.x, by = y - c.y;
+  if (Math.hypot(ax, ay) < 1 || Math.hypot(bx, by) < 1) return;
+  angle += Math.atan2(ax * by - ay * bx, ax * bx + ay * by) * Math.max(1, Math.min(10, Math.sqrt(step))) / 10;
 }
 function movePlace(x, y) {
   const g = G();
@@ -876,10 +1038,14 @@ async function shoot() {
   const g = G(); if (!canAct() || !g) { power = 0; drawPower(); return; }
   const p = power, c = balls[0], pl = g.bih && place ? place.slice() : null;
   if (pl && !E.validPlace(cur().map((q, i) => i ? q : null), g.breaking, pl[0], pl[1])) { toast(errText({ code: 'bad_place' })); power = 0; drawPower(); return; }
-  strike = { x: c.x, y: c.y, a: angle, p, t0: performance.now(), dur: 160, hold: true };
+  strike = { x: c.x, y: c.y, a: angle, p, t0: performance.now(), dur: 100 * (2 - p), hold: true, alpha: 1 };
   snd.cue(p, c.x); haptic('medium');
+  hideBanner(); halo = null;
+  sendAimNow(p);
   power = 0; drawPower();
-  await act(() => GC.billiard.shot(mid, angle, p, spin[0], spin[1], pl ? pl[0] : null, pl ? pl[1] : null, since));
+  const sp = spin.slice();
+  spin = [0, 0]; pop.classList.remove('open'); drawSpin();     // پیچ همان لحظهٔ ضربه به وسط برمی گردد (مثل پلاتو)
+  await act(() => GC.billiard.shot(mid, angle, p, sp[0], sp[1], pl ? pl[0] : null, pl ? pl[1] : null, since));
   if (strike) strike.hold = false;
   place = null;
 }
@@ -888,27 +1054,40 @@ async function shoot() {
 async function play(e) {
   if (e.t === 'start') { setBalls(e.balls); return; }
   if (e.t === 'shot') {
+    lastShot = e; hideBanner(); halo = null;
     if (!(isMe(e.c) && !e.auto)) {
-      strike = { x: e.cue[0], y: e.cue[1], a: e.a, p: Math.min(1, e.p), t0: performance.now(), dur: 700, hold: false };
-      balls[0].x = e.cue[0]; balls[0].y = e.cue[1]; balls[0].on = true;
-      await sleep(560); snd.cue(Math.min(1, e.p), e.cue[0]);
+      // ضربهٔ دیگری مثل shoot پلاتو: چوب به زاویهٔ نهایی می چرخد، (ضربهٔ خودکار: قدرت هم پر می شود)،
+      // بعد animateShoot: ۱۵۰ms تا کشیدگی نهایی و ضربه در ۱۰۰×(۲−قدرت) ms؛ توپ ها لحظهٔ برخورد راه می افتند
+      const p = Math.min(1, e.p);
+      balls[0].x = e.cue[0]; balls[0].y = e.cue[1]; balls[0].on = true; rem.cue = null;
+      if (rem.a == null) rem.a = e.a;
+      await remRotate(e.a);
+      if (e.auto) await remPower(p, 320); else await remPower(p, 150);
+      strike = { x: e.cue[0], y: e.cue[1], a: e.a, p, t0: performance.now(), dur: 100 * (2 - p), hold: false, alpha: isMe(e.c) ? 1 : .35 };
+      await sleep(strike.dur); snd.cue(p, e.cue[0]);
+      rem.p = 0;
     } else if (strike) strike.hold = false;
     await playShot(e);
     if (e.auto && isMe(e.c)) toast('وقتت تمام شد؛ ربات جای تو زد');
     return;
   }
-  if (e.t === 'groups') { const g = G(), mg = e.solids === myTeam() ? 'solids' : 'stripes'; flashMsg(WATCH ? 'گروه‌ها مشخص شد' : `گروه ${g && g.n === 4 ? 'تیم ' : ''}تو: ${GROUP_FA[mg]}`); snd.turn(); return; }
+  if (e.t === 'groups') { justGroups = true; snd.turn(); return; }
   if (e.t === 'turn') {
     setBalls(e.balls);
-    if (e.foul && e.foul !== 'timeout') { flashMsg(`${MSG[e.foul] || 'خطا'} · ${isMe(e.c) ? 'توپ در دست داری' : nameOf(e.c) + ' توپ در دست دارد'}`, true); sfx.error(); }
-    else if (e.msg === 'potted' || e.msg === 'on_8') { flashMsg(MSG[e.msg]); sfx.coin(); }
-    else if (e.msg === 'wrong_pot') flashMsg(MSG.wrong_pot, true);
-    if (isMe(e.c)) { snd.turn(); haptic('light'); hintAt = performance.now(); place = null; }
+    const [t, foul] = turnMsg(e); justGroups = false;
+    banner(t, foul);
+    if (e.foul && e.foul !== 'timeout') sfx.error();
+    else if (e.msg === 'potted' || e.msg === 'on_8') sfx.coin();
+    rem.p = 0; rem.cue = null; rem.key = ''; rem.turn = e.c;
+    if (isMe(e.c)) { snd.turn(); haptic('light'); place = null; sentAim = null; if (e.solids >= 0) haloStart(); }
     return;
   }
-  if (e.t === 'rack') { flashMsg(MSG[e.why] || 'دوباره چیده شد', true); await sleep(500); snd.rack(); setBalls(e.balls); for (const b of balls) b.q = startQuat(); return; }
+  if (e.t === 'rack') {
+    banner(e.why === 'break_8' ? `توپ-8 پاکت شد، ${pname(G() ? G().turn || e.c : e.c)} باید یکبار دیگر بریک کند` : `${pname(e.c)} بریک غیرمجاز انجام داد!`, true);
+    await sleep(500); snd.rack(); setBalls(e.balls); for (const b of balls) b.q = startQuat(); return;
+  }
   if (e.t === 'spot') { const b = balls[e.k]; b.on = true; b.x = e.at[0]; b.y = e.at[1]; return; }
-  if (e.t === 'timeout') { if (WATCH) return; flashMsg(isMe(e.c) ? (snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی' : 'یک نوبت دیگر غیبت = خروج') : 'وقتت تمام شد؛ حریف توپ در دست گرفت') : `${nameOf(e.c)} ضربه نزد؛ توپ در دست`, true); return; }
+  if (e.t === 'timeout') { lastShot = { c: e.c, pots: [] }; if (!WATCH && isMe(e.c) && snap.cfg.mode === 'stake' && e.n >= 2) toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یک نوبت دیگر غیبت = خروج'); return; }
   if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}${G() && G().n === 4 ? '؛ ربات جایش بازی می‌کند' : ''}`); return; }
   if (e.t === 'win' || e.t === 'end') { if (e.balls) setBalls(e.balls); return; }
 }
@@ -953,9 +1132,45 @@ async function apply(next, animate = true) {
       setBalls(g.balls); if (keep) { balls[0].x = c0[0]; balls[0].y = c0[1]; balls[0].on = true; }
     }
     renderAll(g);
+    syncRemote(g);
     if (next.status === 'over' && !overShown) { overShown = true; over(next); }
   } finally { busy = false; }
 }
+// چوب نوبت دار دیگر: هر به روزرسانی تازه با tween پلاتو (چرخش ۵۰۰ms خطی، قدرت ۳۲۰ms، توپ در دست ۵۰۰ms quadInOut)
+function syncRemote(g) {
+  if (!remoteTurn(g)) { rem.key = ''; return; }
+  if (rem.turn !== g.turn) { rem.turn = g.turn; rem.p = 0; rem.cue = null; rem.key = ''; }
+  if (rem.a == null) rem.a = angle;
+  const lv = g.live; if (!lv || lv.c !== g.turn || anim) return;
+  const key = JSON.stringify([lv.a, lv.p, lv.cue]); if (key === rem.key) return;
+  rem.key = key;
+  remRotate(lv.a); remPower(lv.p, 320);
+  if (g.bih && lv.cue) {
+    if (!rem.cue) rem.cue = { x: balls[0].x, y: balls[0].y };
+    tween(rem.cue, 'x', lv.cue[0], 500, quadInOut); tween(rem.cue, 'y', lv.cue[1], 500, quadInOut);
+  }
+}
+/* فرستادن نشانه گیری خودم (requestStickRotation / requestPowerChange / requestCueBallMove پلاتو).
+   پلاتو هر ۱ ثانیه و با ۵ درجه / ۰٫۱ قدرت؛ این جا چون بقیه با poll می گیرند، تندتر و ریزتر تا چوب حریف
+   لحظه به لحظه بچرخد: حداقل ۷۰۰ms و تغییر ۰٫۵ درجه / ۰٫۰۳ قدرت / ۲ واحد جای توپ. */
+const AIM_EVERY = 700;
+function aimNow() { const g = G(); return { a: angle, p: power, cue: g && g.bih && balls[0].on ? [balls[0].x, balls[0].y] : null }; }
+function aimChanged(a, b) {
+  if (!b) return true;
+  return Math.abs(wrapA(a.a - b.a)) >= Math.PI / 360 || Math.abs(a.p - b.p) >= .03 ||
+    (!!a.cue !== !!b.cue) || (a.cue && b.cue && Math.hypot(a.cue[0] - b.cue[0], a.cue[1] - b.cue[1]) >= 2);
+}
+function sendAim(v) {
+  sentAim = Object.assign({ t: performance.now() }, v);
+  GC.billiard.aim(mid, +v.a.toFixed(4), +v.p.toFixed(3), v.cue ? +v.cue[0].toFixed(1) : null, v.cue ? +v.cue[1].toFixed(1) : null).catch(() => {});
+}
+function sendAimNow(p) { if (!WATCH && mid) sendAim(Object.assign(aimNow(), { p })); }
+setInterval(() => {
+  if (WATCH || !mid || !myTurnNow() || acting || strike || !GC.billiard.aim) return;
+  const v = aimNow();
+  if (sentAim && performance.now() - sentAim.t < AIM_EVERY) return;
+  if (aimChanged(v, sentAim)) sendAim(v);
+}, 150);
 function pollMs() { const g = G(); if (!g || g.over) return POLL_MS; return g.turn && g.turn !== me ? 700 : 1500; }
 async function poll() {
   clearTimeout(pollT);
@@ -1060,9 +1275,10 @@ async function start() {
   if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   snap = first; since = first.game.seq;
-  hintAt = performance.now();
   await apply(first, false);
   const g = first.game;
+  banner(stateMsg(g));
+  if (isMe(g.turn) && g.solids >= 0 && !g.over) haloStart();
   if (g.breaking && g.balls[0]) { const ap = g.balls.slice(1).filter(Boolean).sort((a, b) => a[1] - b[1])[0]; if (ap) angle = Math.atan2(ap[1] - g.balls[0][1], ap[0] - g.balls[0][0]); }
   poll();
 }

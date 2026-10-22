@@ -154,16 +154,17 @@ def norm_cfg(raw: dict) -> dict:
         try:
             target = int(raw.get("target") or 3)
             entry = int(raw.get("entry") or 0)
+            passes = int(raw.get("passes") or 0)
         except (TypeError, ValueError):
             raise GCError("bad_cfg") from None
-        if target not in (3, 5):
+        if target not in football.GOALS_TO_WIN or passes not in football.PASS_LIMITS:
             raise GCError("bad_cfg")
         if mode == "stake":
             if entry not in gc.entries:
                 raise GCError("bad_entry")
         else:
             entry = 0
-        return {"game": "football", "mode": mode, "entry": entry, "players": 2, "target": target}
+        return {"game": "football", "mode": mode, "entry": entry, "players": 2, "target": target, "passes": passes}
     if raw.get("game") == "billiard":
         try:
             players = int(raw.get("players") or 2)
@@ -210,8 +211,10 @@ def norm_cfg(raw: dict) -> dict:
 
 
 def cfg_key(cfg: dict) -> str:
-    if game_of(cfg) in ("hokm", "football"):
-        return f"{game_of(cfg)}:{cfg['mode']}:{cfg['entry']}:{cfg['target']}"
+    if game_of(cfg) == "football":
+        return f"football:{cfg['mode']}:{cfg['entry']}:{cfg['target']}:{cfg.get('passes', 0)}"
+    if game_of(cfg) == "hokm":
+        return f"hokm:{cfg['mode']}:{cfg['entry']}:{cfg['target']}"
     if game_of(cfg) == "billiard":
         return f"billiard:{cfg['mode']}:{cfg['entry']}:{cfg['players']}"
     if game_of(cfg) == "divar":
@@ -276,7 +279,8 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
     if game_of(cfg) == "hokm":
         state = hokm.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
     elif game_of(cfg) == "football":
-        state = football.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
+        state = football.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"],
+                                   passes=cfg.get("passes", 0))
     elif game_of(cfg) == "billiard":
         state = billiard.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["players"])
     elif game_of(cfg) == "divar":
@@ -879,6 +883,7 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
         st = m["state"]
         eng = _eng(m["cfg"])
         changed = eng.tick(st, now)
+        noop = False
         kk = int(k) if str(k if k is not None else "").lstrip("-").isdigit() else -1
         if action == "leave":
             eng.leave(st, color, now, "left")
@@ -907,19 +912,26 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
             d = data or {}
             err = billiard.shot(st, st["order"].index(color), d.get("a"), d.get("p"), d.get("sx"), d.get("sy"),
                                 d.get("cx"), d.get("cy"), now)
+        elif eng is billiard and action == "aim":
+            d = data or {}
+            err = billiard.aim(st, st["order"].index(color), d.get("a"), d.get("p"), d.get("cx"), d.get("cy"), now)
+            if err == "same":                    # خیلی زود پس از قبلی: چیزی نوشته نمی شود
+                err, noop = None, True
         else:
             err = "bad_action"
-        if err is None and action != "leave":
+        if err is None and action not in ("leave", "aim"):   # نشانه گیری بدون ضربه، غیبت را پاک نمی کند
             eng.human_acted(st, color)
         if st["over"]:
             m["status"] = "over"
-        return changed or err is None, err
+        return changed or (err is None and not noop), err
 
     m, err = await mutate(db, match_id, fn)
     if action == "leave":
         await db.deactivate(match_id, tg)
     if err and err not in ("over",):
         raise GCError(err)
+    if action == "aim":                          # پاسخ سبک: کلاینت نمای کامل را با poll می گیرد
+        return {"ok": True}
     return await match_view(db, tg, match_id, since)
 
 

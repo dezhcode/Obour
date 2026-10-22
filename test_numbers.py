@@ -1,0 +1,1141 @@
+"""تست آفلاین شماره مجازی (SMSBurner) با سرور شبیه سازی شده.
+
+هیچ درخواستی به smsburner.com نمی رود و هیچ پولی خرج نمی شود؛ فقط منطق
+خرید، قیمت و (مهم تر از همه) جابجایی پول بررسی می شود:
+کسر، برگشت، لغو، خرید مبهم، و اینکه دو بررسی همزمان هیچ وقت دوبار
+پول برنگردانند یا دوبار کد تحویل ندهند.
+
+    python test_numbers.py
+"""
+import asyncio
+import json
+import os
+import shutil
+import sys
+import tempfile
+
+sys.path.insert(0, ".")
+
+import httpx
+
+from app import smsburner
+from app.db import Database
+from app.services import numbers_shop as ns
+
+smsburner.MIN_INTERVAL = 0
+
+RATE = 100_000          # تومان به ازای هر تتر
+USD = 0.35              # قیمت دلاری شماره در کاتالوگ شبیه سازی شده
+
+
+class FakeServer:
+    """SMSBurner شبیه سازی شده. mode رفتار خرید را عوض می کند."""
+
+    def __init__(self) -> None:
+        self.mode = "ok"
+        self.status = "active"
+        self.sms = None
+        self.cancel_status = 200
+        self.calls: list[tuple[str, str]] = []
+        self.balance = 10.0
+        self.next_id = 101
+        self.buys: list[dict] = []          # بدنه ی هر خرید (برای دیدن operator_id)
+        self.bad_seed = False               # همه ی مسیرهای نیازمند seed ۴۰۱ بدهند
+        self.catalog_429 = 0                # چند بار اول /catalog «Wait 1 s» بدهد
+        self.matrix = {
+            "us": [{"id": 2, "name": "Telegram", "slug": "telegram", "category": "social", "price": "0.35", "stock": 400},
+                   {"id": 3, "name": "WhatsApp", "slug": "whatsapp", "category": "social", "price": "0.50", "stock": 120}],
+            "in": [{"id": 2, "name": "Telegram", "slug": "telegram", "category": "social", "price": "0.16", "stock": 50},
+                   {"id": 3, "name": "WhatsApp", "slug": "whatsapp", "category": "social", "price": "0.20", "stock": 0}],
+            "de": [{"id": 2, "name": "Telegram", "slug": "telegram", "category": "social", "price": "1.00", "stock": 0}],
+        }
+
+    MULT = {"1": 1.0, "3": 1.8, "4": 2.2}
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        path, method = request.url.path.replace("/api/v1", ""), request.method
+        self.calls.append((method, path))
+        if path == "/api.php" and request.url.params.get("action") == "operators":
+            if request.url.params.get("country") != "us":
+                return httpx.Response(200, json=[{"id": 1, "name": "Lycamobile", "type": "virtual",
+                                                  "price_multiplier": "1.00"}])
+            return httpx.Response(200, json=[
+                {"id": 1, "name": "Lycamobile", "type": "virtual", "price_multiplier": "1.00", "icon_slug": None},
+                {"id": 3, "name": "T-Mobile", "type": "physical", "price_multiplier": "1.80", "icon_slug": "tmobile"},
+                {"id": 4, "name": "AT&T", "type": "premium", "price_multiplier": "2.20", "icon_slug": None}])
+        if self.bad_seed and (path in ("/account", "/quote") or path.startswith("/numbers")):
+            return httpx.Response(401, json={"ok": False, "error": "unauthorized", "message": "Invalid Bearer seed."})
+        if path == "/countries":
+            return httpx.Response(200, json={"ok": True, "count": 3, "countries": [
+                {"id": 1, "code": "us", "name": "United States"}, {"id": 2, "code": "in", "name": "India"},
+                {"id": 3, "code": "de", "name": "Germany"}]})
+        if path == "/api.php" and request.url.params.get("action") == "services":
+            return httpx.Response(200, json=self.matrix.get(request.url.params.get("country"), []))
+        if path == "/catalog" and self.catalog_429 > 0:
+            self.catalog_429 -= 1
+            return httpx.Response(429, json={"ok": False, "error": "rate_limited",
+                                             "message": "Too many requests. Wait 1 s before retrying.", "retry_after": 1})
+        if path == "/catalog":
+            return httpx.Response(200, json={"ok": True, "rows": [
+                {"service_id": 2, "service": "Telegram", "service_slug": "telegram", "category": "social",
+                 "country_code": "us", "country": "United States", "price": USD, "stock": 999},
+                {"service_id": 2, "service": "Telegram", "service_slug": "telegram", "category": "social",
+                 "country_code": "in", "country": "India", "price": 0.16, "stock": 999},
+                {"service_id": 2, "service": "Telegram", "service_slug": "telegram", "category": "social",
+                 "country_code": "de", "country": "Germany", "price": 1.0, "stock": 0},
+            ]})
+        if path == "/account":
+            return httpx.Response(200, json={"ok": True, "balance": self.balance})
+        if path == "/quote":
+            op = str(json.loads(request.content or b"{}").get("operator_id") or "")
+            return httpx.Response(200, json={"ok": True, "price": round(USD * self.MULT.get(op, 1.0), 4)})
+        if path == "/numbers" and method == "POST":
+            body = json.loads(request.content or b"{}")
+            if self.mode == "ok":
+                self.buys.append(body)
+                nid, self.next_id = self.next_id, self.next_id + 1
+                price = round(USD * self.MULT.get(str(body.get("operator_id") or ""), 1.0), 4)
+                return httpx.Response(201, json={"ok": True, "number_id": nid, "phone_number": "15551234567",
+                                                 "price": price, "status": "active"})
+            if self.mode == "stock":
+                return httpx.Response(409, json={"ok": False, "error": "out_of_stock", "message": "No numbers"})
+            if self.mode == "funds":
+                return httpx.Response(402, json={"error": "insufficient_balance", "need_usd": 0.5, "have_usd": 0.1})
+            if self.mode == "timeout":
+                raise httpx.ReadTimeout("slow", request=request)
+            if self.mode == "5xx":
+                return httpx.Response(502, text="bad gateway")
+            if self.mode == "noid":
+                return httpx.Response(201, json={"ok": True, "phone_number": "15550000000"})
+            if self.mode == "401":
+                return httpx.Response(401, json={"ok": False, "error": "unauthorized"})
+        if path.startswith("/numbers/") and method == "GET":
+            return httpx.Response(200, json={"ok": True, "phone_number": "15551234567",
+                                             "sms_code": self.sms, "status": self.status})
+        if path.startswith("/numbers/") and path.endswith("/cancel") and method == "POST":
+            if self.cancel_status == 409:
+                return httpx.Response(409, json={"ok": False, "error": "sms_received"})
+            return httpx.Response(200, json={"ok": True, "refunded": True})
+        return httpx.Response(404, json={"ok": False, "error": "not_found"})
+
+
+ORIG_CLIENT = ns.client      # ساخت واقعی کلاینت (seed از دیتابیس، وضعیت اتصال و کوکی ذخیره شده)
+
+
+class FakeSession(FakeServer):
+    """مستند اصلی سایت: ورود با seed (کوکی) و api.php. Bearer در /api/v1 همیشه ۴۰۱ می دهد."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.valid_seed = "AbC3-dEf4-gHj5-kLm6"
+        self.logins = 0
+        self.cookie: str | None = None
+        self.orders: dict[int, dict] = {}
+        self.orders_calls = 0
+        self.phone_after = 0                 # بعد از چند بار خواندن «orders» شماره ی تلفن پیدا شود
+        self.cancel_calls = 0
+
+    def _authed(self, request: httpx.Request) -> bool:
+        return bool(self.cookie) and f"simsms_session={self.cookie}" in request.headers.get("cookie", "")
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        from urllib.parse import parse_qs
+
+        path = request.url.path.replace("/api/v1", "")
+        self.calls.append((request.method, path))
+        if path in ("/account", "/quote") or path.startswith("/numbers"):
+            return httpx.Response(401, json={"ok": False, "error": "unauthorized", "message": "Invalid Bearer seed."})
+        if path == "/auth-api.php":
+            form = parse_qs(request.content.decode())
+            self.logins += 1
+            if form.get("seed", [""])[0] != self.valid_seed:
+                return httpx.Response(200, json={"success": False, "error": "Invalid seed."})
+            self.cookie = f"tok{self.logins}"
+            return httpx.Response(200, json={"success": True, "user": {"id": 42, "prefix": "AbC3", "balance": "74.50"}},
+                                  headers={"set-cookie": f"simsms_session={self.cookie}; Path=/"})
+        action = request.url.params.get("action")
+        if path == "/api.php" and action not in ("countries", "services", "operators"):
+            if not self._authed(request):
+                return httpx.Response(200, json={"logged_in": False} if action == "user" else {"error": "Login required"})
+            if action == "user":
+                return httpx.Response(200, json={"logged_in": True, "id": 42, "prefix": "AbC3", "balance": "74.50"})
+            if action == "buy" and request.method == "POST":
+                body = json.loads(request.content)
+                if self.mode == "stock":
+                    return httpx.Response(200, json={"error": "Service not available for this country"})
+                if self.mode == "funds":
+                    return httpx.Response(200, json={"error": "Insufficient balance", "need": 0.5, "have": "0.10"})
+                if self.mode == "timeout":
+                    raise httpx.ReadTimeout("slow", request=request)
+                oid, self.next_id = self.next_id, self.next_id + 1
+                price = round(USD * self.MULT.get(str(body.get("operator_id") or ""), 1.0), 2)
+                self.buys.append(body)
+                self.orders[oid] = {"id": oid, "price": f"{price}", "status": "active", "phone_number": "",
+                                    "sms_code": None, "country_code": body.get("country"), "service_name": "Telegram"}
+                return httpx.Response(200, json={"success": True, "order_id": oid, "price": price, "balance": "73.97"})
+            if action == "orders":
+                self.orders_calls += 1
+                out = []
+                for o in sorted(self.orders.values(), key=lambda x: -x["id"]):
+                    row = dict(o)
+                    if self.orders_calls > self.phone_after:
+                        row["phone_number"] = "+15551234567"
+                    if row["status"] == "active":
+                        row["sms_code"] = self.sms
+                        row["status"] = self.status
+                    out.append(row)
+                return httpx.Response(200, json=out)
+            if action == "cancel" and request.method == "POST":
+                self.cancel_calls += 1
+                if self.sms:
+                    return httpx.Response(200, json={"error": "SMS already received"})
+                for o in self.orders.values():
+                    o["status"] = "cancelled"
+                return httpx.Response(200, json={"success": True, "balance": "74.50"})
+        return super().handler(request)
+
+
+def install(server: FakeServer) -> None:
+    async def fake_client(db):  # noqa: ANN001
+        sb = await ORIG_CLIENT(db)
+        cookies = dict(sb._state.get("cookies") or {})
+        sb._http = httpx.AsyncClient(
+            base_url=smsburner.BASE_URL, transport=httpx.MockTransport(server.handler),
+            headers={"Authorization": f"Bearer {sb._seed}"})
+        for name, value in cookies.items():
+            sb._http.cookies.set(name, value, domain="smsburner.com")
+        return sb
+
+    ns.client = fake_client      # type: ignore[assignment]
+    smsburner._cache.clear()
+
+
+async def new_user(db: Database, tg: int, balance: int) -> dict:
+    u = await db.get_or_create_user(tg, f"u{tg}", f"User{tg}")
+    if balance:
+        await db.atomic_credit(u["id"], balance)
+    return await db.get_user(u["id"])
+
+
+async def bal(db: Database, u: dict) -> int:
+    return int((await db.get_user(u["id"]))["balance"])
+
+
+async def main() -> None:
+    tmp = tempfile.mkdtemp()
+    db = Database(os.path.join(tmp, "n.db"))
+    await db.connect()
+    try:
+        await run(db)
+    finally:
+        await db.close()
+        shutil.rmtree(tmp, ignore_errors=True)
+    print("\nهمه تست های شماره مجازی گذشت ✅")
+
+
+async def run(db: Database) -> None:
+    await db.set_setting("ai_usdt_rate", str(RATE))
+    await db.set_setting(ns.KEY_SETTING, "AbC3-dEf4-gHj5-kLm6")
+    srv = FakeServer()
+    install(srv)
+    ns.ensure_refresher = lambda db: None      # type: ignore[assignment]   # پایش پس زمینه جداگانه تست می شود
+    price = ns.price_toman(USD, RATE, await ns.load_cfg(db))
+    assert price == 49_000, price                        # 35000 × 1.4 = 49000
+    assert ns.price_toman(0.1, RATE, await ns.load_cfg(db)) == 15_000   # کف سود ۵۰۰۰: 10000 + 5000
+    print("OK pricing", price)
+
+    # ۱) خرید موفق ← منتظر کد ← کد می رسد ← فقط یک بار تحویل
+    u = await new_user(db, 1, 100_000)
+    r = await ns.buy(db, None, u, "2", "us")
+    assert r["status"] == ns.ACTIVE, r
+    o = r["order"]
+    assert o["phone"] == "+15551234567" and o["provider_id"] == "101" and o["expires_at"]
+    assert await bal(db, u) == 100_000 - price
+    r1 = await ns.check(db, o)
+    assert r1["event"] is None and r1["status"] == ns.ACTIVE
+    srv.sms = "847291"
+    a, b = await asyncio.gather(ns.check(db, o), ns.check(db, o))
+    assert sorted([bool(a["event"]), bool(b["event"])]) == [False, True], (a["event"], b["event"])
+    done = await db.get_number_order(o["id"])
+    assert done["status"] == ns.COMPLETED and done["sms_code"] == "847291"
+    assert await bal(db, u) == 100_000 - price          # کد آمد: پولی برنمی گردد
+    print("OK buy → code (single delivery under race)")
+
+    # ۲) لغو: پول یک بار برمی گردد
+    srv.sms, srv.status = None, "active"
+    u2 = await new_user(db, 2, 100_000)
+    o2 = (await ns.buy(db, None, u2, "2", "us"))["order"]
+    assert await bal(db, u2) == 100_000 - price
+    c1, c2 = await asyncio.gather(ns.cancel(db, o2), ns.cancel(db, o2))
+    assert await bal(db, u2) == 100_000, await bal(db, u2)       # فقط یک برگشت
+    assert (await db.get_number_order(o2["id"]))["status"] == ns.REFUNDED
+    assert sorted([bool(c1.get("event")), bool(c2.get("event"))]) == [False, True]
+    print("OK cancel refunds exactly once")
+
+    # ۳) لغو وقتی پیامک همین حالا رسیده: کد تحویل می شود، پولی برنمی گردد
+    u3 = await new_user(db, 3, 100_000)
+    o3 = (await ns.buy(db, None, u3, "2", "us"))["order"]
+    srv.cancel_status, srv.sms = 409, "111222"
+    r3 = await ns.cancel(db, o3)
+    assert r3["status"] == ns.COMPLETED and r3["order"]["sms_code"] == "111222"
+    assert await bal(db, u3) == 100_000 - price
+    srv.cancel_status, srv.sms = 200, None
+    print("OK cancel after SMS delivers the code instead")
+
+    # ۴) سرویس دهنده خودش منقضی/لغو کرد: پول کاربر یک بار برمی گردد
+    u4 = await new_user(db, 4, 100_000)
+    o4 = (await ns.buy(db, None, u4, "2", "us"))["order"]
+    srv.status = "expired"
+    e1, e2 = await asyncio.gather(ns.check(db, o4), ns.check(db, o4))
+    assert await bal(db, u4) == 100_000
+    assert sorted([bool(e1["event"]), bool(e2["event"])]) == [False, True]
+    srv.status = "active"
+    print("OK provider expiry refunds exactly once")
+
+    # ۵) موجود نیست (۴۰۹): پول برمی گردد
+    srv.mode = "stock"
+    u5 = await new_user(db, 5, 100_000)
+    r5 = await ns.buy(db, None, u5, "2", "us")
+    assert r5["status"] == ns.UNAVAILABLE and await bal(db, u5) == 100_000
+    assert (await db.get_number_order(r5["order"]["id"]))["status"] == ns.FAILED
+    # کشور بی موجودی در کاتالوگ: حتی تماس خرید هم نمی رود
+    n_before = len([c for c in srv.calls if c == ("POST", "/numbers")])
+    r5b = await ns.buy(db, None, u5, "2", "de")
+    assert r5b["status"] == ns.UNAVAILABLE and "order" not in r5b
+    assert len([c for c in srv.calls if c == ("POST", "/numbers")]) == n_before
+    print("OK out of stock refunds / blocks")
+
+    # ۶) موجودی خود ما نزد سرویس دهنده تمام شده (۴۰۲): پول کاربر برمی گردد
+    srv.mode = "funds"
+    u6 = await new_user(db, 6, 100_000)
+    r6 = await ns.buy(db, None, u6, "2", "us")
+    assert r6["status"] == ns.NO_FUNDS and await bal(db, u6) == 100_000
+    print("OK provider out of funds refunds user")
+
+    # ۷) پاسخ مبهم (timeout / 5xx / بدون شناسه): پول برنمی گردد، دست ادمین
+    for mode in ("timeout", "5xx", "noid"):
+        srv.mode = mode
+        u7 = await new_user(db, 70 + len(mode), 100_000)
+        r7 = await ns.buy(db, None, u7, "2", "us")
+        assert r7["status"] == ns.UNKNOWN, (mode, r7["status"])
+        assert await bal(db, u7) == 100_000 - price, mode
+        # ادمین «برگشت پول» می زند؛ دوبار زدن دوبار پول نمی دهد
+        s1 = await ns.settle_manual(db, r7["order"], refund=True)
+        s2 = await ns.settle_manual(db, r7["order"], refund=True)
+        assert s1["status"] == ns.FAILED and await bal(db, u7) == 100_000, mode
+        assert s2["status"] == ns.FAILED
+        assert await bal(db, u7) == 100_000
+    print("OK ambiguous purchase → manual settle, no double refund")
+
+    # ۸) موجودی کیف پول کم: هیچ سفارشی ساخته نمی شود
+    srv.mode = "ok"
+    u8 = await new_user(db, 8, 1_000)
+    r8 = await ns.buy(db, None, u8, "2", "us")
+    assert r8["status"] == ns.INSUFFICIENT and await bal(db, u8) == 1_000
+    assert not await db.user_number_orders(u8["id"])
+    print("OK insufficient wallet")
+
+    # ۹) seed نامعتبر: خرید انجام نمی شود، پول برمی گردد
+    srv.mode = "401"
+    u9 = await new_user(db, 9, 100_000)
+    r9 = await ns.buy(db, None, u9, "2", "us")
+    assert r9["status"] == ns.NOT_CONFIGURED and await bal(db, u9) == 100_000, r9["status"]
+    assert r9["order"]["status"] == ns.FAILED
+    srv.mode = "ok"
+    print("OK invalid seed at purchase → refunded, shown as not configured")
+
+    # ۱۰) قفل: خرید همزمان یک کاربر
+    u10 = await new_user(db, 10, 300_000)
+    ra, rb = await asyncio.gather(ns.buy(db, None, u10, "2", "us"), ns.buy(db, None, u10, "2", "us"))
+    assert sorted([ra["status"], rb["status"]]) == sorted([ns.ACTIVE, ns.LOCKED]), (ra["status"], rb["status"])
+    assert await bal(db, u10) == 300_000 - price
+    print("OK concurrent buys are locked")
+
+    # ۱۰.۵) فیلدهای عمومی (code، message) هرگز کد پیامک حساب نمی شوند
+    info = smsburner.parse_number({"ok": True, "number_id": 5, "phone_number": "1555", "code": "US", "message": "OK",
+                                   "status": "active"})
+    assert info["sms_code"] == "" and info["status"] == "active" and info["sms_text"] == "", info
+    assert smsburner.parse_number({"number": {"id": 9, "phone_number": "+1", "sms_code": "4455"}})["status"] == "completed"
+    # قیمت quote با واحد عجیب (۱۰۰ برابر) نادیده گرفته می شود و کاربر زیادی پول نمی دهد
+    class Crazy(FakeServer):
+        def handler(self, request):  # noqa: ANN001, ANN201
+            if request.url.path.endswith("/quote"):
+                return httpx.Response(200, json={"ok": True, "price": USD * 100})
+            return super().handler(request)
+
+    crazy = Crazy()
+    install(crazy)
+    uq = await new_user(db, 11, 200_000)
+    rq = await ns.buy(db, None, uq, "2", "us")
+    assert rq["status"] == ns.ACTIVE and await bal(db, uq) == 200_000 - price, await bal(db, uq)
+    install(srv)
+    print("OK response parsing guards (no fake codes, absurd quote ignored)")
+
+    # ۱۱) کاتالوگ: بی موجودی و بیشتر از موجودی ما نمایش داده نمی شود
+    cat = await ns.catalog(db, force=True)
+    assert {r["cc"] for r in cat["rows"]} == {"us", "in"}
+    assert ns.countries_of(cat, "2")[0]["cc"] == "in"                # ارزان ترین اول
+    srv.balance = 0.2                                                # فقط هند (0.16) می رسد
+    cat = await ns.catalog(db, force=True)
+    assert {r["cc"] for r in cat["rows"]} == {"in"}
+    srv.balance = 10.0
+    print("OK catalog filters")
+
+    # ۱۲) نمایش و کیبوردها: callback_data زیر ۶۴ بایت و بدون خطا
+    from app import i18n, keyboards
+    from app.handlers.numbers import order_view
+
+    cat = await ns.catalog(db, force=True)
+    kbs = [keyboards.num_hub_kb(ns.services_of(cat)), keyboards.num_countries_kb(cat["rows"], "2", 0, 1),
+           keyboards.num_confirm_kb(True, "2", "us"), keyboards.num_active_kb(99999),
+           keyboards.num_done_kb("2"), keyboards.num_orders_kb(await db.user_number_orders(u["id"])),
+           keyboards.num_cancel_ask_kb(5), keyboards.admin_num_kb(True), keyboards.admin_num_kb(False),
+           keyboards.num_cats_kb([{"key": "social", "title": "شبکه", "emoji": "💬", "count": 3}]),
+           keyboards.num_services_kb(ns.services_of(cat), "social", 0, 2)]
+    for order in await db.user_number_orders(u["id"]) + await db.user_number_orders(u2["id"]) \
+            + await db.user_number_orders(u4["id"]) + await db.user_number_orders(u10["id"]):
+        text, kb = order_view(order)
+        kbs.append(kb)
+        assert text, order["status"]
+    first = (await db.user_number_orders(u["id"]))[0]
+    for lang in ("fa", "en", "ru", "zh"):
+        with i18n.using(lang):
+            assert order_view(first)[0]
+    for kb in kbs:
+        for row in kb.inline_keyboard:
+            for b in row:
+                assert len((b.callback_data or "").encode()) <= 64, b.callback_data
+    print("OK views & keyboards")
+
+    # ۱۳) آمار
+    st = await db.number_stats()
+    assert st["completed"] >= 2 and st["revenue"] >= 2 * price, st
+    print("OK stats", {k: st[k] for k in ("total", "completed", "active", "unknown", "refunded")})
+
+    await handler_flow(db, srv)
+    await webapp_flow(db, srv)
+    await admin_and_menus(db, srv)
+    await new_features(db, srv)
+    await matrix_and_seed(db, srv)
+    await session_mode()
+
+
+async def session_mode() -> None:
+    """seed حساب ساخته شده از سایت: Bearer ۴۰۱ می دهد ولی ورود کوکی (مستند اصلی سایت) کار می کند."""
+    import time
+
+    ns.ensure_refresher = lambda db: None      # type: ignore[assignment]
+    tmp3 = tempfile.mkdtemp()
+    db3 = Database(os.path.join(tmp3, "s.db"))
+    await db3.connect()
+    try:
+        await db3.set_setting("ai_usdt_rate", str(RATE))
+        await db3.set_setting(ns.KEY_SETTING, "AbC3-dEf4-gHj5-kLm6")
+        srv = FakeSession()
+        srv.phone_after = 1
+        smsburner._STATE.clear()
+        smsburner._LOGINS.clear()
+        install(srv)
+        assert await ns.refresh_prices(db3, budget=30.0) == 3
+        u = await new_user(db3, 980, 400_000)
+
+        # ── اولین خرید: تشخیص خودکار (Bearer ۴۰۱ ← ورود کوکی)، فقط یک ورود
+        r = await ns.buy(db3, None, u, "2", "us")
+        assert r["status"] == ns.ACTIVE, r["status"]
+        assert srv.logins == 1 and srv.buys[-1] == {"country": "us", "service_id": 2}, (srv.logins, srv.buys)
+        assert await bal(db3, u) == 400_000 - 49_000
+        saved = json.loads(await db3.get_setting(ns.STATE_SETTING))
+        assert saved["mode"] == "session" and saved["cookies"].get("simsms_session") == "tok1", saved.get("mode")
+        o = r["order"]
+        assert o["provider_id"] == str(srv.next_id - 1) and not o["phone"]       # شماره هنوز در orders نیست
+
+        # ── شماره ی تلفن چند ثانیه بعد پیدا می شود (event فقط برای به روز کردن صفحه)
+        smsburner._cache.pop("orders", None)
+        c1 = await ns.check(db3, o)
+        assert c1["event"] == "phone" and c1["order"]["phone"] == "+15551234567" and c1["status"] == ns.ACTIVE, c1
+        c2 = await ns.check(db3, c1["order"])
+        assert c2["event"] is None and srv.logins == 1                              # کوکی دوباره استفاده شد
+        # چند سفارش منتظر کد یک درخواست orders را شریک می شوند (کش ۳ ثانیه)
+        n = srv.orders_calls
+        await ns.check(db3, c1["order"])
+        await ns.check(db3, c1["order"])
+        assert srv.orders_calls == n
+
+        # ── کد رسید
+        srv.sms = "246810"
+        smsburner._cache.pop("orders", None)
+        c3 = await ns.check(db3, c1["order"])
+        assert c3["event"] == "completed" and c3["order"]["sms_code"] == "246810", c3
+        srv.sms = None
+
+        # ── «ری استارت پروسه»: وضعیت از دیتابیس برمی گردد و دوباره وارد نمی شویم
+        smsburner._STATE.clear()
+        smsburner._cache.clear()
+        r2 = await ns.buy(db3, None, u, "2", "us")
+        assert r2["status"] == ns.ACTIVE and srv.logins == 1, srv.logins
+        assert smsburner._STATE[smsburner.seed_tag("AbC3-dEf4-gHj5-kLm6")]["mode"] == "session"
+
+        # ── نشست منقضی شد (سایت فراموش کرد): یک بار دوباره وارد می شود و ادامه می دهد
+        srv.cookie = None
+        smsburner._cache.pop("orders", None)
+        c4 = await ns.check(db3, r2["order"])
+        assert c4["status"] == ns.ACTIVE and srv.logins == 2, (c4["status"], srv.logins)
+
+        # ── لغو: پول برمی گردد؛ اگر کد رسیده باشد لغو نمی شود و کد تحویل می شود
+        before = await bal(db3, u)
+        cc1 = await ns.cancel(db3, c4["order"])
+        assert cc1["status"] == ns.REFUNDED and srv.cancel_calls == 1 and await bal(db3, u) == before + 49_000
+        r3 = await ns.buy(db3, None, u, "2", "us")
+        srv.sms = "13579"
+        smsburner._cache.pop("orders", None)
+        cc2 = await ns.cancel(db3, r3["order"])
+        assert cc2["status"] == ns.COMPLETED and cc2["order"]["sms_code"] == "13579", cc2["status"]
+        srv.sms = None
+
+        # ── نوع شماره در بدنه ی خرید؛ قیمت از ضریب اپراتور (quote در این روش نیست)
+        u2 = await new_user(db3, 981, 400_000)
+        r4 = await ns.buy(db3, None, u2, "2", "us", "3")
+        assert r4["status"] == ns.ACTIVE and srv.buys[-1].get("operator_id") == 3
+        assert await bal(db3, u2) == 400_000 - 89_000, await bal(db3, u2)
+
+        # ── خطاهای خرید مثل روش Bearer: موجود نیست / موجودی ما کم است ← پول برمی گردد؛ مبهم ← ادمین
+        for i, (mode, want) in enumerate((("stock", ns.UNAVAILABLE), ("funds", ns.NO_FUNDS), ("timeout", ns.UNKNOWN))):
+            srv.mode = mode
+            ux = await new_user(db3, 990 + i, 100_000)
+            rx = await ns.buy(db3, None, ux, "2", "us")
+            assert rx["status"] == want, (mode, rx["status"])
+            assert await bal(db3, ux) == (100_000 - 49_000 if mode == "timeout" else 100_000), mode
+        srv.mode = "ok"
+
+        # ── نشست منقضی و چند درخواست همزمان (هر کدام کلاینت خودش): فقط یک ورود، بقیه کوکی تازه را برمی دارند
+        srv.cookie = None
+        smsburner._cache.pop("orders", None)
+        n_logins = srv.logins
+        many = await asyncio.gather(*[ns.check(db3, r4["order"]) for _ in range(4)])
+        assert srv.logins == n_logins + 1 and all(x["status"] == ns.ACTIVE for x in many), srv.logins - n_logins
+
+        # ── سقف ورود ۵ بار در ۱۵ دقیقه: خودمان بیشتر از ۳ بار تلاش نمی کنیم؛ نه کرش، نه پول
+        smsburner._LOGINS[:] = [time.monotonic()] * 3
+        srv.cookie = None
+        smsburner._cache.pop("orders", None)
+        cx = await ns.check(db3, r4["order"])
+        assert cx["status"] == ns.PROVIDER_ERROR and srv.logins == n_logins + 1, (cx["status"], srv.logins)
+        smsburner._LOGINS.clear()
+
+        # ── سفارش از «۵۰ سفارش اخیر» بیرون افتاد: قبل از مهلت فقط خطا، بعد از مهلت دست ادمین (نه حدس و برگشت پول)
+        u3 = await new_user(db3, 983, 400_000)
+        r5 = await ns.buy(db3, None, u3, "2", "us")
+        srv.orders.pop(int(r5["order"]["provider_id"]))
+        smsburner._cache.pop("orders", None)
+        nf = await ns.check(db3, r5["order"])
+        assert nf["status"] == ns.PROVIDER_ERROR and nf["order"]["status"] == ns.ACTIVE
+        await db3.execute("UPDATE number_orders SET expires_at = '2020-01-01T00:00:00+03:30' WHERE id = ?",
+                          (r5["order"]["id"],))
+        smsburner._cache.pop("orders", None)
+        nf2 = await ns.check(db3, await db3.get_number_order(r5["order"]["id"]))
+        assert nf2["order"]["status"] == ns.UNKNOWN and await bal(db3, u3) == 400_000 - 49_000
+
+        # ── خروجی خام ادمین: روش و ورود را نشان می دهد، کوکی را هرگز
+        sb = await ns.client(db3)
+        raw = await sb.debug()
+        await sb.close()
+        assert raw["session"]["body"]["login"] == "ok" and raw["session"]["body"]["user"]["balance"] == "74.50"
+        assert "simsms_session" not in json.dumps(raw) and "tok" not in json.dumps(raw["session"])
+        assert (await ns.client(db3)).mode_label() == "نشست کوکی (api.php)"
+        print("OK cookie-session mode (autodetect, one login, persisted, relogin, phone later, cancel, errors, limit)")
+
+        # ── seed که نه Bearer می پذیرد نه ورود سایت: هیچ پولی کم نمی شود
+        await db3.set_setting(ns.KEY_SETTING, "Wr0n-gSee-dXXX-0000")
+        smsburner._STATE.clear()
+        smsburner._LOGINS.clear()                       # ۱۵ دقیقه گذشته فرض می شود (سقف ورود جداگانه تست شد)
+        ub = await new_user(db3, 982, 100_000)
+        rb = await ns.buy(db3, None, ub, "2", "us")
+        assert rb["status"] == ns.NOT_CONFIGURED and await bal(db3, ub) == 100_000, rb["status"]
+        sb = await ns.client(db3)
+        await sb.balance(force=True)
+        assert isinstance(sb.balance_error(), smsburner.SmsBadSeed), (repr(sb.balance_error()), len(smsburner._LOGINS))
+        await sb.close()
+        print("OK invalid seed in both modes → not configured, nobody charged")
+    finally:
+        await db3.close()
+        shutil.rmtree(tmp3, ignore_errors=True)
+        smsburner._STATE.clear()
+        smsburner._LOGINS.clear()
+
+
+def row_price(cat: dict, sid: str, cc: str) -> int:
+    return next(r for r in cat["rows"] if r["service_id"] == sid and r["cc"] == cc)["price"]
+
+
+async def matrix_and_seed(db: Database, srv: FakeServer) -> None:
+    """ماتریس کامل قیمت (کشور × سرویس)، سقف ۴۲۹ سایت، نام کشورها و seed نامعتبر."""
+    import time
+    from unittest.mock import AsyncMock
+
+    import app.config as appconfig
+
+    srv.mode, srv.sms, srv.status = "ok", None, "active"
+    install(srv)
+
+    # ── نام کشور در کاتالوگ (فیلد «country» نام است وقتی country_code هم هست)
+    rows = smsburner.normalize_rows({"rows": [
+        {"service_id": 2, "service": "Telegram", "service_slug": "telegram", "category": "social",
+         "country_code": "ar", "country": "Argentina", "price": 0.31, "stock": 999}]})
+    assert rows[0]["cc"] == "ar" and rows[0]["country"] == "Argentina", rows
+
+    # ── ۴۲۹ «Wait 1 s»: مهلت بدنه ی JSON خوانده می شود و دوباره می پرسد
+    assert 1.0 <= smsburner._retry_after(httpx.Response(429, json={"ok": False, "retry_after": 1}), 5.0) <= 2.0
+    srv.catalog_429 = 1
+    sb = await ns.client(db)
+    t0 = time.monotonic()
+    assert len(await sb.catalog(force=True)) == 3
+    assert time.monotonic() - t0 >= 1.0 and srv.catalog_429 == 0
+    await sb.close()
+
+    # ── ماتریس کامل: هر کشور یک بار از api.php؛ سرویسی که در ۵۰۰ ردیف v1 نبود هم می آید
+    tmp2 = tempfile.mkdtemp()
+    db2 = Database(os.path.join(tmp2, "m.db"))
+    await db2.connect()
+    try:
+        await db2.set_setting("ai_usdt_rate", str(RATE))
+        await db2.set_setting(ns.KEY_SETTING, "AbC3-dEf4-gHj5-kLm6")
+        cat0 = await ns.catalog(db2)                    # شروع تازه: هنوز ماتریسی نیست ← کاتالوگ v1
+        assert {s["name"] for s in ns.services_of(cat0)} == {"Telegram"}
+        assert await ns.refresh_prices(db2, budget=30.0) == 3           # سه کشور
+        assert await ns.refresh_prices(db2, budget=30.0) == 0           # همه تازه اند
+        st = await ns.price_status(db2)
+        assert st["fresh"] == 3 and st["total"] == 3, st
+        cat = await ns.catalog(db2)
+        assert {s["name"] for s in ns.services_of(cat)} == {"Telegram", "WhatsApp"}, ns.services_of(cat)
+        tg = ns.countries_of(cat, "2")
+        assert [r["cc"] for r in tg] == ["in", "us"] and tg[0]["country"] == "India"     # de بی موجودی حذف
+        assert [r["cc"] for r in ns.countries_of(cat, "3")] == ["us"]                    # in موجودی صفر
+        assert row_price(cat, "2", "us") == 49_000
+        # خرید از روی ردیف ماتریس (نه کاتالوگ v1 که واتساپ ندارد)
+        u = await new_user(db2, 970, 200_000)
+        r = await ns.buy(db2, None, u, "3", "us")
+        assert r["status"] == ns.ACTIVE, r["status"]
+        # کشوری که کهنه شد دوباره خوانده می شود
+        await db2.execute("UPDATE number_prices SET updated_at = '2020-01-01T00:00:00+03:30' WHERE cc = 'in'")
+        assert await ns.refresh_prices(db2, budget=30.0) == 1
+        # قیمت تازه جایگزین قیمت قبلی می شود
+        await db2.execute("UPDATE number_prices SET updated_at = '2020-01-01T00:00:00+03:30'")
+        srv.matrix["in"] = [{"id": 2, "name": "Telegram", "slug": "telegram", "category": "social", "price": "0.17", "stock": 9}]
+        assert await ns.refresh_prices(db2, budget=30.0) == 3
+        assert next(r for r in ns.countries_of(await ns.catalog(db2), "2") if r["cc"] == "in")["usd"] == 0.17
+    finally:
+        await db2.close()
+        shutil.rmtree(tmp2, ignore_errors=True)
+    print("OK price matrix (full list per country, refresh, stale, names, 429 retry)")
+
+    # ── seed نامعتبر: هیچ پولی کم نمی شود، ادمین فقط یک بار خبر می گیرد، پنل ادمین واضح می گوید
+    appconfig.config.admin_ids = [4242]
+    srv.bad_seed = True
+    install(srv)
+    await db.release_lock("numseedalert")           # تست ۹ بالا همین هشدار را (بی ربات) مصرف کرده بود
+    ub = await new_user(db, 971, 100_000)
+    bot = AsyncMock()
+    r1 = await ns.buy(db, bot, ub, "2", "us")
+    r2 = await ns.buy(db, bot, ub, "2", "us")
+    assert r1["status"] == ns.NOT_CONFIGURED and r2["status"] == ns.NOT_CONFIGURED
+    assert await bal(db, ub) == 100_000 and "order" not in r1
+    alerts = [c for c in bot.send_message.await_args_list if "seed" in str(c)]
+    assert len(alerts) == 1, len(alerts)                                   # ساعتی یک بار
+    sb = await ns.client(db)
+    await sb.balance(force=True)
+    assert isinstance(sb.balance_error(), smsburner.SmsBadSeed)
+    await sb.close()
+    from app.handlers import admin as adm
+    c = FakeCall("adm:num")
+    await adm.cb_num_home(c, db, AsyncMock())
+    assert "seed نامعتبر" in c.page, c.page
+    # شکست seed درست وسط خرید (quote خوب بود): پول برمی گردد
+    srv.bad_seed = False
+    srv.mode = "401"
+    install(srv)
+    await db.release_lock("numseedalert")
+    r3 = await ns.buy(db, bot, ub, "2", "us")
+    assert r3["status"] == ns.NOT_CONFIGURED and r3["order"]["status"] == ns.FAILED and await bal(db, ub) == 100_000
+    srv.mode = "ok"
+    install(srv)
+    appconfig.config.admin_ids = []
+    print("OK invalid seed (no debit, one alert, admin panel says so, refund mid-purchase)")
+
+
+async def new_features(db: Database, srv: FakeServer) -> None:
+    """جستجوی سرویس، نوع شماره (مجازی/فیزیکی/پریمیوم) و «شماره ی دیگه»."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from app.handlers import numbers as h
+    from app.webapp import api as webapi
+    from app.webapp.auth import WebAppUser
+
+    h.ensure_watcher = lambda *a, **k: None      # type: ignore[assignment]
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+    srv.mode, srv.sms, srv.status, srv.cancel_status = "ok", None, "active", 200
+    srv.buys.clear()
+    cat = await ns.catalog(db, force=True)
+
+    # ── جستجو: فارسی و انگلیسی، نیم فاصله، ی و ک عربی، جمله ی دارای اسم
+    def trow(sid: str, name: str, slug: str, category: str) -> dict:
+        return {"service_id": sid, "service": name, "slug": slug, "category": category, "cc": "us",
+                "country": "United States", "usd": 1.0, "price": 10_000, "stock": 5}
+
+    manual = {"rows": [trow("2", "Telegram", "telegram", "social"), trow("19", "Google/Gmail", "google", "email"),
+                       trow("3", "WhatsApp", "whatsapp", "social"), trow("88", "OpenAI", "openai", "tech"),
+                       trow("50", "Netflix", "netflix", "streaming")]}
+
+    def names(q: str) -> list[str]:
+        return [s["name"] for s in ns.search_services(manual, q)]
+
+    assert names("تلگرام") == ["Telegram"] and names("tele") == ["Telegram"] and names("NETFL") == ["Netflix"]
+    assert names("واتساپ") == ["WhatsApp"] and names("واتس اپ") == ["WhatsApp"] and names("واتس") == ["WhatsApp"]
+    assert names("جیمیل") == ["Google/Gmail"] and names("جيميل") == ["Google/Gmail"]       # ی عربی
+    assert names("چت جی پی تی") == ["OpenAI"] and names("شماره تلگرام") == ["Telegram"]
+    assert names("x") == [] and names("zzzzzz") == [] and names("") == []
+    print("OK search (fa/en aliases, arabic letters, sentences)")
+
+    # ── نوع شماره: قیمت هر اپراتور = قیمت پایه × ضریب، با همان سود
+    ops = await ns.operators_of(db, cat, "2", "us")
+    assert [o["name"] for o in ops] == ["Lycamobile", "T-Mobile", "AT&T"], ops
+    assert [o["price"] for o in ops] == [49_000, 89_000, 108_000], [o["price"] for o in ops]
+    assert await ns.operators_of(db, cat, "2", "in") == []                                # یک نوع: انتخابی نیست
+    u = await new_user(db, 960, 400_000)
+    r = await ns.buy(db, None, u, "2", "us", "3")
+    assert r["status"] == ns.ACTIVE and r["order"]["operator_type"] == "physical", r["status"]
+    assert srv.buys[-1].get("operator_id") == 3 and await bal(db, u) == 400_000 - 89_000
+    assert "T-Mobile" in ns.country_label(r["order"]) and abs(r["order"]["usd_cost"] - 0.63) < 1e-9
+    r2 = await ns.buy(db, None, u, "2", "us", "99")                                       # اپراتور ناشناس
+    assert r2["status"] == ns.UNAVAILABLE and await bal(db, u) == 400_000 - 89_000
+    r3 = await ns.buy(db, None, u, "2", "us", "0")                                        # 0 = پیش فرض سایت
+    assert r3["status"] == ns.ACTIVE and "operator_id" not in srv.buys[-1] and not r3["order"]["operator_id"]
+    assert await bal(db, u) == 400_000 - 89_000 - 49_000
+    print("OK operator choice (prices, buy body, unknown operator, default)")
+
+    # ── شماره ی دیگه: لغو (پول برمی گردد) + خرید تازه از همان سرویس، کشور و نوع
+    before = await bal(db, u)
+    rr = await ns.reroll(db, None, u, r["order"])
+    assert rr["status"] == ns.ACTIVE and rr["old"]["status"] == ns.REFUNDED, rr["status"]
+    assert rr["order"]["id"] != r["order"]["id"] and rr["order"]["operator_id"] == "3"
+    assert await bal(db, u) == before                                                     # برگشت 89000، کسر 89000
+    assert (await db.get_number_order(r["order"]["id"]))["status"] == ns.REFUNDED
+    again = await ns.reroll(db, None, u, rr["order"])                                     # فاصله ی ۲۰ ثانیه
+    assert again["status"] == ns.LOCKED and (await db.get_number_order(rr["order"]["id"]))["status"] == ns.ACTIVE
+    await db.release_lock(f"numre:{u['id']}")
+    srv.cancel_status, srv.sms = 409, "123123"                                            # کد همین حالا رسیده
+    n_buys = len(srv.buys)
+    rc = await ns.reroll(db, None, u, rr["order"])
+    assert rc["status"] == ns.COMPLETED and len(srv.buys) == n_buys and "old" not in rc
+    srv.cancel_status, srv.sms = 200, None
+    assert (await ns.reroll(db, None, u, rc["order"]))["status"] == ns.BAD_STATE          # فقط منتظر کد
+    await db.release_lock(f"numre:{u['id']}")
+    ra = await ns.buy(db, None, u, "2", "us")
+    before = await bal(db, u)
+    srv.mode = "stock"                                                                    # خرید تازه جا نمی افتد
+    rf = await ns.reroll(db, None, u, ra["order"])
+    assert rf["status"] == ns.UNAVAILABLE and rf["old"]["status"] == ns.REFUNDED
+    assert await bal(db, u) == before + 49_000                                            # فقط برگشت، پولی گم نشد
+    srv.mode = "ok"
+    print("OK reroll (refund+rebuy, cooldown, code arrived, stock gone)")
+
+    # ── ربات: جستجو، نوع شماره و دکمه ی «شماره ی دیگه»
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+    state = AsyncMock()
+    uh = await new_user(db, 961, 400_000)
+
+    async def tap(data: str, fn, *extra) -> FakeCall:  # noqa: ANN001
+        c = FakeCall(data)
+        await fn(c, db, *extra, await db.get_user(uh["id"]))
+        return c
+
+    c = await tap("num", h.cb_hub)
+    assert "num:q" in c.buttons and "num:s:2:0" in c.buttons, c.buttons
+    c = FakeCall("num:q")
+    await h.cb_search(c, db, state, await db.get_user(uh["id"]))
+    state.set_state.assert_awaited()
+    assert "جستجوی سرویس" in c.page
+    msg = MagicMock()
+    msg.text = "تلگرام"
+    msg.delete, msg.answer = AsyncMock(), AsyncMock()
+    await h.msg_search(msg, db, state, await db.get_user(uh["id"]))
+    kb = msg.answer.await_args.kwargs["reply_markup"]
+    assert "num:s:2:0" in [b.callback_data for row in kb.inline_keyboard for b in row]
+    state.set_state.assert_awaited_with(None)                                             # از حالت جستجو بیرون آمد
+    state2 = AsyncMock()
+    msg.text = "zzzzzz"
+    msg.answer.reset_mock()
+    await h.msg_search(msg, db, state2, await db.get_user(uh["id"]))
+    state2.set_state.assert_not_awaited()                                                 # در همان حالت می ماند
+    assert "پیدا نشد" in msg.answer.await_args.args[0]
+    c = FakeCall("num")
+    await h.cb_hub(c, db, await db.get_user(uh["id"]), state2)
+    state2.set_state.assert_awaited_with(None)                                            # منو حالت جستجو را می بندد
+
+    c = await tap("num:b:2:us:3", h.cb_confirm)
+    assert "89,000" in c.page and "T-Mobile" in c.page and "num:go:2:us:3" in c.buttons, c.page
+    c = await tap("num:b:2:us:99", h.cb_confirm)
+    assert "نیست" in c.page                                                               # نوع دیگر موجود نیست
+    c = await tap("num:go:2:us:3", h.cb_buy)
+    oh = (await db.user_number_orders(uh["id"]))[0]
+    assert oh["operator_id"] == "3" and "T-Mobile" in c.page and f"num:re:{oh['id']}" in c.buttons, c.buttons
+    c = await tap(f"num:re:{oh['id']}", h.cb_reroll_ask)
+    assert f"num:rey:{oh['id']}" in c.buttons and "89,000" in c.page
+    c = await tap(f"num:rey:{oh['id']}", h.cb_reroll)
+    new = (await db.user_number_orders(uh["id"]))[0]
+    assert new["id"] != oh["id"] and new["status"] == ns.ACTIVE and "+15551234567" in c.page, c.page
+    assert (await db.get_number_order(oh["id"]))["status"] == ns.REFUNDED and new["operator_id"] == "3"
+    assert await bal(db, uh) == 400_000 - 89_000
+    c = await tap(f"num:rey:{new['id']}", h.cb_reroll)                                    # دوباره زود: فاصله
+    assert "صبر" in c.answer.await_args.args[0], c.answer.await_args
+    print("OK bot: search, operator step, reroll buttons")
+
+    # ── مینی اپ
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+    await db.release_lock(f"numre:{uh['id']}")
+    um = await new_user(db, 962, 400_000)
+    await db.execute("UPDATE users SET rules_accepted_at = ? WHERE id = ?", ("2026-01-01T00:00:00", um["id"]))
+    me = WebAppUser(id=962, first_name="M", username="m", language_code="fa", is_premium=False, start_param="")
+    bot = AsyncMock()
+    info = await webapi.numbers_info(db, None, me)
+    assert "تلگرام" in info["aliases"]["telegram"].split("|"), info["aliases"]
+    d = await webapi.numbers_operators(db, None, me, "2", "us")
+    assert [i["name"] for i in d["items"]] == ["Lycamobile", "T-Mobile", "AT&T"] and d["default_price"] == 49_000
+    assert d["items"][1]["label"] == "فیزیکی" and d["items"][2]["type"] == "premium"
+    assert (await webapi.numbers_operators(db, None, me, "2", "in"))["items"] == []
+    b = await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-op-001", operator_id="3", bot=bot)
+    assert b["order"]["price"] == 89_000 and "T-Mobile" in b["order"]["country"], b["order"]
+    rr = await webapi.numbers_reroll(db, None, me, order_id=b["order"]["id"], nonce="nonce-re-001", bot=bot)
+    assert rr["order"]["id"] != b["order"]["id"] and rr["balance"] == b["balance"], (rr["balance"], b["balance"])
+    for args in (dict(order_id=rr["order"]["id"], nonce="nonce-re-002"),):           # فاصله ی ۲۰ ثانیه
+        try:
+            await webapi.numbers_reroll(db, None, me, bot=bot, **args)
+            raise AssertionError("cooldown expected")
+        except webapi.ApiError as exc:
+            assert exc.code == "cooldown", exc.code
+    try:
+        await webapi.numbers_reroll(db, None, me, order_id=rr["order"]["id"], nonce="nonce-re-001", bot=bot)
+        raise AssertionError("duplicate nonce expected")
+    except webapi.ApiError as exc:
+        assert exc.code == "duplicate", exc.code
+    other = WebAppUser(id=961, first_name="H", username="h", language_code="fa", is_premium=False, start_param="")
+    await db.release_lock(f"numre:{um['id']}")
+    try:
+        await webapi.numbers_reroll(db, None, other, order_id=rr["order"]["id"], nonce="nonce-re-003", bot=bot)
+        raise AssertionError("ownership expected")
+    except webapi.ApiError as exc:
+        assert exc.status == 404, exc.status
+    print("OK mini app API: aliases, operators, buy with operator, reroll")
+
+
+async def admin_and_menus(db: Database, srv: FakeServer) -> None:
+    """پنل ادمین شماره مجازی و ورودی های منو (فروشگاه و «سرویس های من»)."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from app import keyboards
+    from app.handlers import admin as adm
+    from app.handlers import buy, services
+    from app.handlers import numbers as h
+
+    h.ensure_watcher = lambda *a, **k: None      # type: ignore[assignment]
+    srv.mode, srv.sms, srv.status = "ok", None, "active"
+    state = AsyncMock()
+    adm_user = await new_user(db, 950, 0)
+
+    c = FakeCall("adm:num")
+    await adm.cb_num_home(c, db, state)
+    assert "seed" in c.page and "SMSBurner" in c.page and "10 دلار" in c.page, c.page      # موجودی 10 دلار
+    assert "adm:num:key" in c.buttons and "adm:num:raw" in c.buttons and "adm:num:unknown" in c.buttons
+
+    # seed نامعتبر رد، معتبر ذخیره و پیام حاوی آن پاک می شود
+    state.get_data = AsyncMock(return_value={"ai_field": "num_seed"})
+    msg = MagicMock()
+    msg.text = "not-a-seed"
+    msg.delete, msg.answer = AsyncMock(), AsyncMock()
+    msg.edit_text = AsyncMock(return_value=msg)
+    await adm.msg_ai_field(msg, db, state)
+    msg.delete.assert_awaited()
+    assert "درست نیست" in msg.answer.await_args.args[0]
+    msg.text = "Zz9Y-yXx8-wVv7-uTt6"
+    msg.answer.reset_mock()
+    await adm.msg_ai_field(msg, db, state)
+    assert (await db.get_setting(ns.KEY_SETTING)) == "Zz9Y-yXx8-wVv7-uTt6", "valid seed saved"
+    await db.set_setting(ns.KEY_SETTING, "AbC3-dEf4-gHj5-kLm6")
+    state.get_data = AsyncMock(return_value={"ai_field": "num_profit_percent"})
+    msg.text = "55"
+    await adm.msg_ai_field(msg, db, state)
+    assert (await ns.load_cfg(db))["num_profit_percent"] == 55
+    await db.set_setting("num_profit_percent", "40")
+    state.get_data = AsyncMock(return_value={"ai_field": "num_profit_percent"})
+    msg.text = "abc"
+    msg.answer.reset_mock()
+    await adm.msg_ai_field(msg, db, state)
+    assert (await ns.load_cfg(db))["num_profit_percent"] == 40          # ورودی بد ذخیره نشد
+
+    c = FakeCall("adm:num:preview")
+    await adm.cb_num_preview(c, db)
+    shown = c.message.answer.await_args.args[0]
+    assert "Telegram" in shown and "49,000" in shown and "تومان" in shown, shown
+
+    c = FakeCall("adm:num:balance")
+    await adm.cb_num_balance(c, db)
+    assert "10" in c.answer.await_args.args[0]
+
+    c = FakeCall("adm:num:raw")
+    await adm.cb_num_raw(c, db)
+    doc = c.message.answer_document.await_args
+    body = doc.args[0].data.decode()
+    assert "AbC3-dEf4-gHj5-kLm6" not in body and '"/account"' in body, "seed must never be in the file"
+
+    # خرید مبهم ← فهرست ادمین ← تایید ← برگشت پول
+    srv.mode = "timeout"
+    ub = await new_user(db, 951, 100_000)
+    r = await ns.buy(db, None, ub, "2", "us")
+    assert r["status"] == ns.UNKNOWN
+    c = FakeCall("adm:num:unknown")
+    await adm.cb_num_unknown(c, db)
+    assert r["order"]["code"] in c.page and f"adm:num:rf:{r['order']['id']}" in c.buttons, c.buttons
+    c = FakeCall(f"adm:num:rf:{r['order']['id']}")
+    await adm.cb_num_settle_ask(c, db)
+    assert f"adm:num:rfy:{r['order']['id']}" in c.buttons
+    c = FakeCall(f"adm:num:rfy:{r['order']['id']}")
+    c.bot = AsyncMock()
+    await adm.cb_num_settle(c, db)
+    assert await bal(db, ub) == 100_000
+    c.bot.send_message.assert_awaited()                                 # به کاربر خبر داده شد
+    srv.mode = "ok"
+
+    # منوها: فروشگاه و «سرویس های من»
+    u = await new_user(db, 952, 10_000)
+    c = FakeCall("buy")
+    await buy.cb_shop_hub(c, db, state, u)
+    assert "num" in c.buttons, c.buttons
+    c = FakeCall("svc")
+    await services.cb_services(c, db, u)
+    assert "num" in c.buttons or "num:mine" in c.buttons, c.buttons
+    assert "شماره مجازی" in c.page and "به زودی" not in c.page.split("ویزا")[0].split("شماره مجازی")[1][:15]
+    kb = keyboards.my_services_kb([], 0, False, True, 2)
+    assert "num:mine" in [b.callback_data for row in kb.inline_keyboard for b in row]
+    # بخش خاموش: دکمه فروشگاه پنهان می شود
+    from app import features
+
+    await features.set_on(db, "shop_numbers", False)
+    c = FakeCall("buy")
+    await buy.cb_shop_hub(c, db, state, u)
+    assert "num" not in c.buttons, c.buttons
+    await features.set_on(db, "shop_numbers", True)
+    print("OK admin panel & menus (seed, settings, preview, raw w/o seed, unknown settle, shop hub, my services)")
+
+
+async def webapp_flow(db: Database, srv: FakeServer) -> None:
+    """اندپوینت های مینی اپ: ویترین، کشورها، خرید (با nonce)، پیگیری، لغو، و مالکیت سفارش."""
+    from unittest.mock import AsyncMock
+
+    from app.handlers import numbers as h
+    from app.webapp import api as webapi
+    from app.webapp.auth import WebAppUser
+
+    h.ensure_watcher = lambda *a, **k: None      # type: ignore[assignment]
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+    srv.mode, srv.sms, srv.status, srv.cancel_status = "ok", None, "active", 200
+    u = await new_user(db, 900, 200_000)
+    await db.execute("UPDATE users SET rules_accepted_at = ? WHERE id = ?", ("2026-01-01T00:00:00", u["id"]))
+    me = WebAppUser(id=900, first_name="T", username="t", language_code="fa", is_premium=False, start_param="")
+    other = await new_user(db, 901, 0)
+    stranger = WebAppUser(id=901, first_name="S", username="s", language_code="fa", is_premium=False, start_param="")
+    bot = AsyncMock()
+
+    info = await webapi.numbers_info(db, None, me)
+    assert info["ready"] and info["enabled"] and info["balance"] == 200_000, info
+    assert [s["name"] for s in info["services"]] == ["Telegram"] and info["popular"] == ["2"]
+    assert info["categories"][0]["key"] == "social" and info["categories"][0]["emoji"] == "💬"
+    d = await webapi.numbers_countries(db, None, me, "2")
+    assert [c["cc"] for c in d["items"]] == ["in", "us"] and d["items"][1]["price"] == 49_000
+    assert d["items"][0]["title"] == "هند" and d["items"][0]["flag"] == "🇮🇳"
+
+    # خرید: صفحه شماره در چت هم فرستاده می شود؛ همان nonce دوبار خرید نمی کند
+    r = await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-1", bot=bot)
+    assert r["status"] == "active" and r["order"]["phone"] == "+15551234567" and r["order"]["left"] > 1000, r
+    assert r["balance"] == 200_000 - 49_000
+    bot.send_message.assert_awaited()
+    try:
+        await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-1", bot=bot)
+        raise AssertionError("duplicate nonce must be rejected")
+    except webapi.ApiError as exc:
+        assert exc.code == "duplicate", exc.code
+    oid = r["order"]["id"]
+    assert (await db.get_user(u["id"]))["balance"] == 200_000 - 49_000
+
+    # پیگیری: بدون کد ← active؛ با کد ← completed و خبر به چت ربات
+    p1 = await webapi.numbers_order(db, None, me, oid, bot=bot)
+    assert p1["order"]["status"] == "active" and p1["order"]["sms_code"] == ""
+    await db.release_lock(f"numchk:{oid}")
+    srv.sms = "314159"
+    bot.send_message.reset_mock()
+    p2 = await webapi.numbers_order(db, None, me, oid, bot=bot)
+    assert p2["order"]["status"] == "completed" and p2["order"]["sms_code"] == "314159", p2
+    assert any("314159" in str(c) for c in bot.send_message.await_args_list)
+
+    # سفارش کس دیگر دیده یا لغو نمی شود
+    for call in (webapi.numbers_order(db, None, stranger, oid), webapi.numbers_cancel(db, None, stranger, order_id=oid)):
+        try:
+            await call
+            raise AssertionError("stranger must not access the order")
+        except webapi.ApiError as exc:
+            assert exc.status == 404, exc.status
+
+    # لغو: پول برمی گردد؛ کد رسیده را لغو نمی کند
+    srv.sms = None
+    r2 = await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-2", bot=bot)
+    c = await webapi.numbers_cancel(db, None, me, order_id=r2["order"]["id"], bot=bot)
+    assert c["status"] == "refunded" and c["balance"] == 200_000 - 49_000, c
+
+    # خطاها: کمبود موجودی، نبود شماره، سرویس خاموش
+    try:
+        await webapi.numbers_buy(db, None, WebAppUser(901, "S", "s", "fa", False, ""), service_id="2", cc="us",
+                                 nonce="nonce-aaaa-3", bot=bot)
+        raise AssertionError("must require accepted rules")
+    except webapi.ApiError as exc:
+        assert exc.code == "rules", exc.code
+    await db.execute("UPDATE users SET rules_accepted_at = ? WHERE id = ?", ("2026-01-01T00:00:00", other["id"]))
+    try:
+        await webapi.numbers_buy(db, None, stranger, service_id="2", cc="us", nonce="nonce-aaaa-4", bot=bot)
+        raise AssertionError("must reject insufficient balance")
+    except webapi.ApiError as exc:
+        assert exc.status == 402 and exc.code == "insufficient", (exc.status, exc.code)
+    srv.mode = "stock"
+    try:
+        await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-5", bot=bot)
+        raise AssertionError("must report refund")
+    except webapi.ApiError as exc:
+        assert exc.code in ("unavailable", "refunded"), exc.code
+    assert (await db.get_user(u["id"]))["balance"] == 200_000 - 49_000       # پولی گم نشد
+    from app import features
+
+    await features.set_on(db, "shop_numbers", False)
+    assert (await webapi.numbers_info(db, None, me))["ready"] is False
+    try:
+        await webapi.numbers_buy(db, None, me, service_id="2", cc="us", nonce="nonce-aaaa-6", bot=bot)
+        raise AssertionError("must be off")
+    except webapi.ApiError as exc:
+        assert exc.code == "feature_off", exc.code
+    await features.set_on(db, "shop_numbers", True)
+    boot_ready = await webapi._numbers_ready(db)
+    assert boot_ready is True
+    print("OK mini app API (catalog, countries, buy+nonce, poll+notify, cancel, ownership, errors, flag)")
+
+
+class FakeCall:
+    """CallbackQuery ساختگی: دکمه ای که کاربر می زند و صفحه ای که ربات نشان می دهد."""
+
+    seq = 0
+    callback_id: str | None = None
+
+    def __init__(self, data: str) -> None:
+        from unittest.mock import AsyncMock, MagicMock
+
+        self.data = data
+        FakeCall.seq += 1
+        self.id = self.callback_id or f"cb{FakeCall.seq}"
+        self.message = MagicMock()
+        self.message.chat.id, self.message.message_id = 777, 5
+        self.message.edit_text = AsyncMock(return_value=self.message)
+        self.message.answer = AsyncMock(return_value=self.message)
+        self.message.answer_document = AsyncMock()
+        self.answer = AsyncMock()
+        self.bot = AsyncMock()
+
+    @property
+    def page(self) -> str:
+        return self.message.edit_text.call_args.args[0]
+
+    @property
+    def buttons(self) -> list[str]:
+        kb = self.message.edit_text.call_args.kwargs.get("reply_markup")
+        return [b.callback_data for row in kb.inline_keyboard for b in row] if kb else []
+
+
+async def handler_flow(db: Database, srv: FakeServer) -> None:
+    """مسیر کامل کاربر در ربات: منو ← سرویس ← کشور ← تایید ← خرید ← کد."""
+    from app.handlers import numbers as h
+
+    h.ensure_watcher = lambda *a, **k: None      # type: ignore[assignment]
+    srv.mode, srv.sms, srv.status = "ok", None, "active"
+    # سفارش های باز مانده از تست های بالا (همه به یک شماره ۱۰۱ می رسند) این بخش را قاطی نکنند
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+    u = await new_user(db, 500, 200_000)
+
+    async def tap(data: str, fn) -> FakeCall:  # noqa: ANN001
+        c = FakeCall(data)
+        await fn(c, db, await db.get_user(u["id"]))
+        return c
+
+    c = await tap("num", h.cb_hub)
+    assert "شماره مجازی" in c.page and "num:s:2:0" in c.buttons and "num:cats" in c.buttons, c.buttons
+    c = await tap("num:cats", h.cb_cats)
+    assert "num:c:social:0" in c.buttons, c.buttons
+    c = await tap("num:c:social:0", h.cb_cat)
+    assert "Telegram" in str(c.message.edit_text.call_args) and "num:s:2:0" in c.buttons
+    c = await tap("num:s:2:0", h.cb_service)
+    assert c.buttons.index("num:b:2:in") < c.buttons.index("num:b:2:us"), c.buttons       # ارزان تر اول
+    c = await tap("num:b:2:us", h.cb_confirm)                          # آمریکا چند نوع دارد ← اول نوع شماره
+    assert "num:b:2:us:0" in c.buttons and "num:b:2:us:3" in c.buttons and "نوع شماره" in c.page, c.buttons
+    c = await tap("num:b:2:in", h.cb_confirm)                          # هند یک نوع دارد ← مستقیم تایید
+    assert "num:go:2:in:0" in c.buttons and "18,000" not in c.page or "num:go:2:in:0" in c.buttons
+    c = await tap("num:b:2:us:0", h.cb_confirm)
+    assert "49,000" in c.page and "num:go:2:us:0" in c.buttons and "num:b:2:us" in c.buttons, c.buttons
+    c = await tap("num:go:2:us:0", h.cb_buy)
+    assert "+15551234567" in c.page and any(b.startswith("num:chk:") for b in c.buttons), c.page
+    order = (await db.user_number_orders(u["id"]))[0]
+    assert order["chat_id"] == 777 and order["message_id"] == 5      # برای خبر دادن بعدی ذخیره شد
+    assert await bal(db, u) == 200_000 - 49_000
+
+    c = await tap(f"num:chk:{order['id']}", h.cb_check)                # هنوز کدی نیامده
+    c.answer.assert_awaited()
+    assert "+15551234567" in c.page
+    c = await tap(f"num:x:{order['id']}", h.cb_cancel_ask)
+    assert f"num:xy:{order['id']}" in c.buttons
+    srv.sms = "654321"
+    c = await tap(f"num:chk:{order['id']}", h.cb_check)                # کد رسید
+    assert "654321" in c.page, c.page
+    c = await tap("num:mine", h.cb_mine)
+    assert "654321" in c.page and "+15551234567" in c.page
+
+    # همان آپدیت تلگرام (کلیک) اگر دوباره برسد، خرید دوم نمی سازد
+    n_orders = len(await db.user_number_orders(u["id"], limit=50))
+    dup = FakeCall("num:go:2:us")
+    dup.callback_id = "same-update-1"
+    await h.cb_buy(dup, db, await db.get_user(u["id"]))
+    await h.cb_buy(dup, db, await db.get_user(u["id"]))
+    assert len(await db.user_number_orders(u["id"], limit=50)) == n_orders + 1
+    await db.execute("UPDATE number_orders SET status = 'refunded' WHERE status = 'active'")
+
+    # شماره دیگر: لغو از طریق دکمه
+    srv.sms, srv.status = None, "active"
+    await tap("num:go:2:us", h.cb_buy)
+    o2 = (await db.user_number_orders(u["id"]))[0]
+    before = await bal(db, u)
+    c = await tap(f"num:xy:{o2['id']}", h.cb_cancel)
+    assert await bal(db, u) == before + 49_000 and "برگشت" in c.page
+
+    # سفارش کس دیگر دیده نمی شود
+    other = await new_user(db, 501, 0)
+    c = FakeCall(f"num:o:{o2['id']}")
+    await h.cb_order(c, db, other)
+    c.message.edit_text.assert_not_awaited()
+    assert c.answer.await_args.kwargs.get("show_alert") is True
+
+    # کد رسیده در پس زمینه: پایشگر خبر می دهد
+    srv.sms, srv.status = None, "active"
+    await tap("num:go:2:us", h.cb_buy)
+    srv.sms = "999000"
+    from unittest.mock import AsyncMock
+
+    bot = AsyncMock()
+    assert await h.sweep(db, bot) == 1
+    sent = bot.send_message.await_args
+    assert sent.args[0] == int(u["telegram_id"]) and "999000" in sent.args[1], sent
+    assert await h.sweep(db, bot) == 0                                   # دیگر سفارش بازی نیست
+    print("OK bot handler flow (hub → service → country → confirm → buy → code → cancel → watcher)")
+
+
+asyncio.run(main())

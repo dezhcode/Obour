@@ -34,6 +34,8 @@
   --cash:#E09A1F; --cash-t:#FCEFD3; --cash-i:#7A4A00;
   --ai:#6A55E0; --ai-t:#E7E3FC; --ai-i:#3F2DA6;
   --help:#E0573E; --help-t:#FCE4DE; --help-i:#9B2F1B;
+  /* پرمیوم و استارز تلگرام. --tgs زیر متن سفید 6.9:1 */
+  --tgs:#0E5A9E; --tgs-t:#DCEEFB; --tgs-i:#0B4A7A;
   --ok:#0B7A55; --warn:#8A5D00; --bad:#C0392B;
   --nav-bg:#0A1633; --nav-icon:#9AAACB; --nav-on:#EDF1F8;
   --shadow-pass:0 18px 34px -18px rgba(10,37,114,.55);
@@ -458,6 +460,76 @@ html.perf-low #store-box{will-change:auto}
 .nm-p{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;font-size:13px;color:var(--ink)}
 .nm-p small{font-size:11px;color:var(--ink-3);font-weight:600}
 .nm-p span{font-size:10.5px;color:var(--ink-3)}
+.nm-cats{display:flex;gap:8px;overflow-x:auto;padding:0 var(--pad) 12px;scrollbar-width:none}
+.nm-cats::-webkit-scrollbar{display:none}
+.nm-cat{flex-shrink:0;padding:8px 14px;border-radius:99px;background:var(--surface);border:1.5px solid var(--line);font-size:12.5px;font-weight:700;color:var(--ink-2);white-space:nowrap;transition:border-color .2s,background .2s}
+.nm-cat.on{border-color:#C2408A;background:color-mix(in srgb,#C2408A 8%,var(--surface));color:#9B1F5E}
+.nm-mono{width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--c) 14%,var(--surface));color:var(--c);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0;letter-spacing:-.3px}
+.nmo-f{display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 14px;border-radius:var(--r-md);background:var(--sunk)}
+.nmo-f.code{background:color-mix(in srgb,var(--ok) 10%,var(--surface))}
+.nmo-k{font-size:11.5px;color:var(--ink-3);font-weight:700;flex-shrink:0}
+.nmo-v{flex-grow:1;min-width:0;font-size:18px;font-weight:800;text-align:start;overflow-wrap:anywhere}
+.nmo-code{font-size:28px;letter-spacing:4px}
+/* پرمیوم و استارز تلگرام: کارت ویترین، گیرنده، بسته های استارز */
+.ic.tgs{background:var(--tgs-t);color:var(--tgs-i)}
+.cg-t.tgs{background:radial-gradient(circle at 0% 100%,rgba(70,225,244,.26),transparent 58%),radial-gradient(rgba(255,255,255,.16) 1.2px,transparent 1.5px) 0 0/12px 12px,var(--cg)}
+.cg-tags{margin-inline-start:auto;display:flex;gap:6px;flex-shrink:0}
+.cg-tags .cg-c{margin-inline-start:0}
+.cg-new{height:24px;padding:0 9px;border-radius:999px;background:var(--tunnel);color:var(--deep);font-size:11px;font-weight:800;display:flex;align-items:center}
+.tgv{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2.5px var(--cg)}
+.tgv + .tgv{margin-inline-start:-9px}
+.tgv svg{width:17px;height:17px;fill:currentColor}
+.tgv.prem{background:radial-gradient(circle at 30% 25%,#6E9BFF,#6B46DB 60%,#4A23A8);color:#fff}
+.tgv.stars{background:radial-gradient(circle at 30% 25%,#FFE08A,#F6B53A 60%,#E08D12);color:#fff}
+.tgv.stars svg{stroke:#8A5200}
+.dh-tgs{background:radial-gradient(120% 90% at 0% 0%,#2B9BE6 0%,#0F5FA6 52%,#072F5C 100%)}
+.tk.tgs .tk-vol{color:var(--tgs-i)}
+.tk.tgs:not(.best) .tk-buy{background:var(--tgs)}
+.tk.tgs:not(.best) .tk-buy:active{background:#0B4A85}
+.tg-note{margin:10px var(--pad) 0;text-align:start;line-height:1.8}
+.tg-rcp{display:flex;align-items:center;gap:10px;width:calc(100% - 2 * var(--pad));margin:12px var(--pad) 0;padding:10px 12px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--line);text-align:start}
+.tg-rcp.bad{border-color:var(--bad)}
+.tg-av{width:38px;height:38px;border-radius:19px;background:var(--tgs-t);color:var(--tgs-i);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0;overflow:hidden}
+.tg-av img{width:100%;height:100%;object-fit:cover}
+.tg-av svg{width:19px;height:19px}
+.tg-u{font-size:12.5px;font-weight:600;color:var(--ink-3)}
+.tg-st{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;flex-shrink:0;color:var(--ink-3)}
+.tg-st svg{width:14px;height:14px}
+.tg-st.ok{color:var(--ok)} .tg-st.bad{color:var(--bad)}
+.tg-ch{height:32px;padding:0 10px;border-radius:10px;border:1px solid var(--line);font-size:12px;font-weight:700;color:var(--ink);display:flex;align-items:center;flex-shrink:0}
+.tg-err{margin:6px var(--pad) 0;font-size:12px;line-height:1.8;color:var(--bad)}
+.tg-packs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px var(--pad) 0}
+.tg-pk{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:var(--r-lg);background:var(--surface);border:1.5px solid var(--line);color:var(--ink);transition:transform .15s var(--ease)}
+.tg-pk:active{transform:scale(.96);border-color:var(--brand)}
+.tg-pk-q{display:flex;align-items:center;gap:4px;font-size:18px}
+.tg-pk-q svg{width:16px;height:16px;fill:#F2A516;stroke:#B8740A;stroke-width:1}
+.tg-pk-p{font-size:11px;color:var(--ink-3)} .tg-pk-p .n{font-size:11.5px;color:var(--ink-2)}
+.tg-custom{display:flex;gap:8px;align-items:center;margin:10px var(--pad) 0}
+.tg-custom input{flex-grow:1;min-width:0;height:46px;padding:0 14px;border-radius:var(--r-md);border:1px dashed var(--line);background:var(--surface);font:inherit;font-size:14px;color:var(--ink);outline:none}
+.tg-custom input:focus{border-style:solid;border-color:var(--brand)}
+.tg-in{display:flex;align-items:center;gap:6px;height:50px;margin-top:14px;padding:0 14px;border-radius:var(--r-md);background:var(--sunk);direction:ltr}
+.tg-in span{font-size:16px;font-weight:800;color:var(--ink-3)}
+.tg-in input{flex-grow:1;min-width:0;border:0;outline:0;background:none;font:inherit;font-size:16px;font-weight:600;color:var(--ink);direction:ltr}
+.tg-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tg-chip{height:32px;padding:0 12px;border-radius:16px;border:1px solid var(--line);background:var(--surface);font-size:12.5px;font-weight:700;color:var(--ink-2);display:flex;align-items:center;gap:5px}
+.tg-chip svg{width:15px;height:15px}
+.tg-chip.on{border-color:var(--brand);color:var(--brand)}
+.tg-tag{height:22px;padding:0 8px;border-radius:11px;background:var(--ai-t);color:var(--ai-i);font-size:10.5px;font-weight:800;display:flex;align-items:center;flex-shrink:0}
+.tg-steps{display:flex;flex-direction:column;gap:10px;margin-top:14px;padding:12px 14px;border-radius:var(--r-lg);background:var(--ground)}
+.tg-step{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;text-align:start}
+.tg-step i{width:22px;height:22px;border-radius:11px;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tg-step i svg{width:12px;height:12px}
+.tg-step.skip{color:var(--ink-3)} .tg-step.skip i{background:var(--line);color:var(--ink-2)}
+.ai-orb.tg-done{background:var(--ai-t);color:var(--ai-i)}
+.ai-orb.tg-done::after{display:none}
+.ai-orb.tg-done svg{animation:none}
+.nmo-wait{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--ink-2);font-weight:700}
+.nmo-wait b{margin-inline-start:auto;font-size:15px;color:var(--ink)}
+.nmo-wait .ai-orb.sm{width:30px;height:30px;margin:0;border-radius:15px}
+.nmo-wait .ai-orb.sm svg{width:16px;height:16px}
+.nmo-act{display:flex;gap:8px;margin-top:14px}
+.nmo-act .btn{flex:1}
+.nmo-f .ai-f-b{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
 /* ویزا کارت */
 .vc-wrap{perspective:900px;margin-bottom:16px}
 .vcard{position:relative;overflow:hidden;aspect-ratio:1.586;border-radius:20px;padding:18px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;
@@ -1644,7 +1716,7 @@ const App = {
       case 'guide': this.go('guide'); break;
       case 'rules': this.go('rules'); break;
       case 'assist': if (aiOn('support')) Assist.open(arg === 'fix' ? 'fix' : 'chat'); break;
-      case 'store': Store.kind = ['ai', 'vpn', 'number', 'work', 'fun', 'tools'].includes(arg) ? arg : null; this.tab('store'); break;
+      case 'store': Store.kind = ['ai', 'vpn', 'number', 'tg', 'work', 'fun', 'tools'].includes(arg) ? arg : null; this.tab('store'); break;
       case 'services': this.tab('home'); break;
       case 'visa': this.go('visa'); break;
       case 'numbers': Store.kind = 'number'; this.tab('store'); break;
@@ -2025,7 +2097,7 @@ function WalletStrip(bal){
     <button class="btn btn-sm ${empty ? 'btn-p' : 'btn-d'}" onclick="App.go('topup')">شارژ</button></div>`;
 }
 /* دسته های فروشگاه. «اینترنت آزاد» کانفیگ های خود عبور است (و VPN های
-   آماده canboso زیرش)؛ بقیه دسته های محصولات آماده اند. دسته بی محصول
+   آماده سرویس‌دهنده زیرش)؛ بقیه دسته های محصولات آماده اند. دسته بی محصول
    نشان داده نمی شود. */
 const SHOP_CATS = {
   vpn:  ['globe', 'net',   'اینترنت آزاد', 'کانفیگ پرسرعت'],
@@ -2034,22 +2106,23 @@ const SHOP_CATS = {
   fun:  ['play',  'fun',   'سرگرمی',      'فیلم، موسیقی و ویدیو'],
   tools:['tool',  'tools', 'ابزار',        'آموزش، ایمیل و بیشتر'],
   number:['phone','number','شماره مجازی',  'کد تایید تلگرام، واتساپ و سایت‌ها'],
+  tg:   ['send',  'tgs',   'تلگرام پرمیوم و استارز', 'برای خودت یا هدیه، تحویل خودکار'],
 };
 /* ریل بخش های فروشگاه: هر بخش یک دکمه کوچک با آیکون و تعداد. شماره مجازی
    پیش نمایش است و همین جا باز می شود؛ ویزا کارت صفحه جدای خودش را دارد. */
 function Depts(active, counts){
   const f = App.boot.features, vpnOn = f.shop_vpn !== false, aiOn = f.shop_ai;
-  const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : k === 'number' ? true : aiOn && (!counts || counts[k] || k === active));
+  const keys = Object.keys(SHOP_CATS).filter(k => k === 'vpn' ? vpnOn : k === 'number' ? true : k === 'tg' ? TG.ready : aiOn && (!counts || counts[k] || k === active));
   Store.keys = keys;
-  const sub = k => k === 'vpn' ? 'کانفیگ' : k === 'number' ? 'پیش‌نمایش' : counts ? fa(counts[k] || 0) + ' محصول' : '…';
+  const sub = k => k === 'vpn' ? 'کانفیگ' : k === 'number' ? (Num.ready ? 'کد تایید' : 'پیش‌نمایش') : counts ? fa(counts[k] || 0) + ' محصول' : '…';
   return `<div class="dept" id="dept">${keys.map(k => `<button class="dept-b${k === active ? ' on' : ''}" data-k="${k}" onclick="Store.to('${k}')">
-      <span class="ic ${SHOP_CATS[k][1]}">${ic(SHOP_CATS[k][0])}</span><span class="dept-t">${SHOP_CATS[k][2]}</span><span class="dept-s">${esc(sub(k))}</span>${k === 'number' ? '<i class="dept-pv"></i>' : ''}</button>`).join('')}
+      <span class="ic ${SHOP_CATS[k][1]}">${ic(SHOP_CATS[k][0])}</span><span class="dept-t">${SHOP_CATS[k][2]}</span><span class="dept-s">${esc(sub(k))}</span>${k === 'number' && !Num.ready ? '<i class="dept-pv"></i>' : ''}</button>`).join('')}
     <button class="dept-b" onclick="App.go('visa')"><span class="ic visa">${ic('card')}</span><span class="dept-t">ویزا کارت</span><span class="dept-s">پیش‌نمایش</span><i class="dept-pv"></i></button></div>`;
 }
 /* ویترین فروشگاه: هر بخش یک کارت عبور کوچک با بافت نقطه ای و پیش نمایش
    محتوایش (کشورهای اینترنت آزاد، نشان چند محصول پرفروش). زدن هر کارت همان
    بخش را باز می کند؛ شماره مجازی و ویزا کارت پیش نمایش اند. */
-const CG_COLOR = { vpn:'var(--navy)', ai:'var(--indigo)', work:'var(--ocean)', fun:'var(--ember)', tools:'#1E2A4A' };
+const CG_COLOR = { vpn:'var(--navy)', ai:'var(--indigo)', work:'var(--ocean)', fun:'var(--ember)', tools:'#1E2A4A', tg:'var(--tgs)' };
 /* «N فروش موفق · M خریدار» زیر هر پلن و محصول */
 function SalesLine(sold, buyers){
   if (!sold) return '';
@@ -2082,9 +2155,10 @@ function CatGrid(){
     }
     html += tiles.map(([k, inner], i) => `<button class="cg-t${tiles.length % 2 && i === tiles.length - 1 ? ' span' : ''}" style="--cg:${CG_COLOR[k]}" onclick="Store.open('${k}')">${inner}</button>`).join('');
   }
+  if (f.shop_telegram !== false && TG.ready) html += TG.tile();
   return `<div class="cg">${html}</div>
     <div class="cg-soon">
-      <button class="cg-sn" onclick="Store.open('number')">${ic('phone')}<span><b>شماره مجازی</b><small>به‌زودی</small></span></button>
+      <button class="cg-sn" onclick="Store.open('number')">${ic('phone')}<span><b>شماره مجازی</b><small>${Num.ready ? 'کد تایید' : 'به‌زودی'}</small></span></button>
       <button class="cg-sn" onclick="App.go('visa')">${ic('card')}<span><b>ویزا کارت</b><small>به‌زودی</small></span></button>
     </div>`;
 }
@@ -2095,7 +2169,7 @@ function DeptHero(k){
     : ((AI.d && AI.d.items) || []).filter(x => x.category === k && x.stock !== 0).map(x => x.price);
   const minP = prices.length ? Math.min(...prices) : 0;
   const sub = k === 'vpn' ? 'کانفیگ پرسرعت در همه کشورها، همه توی یک لینک؛ روزانه، هفتگی و ماهانه' : SHOP_CATS[k][3];
-  const chips = k === 'number' ? [['clock', 'به‌زودی'], ['wallet', 'پرداخت از کیف پول'], ['refresh', 'کد نیامد؟ پول برمی‌گردد']]
+  const chips = k === 'number' ? [[Num.ready ? 'bolt' : 'clock', Num.ready ? 'شماره فوری' : 'به‌زودی'], ['wallet', 'پرداخت از کیف پول'], ['refresh', 'کد نیامد؟ پول برمی‌گردد']]
     : [['bolt', 'تحویل فوری'], ['wallet', 'پرداخت از کیف پول'], ['chat', 'پشتیبانی در مینی اپ']];
   return `<div class="${'dh dh-' + k}"><span class="dh-art">${ic(SHOP_CATS[k][0], 1.2)}</span>
     <div class="dh-t">${SHOP_CATS[k][2]}</div><div class="dh-s">${sub}</div>
@@ -2323,7 +2397,7 @@ async store(p){
         <button class="sh-bal" onclick="App.go('topup')" aria-label="${esc(I18N.t('شارژ کیف پول'))}">${ic('wallet')}<span class="n" data-bal>${fa(App.boot.user.balance)}</span></button></div>
       <div id="sh-res"></div>`;
   if (Store.kind == null) return Store.landing(p, head);
-  if (!ai && Store.kind !== 'number') Store.kind = 'vpn';
+  if (!ai && Store.kind !== 'number' && Store.kind !== 'tg') Store.kind = 'vpn';
   if (f.shop_vpn === false && Store.kind === 'vpn') Store.kind = ai ? 'ai' : 'number';
   /* صفحه هر بخش فقط همان بخش را دارد؛ برگشت (دکمه بالا یا برگشت تلگرام) به ویترین */
   const t = SHOP_CATS[Store.kind] || SHOP_CATS.vpn;
@@ -2424,6 +2498,7 @@ const Store = {
     const jobs = [];
     if (f.shop_vpn !== false && !this.data) jobs.push(api('plans').then(d => { this.data = d; }).catch(() => {}));
     if (f.shop_ai && !AI.d) jobs.push(api('ai').then(d => { AI.d = d; this._aiFail = false; if (d.balance != null) App.setBalance(d.balance); }).catch(() => { this._aiFail = true; }));
+    if (f.shop_telegram !== false && TG.ready && !TG.d) jobs.push(TG.load().catch(() => {}));
     if (!jobs.length) return;
     await Promise.all(jobs);
     const box = $('cg-box'); if (box && this.kind == null) box.innerHTML = CatGrid();
@@ -2432,7 +2507,7 @@ const Store = {
   home(){ this.kind = null; App.haptic(); App.tab('store'); },
 
   keys:[],
-  load(){ return this.kind === 'vpn' ? this.loadVpn() : this.kind === 'number' ? this.loadNumbers() : this.loadAi(); },
+  load(){ return this.kind === 'vpn' ? this.loadVpn() : this.kind === 'number' ? this.loadNumbers() : this.kind === 'tg' ? TG.render() : this.loadAi(); },
   centerDept(smooth){
     const b = document.querySelector(`#dept .dept-b[data-k="${this.kind}"]`);
     if (b) try { b.scrollIntoView({ inline:'center', block:'nearest', behavior: smooth ? 'smooth' : 'auto' }); } catch(e){}
@@ -2473,7 +2548,7 @@ const Store = {
     if (this.kind === 'vpn') this.vpnExtra();
     return AI.d;
   },
-  /* VPN های آماده canboso زیر کانفیگ های خود عبور */
+  /* VPN های آماده سرویس‌دهنده زیر کانفیگ های خود عبور */
   vpnExtra(){
     const items = ((AI.d && AI.d.items) || []).filter(x => x.category === 'vpn');
     const box = $('store-box'); if (!box || !items.length || $('vpn-extra')) return;
@@ -2584,7 +2659,7 @@ const Store = {
   /* کارت های «به زودی در عبور» ته فروشگاه */
   soonCards(){
     const box = $('soon-box'); if (!box) return;
-    const num = this.kind !== 'number';
+    const num = this.kind !== 'number' && !Num.ready;
     box.innerHTML = Sec('به‌زودی در عبور') + `<div class="soon${num ? '' : ' one'}">
       ${num ? `<button class="soon-c num" onclick="Store.to('number');$('view').scrollTo({ top:0, behavior:'smooth' })">${ic('phone', 1.4)}<span class="soon-tag">پیش‌نمایش</span>
         <span class="soon-t">شماره مجازی</span><span class="soon-s">کد تایید تلگرام، واتساپ و گوگل</span></button>` : ''}
@@ -2592,9 +2667,11 @@ const Store = {
         <span class="soon-t">ویزا کارت مجازی</span><span class="soon-s">پرداخت اشتراک‌ها و خریدهای خارجی</span></button></div>`;
   },
 
-  /* شماره مجازی (پیش نمایش): سرویس، نوع شماره و کشورها با قیمت تقریبی */
+  /* شماره مجازی: فروش واقعی (Num) وقتی seed و نرخ تنظیم شده، وگرنه پیش نمایش */
   nm:{ kind:0, svc:'telegram' },
-  async loadNumbers(){
+  async loadNumbers(){ return Num.ready ? Num.render() : this.loadNumbersPreview(); },
+  /* شماره مجازی (پیش نمایش): سرویس، نوع شماره و کشورها با قیمت تقریبی */
+  async loadNumbersPreview(){
     try {
       const d = await Soon.load(), n = d.number;
       const box = $('store-box'); if (!box || this.kind !== 'number') return;
@@ -2682,7 +2759,7 @@ const Wallet = {
   more(){ this.offset += 12; return this.load(); },
   find(id){ return this.items.find(x => x.id === id); }
 };
-const TX = { charge:['cash','down','شارژ کیف پول'], purchase:['net','up','خرید سرویس'], ai_purchase:['ai','spark','خرید هوش مصنوعی'],
+const TX = { charge:['cash','down','شارژ کیف پول'], purchase:['net','up','خرید سرویس'], ai_purchase:['ai','spark','خرید هوش مصنوعی'], number_purchase:['number','phone','خرید شماره مجازی'],
   referral:['cash','gift','پاداش هم‌سفر'], refund:['cash','refresh','برگشت وجه'], admin_adjust:['help','wallet','تغییر توسط پشتیبانی'] };
 /* کیف پول های متصل (TON Connect) در صفحه کیف پول. اتصال در خود مرورگر تلگرام
    می ماند؛ همان کیف پولی است که در شارژ کریپتو استفاده می شود. */
@@ -3589,7 +3666,7 @@ const AI_BRANDS = [
   [/eleven/i, '#26262B', '11'], [/netflix/i, '#B20710', 'N'], [/spotify/i, '#1A8F45', 'S'], [/youtube/i, '#CC2A2A', 'YT'],
 ];
 const AI_EMAIL = /^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/;
-/* کلید emoji خود canboso، مطمئن تر از حدس از روی نام */
+/* کلید emoji خود سرویس‌دهنده، مطمئن تر از حدس از روی نام */
 const AI_BRAND_KEYS = { google_one:['#2F6BEA','G'], gemini:['#2F6BEA','G'], chatgpt:['#10A37F','GPT'], elevenlabs:['#26262B','11'], grok:['#16181D','X'],
   capcut:['#18181B','CC'], youtube:['#CC2A2A','YT'], lovable:['#E0457B','L'], notion:['#26262B','N'], duolingo:['#4C9A1A','D'], wispr_flow:['#3A3F8F','W'],
   udemy:['#5624D0','U'], microsoft_office_365:['#D83B01','M'], canva:['#7D2AE8','Ca'], surfshark:['#178A8A','S'], nordvpn:['#4687FF','N'],
@@ -3817,7 +3894,7 @@ const AI = {
   },
   orderPage(o, fresh){
     const st = AI_ST[o.status] || ['', 'list', o.status, ''];
-    const wait = o.status === 'unknown' || o.status === 'pending';
+    const wait = o.status === 'unknown' || o.status === 'pending' || o.status === 'processing';
     const rows = [['محصول', `<span class="ai-lat">${esc(o.title)}</span>`], ['کد پیگیری', `<span class="n">${esc(o.code)}</span>`]];
     if (o.provider_code) rows.push(['کد فروشنده', `<span class="n">${esc(o.provider_code)}</span>`]);
     if (o.email) rows.push(['ایمیل', `<span dir="ltr" style="overflow-wrap:anywhere">${esc(o.email)}</span>`]);
@@ -3829,7 +3906,7 @@ const AI = {
           <div style="min-width:0"><div class="ai-st-t">${fresh && st[0] === 'ok' ? 'تحویل شد؛ مبارکت باشه' : st[2]}</div><div class="ai-st-c ai-lat">${esc(o.title)}</div></div></div>
         <div class="ai-st-s">${st[3]}</div>
         ${o.status === 'processing' && o.email ? `<div class="ai-st-e">${ic('mail', 2)}<span>${esc(o.email)}</span></div>` : ''}
-        ${wait ? `<button class="btn btn-s btn-block" id="ai-chk" onclick="AI.check(${o.id})">${ic('refresh', 2)}بررسی دوباره</button>` : ''}
+        ${wait ? `<button class="btn btn-s btn-block" id="ai-chk" onclick="AI.check(${o.id})">${ic('refresh', 2)}${o.status === 'processing' ? 'دریافت دوباره لینک' : 'بررسی دوباره'}</button>` : ''}
       </div>
       ${fresh ? `<div class="ai-sent">${ic('chat', 2)}<span>یک نسخه در چت ربات هم برایت فرستاده شد.</span></div>` : ''}
       ${o.delivery && o.delivery.length ? '<div class="gap" style="height:14px"></div>' + o.delivery.map((a, i) => this.cred(o, a, i)).join('') : ''}
@@ -3860,7 +3937,7 @@ const AI = {
       const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(r.order);
       App.notify(r.status === 'delivered' ? 'success' : 'warning');
       App.toast(r.status === 'delivered' ? 'تحویل شد' : r.status === 'failed' ? 'مبلغ به کیف پولت برگشت'
-              : r.status === 'processing' ? 'سفارش ثبت شد؛ در انتظار فروشنده' : 'هنوز جوابی نیامده؛ کمی بعد دوباره امتحان کن');
+              : r.status === 'processing' ? 'هنوز لینک از فروشنده نیامده؛ خودکار هم دوباره پرسیده می‌شود' : 'هنوز جوابی نیامده؛ کمی بعد دوباره امتحان کن');
     } catch (err) {
       App.toast(err.message, true);
       if (b) { b.disabled = false; b.innerHTML = `${ic('refresh', 2)}${esc(I18N.t('بررسی دوباره'))}`; }
@@ -3974,19 +4051,19 @@ Object.entries({
   "تنظیمات محصول":"Product settings",
   "تصویر":"Image",
   "انتخاب عکس":"Choose a photo",
-  "تصویر خود canboso":"Use canboso’s image",
+  "تصویر خود سرویس‌دهنده":"Use the provider’s image",
   "حذف تصویر":"Remove image",
   "عکس مربعی بهتر است؛ خودکار کوچک و فشرده می‌شود. در ربات، بالای کارت محصول نمایش داده می‌شود.":"Square photos work best; they are resized and compressed automatically. In the bot, it shows above the product card.",
   "دسته":"Category",
   "خودکار":"Automatic",
-  "خالی بماند تا توضیح خود canboso نمایش داده شود.":"Leave empty to use canboso’s own description.",
-  "بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود canboso.":"After purchase it is sent to the buyer with the link or login details, in the bot and the mini app. Empty = canboso’s English description.",
+  "خالی بماند تا توضیح خود سرویس‌دهنده نمایش داده شود.":"Leave empty to use the provider’s own description.",
+  "بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود سرویس‌دهنده.":"After purchase it is sent to the buyer with the link or login details, in the bot and the mini app. Empty = the provider’s English description.",
   "ذخیره آموزش":"Save guide",
-  "توضیح canboso":"canboso description",
+  "توضیح سرویس‌دهنده":"Provider description",
   "نمایش":"Visibility",
   "به کاربر نمایش داده می‌شود":"Shown to users",
   "پنهان":"Hidden",
-  "در حال دریافت از canboso…":"Fetching from canboso…",
+  "در حال دریافت از سرویس‌دهنده…":"Fetching from the provider…",
   "تصویر گذاشته شد":"Image set",
   "تصویر حذف شود؟":"Remove the image?",
   "حذف شد":"Removed",
@@ -4004,7 +4081,7 @@ Object.entries({
   "وقتی آماده شد، اطلاعاتش در صفحه سفارش می‌آید.":"When it’s ready, the details appear on the order page.",
   "لینک فعال‌سازی":"Activation link",
   "محصولات هوش مصنوعی":"AI products",
-  "نمایش محصولات و موجودی کیف پول canboso":"Product visibility and canboso wallet stock",
+  "نمایش محصولات و موجودی کیف پول سرویس‌دهنده":"Product visibility and provider wallet stock",
   "کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها":"Card, rates, payment methods and sections",
   "ارسال همگانی، نظرسنجی، دسته‌ها، ایموجی‌ها و نرخ و سود هوش مصنوعی از پنل ربات (/admin) انجام می‌شود.":"Broadcasts, polls, categories, emojis and AI rates and margins are managed in the bot panel (/admin).",
   "روش‌های پرداخت":"Payment methods",
@@ -4024,12 +4101,23 @@ Object.entries({
   "همه محصولات نمایش داده شوند؟":"Show all products?",
   "همه محصولات پنهان شوند؟":"Hide all products?",
   "کلید API تنظیم نشده":"API key not set",
-  "CANBOSO_API_KEY را در فایل .env بگذار.":"Put CANBOSO_API_KEY in the .env file.",
-  "خواندن از canboso نشد":"Couldn’t read from canboso",
-  "کیف پول شما نزد canboso":"Your canboso wallet",
+  "SSON_API_KEY را در فایل .env بگذار.":"Put SSON_API_KEY in the .env file.",
+  "خواندن از سرویس‌دهنده نشد":"Couldn’t read from the provider",
+  "کیف پول شما نزد سرویس‌دهنده":"Your provider wallet",
+  "سود این محصول":"This product’s margin",
+  "سود کلی":"Global margin",
+  "مبلغ ثابت (تومان)":"Fixed amount (toman)",
+  "درصد":"Percent",
+  "ذخیره سود":"Save margin",
+  "سود ذخیره شد":"Margin saved",
+  "قیمت کاربر الان:":"Current user price:",
+  "یک عدد معتبر بنویس":"Enter a valid number",
+  "قیمت کاربر = قیمت API × (۱ + این درصد)، بعد رند می‌شود.":"User price = API price × (1 + this percent), then rounded.",
+  "قیمت کاربر = قیمت API + همین مبلغ تومانی، بعد رند می‌شود.":"User price = API price + this toman amount, then rounded.",
+  "با تنظیمات سود کلی پنل ربات حساب می‌شود (درصد سود، کارمزد، حاشیه نوسان، حداقل سود یا سود ثابت).":"Uses the bot panel’s global margin settings (profit %, fee, buffer, minimum profit or fixed margin).",
   "موجودی که کاربر می‌بیند کمترینِ موجودی API و تعدادی است که با همین کیف پول خریدنی است؛ اگر هر کدام صفر باشد، «ناموجود».":"Users see the lower of the API stock and how many this wallet can buy; if either is zero, it shows “Out of stock”.",
   "محصولی نیامد":"No products returned",
-  "محصول تازه canboso تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.":"New canboso products stay hidden until you turn them on (unless you haven’t turned any product off yet). Prices use the rates and margins from the bot panel.",
+  "محصول تازه سرویس‌دهنده تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.":"New provider products stay hidden until you turn them on (unless you haven’t turned any product off yet). Prices use the rates and margins from the bot panel.",
 }).forEach(([k, v]) => { L10N.en[I18N.norm(k)] = v; });
 
 /* ═════════ پنل مدیریت (فقط ادمین) ═════════
@@ -4087,7 +4175,7 @@ SubPages.admin = async function(p){
         Row({ kind:'cash', icon:'image', title:'رسیدهای شارژ', sub: d.pending ? `${fa(d.pending)} رسید منتظر بررسی` : 'رسیدی در انتظار نیست',
               subColor: d.pending ? 'var(--help-i)' : '', fn:"App.go('adm_charges')" })
         + Row({ kind:'ai', icon:'list', title:'پلن‌ها', sub:'قیمت، حجم، مدت و روشن/خاموش', fn:"App.go('adm_plans')" })
-        + Row({ kind:'ai', icon:'spark', title:'محصولات هوش مصنوعی', sub:'نمایش محصولات و موجودی کیف پول canboso', fn:"App.go('adm_ai')" })
+        + Row({ kind:'ai', icon:'spark', title:'محصولات هوش مصنوعی', sub:'نمایش محصولات و موجودی کیف پول سرویس‌دهنده', fn:"App.go('adm_ai')" })
         + Row({ kind:'ai', icon:'spark', title:'دستیار هوشمند', sub: aiOn('admin') ? 'روشن · تست اتصال، گزارش و سقف روزانه' : 'خاموش: AI_API_KEY در فایل .env هاست تنظیم نشده',
               subColor: aiOn('admin') ? '' : 'var(--help-i)', fn:"App.go('adm_settings'); setTimeout(() => { const b = $('adm-assist'); b && b.scrollIntoView({ behavior:'smooth' }); }, 900)" })
         + Row({ kind:'help', icon:'bolt', title:'تنظیمات', sub:'کارت، نرخ‌ها، روش‌های پرداخت و بخش‌ها', fn:"App.go('adm_settings')" }))}
@@ -4239,7 +4327,7 @@ SubPages.adm_user = async function(p, tgId){
   try {
     const u = await api('admin/user_full?id=' + tgId);
     Admin.user = u;
-    const TX = { charge:'شارژ', purchase:'خرید سرویس', ai_purchase:'خرید هوش مصنوعی', referral:'پاداش دعوت', refund:'برگشت وجه', admin_adjust:'تغییر دستی' };
+    const TX = { charge:'شارژ', purchase:'خرید سرویس', ai_purchase:'خرید هوش مصنوعی', number_purchase:'خرید شماره مجازی', referral:'پاداش دعوت', refund:'برگشت وجه', admin_adjust:'تغییر دستی' };
     const TXS = { approved:['ok','انجام شد'], pending:['warn','در انتظار'], rejected:['bad','رد شد'], cancelled:['', 'لغو'] };
     p.innerHTML = Top(u.name, u.username ? '@' + u.username : String(u.telegram_id)) + `
       <div class="adm-stats">
@@ -4342,6 +4430,8 @@ SubPages.adm_ai_order = async function(p, id){
       + (o.links && o.links.length ? Sec('لینک‌ها') + o.links.map(l => `<div class="card mx" style="padding:12px 14px;margin-bottom:8px"><div class="linkbox" dir="ltr" style="word-break:break-all;font-size:12px">${esc(l)}</div>
           <button class="btn btn-s btn-block" style="margin-top:8px" onclick="App.copy(${esc(JSON.stringify(l))})">${ic('copy')}کپی</button></div>`).join('') : '')
       + (acc ? Sec('اطلاعات تحویل') + acc : '')
+      + (o.provider_raw ? Sec('پاسخ خام فروشنده') + `<div class="card mx" style="padding:12px 14px"><pre dir="ltr" style="white-space:pre-wrap;word-break:break-all;font-size:11px;margin:0">${esc(o.provider_raw)}</pre>
+          <button class="btn btn-s btn-block" style="margin-top:8px" onclick="App.copy(${esc(JSON.stringify(o.provider_raw))})">${ic('copy')}کپی</button></div>` : '')
       + `<div class="adm-note">برای حل سفارش باز یا برگشت وجه، از پنل ربات (/admin) بخش هوش مصنوعی استفاده کن.</div>`;
   } catch (err) { p.innerHTML = Top('سفارش') + emptyBox('خوانده نشد', err.message); }
 };
@@ -4525,7 +4615,7 @@ const AdminSettings = {
 };
 
 /* ---------- محصولات هوش مصنوعی ----------
-   موجودی نمایشی = کمترینِ موجودی خود canboso و تعدادی که کیف پول ما
+   موجودی نمایشی = کمترینِ موجودی خود سرویس‌دهنده و تعدادی که کیف پول ما
    می خرد؛ هر سه عدد اینجا کنار هم دیده می شوند. */
 const AdminAi = {
   st(v){ return v == null ? '∞' : fa(v); },
@@ -4536,7 +4626,8 @@ const AdminAi = {
     const cat = SHOP_CATS[x.category] || SHOP_CATS.tools;
     return `<button class="row" onclick="App.go('adm_ai_p', ${esc(JSON.stringify(x.id))})">${AiThumb(x, 'sm')}<span class="row-m"><span class="row-t ai-lat">${esc(x.name)}</span>
         <span class="row-s">${cat[2]}${x.guide ? ' · <span>آموزش دارد</span>' : ''}</span>
-        <span class="row-s" style="white-space:normal">${sub}</span><span class="row-s">${N(String(x.cost))} ${esc(x.currency)} → ${price}${x.months.length ? ` · <span>ماه:</span> ${N(x.months.join(','))}` : ''}</span></span>
+        <span class="row-s" style="white-space:normal">${sub}</span><span class="row-s">${N(String(x.cost))} ${esc(x.currency)} → ${price}${x.months.length ? ` · <span>ماه:</span> ${N(x.months.join(','))}` : ''}</span>
+        <span class="row-s">💰 <span>سود:</span> ${x.markup ? N(this.mkTxt(x.markup)) : '<span>سود کلی</span>'}${x.priced ? ` · ${N(fa(x.profit))} <span>تومان</span>` : ''}</span></span>
       <span class="row-e">${Admin.sw(x.visible, `AdminAi.set(${esc(JSON.stringify(x.id))}, ${!x.visible})`)}</span></button>`;
   },
   async set(id, on){ const r = await Admin.act('admin/ai/product', { id, on }, on ? 'نمایش داده می‌شود' : 'پنهان شد'); if (r) this.reload(); },
@@ -4554,7 +4645,7 @@ const AdminAi = {
         <div class="adm-img-b">
           <label class="btn btn-s" style="cursor:pointer">${ic('image', 2)}<span>انتخاب عکس</span>
             <input type="file" accept="image/*" style="display:none" onchange="AdminAi.upload(${esc(JSON.stringify(x.id))}, this)"></label>
-          ${x.provider_image ? `<button class="btn btn-s" onclick="AdminAi.fetchImg(${esc(JSON.stringify(x.id))})">${ic('down', 2)}تصویر خود canboso</button>` : ''}
+          ${x.provider_image ? `<button class="btn btn-s" onclick="AdminAi.fetchImg(${esc(JSON.stringify(x.id))})">${ic('down', 2)}تصویر خود سرویس‌دهنده</button>` : ''}
           ${x.image ? `<button class="btn btn-s" style="color:var(--bad)" onclick="AdminAi.dropImg(${esc(JSON.stringify(x.id))})">${ic('trash', 2)}حذف تصویر</button>` : ''}
         </div></div>
       <div class="adm-note">عکس مربعی بهتر است؛ خودکار کوچک و فشرده می‌شود. در ربات، بالای کارت محصول نمایش داده می‌شود.</div>
@@ -4562,19 +4653,32 @@ const AdminAi = {
         <button class="cat-chip${x.category_set ? '' : ' on'}" onclick="AdminAi.meta(${esc(JSON.stringify(x.id))}, { category:'' })">${ic('refresh', 2)}<span>خودکار</span> (${SHOP_CATS[auto][2]})</button>
         ${Object.keys(SHOP_CATS).map(k => `<button class="cat-chip${x.category_set && k === cat ? ' on' : ''}" onclick="AdminAi.meta(${esc(JSON.stringify(x.id))}, { category:'${k}' })">${ic(SHOP_CATS[k][0], 2)}${SHOP_CATS[k][2]}</button>`).join('')}
       </div></div>
+      ${Sec('سود این محصول')}<div class="card mx ai-box">
+        <div class="ai-hint" style="margin:0 0 10px">${x.priced ? `<span>قیمت کاربر الان:</span> ${N(fa(x.price))} <span>تومان</span> · <span>سود:</span> ${N(fa(x.profit))} <span>تومان</span>` : `<span style="color:var(--warn)">نرخ ${esc(x.currency)} تنظیم نشده</span>`}</div>
+        <div class="cat-chips">
+          ${[['', 'سود کلی'], ['toman', 'مبلغ ثابت (تومان)'], ['percent', 'درصد']].map(([k, l]) =>
+            `<button class="cat-chip${this.mkMode(x) === k ? ' on' : ''}" onclick="AdminAi.mkPick(${esc(JSON.stringify(x.id))}, '${k}')">${l}</button>`).join('')}
+        </div>
+        ${this.mkMode(x) ? `<input class="adm-in" id="adm-mk" inputmode="decimal" dir="ltr" style="margin-top:10px"
+            placeholder="${this.mkMode(x) === 'percent' ? '20' : '150000'}" value="${esc(this.mkVal(x))}">` : ''}
+        <div class="ai-hint">${this.mkMode(x) === 'percent' ? 'قیمت کاربر = قیمت API × (۱ + این درصد)، بعد رند می‌شود.'
+          : this.mkMode(x) === 'toman' ? 'قیمت کاربر = قیمت API + همین مبلغ تومانی، بعد رند می‌شود.'
+          : 'با تنظیمات سود کلی پنل ربات حساب می‌شود (درصد سود، کارمزد، حاشیه نوسان، حداقل سود یا سود ثابت).'}
+          سود این محصول بر تنظیمات سود کلی مقدم است؛ فقط نرخ ارز و رند کردن از تنظیمات کلی می‌آید.</div>
+        <button class="btn btn-p btn-block" style="margin-top:10px" onclick="AdminAi.saveMarkup(${esc(JSON.stringify(x.id))})">ذخیره سود</button></div>
       ${Sec('توضیح فارسی')}<div class="card mx ai-box">
-        <textarea class="adm-ta" id="adm-desc" dir="auto" maxlength="1500" placeholder="خالی بماند تا توضیح خود canboso نمایش داده شود.">${esc(x.desc_fa || '')}</textarea>
+        <textarea class="adm-ta" id="adm-desc" dir="auto" maxlength="1500" placeholder="خالی بماند تا توضیح خود سرویس‌دهنده نمایش داده شود.">${esc(x.desc_fa || '')}</textarea>
         <div class="ai-hint">به جای توضیح انگلیسی سرویس‌دهنده به خریدار نشان داده می‌شود.</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
           ${aiOn('admin') ? `<button class="btn btn-s" id="drf-desc" onclick="AdminAi.draft(${esc(JSON.stringify(x.id))}, 'desc')">${ic('spark',2)}پیش‌نویس هوشمند</button>` : ''}
           <button class="btn btn-p" style="${aiOn('admin') ? '' : 'grid-column:1/-1'}" onclick="AdminAi.meta(${esc(JSON.stringify(x.id))}, { desc_fa:$('adm-desc').value })">ذخیره توضیح</button></div></div>
       ${Sec('آموزش فعال‌سازی')}<div class="card mx ai-box">
-        <textarea class="adm-ta" id="adm-guide" dir="auto" maxlength="3000" placeholder="${esc(I18N.t('خالی بماند تا توضیح خود canboso نمایش داده شود.'))}">${esc(x.guide || '')}</textarea>
-        <div class="ai-hint">بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود canboso.</div>
+        <textarea class="adm-ta" id="adm-guide" dir="auto" maxlength="3000" placeholder="${esc(I18N.t('خالی بماند تا توضیح خود سرویس‌دهنده نمایش داده شود.'))}">${esc(x.guide || '')}</textarea>
+        <div class="ai-hint">بعد از خرید، همراه لینک یا اطلاعات ورود در ربات و مینی‌اپ برای خریدار فرستاده می‌شود. خالی = توضیح انگلیسی خود سرویس‌دهنده.</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
           ${aiOn('admin') ? `<button class="btn btn-s" id="drf-guide" onclick="AdminAi.draft(${esc(JSON.stringify(x.id))}, 'guide')">${ic('spark',2)}پیش‌نویس هوشمند</button>` : ''}
           <button class="btn btn-p" style="${aiOn('admin') ? '' : 'grid-column:1/-1'}" onclick="AdminAi.saveGuide(${esc(JSON.stringify(x.id))})">ذخیره آموزش</button></div></div>
-      ${x.description ? Sec('توضیح canboso') + `<div class="card mx"><div class="ai-guide clip" dir="auto">${esc(x.description)}</div></div>` : ''}
+      ${x.description ? Sec('توضیح سرویس‌دهنده') + `<div class="card mx"><div class="ai-guide clip" dir="auto">${esc(x.description)}</div></div>` : ''}
       ${Sec('پرفروش')}${Group(`<div class="row"><span class="row-m"><span class="row-t">${x.featured ? '🔥 پرفروش' : 'پرفروش نیست'}</span>
           <span class="row-s">ویترین دسته در فروشگاه و برچسب «پرفروش» روی کارت محصول</span></span>
         <span class="row-e">${Admin.sw(x.featured, `AdminAi.meta(${esc(JSON.stringify(x.id))}, { featured:${!x.featured} })`)}</span></div>`)}
@@ -4588,6 +4692,20 @@ const AdminAi = {
     AI.d = null;
   },
   async meta(id, body){ const r = await Admin.act('admin/ai/meta', Object.assign({ id }, body), 'ذخیره شد'); if (r) this.refreshPage(id); },
+  /* سود اختصاصی محصول: {toman} یا {percent}؛ null یعنی سود کلی */
+  mk:{},
+  mkTxt(m){ return m && m.toman != null ? fa(m.toman) + ' ' + I18N.t('تومان') : m && m.percent != null ? fa(m.percent) + '٪' : ''; },
+  mkMode(x){ if (x.id in this.mk) return this.mk[x.id]; return x.markup ? (x.markup.toman != null ? 'toman' : 'percent') : ''; },
+  mkVal(x){ const m = x.markup; if (!m) return ''; return this.mkMode(x) === 'toman' ? (m.toman ?? '') : (m.percent ?? ''); },
+  mkPick(id, mode){ this.mk[id] = mode; const x = this.find(id), p = $('sub').querySelector('.page'); if (x && p) p.innerHTML = this.page(x); },
+  async saveMarkup(id){
+    const x = this.find(id); if (!x) return;
+    const mode = this.mkMode(x), el = $('adm-mk');
+    const v = el ? String(el.value).trim().replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[,،٬]/g, '') : '';
+    if (mode && !/^\d+(\.\d+)?$/.test(v)) return App.toast('یک عدد معتبر بنویس', true);
+    const r = await Admin.act('admin/ai/meta', { id, markup: mode === 'percent' ? v + '%' : mode === 'toman' ? v : '' }, 'سود ذخیره شد');
+    if (r) { delete this.mk[id]; this.refreshPage(id); }
+  },
   saveGuide(id){ return this.meta(id, { guide:$('adm-guide').value }); },
   /* پیش نویس هوش مصنوعی فقط در جعبه می نشیند؛ ذخیره با خود ادمین است */
   async draft(id, kind){
@@ -4601,7 +4719,7 @@ const AdminAi = {
     finally { if (b) { b.disabled = false; b.innerHTML = ic('spark',2) + 'پیش‌نویس هوشمند'; } }
   },
   async setHere(id, on){ const r = await Admin.act('admin/ai/product', { id, on }, on ? 'نمایش داده می‌شود' : 'پنهان شد'); if (r) this.refreshPage(id); },
-  async fetchImg(id){ App.toast(I18N.t('در حال دریافت از canboso…')); const r = await Admin.act('admin/ai/image', { id, fetch:true }, 'تصویر گذاشته شد'); if (r) this.refreshPage(id); },
+  async fetchImg(id){ App.toast(I18N.t('در حال دریافت از سرویس‌دهنده…')); const r = await Admin.act('admin/ai/image', { id, fetch:true }, 'تصویر گذاشته شد'); if (r) this.refreshPage(id); },
   async dropImg(id){ if (!await Admin.ask(I18N.t('تصویر حذف شود؟'))) return; const r = await Admin.act('admin/ai/image', { id, remove:true }, 'حذف شد'); if (r) this.refreshPage(id); },
   /* عکس در خود گوشی کوچک و JPEG می شود (حداکثر ۶۴۰ پیکسل) تا آپلود سبک باشد */
   upload(id, input){
@@ -4623,7 +4741,7 @@ SubPages.adm_ai_p = async function(p, id){
   try {
     if (!AdminAi.find(id)) AdminAi.d = await api('admin/ai');
     const x = AdminAi.find(id);
-    p.innerHTML = x ? AdminAi.page(x) : Top('تنظیمات محصول') + emptyBox('این محصول دیگر در canboso نیست');
+    p.innerHTML = x ? AdminAi.page(x) : Top('تنظیمات محصول') + emptyBox('این محصول دیگر در سرویس‌دهنده نیست');
   } catch (err) { p.innerHTML = Top('تنظیمات محصول') + emptyBox('خوانده نشد', err.message); }
 };
 SubPages.adm_ai_p.noNav = true;
@@ -4631,12 +4749,12 @@ SubPages.adm_ai = async function(p){
   p.innerHTML = Top('محصولات هوش مصنوعی') + skel(1, 120) + skel(4, 70);
   try {
     const d = AdminAi.d = await api('admin/ai');
-    if (!d.configured) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('کلید API تنظیم نشده', 'CANBOSO_API_KEY را در فایل .env بگذار.'));
-    if (d.error) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خواندن از canboso نشد', d.error));
+    if (!d.configured) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('کلید API تنظیم نشده', 'SSON_API_KEY را در فایل .env بگذار.'));
+    if (d.error) return void (p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خواندن از سرویس‌دهنده نشد', d.error));
     const on = d.items.filter(x => x.visible).length;
     p.innerHTML = Top('محصولات هوش مصنوعی', `${fa(on)} / ${fa(d.items.length)}`) + `
       <div class="ai-hero">${TUNNEL}
-        <div class="lbl" style="color:#DAD4FF">کیف پول شما نزد canboso</div>
+        <div class="lbl" style="color:#DAD4FF">کیف پول شما نزد سرویس‌دهنده</div>
         <div class="ai-hero-t n" style="font-size:28px;margin-top:4px">${esc(d.wallet ? d.wallet.text : '—')}</div>
         <div class="ai-hero-s">موجودی که کاربر می‌بیند کمترینِ موجودی API و تعدادی است که با همین کیف پول خریدنی است؛ اگر هر کدام صفر باشد، «ناموجود».</div>
       </div>
@@ -4644,7 +4762,7 @@ SubPages.adm_ai = async function(p){
         <button class="btn btn-s" onclick="AdminAi.all(true)">${ic('check',2)}همه روشن</button>
         <button class="btn btn-s" onclick="AdminAi.all(false)">همه خاموش</button></div>
       ${Sec('محصولات')}${d.items.length ? Group(d.items.map(x => AdminAi.row(x)).join('')) : emptyBox('محصولی نیامد')}
-      <div class="adm-note">محصول تازه canboso تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.</div>`;
+      <div class="adm-note">محصول تازه سرویس‌دهنده تا روشنش نکنی نمایش داده نمی‌شود (مگر هنوز هیچ محصولی را خاموش نکرده باشی). قیمت‌ها با نرخ و سود پنل ربات حساب شده‌اند.</div>`;
   } catch (err) { p.innerHTML = Top('محصولات هوش مصنوعی') + emptyBox('خوانده نشد', err.message); }
 };
 SubPages.adm_ai.noNav = true;
@@ -4867,6 +4985,546 @@ const Soon = {
     this._busy = false;
   }
 };
+
+/* ═════════ شماره مجازی (فروش واقعی با SMSBurner) ═════════
+   سرویس ← کشور (ارزان‌ترین اول) ← تایید ← شماره + کد خودکار. تا وقتی ادمین seed و
+   نرخ تتر را تنظیم نکرده (App.boot.numbers.ready)، همان پیش‌نمایش Soon نشان داده می‌شود. */
+const NUM_ST = {
+  active:    ['warn', 'clock',   'منتظر کد'],
+  completed: ['ok',   'check',   'کد رسید'],
+  refunded:  ['bad',  'refresh', 'پولت برگشت'],
+  failed:    ['bad',  'warn',    'ناموفق'],
+  unknown:   ['warn', 'refresh', 'در حال بررسی'],
+  pending:   ['warn', 'refresh', 'در حال انجام'],
+};
+const NUM_HUES = ['#2F6BEA', '#C2408A', '#1A8F45', '#C15F3C', '#7D2AE8', '#1F7A8C', '#B20710', '#26262B'];
+const numNorm = t => String(t || '').toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/[\s\u200c\-_./]/g, '');
+const numHue = s => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return NUM_HUES[h % NUM_HUES.length]; };
+const numMono = name => `<span class="nm-mono" style="--c:${numHue(name)}">${esc(String(name).replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || '#')}</span>`;
+/* ═════════ پرمیوم و استارز تلگرام (MarketApp) ═════════
+   قیمت ها و بررسی گیرنده از API واقعی است. تا وقتی d.demo روشن است، خرید
+   نمایشی است: سفارش واقعی از تلگرام ساخته و بررسی می شود ولی پرداخت نمی شود و
+   پولی کم نمی شود؛ هر جا که به خرید می رسد این را به کاربر می گوییم. */
+const TG = {
+  d:null, tab:0, rcp:null, busy:false, pending:null, rq:0,
+  get ready(){ return !!(App.boot && App.boot.telegram && App.boot.telegram.ready); },
+  get demo(){ return this.d ? this.d.demo !== false : !(App.boot && App.boot.telegram && App.boot.telegram.demo === false); },
+  async load(force){ if (!this.d || force) this.d = await api('tg'); return this.d; },
+
+  /* کارت ویترین صفحه اول فروشگاه، هم شکل کارت هوش مصنوعی */
+  tile(){
+    const d = this.d, from = d && d.packs && d.packs.length ? Math.min(...d.packs.map(p => p.price)) : 0;
+    return `<button class="cg-t span tgs" style="--cg:${CG_COLOR.tg}" onclick="Store.open('tg')">
+      <span class="cg-h"><span class="cg-ic">${ic('send')}</span><span class="cg-tags"><span class="cg-new">تازه</span><span class="cg-c">${this.demo ? 'نمایشی' : 'تحویل خودکار'}</span></span></span>
+      <span class="cg-pv"><span class="tgv prem">${ic('star', 1.2)}</span><span class="tgv stars">${ic('star', 1.2)}</span></span>
+      <span class="cg-b"><span class="cg-n">تلگرام پرمیوم و استارز</span><span class="cg-s">${from ? `از ${N(fa(from))} تومان · ` : ''}برای خودت یا هدیه</span></span></button>`;
+  },
+
+  /* ── صفحه بخش ── */
+  async render(){
+    const box = $('store-box'); if (!box || Store.kind !== 'tg') return;
+    try {
+      const d = await this.load(true);
+      if (Store.kind !== 'tg' || !$('store-box')) return;
+      App.setBalance(d.balance);
+      if (!d.ready) return void (box.innerHTML = emptyBox('به‌زودی', 'پرمیوم و استارز تلگرام به‌زودی از همین‌جا.'));
+      if (!this.rcp && d.me) this.rcp = { username:d.me, self:true, state:'idle' };
+      const orders = d.orders.slice(0, 4);
+      box.innerHTML = (d.demo ? `<div class="pv-banner">${ic('eye', 2)}<span>این بخش فعلا نمایشی است: قیمت‌ها و بررسی گیرنده واقعی‌اند، ولی خرید انجام نمی‌شود و هیچ پولی از کیف پولت کم نمی‌شود.</span></div>` : '')
+        + (d.down ? `<div class="pv-banner">${ic('warn', 2)}<span>سرویس‌دهنده الان جواب نمی‌دهد؛ کمی بعد دوباره سر بزن.</span></div>` : '')
+        + `<div class="dh dh-tgs" style="margin-top:0"><span class="dh-art">${ic('star', 1.2)}</span>
+            <div class="dh-t">پرمیوم و استارز تلگرام</div><div class="dh-s">برای خودت یا هدیه به هر یوزرنیم؛ نه رمز می‌خواهیم نه ورود به حساب.</div>
+            <div class="dh-chips"><span class="dh-chip">${ic('bolt', 2)}تحویل خودکار</span><span class="dh-chip">${ic('lock', 2)}بدون ورود به حساب</span><span class="dh-chip">${ic('gift', 2)}هدیه به دوستان</span></div></div>`
+        + `<div id="tg-rcp">${this.rcpCard()}</div>`
+        + `<div style="margin-top:14px">${Tabs('tg-tab', [{ t:'تلگرام پرمیوم', s:fa(d.premium.length) + ' پلن' }, { t:'استارز', s:fa(d.min) + ' تا ' + fa(d.max) }], this.tab, 'TG.pick')}</div>`
+        + `<div id="tg-list">${d.down ? '' : this.list()}</div>`
+        + (orders.length ? Sec('سفارش‌های قبلی') + Group(orders.map(o => `<div class="row"><span class="ic tgs">${ic(o.kind === 'premium' ? 'star' : 'spark')}</span>
+            <span class="row-m"><span class="row-t">${esc(o.title)} <span class="tg-u">→ <bdi dir="ltr">@${esc(o.recipient)}</bdi></span></span><span class="row-s">${N(o.code)} · ${N(fa(o.price))} تومان</span></span>
+            ${o.mode === 'demo' ? '<span class="tg-tag">نمایشی</span>' : ''}</div>`).join('')) : '')
+        + Sec('چطور کار می‌کند؟') + Steps(['یوزرنیم گیرنده را بده؛ اسم حسابش را نشانت می‌دهیم که مطمئن شوی',
+            'پلن پرمیوم یا تعداد استارز را انتخاب کن؛ قیمت همان لحظه از تلگرام گرفته می‌شود',
+            d.demo ? 'فعلا نمایشی: سفارش ساخته و بررسی می‌شود ولی پرداخت نمی‌شود' : 'مبلغ از کیف پول کم می‌شود و چند ثانیه بعد فعال می‌شود'])
+        + '<div class="gap"></div>' + Group(Row({ kind:'tgs', icon:'send', title:'خرید از داخل ربات', sub:'همین بخش در ربات عبور', fn:"App.openBot('tg')" }));
+      if (this.rcp && this.rcp.state === 'idle') this.check();
+    } catch (err) { const b = $('store-box'); if (b && Store.kind === 'tg') b.innerHTML = emptyBox('خوانده نشد', err.message); }
+  },
+  pick(i){
+    if (i === this.tab || !this.d) return;
+    this.tab = i; App.haptic(); slideTabs('tg-tab', i);
+    const el = $('tg-list'); if (el && !this.d.down) el.innerHTML = this.list();
+  },
+  list(){
+    const d = this.d;
+    if (this.tab === 0) {
+      const order = d.premium.slice().sort((a, b) => (b.months === d.best) - (a.months === d.best) || b.months - a.months);
+      return `<div class="tickets">${order.map(p => this.ticket(p, p.months === d.best)).join('')}</div>
+        <div class="short tg-note">اگر گیرنده الان پرمیوم دارد، مدت جدید به آخر اشتراکش اضافه می‌شود.</div>`;
+    }
+    return `<div class="tg-packs">${d.packs.map(p => `<button class="tg-pk" onclick="TG.confirm('stars', ${p.qty})">
+        <span class="tg-pk-q">${ic('star')}${N(fa(p.qty))}</span><span class="tg-pk-p">${N(fa(p.price))} تومان</span></button>`).join('')}</div>
+      <div class="tg-custom"><input id="tg-qty" inputmode="numeric" autocomplete="off" placeholder="${esc(I18N.t('تعداد دلخواه') + ': ' + fa(d.min) + ' – ' + fa(d.max))}"
+        onkeydown="if(event.key==='Enter')TG.custom()"><button class="btn btn-d btn-sm" onclick="TG.custom()">ادامه</button></div>
+      <div class="short tg-note">هر استار حدود ${N(fa(d.per_star))} تومان</div>`;
+  },
+  ticket(p, best){
+    const tag = best ? `<span class="tk-tag best">${ic('spark', 2.4)}بهترین ارزش</span>` : '';
+    return `<div class="tk tgs${best ? ' best' : ''}">${tag}
+      <div class="tk-top"><span class="tk-vol">${N(p.months)}<small>ماه</small></span>
+        <span class="tk-s">تلگرام پرمیوم</span><span class="tk-s">ماهی ${N(fa(p.per_month))} تومان</span></div>
+      <div class="tk-cut"></div>
+      <div class="tk-bot"><span class="tk-p">${N(fa(p.price))}<small>تومان</small></span>
+        <button class="tk-buy" onclick="TG.confirm('premium', ${p.months})">${ic('star', 2)}خرید</button></div></div>`;
+  },
+  custom(){
+    const el = $('tg-qty'), d = this.d; if (!el || !d) return;
+    const n = parseInt(String(el.value || '').replace(/[۰-۹]/g, c => '۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/\D/g, ''), 10);
+    if (!(n >= d.min && n <= d.max)) { App.notify('error'); return App.toast(`تعداد باید بین ${fa(d.min)} تا ${fa(d.max)} باشد`, true); }
+    this.confirm('stars', n);
+  },
+
+  /* ── گیرنده ── */
+  rcpCard(){
+    const r = this.rcp;
+    if (!r) return `<button class="tg-rcp" onclick="TG.edit()"><span class="tg-av">${ic('user', 2)}</span>
+      <span class="row-m"><span class="row-t">گیرنده را انتخاب کن</span><span class="row-s">یوزرنیم تلگرام، مثل @name</span></span><span class="tg-ch">انتخاب</span></button>`;
+    const st = r.state === 'ok' ? `<span class="tg-st ok">${ic('check', 2.6)}پیدا شد</span>`
+      : r.state === 'bad' ? `<span class="tg-st bad">پیدا نشد</span>` : `<span class="tg-st">در حال بررسی…</span>`;
+    const first = esc(String(r.name || r.username || '?').trim().charAt(0).toUpperCase());
+    const av = r.photo ? `<img src="${esc(r.photo)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode(${esc(JSON.stringify(first))}))">` : first;
+    return `<button class="tg-rcp${r.state === 'bad' ? ' bad' : ''}" onclick="TG.edit()"><span class="tg-av">${av}</span>
+      <span class="row-m"><span class="row-s">${r.self ? 'گیرنده: خودت' : 'گیرنده'}</span><span class="row-t">${esc(r.name || r.username)} <bdi class="tg-u" dir="ltr">@${esc(r.username)}</bdi></span></span>
+      ${st}<span class="tg-ch">تغییر</span></button>` + (r.state === 'bad' && r.msg ? `<div class="tg-err">${esc(r.msg)}</div>` : '');
+  },
+  paintRcp(){ const el = $('tg-rcp'); if (el) el.innerHTML = this.rcpCard(); },
+  async check(){
+    const r = this.rcp; if (!r) return;
+    const id = ++this.rq; r.state = 'wait'; this.paintRcp();
+    try {
+      const x = await api('tg/recipient?kind=' + (this.tab ? 'stars' : 'premium') + '&u=' + encodeURIComponent(r.username));
+      if (id !== this.rq || this.rcp !== r) return;
+      Object.assign(r, x.ok ? { state:'ok', name:x.name, photo:x.photo, username:x.username } : { state:'bad', msg:x.message });
+    } catch (err) { if (id !== this.rq || this.rcp !== r) return; Object.assign(r, { state:'bad', msg:err.message }); }
+    if (r.state === 'bad') App.notify('error');
+    this.paintRcp();
+  },
+  edit(){
+    const d = this.d || {}, me = d.me || '', recents = (d.recents || []).filter(x => !me || x.toLowerCase() !== me.toLowerCase());
+    const cur = this.rcp && !this.rcp.self ? this.rcp.username : '';
+    App.sheet(`<div class="sheet-t">برای کی؟</div><div class="topbar-s">یوزرنیم تلگرام گیرنده؛ نه رمز می‌خواهیم نه ورود به حساب</div>
+      <label class="tg-in"><span>@</span><input id="tg-u" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="username" value="${esc(cur)}"
+        onkeydown="if(event.key==='Enter')TG.setRcp(this.value)"></label>
+      <div class="tg-chips">${me ? `<button class="tg-chip${this.rcp && this.rcp.self ? ' on' : ''}" onclick="TG.setRcp(${esc(JSON.stringify(me))}, true)">${ic('user', 2)}برای خودم</button>` : ''}
+        ${recents.map(x => `<button class="tg-chip" dir="ltr" onclick="TG.setRcp(${esc(JSON.stringify(x))})">@${esc(x)}</button>`).join('')}</div>
+      <button class="btn btn-p btn-block" style="margin-top:16px" onclick="TG.setRcp($('tg-u').value)">تایید گیرنده</button>`);
+  },
+  setRcp(u, self){
+    u = String(u || '').trim().replace(/^https?:\/\//, '').replace(/^t\.me\//, '').replace(/^@/, '');
+    if (!/^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(u)) { App.notify('error'); return App.toast('یوزرنیم درست نیست؛ مثل @name', true); }
+    App.closeSheet(); App.haptic();
+    this.rcp = { username:u, self:!!self || (!!this.d && !!this.d.me && u.toLowerCase() === this.d.me.toLowerCase()), state:'idle' };
+    this.check();
+  },
+
+  /* ── تایید و سفارش ── */
+  title(kind, n){ return kind === 'premium' ? `پرمیوم ${fa(n)} ماهه` : `${fa(n)} استارز`; },
+  async confirm(kind, amount){
+    if (this.busy || !this.d) return;
+    const r = this.rcp;
+    if (!r || r.state !== 'ok') {
+      if (r && r.state === 'wait') return App.toast('یک لحظه؛ گیرنده در حال بررسی است');
+      return this.edit();
+    }
+    App.haptic();
+    App.sheet(`<div class="ai-wait"><div class="ai-orb">${ic('star', 2)}</div><div class="sheet-t">قیمت همین لحظه…</div></div>`);
+    let price;
+    try { price = (await api('tg/quote?kind=' + kind + '&n=' + amount)).price; }
+    catch (err) { App.closeSheet(); return App.toast(err.message || 'قیمت گرفته نشد', true); }
+    const bal = App.boot.user.balance, low = bal < price, demo = this.demo, title = this.title(kind, amount);
+    this.pending = { kind, amount };
+    const rows = [['گیرنده', `${esc(r.name || r.username)} <bdi dir="ltr">@${esc(r.username)}</bdi>`], ['بسته', esc(title)],
+      ['قیمت', `${N(fa(price))} <span>تومان</span>`], [low ? 'موجودی' : 'موجودی بعد از خرید', `${N(fa(low ? bal : bal - price))} <span>تومان</span>`]];
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span class="ic lg tgs">${ic(kind === 'premium' ? 'star' : 'spark', 2)}</span>
+        <div><div class="sheet-t">تایید خرید</div><div class="topbar-s">${esc(title)} · ${esc(r.name || r.username)}</div></div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV(rows).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      ${demo ? `<div class="pv-banner" style="margin:12px 0 0">${ic('eye', 2)}<span>خرید نمایشی است: همه مراحل واقعی انجام می‌شود جز پرداخت. هیچ پولی از کیف پولت کم نمی‌شود و ${esc(title)} فعال نمی‌شود.</span></div>`
+             : `<div class="ai-warn" style="margin:12px 0 0">${ic('shield', 2)}<span>اگر خرید انجام نشود، کل مبلغ خودکار به کیف پولت برمی‌گردد.</span></div>`}
+      ${!demo && low ? `<button class="btn btn-p btn-block" style="margin-top:16px;height:54px;font-size:16px" onclick="App.closeSheet();App.go('topup')">${ic('wallet', 2)}<span>${N(money(price - bal))}</span>&nbsp;<span>تومان کم داری؛ شارژ کن</span></button>`
+              : `<button class="btn btn-p btn-block" id="tg-buy" style="margin-top:16px;height:54px;font-size:16px" onclick="TG.buy()">${demo ? 'ثبت سفارش نمایشی' : `پرداخت ${fa(price)} تومان`}</button>`}
+      <button class="btn btn-s btn-block" style="margin-top:8px;height:46px" onclick="App.closeSheet()">انصراف</button>`);
+  },
+  async buy(){
+    if (this.busy || !this.pending || !this.rcp) return;
+    this.busy = true;
+    const p = this.pending, r = this.rcp;
+    $('sheet').innerHTML = `<div class="grip"></div><div class="ai-wait"><div class="ai-orb">${ic('send', 2)}</div>
+      <div class="sheet-t">در حال ساخت سفارش…</div>
+      <div class="short" style="margin-top:6px">گیرنده و قیمت دوباره چک می‌شوند و سفارش از تلگرام گرفته می‌شود.</div></div>`;
+    App.haptic('medium');
+    try {
+      const x = await api('tg/buy', { kind:p.kind, amount:p.amount, username:r.username, nonce:Buy.nonce() });
+      App.notify('success'); App.setBalance(x.balance); this.d = null; this.pending = null;
+      this.done(x);
+    } catch (err) {
+      App.notify('error'); App.closeSheet();
+      if (err.code === 'rules') { App.toast('اول قوانین را بخوان و بپذیر', true); App.go('rules'); }
+      else App.toast(err.message || 'سفارش ساخته نشد', true);
+    } finally { this.busy = false; }
+  },
+  done(x){
+    const o = x.order, demo = x.demo;
+    const step = (ok, t) => `<div class="tg-step${ok ? '' : ' skip'}"><i>${ic(ok ? 'check' : 'eye', 3)}</i><span>${t}</span></div>`;
+    App.sheet(`<div style="text-align:center"><div class="ai-orb tg-done">${ic(demo ? 'eye' : 'check', 2)}</div>
+        <div class="sheet-t">${demo ? 'سفارش نمایشی ثبت شد' : 'انجام شد'}</div>
+        <div class="short" style="margin-top:6px;line-height:1.9">${demo ? 'همه مراحل واقعی انجام شد جز پرداخت.' : `${esc(o.title)} برای <bdi dir="ltr">@${esc(o.recipient)}</bdi> فرستاده شد.`}</div></div>
+      <div class="tg-steps">${step(true, 'گیرنده پیدا شد: ' + esc(o.recipient_name || o.recipient))}${step(true, 'قیمت همین لحظه گرفته شد')}${step(true, 'سفارش از تلگرام ساخته و بررسی شد')}${step(!demo, demo ? 'پرداخت: نمایشی، انجام نشد' : 'پرداخت و فعال‌سازی')}</div>
+      ${demo ? `<div class="pv-banner" style="margin:12px 0 0">${ic('wallet', 2)}<span>هیچ پولی از کیف پولت کم نشد و ${esc(o.title)} برای <bdi dir="ltr">@${esc(o.recipient)}</bdi> فعال نشد.</span></div>` : ''}
+      <div style="margin:12px calc(-1 * var(--pad)) 0">${KV([['کد پیگیری', N(o.code)], ['بسته', esc(o.title)], ['گیرنده', `<bdi dir="ltr">@${esc(o.recipient)}</bdi>`],
+        [demo ? 'قیمت در خرید واقعی' : 'مبلغ', `${N(fa(o.price))} <span>تومان</span>`]]).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      <button class="btn btn-p btn-block" style="margin-top:16px" onclick="App.closeSheet();TG.render()">باشه</button>`);
+  },
+};
+
+const Num = {
+  d:null, c:null, o:null, cat:'', q:'', qn:'', ops:null, busy:false, polling:false, tick:null, left:0, pending:null,
+  get ready(){ return !!(App.boot && App.boot.numbers && App.boot.numbers.ready); },
+  async load(force){ if (!this.d || force) this.d = await api('numbers'); return this.d; },
+
+  /* ── تب «شماره مجازی» در فروشگاه ── */
+  async render(){
+    const box = $('store-box'); if (!box || Store.kind !== 'number') return;
+    try {
+      const d = await this.load(true);
+      if (!d.ready) { if (App.boot.numbers) App.boot.numbers.ready = false; return void Store.loadNumbersPreview(); }
+      if (Store.kind !== 'number' || !$('store-box')) return;
+      App.setBalance(d.balance);
+      const act = d.orders.filter(o => o.status === 'active'), rest = d.orders.filter(o => o.status !== 'active').slice(0, 4);
+      box.innerHTML = (d.down ? `<div class="pv-banner">${ic('warn', 2)}<span>سرویس‌دهنده الان جواب نمی‌دهد؛ کمی بعد دوباره سر بزن.</span></div>` : '')
+        + (act.length ? Sec('منتظر کد') + Group(act.map(o => this.orderRow(o)).join('')) + '<div class="gap"></div>' : '')
+        + `<label class="hc-search">${ic('search', 2)}<input type="search" id="nm-q" value="${esc(this.q)}" placeholder="${esc(I18N.t('جستجوی سرویس؛ مثلا تلگرام'))}" oninput="Num.search(this.value)" autocomplete="off"></label>`
+        + `<div class="nm-cats" id="nm-cats"></div><div id="nm-list"></div>`
+        + (rest.length ? Sec('شماره‌های قبلی', d.orders.length > act.length + 4 ? `<button class="sec-a" onclick="App.go('num_orders')">همه</button>` : '') + Group(rest.map(o => this.orderRow(o)).join('')) : '')
+        + Sec('چطور کار می‌کند؟') + Steps(['سرویس و کشور را انتخاب کن؛ ارزان‌ترین کشورها اول می‌آیند',
+            'مبلغ از کیف پول کم می‌شود و شماره همان لحظه نشان داده می‌شود',
+            'کد تایید همین‌جا و در ربات می‌آید؛ اگر نیامد، پولت برمی‌گردد'])
+        + '<div class="gap"></div>' + Group(Row({ kind:'number', icon:'book', title:'سوالات پرتکرار شماره مجازی', sub:'قیمت، زمان انتظار کد و برگشت وجه', fn:"App.go('help_d','number')" }));
+      this.cats(); this.list();
+    } catch (err) { const b = $('store-box'); if (b && Store.kind === 'number') b.innerHTML = emptyBox('شماره‌ها خوانده نشد', err.message); }
+  },
+  cats(){
+    const el = $('nm-cats'); if (!el || !this.d) return;
+    const all = [{ key:'', title:I18N.t('پرطرفدار'), emoji:'🔥' }].concat(this.d.categories);
+    el.innerHTML = all.map(c => `<button class="nm-cat${c.key === this.cat && !this.q ? ' on' : ''}" onclick="Num.pickCat(${esc(JSON.stringify(c.key))})">${c.emoji} ${esc(c.title)}</button>`).join('');
+  },
+  pickCat(k){ this.cat = k; this.q = ''; this.qn = ''; const i = $('nm-q'); if (i) i.value = ''; App.haptic(); this.cats(); this.list(); },
+  search(q){ this.q = String(q || '').trim(); this.qn = numNorm(q); this.cats(); this.list(); },
+  items(){
+    const d = this.d;
+    if (this.qn) {
+      const q = this.qn, al = d.aliases || {};
+      return d.services.filter(s => numNorm(s.name).includes(q) || s.slug.includes(q)
+        || String(al[s.slug] || '').split('|').some(a => a && (a.includes(q) || (a.length >= 3 && q.includes(a)))));
+    }
+    if (!this.cat) { const pop = new Set(d.popular), xs = d.services.filter(s => pop.has(s.id)); return xs.length ? xs : d.services.slice(0, 12); }
+    return d.services.filter(s => s.category === this.cat).sort((a, b) => a.name.localeCompare(b.name));
+  },
+  list(){
+    const el = $('nm-list'); if (!el || !this.d) return;
+    const xs = this.items();
+    el.innerHTML = xs.length
+      ? Group(xs.map(s => `<button class="row" onclick="Num.pick(${esc(JSON.stringify(s.id))})">${numMono(s.name)}
+          <span class="row-m"><span class="row-t ai-lat">${esc(s.name)}</span><span class="row-s">${N(fa(s.n))} <span>کشور</span></span></span>
+          <span class="row-e"><span class="lbl">از</span> ${N(fa(s.from))} <span class="lbl">تومان</span></span><span class="chev">${ic('chev', 2)}</span></button>`).join(''))
+      : emptyBox('سرویسی پیدا نشد', 'اسم دیگری را امتحان کن.');
+  },
+  orderRow(o){
+    const st = NUM_ST[o.status] || ['', 'list', o.status];
+    return `<button class="row" onclick="App.go('num_order', ${o.id})"><span class="nm-flag">${o.flag}</span>
+      <span class="row-m"><span class="row-t ai-lat">${esc(o.service)}</span><span class="row-s" dir="ltr" style="text-align:start">${esc(o.phone || o.code)}</span></span>
+      <span class="row-e">${Badge(st[0], st[2])}</span><span class="chev">${ic('chev', 2)}</span></button>`;
+  },
+  pick(sid){ App.haptic(); App.go('num_svc', sid); },
+
+  /* ── نوع شماره، تایید و خرید ── */
+  async country(sid, cc){
+    const d = this.c && this.c.sid === sid && this.c.d, c = d && d.items.find(x => x.cc === cc); if (!c || this.busy) return;
+    App.haptic();
+    let ops = null;
+    try { ops = await api('numbers/operators?service=' + encodeURIComponent(sid) + '&cc=' + encodeURIComponent(cc)); } catch (err) { /* بدون انتخاب نوع ادامه می دهیم */ }
+    if (!ops || !ops.items.length) return this.confirm(sid, cc, null);
+    this.ops = { sid, cc, ops };
+    const ico = x => ic(x.type === 'premium' ? 'star' : x.type === 'physical' ? 'phone' : 'globe');
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${numMono(d.service)}
+        <div><div class="sheet-t">نوع شماره</div><div class="topbar-s ai-lat">${esc(d.service)} · ${esc(c.title)}</div></div></div>
+      <div class="short" style="text-align:start;margin:0 0 10px">مجازی ارزان‌تر است ولی ممکن است بعضی سرویس‌ها قبولش نکنند؛ فیزیکی سیم‌کارت واقعی است؛ پریمیوم سریع‌ترین و پرموفقیت‌ترین است.</div>
+      <div style="margin:0 calc(-1 * var(--pad))"><div class="group" style="border:none;border-radius:0">
+        <button class="row" onclick="Num.pickOp(-1)"><span class="ic number">${ic('bolt')}</span><span class="row-m"><span class="row-t">پیش‌فرض سایت</span></span>
+          <span class="row-e">${N(fa(ops.default_price))} <span class="lbl">تومان</span></span></button>
+        ${ops.items.map((x, i) => `<button class="row" onclick="Num.pickOp(${i})"><span class="ic number">${ico(x)}</span>
+          <span class="row-m"><span class="row-t">${esc(x.label)}</span><span class="row-s ai-lat">${esc(x.name)}</span></span>
+          <span class="row-e">${N(fa(x.price))} <span class="lbl">تومان</span></span></button>`).join('')}</div></div>`);
+  },
+  pickOp(i){
+    const o = this.ops; if (!o) return;
+    this.confirm(o.sid, o.cc, i < 0 ? null : o.ops.items[i]);
+  },
+  confirm(sid, cc, op){
+    const d = this.c && this.c.sid === sid && this.c.d, c = d && d.items.find(x => x.cc === cc); if (!c) return;
+    const price = op ? op.price : c.price, bal = App.boot.user.balance, low = bal < price;
+    this.pending = { sid, cc, op };
+    const rows = [['سرویس', `<span class="ai-lat">${esc(d.service)}</span>`], ['کشور', `${c.flag} ${esc(c.title)}`]]
+      .concat(op ? [['نوع شماره', `${esc(op.label)} · <span class="ai-lat">${esc(op.name)}</span>`]] : [])
+      .concat([['قیمت', `${N(fa(price))} <span>تومان</span>`], ['موجودی بعد از خرید', `${N(fa(Math.max(0, bal - price)))} <span>تومان</span>`]]);
+    App.sheet(`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">${numMono(d.service)}
+        <div><div class="sheet-t">تایید خرید شماره</div><div class="topbar-s ai-lat">${esc(d.service)} · ${esc(c.title)}</div></div></div>
+      <div style="margin:0 calc(-1 * var(--pad))">${KV(rows).replace('class="group"', 'class="group" style="border:none;border-radius:0"')}</div>
+      <div class="ai-warn" style="margin:12px 0 0">${ic('clock', 2)}<span>کد تا ۲۰ دقیقه می‌رسد. نیامد، پولت برمی‌گردد؛ خودت هم هر وقت خواستی لغو می‌کنی.</span></div>
+      ${low ? `<button class="btn btn-p btn-block" style="margin-top:16px;height:54px;font-size:16px" onclick="App.closeSheet();App.go('topup')">${ic('wallet', 2)}<span>${N(money(price - bal))}</span>&nbsp;<span>تومان کم داری؛ شارژ کن</span></button>`
+            : `<button class="btn btn-ai btn-block" id="nm-buy" style="margin-top:16px;height:54px;font-size:16px" onclick="Num.buy()">${ic('phone', 2)}پرداخت و گرفتن شماره</button>`}
+      <div class="short" style="margin-top:10px">شماره یک‌بار مصرف است</div>`);
+  },
+  async buy(){
+    if (this.busy || !this.pending) return;
+    this.busy = true;
+    const { sid, cc, op } = this.pending;
+    $('sheet').innerHTML = `<div class="grip"></div><div class="ai-wait"><div class="ai-orb">${ic('phone', 2)}</div>
+      <div class="sheet-t">در حال گرفتن شماره…</div>
+      <div class="short" style="margin-top:6px">ممکن است تا نیم دقیقه طول بکشد؛ این صفحه را نبند.</div></div>`;
+    App.haptic('medium');
+    try {
+      const r = await api('numbers/buy', { service_id:sid, cc, operator_id:op ? op.id : '', nonce:Buy.nonce() });
+      App.setBalance(r.balance); App.notify('success'); App.closeSheet(); this.d = null;
+      App.stack.pop(); App.go('num_order', { id:r.order.id, order:r.order, fresh:true });
+    } catch (err) {
+      App.notify('error'); App.closeSheet();
+      if (err.code === 'rules') { App.toast('اول قوانین را بخوان و بپذیر', true); App.go('rules'); }
+      else if (err.code === 'insufficient') { App.toast(err.message, true); App.go('topup'); }
+      else if (!err.status || err.code === 'server' || err.status === 504) {
+        /* جواب نرسید؛ خرید ممکن است انجام شده باشد. نتیجه در شماره های من */
+        this.d = null; App.toast('جواب دیر رسید؛ نتیجه را در «شماره‌های من» ببین', true);
+        App.stack.pop(); App.go('num_orders');
+      } else App.toast(err.message || 'خرید انجام نشد', true);
+    } finally { this.busy = false; }
+  },
+
+  /* ── صفحه سفارش و گرفتن خودکار کد ── */
+  title(o, fresh){
+    return o.status === 'completed' ? (fresh ? 'کد رسید' : 'کد رسید') : (NUM_ST[o.status] || ['', '', o.status])[2];
+  },
+  note(o){
+    return { active:'شماره را در سرویس وارد کن و درخواست کد بزن؛ کد همین‌جا می‌آید.',
+      completed:'کد تایید همین پایین است و همیشه در «شماره‌های من» می‌ماند.',
+      refunded:'کدی نیامد و مبلغ به کیف پولت برگشت.',
+      failed:'شماره‌ای صادر نشد و مبلغ به کیف پولت برگشت.',
+      unknown:'جواب سرویس‌دهنده به‌موقع نرسید. نگران نباش: یا کد برایت می‌آید یا مبلغ کامل برمی‌گردد.',
+      pending:'سفارش در حال انجام است.' }[o.status] || '';
+  },
+  field(label, value, cls){
+    return `<div class="nmo-f${cls ? ' ' + cls : ''}"><span class="nmo-k">${label}</span><span class="nmo-v n${cls === 'code' ? ' nmo-code' : ''}" dir="ltr">${esc(value)}</span>
+      <button class="ai-f-b" onclick="App.copy(${esc(JSON.stringify(value))})" aria-label="${esc(I18N.t('کپی'))}">${ic('copy')}</button></div>`;
+  },
+  orderPage(o, fresh){
+    const st = NUM_ST[o.status] || ['', 'list', o.status], active = o.status === 'active';
+    const rows = [['سرویس', `<span class="ai-lat">${esc(o.service)}</span>`], ['کشور', `${o.flag} ${esc(o.country)}`],
+      ['کد پیگیری', `<span class="n">${esc(o.code)}</span>`], ['مبلغ', `${N(fa(o.price))} <span>تومان</span>`], ['تاریخ', N(jfull(o.created_at))]];
+    return Top('شماره مجازی', `<span class="n">${esc(o.code)}</span>`) + `
+      <div class="ai-st ${st[0]}">
+        <div class="ai-st-h"><span class="ai-st-i">${ic(st[1], 2.4)}</span>
+          <div style="min-width:0"><div class="ai-st-t">${esc(I18N.t(this.title(o, fresh)))}</div><div class="ai-st-c ai-lat">${esc(o.service)} · ${o.flag} ${esc(o.country)}</div></div></div>
+        <div class="ai-st-s">${this.note(o)}</div>
+        ${o.phone ? this.field('شماره', o.phone) : (active ? `<div class="nmo-wait"><span class="ai-orb sm">${ic('phone', 2)}</span><span>شماره در حال آماده شدن…</span></div>` : '')}
+        ${o.sms_code ? this.field('کد تایید', o.sms_code, 'code') : ''}
+        ${active ? `<div class="nmo-wait"><span class="ai-orb sm">${ic('clock', 2)}</span><span>در انتظار کد…</span><b class="n" id="nmo-left"></b></div>
+          <div class="nmo-act"><button class="btn btn-p" id="nmo-chk" onclick="Num.check(${o.id})">${ic('refresh', 2)}بررسی کد</button>
+            <button class="btn btn-s" onclick="Num.cancelAsk(${o.id})">لغو و برگشت پول</button></div>
+          <div class="nmo-act"><button class="btn btn-s" onclick="Num.rerollAsk(${o.id})">${ic('refresh', 2)}شماره‌ی دیگر</button></div>` : ''}
+      </div>
+      ${fresh ? `<div class="ai-sent">${ic('chat', 2)}<span>یک نسخه در چت ربات هم برایت فرستاده شد؛ کد آنجا هم می‌آید.</span></div>` : ''}
+      ${o.sms_text && o.sms_text !== o.sms_code ? Sec('متن پیامک') + `<div class="card mx"><div class="ai-guide" dir="auto">${esc(o.sms_text)}</div></div>` : ''}
+      ${Sec('جزئیات سفارش')}${KV(rows)}
+      ${Sec('کارها')}${Group(
+        Row({ kind:'help', icon:'chat', title:'مشکلی داری؟', sub:'به پشتیبانی بگو؛ کد سفارش خودکار نوشته می‌شود', fn:`Num.support(${esc(JSON.stringify(o.code))})` })
+        + (o.service_id ? Row({ kind:'number', icon:'refresh', title:'کشور دیگر', sub:o.service, fn:`Num.pick(${esc(JSON.stringify(o.service_id))})` }) : ''))}`;
+  },
+  support(code){
+    App.go('compose');
+    const t = $('tk-body');
+    if (t) { t.value = I18N.t('شماره مجازی') + ' ' + code + '\n'; try { Compose.count(t); } catch(e){} t.focus(); }
+  },
+  /* هر ثانیه شمارش معکوس؛ هر ۵ ثانیه پرسیدن از سرور. با رفتن از صفحه خودش تمام می شود. */
+  watch(){
+    this.stop();
+    let n = 0;
+    this.tick = setInterval(() => {
+      const top = App.stack[App.stack.length - 1];
+      if (!top || top[0] !== 'num_order' || !this.o || this.o.status !== 'active') return this.stop();
+      this.left = Math.max(0, this.left - 1); this.paintLeft();
+      if (++n >= 5) { n = 0; this.refresh(true); }
+    }, 1000);
+    this.paintLeft();
+  },
+  stop(){ if (this.tick) clearInterval(this.tick); this.tick = null; },
+  paintLeft(){
+    const el = $('nmo-left'); if (el) el.textContent = Math.floor(this.left / 60) + ':' + String(this.left % 60).padStart(2, '0');
+  },
+  async refresh(silent){
+    if (this.polling || !this.o) return;
+    this.polling = true;
+    const id = this.o.id;
+    try {
+      const r = await api('numbers/order?id=' + id), was = this.o.status, wasPhone = this.o.phone;
+      const top = App.stack[App.stack.length - 1]; if (!top || top[0] !== 'num_order' || this.o.id !== id) return;
+      this.o = r.order; this.left = r.order.left; App.setBalance(r.balance);
+      if (r.order.status === was && r.order.phone !== wasPhone) {
+        /* شماره ی تلفن تازه رسید (در روش نشست چند ثانیه بعد از خرید پیدا می شود) */
+        const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(r.order);
+        this.paintLeft();
+      } else if (r.order.status !== was) {
+        const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(r.order);
+        if (r.order.status === 'active') this.watch(); else this.stop();
+        App.notify(r.order.status === 'completed' ? 'success' : 'warning');
+        App.toast(r.order.status === 'completed' ? 'کد رسید' : r.order.status === 'refunded' ? 'کدی نیامد؛ مبلغ به کیف پولت برگشت' : 'وضعیت عوض شد');
+      } else if (!silent) App.toast('هنوز کدی نیامده؛ چند ثانیه دیگر دوباره بزن');
+    } catch (err) { if (!silent) App.toast(err.message, true); }
+    finally { this.polling = false; }
+  },
+  async check(id){
+    const b = $('nmo-chk'); if (b) b.disabled = true;
+    App.haptic();
+    await this.refresh(false);
+    const b2 = $('nmo-chk'); if (b2) b2.disabled = false;
+  },
+  cancelAsk(id){
+    App.sheet(`<div class="sheet-t">لغو شماره و برگشت پول؟</div>
+      <div class="short" style="margin:8px 0 16px;text-align:start">اگر کد همین حالا رسیده باشد لغو نمی‌شود و کد را نشانت می‌دهیم.</div>
+      <button class="btn btn-s btn-block" style="height:50px" onclick="Num.cancel(${id})">بله، لغو کن</button>
+      <button class="btn btn-p btn-block" style="height:50px;margin-top:10px" onclick="App.closeSheet()">نه، منتظر می‌مانم</button>`);
+  },
+  rerollAsk(id){
+    App.sheet(`<div class="sheet-t">شماره‌ی دیگر از همین کشور؟</div>
+      <div class="short" style="margin:8px 0 16px;text-align:start">شماره‌ی فعلی لغو می‌شود (مبلغش برمی‌گردد) و یک شماره‌ی تازه از همین سرویس و کشور می‌گیری. قیمت شماره‌ی تازه ممکن است کمی فرق کند. اگر کد همین حالا رسیده باشد، لغو نمی‌شود.</div>
+      <button class="btn btn-ai btn-block" style="height:50px" onclick="Num.reroll(${id})">بله، شماره‌ی دیگر</button>
+      <button class="btn btn-s btn-block" style="height:50px;margin-top:10px" onclick="App.closeSheet()">نه، همین را نگه دار</button>`);
+  },
+  async reroll(id){
+    if (this.busy) return;
+    this.busy = true; this.stop();
+    $('sheet').innerHTML = `<div class="grip"></div><div class="ai-wait"><div class="ai-orb">${ic('phone', 2)}</div>
+      <div class="sheet-t">در حال گرفتن شماره‌ی تازه…</div>
+      <div class="short" style="margin-top:6px">ممکن است تا نیم دقیقه طول بکشد؛ این صفحه را نبند.</div></div>`;
+    App.haptic('medium');
+    try {
+      const r = await api('numbers/reroll', { id, nonce:Buy.nonce() });
+      App.setBalance(r.balance); App.notify('success'); App.closeSheet(); this.d = null;
+      App.stack.pop(); App.go('num_order', { id:r.order.id, order:r.order, fresh:true });
+    } catch (err) {
+      App.notify('error'); App.closeSheet();
+      if (err.code === 'insufficient') { App.toast(err.message, true); App.go('topup'); }
+      else App.toast(err.message || 'انجام نشد', true);
+      /* وضعیت واقعی سفارش را دوباره بخوان: ممکن است شماره ی قبلی لغو شده باشد */
+      try {
+        const x = await api('numbers/order?id=' + id);
+        this.o = x.order; this.left = x.order.left; App.setBalance(x.balance);
+        const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(x.order);
+        if (x.order.status === 'active') this.watch(); else this.stop();
+      } catch (e) { /* همان صفحه می ماند */ }
+    } finally { this.busy = false; }
+  },
+  async cancel(id){
+    App.closeSheet();
+    if (this.busy) return;
+    this.busy = true;
+    try {
+      const r = await api('numbers/cancel', { id });
+      App.setBalance(r.balance); this.o = r.order; this.left = r.order.left; this.d = null;
+      const p = $('sub').querySelector('.page'); if (p) p.innerHTML = this.orderPage(r.order);
+      if (r.order.status === 'active') this.watch(); else this.stop();
+      App.notify('success');
+      App.toast(r.order.status === 'refunded' ? 'لغو شد؛ مبلغ به کیف پولت برگشت' : r.order.status === 'completed' ? 'کد رسیده بود؛ لغو نشد' : 'وضعیت عوض شد');
+    } catch (err) { App.notify('error'); App.toast(err.message, true); }
+    finally { this.busy = false; }
+  },
+};
+
+SubPages.num_svc = async function(p, sid){
+  p.innerHTML = Top('شماره مجازی') + skel(1, 56) + skel(5, 64);
+  try {
+    const d = await api('numbers/countries?service=' + encodeURIComponent(sid));
+    Num.c = { sid, d };
+    App.setBalance(d.balance);
+    p.innerHTML = Top(d.service || 'شماره مجازی', 'کشور شماره را انتخاب کن؛ ارزان‌ترین اول')
+      + '<div class="gap" style="height:8px"></div>'
+      + (d.items.length
+        ? Group(d.items.map(c => `<button class="row nm-row" onclick="Num.country(${esc(JSON.stringify(sid))}, ${esc(JSON.stringify(c.cc))})"><span class="nm-flag">${c.flag}</span>
+            <span class="row-m"><span class="row-t">${esc(c.title)}</span><span class="row-s">یک کد تایید · تا ۲۰ دقیقه</span></span>
+            <span class="row-e">${N(fa(c.price))} <span class="lbl">تومان</span></span><span class="chev">${ic('chev', 2)}</span></button>`).join(''))
+        : emptyBox('فعلا شماره‌ای نیست', 'کمی بعد دوباره سر بزن.'));
+  } catch (err) { p.innerHTML = Top('شماره مجازی') + emptyBox('کشورها خوانده نشد', err.message); }
+};
+SubPages.num_order = async function(p, a){
+  const id = a && typeof a === 'object' ? a.id : a;
+  Num.stop();
+  p.innerHTML = Top('شماره مجازی') + skel(1, 240) + skel(1, 180);
+  try {
+    const o = (a && a.order) || (await api('numbers/order?id=' + id)).order;
+    Num.o = o; Num.left = o.left;
+    p.innerHTML = Num.orderPage(o, a && a.fresh);
+    if (a && a.fresh) a.fresh = false;
+    if (o.status === 'active') Num.watch();
+  } catch (err) { p.innerHTML = Top('شماره مجازی') + emptyBox('سفارش خوانده نشد', err.message); }
+};
+SubPages.num_orders = async function(p){
+  p.innerHTML = Top('شماره‌های من') + skel(4, 64);
+  try {
+    const d = Num.d = await api('numbers');
+    p.innerHTML = Top('شماره‌های من', 'کد هر شماره همیشه اینجا می‌ماند') + '<div class="gap" style="height:8px"></div>'
+      + (d.orders.length ? Group(d.orders.map(o => Num.orderRow(o)).join('')) : emptyBox('هنوز شماره‌ای نگرفتی', 'از «شماره مجازی» اولین شمارت را بگیر.'));
+  } catch (err) { p.innerHTML = Top('شماره‌های من') + emptyBox('شماره‌ها خوانده نشد', err.message); }
+};
+['num_svc', 'num_order'].forEach(k => SubPages[k].noNav = true);
+Object.entries({
+  'منتظر کد':'Waiting for code', 'کد رسید':'Code received', 'پولت برگشت':'Refunded', 'ناموفق':'Failed', 'در حال بررسی':'Under review', 'در حال انجام':'In progress',
+  'پرطرفدار':'Popular', 'جستجوی سرویس؛ مثلا تلگرام':'Search a service, e.g. Telegram', 'کشور':'countries', 'همه':'All',
+  'شماره‌های قبلی':'Previous numbers', 'شماره‌های من':'My numbers',
+  'سرویس‌دهنده الان جواب نمی‌دهد؛ کمی بعد دوباره سر بزن.':'The provider isn’t responding right now; check back in a moment.',
+  'سرویس و کشور را انتخاب کن؛ ارزان‌ترین کشورها اول می‌آیند':'Pick a service and country; the cheapest countries come first',
+  'مبلغ از کیف پول کم می‌شود و شماره همان لحظه نشان داده می‌شود':'The amount is taken from your wallet and the number appears instantly',
+  'کد تایید همین‌جا و در ربات می‌آید؛ اگر نیامد، پولت برمی‌گردد':'The verification code arrives here and in the bot; if it doesn’t, you’re refunded',
+  'قیمت، زمان انتظار کد و برگشت وجه':'Pricing, code wait time and refunds',
+  'سرویسی پیدا نشد':'No service found', 'اسم دیگری را امتحان کن.':'Try another name.',
+  'کشور شماره را انتخاب کن؛ ارزان‌ترین اول':'Pick the number’s country; cheapest first', 'یک کد تایید · تا ۲۰ دقیقه':'One verification code · up to 20 min',
+  'فعلا شماره‌ای نیست':'No numbers right now', 'کشورها خوانده نشد':'Couldn’t load countries',
+  'تایید خرید شماره':'Confirm number purchase', 'سرویس':'Service', 'کد تا ۲۰ دقیقه می‌رسد. نیامد، پولت برمی‌گردد؛ خودت هم هر وقت خواستی لغو می‌کنی.':'The code arrives within 20 minutes. If it doesn’t, you’re refunded; you can also cancel any time.',
+  'تومان کم داری؛ شارژ کن':'toman short; top up', 'پرداخت و گرفتن شماره':'Pay and get the number', 'شماره یک‌بار مصرف است':'The number is single-use',
+  'در حال گرفتن شماره…':'Getting your number…', 'ممکن است تا نیم دقیقه طول بکشد؛ این صفحه را نبند.':'It can take up to 30 seconds; don’t close this page.',
+  'جواب دیر رسید؛ نتیجه را در «شماره‌های من» ببین':'The reply was late; check the result in “My numbers”',
+  'شماره را در سرویس وارد کن و درخواست کد بزن؛ کد همین‌جا می‌آید.':'Enter the number in the service and request the code; it will appear here.',
+  'کد تایید همین پایین است و همیشه در «شماره‌های من» می‌ماند.':'Your code is right below and always stays in “My numbers”.',
+  'کدی نیامد و مبلغ به کیف پولت برگشت.':'No code arrived and the amount went back to your wallet.',
+  'شماره‌ای صادر نشد و مبلغ به کیف پولت برگشت.':'No number was issued and the amount went back to your wallet.',
+  'جواب سرویس‌دهنده به‌موقع نرسید. نگران نباش: یا کد برایت می‌آید یا مبلغ کامل برمی‌گردد.':'The provider didn’t reply in time. Don’t worry: either your code arrives or you’re fully refunded.',
+  'سفارش در حال انجام است.':'Your order is in progress.', 'شماره':'Number', 'کد تایید':'Verification code', 'در انتظار کد…':'Waiting for the code…',
+  'بررسی کد':'Check code', 'لغو و برگشت پول':'Cancel & refund', 'متن پیامک':'SMS text', 'شماره‌ای دیگر':'Another number',
+  'یک نسخه در چت ربات هم برایت فرستاده شد؛ کد آنجا هم می‌آید.':'A copy was also sent to your bot chat; the code will arrive there too.',
+  'کدی نیامد؛ مبلغ به کیف پولت برگشت':'No code arrived; the amount went back to your wallet', 'وضعیت عوض شد':'Status changed',
+  'هنوز کدی نیامده؛ چند ثانیه دیگر دوباره بزن':'No code yet; try again in a few seconds',
+  'لغو شماره و برگشت پول؟':'Cancel the number and refund?',
+  'اگر کد همین حالا رسیده باشد لغو نمی‌شود و کد را نشانت می‌دهیم.':'If the code has just arrived it can’t be cancelled and we’ll show you the code.',
+  'بله، لغو کن':'Yes, cancel', 'نه، منتظر می‌مانم':'No, I’ll wait', 'لغو شد؛ مبلغ به کیف پولت برگشت':'Cancelled; the amount went back to your wallet',
+  'کد رسیده بود؛ لغو نشد':'The code had arrived; not cancelled', 'کد هر شماره همیشه اینجا می‌ماند':'Each number’s code always stays here',
+  'هنوز شماره‌ای نگرفتی':'You haven’t got a number yet', 'از «شماره مجازی» اولین شمارت را بگیر.':'Get your first one from “Virtual numbers”.',
+  'نوع شماره':'Number type', 'پیش‌فرض سایت':'Site default', 'مجازی':'Virtual', 'فیزیکی':'Physical', 'پریمیوم':'Premium',
+  'مجازی ارزان‌تر است ولی ممکن است بعضی سرویس‌ها قبولش نکنند؛ فیزیکی سیم‌کارت واقعی است؛ پریمیوم سریع‌ترین و پرموفقیت‌ترین است.':'Virtual is cheaper but some services may reject it; physical is a real SIM; premium is the fastest and most successful.',
+  'شماره در حال آماده شدن…':'Your number is being prepared…',
+  'شماره‌ی دیگر':'Another number', 'کشور دیگر':'Another country', 'شماره‌ی دیگر از همین کشور؟':'Another number from this country?',
+  'شماره‌ی فعلی لغو می‌شود (مبلغش برمی‌گردد) و یک شماره‌ی تازه از همین سرویس و کشور می‌گیری. قیمت شماره‌ی تازه ممکن است کمی فرق کند. اگر کد همین حالا رسیده باشد، لغو نمی‌شود.':'Your current number is cancelled (you get its price back) and you get a fresh one from the same service and country. The new price may differ slightly. If the code has just arrived, it isn’t cancelled.',
+  'بله، شماره‌ی دیگر':'Yes, another number', 'نه، همین را نگه دار':'No, keep this one', 'در حال گرفتن شماره‌ی تازه…':'Getting a fresh number…',
+  'انجام نشد':'It didn’t go through', 'چند ثانیه صبر کن و دوباره امتحان کن':'Wait a few seconds and try again', 'کد رسیده بود؛ لغو نشد':'The code had arrived; not cancelled',
+  'شماره مجازی':'Virtual numbers', 'خرید شماره مجازی':'Virtual number purchase', 'شماره‌ها خوانده نشد':'Couldn’t load numbers', 'سفارش خوانده نشد':'Couldn’t load the order',
+  'شماره‌ای صادر نشد؛ پولت به کیف پول برگشت':'No number was issued; your money went back to your wallet',
+  'برای این سرویس و کشور الان شماره‌ای نیست؛ پولی کم نشد':'There’s no number for this service and country right now; you weren’t charged',
+  'الان نمی‌شه لغو کرد؛ کمی بعد دوباره امتحان کن':'It can’t be cancelled right now; try again in a moment',
+  'ارتباط با سرویس دهنده برقرار نشد؛ پولی کم نشد':'Couldn’t reach the provider; you weren’t charged',
+}).forEach(([k, v]) => { const n = I18N.norm(k); if (!(n in L10N.en)) L10N.en[n] = v; });
 
 const Visa = {
   on:null,
