@@ -280,7 +280,7 @@ async function throwCard(s, c, from, power, dir) {
   const g = motion.geo(), sg = dir != null && Math.abs(dir) > 150 ? Math.sign(dir) : Math.random() < .5 ? -1 : 1;
   const spin = (mine ? 10 : 0) + 30 * P * sg;
   const o = { sx: (ox - g.pr.left) / g.k, sy: (oy - g.pr.top) / g.k, h0: mine ? 30 : 45, tx: x + 32, ty: y + 45,
-    a0: ((mine ? r - 10 : R === 1 ? 78 : R === 3 ? -78 : 172) + spin) * D, a1: r * D, P, B: motion.bodies(), box: g.box };
+    a0: ((mine ? r - 10 : R === 1 ? 78 : R === 3 ? -78 : 172) + spin) * D, a1: r * D, P, B: motion.bodies(), box: motion.zone(x + 32, y + 45, r * D) };
   o.T = Math.max(.2, Math.min(.46, (.16 + Math.hypot(o.tx - o.sx, o.ty - o.sy) * .0006) * (1.2 - .45 * P)));
   const A = CP.aim(o), run = CP.fly(o, A.lx, A.ly, A.w0, motion.env, true);
   const T1 = run.lands[0].t, end = run.t;
@@ -823,8 +823,8 @@ GC.onFit(fit);   // فقط وقتی اندازهٔ صفحه واقعا عوض ش
 
 /* ---------- برگ های وسط میز: میز واقعی با جاذبه ----------
    گوشی همان میز است: کج که شود، برگ ها با جاذبه سُر می خورند (اصطکاک ایستا نگهشان می دارد تا شیب
-   کافی شود؛ برگ روی برگ زودتر از برگ روی ماهوت راه می افتد)، به لبهٔ میز می خورند و برمی گردند و
-   همان جا که ایستادند می مانند. تکان تند گوشی هم با لختی برگ ها را جابه جا می کند. هر برگ را می شود
+   کافی شود؛ برگ روی برگ زودتر از برگ روی ماهوت راه می افتد)، به لبهٔ میدان بازی وسط میز می خورند و
+   برمی گردند و همان جا که ایستادند می مانند. تکان تند گوشی هم با لختی برگ ها را جابه جا می کند. هر برگ را می شود
    با انگشت هل داد (از گوشه بگیری دورش می چرخد) و پرت کرد؛ برگ های رویش با آن می آیند مگر تند کشیده
    شود. همه فقط نمایش است و به سرور نمی رسد؛ با جمع شدن دور تمام می شود. فیزیک: static/card-physics.js.
    «میز صاف» حالت عادی دست است: اول هر دور زود و وسط دور آرام دنبال گوشی می آید، پس فقط کج کردن
@@ -917,10 +917,28 @@ const motion = (() => {
   if (tw) { try { tw.onEvent('deactivated', stop); tw.onEvent('activated', start); } catch (e) {} }
 
   // ---- برگ های میز: هر برگ یک جسم با جای خودش (bx,by,br) که از آن جابه جا شده
+  /* میدان بازی: فضای خالی وسط میز، بین بازیکن چپ و راست، زیر برگ های یار و بالای نوار من (با کمی
+     فاصله)؛ برگ ها از آن بیرون نمی روند و زیر بازیکن ها و برگ هایشان نمی خزند. میدان هر برگ جای خود
+     آن برگ را هم دارد: روی صفحهٔ باریک که بازیکن ها نزدیک ترند، برگ سر جای خودش می ماند ولی جلوتر نمی رود. */
+  function zone(x, y, a) {
+    const z = (geo || measure()).box, c = Math.cos(a), s = Math.sin(a);
+    let l = z.l, r = z.r, t = z.t, b = z.b;
+    for (const [px, py] of [[-32, -45], [32, -45], [32, 45], [-32, 45]]) {
+      const X = x + px * c - py * s, Y = y + px * s + py * c;
+      l = Math.min(l, X - 1); r = Math.max(r, X + 1); t = Math.min(t, Y - 1); b = Math.max(b, Y + 1);
+    }
+    return { l, t, r, b };
+  }
   function measure() {
     const pr = pile.getBoundingClientRect(), k = pileScale(), t = $('table'), tr = t.getBoundingClientRect();
-    const wall = (parseFloat(getComputedStyle(t).getPropertyValue('--wall')) || 6) + 2;
-    geo = { pr, k, box: { l: (tr.left + wall - pr.left) / k, t: (tr.top + wall - pr.top) / k, r: (tr.right - wall - pr.left) / k, b: (tr.bottom - wall - pr.top) / k } };
+    const wall = (parseFloat(getComputedStyle(t).getPropertyValue('--wall')) || 6) + 2, gap = 6;
+    const rects = sel => [...t.querySelectorAll(sel)].map(e => e.getBoundingClientRect()).filter(r => r.width && r.height);
+    const l = Math.max(tr.left + wall, ...rects('.hk-seat[data-rel="3"] > *').map(r => r.right + gap));
+    const r = Math.min(tr.right - wall, ...rects('.hk-seat[data-rel="1"] > *').map(r => r.left - gap));
+    const top = Math.max(tr.top + wall, ...rects('.hk-seat[data-rel="2"] > *').map(r => r.bottom + gap));
+    const bot = Math.min(tr.bottom - wall, ...rects('#meBar > *, #chatBtn').map(r => r.top - gap));
+    geo = { pr, k, box: { l: (l - pr.left) / k, r: (r - pr.left) / k, t: (top - pr.top) / k, b: (bot - pr.top) / k } };
+    for (const b of order) b.box = null;
     return geo;
   }
   function paint(b) {
@@ -963,6 +981,7 @@ const motion = (() => {
     if (order.length && !order[0].el.isConnected) sync();   // توده بی خبر خالی شد (پخش ورق، انتخاب حکم)
     if (!order.length) { prev = 0; return; }
     const g = geo || measure(), dt = prev ? Math.min(.05, (t - prev) / 1000) : 1 / 60; prev = t;
+    for (const b of order) if (!b.box) b.box = zone(b.bx, b.by, b.br);
     const n = Math.max(1, Math.ceil(dt * 240)), h = dt / n, hits = [];
     let moving = false;
     for (let i = 0; i < n; i++) moving = CP.step(order, env, h, g.box, hits);
@@ -989,7 +1008,7 @@ const motion = (() => {
   document.addEventListener('pointermove', e => {
     if (!held || e.pointerId !== held.id) return;
     const b = bodies.get(held.c); if (!b) { held = null; return; }
-    const [x, y] = local(e), box = geo.box;
+    const [x, y] = local(e), box = b.box || zone(b.bx, b.by, b.br);
     b.pin.x = Math.max(box.l + 6, Math.min(box.r - 6, x)); b.pin.y = Math.max(box.t + 6, Math.min(box.b - 6, y));
     if (!held.moved && Math.hypot(x - held.x, y - held.y) > 6) { held.moved = true; haptic('light'); }
     kick();
@@ -1009,10 +1028,11 @@ const motion = (() => {
 
   return {
     start, stop, env,
-    changed() { sync(); kick(); },                 // توده عوض شد (برگ تازه یا جمع شدن دور)
+    changed() { geo = null; sync(); kick(); },     // توده عوض شد (برگ تازه یا جمع شدن دور)؛ میدان هم دوباره اندازه گرفته می شود
     land(c, s) { landed.set(c, s); },               // برگ پرتاب شده با همان جا و سرعتی که ایستاد به میز سپرده می شود
     bodies: () => order,
     geo: () => geo || measure(),
+    zone,
     resize() { geo = null; },
   };
 })();

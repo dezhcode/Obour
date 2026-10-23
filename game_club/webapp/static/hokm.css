@@ -54,10 +54,6 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
    جابه جایی با translate و rotate، پس transform برگ دست نمی خورد */
 .hk-pile .hk-card.tc{touch-action:none;cursor:grab;will-change:translate,rotate}
 .hk-pile .hk-card.tc.held{cursor:grabbing}
-/* برگی که تا لبهٔ میز سُر خورده زیر بازیکن ها و نوار پایین می رود، نه رویشان؛ آن ها فقط نمایشی اند،
-   پس لمس از رویشان به برگ زیر می رسد تا بشود برگ را برگرداند */
-.hk-table:has(.hk-card.tc) .hk-seat{z-index:1}
-.hk-table:has(.hk-card.tc) :is(.hk-seat,.hk-me){pointer-events:none}
 .hk-pile .hk-card.win{box-shadow:0 0 0 3px var(--gold),0 10px 20px rgba(0,0,0,.4)}
 .hk-pile .hk-card .crown{position:absolute;z-index:4;top:-1px;right:-1px;width:24px;height:24px;border-radius:0 0 0 10px;display:grid;place-items:center;background:var(--gold)}
 .hk-pile .hk-card .crown svg{width:14px;height:14px}
