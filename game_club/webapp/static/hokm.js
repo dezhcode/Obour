@@ -844,17 +844,28 @@ const motion = (() => {
   let cal = [], sign = 0, unit = 1, flipB = null, F = null, ref = null, lastT = 0;
   const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
   const unitv = v => { const m = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / m, v[1] / m, v[2] / m]; };
+  /* حساسیت: کج کردن گوشی و تکان تند هر کدام فقط بخشی از اثر واقعی را دارند، تا لرزش و جابه جایی
+     معمولی دست برگ ها را نبرد. با TILT = .8 برگ روی برگ از حدود ۱۳ درجه و روی ماهوت از حدود ۲۱ درجه
+     کج کردن نگه داشته راه می افتد (پیش تر ۱۰ و ۱۷) و آرام تر سُر می خورد. G: بخش آرام (جاذبه و کجی)،
+     F - G: تکان تند (لختی). */
+  const TILT = .8, SHAKE = .3;
+  let G = null;
   function feed(A) {
     const now = performance.now(), dt = lastT ? Math.min(.5, (now - lastT) / 1000) : 0; lastT = now;
-    F = F ? F.map((v, i) => v + (A[i] - v) * (1 - Math.exp(-dt / .04))) : A.slice();   // لرزش حسگر
-    const m = Math.hypot(F[0], F[1], F[2]); if (m < 2) return;
-    const u = [F[0] / m, F[1] / m, F[2] / m];
+    const lp = (v, to, tau) => v ? v.map((x, i) => x + (to[i] - x) * (1 - Math.exp(-dt / tau))) : to.slice();
+    F = lp(F, A, .06);                                 // لرزش حسگر
+    G = lp(G, F, .15);
+    const m = Math.hypot(G[0], G[1], G[2]); if (m < 2) return;
+    const u = [G[0] / m, G[1] / m, G[2] / m];
     ref = ref ? unitv(ref.map((v, i) => v + (u[i] - v) * (1 - Math.exp(-dt / (bodies.size ? 6 : .5))))) : u;
     // صفحهٔ میز وقتی صاف است عمود بر ref است؛ محور X راست صفحه، Y رو به بالای صفحه
     const X = unitv([1 - ref[0] * ref[0], -ref[0] * ref[1], -ref[0] * ref[2]]);
     if (Math.abs(ref[0]) > .95) return;              // گوشی روی لبهٔ کناری اش
     const Y = [X[1] * ref[2] - X[2] * ref[1], X[2] * ref[0] - X[0] * ref[2], X[0] * ref[1] - X[1] * ref[0]];
-    env.ax = dot(F, X) * CP.PX; env.ay = -dot(F, Y) * CP.PX; env.gn = Math.max(.2 * CP.G, dot(F, ref)) * CP.PX;
+    const L = [F[0] - G[0], F[1] - G[1], F[2] - G[2]];
+    env.ax = (dot(G, X) * TILT + dot(L, X) * SHAKE) * CP.PX;
+    env.ay = -(dot(G, Y) * TILT + dot(L, Y) * SHAKE) * CP.PX;
+    env.gn = Math.max(.2 * CP.G, dot(G, ref)) * CP.PX;
     if (bodies.size && Math.hypot(env.ax, env.ay) > CP.CARD.s * env.gn * .9) kick();
   }
   // شتاب سنج: بعضی گوشی ها نیروی تکیه گاه را می دهند (رو به بالا)، بعضی خود جاذبه را؛ بعضی متر بر ثانیه^۲، بعضی g.
@@ -884,7 +895,7 @@ const motion = (() => {
   const webAcc = e => { const a = e.accelerationIncludingGravity; if (a && a.x != null) { empty = 0; accel(a.x, a.y, a.z); } else if (++empty > 8) useOrient(); };
   const webOri = e => orient(e.beta, e.gamma);
   function begin(s) {
-    src = s; cal = []; sign = 0; flipB = null; F = null; ref = null; lastT = 0;
+    src = s; cal = []; sign = 0; flipB = null; F = G = null; ref = null; lastT = 0;
     try {
       if (s === 'tgAcc') { tw.onEvent('accelerometerChanged', tgAcc); tw.Accelerometer.start({ refresh_rate: 25 }, ok => { if (!ok && src === s) useOrient(); }); }
       else if (s === 'tgOri') { tw.onEvent('deviceOrientationChanged', tgOri); tw.DeviceOrientation.start({ refresh_rate: 25 }, ok => { if (!ok && src === s) end(); }); }
