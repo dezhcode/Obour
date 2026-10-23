@@ -1,13 +1,10 @@
 /* اسم‌فامیل — طرح «برگ دفتر»: زمینهٔ کاغذ کاهی، برگ خط‌دار با حاشیهٔ قرمز، جواب‌ها با خط دست (Digi Maryam) و
-   جوهر آبی، نمره و نظر داور با خودکار قرمز، و یادداشت زرد برای استپ. شب: همان دفتر زیر نور کم. */
+   جوهر آبی، نمره و نظر داور با خودکار قرمز، و یادداشت زرد برای استپ. فقط روشن (html[data-theme-lock="light"]). */
 @font-face{font-family:DigiMaryam;src:url(fonts/DigiMaryam.woff2) format("woff2");font-display:swap}
 body.esm{--ef-bg:#EFE6D2;--ef-paper:#FFFCF2;--ef-line:#C9D8EE;--ef-margin:#E8A3A8;--ef-ink:#1E3A8A;--ef-red:#C8323C;--ef-red-deep:#9E1F29;
   --ef-text:#2A2F3A;--ef-muted:#6B5B3A;--ef-label:#6B7A99;--ef-edge:#D9CCAE;--ef-note:#FFE58A;--ef-note-edge:#E2C35A;--ef-note-ink:#4A3600;
   --ef-ok:#1E6B44;--ef-ok-tint:#E2F2E6;--ef-chip:#F1EADB;--ef-me:#FFF8D6;--ef-row:56px;
   margin:0;min-height:100vh;background:var(--ef-bg);color:var(--ef-text);font-family:var(--font-peyda);-webkit-tap-highlight-color:transparent}
-:root[data-theme="dark"] body.esm{--ef-bg:#1B1812;--ef-paper:#28241C;--ef-line:rgba(140,170,220,.2);--ef-margin:rgba(232,120,128,.45);--ef-ink:#A9C1FF;
-  --ef-red:#FF6B74;--ef-red-deep:#FF9AA2;--ef-text:#EDE6D6;--ef-muted:#B9AA88;--ef-label:#9AA6C2;--ef-edge:#3A3326;--ef-note:#5C4B12;--ef-note-edge:#3E320A;
-  --ef-note-ink:#FFE7A0;--ef-ok:#7ED6A1;--ef-ok-tint:rgba(46,140,90,.22);--ef-chip:#332D22;--ef-me:rgba(255,229,138,.12)}
 .esm .uname{direction:ltr;unicode-bidi:isolate}
 .esm .hand{font-family:DigiMaryam,var(--font-rokh);font-weight:400;color:var(--ef-ink)}
 
@@ -178,7 +175,6 @@ body.esm{--ef-bg:#EFE6D2;--ef-paper:#FFFCF2;--ef-line:#C9D8EE;--ef-margin:#E8A3A
 .ef-detail{display:grid;gap:8px;text-align:center;justify-items:center;padding-bottom:6px}
 .ef-detail small{font-size:12.5px;color:var(--ink-muted);font-weight:700}
 .ef-detail .hand{font-size:34px;line-height:44px;color:#1E3A8A}
-:root[data-theme="dark"] .ef-detail .hand{color:#A9C1FF}
 .ef-detail .verdict{font-weight:800;font-size:14px}
 .ef-detail .verdict.no{color:var(--danger)}
 .ef-detail .verdict.ok{color:var(--success)}
@@ -188,4 +184,3 @@ body.esm{--ef-bg:#EFE6D2;--ef-paper:#FFFCF2;--ef-line:#C9D8EE;--ef-margin:#E8A3A
 
 /* برگه ها و پیام ها (gc-ui) در این صفحه به رنگ خودکار قرمز */
 body.esm .gc-ui{--acc:#C8323C;--acc-deep:#C8323C;--acc-ink:#FFFFFF;--acc-tint:#FBE8E9}
-:root[data-theme="dark"] body.esm .gc-ui{--acc:#D2454F;--acc-deep:#FF9AA2;--acc-tint:rgba(210,69,79,.22)}

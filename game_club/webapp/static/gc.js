@@ -40,9 +40,9 @@ const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
 // (روشن یا تیره؛ theme.js). با عوض شدن پوسته دوباره رنگ می شود.
 function paintBars() {
   const game = document.body.matches('.game,.hokm,.divar,.football,.billiard'), night = document.documentElement.dataset.theme === 'dark';
-  const paper = document.body.matches('.esm');   // اسم‌فامیل: میز کاغذی (روشن یا شب)
-  const top = paper ? (night ? '#1B1812' : '#EFE6D2') : game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8';
-  const bottom = paper ? (night ? '#24201A' : '#FFFCF2') : game ? '#08120F' : night ? '#181C24' : '#FFFFFF';
+  const paper = document.body.matches('.esm');   // اسم‌فامیل: برگ دفتر، همیشه روشن
+  const top = paper ? '#EFE6D2' : game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8';
+  const bottom = paper ? '#FFFCF2' : game ? '#08120F' : night ? '#181C24' : '#FFFFFF';
   try { tg.setHeaderColor(top); tg.setBackgroundColor(top); } catch (e) {}
   try { ver('7.10') && tg.setBottomBarColor(bottom); } catch (e) {}
 }
@@ -160,9 +160,9 @@ const ERR = {
   no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است', shop_off: 'خدمات عبور فعلا در دسترس نیست',
   bad_invite: 'این لینک دعوت معتبر نیست', started: 'این میز شروع شده', full: 'این میز پر است', in_match: 'تو الان سر یک میز دیگر هستی',
   need_players: 'هنوز بازیکن کافی سر میز نیست', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
-  group_only: 'اسم‌فامیل فقط توی گروه ساخته می‌شود', sheet_not_full: 'برای استپ، همهٔ ستون‌ها را پر کن', closed: 'وقت این کار گذشته',
-  submitted: 'برگت را تحویل داده‌ای', no_appeal: 'به این خانه نمی‌شود اعتراض کرد', appealed: 'برای این خانه اعتراض داده‌ای',
-  no_vote: 'روی اعتراض خودت نمی‌توانی رأی بدهی', not_playing: 'تو در این بازی نیستی', bad_sheet: 'برگ درست ثبت نشد؛ دوباره امتحان کن',
+  group_only: 'اسم‌فامیل فقط توی گروه ساخته می‌شه', sheet_not_full: 'واسه استپ باید همهٔ خونه‌ها پر باشه ✍️', closed: 'دیر شد؛ وقتش تموم شده',
+  submitted: 'برگتو که تحویل دادی 😄', no_appeal: 'به این خونه نمی‌شه اعتراض کرد', appealed: 'سر این یکی قبلا اعتراض کردی',
+  no_vote: 'رو اعتراض خودت که نمی‌تونی رأی بدی 😄', not_playing: 'تو این بازی نیستی', bad_sheet: 'برگت درست ثبت نشد؛ یه بار دیگه بزن',
   plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
   rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
   not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', no_walls: 'دیوارهایت تمام شده؛ فقط می‌توانی حرکت کنی', wall_taken: 'این‌جا دیوار نمی‌شود گذاشت؛ روی دیوار دیگری می‌افتد', wall_blocks: 'این دیوار راه یک نفر را کامل می‌بندد؛ مجاز نیست', bad_wall: 'جای دیوار درست نیست', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_place: 'توپ سفید را جای خالی بگذار (در بریک: پشت خط سر)', bad_pack: 'این بسته در دسترس نیست',

@@ -273,17 +273,17 @@ def _esm_lobby(game: str, cfg: dict, mid: str, seats: list[dict], row: dict) -> 
     free = esmfamil.MAX_PLAYERS - len(seats)
     lines = [["سازنده: ", *(who(host["tg"], host["name"]) if host else ["—"])], "",
              [st.E("judge"), " حرف هر دور رو هوش مصنوعی عبور انتخاب می‌کنه و برگ‌ها رو هم خودش تصحیح می‌کنه."],
-             "جواب درست تکی 10، تکراری 5، غلط یا خالی 0.", "",
-             [st.E("users"), " ", st.B(f"سر برگ ({fd(len(seats))} نفر)")]]
+             "جواب درستی که فقط خودت نوشتی 10، تکراری 5، غلط یا خالی 0.", "",
+             [st.E("users"), " ", st.B(f"سر میز ({fd(len(seats))} نفر)")]]
     lines += [[f"{fd(i + 1)}. ", *who(s["tg"], s["name"])] for i, s in enumerate(seats)]
     if len(seats) < esmfamil.MIN_PLAYERS:
-        foot = ("seat", "منتظر حریف", "دست‌کم یه نفر دیگه باید «بشین» رو بزنه 😉")
+        foot = ("seat", "منتظر حریف", "حداقل یه نفر دیگه باید «بشین» رو بزنه؛ تنهایی که مزه نداره 😉")
     else:
-        foot = ("play", "آماده", f"تا {fd(free)} نفر دیگه هم جا هست؛ سازنده هر وقت خواست «شروع» رو می‌زنه.")
+        foot = ("play", "آماده", f"تا {fd(free)} نفر دیگه هم جا هست؛ هر وقت سازنده خواست «بزن بریم» رو می‌زنه 🚀")
     rows = [_row(_bt("seat", "بشین", "success", callback_data=f"gt:join:{mid}"),
                  _bt("leave", "بلند شو", "danger", callback_data=f"gt:leave:{mid}"))]
     if len(seats) >= esmfamil.MIN_PLAYERS:
-        rows.append(_row(_bt("play", "شروع بازی", "primary", callback_data=f"gt:start:{mid}")))
+        rows.append(_row(_bt("play", "بزن بریم!", "primary", callback_data=f"gt:start:{mid}")))
     return card(st.frame(game, "میز اسم‌فامیل", summary(game, cfg), lines, foot), *rows)
 
 
@@ -313,12 +313,12 @@ def esm_head(m: dict, seats: list[dict], more: bool = False) -> list:
         res = ["کسی امتیاز نگرفت؛ برگ‌ها سفید موند 🕊"]
     lines: list = [res, "", [st.E("score"), " ", st.B("رده‌بندی")]]
     for i, c in enumerate(_esm_rank(state)):
-        out = " (رفت)" if state["players"][c].get("out") else ""
+        out = " (وسط بازی رفت)" if state["players"][c].get("out") else ""
         lines.append([f"{fd(i + 1)}. ", *_esm_who(c, by, state), f" — {fd(tot.get(c, 0))}{out}",
                       *([" ", st.E("trophy")] if c in wins else [])])
     by_ai = any(r.get("by") == "ai" for r in state.get("rounds") or [])
     if more:
-        lines += ["", "برگ همه با امتیاز هر خونه پایین‌تر اومد 👇"]
+        lines += ["", "برگ همه با امتیاز هر خونه رو پایین‌تر گذاشتیم؛ ببینید کی چی نوشته 👇"]
     rounds = len(state.get("rounds") or [])
     return st.frame("esmfamil", "اسم‌فامیل", f"تموم شد · {fd(rounds)} دور", lines,
                     foot=("judge", "داور", "هوش مصنوعی عبور" if by_ai else "داوری خودکار"))
@@ -358,7 +358,7 @@ def esm_round_blocks(state: dict, i: int, by: dict) -> list:
                             cell["a"], "» ", cell["why"]])
             elif cell.get("appealed"):
                 why.append(["• ", st.iso((by.get(c) or {}).get("name") or state["players"][c]["name"]), f" · {esmfamil.COL_FA[k]}: «",
-                            cell["a"], "» با رأی بقیه قبول شد"])
+                            cell["a"], "» با رأی بچه‌ها قبول شد 🙌"])
     if why:
         blocks.append(_para([st.E("judge"), " ", st.B("نظر داور"), "\n", *sum(([*w, "\n"] for w in why[:24]), [])[:-1]]))
     return blocks
@@ -375,7 +375,7 @@ def esm_result(m: dict, seats: list[dict], full: bool = True) -> InputRichMessag
             blocks.append(InputRichBlockDetails(
                 summary=st.to_rich([st.B(f"دور {fd(i + 1)}"), f" · حرف «{rec['letter']}»"]),
                 blocks=esm_round_blocks(state, i, by), is_open=i == n - 1))
-    blocks.append(_row(_bt("new", "یه دست دیگه", "success", callback_data="gt:new:esmfamil")))
+    blocks.append(_row(_bt("new", "یه دست دیگه بزنیم؟", "success", callback_data="gt:new:esmfamil")))
     return _rm(blocks)
 
 
@@ -484,21 +484,26 @@ async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
         if s.get("bot"):
             continue
         tg = s["tg"]
+        # اسم‌فامیل میز «پر» ندارد: سازنده شروع می کند و هر کس باید زود برگش را باز کند
+        esm = row["game"] == "esmfamil"
+        go = "برگمو باز کن" if esm else "ورود به بازی"
         # ۱) پیوی ربات (اگر کاربر قبلا ربات را استارت کرده باشد)
         try:
             from .bot import open_kb
-            text = st.to_html(st.frame(row["game"], f"بازی {g['name']}", "شروع شد", [
-                ["بازی توی «", st.iso(title), "» شروع شد؛ همه منتظر توان، دیر نکن! 🏃"]], foot=("play", "ورود", "دکمهٔ زیر رو بزن")))
-            await _bot.send_message(tg, text, reply_markup=open_kb(f"{row['game']}.html", "ورود به بازی", "play"))
+            line = (["اسم‌فامیل توی «", st.iso(title), "» شروع شد! برگتو باز کن؛ حرف که رو بشه، ساعت راه می‌افته ✍️"] if esm else
+                    ["بازی توی «", st.iso(title), "» شروع شد؛ همه منتظر توان، دیر نکن! 🏃"])
+            text = st.to_html(st.frame(row["game"], f"بازی {g['name']}", "شروع شد", [line], foot=("play", "ورود", "دکمهٔ زیر رو بزن")))
+            await _bot.send_message(tg, text, reply_markup=open_kb(f"{row['game']}.html", go, "play"))
         except Exception:  # noqa: BLE001
             pass
         # ۲) پیام فقط-برای-او داخل همان گروه (Ephemeral Messages)؛ کارت اینلاین چت را نمی شناسد
         if not row["chat_id"]:
             continue
         try:
-            rm = card(st.frame(row["game"], f"بازی {g['name']}", "شروع شد", [[*who(tg, s["name"]), "، میز پر شد و بازی شروع شد! بدو بیا 🏃"]],
+            rm = card(st.frame(row["game"], f"بازی {g['name']}", "شروع شد",
+                               [[*who(tg, s["name"]), "، اسم‌فامیل شروع شد! بدو برگتو باز کن ✍️" if esm else "، میز پر شد و بازی شروع شد! بدو بیا 🏃"]],
                                foot=("play", "ورود", "این پیام رو فقط تو می‌بینی؛ هیس 🤫")),
-                      *([_row(_bt("play", "ورود به بازی", "primary", url=link))] if link else []))
+                      *([_row(_bt("play", go, "primary", url=link))] if link else []))
             await _send(row["chat_id"], rm, ephemeral_message_parameters=EphemeralMessageParameters(receiver_user_id=tg))
         except Exception:  # noqa: BLE001
             log.debug("پیام ephemeral نرفت", exc_info=True)
@@ -667,7 +672,7 @@ async def _act(cq: CallbackQuery, gdb: GCDatabase, act: str, match_id: str) -> N
         text = {"in_match": "تو الان سر یه میز دیگه‌ای 😅", "full": "میز پره؛ دفعهٔ بعد زودتر بجنب!", "started": "دیر رسیدی؛ بازی شروع شده 😅",
                 "not_host": "فقط سازندهٔ میز می‌تونه شروع کنه.", "banned": "حسابت مسدوده 🚫",
                 "busy": "یه لحظه صبر کن، دوباره بزن.", "not_found": "این میز دیگه نیست 👻",
-                "need_players": "دست‌کم 2 نفر باید بشینن؛ تنهایی که اسم‌فامیل مزه نداره 😄"}.get(e.code, "نشد؛ یه بار دیگه بزن.")
+                "need_players": "حداقل 2 نفر باید بشینن؛ تنهایی که اسم‌فامیل مزه نداره 😄"}.get(e.code, "نشد؛ یه بار دیگه بزن.")
         await cq.answer(text, show_alert=True)
     await refresh(gdb, m["id"])
 

@@ -496,7 +496,11 @@ async def settle(db: GCDatabase, m: dict) -> None:
             continue
         won = r["color"] in winners
         share = shares.get(r["tg_id"], 0)
-        if won:
+        if game_of(cfg) == "esmfamil":   # برگ کامل همه را ربات در خود گروه فرستاده است
+            text = "اسم‌فامیل رو بردی! 🎉 برگت از همه پرتر بود؛ برگ همه رو توی گروه ببین 😎" if won else \
+                "اسم‌فامیل تموم شد و این دفعه نشد 😅 برگ همه با امتیازا توی گروهه؛ دست بعد مال توئه!" if winners else \
+                "اسم‌فامیل تموم شد؛ نتیجه رو توی گروه ببین."
+        elif won:
             text = f"{name} رو بردی! 🎉 {share:,} امتیاز جایزه ریخت تو کیفت؛ دمت گرم!" if cfg["mode"] == "stake" and share else f"{name} رو بردی! 🎉 حریفا هنوز تو شوکن."
         else:
             text = f"بازی {name} تموم شد و این دفعه نشد. عیب نداره، دست بعد مال توئه 😉" if winners else f"بازی {name} تموم شد."

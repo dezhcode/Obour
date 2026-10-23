@@ -211,15 +211,15 @@ def esmfamil_intro() -> list:
     return [[st.E("esmfamil"), " ", st.B("اسم‌فامیل فقط توی گروه بازی می‌شه")],
             "همه با هم یه حرف می‌گیرن و اسم، فامیل، شهر، کشور، غذا، حیوان، میوه و اشیا رو پر می‌کنن.",
             [st.E("judge"), " حرف هر دور رو هوش مصنوعی عبور انتخاب می‌کنه و برگ‌ها رو هم خودش تصحیح می‌کنه."],
-            "جواب درست تکی 10، تکراری 5؛ آخر بازی برگ همه با امتیازها توی گروه میاد و برنده اعلام می‌شه 🏆", "",
+            "جواب درستی که فقط تو نوشتی 10، تکراری 5؛ آخر بازی برگ همه با امتیازا توی گروه میاد و برنده اعلام می‌شه 🏆", "",
             ["توی گروهت بنویس ", st.iso("/esmfamil"), " یا ", st.iso(bot_at() + " esmfamil")]]
 
 
 def esmfamil_kb() -> InlineKeyboardMarkup:
     """فقط گروه ها در فهرست انتخاب تلگرام می آیند؛ کارت تنظیم میز همان جا ساخته می شود."""
-    btn = st.kb_button("انتخاب گروه برای اسم‌فامیل", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
+    btn = st.kb_button("یه گروه انتخاب کن، بزن بریم", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
         query="esmfamil", allow_group_chats=True, allow_user_chats=False, allow_bot_chats=False, allow_channel_chats=False))
-    kb = open_kb("esmfamil-lobby.html", "راهنمای اسم‌فامیل", "help")
+    kb = open_kb("esmfamil-lobby.html", "چطوری بازی کنم؟", "help")
     return InlineKeyboardMarkup(inline_keyboard=[[btn], *(kb.inline_keyboard if kb else [])])
 
 

@@ -2230,14 +2230,14 @@ def test_esmfamil_group_flow():
             m = await db.get_match(mid)
             assert m["cfg"] == {"game": "esmfamil", "mode": "free", "entry": 0, "players": 10, "rounds": 1, "secs": 60}
             rm = bot.edits[-1][1]
-            assert "شروع بازی" not in P(rm) and "دست‌کم یه نفر" in P(rm)
+            assert "بزن بریم!" not in P(rm) and "حداقل یه نفر" in P(rm)
             cq = _CQ(21, f"gt:start:{mid}", chat=chat)
             await groups.on_button(cq, gdb=db, bot=bot)
-            assert "دست‌کم 2 نفر" in cq.answers[-1] and (await db.get_match(mid))["status"] == "lobby"
+            assert "حداقل 2 نفر" in cq.answers[-1] and (await db.get_match(mid))["status"] == "lobby"
             for u in (22, 23):
                 await groups.on_button(_CQ(u, f"gt:join:{mid}", chat=chat), gdb=db, bot=bot)
             rm = bot.edits[-1][1]
-            assert "سر برگ (3 نفر)" in P(rm) and B(rm)[-1].callback_data == f"gt:start:{mid}"
+            assert "سر میز (3 نفر)" in P(rm) and B(rm)[-1].callback_data == f"gt:start:{mid}"
             await groups.on_button(_CQ(21, f"gt:start:{mid}", chat=chat), gdb=db, bot=bot)
             m = await db.get_match(mid)
             st = m["state"]
