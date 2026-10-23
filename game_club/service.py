@@ -394,6 +394,9 @@ async def settle(db: GCDatabase, m: dict) -> None:
                 idem = f"prize:{m['id']}" if game_of(cfg) == "ludo" else f"prize:{m['id']}:{r['tg_id']}"
                 await earn(db, r["tg_id"], share, "prize", f"جایزهٔ {name}", m["id"], idem)
         await db.add_result(m["id"], r["tg_id"], won, share if cfg["mode"] == "stake" else 0)
+        kots = st.get("kots") if game_of(cfg) == "hokm" else None
+        if kots and kots[int(r["color"]) % 2]:
+            await db.add_kots(r["tg_id"], kots[int(r["color"]) % 2])
     await db.deactivate(m["id"])
     now = time.time()
     for r in rows:

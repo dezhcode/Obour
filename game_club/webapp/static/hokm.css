@@ -130,6 +130,9 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 .hk-thrown .air{position:absolute;inset:-7px;border-radius:16px;background:radial-gradient(closest-side,rgba(0,0,0,.6),rgba(0,0,0,.42) 45%,rgba(0,0,0,0));opacity:0}
 /* دسته برگ های برده شده هر تیم (روی هم، ضربدری مثل بازی واقعی) */
 .hk-stack{position:absolute;width:60px;height:60px;z-index:1;pointer-events:none}
+/* زدن روی دسته = دیدن دست قبل (hokm.js) */
+.hk-stack:not(:empty){pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:12px}
+.hk-stack:focus-visible{outline:2px solid var(--gold);outline-offset:4px}
 .hk-stack.us{left:12px;bottom:76px}
 .hk-stack.them{right:12px;top:12px}
 .hk-stack .hk-back{font-size:30px;left:15px;top:9px}
@@ -356,3 +359,29 @@ body.hokm .sheet{color:var(--ink)}
 .hk-exit .x-stay{width:100%;min-height:54px;margin-top:4px;border-radius:27px;font-size:16px;font-weight:900;color:var(--acc-ink);background:var(--acc);box-shadow:none}
 .hk-exit .x-stay:active{transform:scale(.97)}
 .hk-exit .x-fine{font-size:11.5px;line-height:18px;color:var(--ink-muted)}
+
+/* دست قبل: ۴ برگ دور قبل هر کدام سمت کسی که انداخته، با ترتیب و تاج برنده */
+.hk-last{position:absolute;inset:-6px -26px;z-index:70;border-radius:22px;background:rgba(4,18,12,.9);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);animation:pop-in .16s ease-out}
+.hk-last .t{position:absolute;top:8px;right:12px;font-size:12px;font-weight:800;color:#FFE08F}
+.hk-last .slot{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:3px}
+.hk-last .slot.win .hk-card{box-shadow:0 0 0 3px var(--gold),0 8px 18px rgba(0,0,0,.4)}
+.hk-last .slot>b{display:flex;align-items:center;gap:4px;max-width:104px;padding:0 7px 0 3px;border-radius:999px;background:rgba(0,0,0,.5);color:#fff;font-size:10.5px;line-height:18px;font-weight:700}
+.hk-last .slot>b span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hk-last .no{flex:none;width:15px;height:15px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#14261C;font-style:normal;font-size:10px;line-height:1;font-weight:900}
+.hk-last .cr{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--gold);box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+.hk-last .cr svg{width:13px;height:13px}
+
+/* جشن کوت */
+.hk-kotfx{display:grid;justify-items:center;gap:6px;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:40;white-space:nowrap}
+.hk-kotfx b{font-family:var(--font-rokh);font-size:58px;line-height:1.1;color:#FFD95E;text-shadow:0 0 26px rgba(255,200,60,.75),0 4px 0 rgba(0,0,0,.35)}
+.hk-kotfx.them b{color:#E8EEF5;text-shadow:0 0 18px rgba(160,190,230,.5),0 4px 0 rgba(0,0,0,.35)}
+.hk-kotfx span{padding:3px 12px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff;font-size:13px;font-weight:800}
+
+/* برق ورق: نوار نور با کج کردن گوشی روی ورق می لغزد (--sp جای نوار، --so پیدایی؛ hokm.js «برق ورق ها»)؛
+   روی سرباز و بی‌بی و شاه رنگین کمانی */
+.hk-card .gloss::after{content:"";position:absolute;inset:-60%;opacity:var(--so,0);
+  /* کاغذ سفید از سفید روشن تر نمی شود: بیرون نوار کمی تیره تر است تا نور دیده شود */
+  background:linear-gradient(115deg,rgba(24,32,52,.07) 0%,rgba(24,32,52,.07) 39%,rgba(255,255,255,.4) 50%,rgba(24,32,52,.07) 61%,rgba(24,32,52,.07) 100%);
+  transform:translate(calc(var(--sp,0) * 40%),calc(var(--sp,0) * 19%))}
+.hk-card.court .gloss::after{background:linear-gradient(115deg,rgba(24,32,52,.07) 0%,rgba(24,32,52,.07) 32%,rgba(255,92,170,.26) 40%,rgba(255,226,120,.34) 46%,rgba(255,255,255,.42) 50%,rgba(110,230,255,.32) 55%,rgba(150,120,255,.26) 60%,rgba(24,32,52,.07) 68%,rgba(24,32,52,.07) 100%)}
+@media (prefers-reduced-motion:reduce){.hk-card .gloss::after{display:none}}

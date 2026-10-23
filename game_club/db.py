@@ -295,7 +295,7 @@ class GCDatabase:
             await self._conn.execute("ALTER TABLE players ADD COLUMN cover TEXT NOT NULL DEFAULT 'gc'")
         if "tg_name" not in have:
             await self._conn.execute("ALTER TABLE players ADD COLUMN tg_name TEXT NOT NULL DEFAULT ''")
-        for col in ("nick_ok", "uname_at", "uname_seen"):
+        for col in ("nick_ok", "uname_at", "uname_seen", "kots"):
             if col not in have:
                 await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} INTEGER NOT NULL DEFAULT 0")
         cur = await self._conn.execute("PRAGMA table_info(group_tables)")
@@ -785,6 +785,10 @@ class GCDatabase:
             return
         await self.execute("UPDATE players SET games = games + 1, wins = wins + ? WHERE tg_id = ?",
                            (int(won), tg_id))
+
+    async def add_kots(self, tg_id: int, n: int) -> None:
+        """دست هایی که تیم بازیکن در حکم هفت به صفر برد (نشان «کوت‌کن»)."""
+        await self.execute("UPDATE players SET kots = kots + ? WHERE tg_id = ?", (n, tg_id))
 
     # ---------- صف ----------
     async def queue_row(self, tg_id: int) -> dict | None:

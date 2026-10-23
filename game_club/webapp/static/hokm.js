@@ -540,18 +540,58 @@ async function play(e) {
   }
   if (e.t === 'trick') {
     await collectTrick(e.c, e.tricks);
+    if (!store.get('hk_last_hint', false)) { store.set('hk_last_hint', true); toast('برای دیدن دست قبل، روی دستهٔ برگ‌های برده‌شده بزن'); }
     const us = teamUs();
     $('score').querySelectorAll('.tm em')[0].textContent = FD(e.tricks[us]) + ' دست';
     $('score').querySelectorAll('.tm em')[1].textContent = FD(e.tricks[1 - us]) + ' دست';
     return;
   }
-  if (e.t === 'hand') { if (e.score[e.team] < g.target) await handResult(e); return; }
+  if (e.t === 'hand') { if (e.kot) await kotParty(e); if (e.score[e.team] < g.target) await handResult(e); return; }
   if (e.t === 'timeout' && e.c === me && snap.cfg.mode === 'stake' && e.n >= 2) { toast(e.n >= 3 ? 'سه نوبت غایب بودی؛ ربات جایت بازی می‌کند' : 'یک نوبت دیگر غیبت = بیرون رفتن از بازی'); return; }
   if (e.t === 'leave' && e.c !== me) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'رفت'}؛ ربات جایش بازی می‌کند`); return; }
 }
 function bars(score, target) {
   const us = teamUs(), seg = (n, cls) => `<div class="hk-bar ${cls}"><span>${cls === 'us' ? 'ما' : 'حریف'}</span><span class="seg7" style="grid-template-columns:repeat(${target},minmax(0,1fr))">${Array.from({ length: target }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span><b>${FD(n)}</b></div>`;
   return `<div class="hk-bars">${seg(score[us], 'us')}${seg(score[1 - us], 'them')}</div>`;
+}
+/* کوت (هفت به صفر): میز می لرزد، برگ های برده شده از دستهٔ تیم برنده به هوا می روند و دوباره رویش
+   می بارند، و «کوت!» طلایی وسط میز می درخشد. با «کاهش حرکت» گوشی فقط نوشته می آید. */
+async function kotParty(e) {
+  const won = e.team === teamUs(), stack = won ? $('stackUs') : $('stackThem');
+  const [cx, cy] = center($('pile')), [sx, sy] = stack ? center(stack) : [cx, cy];
+  const fx = document.createElement('div'); fx.className = 'hk-kotfx' + (won ? '' : ' them'); fx.setAttribute('role', 'status');
+  fx.style.left = cx + 'px'; fx.style.top = cy + 'px';
+  fx.innerHTML = `<b>${won ? (e.pts === 3 ? 'حاکم کوت شد!' : 'کوت!') : 'کوت شدید!'}</b><span>هفت به صفر · ${FD(e.pts)} امتیاز برای ${won ? 'شما' : 'حریف'}</span>`;
+  $('fly').appendChild(fx);
+  haptic(won ? 'success' : 'warning');
+  if (reduced()) { await sleep(1600); fx.remove(); return; }
+  const t = $('table');
+  if (t) t.animate([{ transform: 'none' }, { transform: 'translate(-5px,2px) rotate(-.5deg)' }, { transform: 'translate(5px,-2px) rotate(.5deg)' }, { transform: 'translate(-2px,1px)' }, { transform: 'none' }], { duration: 440, easing: 'ease-out' });
+  sfx.card.shuffle();
+  setTimeout(() => (won ? sfx.win() : sfx.card.collect()), 380);
+  setTimeout(() => sfx.card.square(0), 1350);
+  fx.animate([{ transform: 'translate(-50%,-50%) scale(.3)', opacity: 0 }, { transform: 'translate(-50%,-50%) scale(1.15)', opacity: 1, offset: .25 },
+    { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: .38 }, { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, offset: .85 },
+    { transform: 'translate(-50%,-50%) scale(1.06)', opacity: 0 }], { duration: 2100, easing: 'ease-out', fill: 'forwards' });
+  // برگ ها دور تا دور وسط میز پخش می شوند، می چرخند و یکی یکی روی دسته برمی گردند
+  const N = 21, flights = [];
+  for (let i = 0; i < N; i++) {
+    const w = document.createElement('div'); w.className = 'hk-thrown';
+    w.innerHTML = backHtml('', 'left:0;top:0');
+    w.style.left = (sx - 32) + 'px'; w.style.top = (sy - 45) + 'px';
+    $('fly').appendChild(w);
+    const a = i / N * Math.PI * 2 + Math.random() * .3, rr = 55 + Math.random() * 95;
+    const dx = cx - sx + Math.cos(a) * rr, dy = cy - sy + Math.sin(a) * rr * .8 - 50, r1 = (Math.random() * 2 - 1) * 540;
+    flights.push(w.animate([
+      { transform: 'translate(0,0) rotate(0deg) scale(.47)' },
+      { transform: `translate(${dx.toFixed(0)}px,${dy.toFixed(0)}px) rotate(${(r1 * .6).toFixed(0)}deg) scale(${(.8 + Math.random() * .3).toFixed(2)})`, offset: .42, easing: 'cubic-bezier(.3,.6,.4,1)' },
+      { transform: `translate(${(dx * .92).toFixed(0)}px,${(dy * .92 + 22).toFixed(0)}px) rotate(${(r1 * .75).toFixed(0)}deg) scale(.78)`, offset: .58 },
+      { transform: `translate(0,0) rotate(${(r1 + (i % 2 ? 90 : 0)).toFixed(0)}deg) scale(.47)` },
+    ], { duration: 1500, delay: i * 22, easing: 'cubic-bezier(.45,.05,.35,1)', fill: 'backwards' }).finished.catch(() => {}).then(() => w.remove()));
+  }
+  await Promise.all(flights);
+  await sleep(300);
+  fx.remove();
 }
 async function handResult(e) {
   const us = teamUs(), won = e.team === us, g = snap.game;
@@ -567,6 +607,43 @@ async function handResult(e) {
   await sleep(3000);
   GC.close();
 }
+
+/* ---------- دست قبل: زدن (یا نگه داشتن) روی دستهٔ برگ های برده شده ----------
+   ۴ برگ دور قبل هر کدام سمت کسی که انداخته، با شمارهٔ ترتیب بازی و تاج روی برندهٔ دور (game.last_trick از سرور).
+   زدن: باز می ماند تا زدن بعدی یا ۴ ثانیه؛ نگه داشتن: تا انگشت برداشته شود. */
+const esc = v => String(v).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+let lastEl = null, lastAt = 0, lastT = 0;
+function hideLast() { clearTimeout(lastT); if (lastEl) { lastEl.remove(); lastEl = null; } }
+function showLast() {
+  const lt = snap && snap.game && snap.game.last_trick;
+  if (!lt || !lt.cards || !lt.cards.length) { toast('هنوز دوری جمع نشده'); return false; }
+  hideLast();
+  const box = $('center').getBoundingClientRect();
+  const dx = Math.min(84, box.width / 2 - 14), dy = Math.max(40, Math.min(68, box.height / 2 - 46)), fs = dy < 56 ? 38 : 44;
+  const AT = { 0: [0, dy], 1: [dx, 0], 2: [0, -dy], 3: [-dx, 0] }, w = String(lt.winner);
+  lastEl = document.createElement('div'); lastEl.className = 'hk-last';
+  lastEl.setAttribute('role', 'dialog'); lastEl.setAttribute('aria-label', 'دست قبل');
+  lastEl.innerHTML = '<span class="t">دست قبل</span>' + lt.cards.map(([seat, c], i) => {
+    const s = String(seat), [x, y] = AT[rel(s)];
+    return `<div class="slot${s === w ? ' win' : ''}" style="left:calc(50% + ${x}px);top:calc(50% + ${y}px)">${cardHtml(+c, '', `position:relative;font-size:${fs}px`)}`
+      + `<b><i class="no">${FD(i + 1)}</i><span>${esc(nameOf(s))}</span></b>${s === w ? `<i class="cr">${svgP(CROWN)}</i>` : ''}</div>`;
+  }).join('');
+  $('center').appendChild(lastEl);
+  sfx.card.flip(); haptic('light');
+  return true;
+}
+for (const id of ['stackUs', 'stackThem']) {
+  const el = $(id);
+  el.setAttribute('role', 'button'); el.tabIndex = 0; el.setAttribute('aria-label', 'دیدن دست قبل');
+  el.addEventListener('pointerdown', e => { e.preventDefault(); if (lastEl) { hideLast(); lastAt = 0; return; } if (showLast()) lastAt = performance.now(); });
+  el.addEventListener('pointerup', () => {
+    if (!lastEl || !lastAt) return;
+    if (performance.now() - lastAt > 350) hideLast(); else lastT = setTimeout(hideLast, 4000);
+  });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lastEl ? hideLast() : showLast(); } });
+}
+document.addEventListener('pointerdown', e => { if (lastEl && !e.target.closest('.hk-stack')) hideLast(); }, true);
+addEventListener('keydown', e => { if (e.key === 'Escape') hideLast(); });
 
 /* ---------- گفتگوی سر میز: نوار و پیام های شناور مثل بیلیارد (tchat.js) ---------- */
 const QUICK = ['سلام!', 'خوش‌بازی!', 'آفرین یار', 'حکم خوبی بود', 'زود باش', 'یک دست دیگه؟'];
@@ -867,6 +944,19 @@ const motion = (() => {
     env.ay = -(dot(G, Y) * TILT + dot(L, Y) * SHAKE) * CP.PX;
     env.gn = Math.max(.2 * CP.G, dot(G, ref)) * CP.PX;
     if (bodies.size && Math.hypot(env.ax, env.ay) > CP.CARD.s * env.gn * .9) kick();
+    sheen(dot(G, X) / m, -dot(G, Y) / m);
+  }
+  /* برق ورق ها: با کج کردن گوشی نواری از نور روی برگ های دست و میز رد می شود (رنگین کمانی روی سرباز و
+     بی‌بی و شاه؛ CSS: .hk-card .gloss::after). جای نوار در امتداد عمود بر آن، از کجی نسبت به حالت عادی دست؛
+     گوشی که آرام بماند نور هم کم کم می رود. هر تغییر همهٔ برگ ها را دوباره می کشد، پس حداکثر ۲۰ بار در ثانیه
+     و فقط وقتی واقعا عوض شده. */
+  const shHosts = [$('hand'), pile];
+  let shP = 9, shAt = 0;
+  function sheen(x, y) {
+    const p = Math.max(-1.2, Math.min(1.2, (x * .906 + y * .423) * 3)), now = performance.now();
+    if (Math.abs(p - shP) < .03 || now - shAt < 50) return;
+    shP = p; shAt = now;
+    for (const h of shHosts) { h.style.setProperty('--sp', p.toFixed(3)); h.style.setProperty('--so', Math.min(1, Math.abs(p) * 3).toFixed(2)); }
   }
   // شتاب سنج: بعضی گوشی ها نیروی تکیه گاه را می دهند (رو به بالا)، بعضی خود جاذبه را؛ بعضی متر بر ثانیه^۲، بعضی g.
   // گوشی معمولا رو به آدم و سر بالا گرفته می شود، پس «پایین» باید سمت پایین صفحه و پشت گوشی باشد.
@@ -922,7 +1012,11 @@ const motion = (() => {
     live = true;
     begin(tg8 && tw.Accelerometer ? 'tgAcc' : tg8 && tw.DeviceOrientation ? 'tgOri' : 'DeviceMotionEvent' in window ? 'webAcc' : 'webOri');
   }
-  function stop() { if (!live) return; live = false; end(); }
+  function stop() {
+    if (!live) return;
+    live = false; end();
+    shP = 9; for (const h of shHosts) h.style.setProperty('--so', '0');
+  }
   document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
   addEventListener('pagehide', stop);
   if (tw) { try { tw.onEvent('deactivated', stop); tw.onEvent('activated', start); } catch (e) {} }

@@ -78,6 +78,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "player": {**{k: player[k] for k in ("name", "av", "points", "games", "wins", "show_spend", "tutorial",
                                                  "sound")}, "pic": pic_url(player),
                        "joined": int(player.get("created_at") or 0), "bio": player.get("bio") or "",
+                       "kots": int(player.get("kots") or 0),
                        "cover": player.get("cover") if player.get("cover") in service.COVERS else "gc", **_name_state(player)},
             "covers": [{"id": k, "name": v} for k, v in service.COVERS.items()],
             "history": await gdb.history(tg),

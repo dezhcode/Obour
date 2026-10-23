@@ -229,7 +229,7 @@
   // نشان ها از کارنامهٔ واقعی؛ هر کدام با پیشرفتش
   function renderBadges() {
     const p = me.player, L = GC.level(p), played = new Set(pf.games.filter(g => g.games).map(g => g.game));
-    const prize = pf.games.reduce((a, g) => a + g.prize, 0);
+    const prize = pf.games.reduce((a, g) => a + g.prize, 0), kots = p.kots || 0;
     const B = [
       ['اولین برد', 'trophy', '#F5C451', '#3A2A00', p.wins >= 1, `${fa(Math.min(p.wins, 1))} از ۱`],
       ['۱۰ برد', 'bolt', '#FF8A95', '#3A0A10', p.wins >= 10, `${fa(Math.min(p.wins, 10))} از ۱۰`],
@@ -237,6 +237,9 @@
       ['همه‌کاره', 'pad', '#5FE39A', '#08331B', played.size >= 3, `${fa(played.size)} از ۳ بازی`],
       ['سطح ۵', 'spark', '#C9B8FF', '#22124F', L.lv >= 5, `سطح ${fa(L.lv)}`],
       ['جایزه‌بگیر', 'wallet', '#FFD25E', '#3A2A00', prize > 0, prize ? amount(prize) : 'برد امتیازی'],
+      // کوت: دست حکم هفت به صفر (شمارش روی سرور، آخر هر بازی)
+      ['کوت‌کن', 'cards', '#7FE0C0', '#06302A', kots >= 1, `${fa(Math.min(kots, 1))} از ۱ کوت`],
+      ['استاد کوت', 'cards', '#FFB86B', '#3A1C00', kots >= 5, `${fa(Math.min(kots, 5))} از ۵ کوت`],
     ];
     $('badgeN').textContent = `${FD(B.filter(b => b[4]).length)} از ${FD(B.length)}`;
     $('badges').innerHTML = B.map(([t, ic, bg, fg, on, sub]) => `<div class="pbdg${on ? '' : ' off'}"><span class="m" style="background:${bg};color:${fg}">${icon(on ? ic : 'shield')}</span>${t}<small>${on ? 'گرفتی' : sub}</small></div>`).join('');
