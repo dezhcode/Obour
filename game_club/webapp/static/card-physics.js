@@ -69,7 +69,13 @@ function rail(b, box, hits, enter) {
     else if (Y < box.t) { ny = 1; pen = box.t - Y; } else if (Y > box.b) { ny = -1; pen = Y - box.b; }
     if (!pen) continue;
     b.x += nx * pen; b.y += ny * pen;
-    if (b.held) continue;
+    if (b.held) {
+      // برگ زیر انگشت به لبه چسبیده: نقطهٔ گرفته شده هم با آن عقب می آید و سرعتِ رو به لبه صفر می شود
+      // (وگرنه کشمکش انگشت و لبه سرعت دروغین می سازد و با رها کردن برگ پس می پرد)
+      const p = b.pin; p.x += nx * pen; p.y += ny * pen; if (p.cx != null) { p.cx += nx * pen; p.cy += ny * pen; }
+      const vn = b.vx * nx + b.vy * ny; if (vn < 0) { b.vx -= vn * nx; b.vy -= vn * ny; }
+      continue;
+    }
     const vpx = b.vx - b.w * ry, vpy = b.vy + b.w * rx, vn = vpx * nx + vpy * ny;
     if (vn >= 0) continue;
     const rn = rx * ny - ry * nx, j = -(1 + RAIL_E) * vn / (1 + rn * rn / I);
