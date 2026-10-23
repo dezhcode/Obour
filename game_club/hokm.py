@@ -91,7 +91,7 @@ def new_state(seats: list[dict], now: float, turn_s: int, stake: bool, target: i
         "game": "hokm", "order": list(SEATS), "players": players, "target": target, "score": [0, 0],
         "hand_no": 0, "hakem": hakem, "prev_hakem": None, "trump": None,
         "phase": "trump", "hands": {s: [] for s in SEATS}, "rest": {s: [] for s in SEATS},
-        "tricks": [0, 0], "trick": [], "led": None, "turn": 0, "played": [], "last_trick": None,
+        "tricks": [0, 0], "trick": [], "led": None, "turn": 0, "played": [], "last_trick": None, "kots": [0, 0],
         "next_at": now, "deadline": now, "turn_s": turn_s, "stake": stake,
         "events": [], "seq": 0, "turn_id": 0, "winner": None, "over": False, "started": now,
         "stats": {s: {"tricks": 0, "hakem": 0} for s in SEATS},
@@ -228,6 +228,8 @@ def _after_collect(st: dict, now: float) -> None:
     hakem_team = team(st["hakem"])
     kot = st["tricks"][lose] == 0
     pts = (3 if lose == hakem_team else 2) if kot else 1
+    if kot:   # شمار کوت هر تیم؛ آخر بازی به کارنامهٔ بازیکن ها اضافه می شود (نشان «کوت‌کن»)
+        st.setdefault("kots", [0, 0])[w] += 1
     st["score"][w] += pts
     _event(st, t="hand", team=w, pts=pts, kot=kot, tricks=list(st["tricks"]), score=list(st["score"]),
            hakem=str(st["hakem"]))

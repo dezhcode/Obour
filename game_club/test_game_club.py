@@ -378,16 +378,17 @@ def test_hokm_rules():
     st.update(phase="collect", trick=[[0, 0]], turn=0, tricks=[7, 0], next_at=0)
     hokm._after_collect(st, 1.0)
     assert st["score"] == [2, 0] and st["hakem"] == 0 and st["events"][-1]["kot"]
+    assert st["kots"] == [1, 0]                                   # شمار کوت تیم (نشان «کوت‌کن»)
     # تیم حاکم کوت می شود = ۳ امتیاز برای حریف و حکم به نفر بعدی می رسد
     st = hokm.new_state(seats, 0.0, 20, False, 7, hakem=0)
     st.update(phase="collect", trick=[[1, 0]], turn=1, tricks=[0, 7], next_at=0)
     hokm._after_collect(st, 1.0)
-    assert st["score"] == [0, 3] and st["hakem"] == 1
+    assert st["score"] == [0, 3] and st["hakem"] == 1 and st["kots"] == [0, 1]
     # برد عادی ۷ به ۴ = ۱ امتیاز؛ رسیدن به هدف = پایان بازی
     st = hokm.new_state(seats, 0.0, 20, False, 3, hakem=2)
     st.update(phase="collect", trick=[[0, 0]], turn=0, tricks=[7, 4], score=[2, 1], next_at=0)
     hokm._after_collect(st, 1.0)
-    assert st["over"] and st["winner"] == 0 and st["score"] == [3, 1]
+    assert st["over"] and st["winner"] == 0 and st["score"] == [3, 1] and st["kots"] == [0, 0]
     assert hokm.winners(st) == {"0", "2"}
 
 
@@ -465,8 +466,15 @@ def test_hokm_service_flow():
             assert m["cfg"]["game"] == "hokm" and await db.match_game(r["match"]) == "hokm"
             v = await service.match_view(db, 1, r["match"], 0)
             assert v["me"] == "0" and len(v["game"]["hand"]) == 5 and sum(p["bot"] for p in v["game"]["players"].values()) == 3
+            # کوت های تیم بازیکن آخر بازی یک بار به کارنامه اش اضافه می شود (۲ کوت از پیش + هر چه در بازی بیاید)
+            def seed(mm):
+                mm["state"]["kots"] = [2, 1]
+                return True, None
+            await service.mutate(db, r["match"], seed)
             await play_out(db, [1], r["match"])
-            assert (await db.get_match(r["match"]))["status"] == "over"
+            m = await db.get_match(r["match"])
+            assert m["status"] == "over"
+            assert (await db.get_player(1))["kots"] == m["state"]["kots"][0] >= 2
 
             cfg = {"game": "hokm", "mode": "stake", "entry": 100, "target": 3}
             inv = await service.invite_create(db, 1, cfg)

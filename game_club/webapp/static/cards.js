@@ -73,7 +73,7 @@ const jumbo = (s, r) => `<span class="jm r${r}"><span class="jx"><b${r === 8 ? '
 // روی ورق c (۰ تا ۵۱: خال * ۱۳ + ارزش، ارزش ۱۲ = آس)
 function face(c, cls = '', style = '') {
   const s = suit(c), r = rank(c), ix = `<b>${RANKS[r]}</b>${svg(SP[s])}`;
-  return `<div class="hk-card${red(s) ? ' red' : ''}${cls ? ' ' + cls : ''}" data-card="${c}" style="${style}" role="img" aria-label="${RANK_FA[r]} ${SUIT_FA[s]}">`
+  return `<div class="hk-card${red(s) ? ' red' : ''}${r >= 9 && r <= 11 ? ' court' : ''}${cls ? ' ' + cls : ''}" data-card="${c}" style="${style}" role="img" aria-label="${RANK_FA[r]} ${SUIT_FA[s]}">`
     + `<span class="ix tl">${ix}</span><span class="ix br">${ix}</span>${body(c)}${jumbo(s, r)}<i class="gloss"></i></div>`;
 }
 const back = (cls = '', style = '') => `<div class="hk-back${cls ? ' ' + cls : ''}" style="${style}"><i></i></div>`;
