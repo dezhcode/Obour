@@ -2132,6 +2132,16 @@ def test_esmfamil_rules():
     ef.tick(st, t + 300)
     assert st["over"] and st["phase"] == "over" and ef.winners(st) == {"0"}
     assert ef.current(st) is None and st["totals"] == {"0": 65, "1": 35, "2": 20}
+    # استپ نزدیک پایان وقت: مهلت از وقت باقی ماندهٔ نوشتن بیشتر نمی شود
+    st2 = ef.new_state(_esm_seats(2), 0, rounds=1, secs=60)
+    for c in "01":
+        ef.arrive(st2, c, 0)
+    ef.set_letters(st2, ["ب"], [""], 0)
+    ef.tick(st2, ef.REVEAL)
+    end = st2["deadline"]
+    assert st2["phase"] == "write" and ef.STOP_GRACE == 20
+    ef.answer(st2, "0", FULL_B, end - 5)
+    assert ef.stop(st2, "0", end - 5) is None and st2["phase"] == "stop" and st2["deadline"] == end
 
 
 def test_esmfamil_ai():
