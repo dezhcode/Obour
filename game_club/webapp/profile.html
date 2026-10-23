@@ -56,9 +56,9 @@
 .kpi b{font-family:var(--font-rokh);font-size:20px;line-height:28px;font-weight:900}
 .kpi span{font-size:11.5px;color:var(--ink-muted)}
 .kpi .win{color:var(--success)}.kpi .gold{color:var(--coin-text)}
-.gtabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
-.gtabs button{display:grid;justify-items:center;gap:5px;padding:8px 2px 7px;border-radius:16px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);font-weight:700;font-size:12px;line-height:16px;color:var(--ink-muted)}
-.gtabs .g-art{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;overflow:hidden}
+.gtabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.gtabs button{display:grid;justify-items:center;gap:5px;padding:8px 1px 7px;border-radius:16px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);font-weight:700;font-size:11px;line-height:16px;color:var(--ink-muted);white-space:nowrap;min-width:0}
+.gtabs .g-art{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;overflow:hidden}
 .gtabs .g-art svg{display:block;width:76%;height:76%}
 .gtabs button[aria-selected="true"]{color:var(--ink);font-weight:900;box-shadow:inset 0 0 0 2px var(--acc)}
 .gstat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2);margin-top:var(--space-2)}
@@ -174,7 +174,7 @@
   const $ = id => document.getElementById(id);
   GC.back('index.html');
   let me = null, pf = null, tab = 'hokm';
-  const NAME = { hokm: 'حکم', football: 'فوتبال', ludo: 'منچ', billiard: 'بیلیارد', divar: 'دیوار' };
+  const NAME = { hokm: 'حکم', football: 'فوتبال', ludo: 'منچ', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل' };
   const pct = (w, g) => g ? FD(Math.round(w * 100 / g)) + '٪' : '—';
   const ago = t => { const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
 
@@ -213,7 +213,7 @@
   function stat(g) { return pf && pf.games.find(x => x.game === g) || { games: 0, wins: 0, prize: 0 }; }
   function renderGames() {
     // هر بازی یک کاشی کوچک با تصویر و رنگ همان بازی
-    $('gtabs').innerHTML = ['hokm', 'football', 'ludo', 'billiard', 'divar'].map(g => { const x = GC.GAMES.find(y => y.id === g) || {}; return `<button role="tab" data-g="${g}" aria-selected="${g === tab}"><span class="g-art ${x.tint || ''}">${GC.GAME_ART[g]()}</span>${NAME[g]}</button>`; }).join('');
+    $('gtabs').innerHTML = ['hokm', 'football', 'ludo', 'billiard', 'divar', 'esmfamil'].map(g => { const x = GC.GAMES.find(y => y.id === g) || {}; return `<button role="tab" data-g="${g}" aria-selected="${g === tab}"><span class="g-art ${x.tint || ''}">${GC.GAME_ART[g]()}</span>${NAME[g]}</button>`; }).join('');
     const s = stat(tab);
     $('gstat').innerHTML = `<div class="kpi"><b>${fa(s.games)}</b><span>بازی</span></div><div class="kpi"><b class="win">${fa(s.wins)}</b><span>برد</span></div>
       <div class="kpi"><b>${fa(s.games - s.wins)}</b><span>باخت</span></div><div class="kpi"><b class="gold">${pct(s.wins, s.games)}</b><span>درصد برد</span></div>`;

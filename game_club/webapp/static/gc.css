@@ -220,6 +220,7 @@ body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui .btn.btn-light{--bg:var(-
 .t-ludo{background:radial-gradient(circle at 45% 40%,#22533E,#0F2A22 75%)}
 .t-bil{background:radial-gradient(circle at 50% 40%,#1F5A36,#0E2C1C 80%)}
 .t-dv{background:radial-gradient(circle at 50% 40%,#1D5A3F,#0B231A 80%)}
+.t-paper{background:radial-gradient(circle at 50% 40%,#F6EEDC,#E2D3B0 85%)}
 /* برگهٔ «بازی‌ها» از نوار پایین */
 .qp{display:grid;gap:var(--space-2)}
 .qp a,.qp div{display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-2);padding-inline-end:var(--space-3);border-radius:var(--radius-lg);background:var(--surface-sunk)}
@@ -566,11 +567,13 @@ body.lobby-ludo,body.game .gc-ui{--edge:#0B241C;--acc:#2B62D6;--acc-deep:#2B62D6
 body.lobby-football,body.football .gc-ui{--edge:#1D5A25;--acc:#2E7D32;--acc-deep:#2E7D32;--acc-ink:#FFFFFF;--acc-tint:#E5F2E6}
 body.lobby-billiard,body.billiard .gc-ui{--edge:#4A2A18;--acc:#7A4022;--acc-deep:#7A4022;--acc-ink:#FFFFFF;--acc-tint:#F4EBE5}
 body.lobby-divar,body.divar .gc-ui{--edge:#0A2A1C;--acc:#123F2E;--acc-deep:#123F2E;--acc-ink:#F5C451;--acc-tint:#E2EEE8}
+body.lobby-esmfamil{--edge:#B9A47A;--acc:#C8323C;--acc-deep:#C8323C;--acc-ink:#FFFFFF;--acc-tint:#FBE8E9}
 :root[data-theme="dark"] :is(body.lobby-hokm,body.hokm .gc-ui){--acc:#2B8A50;--acc-deep:#7ED6A1;--acc-tint:rgba(43,138,80,.22)}
 :root[data-theme="dark"] :is(body.lobby-ludo,body.game .gc-ui){--acc:#3D74E6;--acc-deep:#9BBBFF;--acc-tint:rgba(61,116,230,.22)}
 :root[data-theme="dark"] :is(body.lobby-football,body.football .gc-ui){--acc:#3A8F3F;--acc-deep:#8BD48F;--acc-tint:rgba(58,143,63,.22)}
 :root[data-theme="dark"] :is(body.lobby-billiard,body.billiard .gc-ui){--acc:#A0582F;--acc-deep:#E4A57D;--acc-tint:rgba(160,88,47,.24)}
 :root[data-theme="dark"] :is(body.lobby-divar,body.divar .gc-ui){--acc:#1E6B4E;--acc-ink:#F5C451;--acc-deep:#F5C451;--acc-tint:rgba(30,107,78,.3)}
+:root[data-theme="dark"] body.lobby-esmfamil{--edge:#5A4A2A;--acc:#D2454F;--acc-deep:#FF9AA2;--acc-tint:rgba(210,69,79,.22)}
 .gp-lvl{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
 .gp-star{position:relative;width:42px;height:42px;flex:none;display:grid;place-items:center}
 .gp-star svg{position:absolute;inset:0;width:100%;height:100%;fill:var(--gold);stroke:#C99A2E;stroke-width:.8}

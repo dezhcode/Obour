@@ -58,6 +58,13 @@ const ART = {
       <span class="pv-layer pv-dv-wall">${wall('h', 2, 4, '#4C8DFF')}</span>
       <span class="pv-layer pv-dv-step">${pawn(6, 4, '#4C8DFF')}</span></div></div>`;
   },
+  // اسم‌فامیل: برگ دفتر خط‌دار؛ حرف دور با خودکار قرمز دور گرفته شده و جواب‌ها یکی‌یکی با خط دست نوشته می‌شوند
+  esmfamil() {
+    const rows = [['اسم', 'بهار'], ['شهر', 'بابل'], ['میوه', 'به'], ['اشیا', 'بشقاب']];
+    return `<div class="pv pv-ef" aria-hidden="true"><div class="pv-ef-sheet"><span class="pv-ef-l">ب</span>
+      ${rows.map(([k, v], i) => `<span class="pv-ef-row"><i>${k}</i><b style="--d:${(i * .55).toFixed(2)}s">${v}</b></span>`).join('')}
+      <span class="pv-ef-mark">۱۰</span></div></div>`;
+  },
   esm() {
     return '<div class="pv pv-esm" aria-hidden="true"><span style="--d:0s;--r:-8deg">الف</span><span style="--d:.25s;--r:5deg">ب</span><span style="--d:.5s;--r:-3deg">م</span></div>';
   },

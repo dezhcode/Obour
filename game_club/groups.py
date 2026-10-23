@@ -1,7 +1,7 @@
 """بازی در گروه های تلگرام: ربات یک «کارت میز» در گروه می فرستد؛ دکمه ها داخل خود پیام اند
 (پیام غنی Bot API 10.3 با بلوک دکمه)، نه کیبورد شیشه ای زیر پیام.
 
-- /hokm، /ludo، /football، /billiard، /divar (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
+- /hokm، /ludo، /football، /billiard، /divar، /esmfamil (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
   (طول بازی، تعداد بازیکن، مدل) را انتخاب می کند و «باز کردن میز» را می زند؛ سازنده خودش می نشیند.
 - با هر نشستن یا بلند شدن، کارت عوض می شود: چه کسانی نشسته اند (با منشن) و چند جای خالی مانده.
 - وقتی میز پر شد یا سازنده «شروع» را زد، دکمه های میز می روند و کارت «بازی شروع شد» می شود با اسم
@@ -10,6 +10,7 @@
 - آخر بازی کارت نتیجه را نشان می دهد با دکمهٔ «میز تازه». میزی که ۱۵ دقیقه شروع نشود بسته می شود.
 - همین کارت با @ربات hokm در هر چتی (حالت اینلاین) یا از مینی اپ («فرستادن به گروه») هم فرستاده می شود.
 میزهای گروه همیشه آزاد اند (بدون امتیاز) تا با یک لمس اتفاقی از کسی امتیاز کم نشود.
+اسم‌فامیل فقط همین جا ساخته می شود (۲ تا ۱۰ نفر، بدون ربات)؛ آخر بازی برگ همه با امتیازها در گروه می آید.
 """
 from __future__ import annotations
 
@@ -22,15 +23,20 @@ from aiogram.types import (
     CallbackQuery,
     EphemeralMessageParameters,
     InlineQueryResultArticle,
+    InlineQueryResultsButton,
     InputRichBlockButtons,
+    InputRichBlockDetails,
     InputRichBlockParagraph,
+    InputRichBlockTable,
     InputRichMessage,
     InputRichMessageContent,
     Message,
+    RichBlockTableCell,
     RichMessageButton,
+    RichTextStrikethrough,
 )
 
-from . import service
+from . import esmfamil, service
 from . import style as st
 from .config import gc
 from .db import GCDatabase
@@ -57,7 +63,13 @@ GAMES = {
     "divar": {"name": "دیوار", "icon": "🧱", "base": {"game": "divar", "mode": "free", "entry": 0},
               "opts": [("kind", "حالت بازی", [(2, "2 نفره · 9×9"), (4, "4 نفره · کلاسیک"), (5, "4 نفره · ستارهٔ وسط")])],
               "def": {"kind": 2}},
+    # اسم‌فامیل: فقط گروهی، ۲ تا ۱۰ نفر، بدون ربات؛ حرف و داوری با هوش مصنوعی عبور
+    "esmfamil": {"name": "اسم‌فامیل", "icon": "📝", "base": {"game": "esmfamil", "mode": "free", "entry": 0},
+                 "opts": [("rounds", "تعداد دور", [(1, "1 دور · برق‌آسا"), (3, "3 دور"), (5, "5 دور · کامل")]),
+                          ("secs", "وقت هر دور", [(60, "60 ثانیه"), (90, "90 ثانیه"), (120, "120 ثانیه")])],
+                 "def": {"rounds": 3, "secs": 90}},
 }
+GROUP_ONLY = service.GROUP_ONLY
 OPEN_TTL = 15 * 60       # میز یا کارت تنظیمی که این مدت شروع نشود بسته می شود
 fd = str   # عددهای پیام های ربات لاتین اند
 
@@ -72,10 +84,14 @@ def cfg_of(game: str, picks: dict) -> dict:
     if game == "divar":
         out["players"] = 2 if out["kind"] == 2 else 4
         out["variant"] = "star" if out["kind"] == 5 else "classic"
+    if game == "esmfamil":
+        out["players"] = esmfamil.MAX_PLAYERS
     return out
 
 
 def need_of(game: str, cfg: dict) -> int:
+    if game == "esmfamil":
+        return esmfamil.MAX_PLAYERS
     return int(cfg.get("players") or 0) if game in ("ludo", "billiard", "divar") else 4 if game == "hokm" else 2
 
 
@@ -90,6 +106,8 @@ def summary(game: str, cfg: dict) -> str:
         return f"آزاد · {n} نفره · {kind} · هر نفر {fd(10 if n == '2' else 7 if cfg.get('variant') == 'star' else 5)} دیوار"
     if game == "billiard":
         return f"آزاد · {n} نفره · {'یاری (دو تیم دونفره)' if cfg.get('players') == 4 else 'رو در رو'} · ۸ توپ"
+    if game == "esmfamil":
+        return f"{fd(cfg.get('rounds', 3))} دور · هر دور {fd(cfg.get('secs', 90))} ثانیه · {fd(esmfamil.MIN_PLAYERS)} تا {n} نفر"
     return f"آزاد · {n} نفره · تا {fd(cfg.get('target', 3))} گل"
 
 
@@ -104,7 +122,8 @@ def watch_link(game: str, match_id: str) -> str:
 
 
 # ---------- اجزای پیام غنی (قالب متنی عبور در یک پاراگراف + ردیف دکمه های داخل پیام) ----------
-OPT_ICON = {"target": "time", "players": "users", "pawns": "ludo", "passes": "users", "kind": "divar"}
+OPT_ICON = {"target": "time", "players": "users", "pawns": "ludo", "passes": "users", "kind": "divar", "rounds": "esmfamil",
+            "secs": "time"}
 
 
 def who(tg: int, name: str) -> list:
@@ -201,6 +220,8 @@ async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
     cfg, mid = m["cfg"], m["id"]
     need = need_of(game, cfg)
     seats = await _seats(db, m)
+    if m["status"] == "lobby" and game in GROUP_ONLY:
+        return _esm_lobby(game, cfg, mid, seats, row)
     if m["status"] == "lobby":
         host = next((s for s in seats if s.get("tg") == row["host"]), None)
         free = need - len(seats)
@@ -217,12 +238,17 @@ async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
     players = [[st.E("users"), " ", st.B("بازیکن‌ها")], *[_player_line(s) for s in seats]]
     if m["status"] == "playing":
         link = watch_link(game, mid)
+        if game == "esmfamil":
+            players += ["", [st.E("judge"), " حرف هر دور و تصحیح برگ‌ها با هوش مصنوعی عبوره."]]
         return card(st.frame(game, f"بازی {g['name']}", f"شروع شد · {summary(game, cfg)}", players,
                              foot=("watch", "تماشا", "بقیه هم زنده می‌بینن؛ فقط تقلب نرسونید 😄")),
                     *([_row(_bt("watch", "دیدن بازی", "primary", url=link))] if link else []))
     if m["status"] == "cancelled":
         return closed_card(game)
     state = m["state"]
+    if game == "esmfamil":
+        # کارت گروه خلاصه است و برگ کامل جدا می آید؛ کارت اینلاین (بدون چت) خودش برگ کامل می شود
+        return esm_result(m, seats, full=not row.get("chat_id"))
     win_colors = service._winners(state)
     winners = [s for s in seats if s.get("color") in win_colors]
     res: list = [st.E("trophy"), " برنده: "]
@@ -239,6 +265,164 @@ async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
     mins = max(1, round(((m.get("updated_at") or time.time()) - start) / 60))
     return card(st.frame(game, f"بازی {g['name']}", f"تموم شد · {summary(game, cfg)}", lines + [""] + players,
                          foot=("time", "مدت بازی", f"{fd(mins)} دقیقه")))
+
+
+# ---------- اسم‌فامیل: کارت میز و برگ نهایی ----------
+def _esm_lobby(game: str, cfg: dict, mid: str, seats: list[dict], row: dict) -> InputRichMessage:
+    host = next((s for s in seats if s.get("tg") == row["host"]), None)
+    free = esmfamil.MAX_PLAYERS - len(seats)
+    lines = [["سازنده: ", *(who(host["tg"], host["name"]) if host else ["—"])], "",
+             [st.E("judge"), " حرف هر دور رو هوش مصنوعی عبور انتخاب می‌کنه و برگ‌ها رو هم خودش تصحیح می‌کنه."],
+             "جواب درست تکی 10، تکراری 5، غلط یا خالی 0.", "",
+             [st.E("users"), " ", st.B(f"سر برگ ({fd(len(seats))} نفر)")]]
+    lines += [[f"{fd(i + 1)}. ", *who(s["tg"], s["name"])] for i, s in enumerate(seats)]
+    if len(seats) < esmfamil.MIN_PLAYERS:
+        foot = ("seat", "منتظر حریف", "دست‌کم یه نفر دیگه باید «بشین» رو بزنه 😉")
+    else:
+        foot = ("play", "آماده", f"تا {fd(free)} نفر دیگه هم جا هست؛ سازنده هر وقت خواست «شروع» رو می‌زنه.")
+    rows = [_row(_bt("seat", "بشین", "success", callback_data=f"gt:join:{mid}"),
+                 _bt("leave", "بلند شو", "danger", callback_data=f"gt:leave:{mid}"))]
+    if len(seats) >= esmfamil.MIN_PLAYERS:
+        rows.append(_row(_bt("play", "شروع بازی", "primary", callback_data=f"gt:start:{mid}")))
+    return card(st.frame(game, "میز اسم‌فامیل", summary(game, cfg), lines, foot), *rows)
+
+
+def _esm_rank(state: dict) -> list[str]:
+    tot = state.get("totals") or {}
+    return sorted(state.get("order") or [], key=lambda c: (-tot.get(c, 0), (state.get("order") or []).index(c)))
+
+
+def _esm_who(c: str, by: dict, state: dict) -> list:
+    s = by.get(c)
+    name = (s or {}).get("name") or state["players"][c]["name"]
+    return who(s["tg"], name) if s and s.get("tg") else [st.iso(name)]
+
+
+def esm_head(m: dict, seats: list[dict], more: bool = False) -> list:
+    """قاب بالای برگ نهایی: برنده و رده‌بندی."""
+    state = m["state"]
+    by = {s.get("color"): s for s in seats}
+    tot = state.get("totals") or {}
+    wins = state.get("winners") or []
+    if wins:
+        res: list = [st.E("trophy"), " ", st.B("برنده: ")]
+        for i, c in enumerate(wins):
+            res += ([" و "] if i else []) + _esm_who(c, by, state)
+        res += [f" با {fd(tot.get(wins[0], 0))} امتیاز"]
+    else:
+        res = ["کسی امتیاز نگرفت؛ برگ‌ها سفید موند 🕊"]
+    lines: list = [res, "", [st.E("score"), " ", st.B("رده‌بندی")]]
+    for i, c in enumerate(_esm_rank(state)):
+        out = " (رفت)" if state["players"][c].get("out") else ""
+        lines.append([f"{fd(i + 1)}. ", *_esm_who(c, by, state), f" — {fd(tot.get(c, 0))}{out}",
+                      *([" ", st.E("trophy")] if c in wins else [])])
+    by_ai = any(r.get("by") == "ai" for r in state.get("rounds") or [])
+    if more:
+        lines += ["", "برگ همه با امتیاز هر خونه پایین‌تر اومد 👇"]
+    rounds = len(state.get("rounds") or [])
+    return st.frame("esmfamil", "اسم‌فامیل", f"تموم شد · {fd(rounds)} دور", lines,
+                    foot=("judge", "داور", "هوش مصنوعی عبور" if by_ai else "داوری خودکار"))
+
+
+def _cell(cell: dict, col: str):  # noqa: ANN202
+    a = cell.get("a") or ""
+    if not a:
+        return "—"
+    if not cell.get("ok"):
+        return [RichTextStrikethrough(text=a), " 0"]
+    return f"{a} {fd(cell.get('s', 0))}"
+
+
+def esm_round_blocks(state: dict, i: int, by: dict) -> list:
+    """جدول یک دور: ستون‌ها بازیکن‌ها، ردیف‌ها دسته‌ها، و دو ردیف آخر امتیاز این دور و جمع تا این دور."""
+    rec = state["rounds"][i]
+    cols = [c for c in state["order"] if c in rec["cells"]]
+    names = [(by.get(c) or {}).get("name") or state["players"][c]["name"] for c in cols]
+
+    def C(text, head: bool = False, align: str = "center") -> RichBlockTableCell:  # noqa: ANN001
+        return RichBlockTableCell(align=align, valign="middle", text=text, is_header=head or None)
+
+    cells = [[C("", True), *[C(st.en(n), True) for n in names]]]
+    for k in state["cols"]:
+        cells.append([C(esmfamil.COL_FA[k], True, "right"), *[C(_cell(rec["cells"][c][k], k)) for c in cols]])
+    upto = {c: sum(r["scores"].get(c, 0) for r in state["rounds"][:i + 1]) for c in cols}
+    cells.append([C("این دور", True, "right"), *[C(fd(rec["scores"].get(c, 0))) for c in cols]])
+    cells.append([C("جمع", True, "right"), *[C(fd(upto[c])) for c in cols]])
+    blocks: list = [InputRichBlockTable(cells=cells, is_bordered=True, is_striped=True, is_compact=True)]
+    why = []
+    for c in cols:
+        for k in state["cols"]:
+            cell = rec["cells"][c][k]
+            if cell.get("a") and not cell.get("ok") and cell.get("why"):
+                why.append(["• ", st.iso((by.get(c) or {}).get("name") or state["players"][c]["name"]), f" · {esmfamil.COL_FA[k]}: «",
+                            cell["a"], "» ", cell["why"]])
+            elif cell.get("appealed"):
+                why.append(["• ", st.iso((by.get(c) or {}).get("name") or state["players"][c]["name"]), f" · {esmfamil.COL_FA[k]}: «",
+                            cell["a"], "» با رأی بقیه قبول شد"])
+    if why:
+        blocks.append(_para([st.E("judge"), " ", st.B("نظر داور"), "\n", *sum(([*w, "\n"] for w in why[:24]), [])[:-1]]))
+    return blocks
+
+
+def esm_result(m: dict, seats: list[dict], full: bool = True) -> InputRichMessage:
+    state = m["state"]
+    by = {s.get("color"): s for s in seats}
+    blocks: list = [_para(esm_head(m, seats, more=not full))]
+    if full:
+        n = len(state.get("rounds") or [])
+        for i in range(n):
+            rec = state["rounds"][i]
+            blocks.append(InputRichBlockDetails(
+                summary=st.to_rich([st.B(f"دور {fd(i + 1)}"), f" · حرف «{rec['letter']}»"]),
+                blocks=esm_round_blocks(state, i, by), is_open=i == n - 1))
+    blocks.append(_row(_bt("new", "یه دست دیگه", "success", callback_data="gt:new:esmfamil")))
+    return _rm(blocks)
+
+
+def esm_html(m: dict, seats: list[dict]) -> list[str]:
+    """جایگزین متنی برگ نهایی (اگر پیام غنی نرفت): هر دور یک نقل‌قول بازشدنی؛ چند پیام اگر بلند شد."""
+    state = m["state"]
+    by = {s.get("color"): s for s in seats}
+    head = st.to_html(esm_head(m, seats))
+    parts = []
+    for i, rec in enumerate(state.get("rounds") or []):
+        rows = []
+        for c in [c for c in state["order"] if c in rec["cells"]]:
+            name = (by.get(c) or {}).get("name") or state["players"][c]["name"]
+            cells = []
+            for k in state["cols"]:
+                cell = rec["cells"][c][k]
+                a = _esc(cell.get("a") or "—")
+                cells.append(f"{esmfamil.COL_FA[k]}: " + (f"<s>{a}</s> 0" if cell.get("a") and not cell.get("ok")
+                                                         else f"{a} {cell.get('s', 0)}" if cell.get("a") else a))
+            rows.append(f"<b>{_esc(name)}</b> ({rec['scores'].get(c, 0)})\n" + " · ".join(cells))
+        parts.append(f"<b>دور {i + 1} · حرف «{rec['letter']}»</b>\n<blockquote expandable>" + "\n\n".join(rows) + "</blockquote>")
+    out, cur = [], head
+    for p in parts:
+        if len(cur) + len(p) + 2 > 3900:
+            out.append(cur)
+            cur = p
+        else:
+            cur += "\n\n" + p
+    out.append(cur)
+    return out
+
+
+async def _esm_results(db: GCDatabase, m: dict, row: dict) -> None:
+    """پایان اسم‌فامیل: برگ همه با امتیاز هر خانه و برنده، به صورت پیام تازه در خود گروه."""
+    if not row.get("chat_id") or not m["state"].get("rounds"):
+        return
+    seats = await _seats(db, m)
+    try:
+        await _send(row["chat_id"], esm_result(m, seats))
+        return
+    except Exception:  # noqa: BLE001
+        log.info("برگ نهایی اسم‌فامیل به شکل پیام غنی نرفت؛ متن ساده", exc_info=True)
+    try:
+        for text in esm_html(m, seats):
+            await _bot.send_message(row["chat_id"], text)
+    except Exception:  # noqa: BLE001
+        log.warning("برگ نهایی اسم‌فامیل نرفت", exc_info=True)
 
 
 # ---------- به روز کردن کارت (از دکمه ها یا هر تغییری در سرویس) ----------
@@ -285,8 +469,11 @@ async def refresh(db: GCDatabase, match_id: str) -> None:
     status = {"lobby": "open", "playing": "playing", "over": "over", "cancelled": "closed"}.get(m["status"], "closed")
     await _edit(_where(row), await render(db, m, row))
     # فقط بار اول که میز شروع می شود (یک پروسه برنده می شود) به بازیکن ها خبر می دهیم
-    if status != row["status"] and await db.set_group_status(match_id, row["status"], status) and status == "playing":
-        await _announce_start(db, m, row)
+    if status != row["status"] and await db.set_group_status(match_id, row["status"], status):
+        if status == "playing":
+            await _announce_start(db, m, row)
+        elif status == "over" and row["game"] == "esmfamil":
+            await _esm_results(db, m, row)
 
 
 async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
@@ -390,7 +577,7 @@ async def open_table(db: GCDatabase, d: dict) -> str | None:
     return None
 
 
-@router.message(GROUP, Command("hokm", "ludo", "football", "billiard", "divar"))
+@router.message(GROUP, Command("hokm", "ludo", "football", "billiard", "divar", "esmfamil"))
 async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
     game = (message.text or "").split()[0].lstrip("/").split("@")[0].lower()
     if not message.from_user or game not in GAMES:
@@ -404,7 +591,7 @@ async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
 async def on_play(message: Message) -> None:
     await _send(message.chat.id, card(
         st.frame("brand", "Game Club", "بازی در گروه", ["چی بازی کنیم؟ هر کی زودتر بزنه، میز رو می‌چینه و خودش اول می‌شینه."],
-                 foot=("group", "بازی‌ها", "حکم، منچ، فوتبال و بیلیارد؛ همه مجانی، فقط سر کل‌کل 😄")),
+                 foot=("group", "بازی‌ها", "حکم، منچ، فوتبال، بیلیارد، دیوار و اسم‌فامیل؛ همه مجانی، فقط سر کل‌کل 😄")),
         _row(*[_bt(k, g["name"], "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}") for k, g in GAMES.items()])))
 
 
@@ -479,7 +666,8 @@ async def _act(cq: CallbackQuery, gdb: GCDatabase, act: str, match_id: str) -> N
     except GCError as e:
         text = {"in_match": "تو الان سر یه میز دیگه‌ای 😅", "full": "میز پره؛ دفعهٔ بعد زودتر بجنب!", "started": "دیر رسیدی؛ بازی شروع شده 😅",
                 "not_host": "فقط سازندهٔ میز می‌تونه شروع کنه.", "banned": "حسابت مسدوده 🚫",
-                "busy": "یه لحظه صبر کن، دوباره بزن.", "not_found": "این میز دیگه نیست 👻"}.get(e.code, "نشد؛ یه بار دیگه بزن.")
+                "busy": "یه لحظه صبر کن، دوباره بزن.", "not_found": "این میز دیگه نیست 👻",
+                "need_players": "دست‌کم 2 نفر باید بشینن؛ تنهایی که اسم‌فامیل مزه نداره 😄"}.get(e.code, "نشد؛ یه بار دیگه بزن.")
         await cq.answer(text, show_alert=True)
     await refresh(gdb, m["id"])
 
@@ -520,7 +708,8 @@ async def on_old_inline(cq: CallbackQuery) -> None:
 # ---------- حالت اینلاین (@ربات hokm در هر چتی) و «فرستادن به گروه» از مینی اپ ----------
 INLINE_ALIASES = {"hokm": ("hokm", "حکم", "hk"), "ludo": ("ludo", "منچ", "mench"), "football": ("football", "فوتبال", "fb", "soccer"),
                   "billiard": ("billiard", "بیلیارد", "pool", "8ball", "snooker"),
-                  "divar": ("divar", "دیوار", "quoridor", "wall", "kooridor")}
+                  "divar": ("divar", "دیوار", "quoridor", "wall", "kooridor"),
+                  "esmfamil": ("esmfamil", "اسم‌فامیل", "اسم فامیل", "اسم", "esm", "namefamily")}
 
 
 async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArticle:
@@ -541,8 +730,13 @@ async def on_inline(iq, gdb: GCDatabase) -> None:  # noqa: ANN001
         await iq.answer([], cache_time=5, is_personal=True)
         return
     q = (iq.query or "").strip().lower()
-    games = [k for k, al in INLINE_ALIASES.items() if not q or any(a.startswith(q) or q.startswith(a) for a in al)] or list(GAMES)
-    await iq.answer([await _article(gdb, u.id, g) for g in games], cache_time=0, is_personal=True)
+    in_group = getattr(iq, "chat_type", None) in ("group", "supergroup")
+    allowed = [k for k in GAMES if in_group or k not in GROUP_ONLY]   # اسم‌فامیل فقط در گروه
+    games = [k for k in allowed if not q or any(a.startswith(q) or q.startswith(a) for a in INLINE_ALIASES[k])]
+    hint = None
+    if not in_group and q and any(any(a.startswith(q) or q.startswith(a) for a in INLINE_ALIASES[k]) for k in GROUP_ONLY):
+        hint = InlineQueryResultsButton(text="اسم‌فامیل فقط توی گروه بازی می‌شه؛ راهنما", start_parameter="esmfamil")
+    await iq.answer([await _article(gdb, u.id, g) for g in games or allowed], cache_time=0, is_personal=True, button=hint)
 
 
 @router.chosen_inline_result()
@@ -559,6 +753,6 @@ async def prepare_share(db: GCDatabase, tg: int, game: str) -> str:
     if not _bot:
         raise GCError("no_bot")
     prepared = await _bot.save_prepared_inline_message(user_id=tg, result=await _article(db, tg, game),
-                                                       allow_user_chats=True, allow_group_chats=True,
+                                                       allow_user_chats=game not in GROUP_ONLY, allow_group_chats=True,
                                                        allow_bot_chats=False, allow_channel_chats=False)
     return prepared.id
