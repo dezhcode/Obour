@@ -2050,6 +2050,288 @@ def test_divar_service_flow():
 
     asyncio.run(run())
 
+def _esm_seats(n):
+    return [{"color": str(i), "uid": 100 + i, "name": f"p{i}"} for i in range(n)]
+
+
+FULL_B = {"name": "بهار", "family": "بهرامی", "city": "بابل", "country": "برزیل", "food": "باقالی پلو",
+          "animal": "بز", "fruit": "به", "thing": "بشقاب"}
+
+
+def test_esmfamil_rules():
+    """اسم‌فامیل: حرف ها، برگ، استپ فقط با برگ کامل، امتیاز تکی/تکراری، املای دیگر، اعتراض و رأی، وقت ها، پنهان بودن برگ بقیه."""
+    from game_club import esmfamil as ef
+    assert ef.norm("باقالی‌پلو") == ef.norm(" باقالی پلو ") == ef.norm("باقالي پلو") and ef.starts("آبادان", "ا")
+    assert all(x not in ef.LETTERS for x in "ثذضظژغء")
+    st = ef.new_state(_esm_seats(3), 0, rounds=2, secs=60)
+    assert st["phase"] == "letter" and st["deadline"] == ef.GATHER
+    # حرف تکراری و غیرمجاز کنار می رود و جایش تصادفی می آید؛ حرف تا REVEAL ثانیهٔ آخر دیده نمی شود
+    assert ef.set_letters(st, ["ب", "ب", "ظ"], ["بزن بریم", "", ""], 1) and not ef.set_letters(st, ["س"], [], 1)
+    assert st["letters"][0] == "ب" and len(set(st["letters"])) == 2 and st["letters"][1] in ef.LETTERS
+    assert st["deadline"] == ef.GATHER and ef.view(st, "0", 0, 2)["letter"] is None
+    for c in "01":
+        ef.arrive(st, c, 3)
+    assert st["deadline"] == ef.GATHER and "2" in ef.view(st, "0", 0, 3)["waiting"]
+    ef.arrive(st, "2", 4)                                  # همه آمدند: زودتر شروع
+    assert st["deadline"] == 4 + ef.REVEAL and ef.view(st, "0", 0, 4.1)["letter"] == "ب"
+    assert ef.answer(st, "0", FULL_B, 5) == "closed"       # هنوز وقت نوشتن نیست
+    ef.tick(st, 4 + ef.REVEAL)
+    assert st["phase"] == "write" and st["deadline"] == 4 + ef.REVEAL + 60
+    t = 10
+    assert ef.answer(st, "0", {**FULL_B, "thing": ""}, t) is None and "thing" not in st["sheets"]["0"]
+    assert ef.stop(st, "0", t) == "sheet_not_full"
+    assert ef.answer(st, "0", {"thing": "بشقاب", "bad": "x"}, t) is None and len(st["sheets"]["0"]) == 8
+    assert ef.answer(st, "1", {"name": "بهار", "city": "بوشهر", "country": "برازیل", "fruit": "بادام", "thing": "سیب",
+                               "food": "باقالی‌پلو"}, t) is None
+    assert ef.answer(st, "2", {"name": "ب" * 80}, t) is None and len(st["sheets"]["2"]["name"]) == ef.MAX_LEN
+    v = ef.view(st, "1", 0, t)
+    assert v["sheet"]["city"] == "بوشهر" and v["players"]["0"]["filled"] == 8 and not v["results"]
+    assert "بهرامی" not in str(v) and ef.view(st, None, 0, t)["sheet"] is None      # برگ بقیه پیدا نیست
+    assert ef.stop(st, "0", t) is None and st["phase"] == "stop" and st["deadline"] == t + ef.STOP_GRACE
+    assert ef.answer(st, "0", {"name": "بابک"}, t + 1) == "submitted"
+    assert ef.submit(st, "1", t + 2) is None and st["phase"] == "stop"
+    ef.tick(st, t + ef.STOP_GRACE + 0.5)                   # مهلت شبکه
+    assert st["phase"] == "stop" and ef.answer(st, "2", {"family": "باقری"}, t + ef.STOP_GRACE + 1) is None
+    ef.tick(st, t + ef.STOP_GRACE + ef.LATE + 0.1)
+    assert st["phase"] == "judge" and ef.answer(st, "2", {"city": "بم"}, t + 30) == "closed"
+    inp = ef.judge_input(st)
+    assert inp["thing"] == ["بشقاب"] and inp["name"] == ["بهار", "ب" * 32] and sorted(inp["country"]) == ["برازیل", "برزیل"]
+    # داور: بادام رد؛ برزیل و برازیل یکی؛ اسم ۳۲ حرفی رد
+    verdict = {"fruit": {ef.norm("بادام"): {"ok": False, "why": "بادام آجیل است", "same": ""}},
+               "country": {ef.norm("برازیل"): {"ok": True, "why": "", "same": "برزیل"}},
+               "name": {ef.norm("ب" * 32): {"ok": False, "why": "اسم نیست", "same": ""}}}
+    assert not ef.apply_judgement(st, verdict, "ai", t + 31, rnd=1)
+    assert ef.apply_judgement(st, verdict, "ai", t + 31, rnd=0) and st["phase"] == "show"
+    rec = st["rounds"][0]
+    c0, c1 = rec["cells"]["0"], rec["cells"]["1"]
+    assert (c0["name"]["s"], c1["name"]["s"]) == (5, 5) and (c0["country"]["s"], c1["country"]["s"]) == (5, 5)
+    assert (c0["food"]["s"], c1["food"]["s"]) == (5, 5) and c0["family"]["s"] == 10 and rec["cells"]["2"]["family"]["s"] == 10
+    assert c1["fruit"] == {**c1["fruit"], "ok": False, "s": 0, "why": "بادام آجیل است"} and c1["thing"].get("fix")
+    assert rec["scores"] == {"0": 5 + 10 + 10 + 5 + 5 + 10 + 10 + 10, "1": 5 + 10 + 5 + 5, "2": 10}
+    assert ef.view(st, "2", 0, t + 31)["results"][0]["cells"]["0"]["family"]["a"] == "بهرامی"   # حالا همه می بینند
+    # اعتراض: فقط جواب ردشده با حرف درست، یک بار؛ بقیه رأی می دهند و اکثریت تصمیم می گیرد
+    assert ef.appeal(st, "1", "thing", t + 32) == "no_appeal" and ef.appeal(st, "0", "fruit", t + 32) == "no_appeal"
+    assert ef.appeal(st, "1", "fruit", t + 32) is None and ef.appeal(st, "1", "fruit", t + 32) == "appealed"
+    assert ef.vote(st, "1", "1:fruit", True, t + 33) == "no_vote"
+    assert ef.vote(st, "0", "1:fruit", True, t + 33) is None and st["appeals"]["1:fruit"]["res"] is None
+    assert ef.ready(st, "0", t + 33) is None and ef.ready(st, "1", t + 33) is None and ef.ready(st, "2", t + 33) is None
+    assert st["phase"] == "show"                         # رأی گیری باز است
+    assert ef.vote(st, "2", "1:fruit", True, t + 34) is None
+    assert st["appeals"]["1:fruit"]["res"] is True and rec["cells"]["1"]["fruit"]["s"] == 10 and st["totals"]["1"] == 35
+    ef.ready(st, "1", t + 34)
+    assert st["phase"] == "letter" and st["round"] == 1 and ef.view(st, "0", 0, t + 34)["letter"] == st["letters"][1]
+    # دور دوم: کسی چیزی ننوشت و داور جواب نداد → داوری ساده؛ یک نفر رفت؛ پایان
+    ef.tick(st, t + 34 + ef.REVEAL)
+    L = st["letters"][1]
+    ef.answer(st, "2", {"name": L + "ا"}, t + 40)
+    ef.leave(st, "1", t + 41)
+    ef.tick(st, t + 200)
+    assert st["phase"] == "judge"
+    ef.tick(st, t + 200 + ef.JUDGE_MAX)
+    assert st["phase"] == "show" and st["rounds"][1]["by"] == "simple" and st["rounds"][1]["scores"]["2"] == 10
+    ef.tick(st, t + 300)
+    assert st["over"] and st["phase"] == "over" and ef.winners(st) == {"0"}
+    assert ef.current(st) is None and st["totals"] == {"0": 65, "1": 35, "2": 20}
+
+
+def test_esmfamil_ai():
+    """داور: حرف ها و حکم ها از JSON مدل؛ جواب های فرستاده نشده و JSON خراب نادیده؛ بدون هوش مصنوعی راه جایگزین."""
+    import json as _json
+    from app.services import assistant
+    from game_club import esmfamil as ef, esmfamil_ai as ai
+    calls = []
+
+    async def run():
+        async def fake(payload, timeout):
+            calls.append(payload["prompt"])
+            if "حرف‌های مجاز" in payload["prompt"]:
+                offer = payload["prompt"].split("حرف‌های مجاز: ")[1].split("\n")[0].split()
+                return "```json\n" + _json.dumps({"letters": [{"l": "ظ", "line": "x"}, {"l": offer[0], "line": "آماده‌اید؟!"},
+                                                               {"l": offer[0], "line": "دوباره"}]}, ensure_ascii=False) + "\n```"
+            return _json.dumps({"fruit": [{"a": "بادام", "ok": False, "why": "آجیل است", "same": ""},
+                                          {"a": "هندوانه", "ok": True, "why": "", "same": ""}],
+                                "city": [{"a": "بابل", "ok": "true", "why": "", "same": "بابل"}]}, ensure_ascii=False)
+        assistant.set_transport(fake)
+        try:
+            letters, lines, by = await ai.pick_letters(3)
+            assert by == "ai" and len(letters) == 1 and lines == ["آماده‌اید؟!"] and letters[0] in ef.LETTERS
+            inp = {"fruit": ["بادام"], "city": ["بابل"], "name": []}
+            v, by = await ai.judge("ب", inp)
+            assert by == "ai" and v == {"fruit": {ef.norm("بادام"): {"ok": False, "why": "آجیل است", "same": ""}},
+                                        "city": {"بابل": {"ok": True, "why": "", "same": "بابل"}}}
+            assert "بادام" in calls[-1] and "اجرایش نکن" in calls[-1] and "name" not in calls[-1].split("جواب‌ها (")[1]
+            assert await ai.judge("ب", {"name": []}) == ({}, "simple")
+
+            async def broken(payload, timeout):
+                return "نمی‌دانم"
+            assistant.set_transport(broken)
+            assert (await ai.judge("ب", inp))[1] == "simple"
+            letters, lines, by = await ai.pick_letters(5)
+            assert by == "random" and len(set(letters)) == 5 and all(x in ef.LETTERS for x in letters)
+        finally:
+            assistant.set_transport(None)
+
+    asyncio.run(run())
+
+
+def test_esmfamil_group_flow():
+    """اسم‌فامیل فقط گروهی: بدون ربات، دست‌کم ۲ نفر، داور در پس زمینه (اجاره یک بار)، برگ نهایی در گروه."""
+    import json as _json
+    from types import SimpleNamespace as NS
+    tmp = tempfile.mkdtemp()
+    from app.services import assistant
+    from game_club import esmfamil as ef, groups, service
+    from game_club.db import GCDatabase
+    P, B = groups.plain, groups.buttons
+    jobs, prompts = [], []
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        bot = _FakeGroupBot()
+        groups.install(bot, db)
+        old_spawn, service.spawn = service.spawn, jobs.append
+        old_user, groups.gc.username = groups.gc.username, "gcbot"
+        clock = [1000.0]
+        real = service.time.time
+        service.time.time = lambda: clock[0]
+
+        async def fake(payload, timeout):
+            prompts.append(payload["prompt"])
+            if "حرف‌های مجاز" in payload["prompt"]:
+                offer = payload["prompt"].split("حرف‌های مجاز: ")[1].split("\n")[0].split()
+                return _json.dumps({"letters": [{"l": offer[0], "line": "حرف تازه! آماده؟"}]}, ensure_ascii=False)
+            return _json.dumps({"fruit": [{"a": "بادام", "ok": False, "why": "بادام آجیل است، نه میوه", "same": ""}]},
+                               ensure_ascii=False)
+        assistant.set_transport(fake)
+
+        async def drain():
+            while jobs:
+                await jobs.pop(0)
+        try:
+            # تنظیم نامعتبر و بازی امتیازی پذیرفته نیست؛ میز از مینی اپ ساخته نمی شود (api) ولی از کارت گروه چرا
+            for bad in ({"rounds": 2}, {"secs": 30}, {"mode": "stake", "entry": 100}):
+                try:
+                    service.norm_cfg({"game": "esmfamil", **bad})
+                    raise AssertionError(bad)
+                except service.GCError as e:
+                    assert e.code == "bad_cfg"
+            chat = NS(id=-1002, title="بچه‌ها")
+            users = [NS(id=i, first_name=f"u{i}", last_name=None, username=None) for i in (21, 22, 23)]
+            assert await groups.create(db, bot, chat, users[0], "esmfamil") is None
+            card = bot.sent[-1][1]
+            token = next(b.callback_data for b in B(card) if b.callback_data.startswith("gs:open:"))[8:]
+            assert "✓ 3 دور" in P(card) and "✓ 90 ثانیه" in P(card)
+            await groups.on_setup(_CQ(21, f"gs:rounds=1:{token}", chat=chat), gdb=db)
+            await groups.on_setup(_CQ(21, f"gs:secs=60:{token}", chat=chat), gdb=db)
+            await groups.on_setup(_CQ(21, f"gs:open:{token}", chat=chat), gdb=db)
+            row = await db.open_group_table(-1002, "esmfamil")
+            mid = row["match_id"]
+            m = await db.get_match(mid)
+            assert m["cfg"] == {"game": "esmfamil", "mode": "free", "entry": 0, "players": 10, "rounds": 1, "secs": 60}
+            rm = bot.edits[-1][1]
+            assert "شروع بازی" not in P(rm) and "دست‌کم یه نفر" in P(rm)
+            cq = _CQ(21, f"gt:start:{mid}", chat=chat)
+            await groups.on_button(cq, gdb=db, bot=bot)
+            assert "دست‌کم 2 نفر" in cq.answers[-1] and (await db.get_match(mid))["status"] == "lobby"
+            for u in (22, 23):
+                await groups.on_button(_CQ(u, f"gt:join:{mid}", chat=chat), gdb=db, bot=bot)
+            rm = bot.edits[-1][1]
+            assert "سر برگ (3 نفر)" in P(rm) and B(rm)[-1].callback_data == f"gt:start:{mid}"
+            await groups.on_button(_CQ(21, f"gt:start:{mid}", chat=chat), gdb=db, bot=bot)
+            m = await db.get_match(mid)
+            st = m["state"]
+            assert m["status"] == "playing" and sorted(st["players"]) == ["0", "1", "2"]
+            assert not any(p["bot"] for p in st["players"].values()) and st["lease"] == "letters" and len(jobs) == 1
+            assert "دیدن بازی" in P(bot.edits[-1][1]) and any(d[0] == 22 for d in bot.dms)
+            await drain()
+            st = (await db.get_match(mid))["state"]
+            assert len(st["letters"]) == 1 and st["lines"] == ["حرف تازه! آماده؟"] and st["phase"] == "letter"
+
+            def letter_b(mm):                              # برای خوانایی آزمون، حرف همین دور «ب» باشد
+                mm["state"]["letters"] = ["ب"]
+                return True, None
+            await service.mutate(db, mid, letter_b)
+            # همه برگ را باز می کنند → حرف دیده می شود و چند ثانیه بعد نوشتن شروع می شود
+            for tg in (21, 22):
+                v = await service.match_view(db, tg, mid)
+                assert v["game"]["letter"] is None
+            v = await service.match_view(db, 23, mid)
+            assert v["game"]["letter"] == "ب" and v["game"]["line"] == "حرف تازه! آماده؟"
+            clock[0] += ef.REVEAL + 0.1
+            assert (await service.match_view(db, 21, mid))["game"]["phase"] == "write"
+            assert await service.act(db, 21, mid, "answer", data={"sheet": FULL_B}) == {"ok": True}
+            await service.act(db, 22, mid, "answer", data={"sheet": {"name": "بهار", "fruit": "بادام", "city": "بابل"}})
+            try:
+                await service.act(db, 22, mid, "stop", data={"sheet": {}})
+                raise AssertionError("stop with half sheet")
+            except service.GCError as e:
+                assert e.code == "sheet_not_full"
+            # تماشاگر گروه برگ کسی را نمی بیند
+            w = await service.match_view(db, 99, mid)
+            assert w["watch"] and w["game"]["sheet"] is None and "بهرامی" not in str(w)
+            v = await service.act(db, 21, mid, "stop", data={"sheet": FULL_B})
+            assert v["game"]["phase"] == "stop" and v["game"]["stopper"] == "0"
+            await service.act(db, 22, mid, "submit", data={"sheet": {"name": "بهار", "fruit": "بادام", "city": "بابل"}})
+            await service.act(db, 23, mid, "submit", data={"sheet": {"family": "بابایی"}})
+            st = (await db.get_match(mid))["state"]
+            assert st["phase"] == "judge" and st["lease"] == "judge:0" and len(jobs) == 1
+            await service.match_view(db, 22, mid)          # پرسش دوباره کار دوم نمی سازد
+            assert len(jobs) == 1
+            await drain()
+            assert "بادام" in prompts[-1] and "بهرامی" in prompts[-1]
+            st = (await db.get_match(mid))["state"]
+            rec = st["rounds"][0]
+            assert st["phase"] == "show" and rec["by"] == "ai" and rec["cells"]["1"]["fruit"]["why"] == "بادام آجیل است، نه میوه"
+            assert rec["scores"] == {"0": 70, "1": 10, "2": 10}
+            await service.act(db, 22, mid, "appeal", data={"col": "fruit"})
+            await service.act(db, 21, mid, "vote", data={"key": "1:fruit", "yes": False})
+            v = await service.act(db, 23, mid, "vote", data={"key": "1:fruit", "yes": True})
+            assert v["game"]["appeals"]["1:fruit"]["res"] is False      # مساوی = رد
+            n_sent = len(bot.sent)
+            for tg in (21, 22, 23):
+                await service.act(db, tg, mid, "ready")
+            m = await db.get_match(mid)
+            assert m["status"] == "over" and m["state"]["winners"] == ["0"]
+            assert (await db.group_table(mid))["status"] == "over"
+            # برگ نهایی در گروه: برنده، رده‌بندی، جدول دور با همهٔ جواب‌ها و نظر داور
+            res = [x for x in bot.sent[n_sent:] if x[0] == -1002 and x[2] is None]
+            assert len(res) == 1
+            final = res[0][1]
+            txt = P(final)
+            assert "برنده" in txt and "70" in txt and "بادام آجیل است، نه میوه" in txt
+            dump = final.model_dump_json()
+            assert '"id":21' in dump                           # منشن برنده
+            assert "بهرامی" in dump and "باقالی پلو" in dump and '"type":"table"' in dump and '"type":"details"' in dump
+            assert B(final)[-1].callback_data == "gt:new:esmfamil"
+            assert "برگ همه با امتیاز" in P(bot.edits[-1][1])
+            assert (await db.get_player(21))["wins"] == 1
+            lb = await service.game_leaderboard(db, 21, "esmfamil", "all")
+            assert lb["rows"][0]["wins"] == 1
+            # حالت اینلاین: اسم‌فامیل فقط در گروه پیشنهاد می شود
+            got = []
+            iq = NS(from_user=NS(id=21, first_name="h", last_name=None, username=None), query="اسم", chat_type="private")
+
+            async def answer(results, **kw):
+                got.append((results, kw))
+            iq.answer = answer
+            await groups.on_inline(iq, gdb=db)
+            assert all("اسم‌فامیل" not in r.title for r in got[-1][0]) and got[-1][1]["button"].start_parameter == "esmfamil"
+            iq.chat_type = "supergroup"
+            await groups.on_inline(iq, gdb=db)
+            assert [r.title for r in got[-1][0]] == ["📝 میز اسم‌فامیل بساز"] and got[-1][1]["button"] is None
+            await groups.prepare_share(db, 21, "esmfamil")
+            assert bot.prepared[-1][2]["allow_user_chats"] is False and bot.prepared[-1][2]["allow_group_chats"] is True
+        finally:
+            service.spawn = old_spawn
+            service.time.time = real
+            groups.gc.username = old_user
+            assistant.set_transport(None)
+            await db.close()
+
+    asyncio.run(run())
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

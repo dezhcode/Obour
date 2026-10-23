@@ -51,11 +51,13 @@ function build(opt) {
     bot: 'تمرین، همیشه آزاد و بدون انتظار',
   };
   const GO = { online: ['پیدا کردن حریف', 'play'], friends: ['ساختن لینک دعوت', 'link'], group: ['فرستادن به گروه', 'send'], bot: ['شروع با ربات', 'play'] };
+  // بازی فقط گروهی (اسم‌فامیل): opt.who = ['group']
+  const WHOS = opt.who ? WHO.filter(([v]) => opt.who.includes(v)) : WHO;
   const saved = store.get('gp:' + opt.game, {});
-  const pick = Object.assign({ mode: opt.modes[0].v, who: 'online', entry: 0 }, saved);
+  const pick = Object.assign({ mode: opt.modes[0].v, who: WHOS[0][0], entry: 0 }, saved);
   pick.extra = Object.assign({}, ...(opt.extras || []).map(x => ({ [x.key]: x.opts[0][0] })), saved.extra || {});
   if (!opt.modes.some(m => m.v === pick.mode)) pick.mode = opt.modes[0].v;
-  if (!WHO.some(([v]) => v === pick.who)) pick.who = 'online';
+  if (!WHOS.some(([v]) => v === pick.who)) pick.who = WHOS[0][0];
   const modeOf = () => opt.modes.find(m => m.v === pick.mode);
   // ورودی فقط برای آنلاین و دوستان؛ ربات و گروه همیشه آزادند (گروه تنظیماتش را در خود کارت می پرسد)
   const staked = () => settings.stake && (pick.who === 'online' || pick.who === 'friends');
@@ -74,8 +76,8 @@ function build(opt) {
       <div class="chips">${opt.modes.map(x => chip('mode', x.v, x.label, x.ic, x.v === pick.mode)).join('')}</div>
       <p class="gp-desc">${icon('info')}<span><b>${m.label}:</b> ${m.desc}</span></p>
       <h2 class="gp-h">حریف</h2>
-      <div class="chips">${WHO.map(([v, l, ic]) => chip('who', v, l, icon(ic), v === pick.who)).join('')}</div>
-      <p class="gp-sub">${WHO_DESC[pick.who]}</p>
+      <div class="chips">${WHOS.map(([v, l, ic]) => chip('who', v, l, icon(ic), v === pick.who)).join('')}</div>
+      <p class="gp-sub">${opt.whoDesc || WHO_DESC[pick.who]}</p>
       ${pick.who === 'friends' ? (opt.extras || []).map(x => `<h2 class="gp-h">${x.label}</h2>
         <div class="chips">${x.opts.map(([v, l, s]) => chip('x:' + x.key, v, l + (s ? ` <small>${s}</small>` : ''), '', String(pick.extra[x.key]) === String(v))).join('')}</div>`).join('') : ''}
       ${staked() ? `<h2 class="gp-h">ورودی</h2>
@@ -99,7 +101,8 @@ function build(opt) {
      در تلگرام قدیمی تر حالت اینلاین (@ربات hokm) با انتخاب چت باز می شود */
   async function share(btn) {
     const w = window.Telegram && Telegram.WebApp, at = v => w && w.isVersionAtLeast && w.isVersionAtLeast(v);
-    const inline = () => { if (at('6.7') && w.switchInlineQuery) { w.switchInlineQuery(opt.game, ['groups', 'users']); return true; } return false; };
+    const chats = opt.who && !opt.who.includes('friends') ? ['groups'] : ['groups', 'users'];
+    const inline = () => { if (at('6.7') && w.switchInlineQuery) { w.switchInlineQuery(opt.game, chats); return true; } return false; };
     btn.disabled = true;
     try {
       const r = await GC.data.groupShare(opt.game);

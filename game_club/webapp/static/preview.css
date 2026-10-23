@@ -79,6 +79,23 @@
 .pv-esm span:first-child{background:#F5C451}
 @keyframes pv-float{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(var(--r)) translateY(-8%)}}
 
+/* ---------- اسم‌فامیل: برگ دفتر ---------- */
+@font-face{font-family:DigiMaryam;src:url(fonts/DigiMaryam.woff2) format("woff2");font-display:swap}
+/* برگ روی میز چوبی، سمت چپ؛ سمت راست برای نام بازی روی چوب تیره می ماند */
+.pv-ef{background:radial-gradient(120% 100% at 30% 20%,#9A7444,#5A3C1C 70%,#3E2912)}
+.gp-lid .pv-ef-sheet{top:34%}
+.pv-ef-sheet{position:absolute;inset:12% 36% -12% 6%;border-radius:4px;transform:rotate(-4deg);background:#FFFCF2;box-shadow:0 10px 22px -10px rgba(60,40,10,.5);
+  display:flex;flex-direction:column;padding-top:calc(var(--es,14px) * 2.4);font-size:var(--es,14px)}
+.pv-ef-sheet::before{content:"";position:absolute;top:0;bottom:0;right:25%;width:1.5px;background:#E8A3A8}
+.pv-ef-l{position:absolute;top:calc(var(--es,14px) * .35);left:8%;width:1.8em;height:1.8em;border:2px solid #C8323C;border-radius:52% 48% 55% 45%;display:grid;place-items:center;
+  font-family:var(--font-rokh);font-weight:900;color:#C8323C;line-height:1;transform:rotate(-6deg)}
+.pv-ef-row{flex:1;min-height:0;display:flex;align-items:center;border-top:1px solid #C9D8EE;padding:0 5%;line-height:1}
+.pv-ef-row i{width:23%;flex:none;font-style:normal;font-size:.5em;font-weight:800;color:#6B7A99}
+.pv-ef-row b{padding-right:6%;font-family:DigiMaryam,var(--font-rokh);font-weight:400;color:#1E3A8A;font-size:1.05em;clip-path:inset(0 0 0 100%);animation:pv-ef-w 4.4s steps(14,end) var(--d) infinite}
+.pv-ef-mark{position:absolute;top:calc(var(--es,14px) * 2.6);left:9%;font-family:var(--font-rokh);font-weight:900;color:#C8323C;font-size:.9em;transform:rotate(-8deg);opacity:0;animation:pv-ef-m 4.4s ease 2.2s infinite}
+@keyframes pv-ef-w{0%{clip-path:inset(0 0 0 100%)}22%,86%{clip-path:inset(0 0 0 0)}96%,100%{clip-path:inset(0 0 0 100%)}}
+@keyframes pv-ef-m{0%,10%{opacity:0;transform:rotate(-8deg) scale(1.6)}22%,70%{opacity:1;transform:rotate(-8deg) scale(1)}84%,100%{opacity:0}}
+
 /* ---------- دیوار: صفحهٔ نمد با کاشی برجسته، دیوار باریک به رنگ صاحبش و لبهٔ مقصد نورانی ---------- */
 .pv-dv{container-type:size;background:radial-gradient(120% 90% at 50% 30%,#1d5a3f,#0b231a 75%)}
 .pv-dv-in{position:absolute;left:50%;top:50%;width:max(min(96cqw,150cqh),96cqh);aspect-ratio:1;transform:translate(-50%,-46%);border-radius:5%;

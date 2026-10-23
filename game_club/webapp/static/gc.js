@@ -40,7 +40,9 @@ const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
 // (روشن یا تیره؛ theme.js). با عوض شدن پوسته دوباره رنگ می شود.
 function paintBars() {
   const game = document.body.matches('.game,.hokm,.divar,.football,.billiard'), night = document.documentElement.dataset.theme === 'dark';
-  const top = game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8', bottom = game ? '#08120F' : night ? '#181C24' : '#FFFFFF';
+  const paper = document.body.matches('.esm');   // اسم‌فامیل: میز کاغذی (روشن یا شب)
+  const top = paper ? (night ? '#1B1812' : '#EFE6D2') : game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8';
+  const bottom = paper ? (night ? '#24201A' : '#FFFCF2') : game ? '#08120F' : night ? '#181C24' : '#FFFFFF';
   try { tg.setHeaderColor(top); tg.setBackgroundColor(top); } catch (e) {}
   try { ver('7.10') && tg.setBottomBarColor(bottom); } catch (e) {}
 }
@@ -157,7 +159,10 @@ const ERR = {
   insufficient: 'امتیاز کافی نیست؛ اول کیف را شارژ کن', obour_insufficient: 'موجودی کیف پول عبور کافی نیست',
   no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است', shop_off: 'خدمات عبور فعلا در دسترس نیست',
   bad_invite: 'این لینک دعوت معتبر نیست', started: 'این میز شروع شده', full: 'این میز پر است', in_match: 'تو الان سر یک میز دیگر هستی',
-  need_players: 'بازی امتیازی بدون حریف واقعی شروع نمی‌شود', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
+  need_players: 'هنوز بازیکن کافی سر میز نیست', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
+  group_only: 'اسم‌فامیل فقط توی گروه ساخته می‌شود', sheet_not_full: 'برای استپ، همهٔ ستون‌ها را پر کن', closed: 'وقت این کار گذشته',
+  submitted: 'برگت را تحویل داده‌ای', no_appeal: 'به این خانه نمی‌شود اعتراض کرد', appealed: 'برای این خانه اعتراض داده‌ای',
+  no_vote: 'روی اعتراض خودت نمی‌توانی رأی بدهی', not_playing: 'تو در این بازی نیستی', bad_sheet: 'برگ درست ثبت نشد؛ دوباره امتحان کن',
   plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
   rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
   not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', no_walls: 'دیوارهایت تمام شده؛ فقط می‌توانی حرکت کنی', wall_taken: 'این‌جا دیوار نمی‌شود گذاشت؛ روی دیوار دیگری می‌افتد', wall_blocks: 'این دیوار راه یک نفر را کامل می‌بندد؛ مجاز نیست', bad_wall: 'جای دیوار درست نیست', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_place: 'توپ سفید را جای خالی بگذار (در بریک: پشت خط سر)', bad_pack: 'این بسته در دسترس نیست',
@@ -270,6 +275,20 @@ const liveDivar = {
   wall: (match, o, r, c, since) => api('divar/wall', { body: { match, o, r, c, since } }),
   leave: match => api('divar/leave', { body: { match } }),
 };
+// اسم‌فامیل فقط از کارت گروه ساخته می شود: اینجا نشستن (کد میز)، بازی و ترک است، نه صف و دعوت
+const liveEsm = {
+  join: code => api('esmfamil/join', { body: { code } }),
+  start: match => api('esmfamil/start', { body: { match } }),
+  match: (id, since = 0) => api('esmfamil/match', { q: id ? { id, since } : { since } }),
+  // sheet: {ستون: جواب}؛ ذخیرهٔ خودکار هنگام نوشتن (پاسخ سبک {ok})
+  answer: (match, sheet) => api('esmfamil/answer', { body: { match, sheet } }),
+  stop: (match, sheet, since) => api('esmfamil/stop', { body: { match, sheet, since } }),
+  submit: (match, sheet, since) => api('esmfamil/submit', { body: { match, sheet, since } }),
+  appeal: (match, col, since) => api('esmfamil/appeal', { body: { match, col, since } }),
+  vote: (match, key, yes, since) => api('esmfamil/vote', { body: { match, key, yes, since } }),
+  ready: (match, since) => api('esmfamil/ready', { body: { match, since } }),
+  leave: match => api('esmfamil/leave', { body: { match } }),
+};
 const liveHokm = {
   queueJoin: cfg => api('hokm/queue', { body: { cfg } }),
   queueStatus: () => api('hokm/queue'),
@@ -324,6 +343,8 @@ const P = {
   shield: '<path d="M12 3l8 3v6c0 4.6-3.4 8.2-8 9-4.6-.8-8-4.4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
   card: '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10.5h18M7 15h4"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  pen: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
   userX: '<circle cx="9" cy="8.5" r="3.5"/><path d="M3 20c.6-3.6 3-5.5 6-5.5s5.4 1.9 6 5.5M16 9l5 5M21 9l-5 5"/>',
   ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
@@ -816,6 +837,7 @@ const GAME_ART = {
   ludo: () => boardArt(),
   billiard: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="9" y="3" width="46" height="58" rx="7" fill="#6B3A1F"/><rect x="14" y="8" width="36" height="48" rx="3" fill="#1E8A4C"/><g fill="#0B0F0D"><circle cx="15" cy="9" r="3.4"/><circle cx="49" cy="9" r="3.4"/><circle cx="15" cy="55" r="3.4"/><circle cx="49" cy="55" r="3.4"/><circle cx="14" cy="32" r="3"/><circle cx="50" cy="32" r="3"/></g><circle cx="32" cy="20" r="4.6" fill="#FEC625"/><circle cx="27.4" cy="26.5" r="4.6" fill="#1937A5"/><circle cx="36.6" cy="26.5" r="4.6" fill="#111"/><circle cx="35.6" cy="25.2" r="1.7" fill="#fff"/><circle cx="32" cy="45" r="4.6" fill="#F4F1E8"/><path d="M33 50L46 63" stroke="#D9B27C" stroke-width="2.6" stroke-linecap="round"/></svg>',
   divar: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="10" fill="#18543a"/><g fill="#3a9d68">' + [10, 22, 34, 46].map(y => [10, 22, 34, 46].map(x => `<rect x="${x}" y="${y}" width="9" height="9" rx="2.4"/>`).join('')).join('') + '</g><rect x="8.5" y="31" width="22" height="3.2" rx="1.6" fill="#F5C451"/><rect x="43.2" y="9" width="3.2" height="22" rx="1.6" fill="#F5C451"/><circle cx="26.5" cy="50.5" r="5.2" fill="#DDE3EA"/><circle cx="26.5" cy="50.5" r="3.6" fill="#4C8DFF"/><circle cx="38.5" cy="14.5" r="5.2" fill="#DDE3EA"/><circle cx="38.5" cy="14.5" r="3.6" fill="#FF5A6A"/></svg>',
+  esmfamil: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-6 32 32)"><rect x="9" y="6" width="46" height="54" rx="4" fill="#FFFCF2"/><g stroke="#C9D8EE" stroke-width="1.6"><path d="M9 22h46M9 33h46M9 44h46"/></g><path d="M44 6v54" stroke="#E8A3A8" stroke-width="1.6"/><path d="M15 29c3-3 8-3 12 0M15 40c4-2 10-2 15 0" stroke="#1E3A8A" stroke-width="2.4" fill="none" stroke-linecap="round"/><ellipse cx="34" cy="16" rx="7" ry="6.5" fill="none" stroke="#C8323C" stroke-width="2.2"/><text x="34" y="20.5" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="11" fill="#C8323C">ب</text></g></svg>',
   esm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>',
 };
 const GAMES = [
@@ -824,7 +846,7 @@ const GAMES = [
   { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره', href: 'ludo-lobby.html', tint: 't-ludo', cat: 'board' },
   { id: 'billiard', name: 'بیلیارد', sub: '۲ نفره یا ۴ نفره یاری', href: 'billiard-lobby.html', tint: 't-bil', cat: 'sport', tag: 'تازه' },
   { id: 'divar', name: 'دیوار', sub: '۲ یا ۴ نفره · راه را ببند', href: 'divar-lobby.html', tint: 't-dv', cat: 'board', tag: 'تازه' },
-  { id: 'esm', name: 'اسم فامیل', sub: 'به‌زودی', tint: 't-orange', cat: 'word', soon: true },
+  { id: 'esmfamil', name: 'اسم‌فامیل', sub: '۲ تا ۱۰ نفر · فقط در گروه', href: 'esmfamil-lobby.html', tint: 't-paper', cat: 'word', tag: 'تازه' },
 ];
 function quickPlay() {
   sheet(`${sheetHead('بازی‌ها')}<div class="qp">${GAMES.map(g => g.soon
@@ -930,7 +952,7 @@ document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
-  get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, loadSamples,
+  get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, esm: liveEsm, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
   PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver, onFit, queueFit, appHeight, editing };
 document.addEventListener('DOMContentLoaded', () => mount());

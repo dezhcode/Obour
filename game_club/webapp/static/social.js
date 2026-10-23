@@ -1,7 +1,7 @@
 /* دوستان: اجزای مشترک صفحهٔ دوستان و چت (وضعیت آنلاین، برگهٔ دوست، افزودن با یوزرنیم، دعوت به بازی). */
 (function () {
 const { FD, fa, icon, face, toast, errText, sheet, sheetHead, close, sfx, haptic, mount } = GC;
-const GAME = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال', billiard: 'بیلیارد', divar: 'دیوار' };
+const GAME = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل' };
 const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function lastSeen(t) {

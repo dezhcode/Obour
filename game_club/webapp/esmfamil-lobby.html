@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
+<title>Game Club · اسم‌فامیل</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<link rel="stylesheet" href="static/preview.css">
+<style>
+/* لابی اسم‌فامیل: این بازی فقط در گروه ساخته می شود؛ اینجا راهنما، فرستادن کارت به گروه، نشستن با کد و برگشت به بازی */
+.seatgrid{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-3)}
+.seatw{display:grid;justify-items:center;gap:4px;font-size:12px;font-weight:800;max-width:72px;text-align:center}
+.seatw .avatar{--size:48px}
+.seatw small{font-size:11px;color:var(--ink-muted);font-weight:700}
+.wait{width:48px;height:48px;border-radius:50%;border:3px dashed var(--line);display:grid;place-items:center;color:var(--ink-muted);font-weight:900;animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.resume{display:grid;gap:4px;justify-items:start}
+.resume b{font-size:18px;font-weight:900}
+.count{font-size:44px;line-height:52px;font-weight:900;text-align:center;color:var(--acc-deep)}
+.ef-steps{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.ef-steps li{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:22px}
+.ef-steps i{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:12px;background:var(--acc-tint);color:var(--acc-deep)}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-cap"><span>اسم‌فامیل</span></div>
+  <div class="appbar-in">
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>اسم‌فامیل</h1></div>
+    <a class="pill" href="shop.html#wallet" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span></a>
+  </div>
+</header>
+<main class="page no-nav">
+  <div class="gp" id="gp"></div>
+  <a class="card card-link resume" id="resume" href="esmfamil.html" hidden><span class="tag tag-live">بازی نیمه‌تمام</span><b>برگرد سر برگ</b><span class="muted">بازی‌ات هنوز ادامه دارد؛ بقیه دارند می‌نویسند.</span></a>
+</main>
+<script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/cards.js"></script>
+<script src="static/preview.js"></script>
+<script src="static/gamepage.js"></script>
+<script>
+(() => {
+  const { FD, store, face, icon, sheet, sheetHead, toast, sfx, haptic, sleep, errText } = GC;
+  const $ = id => document.getElementById(id);
+  GC.back('index.html');
+  let token = null, gp = null;
+  const render = () => { if (gp) gp.refresh(); };
+
+  async function go(mid) {
+    token = null; store.set('emid', mid);
+    for (let n = 3; n >= 1; n--) {
+      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">برگ‌ها آماده است!</h2><div class="count">${FD(n)}</div><p class="hint">داور دارد حرف را انتخاب می‌کند…</p>`, { center: true, dismiss: false });
+      sfx.tick(); haptic('light'); await sleep(650);
+    }
+    location.href = 'esmfamil.html';
+  }
+
+  /* ---------- میز گروه: نشسته ها، منتظر «شروع» سازنده ---------- */
+  async function lobbyLoop(mid) {
+    const t = token = {};
+    let shown = '';
+    while (token === t) {
+      let v;
+      try { v = await GC.esm.match(mid, 0); } catch (e) { toast(errText(e)); GC.close(); return; }
+      if (v.status === 'playing') return go(mid);
+      if (v.status === 'cancelled') { GC.close(); toast('سازنده میز را بست'); await GC.refreshMe(); render(); return; }
+      const L = v.lobby, c = v.cfg;
+      const sig = L.seats.map(s => s.color + s.name).join('|');
+      if (sig === shown) { await sleep(1500); continue; }
+      shown = sig; if (L.seats.length > 1) { sfx.turn(); haptic('light'); }
+      const ok = L.seats.length >= 2;
+      const sh = sheet(`${sheetHead('سر برگ اسم‌فامیل')}
+        <p>${FD(c.rounds)} دور · هر دور ${FD(c.secs)} ثانیه · داور: هوش مصنوعی عبور</p>
+        <div class="seatgrid">${L.seats.map(s => `<div class="seatw">${face(s, s.me ? '#F5C451' : 'var(--sky)')}<span class="uname">${s.name}</span>${s.me ? '<small>تو</small>' : ''}</div>`).join('')}
+          ${L.seats.length < 10 ? '<div class="seatw"><span class="wait">؟</span><small>جای خالی</small></div>' : ''}</div>
+        <div class="wait-line"><span class="spinner"></span>${ok ? (L.host ? 'هر وقت خواستی شروع کن' : 'منتظر «شروع» سازنده…') : 'دست‌کم یک نفر دیگر باید از گروه «بشین» را بزند'}</div>
+        ${L.host && ok ? `<button class="btn btn-block" id="go">${icon('play')}شروع بازی</button>` : ''}
+        <button class="btn btn-light btn-block" id="lv">${L.host ? 'بستن میز' : 'بلند شدن'}</button>`, { dismiss: false });
+      const b = sh.querySelector('#go'); if (b) b.onclick = async () => { b.disabled = true; try { await GC.esm.start(mid); } catch (e) { toast(errText(e)); b.disabled = false; } };
+      sh.querySelector('#lv').onclick = async () => { token = null; try { await GC.esm.leave(mid); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
+      await sleep(1500);
+    }
+  }
+
+  gp = GCGame.build({
+    game: 'esmfamil', title: 'اسم‌فامیل', help: 'help.html#hEsm', who: ['group'],
+    whoDesc: 'اسم‌فامیل فقط در گروه بازی می‌شود: کارت میز را به گروهت بفرست، بقیه «بشین» را می‌زنند و تو شروع می‌کنی.',
+    modes: [
+      { v: 'g', label: 'گروهی', ic: icon('users'), desc: '۲ تا ۱۰ نفر هم‌زمان با یک حرف. تعداد دور (۱، ۳ یا ۵) و وقت هر دور (۶۰، ۹۰ یا ۱۲۰ ثانیه) را توی کارت گروه انتخاب می‌کنی.', short: 'دور و وقت را توی کارت گروه انتخاب کن', cfg: {} },
+    ],
+    rules: [['فقط گروهی:', 'در گروه بنویس /esmfamil یا از همین‌جا کارت میز را به گروه بفرست. ۲ تا ۱۰ نفر می‌نشینند و سازنده بازی را شروع می‌کند.'],
+      ['حرف:', 'حرف هر دور را هوش مصنوعی عبور انتخاب می‌کند و برای همه هم‌زمان روی برگ می‌آید.'],
+      ['نوشتن:', 'اسم، فامیل، شهر، کشور، غذا، حیوان، میوه و اشیا را با همان حرف بنویس. برگت خودکار ذخیره می‌شود.'],
+      ['استپ:', 'با برگ کامل «استپ!» بزن؛ بقیه فقط ۱۰ ثانیه وقت دارند.'],
+      ['امتیاز:', 'درستِ تکی ۱۰، درستِ تکراری ۵، غلط یا خالی ۰. داور برای جواب ردشده دلیل می‌نویسد.'],
+      ['اعتراض:', 'روی جواب ردشده‌ات بزن و اعتراض کن؛ بقیه رأی می‌دهند و اکثریت تصمیم می‌گیرد.'],
+      ['برنده:', 'بیشترین جمع بعد از آخرین دور. برگ همه با امتیازها در گروه هم فرستاده می‌شود.']],
+    play: () => {},
+  });
+
+  (async () => {
+    try {
+      const me = await GC.refreshMe();
+      gp.load(me);
+      const url = new URL(location.href);
+      const code = (url.searchParams.get('join') || '').trim() || (GC.startParam().startsWith('esmfamil_') ? GC.startParam().slice(9) : '');
+      const OTHER = { ludo: ['منچ', 'ludo.html'], hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'] };
+      if (me.active_match && me.active_game === 'esmfamil' && GC.live) {
+        const v = await GC.esm.match(me.active_match, 0).catch(() => null);
+        if (v && v.status === 'lobby') lobbyLoop(v.id);
+        else if (v && v.status === 'playing') { store.set('emid', v.id); if (code) { location.replace('esmfamil.html'); return; } $('resume').hidden = false; }
+      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یک بازی ${o[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
+      else if (code && GC.live) {
+        try { const r = await GC.esm.join(code); await GC.refreshMe(); lobbyLoop(r.match); }
+        catch (err) { toast(errText(err)); }
+      }
+    } catch (e) { toast(errText(e)); }
+    render();
+  })();
+  render();
+})();
+</script>
+</body>
+</html>

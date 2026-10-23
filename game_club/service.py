@@ -17,7 +17,7 @@ import re
 import secrets
 import time
 
-from . import billiard, divar, football, hokm, ludo, names
+from . import billiard, divar, esmfamil, esmfamil_ai, football, hokm, ludo, names
 from .config import gc
 from .db import GCDatabase, pic_url
 
@@ -29,7 +29,9 @@ _ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 # هر بازی: موتور قواعد، نام فارسی و صفحه میز
 GAMES = {"ludo": (ludo, "منچ", "ludo.html"), "hokm": (hokm, "حکم", "hokm.html"),
          "football": (football, "فوتبال", "football.html"), "billiard": (billiard, "بیلیارد", "billiard.html"),
-         "divar": (divar, "دیوار", "divar.html")}
+         "divar": (divar, "دیوار", "divar.html"), "esmfamil": (esmfamil, "اسم‌فامیل", "esmfamil.html")}
+# بازی هایی که فقط در گروه ساخته می شوند (میز از کارت گروه؛ مینی اپ فقط می نشیند و بازی می کند)
+GROUP_ONLY = {"esmfamil"}
 
 
 def game_of(cfg: dict) -> str:
@@ -61,6 +63,8 @@ def _seat_order(cfg: dict) -> tuple:
         return billiard.LOBBY_ORDER4 if cfg.get("players") == 4 else billiard.SEATS2
     if g == "divar":
         return divar.LOBBY_ORDER4 if cfg.get("players") == 4 else divar.SEATS2
+    if g == "esmfamil":
+        return esmfamil.SEATS
     return ludo.SEATS[cfg["players"]]
 
 
@@ -71,6 +75,8 @@ def _current(st: dict) -> str | None:
         return billiard.current(st)
     if st.get("game") == "divar":
         return divar.current(st)
+    if st.get("game") == "esmfamil":
+        return None
     if st.get("game") == "hokm":
         return hokm.SEATS[st["hakem"] if st["phase"] == "trump" else st["turn"]] if st["phase"] in ("trump", "play") else None
     return ludo.current(st)
@@ -85,6 +91,8 @@ def _winners(st: dict) -> set:
         return billiard.winners(st)
     if st.get("game") == "divar":
         return divar.winners(st)
+    if st.get("game") == "esmfamil":
+        return esmfamil.winners(st)
     return {st["winner"]} if st.get("winner") else set()
 
 
@@ -133,6 +141,17 @@ def _code(n: int) -> str:
 
 # ---------- تنظیم میز ----------
 def norm_cfg(raw: dict) -> dict:
+    if raw.get("game") == "esmfamil":
+        # همیشه آزاد: داوری با هوش مصنوعی است و سر امتیاز بازی نمی شود
+        try:
+            rounds = int(raw.get("rounds") or 3)
+            secs = int(raw.get("secs") or 90)
+        except (TypeError, ValueError):
+            raise GCError("bad_cfg") from None
+        if raw.get("mode") == "stake" or rounds not in esmfamil.ROUNDS or secs not in esmfamil.SECS:
+            raise GCError("bad_cfg")
+        return {"game": "esmfamil", "mode": "free", "entry": 0, "players": esmfamil.MAX_PLAYERS,
+                "rounds": rounds, "secs": secs}
     mode = "stake" if raw.get("mode") == "stake" else "free"
     if mode == "stake" and not gc.stake_enabled:
         raise GCError("stake_off")
@@ -219,6 +238,8 @@ def cfg_key(cfg: dict) -> str:
         return f"billiard:{cfg['mode']}:{cfg['entry']}:{cfg['players']}"
     if game_of(cfg) == "divar":
         return f"divar:{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg.get('variant', 'classic')}"
+    if game_of(cfg) == "esmfamil":
+        return f"esmfamil:free:0:{cfg['rounds']}:{cfg['secs']}"
     return f"{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg['pawns']}"
 
 
@@ -269,7 +290,7 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
                       "bot": False, "paid": h["paid"]})
     # ربات ها هم یوزرنیمی از همان نوع بازیکن ها دارند تا سر میز یکدست باشند
     bot_names = {s["name"] for s in seats}
-    for c in colors:
+    for c in colors if game_of(cfg) not in GROUP_ONLY else ():   # اسم‌فامیل ربات ندارد
         if c not in used:
             if cfg["mode"] == "stake":
                 raise GCError("need_players")
@@ -286,6 +307,8 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
     elif game_of(cfg) == "divar":
         state = divar.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["players"],
                                 cfg.get("variant", "classic"))
+    elif game_of(cfg) == "esmfamil":
+        state = esmfamil.new_state(seats, time.time(), cfg["rounds"], cfg["secs"])
     else:
         first = random.choice([s["color"] for s in seats if not s["bot"]])
         state = ludo.new_state(seats, cfg["pawns"], time.time(), gc.turn_seconds, cfg["mode"] == "stake", first)
@@ -310,14 +333,83 @@ async def mutate(db: GCDatabase, match_id: str, fn):
             raise GCError("not_found")
         changed, result = fn(m)
         if not changed:
+            await _jobs(db, m)
             return m, result
         if await db.save_match(match_id, m["version"], m["status"], m["state"]):
             m["version"] += 1
             if m["status"] == "over":
                 await settle(db, m)
+            await _jobs(db, m)
             return m, result
         await asyncio.sleep(0.03)
     raise GCError("busy")
+
+
+# ---------- اسم‌فامیل: داور هوش مصنوعی در پس زمینه ----------
+# انتخاب حرف و داوری چند ثانیه طول می کشد؛ درخواست بازیکن منتظرش نمی ماند. یک پروسه با «اجاره» (lease)
+# داخل خود میز کار را برمی دارد تا دو پروسه دو بار از هوش مصنوعی نپرسند. اگر کار نیمه ماند، موتور
+# بعد از GATHER یا JUDGE_MAX خودش حرف تصادفی یا داوری ساده می گذارد.
+_tasks: set = set()
+
+
+def _spawn_task(coro) -> None:  # noqa: ANN001
+    t = asyncio.get_running_loop().create_task(coro)
+    _tasks.add(t)
+    t.add_done_callback(_tasks.discard)
+
+
+spawn = _spawn_task   # آزمون ها جایش تابعی می گذارند که coroutine را نگه دارد و خودش await کند
+
+
+def _esm_job(st: dict) -> str | None:
+    if st.get("game") != "esmfamil" or st["over"]:
+        return None
+    if st["phase"] == "letter" and not st["letters"]:
+        job = "letters"
+    elif st["phase"] == "judge":
+        job = f"judge:{st['round']}"
+    else:
+        return None
+    return None if st.get("lease") == job else job
+
+
+async def _jobs(db: GCDatabase, m: dict | None) -> None:
+    if not m or m["status"] != "playing" or not _esm_job(m["state"]):
+        return
+    job = _esm_job(m["state"])
+
+    def claim(mm: dict):
+        if mm["status"] != "playing" or _esm_job(mm["state"]) != job:
+            return False, None
+        mm["state"]["lease"] = job
+        return True, json.loads(json.dumps(mm["state"]))
+
+    _, snap = await mutate(db, m["id"], claim)
+    if snap:
+        spawn(_esm_run(db, m["id"], job, snap))
+
+
+async def _esm_run(db: GCDatabase, match_id: str, job: str, st: dict) -> None:
+    try:
+        if job == "letters":
+            letters, lines, _by = await esmfamil_ai.pick_letters(st["rounds_n"])
+
+            def put(mm: dict):
+                ok = mm["status"] == "playing" and esmfamil.set_letters(mm["state"], letters, lines, time.time())
+                return ok, None
+            await mutate(db, match_id, put)
+            return
+        rnd = st["round"]
+        verdicts, by = await esmfamil_ai.judge(esmfamil.letter_of(st) or "", esmfamil.judge_input(st))
+
+        def apply(mm: dict):
+            ok = mm["status"] == "playing" and esmfamil.apply_judgement(mm["state"], verdicts, by, time.time(), rnd)
+            if mm["state"]["over"]:
+                mm["status"] = "over"
+            return ok, None
+        await mutate(db, match_id, apply)
+    except Exception:  # noqa: BLE001  (موتور بعد از مهلت خودش جایگزین می گذارد)
+        log.warning("کار پس زمینهٔ اسم‌فامیل %s برای میز %s نشد", job, match_id, exc_info=True)
 
 
 # ---------- فروشگاه ظاهر: میز و ورق حکم ----------
@@ -623,6 +715,7 @@ async def _lobby_go(db: GCDatabase, m: dict) -> None:
     except GCError as e:
         if e.code != "busy":
             raise
+    await _jobs(db, await db.get_match(m["id"]))   # اسم‌فامیل: حرف ها از همین حالا آماده شوند
 
 
 async def lobby_start(db: GCDatabase, tg: int, match_id: str) -> None:
@@ -632,6 +725,8 @@ async def lobby_start(db: GCDatabase, tg: int, match_id: str) -> None:
     if m["host"] != tg:
         raise GCError("not_host")
     if m["cfg"]["mode"] == "stake" and len(m["state"]["seats"]) < m["cfg"]["players"]:
+        raise GCError("need_players")
+    if game_of(m["cfg"]) in GROUP_ONLY and len(m["state"]["seats"]) < esmfamil.MIN_PLAYERS:
         raise GCError("need_players")
     await _lobby_go(db, m)
     await _hook(db, match_id)
@@ -677,11 +772,13 @@ async def _membership(db: GCDatabase, tg: int, match_id: str) -> tuple[list[dict
     return rows, color
 
 
-def _ticker(now: float):
+def _ticker(now: float, here: str | None = None):
     def fn(m: dict):
         if m["status"] != "playing":
             return False, None
         changed = _eng(m["cfg"]).tick(m["state"], now)
+        if here is not None and m["state"].get("game") == "esmfamil":
+            changed = esmfamil.arrive(m["state"], here, now) or changed
         if m["state"]["over"]:
             m["status"] = "over"
         return changed, None
@@ -730,7 +827,7 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, cha
         return await _watch_view(db, match_id, since)
     await db.touch(match_id, tg)
     now = time.time()
-    m = fresh if fresh is not None else (await mutate(db, match_id, _ticker(now)))[0]
+    m = fresh if fresh is not None else (await mutate(db, match_id, _ticker(now, color)))[0]
     if m["status"] == "playing":
         await _ping_turn(db, m, tg, now)
     cfg = m["cfg"]
@@ -917,6 +1014,17 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
             d = data or {}
             err = billiard.shot(st, st["order"].index(color), d.get("a"), d.get("p"), d.get("sx"), d.get("sy"),
                                 d.get("cx"), d.get("cy"), now)
+        elif eng is esmfamil and action == "answer":
+            err = esmfamil.answer(st, color, (data or {}).get("sheet"), now)
+        elif eng is esmfamil and action in ("stop", "submit", "ready"):
+            if action != "ready":
+                esmfamil.answer(st, color, (data or {}).get("sheet") or {}, now)   # آخرین نوشته ها هم برسد
+            err = getattr(esmfamil, action)(st, color, now)
+        elif eng is esmfamil and action == "appeal":
+            err = esmfamil.appeal(st, color, str((data or {}).get("col") or ""), now)
+        elif eng is esmfamil and action == "vote":
+            d = data or {}
+            err = esmfamil.vote(st, color, str(d.get("key") or ""), bool(d.get("yes")), now)
         elif eng is billiard and action == "aim":
             d = data or {}
             err = billiard.aim(st, st["order"].index(color), d.get("a"), d.get("p"), d.get("cx"), d.get("cy"), now)
@@ -935,7 +1043,7 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
         await db.deactivate(match_id, tg)
     if err and err not in ("over",):
         raise GCError(err)
-    if action == "aim":                          # پاسخ سبک: کلاینت نمای کامل را با poll می گیرد
+    if action in ("aim", "answer"):              # پاسخ سبک: کلاینت نمای کامل را با poll می گیرد
         return {"ok": True}
     # میز همین الان خوانده و (با tick) نوشته شد؛ نما از همان ساخته می شود، نه یک بار دیگر از پایگاه
     return await match_view(db, tg, match_id, since, fresh=m)
@@ -975,7 +1083,7 @@ async def leaderboard(db: GCDatabase, tg: int, kind: str, period: str) -> dict:
 
 async def game_leaderboard(db: GCDatabase, tg: int, game: str, period: str) -> dict:
     """رده بندی هر بازی جدا (صفحهٔ همان بازی): بیشترین برد در این بازه."""
-    if game not in ("ludo", "hokm", "football", "billiard", "divar"):
+    if game not in GAMES:
         raise GCError("bad_game")
     span = PERIODS.get(period, PERIODS["week"])
     since = int(time.time() - span) if span else 0

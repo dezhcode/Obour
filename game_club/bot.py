@@ -3,11 +3,12 @@
 روی همان event loop عبور ساخته می شود (app.runtime) ولی Bot، Dispatcher
 و دیتابیس خودش را دارد. کار اصلی ربات باز کردن مینی اپ است:
   /start            خوش آمد + دکمه ورود
-  /start ludo_CODE  لینک دعوت دوست: دکمه مستقیم به همان میز (حکم: hokm_CODE، فوتبال: football_CODE، بیلیارد: billiard_CODE، دیوار: divar_CODE)
+  /start ludo_CODE  لینک دعوت دوست: دکمه مستقیم به همان میز (حکم: hokm_CODE، فوتبال: football_CODE، بیلیارد: billiard_CODE، دیوار: divar_CODE، اسم‌فامیل: esmfamil_CODE)
+  /esmfamil         در پیوی: اسم‌فامیل فقط در گروه است؛ توضیح و دکمهٔ انتخاب گروه
   /start obour      آمده از کارت Game Club در مینی اپ عبور
   /points           موجودی امتیاز
   /help             قوانین کوتاه
-در گروه ها (groups.py): @آیدی ربات (حالت اینلاین) یا /hokm، /ludo، /football، /billiard، /divar، /play کارت تنظیم میز می فرستد.
+در گروه ها (groups.py): @آیدی ربات (حالت اینلاین) یا /hokm، /ludo، /football، /billiard، /divar، /esmfamil، /play کارت تنظیم میز می فرستد.
 /start و /help راه اینلاین را یاد می دهند و دکمهٔ «بازی توی گروه» دارند.
 ادمین ها (ADMIN_IDS عبور):
   /gcstats                  آمار امروز و همه
@@ -137,7 +138,7 @@ def _h(icon: str, title, sub=None, lines=(), foot=None) -> str:  # noqa: ANN001
     return st.to_html(st.frame(icon, title, sub, lines, foot))
 
 
-GAME_FA = {"ludo": "منچ", "hokm": "حکم", "football": "فوتبال", "billiard": "بیلیارد", "divar": "دیوار"}
+GAME_FA = {"ludo": "منچ", "hokm": "حکم", "football": "فوتبال", "billiard": "بیلیارد", "divar": "دیوار", "esmfamil": "اسم‌فامیل"}
 
 
 # ---------- راهنمای بازی در گروه با حالت اینلاین (@آیدی ربات) ----------
@@ -148,7 +149,7 @@ def bot_at() -> str:
 def group_steps() -> list:
     return [[st.E("group"), " ", st.B("بازی توی گروه")],
             ["1. توی گروهت بنویس ", st.iso(bot_at()), " و یه فاصله بذار"],
-            "2. از لیستی که بالای کیبورد باز می‌شه، بازی رو انتخاب کن: حکم، منچ، فوتبال، بیلیارد یا دیوار",
+            "2. از لیستی که بالای کیبورد باز می‌شه، بازی رو انتخاب کن: حکم، منچ، فوتبال، بیلیارد، دیوار یا اسم‌فامیل",
             "3. حالت بازی رو بچین و «باز کردن میز» رو بزن",
             "4. رفیقات «بشین» رو می‌زنن؛ میز که پر شد، بازی شروع می‌شه 🎉"]
 
@@ -172,6 +173,10 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
             foot=(None, None, "اگه فکر می‌کنی اشتباه شده، به پشتیبانی عبور پیام بده؛ آدمای خوبی‌ان 😄")))
         return
     arg = (command.args or "").strip()
+    if arg == "esmfamil":   # از دکمهٔ راهنمای حالت اینلاین در پیوی
+        await message.answer(_h("esmfamil", "اسم‌فامیل", "بازی گروهی", esmfamil_intro(),
+                                foot=(None, None, "دکمهٔ زیر رو بزن و گروهت رو انتخاب کن 👇")), reply_markup=esmfamil_kb())
+        return
     game = arg.split("_", 1)[0]
     if game in GAME_FA and "_" in arg:
         name = GAME_FA[game]
@@ -185,7 +190,8 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         stake = m["cfg"]["mode"] == "stake"
         who = {"hokm": "یه دست حکم (یار خودش!)", "football": "یه بازی فوتبال", "ludo": "یه دست منچ",
                "billiard": "یه دست بیلیارد" + (" (یار خودش!)" if m["cfg"].get("players") == 4 else ""),
-               "divar": "یه دست دیوار" + (" چهار نفره" if m["cfg"].get("players") == 4 else "")}[game]
+               "divar": "یه دست دیوار" + (" چهار نفره" if m["cfg"].get("players") == 4 else ""),
+               "esmfamil": "یه دست اسم‌فامیل با داور هوش مصنوعی"}[game]
         await message.answer(_h(game, f"میز {name}", "دعوتت کردن!", [
             f"رفیقت تو رو به {who} دعوت کرده؛ منتظره بشینی کنارش 😎"],
             foot=("coin", "نوع میز", ["با امتیاز · ورودی ", st.num(m["cfg"]["entry"])] if stake else "آزاد · مجانی")),
@@ -193,11 +199,35 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         return
     lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), "، خوش اومدی! اینجا کسی حوصله‌ش سر نمی‌ره 😎"], "",
              [st.E("hokm"), " حکم  ", st.E("ludo"), " منچ  ", st.E("football"), " فوتبال  ", st.E("billiard"), " بیلیارد  ", st.E("divar"), " دیوار"],
-             "با رفیقات یا با ناشناس؛ هر جا حوصله‌ت سر رفت 😄", "", *group_steps()]
+             "با رفیقات یا با ناشناس؛ هر جا حوصله‌ت سر رفت 😄",
+             [st.E("esmfamil"), " اسم‌فامیل هم داریم، فقط توی گروه؛ داورش هوش مصنوعی عبوره!"], "", *group_steps()]
     if arg == "obour":
         lines += ["", "حساب عبورت به همین تلگرام وصله؛ شارژ از کیف عبور یه ثانیه‌ست ⚡"]
     await message.answer(_h("hello", "Game Club", "منوی اصلی", lines, foot=("coin", "امتیاز", [st.num(me["points"]), " امتیاز"])),
                          reply_markup=with_group_button(open_kb()))
+
+
+def esmfamil_intro() -> list:
+    return [[st.E("esmfamil"), " ", st.B("اسم‌فامیل فقط توی گروه بازی می‌شه")],
+            "همه با هم یه حرف می‌گیرن و اسم، فامیل، شهر، کشور، غذا، حیوان، میوه و اشیا رو پر می‌کنن.",
+            [st.E("judge"), " حرف هر دور رو هوش مصنوعی عبور انتخاب می‌کنه و برگ‌ها رو هم خودش تصحیح می‌کنه."],
+            "جواب درست تکی 10، تکراری 5؛ آخر بازی برگ همه با امتیازها توی گروه میاد و برنده اعلام می‌شه 🏆", "",
+            ["توی گروهت بنویس ", st.iso("/esmfamil"), " یا ", st.iso(bot_at() + " esmfamil")]]
+
+
+def esmfamil_kb() -> InlineKeyboardMarkup:
+    """فقط گروه ها در فهرست انتخاب تلگرام می آیند؛ کارت تنظیم میز همان جا ساخته می شود."""
+    btn = st.kb_button("انتخاب گروه برای اسم‌فامیل", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
+        query="esmfamil", allow_group_chats=True, allow_user_chats=False, allow_bot_chats=False, allow_channel_chats=False))
+    kb = open_kb("esmfamil-lobby.html", "راهنمای اسم‌فامیل", "help")
+    return InlineKeyboardMarkup(inline_keyboard=[[btn], *(kb.inline_keyboard if kb else [])])
+
+
+@router.message(Command("esmfamil"))
+async def on_esmfamil(message: Message) -> None:
+    """در پیوی: این بازی گروهی است (در گروه همین دستور را groups.py جواب می دهد)."""
+    await message.answer(_h("esmfamil", "اسم‌فامیل", "بازی گروهی", esmfamil_intro(),
+                            foot=(None, None, "دکمهٔ زیر رو بزن و گروهت رو انتخاب کن 👇")), reply_markup=esmfamil_kb())
 
 
 @router.message(Command("points"))
@@ -476,11 +506,12 @@ async def on_emoji_input(message: Message, gdb: GCDatabase) -> None:
 # ۲) در کارت کنترل: گیرنده ها، دکمه ها (تا ۳ تا، با ایموجی پریمیوم)، نسخهٔ آزمایشی و ارسال با تایید
 # پیش نویس در دیتابیس است (status=draft)؛ پس اگر پروسه عوض شد چیزی گم نمی شود.
 PAGE_ALIAS = {"خانه": "", "home": "", "حکم": "hokm-lobby.html", "منچ": "ludo-lobby.html", "فوتبال": "football-lobby.html",
-              "بیلیارد": "billiard-lobby.html", "دیوار": "divar-lobby.html",
+              "بیلیارد": "billiard-lobby.html", "دیوار": "divar-lobby.html", "اسم‌فامیل": "esmfamil-lobby.html",
+              "اسم فامیل": "esmfamil-lobby.html",
               "بازی‌ها": "games.html", "بازی ها": "games.html", "بازیها": "games.html", "دوستان": "friends.html",
               "پروفایل": "profile.html", "فروشگاه": "shop.html", "کیف": "shop.html"}
 PAGE_FA = {"": "خانه", "hokm-lobby.html": "حکم", "ludo-lobby.html": "منچ", "football-lobby.html": "فوتبال", "billiard-lobby.html": "بیلیارد", "divar-lobby.html": "دیوار",
-           "games.html": "بازی‌ها", "friends.html": "دوستان", "profile.html": "پروفایل", "shop.html": "فروشگاه"}
+           "esmfamil-lobby.html": "اسم‌فامیل", "games.html": "بازی‌ها", "friends.html": "دوستان", "profile.html": "پروفایل", "shop.html": "فروشگاه"}
 _BC_WAIT = "bcwait:"   # setting: ادمین دارد دکمه های کدام پیش نویس را می فرستد
 
 
@@ -662,12 +693,14 @@ async def on_text(message: Message) -> None:
 
 COMMANDS = [BotCommand(command="start", description="ورود به Game Club"),
             BotCommand(command="points", description="موجودی امتیاز"),
+            BotCommand(command="esmfamil", description="اسم‌فامیل (فقط توی گروه)"),
             BotCommand(command="help", description="قوانین")]
 GROUP_COMMANDS = [BotCommand(command="hokm", description="میز حکم در همین گروه"),
                   BotCommand(command="ludo", description="میز منچ در همین گروه"),
                   BotCommand(command="football", description="میز فوتبال در همین گروه"),
                   BotCommand(command="billiard", description="میز بیلیارد در همین گروه"),
                   BotCommand(command="divar", description="میز دیوار در همین گروه"),
+                  BotCommand(command="esmfamil", description="اسم‌فامیل با داور هوش مصنوعی"),
                   BotCommand(command="play", description="انتخاب بازی")]
 UPDATES = ["message", "callback_query", "inline_query", "chosen_inline_result"]
 
