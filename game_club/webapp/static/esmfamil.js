@@ -87,20 +87,20 @@ function viewLetter() {
   const g = G();
   if (!g.letter) {
     const waiting = (g.waiting || []).filter(c => c !== me());
-    return `<section class="ef-reveal"><span class="ef-think">${PEN}</span><h2>داور دارد حرف را انتخاب می‌کند…</h2>
-      <p class="ef-sub">هوش مصنوعی عبور حرف همهٔ دورها را می‌چیند. حرف برای همه هم‌زمان رو می‌شود.</p>
-      ${waiting.length ? `<div class="ef-wait"><b>هنوز نیامده‌اند:</b>${waiting.map(c => `<span class="ef-chip">${who(c)}</span>`).join('')}</div>` : ''}</section>`;
+    return `<section class="ef-reveal"><span class="ef-think">${PEN}</span><h2>داور داره حرف رو انتخاب می‌کنه…</h2>
+      <p class="ef-sub">هوش مصنوعی عبور داره حرفا رو می‌چینه؛ حرف واسه همه با هم رو می‌شه، پس کسی جلو نمی‌افته 😉</p>
+      ${waiting.length ? `<div class="ef-wait"><b>هنوز نیومدن:</b>${waiting.map(c => `<span class="ef-chip">${who(c)}</span>`).join('')}</div>` : ''}</section>`;
   }
   return `<section class="ef-reveal"><div class="ef-big">${RING}<b>${esc(g.letter)}</b></div>
-    ${g.line ? `<p class="ef-line">${esc(g.line)}</p>` : `<p class="ef-line">حرف «${esc(g.letter)}»!</p>`}
-    <p class="ef-sub">برگ تا چند لحظهٔ دیگر باز می‌شود؛ آماده باش</p><span class="ef-count" id="cnt">${FD(secsLeft() || 1)}</span></section>`;
+    ${g.line ? `<p class="ef-line">${esc(g.line)}</p>` : `<p class="ef-line">حرف «${esc(g.letter)}»! بزن بریم</p>`}
+    <p class="ef-sub">برگت الان باز می‌شه؛ خودکارتو بردار ✍️</p><span class="ef-count" id="cnt">${FD(secsLeft() || 1)}</span></section>`;
 }
 
 /* ---------- مرحلهٔ نوشتن ---------- */
 function viewWrite() {
   const g = G(), done = g.submitted;
   if (WATCH) {
-    return `<div class="ef-card" style="padding:14px"><p class="ef-sub" style="margin:0 0 10px">برگ‌ها تا داوری پنهان است؛ فقط پیداست هر کس چند خانه نوشته.</p>
+    return `<div class="ef-card" style="padding:14px"><p class="ef-sub" style="margin:0 0 10px">برگ‌ها تا داوری قایمه؛ فقط معلومه هر کی چند تا خونه رو پر کرده 👀</p>
       <ol class="ef-rank" style="margin:0">${active().map(c => `<li><span class="nm">${who(c)}</span><span class="v">${FD(g.players[c].filled || 0)}/${FD(g.cols.length)}</span></li>`).join('')}</ol></div>`;
   }
   return `<div class="ef-sheet${done ? ' done' : ''}" id="sheet">${g.cols.map(({ k, fa }, i) => `<div class="ef-row" data-k="${k}">
@@ -121,21 +121,21 @@ function footWrite() {
   const g = G(), n = filled(), all = n === g.cols.length;
   const others = active().filter(c => c !== me());
   const doneC = others.filter(c => g.players[c].done), writing = others.length - doneC.length;
-  const chips = `<div class="ef-who"><b>برگ‌ها:</b>${doneC.map(c => `<span class="ef-chip done">${who(c)} ✓</span>`).join('')}${writing ? `<span class="ef-chip">${FD(writing)} نفر می‌نویسند</span>` : ''}</div>`;
+  const chips = `<div class="ef-who"><b>برگ‌ها:</b>${doneC.map(c => `<span class="ef-chip done">${who(c)} ✓</span>`).join('')}${writing ? `<span class="ef-chip">${FD(writing)} نفر هنوز دارن می‌نویسن</span>` : ''}</div>`;
   if (WATCH) return chips;
   let btn;
-  if (g.submitted) btn = `<button class="ef-go soft" disabled>${icon('check')}تحویل شد؛ منتظر بقیه</button>`;
+  if (g.submitted) btn = `<button class="ef-go soft" disabled>${icon('check')}تحویلش دادی؛ منتظر بقیه‌ایم</button>`;
   else if (g.phase === 'write' && all) btn = `<button class="ef-go stop" id="stopB">استپ!</button>`;
-  else btn = `<button class="ef-go${all ? '' : ' soft'}" id="subB">تحویل برگ (${FD(n)} از ${FD(g.cols.length)})</button>`;
+  else btn = `<button class="ef-go${all ? '' : ' soft'}" id="subB">برگمو بده (${FD(n)} از ${FD(g.cols.length)})</button>`;
   return chips + btn;
 }
 function noteWrite() {
   const g = G();
   if (g.phase === 'stop') {
     const s = Math.max(0, secsLeft());
-    return note(g.stopper === me() ? `استپ زدی! بقیه فقط ${FD(s)} ثانیه وقت دارند` : `${who(g.stopper)} استپ زد! ${FD(s)} ثانیه تا جمع شدن برگ‌ها`);
+    return note(g.stopper === me() ? `استپ زدی! بقیه فقط ${FD(s)} ثانیه وقت دارن 😎` : `${who(g.stopper)} استپ زد! فقط ${FD(s)} ثانیه وقت داری، تند تند بنویس!`);
   }
-  if (WATCH) return note('در حال تماشا؛ برگ‌ها بعد از داوری رو می‌شود', icon('eye'));
+  if (WATCH) return note('داری تماشا می‌کنی؛ برگ‌ها بعد از داوری رو می‌شه', icon('eye'));
   note(null);
 }
 function bindWrite() {
@@ -146,7 +146,7 @@ function bindWrite() {
       queueSave(secsLeft() <= 4 ? 250 : 1200);
       const f = $('foot'); const sig = filled() === G().cols.length;
       if (f.dataset.full !== String(sig)) { f.dataset.full = String(sig); renderFoot(); }
-      else { const b = $('subB'); if (b) b.textContent = `تحویل برگ (${FD(filled())} از ${FD(G().cols.length)})`; }
+      else { const b = $('subB'); if (b) b.textContent = `برگمو بده (${FD(filled())} از ${FD(G().cols.length)})`; }
     });
     el.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
@@ -163,10 +163,10 @@ function bindWrite() {
 function viewJudge() {
   const g = G();
   const mine = WATCH ? '' : `<div class="ef-sheet">${g.cols.map(({ k, fa }) => `<div class="ef-row"><label>${fa}</label>
-      ${(g.sheet && g.sheet[k]) || vals[k] ? `<span class="ro hand">${esc((g.sheet && g.sheet[k]) || vals[k])}</span>` : '<span class="ro empty">خالی</span>'}</div>`).join('')}</div>`;
-  return `<div class="ef-jhead"><span class="ic">${PEN}</span><div><h2>داور دارد تصحیح می‌کند…</h2><small>هوش مصنوعی عبور برگ همه را می‌خواند</small></div></div>
+      ${(g.sheet && g.sheet[k]) || vals[k] ? `<span class="ro hand">${esc((g.sheet && g.sheet[k]) || vals[k])}</span>` : '<span class="ro empty">خالی موند</span>'}</div>`).join('')}</div>`;
+  return `<div class="ef-jhead"><span class="ic">${PEN}</span><div><h2>داور داره برگ‌ها رو تصحیح می‌کنه…</h2><small>هوش مصنوعی عبور داره برگ همه رو با دقت می‌خونه 🧐</small></div></div>
     <div class="ef-prog"><i id="prog" style="width:4%"></i></div>${mine}
-    <p class="ef-tip">جواب درستِ تکی ۱۰، درستِ تکراری ۵، غلط یا خالی ۰. داور دلیل هر جواب ردشده را کنارش می‌نویسد.</p>`;
+    <p class="ef-tip">جواب درستی که فقط تو نوشتی ۱۰، درستِ تکراری ۵، غلط یا خالی ۰. هر جوابی رو که خط بزنه، دلیلشم کنارش می‌نویسه.</p>`;
 }
 
 /* ---------- برگ دور (جدول) ---------- */
@@ -180,7 +180,7 @@ function tableHtml(g, i) {
     const x = rec.cells[c][k], ap = last ? g.appeals[`${c}:${k}`] : null;
     const cls = [c === me() ? 'me' : '', x.a ? 'tap' : ''].filter(Boolean).join(' ');
     if (!x.a) return `<td${cls ? ` class="${cls}"` : ''}><span class="w empty">—</span><span class="s">${FD(0)}</span></td>`;
-    return `<td class="${cls}" data-cell="${i}:${c}:${k}"><span class="w${x.ok ? '' : ' x'}">${esc(x.a)}</span><span class="s">${FD(x.s)}</span>${ap && ap.res == null ? '<span class="ap">اعتراض</span>' : ''}</td>`;
+    return `<td class="${cls}" data-cell="${i}:${c}:${k}"><span class="w${x.ok ? '' : ' x'}">${esc(x.a)}</span><span class="s">${FD(x.s)}</span>${ap && ap.res == null ? '<span class="ap">اعتراض داره</span>' : ''}</td>`;
   };
   return `<div class="ef-tw"><table class="ef-t" style="--n:${cols.length}"><colgroup><col class="c0">${cols.map(() => '<col>').join('')}</colgroup>
     <thead><tr><th class="h" scope="col">ستون</th>${cols.map(c => `<th scope="col"${mc(c)}>${who(c)}</th>`).join('')}</tr></thead>
@@ -195,7 +195,7 @@ function whyHtml(g, i) {
     const x = rec.cells[c] && rec.cells[c][k];
     if (!x || !x.a) continue;
     if (!x.ok && x.why) out.push(`<span><span class="hand">${esc(x.a)}</span> (${fa}، ${who(c)}): ${esc(x.why)}</span>`);
-    else if (x.appealed) out.push(`<span><span class="hand">${esc(x.a)}</span> (${fa}، ${who(c)}): با رأی بقیه قبول شد</span>`);
+    else if (x.appealed) out.push(`<span><span class="hand">${esc(x.a)}</span> (${fa}، ${who(c)}): با رأی بچه‌ها قبول شد 🙌</span>`);
   }
   return out.length ? `<div class="ef-why">${out.join('')}</div>` : '';
 }
@@ -206,10 +206,10 @@ function appealsHtml(g) {
   return `<div class="ef-aps">${aps.map(([key, ap]) => {
     const x = rec.cells[ap.c][ap.col], fa = (g.cols.find(c => c.k === ap.col) || {}).fa || '';
     const mine = ap.c === me(), canVote = !WATCH && !mine && me() && !g.players[me()].out;
-    const res = ap.res == null ? '' : ap.res ? 'قبول شد ✓' : 'رد شد';
-    return `<div class="ef-ap${ap.res == null ? '' : ' res'}">${who(ap.c)} به <span class="hand">${esc(x.a)}</span> در ستون ${fa} اعتراض ${mine ? 'کردی' : 'کرد'}.
+    const res = ap.res == null ? '' : ap.res ? 'قبول شد؛ دمتون گرم ✓' : 'قبول نشد؛ قسمت نبود';
+    return `<div class="ef-ap${ap.res == null ? '' : ' res'}">${who(ap.c)} سر <span class="hand">${esc(x.a)}</span> (${fa}) اعتراض ${mine ? 'کردی' : 'داره'}! ${mine ? 'بچه‌ها دارن رأی می‌دن…' : 'قبوله یا نه؟'}
       <div class="ef-apr"><span class="cnt">${res || `${FD(ap.yes)} موافق، ${FD(ap.no)} مخالف`}</span>
-      ${ap.res == null && canVote ? `<span class="vb"><button data-vote="${key}" data-yes="1" aria-pressed="${ap.mine === 'yes'}">قبول است</button><button data-vote="${key}" data-yes="0" aria-pressed="${ap.mine === 'no'}">قبول نیست</button></span>` : ''}</div></div>`;
+      ${ap.res == null && canVote ? `<span class="vb"><button data-vote="${key}" data-yes="1" aria-pressed="${ap.mine === 'yes'}">قبوله 👍</button><button data-vote="${key}" data-yes="0" aria-pressed="${ap.mine === 'no'}">قبول نیست 👎</button></span>` : ''}</div></div>`;
   }).join('')}</div>`;
 }
 function viewShow() {
@@ -217,14 +217,14 @@ function viewShow() {
   const mineBad = me() && g.cols.some(({ k }) => { const x = rec.cells[me()] && rec.cells[me()][k]; return x && x.a && !x.ok && !x.fix && !g.appeals[`${me()}:${k}`]; });
   return `<div class="ef-rhead"><b>برگ دور ${FD(i + 1)}، حرف «${esc(rec.letter)}»</b><small>${rec.by === 'ai' ? 'داور: هوش مصنوعی عبور' : 'داوری خودکار'}</small></div>
     ${appealsHtml(g)}<div class="ef-card">${tableHtml(g, i)}${whyHtml(g, i)}</div>
-    ${mineBad ? '<p class="ef-hint">فکر می‌کنی داور اشتباه کرده؟ روی جواب ردشدهٔ خودت بزن و اعتراض کن.</p>' : ''}`;
+    ${mineBad ? '<p class="ef-hint">فکر می‌کنی داور بی‌انصافی کرده؟ رو جواب خط‌خورده‌ت بزن و اعتراض کن ✋</p>' : ''}`;
 }
 function footShow() {
   const g = G(), act = active(), rd = act.filter(c => g.players[c].ready).length, mine = me() && g.players[me()].ready;
   const lastRound = g.round + 1 >= g.rounds_n;
   if (WATCH) return `<div class="ef-who"><b>آماده:</b><span class="ef-chip">${FD(rd)} از ${FD(act.length)}</span></div>`;
-  return `<div class="ef-who"><b>آماده:</b><span class="ef-chip${rd ? ' done' : ''}">${FD(rd)} از ${FD(act.length)} نفر</span></div>
-    <button class="ef-go${mine ? ' soft' : ''}" id="rdy"${mine ? ' disabled' : ''}>${mine ? 'منتظر بقیه…' : lastRound ? 'برگ نهایی' : 'دور بعد'} <span id="rdyS" class="ef-sec">${FD(secsLeft())}</span></button>`;
+  return `<div class="ef-who"><b>آماده‌ها:</b><span class="ef-chip${rd ? ' done' : ''}">${FD(rd)} از ${FD(act.length)} نفر</span></div>
+    <button class="ef-go${mine ? ' soft' : ''}" id="rdy"${mine ? ' disabled' : ''}>${mine ? 'منتظر بقیه‌ایم…' : lastRound ? 'بریم سراغ نتیجه' : 'بریم دور بعد'} <span id="rdyS" class="ef-sec">${FD(secsLeft())}</span></button>`;
 }
 
 /* ---------- پایان ---------- */
@@ -233,16 +233,16 @@ function viewOver() {
   const rank = g.order.slice().sort((a, b) => (tot[b] || 0) - (tot[a] || 0) || g.order.indexOf(a) - g.order.indexOf(b));
   const myPos = me() ? rank.indexOf(me()) + 1 : 0, n = g.results.length;
   if (tab == null || tab >= n) tab = n - 1;
-  const title = !wins.length ? 'بازی بی‌برنده تمام شد' : wins.includes(me()) ? (wins.length > 1 ? 'مساوی شدی؛ تو هم بردی!' : 'تو بردی!') : `${who(wins[0])}${wins.length > 1 ? ' و بقیه' : ''} برد!`;
-  return `<div class="ef-win"><div class="t"><small>پایان بازی، ${FD(n)} دور</small><h1>${title}</h1>
-      <span>${wins.length ? `${FD(tot[wins[0]] || 0)} امتیاز` : 'کسی امتیاز نگرفت'}${myPos ? `؛ تو ${myPos === 1 ? 'اول' : FD(myPos) + 'ام'} شدی` : ''}</span></div>
+  const title = !wins.length ? 'این دست کسی نبرد 🕊' : wins.includes(me()) ? (wins.length > 1 ? 'مساوی شدین؛ تو هم بردی! 🎉' : 'تو بردی! 🎉') : `${who(wins[0])}${wins.length > 1 ? ' و بقیه' : ''} برد!`;
+  return `<div class="ef-win"><div class="t"><small>بازی تموم شد، ${FD(n)} دور</small><h1>${title}</h1>
+      <span>${wins.length ? `${FD(tot[wins[0]] || 0)} امتیاز` : 'کسی امتیاز نگرفت'}${myPos ? `؛ تو ${myPos === 1 ? 'اول' : FD(myPos) + 'ام'} شدی${myPos === 1 ? '' : '، دست بعد مال توئه 😉'}` : ''}</span></div>
       ${wins.length ? `<div class="ef-stamp">برنده<b>${FD(tot[wins[0]] || 0)}</b></div>` : ''}</div>
-    <ol class="ef-rank">${rank.map((c, j) => `<li class="${c === me() ? 'me' : ''}${g.players[c].out ? ' out' : ''}"><span class="n">${FD(j + 1)}</span>${face(g.players[c])}<span class="nm">${who(c)}${g.players[c].out ? ' (رفت)' : ''}</span><span class="v">${FD(tot[c] || 0)}</span></li>`).join('')}</ol>
+    <ol class="ef-rank">${rank.map((c, j) => `<li class="${c === me() ? 'me' : ''}${g.players[c].out ? ' out' : ''}"><span class="n">${FD(j + 1)}</span>${face(g.players[c])}<span class="nm">${who(c)}${g.players[c].out ? ' (وسط بازی رفت)' : ''}</span><span class="v">${FD(tot[c] || 0)}</span></li>`).join('')}</ol>
     ${n > 1 ? `<div class="ef-tabs" role="tablist">${g.results.map((r, j) => `<button role="tab" data-tab="${j}" aria-selected="${j === tab}">دور ${FD(j + 1)}، «${esc(r.letter)}»</button>`).join('')}</div>` : ''}
-    ${n ? `<div class="ef-card">${tableHtml(g, tab)}${whyHtml(g, tab)}</div><p class="ef-hint">برگ همه با امتیازها در گروه هم فرستاده شد.</p>` : ''}`;
+    ${n ? `<div class="ef-card">${tableHtml(g, tab)}${whyHtml(g, tab)}</div><p class="ef-hint">برگ همه رو با امتیازا توی گروه هم فرستادیم تا همه ببینن 📣</p>` : ''}`;
 }
 function footOver() {
-  return `<div class="ef-acts"><button class="ef-go" id="again">${icon('send')}بازی دوباره در گروه</button><a class="ef-go soft" href="index.html">خانه</a></div>`;
+  return `<div class="ef-acts"><button class="ef-go" id="again">${icon('send')}یه دست دیگه توی گروه</button><a class="ef-go soft" href="index.html">برگرد خونه</a></div>`;
 }
 
 /* ---------- چیدن صفحه ---------- */
@@ -273,7 +273,7 @@ function render(force) {
   if (sheetPh) {
     noteWrite();
     const sh = $('sheet'); if (sh && g.submitted && !sh.classList.contains('done')) main.innerHTML = viewWrite();
-  } else if (g.over || g.phase === 'show' || g.phase === 'judge' || g.phase === 'letter') note(WATCH && !g.over ? 'در حال تماشا' : null, icon('eye'));
+  } else if (g.over || g.phase === 'show' || g.phase === 'judge' || g.phase === 'letter') note(WATCH && !g.over ? 'داری تماشا می‌کنی 👀' : null, icon('eye'));
   renderFoot();
   tickClock();
 }
@@ -321,8 +321,8 @@ function confirmSubmit() {
   const g = G(), n = filled(), left = g.cols.length - n;
   if (!left || g.phase === 'stop') return doSubmit();
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="sT" aria-describedby="sD"><span class="dlg-ic">${PEN}</span>
-    <h2 id="sT">برگ را تحویل می‌دهی؟</h2><p id="sD">${FD(left)} خانه هنوز خالی است. بعد از تحویل دیگر نمی‌توانی چیزی بنویسی؛ خانهٔ خالی صفر می‌گیرد.</p>
-    <div class="dlg-acts"><button class="btn" data-close>ادامهٔ نوشتن</button><button class="btn btn-light" id="ok">تحویل بده</button></div></div>`, { center: true });
+    <h2 id="sT">برگتو تحویل می‌دی؟</h2><p id="sD">${FD(left)} تا خونه هنوز خالیه. تحویلش بدی دیگه نمی‌تونی چیزی بنویسی و خونهٔ خالی صفر می‌گیره.</p>
+    <div class="dlg-acts"><button class="btn" data-close>نه، می‌نویسم</button><button class="btn btn-light" id="ok">آره، تحویلش بده</button></div></div>`, { center: true });
   sh.querySelector('#ok').onclick = () => { close(); doSubmit(); };
 }
 function doSubmit() {
@@ -341,14 +341,14 @@ function cellSheet(ref) {
   const key = `${c}:${k}`, ap = current ? g.appeals[key] : null;
   const canAppeal = current && c === me() && !x.ok && !x.fix && !ap;
   const canVote = current && ap && ap.res == null && !WATCH && me() && c !== me();
-  const verdict = x.ok ? (x.appealed ? 'با رأی بقیه قبول شد' : x.s === 10 ? 'درست و تکی: ۱۰ امتیاز' : 'درست ولی تکراری: ۵ امتیاز') : 'رد شد: ۰ امتیاز';
+  const verdict = x.ok ? (x.appealed ? 'با رأی بچه‌ها قبول شد 🙌' : x.s === 10 ? 'درسته و فقط همین یه نفر نوشته: ۱۰ امتیاز' : 'درسته ولی یکی دیگه هم نوشته: ۵ امتیاز') : 'داور قبولش نکرد: ۰ امتیاز';
   const sh = sheet(`<div class="ef-detail"><small>${fa}، ${who(c)}، دور ${FD(+i + 1)}</small><b class="hand">${esc(x.a)}</b>
       <span class="verdict ${x.ok ? 'ok' : 'no'}">${verdict}</span>${!x.ok && x.why ? `<span class="why">${esc(x.why)}</span>` : ''}
-      ${ap ? `<span class="verdict">${ap.res == null ? `اعتراض در جریان: ${FD(ap.yes)} موافق، ${FD(ap.no)} مخالف` : ap.res ? 'اعتراض قبول شد' : 'اعتراض رد شد'}</span>` : ''}</div>
-    ${canAppeal ? `<button class="btn btn-block" id="apB">${icon('flag')}اعتراض به داور</button><p class="hint">بقیهٔ بازیکن‌ها رأی می‌دهند؛ اگر موافق‌ها بیشتر بودند جوابت قبول می‌شود.</p>` : ''}
-    ${canVote ? `<div class="dlg-acts"><button class="btn" id="vY">قبول است</button><button class="btn btn-light" id="vN">قبول نیست</button></div>` : ''}
-    <button class="btn btn-light btn-block" data-close>بستن</button>`, { center: true });
-  const a = sh.querySelector('#apB'); if (a) a.onclick = () => { close(); act(() => API.appeal(mid, k, since), () => toast('اعتراض ثبت شد؛ بقیه رأی می‌دهند')); };
+      ${ap ? `<span class="verdict">${ap.res == null ? `دارن رأی می‌دن: ${FD(ap.yes)} موافق، ${FD(ap.no)} مخالف` : ap.res ? 'اعتراض قبول شد 🙌' : 'اعتراض قبول نشد'}</span>` : ''}</div>
+    ${canAppeal ? `<button class="btn btn-block" id="apB">${icon('flag')}اعتراض دارم!</button><p class="hint">بقیه رأی می‌دن؛ اگه موافقا بیشتر باشن جوابت قبول می‌شه.</p>` : ''}
+    ${canVote ? `<div class="dlg-acts"><button class="btn" id="vY">قبوله 👍</button><button class="btn btn-light" id="vN">قبول نیست 👎</button></div>` : ''}
+    <button class="btn btn-light btn-block" data-close>باشه</button>`, { center: true });
+  const a = sh.querySelector('#apB'); if (a) a.onclick = () => { close(); act(() => API.appeal(mid, k, since), () => toast('اعتراضت ثبت شد؛ حالا بقیه رأی می‌دن')); };
   const y = sh.querySelector('#vY'); if (y) y.onclick = () => { close(); act(() => API.vote(mid, key, true, since)); };
   const n = sh.querySelector('#vN'); if (n) n.onclick = () => { close(); act(() => API.vote(mid, key, false, since)); };
 }
@@ -367,10 +367,10 @@ async function again(btn) {
   btn.disabled = true;
   try {
     const r = await GC.data.groupShare('esmfamil');
-    if (r.demo) toast('در تلگرام، گروه را انتخاب می‌کنی و کارت میز همان‌جا فرستاده می‌شود');
-    else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز فرستاده شد'); } });
+    if (r.demo) toast('توی تلگرام گروهتو انتخاب می‌کنی و کارت میز همون‌جا می‌ره');
+    else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز رفت توی گروه؛ بچه‌ها رو خبر کن! 🎉'); } });
     else if (at('6.7') && w.switchInlineQuery) w.switchInlineQuery('esmfamil', ['groups']);
-    else toast('در گروه بنویس /esmfamil');
+    else toast('توی گروه بنویس /esmfamil');
   } catch (e) { toast(errText(e)); }
   btn.disabled = false;
 }
@@ -380,11 +380,11 @@ function askExit() {
   const g = G();
   if (!snap || snap.status !== 'playing' || WATCH || !g || g.over) { location.href = 'index.html'; return; }
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
-      <span class="dlg-ic warn">${icon('exit')}</span><h2 id="dT">از بازی بیرون می‌روی؟</h2>
-      <p id="dD">با خروج، از بقیهٔ دورها کنار می‌روی و برگت دیگر حساب نمی‌شود. امتیاز دورهای قبل در برگ می‌ماند.</p>
-      <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
-      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ بازی می‌ماند</button>
-      <p class="dlg-fine">برگت تا وقتی نوشته‌ای ذخیره شده و با یک لمس از صفحهٔ خانه برمی‌گردی؛ ولی وقت دور برای کسی صبر نمی‌کند.</p></div>`, { center: true });
+      <span class="dlg-ic warn">${icon('exit')}</span><h2 id="dT">داری می‌ری؟</h2>
+      <p id="dD">اگه بری، دورهای بعد رو از دست می‌دی و برگت دیگه حساب نمی‌شه؛ امتیاز دورهای قبل سر جاش می‌مونه.</p>
+      <div class="dlg-acts"><button class="btn" data-close>نه، می‌مونم</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}آره، می‌رم</button></div>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برم خونه؛ بازی سر جاش می‌مونه</button>
+      <p class="dlg-fine">هر چی نوشتی ذخیره شده و از صفحهٔ خونه با یه لمس برمی‌گردی؛ فقط حواست باشه وقت دور واسه کسی صبر نمی‌کنه ⏳</p></div>`, { center: true });
   sh.querySelector('#home').onclick = async () => { await save().catch(() => {}); GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => { try { await API.leave(mid); } catch (e) {} GC.guardClose(false); store.set('emid', null); location.href = 'index.html'; };
 }
@@ -393,10 +393,10 @@ GC.back(askExit);
 function dialog(title, text) {
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${PEN}</span>
       <h2 id="dT">${title}</h2><p id="dD">${text}</p>
-      <div class="dlg-acts"><a class="btn" href="esmfamil-lobby.html">اسم‌فامیل</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <div class="dlg-acts"><a class="btn" href="esmfamil-lobby.html">اسم‌فامیل</a><a class="btn btn-light" href="index.html">برگرد خونه</a></div></div>`, { center: true, dismiss: false });
 }
-function cancelled() { store.set('emid', null); GC.guardClose(false); dialog('این بازی بسته شد', 'بازی پیش از تمام شدن بسته شد.'); }
-function noMatch() { if (!watchMid) store.set('emid', null); dialog(watchMid ? 'این بازی را نمی‌شود دید' : 'بازی‌ای پیدا نشد', watchMid ? 'بازی تمام شده یا هنوز شروع نشده است.' : 'این بازی تمام شده یا هنوز سر برگی ننشسته‌ای.'); }
+function cancelled() { store.set('emid', null); GC.guardClose(false); dialog('این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد؛ یه دست تازه بچینید 😉'); }
+function noMatch() { if (!watchMid) store.set('emid', null); dialog(watchMid ? 'این بازی رو نمی‌شه دید' : 'بازی‌ای پیدا نشد', watchMid ? 'یا تموم شده یا هنوز شروع نشده.' : 'یا بازی تموم شده یا هنوز سر هیچ برگی نشستی.'); }
 
 /* ---------- پرسیدن پیاپی وضعیت ---------- */
 async function poll() {
