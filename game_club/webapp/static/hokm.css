@@ -49,12 +49,15 @@ body.hokm .appbar-in{min-height:0;padding-block:var(--space-2) var(--space-2);ga
 
 .hk-center{grid-column:2;grid-row:2;position:relative;align-self:stretch;display:grid;place-items:center;direction:rtl}
 .hk-pile{position:relative;width:206px;height:236px;transform:scale(var(--pile,1));transform-origin:50% 50%}
-.hk-pile .hk-card{transition:transform .2s,box-shadow .2s,scale .15s}
-/* برگ های میز با تکان گوشی می لغزند و با انگشت جابه جا می شوند (hokm.js، «برگ های وسط میز») */
-.hk-pile .hk-card.tc{touch-action:none;cursor:grab}
-.hk-pile.tilt .hk-card.tc{will-change:translate}
-.hk-pile .hk-card.tc.held{cursor:grabbing;scale:1.06;box-shadow:0 14px 26px rgba(0,0,0,.45)}
-.hk-pile .hk-card.tc.held.win{box-shadow:0 0 0 3px var(--gold),0 14px 26px rgba(0,0,0,.45)}
+.hk-pile .hk-card{transition:transform .2s,box-shadow .2s}
+/* برگ های میز با جاذبه سُر می خورند و با انگشت هل داده می شوند (hokm.js، «برگ های وسط میز»)؛
+   جابه جایی با translate و rotate، پس transform برگ دست نمی خورد */
+.hk-pile .hk-card.tc{touch-action:none;cursor:grab;will-change:translate,rotate}
+.hk-pile .hk-card.tc.held{cursor:grabbing}
+/* برگی که تا لبهٔ میز سُر خورده زیر بازیکن ها و نوار پایین می رود، نه رویشان؛ آن ها فقط نمایشی اند،
+   پس لمس از رویشان به برگ زیر می رسد تا بشود برگ را برگرداند */
+.hk-table:has(.hk-card.tc) .hk-seat{z-index:1}
+.hk-table:has(.hk-card.tc) :is(.hk-seat,.hk-me){pointer-events:none}
 .hk-pile .hk-card.win{box-shadow:0 0 0 3px var(--gold),0 10px 20px rgba(0,0,0,.4)}
 .hk-pile .hk-card .crown{position:absolute;z-index:4;top:-1px;right:-1px;width:24px;height:24px;border-radius:0 0 0 10px;display:grid;place-items:center;background:var(--gold)}
 .hk-pile .hk-card .crown svg{width:14px;height:14px}
