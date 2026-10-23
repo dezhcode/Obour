@@ -68,7 +68,7 @@ window.EsmDemo = (() => {
     if (st.phase === 'write' || st.phase === 'stop') {
       for (const c of ['1', '2', '3']) if (!st.done.includes(c) && t >= st.botDone[c]) {
         st.done.push(c);
-        if (c === '3' && st.phase === 'write') { st.phase = 'stop'; st.stopper = '3'; st.deadline = Math.min(st.deadline, t + 10); ev({ t: 'stop', c: '3' }); }
+        if (c === '3' && st.phase === 'write') { st.phase = 'stop'; st.stopper = '3'; st.deadline = Math.min(st.deadline, t + 20); ev({ t: 'stop', c: '3' }); }
       }
       if (t >= st.deadline || st.done.length === 4) { st.phase = 'judge'; st.deadline = t + 3; ev({ t: 'judge' }); }
     } else if (st.phase === 'letter' && t >= st.deadline) startWrite();
@@ -101,7 +101,7 @@ window.EsmDemo = (() => {
     async answer(id, sh) { if (!['write', 'stop'].includes(st.phase)) fail('closed'); sheetIn(sh); return { ok: true }; },
     async stop(id, sh, since) {
       sheetIn(sh); if (Object.keys(st.sheets[0]).length < 8) fail('sheet_not_full');
-      st.done.push('0'); st.phase = 'stop'; st.stopper = '0'; st.deadline = Math.min(st.deadline, now() + 10); ev({ t: 'stop', c: '0' }); tick(); return out(since);
+      st.done.push('0'); st.phase = 'stop'; st.stopper = '0'; st.deadline = Math.min(st.deadline, now() + 20); ev({ t: 'stop', c: '0' }); tick(); return out(since);
     },
     async submit(id, sh, since) { sheetIn(sh); if (!st.done.includes('0')) st.done.push('0'); tick(); return out(since); },
     async appeal(id, col, since) { st.appeals[`0:${col}`] = { c: '0', col, yes: [], no: [], res: null, at: now() }; st.deadline = Math.max(st.deadline, now() + 15); return out(since); },
