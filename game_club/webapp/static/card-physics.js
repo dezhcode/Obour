@@ -5,7 +5,7 @@
    - اصطکاک کولمب، ایستا و جنبشی: ماهوت زبرتر است و برگ روی برگ لغزنده تر. برگی که روی برگ دیگر
      افتاده نسبت به همان برگ می لغزد: اگر زیری آرام برود رویی هم با آن می رود، اگر تند کشیده یا
      یک باره متوقف شود رویی جا می ماند یا جلو می رود.
-   - چرخش با اصطکاک آرام می شود؛ گوشهٔ برگ که به لبهٔ میز بخورد ضربه و چرخش می گیرد.
+   - چرخش با اصطکاک آرام می شود؛ گوشهٔ برگ که به لبهٔ میدان بازی بخورد ضربه و چرخش می گیرد.
    - برگ زیر انگشت (held): نقطهٔ گرفته شده دنبال انگشت می رود و برگ دور همان نقطه می چرخد تا مرکزش
      پشت سر بیاید (مثل هل دادن برگ واقعی از گوشه اش).
    - پرتاب: پرواز با جاذبه و مقاومت هوا، جهش کوتاه روی میز و سُر خوردن تا ایستادن. نقطهٔ فرود و
@@ -53,8 +53,14 @@ function slide(b, u, env, dt) {
   if (b.w) { const d = mu.k * N * ROT * dt; b.w = Math.abs(b.w) <= d ? 0 : b.w - Math.sign(b.w) * d; }
   b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.w * dt;
 }
-// برخورد گوشه های برگ با لبهٔ میز (box: l,t,r,b). hits: سرعت های برخورد برای صدا
-function rail(b, box, hits) {
+// برخورد گوشه های برگ با لبهٔ میدان بازی (box: l,t,r,b). hits: سرعت های برخورد برای صدا.
+// enter: برگی که از بیرون می آید (پرتاب از دست) تا کامل داخل نشده، به لبه نمی خورد
+function rail(b, box, hits, enter) {
+  if (enter && !b.in) {
+    const c = Math.cos(b.a), s = Math.sin(b.a);
+    for (const [px, py] of CORNERS) { const X = b.x + px * c - py * s, Y = b.y + px * s + py * c; if (X < box.l || X > box.r || Y < box.t || Y > box.b) return; }
+    b.in = true;
+  }
   for (const [px, py] of CORNERS) {
     const c = Math.cos(b.a), s = Math.sin(b.a), rx = px * c - py * s, ry = px * s + py * c;
     const X = b.x + rx, Y = b.y + ry;
@@ -92,14 +98,15 @@ function pinned(b, B, env, dt) {
   b.vx += ((nx - b.x) / dt - b.vx) * k; b.vy += ((ny - b.y) / dt - b.vy) * k;
   b.x = nx; b.y = ny;
 }
-// یک گام برای همهٔ برگ های میز (B به ترتیب لایه، زیرین اول). برمی گرداند: آیا چیزی تکان خورد
+// یک گام برای همهٔ برگ های میز (B به ترتیب لایه، زیرین اول؛ هر برگ می تواند میدان خودش b.box را داشته باشد).
+// برمی گرداند: آیا چیزی تکان خورد
 function step(B, env, dt, box, hits) {
   let moving = false;
   for (const b of B) {
     const pvx = b.vx, pvy = b.vy;
     if (b.held) pinned(b, B, env, dt);
     else slide(b, under(B, b), env, dt);
-    if (box) rail(b, box, hits);
+    if (box) rail(b, b.box || box, hits);
     b.ax = (b.vx - pvx) / dt; b.ay = (b.vy - pvy) / dt;
     if (b.held || b.vx || b.vy || b.w) moving = true;
   }
@@ -139,7 +146,7 @@ function fly(o, lx, ly, w0, env, rec, dt = 1 / 240, maxGround = .8) {
   const t0 = t;
   while (t - t0 < maxGround) {
     slide(b, under(o.B, b), env, dt);
-    if (o.box) rail(b, o.box, null);
+    if (o.box) rail(b, o.box, null, true);
     t += dt;
     if (rec && t >= nf) { frames.push({ t, x: b.x, y: b.y, h: 0, a: b.a }); nf += 1 / 60; }
     if (!b.vx && !b.vy && !b.w) break;
