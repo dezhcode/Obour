@@ -66,8 +66,8 @@ GAMES = {
     # اسم‌فامیل: فقط گروهی، ۲ تا ۱۰ نفر، بدون ربات؛ حرف و داوری با هوش مصنوعی عبور
     "esmfamil": {"name": "اسم‌فامیل", "icon": "📝", "base": {"game": "esmfamil", "mode": "free", "entry": 0},
                  "opts": [("rounds", "تعداد دور", [(1, "1 دور · برق‌آسا"), (3, "3 دور"), (5, "5 دور · کامل")]),
-                          ("secs", "وقت هر دور", [(60, "60 ثانیه"), (90, "90 ثانیه"), (120, "120 ثانیه")])],
-                 "def": {"rounds": 3, "secs": 90}},
+                          ("secs", "وقت هر دور", [(180, "3 دقیقه · تند"), (300, "5 دقیقه"), (480, "8 دقیقه · با حوصله")])],
+                 "def": {"rounds": 3, "secs": 300}},
 }
 GROUP_ONLY = service.GROUP_ONLY
 OPEN_TTL = 15 * 60       # میز یا کارت تنظیمی که این مدت شروع نشود بسته می شود
@@ -107,7 +107,7 @@ def summary(game: str, cfg: dict) -> str:
     if game == "billiard":
         return f"آزاد · {n} نفره · {'یاری (دو تیم دونفره)' if cfg.get('players') == 4 else 'رو در رو'} · ۸ توپ"
     if game == "esmfamil":
-        return f"{fd(cfg.get('rounds', 3))} دور · هر دور {fd(cfg.get('secs', 90))} ثانیه · {fd(esmfamil.MIN_PLAYERS)} تا {n} نفر"
+        return f"{fd(cfg.get('rounds', 3))} دور · هر دور {fd(round(cfg.get('secs', 300) / 60))} دقیقه · {fd(esmfamil.MIN_PLAYERS)} تا {n} نفر"
     return f"آزاد · {n} نفره · تا {fd(cfg.get('target', 3))} گل"
 
 

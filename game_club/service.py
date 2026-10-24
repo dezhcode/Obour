@@ -145,7 +145,7 @@ def norm_cfg(raw: dict) -> dict:
         # همیشه آزاد: داوری با هوش مصنوعی است و سر امتیاز بازی نمی شود
         try:
             rounds = int(raw.get("rounds") or 3)
-            secs = int(raw.get("secs") or 90)
+            secs = int(raw.get("secs") or 300)
         except (TypeError, ValueError):
             raise GCError("bad_cfg") from None
         if raw.get("mode") == "stake" or rounds not in esmfamil.ROUNDS or secs not in esmfamil.SECS:

@@ -2055,7 +2055,7 @@ def _esm_seats(n):
 
 
 FULL_B = {"name": "بهار", "family": "بهرامی", "city": "بابل", "country": "برزیل", "food": "باقالی پلو",
-          "animal": "بز", "fruit": "به", "thing": "بشقاب"}
+          "animal": "بز", "fruit": "به", "thing": "بشقاب", "color": "بنفش"}
 
 
 def test_esmfamil_rules():
@@ -2063,6 +2063,7 @@ def test_esmfamil_rules():
     from game_club import esmfamil as ef
     assert ef.norm("باقالی‌پلو") == ef.norm(" باقالی پلو ") == ef.norm("باقالي پلو") and ef.starts("آبادان", "ا")
     assert all(x not in ef.LETTERS for x in "ثذضظژغء")
+    assert ef.SECS == (180, 300, 480) and ef.COL_FA["color"] == "رنگ"
     st = ef.new_state(_esm_seats(3), 0, rounds=2, secs=60)
     assert st["phase"] == "letter" and st["deadline"] == ef.GATHER
     # حرف تکراری و غیرمجاز کنار می رود و جایش تصادفی می آید؛ حرف تا REVEAL ثانیهٔ آخر دیده نمی شود
@@ -2080,12 +2081,12 @@ def test_esmfamil_rules():
     t = 10
     assert ef.answer(st, "0", {**FULL_B, "thing": ""}, t) is None and "thing" not in st["sheets"]["0"]
     assert ef.stop(st, "0", t) == "sheet_not_full"
-    assert ef.answer(st, "0", {"thing": "بشقاب", "bad": "x"}, t) is None and len(st["sheets"]["0"]) == 8
+    assert ef.answer(st, "0", {"thing": "بشقاب", "bad": "x"}, t) is None and len(st["sheets"]["0"]) == len(ef.COLS) == 9
     assert ef.answer(st, "1", {"name": "بهار", "city": "بوشهر", "country": "برازیل", "fruit": "بادام", "thing": "سیب",
                                "food": "باقالی‌پلو"}, t) is None
     assert ef.answer(st, "2", {"name": "ب" * 80}, t) is None and len(st["sheets"]["2"]["name"]) == ef.MAX_LEN
     v = ef.view(st, "1", 0, t)
-    assert v["sheet"]["city"] == "بوشهر" and v["players"]["0"]["filled"] == 8 and not v["results"]
+    assert v["sheet"]["city"] == "بوشهر" and v["players"]["0"]["filled"] == 9 and not v["results"]
     assert "بهرامی" not in str(v) and ef.view(st, None, 0, t)["sheet"] is None      # برگ بقیه پیدا نیست
     assert ef.stop(st, "0", t) is None and st["phase"] == "stop" and st["deadline"] == t + ef.STOP_GRACE
     assert ef.answer(st, "0", {"name": "بابک"}, t + 1) == "submitted"
@@ -2107,7 +2108,7 @@ def test_esmfamil_rules():
     assert (c0["name"]["s"], c1["name"]["s"]) == (5, 5) and (c0["country"]["s"], c1["country"]["s"]) == (5, 5)
     assert (c0["food"]["s"], c1["food"]["s"]) == (5, 5) and c0["family"]["s"] == 10 and rec["cells"]["2"]["family"]["s"] == 10
     assert c1["fruit"] == {**c1["fruit"], "ok": False, "s": 0, "why": "بادام آجیل است"} and c1["thing"].get("fix")
-    assert rec["scores"] == {"0": 5 + 10 + 10 + 5 + 5 + 10 + 10 + 10, "1": 5 + 10 + 5 + 5, "2": 10}
+    assert rec["scores"] == {"0": 5 + 10 + 10 + 5 + 5 + 10 + 10 + 10 + 10, "1": 5 + 10 + 5 + 5, "2": 10}
     assert ef.view(st, "2", 0, t + 31)["results"][0]["cells"]["0"]["family"]["a"] == "بهرامی"   # حالا همه می بینند
     # اعتراض: فقط جواب ردشده با حرف درست، یک بار؛ بقیه رأی می دهند و اکثریت تصمیم می گیرد
     assert ef.appeal(st, "1", "thing", t + 32) == "no_appeal" and ef.appeal(st, "0", "fruit", t + 32) == "no_appeal"
@@ -2131,7 +2132,7 @@ def test_esmfamil_rules():
     assert st["phase"] == "show" and st["rounds"][1]["by"] == "simple" and st["rounds"][1]["scores"]["2"] == 10
     ef.tick(st, t + 300)
     assert st["over"] and st["phase"] == "over" and ef.winners(st) == {"0"}
-    assert ef.current(st) is None and st["totals"] == {"0": 65, "1": 35, "2": 20}
+    assert ef.current(st) is None and st["totals"] == {"0": 75, "1": 35, "2": 20}
     # استپ نزدیک پایان وقت: مهلت از وقت باقی ماندهٔ نوشتن بیشتر نمی شود
     st2 = ef.new_state(_esm_seats(2), 0, rounds=1, secs=60)
     for c in "01":
@@ -2163,6 +2164,7 @@ def test_esmfamil_ai():
                                 "city": [{"a": "بابل", "ok": "true", "why": "", "same": "بابل"}]}, ensure_ascii=False)
         assistant.set_transport(fake)
         try:
+            assert set(ai.RULES) == {k for k, _ in ef.COLS}      # هر ستون قاعدهٔ داوری دارد
             letters, lines, by = await ai.pick_letters(3)
             assert by == "ai" and len(letters) == 1 and lines == ["آماده‌اید؟!"] and letters[0] in ef.LETTERS
             inp = {"fruit": ["بادام"], "city": ["بابل"], "name": []}
@@ -2220,7 +2222,7 @@ def test_esmfamil_group_flow():
                 await jobs.pop(0)
         try:
             # تنظیم نامعتبر و بازی امتیازی پذیرفته نیست؛ میز از مینی اپ ساخته نمی شود (api) ولی از کارت گروه چرا
-            for bad in ({"rounds": 2}, {"secs": 30}, {"mode": "stake", "entry": 100}):
+            for bad in ({"rounds": 2}, {"secs": 30}, {"secs": 90}, {"mode": "stake", "entry": 100}):
                 try:
                     service.norm_cfg({"game": "esmfamil", **bad})
                     raise AssertionError(bad)
@@ -2231,14 +2233,14 @@ def test_esmfamil_group_flow():
             assert await groups.create(db, bot, chat, users[0], "esmfamil") is None
             card = bot.sent[-1][1]
             token = next(b.callback_data for b in B(card) if b.callback_data.startswith("gs:open:"))[8:]
-            assert "✓ 3 دور" in P(card) and "✓ 90 ثانیه" in P(card)
+            assert "✓ 3 دور" in P(card) and "✓ 5 دقیقه" in P(card) and "هر دور 5 دقیقه" in P(card)
             await groups.on_setup(_CQ(21, f"gs:rounds=1:{token}", chat=chat), gdb=db)
-            await groups.on_setup(_CQ(21, f"gs:secs=60:{token}", chat=chat), gdb=db)
+            await groups.on_setup(_CQ(21, f"gs:secs=180:{token}", chat=chat), gdb=db)
             await groups.on_setup(_CQ(21, f"gs:open:{token}", chat=chat), gdb=db)
             row = await db.open_group_table(-1002, "esmfamil")
             mid = row["match_id"]
             m = await db.get_match(mid)
-            assert m["cfg"] == {"game": "esmfamil", "mode": "free", "entry": 0, "players": 10, "rounds": 1, "secs": 60}
+            assert m["cfg"] == {"game": "esmfamil", "mode": "free", "entry": 0, "players": 10, "rounds": 1, "secs": 180}
             rm = bot.edits[-1][1]
             assert "بزن بریم!" not in P(rm) and "حداقل یه نفر" in P(rm)
             cq = _CQ(21, f"gt:start:{mid}", chat=chat)
@@ -2293,7 +2295,7 @@ def test_esmfamil_group_flow():
             st = (await db.get_match(mid))["state"]
             rec = st["rounds"][0]
             assert st["phase"] == "show" and rec["by"] == "ai" and rec["cells"]["1"]["fruit"]["why"] == "بادام آجیل است، نه میوه"
-            assert rec["scores"] == {"0": 70, "1": 10, "2": 10}
+            assert rec["scores"] == {"0": 80, "1": 10, "2": 10}
             await service.act(db, 22, mid, "appeal", data={"col": "fruit"})
             await service.act(db, 21, mid, "vote", data={"key": "1:fruit", "yes": False})
             v = await service.act(db, 23, mid, "vote", data={"key": "1:fruit", "yes": True})
@@ -2309,7 +2311,7 @@ def test_esmfamil_group_flow():
             assert len(res) == 1
             final = res[0][1]
             txt = P(final)
-            assert "برنده" in txt and "70" in txt and "بادام آجیل است، نه میوه" in txt
+            assert "برنده" in txt and "80" in txt and "بادام آجیل است، نه میوه" in txt and "رنگ" in final.model_dump_json()
             dump = final.model_dump_json()
             assert '"id":21' in dump                           # منشن برنده
             assert "بهرامی" in dump and "باقالی پلو" in dump and '"type":"table"' in dump and '"type":"details"' in dump
