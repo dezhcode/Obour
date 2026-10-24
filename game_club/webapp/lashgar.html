@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme-lock="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
+<title>Game Club · لشگر کاغذی</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<link rel="stylesheet" href="static/lashgar.css">
+</head>
+<body class="lashgar">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="lgPn" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="4" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.2"/></filter>
+    <g id="u-sol" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="0" cy="-9" r="3"/><path d="M0 -6V4M-5 -2L4 -3M0 4L-4 11M0 4L4 11M3 -3L8 -9"/></g>
+    <g id="u-tank" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M-20 3Q-23 10 -16 11H16Q23 10 20 3Z"/><circle cx="-12" cy="7" r="2.4"/><circle cx="-4" cy="7" r="2.4"/><circle cx="4" cy="7" r="2.4"/><circle cx="12" cy="7" r="2.4"/><path d="M-16 3L-13 -3H12L16 3"/><path d="M-7 -3Q-6 -10 1 -10Q7 -10 8 -3"/><path d="M6 -7L23 -13"/></g>
+    <g id="u-heli" fill="none" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="0" cy="0" rx="12" ry="7"/><path d="M11 -2L29 -3V1L11 3M29 -7V5M-17 -11H17M0 -11V-7M-8 10H8M-5 7V10M5 7V10"/><path d="M-10 -1Q-7 -5 -2 -5V0Z"/></g>
+    <g id="u-gun" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="-6" cy="6" r="5"/><circle cx="6" cy="6" r="5"/><path d="M-9 1L15 -11L17 -7L-6 4"/></g>
+    <g id="u-flag" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 12V-16"/><path d="M0 -16H17V-4H0"/><path d="M0 -12H17M0 -8H17"/></g>
+  </defs>
+</svg>
+<header class="lg-top" id="top">
+  <button class="lg-ib" id="exit" aria-label="خروج از جنگ"><i data-ic="exit"></i></button>
+  <div class="lg-head"><b>لشگر کاغذی</b><span id="sub">در حال وصل شدن…</span></div>
+  <button class="lg-ib" id="chatBtn" aria-label="گفتگو" hidden><i data-ic="chat"></i><span class="badge" id="chatBadge" hidden></span></button>
+  <button class="lg-ib" id="help" aria-label="راهنمای بازی"><b>؟</b></button>
+  <div class="lg-clock" id="clock" role="timer" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="tr" cx="12" cy="12" r="9"/><circle class="pr" id="clockRing" cx="12" cy="12" r="9"/></svg><b id="clockTxt">۱:۰۰</b></div>
+</header>
+<div class="lg-score" id="score" hidden></div>
+<main class="lg-stage" id="stage">
+  <div class="lg-view" id="view">
+    <div class="lg-clip" id="clip"><div class="lg-sheet" id="sheet">
+      <div class="lg-half top" id="hTop"><div class="lg-flap" id="fTop"><div class="lg-face front"><div class="lg-rot"><canvas id="cTop"></canvas><svg id="sTop" viewBox="0 0 1000 700" preserveAspectRatio="none"></svg></div></div><div class="lg-face back" id="bTop"></div></div></div>
+      <div class="lg-half bot" id="hBot"><div class="lg-flap" id="fBot"><div class="lg-face front"><canvas id="cBot"></canvas><svg id="sBot" viewBox="0 0 1000 700" preserveAspectRatio="none"></svg></div><div class="lg-face back" id="bBot"></div></div></div>
+      <svg class="lg-mid" viewBox="0 0 1000 20" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10C80 6 160 13 240 9S400 6 480 10S640 14 720 9S880 6 1000 10"/></svg>
+      <div class="lg-cover" id="cover" hidden></div>
+    </div></div>
+    <svg class="lg-drag" id="drag" aria-hidden="true"></svg>
+    <div class="lg-pen" id="pen" hidden></div>
+    <div class="lg-sel" id="sel" hidden><button id="selRot" aria-label="چرخوندن نیرو"><i data-ic="spin"></i></button><button id="selDel" class="del" aria-label="برداشتن نیرو"><i data-ic="close"></i></button></div>
+    <button class="lg-grip" id="grip" hidden aria-label="برگه رو از اینجا بکش بالا تا تا بخوره"><i data-ic="up"></i><span>بکش بالا</span></button>
+    <div class="lg-press" id="press" hidden><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="tr" cx="32" cy="32" r="26"/><circle class="pr" id="pressRing" cx="32" cy="32" r="26"/></svg></div>
+    <div class="lg-pop" id="pop" aria-live="polite"></div>
+  </div>
+</main>
+<section class="lg-dock" id="dock" aria-live="polite"><div class="lg-load"><span class="spinner"></span>در حال باز کردن برگه…</div></section>
+<div class="lg-namescr" id="nameScr" hidden></div>
+<script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/demo-lashgar.js"></script>
+<script src="static/tchat.js"></script>
+<script src="static/lashgar.js"></script>
+</body>
+</html>

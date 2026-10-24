@@ -26,6 +26,8 @@ CATALOG: dict[str, tuple[str, str]] = {
     "billiard": ("🎱", "بیلیارد"),
     "divar": ("🧱", "دیوار"),
     "esmfamil": ("📝", "اسم‌فامیل"),
+    "lashgar": ("🪖", "لشگر کاغذی"),
+    "boom": ("💥", "خورد! (شلیک لشگر کاغذی)"),
     "judge": ("⚖️", "داور هوش مصنوعی"),
     "seat": ("🪑", "صندلی خالی و بشین"),
     "leave": ("🚪", "بلند شو"),
@@ -64,7 +66,7 @@ CATALOG: dict[str, tuple[str, str]] = {
 
 # دسته ها برای صفحهٔ مدیریت ایموجی در ربات (مثل عبور: دسته -> فهرست -> ایموجی)
 CATEGORIES: dict[str, list[str]] = {
-    "بازی‌ها": ["brand", "hokm", "ludo", "football", "billiard", "divar", "esmfamil", "judge", "group", "trophy", "score",
+    "بازی‌ها": ["brand", "hokm", "ludo", "football", "billiard", "divar", "esmfamil", "lashgar", "boom", "judge", "group", "trophy", "score",
                 "time"],
     "میز و دکمه‌ها": ["seat", "leave", "robot", "watch", "crown", "users", "gear", "play", "new", "cancel", "selected"],
     "امتیاز و اعلان": ["coin", "star", "fire", "turn", "bell", "chat", "friend", "gift", "party", "link"],

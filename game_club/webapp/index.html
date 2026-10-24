@@ -224,11 +224,11 @@
   const $ = id => document.getElementById(id);
   GC.back(null);
   // آمده از لینک میز گروه تلگرام (t.me/<bot>?startapp=hokm_CODE): مستقیم سر همان میز، فقط یک بار در هر نشست
-  const sp = GC.startParam(), spm = sp.match(/^(hokm|ludo|football|billiard|divar|esmfamil)_([A-Za-z0-9]{4,12})$/);
+  const sp = GC.startParam(), spm = sp.match(/^(hokm|ludo|football|billiard|divar|esmfamil|lashgar)_([A-Za-z0-9]{4,12})$/);
   let spSeen = false; try { spSeen = sessionStorage.getItem('gc_sp') === sp; sessionStorage.setItem('gc_sp', sp); } catch (e) {}
   if (spm && !spSeen) { location.replace(`${spm[1]}-lobby.html?join=${spm[2]}`); return; }
   // دکمهٔ «دیدن بازی» کارت گروه: startapp=w_hokm_MATCHID ← صفحهٔ بازی در حالت تماشا (اگر خودش بازیکن باشد، بازی خودش)
-  const spw = sp.match(/^w_(hokm|ludo|football|billiard|divar|esmfamil)_([A-Za-z0-9]{6,16})$/);
+  const spw = sp.match(/^w_(hokm|ludo|football|billiard|divar|esmfamil|lashgar)_([A-Za-z0-9]{6,16})$/);
   if (spw && !spSeen) { location.replace(`${spw[1]}.html?watch=${spw[2]}`); return; }
   let me = null, style = { table: 'a', cards: 'a' }, notify = [], tables = [];
 
@@ -247,6 +247,8 @@
     divar: () => ({ cls: 'hm-w2', sh: 'rgba(10,42,28,.8)', bg: GCPreview.html('divar'), out: '<span class="hm-out" style="left:44px;top:-6px"><i class="hm-dvw"></i></span><span class="hm-out" style="left:-12px;top:-16px"><i class="hm-dvp"></i></span>' }),
     // برگ دفتر اسم‌فامیل؛ خودکار قرمز داور از لبهٔ کاشی بیرون زده
     esmfamil: () => ({ cls: 'hm-w2', sh: 'rgba(62,41,18,.8)', bg: GCPreview.html('esmfamil'), out: '<span class="hm-out" style="left:-14px;top:-12px;width:118px;transform:rotate(-14deg)"><svg viewBox="0 0 120 20"><rect x="14" y="5" width="92" height="10" rx="5" fill="#C8323C"/><rect x="84" y="5" width="22" height="10" rx="4" fill="#8E1B26"/><path d="M14 5L1 10l13 5z" fill="#F2D8B0"/><path d="M5 8.4L1 10l4 1.6z" fill="#2A2F3A"/><rect x="40" y="3" width="3" height="14" rx="1.5" fill="#E8C76A"/></svg></span>' }),
+    // برگهٔ جنگ کاغذی روی میز مدرسه؛ مداد آبی از پایین کاشی بیرون زده
+    lashgar: () => ({ cls: 'hm-w2', sh: 'rgba(78,48,22,.8)', bg: GCPreview.html('lashgar'), out: '<span class="hm-out" style="left:-10px;bottom:-12px;width:112px;transform:rotate(12deg)"><svg viewBox="0 0 120 20"><path d="M2 10L22 3.5V16.5Z" fill="#E9C9A0"/><path d="M2 10L8.6 7.9V12.1Z" fill="#1A4FB0"/><rect x="22" y="3.5" width="88" height="13" fill="#1F5FC8"/><rect x="22" y="5.5" width="88" height="3" fill="#fff" opacity=".24"/><rect x="104" y="3.5" width="12" height="13" rx="2" fill="#E8B4B8"/><rect x="100" y="3.5" width="4" height="13" fill="#C9A15A"/></svg></span>' }),
   };
   const ESM = '<span class="hm-lt" aria-hidden="true"><span style="background:#FFA552;color:#3A2000;transform:rotate(-8deg)">ب</span><span style="background:#FF7A85;color:#3A0A10;transform:rotate(6deg)">م</span><span style="background:#8E7CF8;color:#fff;transform:rotate(-3deg)">الف</span></span>';
 
@@ -290,11 +292,11 @@
     const list = alerts();
     const sh = sheet(`${sheetHead('اعلان‌ها')}<div class="ntf">${list.length ? list.map(a => `<${a.href ? `a href="${a.href}" data-g="${a.game || ''}" data-id="${a.id || ''}" data-k="${a.k || ''}"` : 'div'}><span class="ic" style="background:${a.bg};color:${a.c}">${icon(a.ic)}</span><span><b>${a.t}</b><small>${a.s}</small></span><span>${a.href ? icon('fwd') : ''}</span></${a.href ? 'a' : 'div'}>`).join('')
       : '<p class="hint">اعلان تازه‌ای نداری. وقتی نوبتت شد یا میزی منتظرت بود، اینجا می‌بینی.</p>'}</div>`);
-    sh.querySelectorAll('a[data-id]').forEach(a => a.addEventListener('click', () => { const g = GC.GAMES.find(x => x.id === a.dataset.g); if (a.dataset.k === 'playing' && a.dataset.id && g) store.set({ hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid', divar: 'dmid' }[g.id], a.dataset.id); }));
+    sh.querySelectorAll('a[data-id]').forEach(a => a.addEventListener('click', () => { const g = GC.GAMES.find(x => x.id === a.dataset.g); if (a.dataset.k === 'playing' && a.dataset.id && g) store.set(KEY[g.id], a.dataset.id); }));
   };
 
   /* ---------- کارت بزرگ بالا: ادامهٔ بازی یا حکم ---------- */
-  const KEY = { hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid', divar: 'dmid', esmfamil: 'emid' };
+  const KEY = { hokm: 'hmid', football: 'fmid', ludo: 'mid', billiard: 'bmid', divar: 'dmid', esmfamil: 'emid', lashgar: 'lgmid' };
   function heroTable() {
     const playing = tables.filter(t => t.kind === 'playing');
     return playing.find(t => t.my_turn) || playing[0] || tables[0] || null;
@@ -302,7 +304,8 @@
   function stateLine(t) {
     if (t.kind === 'queue') return { k: 'دنبال حریف', h: 'در صف بازی', p: `${FD(t.found)} از ${FD(t.need)} نفر پیدا شد` };
     if (t.kind === 'lobby') return { k: 'میز دوستانه', h: t.host ? 'منتظر دوستانت' : 'منتظر بقیه', p: `${FD(t.found)} از ${FD(t.need)} نفر نشسته‌اند` };
-    const sc = t.score ? `ما ${FD(t.score[0])} – ${FD(t.score[1])} آنها · تا ${FD(t.target)}` : t.left != null ? `تا مقصد ${FD(t.left)} قدم مانده` : 'بازی در جریان است';
+    const sc = t.score ? `ما ${FD(t.score[0])} – ${FD(t.score[1])} آنها · تا ${FD(t.target)}` : t.left != null ? `تا مقصد ${FD(t.left)} قدم مانده`
+      : t.alive ? `${FD(t.alive[0])} نیروی سالم داری، حریف ${FD(t.alive[1])}` : t.phase === 'draw' ? 'دارید ارتشتون رو می‌چینید' : 'بازی در جریان است';
     return { k: 'بازی نیمه‌تمام', h: t.my_turn ? 'نوبت شماست!' : 'بازی در جریان است', p: sc };
   }
   // نوار شناور بالای ناوبری: میزی که نوبت توست، یا بازی در جریان، یا صف و میز دوستانه
@@ -338,7 +341,7 @@
   /* ---------- کاشی بازی ها ---------- */
   function renderGames() {
     const open = new Set(tables.map(t => t.game));
-    const badge = { hokm: '<span class="hm-bdg hot">محبوب</span>', football: '<span class="hm-bdg new">تازه</span>', billiard: '<span class="hm-bdg new">تازه</span>', divar: '<span class="hm-bdg new">تازه</span>', esmfamil: '<span class="hm-bdg new">تازه</span>' };
+    const badge = { hokm: '<span class="hm-bdg hot">محبوب</span>', football: '<span class="hm-bdg new">تازه</span>', billiard: '<span class="hm-bdg new">تازه</span>', divar: '<span class="hm-bdg new">تازه</span>', esmfamil: '<span class="hm-bdg new">تازه</span>', lashgar: '<span class="hm-bdg new">تازه</span>' };
     $('games').innerHTML = GC.GAMES.map(g => {
       if (g.soon) return `<div class="hm-tl hm-soon">${ESM}<span class="t"><b>${g.name}</b><small>به‌زودی می‌آید</small></span><button class="hm-notify" data-notify="${g.id}"></button></div>`;
       const T = (TILE[g.id] || TILE.divar)(), b = open.has(g.id) ? '<span class="hm-bdg open">میز باز داری</span>' : (badge[g.id] || '');

@@ -65,6 +65,19 @@ const ART = {
       ${rows.map(([k, v], i) => `<span class="pv-ef-row"><i>${k}</i><b style="--d:${(i * .55).toFixed(2)}s">${v}</b></span>`).join('')}
       <span class="pv-ef-mark">۱۰</span></div></div>`;
   },
+  // لشگر کاغذی: برگهٔ جنگ روی میز چوبی؛ نقطهٔ قرمز روی نیمهٔ پایین، برگه تا می شود و رد روی تانک حریف می افتد
+  lashgar() {
+    const tank = (x, y, r = 0) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(.42)"><path d="M-20 3Q-23 10 -16 11H16Q23 10 20 3Z"/><circle cx="-12" cy="7" r="2.4"/><circle cx="-4" cy="7" r="2.4"/><circle cx="4" cy="7" r="2.4"/><circle cx="12" cy="7" r="2.4"/><path d="M-16 3L-13 -3H12L16 3"/><path d="M-7 -3Q-6 -10 1 -10Q7 -10 8 -3"/><path d="M6 -7L23 -13"/></g>`;
+    const sol = (x, y, r = 0) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(.42)"><circle cx="0" cy="-9" r="3"/><path d="M0 -6V4M-5 -2L4 -3M0 4L-4 11M0 4L4 11M3 -3L8 -9"/></g>`;
+    const flag = (x, y, r, c) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(.42)"><path d="M0 -16H17V-4H0Z" fill="${c}" stroke="none" opacity=".75"/><path d="M0 12V-16M0 -16H17V-4H0"/></g>`;
+    const ink = 'fill="none" stroke="#3A3A3A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"';
+    return `<div class="pv pv-lg" aria-hidden="true"><div class="pv-lg-sheet">
+      <svg class="pv-lg-half" viewBox="0 0 100 70" preserveAspectRatio="none"><g ${ink}>${tank(34, 28, 180)}${sol(64, 22, 180)}${sol(72, 40, 180)}${flag(18, 50, 180, '#EF4136')}${tank(76, 56, 180)}</g>
+        <g class="pv-lg-hit"><circle cx="35" cy="30" r="2.6" fill="#C8323C"/><path d="M27 24l16 12M27 36l16-12" stroke="#C8323C" stroke-width="2.2" stroke-linecap="round"/></g></svg>
+      <div class="pv-lg-flap"><svg class="pv-lg-face" viewBox="0 0 100 70" preserveAspectRatio="none"><path d="M6 52c10-6 22 4 34-2" fill="none" stroke="#3E8E3A" stroke-width="2.4" stroke-linecap="round"/><g ${ink}>${tank(28, 54)}${sol(56, 20)}${sol(64, 30)}${flag(82, 58, 0, '#2F7BF6')}${tank(70, 46)}</g>
+        <circle class="pv-lg-dot" cx="65" cy="40" r="2.6" fill="#C8323C"/></svg><span class="pv-lg-back"></span></div>
+      <span class="pv-lg-mid"></span></div></div>`;
+  },
   esm() {
     return '<div class="pv pv-esm" aria-hidden="true"><span style="--d:0s;--r:-8deg">الف</span><span style="--d:.25s;--r:5deg">ب</span><span style="--d:.5s;--r:-3deg">م</span></div>';
   },

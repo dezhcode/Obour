@@ -17,7 +17,7 @@ import re
 import secrets
 import time
 
-from . import billiard, divar, esmfamil, esmfamil_ai, football, hokm, ludo, names
+from . import billiard, divar, esmfamil, esmfamil_ai, football, hokm, lashgar, ludo, names
 from .config import gc
 from .db import GCDatabase, pic_url
 
@@ -29,9 +29,10 @@ _ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 # هر بازی: موتور قواعد، نام فارسی و صفحه میز
 GAMES = {"ludo": (ludo, "منچ", "ludo.html"), "hokm": (hokm, "حکم", "hokm.html"),
          "football": (football, "فوتبال", "football.html"), "billiard": (billiard, "بیلیارد", "billiard.html"),
-         "divar": (divar, "دیوار", "divar.html"), "esmfamil": (esmfamil, "اسم‌فامیل", "esmfamil.html")}
+         "divar": (divar, "دیوار", "divar.html"), "esmfamil": (esmfamil, "اسم‌فامیل", "esmfamil.html"),
+         "lashgar": (lashgar, "لشگر کاغذی", "lashgar.html")}
 # بازی هایی که فقط در گروه ساخته می شوند (میز از کارت گروه؛ مینی اپ فقط می نشیند و بازی می کند)
-GROUP_ONLY = {"esmfamil"}
+GROUP_ONLY = {"esmfamil", "lashgar"}
 
 
 def game_of(cfg: dict) -> str:
@@ -65,6 +66,8 @@ def _seat_order(cfg: dict) -> tuple:
         return divar.LOBBY_ORDER4 if cfg.get("players") == 4 else divar.SEATS2
     if g == "esmfamil":
         return esmfamil.SEATS
+    if g == "lashgar":
+        return lashgar.SEATS
     return ludo.SEATS[cfg["players"]]
 
 
@@ -77,6 +80,8 @@ def _current(st: dict) -> str | None:
         return divar.current(st)
     if st.get("game") == "esmfamil":
         return None
+    if st.get("game") == "lashgar":
+        return lashgar.current(st)
     if st.get("game") == "hokm":
         return hokm.SEATS[st["hakem"] if st["phase"] == "trump" else st["turn"]] if st["phase"] in ("trump", "play") else None
     return ludo.current(st)
@@ -93,6 +98,8 @@ def _winners(st: dict) -> set:
         return divar.winners(st)
     if st.get("game") == "esmfamil":
         return esmfamil.winners(st)
+    if st.get("game") == "lashgar":
+        return lashgar.winners(st)
     return {st["winner"]} if st.get("winner") else set()
 
 
@@ -152,6 +159,15 @@ def norm_cfg(raw: dict) -> dict:
             raise GCError("bad_cfg")
         return {"game": "esmfamil", "mode": "free", "entry": 0, "players": esmfamil.MAX_PLAYERS,
                 "rounds": rounds, "secs": secs}
+    if raw.get("game") == "lashgar":
+        # دو نفره و همیشه آزاد (میز گروه)؛ فقط اندازهٔ ارتش انتخاب می شود
+        try:
+            army = int(raw.get("army") or 11)
+        except (TypeError, ValueError):
+            raise GCError("bad_cfg") from None
+        if raw.get("mode") == "stake" or army not in lashgar.ARMIES:
+            raise GCError("bad_cfg")
+        return {"game": "lashgar", "mode": "free", "entry": 0, "players": 2, "army": army}
     mode = "stake" if raw.get("mode") == "stake" else "free"
     if mode == "stake" and not gc.stake_enabled:
         raise GCError("stake_off")
@@ -240,6 +256,8 @@ def cfg_key(cfg: dict) -> str:
         return f"divar:{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg.get('variant', 'classic')}"
     if game_of(cfg) == "esmfamil":
         return f"esmfamil:free:0:{cfg['rounds']}:{cfg['secs']}"
+    if game_of(cfg) == "lashgar":
+        return f"lashgar:free:0:{cfg['army']}"
     return f"{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg['pawns']}"
 
 
@@ -290,7 +308,7 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
                       "bot": False, "paid": h["paid"]})
     # ربات ها هم یوزرنیمی از همان نوع بازیکن ها دارند تا سر میز یکدست باشند
     bot_names = {s["name"] for s in seats}
-    for c in colors if game_of(cfg) not in GROUP_ONLY else ():   # اسم‌فامیل ربات ندارد
+    for c in colors if game_of(cfg) not in GROUP_ONLY else ():   # اسم‌فامیل و لشگر کاغذی ربات ندارند
         if c not in used:
             if cfg["mode"] == "stake":
                 raise GCError("need_players")
@@ -309,6 +327,8 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
                                 cfg.get("variant", "classic"))
     elif game_of(cfg) == "esmfamil":
         state = esmfamil.new_state(seats, time.time(), cfg["rounds"], cfg["secs"])
+    elif game_of(cfg) == "lashgar":
+        state = lashgar.new_state(seats, time.time(), cfg.get("army", 11))
     else:
         first = random.choice([s["color"] for s in seats if not s["bot"]])
         state = ludo.new_state(seats, cfg["pawns"], time.time(), gc.turn_seconds, cfg["mode"] == "stake", first)
@@ -500,6 +520,10 @@ async def settle(db: GCDatabase, m: dict) -> None:
             text = "اسم‌فامیل رو بردی! 🎉 برگت از همه پرتر بود؛ برگ همه رو توی گروه ببین 😎" if won else \
                 "اسم‌فامیل تموم شد و این دفعه نشد 😅 برگ همه با امتیازا توی گروهه؛ دست بعد مال توئه!" if winners else \
                 "اسم‌فامیل تموم شد؛ نتیجه رو توی گروه ببین."
+        elif game_of(cfg) == "lashgar":   # برگهٔ آخر جنگ را ربات در خود گروه فرستاده است
+            text = "لشگرت جنگ رو برد! 🎉 برگهٔ آخر جنگ رو توی گروه ببین 😎" if won else \
+                "این جنگ رو باختی 😅 برگهٔ آخر توی گروهه؛ جنگ بعد مال توئه!" if winners else \
+                "جنگ کاغذی تموم شد؛ نتیجه رو توی گروه ببین."
         elif won:
             text = f"{name} رو بردی! 🎉 {share:,} امتیاز جایزه ریخت تو کیفت؛ دمت گرم!" if cfg["mode"] == "stake" and share else f"{name} رو بردی! 🎉 حریفا هنوز تو شوکن."
         else:
@@ -730,7 +754,8 @@ async def lobby_start(db: GCDatabase, tg: int, match_id: str) -> None:
         raise GCError("not_host")
     if m["cfg"]["mode"] == "stake" and len(m["state"]["seats"]) < m["cfg"]["players"]:
         raise GCError("need_players")
-    if game_of(m["cfg"]) in GROUP_ONLY and len(m["state"]["seats"]) < esmfamil.MIN_PLAYERS:
+    if game_of(m["cfg"]) in GROUP_ONLY and len(m["state"]["seats"]) < \
+            (esmfamil.MIN_PLAYERS if game_of(m["cfg"]) == "esmfamil" else m["cfg"]["players"]):
         raise GCError("need_players")
     await _lobby_go(db, m)
     await _hook(db, match_id)
@@ -787,6 +812,106 @@ def _ticker(now: float, here: str | None = None):
             m["status"] = "over"
         return changed, None
     return fn
+
+
+# ---------- لشگر کاغذی: خط های مداد (جدول ink، جدا از وضعیت میز تا هر poll سنگین نشود) ----------
+INK_OPS = 24                 # حداکثر کار نقاشی در هر درخواست
+INK_PTS = 400                # حداکثر نقطهٔ هر خط (کلاینت خط بلند را تکه تکه می فرستد)
+INK_MAX_STROKES = 900        # خط های زندهٔ هر نفر
+INK_MAX_POINTS = 60000       # جمع نقطه های زندهٔ هر نفر
+INK_COLORS, INK_WIDTHS = 8, 4
+INK_PAGE = 300
+
+
+def _stroke(raw) -> tuple[str, int] | None:  # noqa: ANN001
+    """یک خط مداد: {c: رنگ، w: ضخامت، e: پاک کن، p: [x0, y0, x1, y1, ...]} ← (JSON فشرده، تعداد نقطه)."""
+    if not isinstance(raw, dict):
+        return None
+    pts = raw.get("p")
+    if not isinstance(pts, list) or len(pts) < 2 or len(pts) % 2 or len(pts) > INK_PTS * 2:
+        return None
+    try:
+        c, w, e = int(raw.get("c") or 0), int(raw.get("w") or 0), 1 if raw.get("e") else 0
+        lim = ((-30, lashgar.W + 30), (-30, lashgar.H + 30))
+        out = [max(lim[i % 2][0], min(lim[i % 2][1], int(round(float(v))))) for i, v in enumerate(pts)]
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not (0 <= c < INK_COLORS and 0 <= w < INK_WIDTHS):
+        return None
+    return json.dumps({"c": c, "w": w, "e": e, "p": out}, separators=(",", ":")), len(out) // 2
+
+
+async def ink_post(db: GCDatabase, tg: int, match_id: str, ops) -> dict:  # noqa: ANN001
+    """کارهای نقاشی یک نفر به ترتیب: s خط تازه، u برداشتن آخرین خط، c پاک کردن همه؛ فقط پیش از «آماده».
+    همه اول سنجیده می شوند تا درخواستی که رد شد نیمه کاره ثبت نشود (کلاینت دوباره می فرستد)."""
+    _, color = await _membership(db, tg, match_id)
+    m = await db.get_match(match_id)
+    if not m or m["status"] != "playing" or game_of(m["cfg"]) != "lashgar":
+        raise GCError("not_found")
+    st = m["state"]
+    if st["phase"] != "draw" or st["players"][color]["out"]:
+        raise GCError("not_draw")
+    if st["players"][color]["ready"]:
+        raise GCError("is_ready")
+    if not isinstance(ops, list) or not ops or len(ops) > INK_OPS:
+        raise GCError("bad_ink")
+    todo = []
+    for op in ops:
+        kind = op.get("op") if isinstance(op, dict) else None
+        if kind == "s":
+            got = _stroke(op.get("s"))
+            if not got:
+                raise GCError("bad_ink")
+            todo.append(("s", got))
+        elif kind in ("u", "c"):
+            todo.append((kind, None))
+        else:
+            raise GCError("bad_ink")
+    n, pts = await db.ink_load(match_id, color)
+    add = [g for k, g in todo if k == "s"]
+    if not any(k == "c" for k, _ in todo) and (n + len(add) > INK_MAX_STROKES or pts + sum(g[1] for g in add) > INK_MAX_POINTS):
+        raise GCError("ink_full")
+    ids = []
+    for kind, got in todo:
+        if kind == "s":
+            ids.append(await db.add_ink(match_id, color, "s", got[0], got[1]))
+        elif kind == "u":
+            ids.append(await db.ink_undo(match_id, color))
+        else:
+            ids.append(await db.ink_clear(match_id, color))
+    now = time.time()
+    if now - st["players"][color]["last"] >= lashgar.TOUCH_EVERY:
+        await mutate(db, match_id, lambda mm: (mm["status"] == "playing" and lashgar.touch(mm["state"], color, now), None))
+    return {"ok": True, "ids": ids, "v": await db.ink_last(match_id, color)}
+
+
+async def ink_get(db: GCDatabase, tg: int, match_id: str, since: int, snap: bool) -> dict:
+    """خط های نقاشی که این بیننده می تواند ببیند: تا شروع جنگ فقط مال خودش (تماشاگر هیچ)، بعد مال هر دو.
+    snap: بار اول (یا بعد از شروع جنگ) فقط خط های زنده، صفحه به صفحه؛ بعد کارهای تازه (s، x، c) از since."""
+    rows = await db.match_players(match_id)
+    color = _color_of(rows, tg)
+    m = await db.get_match(match_id)
+    if not m or game_of(m["cfg"]) != "lashgar" or m["status"] == "lobby":
+        raise GCError("not_found")
+    if color is None and not await db.group_table(match_id):
+        raise GCError("not_found")
+    draw = m["state"]["phase"] == "draw"
+    if draw and color is None:
+        return {"ops": [], "v": 0, "more": False}
+    got = await db.ink_since(match_id, max(0, int(since)), color if draw else None, INK_PAGE, snap)
+    ops = []
+    for r in got:
+        o = {"id": r["id"], "c": r["color"], "op": r["op"]}
+        if r["op"] == "s":
+            o["s"] = json.loads(r["data"])
+        elif r["op"] == "x":
+            o["ref"] = r["ref"]
+        ops.append(o)
+    more = len(got) == INK_PAGE
+    v = got[-1]["id"] if got else max(0, int(since))
+    if snap and not more:            # فهرست خط های زنده تمام شد؛ از این به بعد کارهای تازه از آخرین شماره
+        v = max(v, await db.ink_last(match_id, color if draw else None))
+    return {"ops": ops, "v": v, "more": more}
 
 
 # ---------- گفتگوی سر میز ----------
@@ -858,6 +983,8 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, cha
         return out
     st = m["state"]
     out["game"] = _eng(cfg).view(st, color, since, now)
+    if game_of(cfg) == "lashgar":
+        out["game"]["ink_v"] = await db.ink_last(match_id, color if st["phase"] == "draw" else None)
     await _put_pids(db, match_id, out["game"], tg)
     out["pot"] = st.get("pot", 0)
     if m["status"] == "over":
@@ -881,6 +1008,8 @@ async def _watch_view(db: GCDatabase, match_id: str, since: int) -> dict:
            "me": (st.get("order") or [None])[0]}   # صفحه از دید بازیکن اول کشیده می شود
     if m["status"] != "cancelled":
         out["game"] = _eng(cfg).view(st, None, since, now)
+        if game_of(cfg) == "lashgar":
+            out["game"]["ink_v"] = 0 if st["phase"] == "draw" else await db.ink_last(match_id, None)
         await _put_pids(db, match_id, out["game"], None)
         out["pot"] = st.get("pot", 0)
     return out
@@ -925,6 +1054,10 @@ async def my_tables(db: GCDatabase, tg: int) -> list[dict]:
                 t["target"] = 7
             if t["game"] == "divar" and me is not None:
                 t["left"] = divar.dist(st, me)
+            if t["game"] == "lashgar" and me is not None:
+                t["phase"] = st["phase"]
+                if st["phase"] == "battle":
+                    t["alive"] = [lashgar.alive(st["players"][me]), lashgar.alive(st["players"][lashgar._foe(st, me)])]
             if t["game"] == "hokm" and me is not None:
                 mine = int(me) % 2
                 t["score"] = [st["score"][mine], st["score"][1 - mine]]
@@ -936,6 +1069,14 @@ async def my_tables(db: GCDatabase, tg: int) -> list[dict]:
 async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
     """نوبت کسی رسیده که بیرون از مینی اپ است: در ربات خبرش کن (حداکثر دو بار در هر بازی)."""
     st = m["state"]
+    if st.get("game") == "lashgar" and st["phase"] == "draw":
+        idle = lashgar.nudge_due(st, now)
+        uid = st["players"][idle]["uid"] if idle else None
+        if uid and uid != asker and await _away(db, m["id"], uid, now):
+            await _notify(db, uid, f"lnudge:{m['id']}:{uid}",
+                          "حریفت ارتشش رو چیده و آماده‌ست! 🪖 زود بیا اسم لشگر و نیروهاتو بچین؛ اگه تا 5 دقیقهٔ دیگه "
+                          "دست به برگه نزنی، بقیهٔ نیروهات خودکار چیده می‌شه و جنگ شروع می‌شه.", _gpage(m["cfg"]))
+        return
     cur = _current(st)
     if st["over"] or cur is None:
         return
@@ -946,14 +1087,16 @@ async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
     if await db.ping_count(f"turn:{m['id']}:{uid}:") >= 2:
         return
     hk, fb, bl = st.get("game") == "hokm", st.get("game") == "football", st.get("game") == "billiard"
-    dv = st.get("game") == "divar"
+    dv, lg = st.get("game") == "divar", st.get("game") == "lashgar"
     team_game = hk or ((bl or dv) and st.get("n") == 4)
-    extra = (" تو بازی امتیازی 3 بار غیبت یعنی بیرون رفتن از بازی." if team_game else " تو بازی امتیازی 3 بار غیبت یعنی باخت.") \
+    extra = " 3 بار نوبت سوختن پشت هم یعنی باخت." if lg else \
+        (" تو بازی امتیازی 3 بار غیبت یعنی بیرون رفتن از بازی." if team_game else " تو بازی امتیازی 3 بار غیبت یعنی باخت.") \
         if st.get("stake") else ""
     what = ("حکم رو انتخاب کن" if st["phase"] == "trump" else "برگت رو بنداز") if hk \
         else "شوتت رو بزن، وگرنه توپ می‌ره دست حریف" if fb \
         else "ضربه‌ت رو بزن، وگرنه حریف توپ در دست می‌گیره 🎱" if bl \
-        else "یه قدم برو یا یه دیوار بذار، وگرنه یه قدم به جات برمی‌داریم 🧱" if dv else "وگرنه ربات جات تاس می‌ریزه 🎲"
+        else "یه قدم برو یا یه دیوار بذار، وگرنه یه قدم به جات برمی‌داریم 🧱" if dv \
+        else "نقطه رو بذار و برگه رو تا کن، وگرنه نوبتت می‌سوزه 💥" if lg else "وگرنه ربات جات تاس می‌ریزه 🎲"
     await _notify(db, uid, f"turn:{m['id']}:{uid}:{st.get('turn_id', 0)}",
                   f"نوبت توئه توی {_gname(m['cfg'])}! {st.get('turn_s', gc.turn_seconds)} ثانیه وقت داری؛ {what}.{extra}",
                   _gpage(m["cfg"]))
@@ -1048,6 +1191,15 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
             err = billiard.aim(st, st["order"].index(color), d.get("a"), d.get("p"), d.get("cx"), d.get("cy"), now)
             if err == "same":                    # خیلی زود پس از قبلی: چیزی نوشته نمی شود
                 err, noop = None, True
+        elif eng is lashgar and action == "army":
+            err = lashgar.set_army(st, color, (data or {}).get("name"), now)
+        elif eng is lashgar and action == "units":
+            err = lashgar.set_units(st, color, (data or {}).get("units"), now)
+        elif eng is lashgar and action in ("ready", "unready"):
+            err = getattr(lashgar, action)(st, color, now)
+        elif eng is lashgar and action == "shoot":
+            d = data or {}
+            err = lashgar.shoot(st, color, d.get("x"), d.get("y"), d.get("a"), now)
         else:
             err = "bad_action"
         if err is None and action not in ("leave", "aim"):   # نشانه گیری بدون ضربه، غیبت را پاک نمی کند
@@ -1061,7 +1213,7 @@ async def act(db: GCDatabase, tg: int, match_id: str, action: str, k: int | None
         await db.deactivate(match_id, tg)
     if err and err not in ("over",):
         raise GCError(err)
-    if action in ("aim", "answer"):              # پاسخ سبک: کلاینت نمای کامل را با poll می گیرد
+    if action in ("aim", "answer", "units"):     # پاسخ سبک: کلاینت نمای کامل را با poll می گیرد
         return {"ok": True}
     # میز همین الان خوانده و (با tick) نوشته شد؛ نما از همان ساخته می شود، نه یک بار دیگر از پایگاه
     return await match_view(db, tg, match_id, since, fresh=m)

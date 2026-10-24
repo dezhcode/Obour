@@ -238,6 +238,20 @@ CREATE TABLE IF NOT EXISTS group_drafts (
 );
 CREATE INDEX IF NOT EXISTS group_drafts_chat ON group_drafts(chat_id, game, status);
 CREATE INDEX IF NOT EXISTS dms_sender ON dms(sender, created_at);
+-- لشگر کاغذی: خط های مداد هر بازیکن جدا از وضعیت میز. op: s خط (data = JSON، n = تعداد نقطه)،
+-- x برداشتن یک خط (ref = شمارهٔ آن خط)، c پاک کردن همه. gone = خطی که برداشته یا پاک شده
+CREATE TABLE IF NOT EXISTS ink (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  match_id TEXT NOT NULL,
+  color TEXT NOT NULL,
+  op TEXT NOT NULL,
+  ref INTEGER NOT NULL DEFAULT 0,
+  data TEXT NOT NULL DEFAULT '',
+  n INTEGER NOT NULL DEFAULT 0,
+  gone INTEGER NOT NULL DEFAULT 0,
+  created_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ink_match ON ink(match_id, id);
 -- آخرین پیامی که tg_id از other خوانده
 CREATE TABLE IF NOT EXISTS dm_read (
   tg_id INTEGER NOT NULL,
@@ -307,6 +321,10 @@ class GCDatabase:
         # گفتگوی میزهایی که تمام یا بسته شده اند (مثلا از پیش از این نسخه) پاک می شود
         await self._conn.execute(
             "DELETE FROM chat WHERE match_id NOT IN (SELECT id FROM matches WHERE status IN ('lobby','playing'))")
+        # نقاشی جنگ هایی که تمام یا بسته شده اند، یک روز بعد پاک می شود (تصویر آخر جنگ همان موقع ساخته شده)
+        await self._conn.execute(
+            "DELETE FROM ink WHERE created_at < ? AND match_id NOT IN (SELECT id FROM matches WHERE status IN ('lobby','playing'))",
+            (time.time() - 86400,))
         await self._conn.commit()
 
     async def _migrate_names(self) -> None:
@@ -635,6 +653,51 @@ class GCDatabase:
         row = await self.one("SELECT COUNT(*) AS n FROM chat WHERE match_id = ? AND tg_id = ? AND created_at > ?",
                              (match_id, tg_id, time.time() - seconds))
         return int(row["n"]) if row else 0
+
+    # ---------- لشگر کاغذی: خط های مداد ----------
+    async def add_ink(self, match_id: str, color: str, op: str, data: str = "", n: int = 0, ref: int = 0) -> int:
+        return await self.insert("INSERT INTO ink(match_id, color, op, ref, data, n, created_at) VALUES(?, ?, ?, ?, ?, ?, ?)",
+                                 (match_id, color, op, ref, data, n, time.time()))
+
+    async def ink_load(self, match_id: str, color: str) -> tuple[int, int]:
+        """(تعداد خط های زنده، جمع نقطه هایشان)"""
+        r = await self.one("SELECT COUNT(*) AS k, COALESCE(SUM(n), 0) AS p FROM ink "
+                           "WHERE match_id = ? AND color = ? AND op = 's' AND gone = 0", (match_id, color))
+        return int(r["k"] or 0), int(r["p"] or 0)
+
+    async def ink_undo(self, match_id: str, color: str) -> int:
+        r = await self.one("SELECT id FROM ink WHERE match_id = ? AND color = ? AND op = 's' AND gone = 0 ORDER BY id DESC LIMIT 1",
+                           (match_id, color))
+        if not r:
+            return 0
+        await self.execute("UPDATE ink SET gone = 1 WHERE id = ?", (r["id"],))
+        return await self.add_ink(match_id, color, "x", ref=r["id"])
+
+    async def ink_clear(self, match_id: str, color: str) -> int:
+        await self.execute("UPDATE ink SET gone = 1 WHERE match_id = ? AND color = ? AND op = 's' AND gone = 0", (match_id, color))
+        return await self.add_ink(match_id, color, "c")
+
+    async def ink_since(self, match_id: str, since: int, color: str | None, limit: int, live: bool = False) -> list[dict]:
+        """live: فقط خط های زنده (بار اول)؛ وگرنه همهٔ کارها. color=None یعنی هر دو بازیکن."""
+        sql = "SELECT id, color, op, ref, data FROM ink WHERE match_id = ? AND id > ?"
+        args: list = [match_id, since]
+        if live:
+            sql += " AND op = 's' AND gone = 0"
+        if color is not None:
+            sql += " AND color = ?"
+            args.append(color)
+        return await self.all(sql + " ORDER BY id LIMIT ?", (*args, limit))
+
+    async def ink_last(self, match_id: str, color: str | None) -> int:
+        if color is None:
+            r = await self.one("SELECT MAX(id) AS v FROM ink WHERE match_id = ?", (match_id,))
+        else:
+            r = await self.one("SELECT MAX(id) AS v FROM ink WHERE match_id = ? AND color = ?", (match_id, color))
+        return int((r or {}).get("v") or 0)
+
+    async def ink_strokes(self, match_id: str) -> list[dict]:
+        """خط های زندهٔ هر دو نفر به ترتیب کشیدن (برای تصویر آخر جنگ)."""
+        return await self.all("SELECT color, data FROM ink WHERE match_id = ? AND op = 's' AND gone = 0 ORDER BY id", (match_id,))
 
     async def match_pids(self, match_id: str) -> dict:
         """{صندلی: (tg_id, کلید عمومی بازیکن)}؛ کلید همان pic است که در آدرس عکس هم می آید (نه آیدی تلگرام)."""

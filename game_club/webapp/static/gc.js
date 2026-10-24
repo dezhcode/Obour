@@ -41,8 +41,9 @@ const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
 function paintBars() {
   const game = document.body.matches('.game,.hokm,.divar,.football,.billiard'), night = document.documentElement.dataset.theme === 'dark';
   const paper = document.body.matches('.esm');   // اسم‌فامیل: برگ دفتر، همیشه روشن
-  const top = paper ? '#EFE6D2' : game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8';
-  const bottom = paper ? '#FFFCF2' : game ? '#08120F' : night ? '#181C24' : '#FFFFFF';
+  const desk = document.body.matches('.lashgar');   // لشگر کاغذی: میز چوبی مدرسه
+  const top = desk ? '#8E5F38' : paper ? '#EFE6D2' : game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8';
+  const bottom = desk ? '#7E5230' : paper ? '#FFFCF2' : game ? '#08120F' : night ? '#181C24' : '#FFFFFF';
   try { tg.setHeaderColor(top); tg.setBackgroundColor(top); } catch (e) {}
   try { ver('7.10') && tg.setBottomBarColor(bottom); } catch (e) {}
 }
@@ -83,7 +84,7 @@ if (!live) {
    اندازهٔ واقعی صفحه عوض شد و یک بار در هر فریم صدا می زند. بعد از بستن کیبورد صفحهٔ بازی به بالا
    برمی گردد (آیفون گاهی جابه جا رهایش می کند). */
 const editing = () => { const a = document.activeElement; return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable); };
-const gameBody = () => !!document.body && document.body.matches('.game,.hokm,.divar,.football,.billiard');
+const gameBody = () => !!document.body && document.body.matches('.game,.hokm,.divar,.football,.billiard,.lashgar');
 let appW = 0, appH = 0, fitRaf = 0, fitForce = false;
 const fits = [];
 function syncApp() {
@@ -163,6 +164,11 @@ const ERR = {
   group_only: 'اسم‌فامیل فقط توی گروه ساخته می‌شه', sheet_not_full: 'واسه استپ باید همهٔ خونه‌ها پر باشه ✍️', closed: 'دیر شد؛ وقتش تموم شده',
   submitted: 'برگتو که تحویل دادی 😄', no_appeal: 'به این خونه نمی‌شه اعتراض کرد', appealed: 'سر این یکی قبلا اعتراض کردی',
   no_vote: 'رو اعتراض خودت که نمی‌تونی رأی بدی 😄', not_playing: 'تو این بازی نیستی', bad_sheet: 'برگت درست ثبت نشد؛ یه بار دیگه بزن',
+  army_short: 'اسم لشگر دست‌کم ۲ حرف باشه', army_long: 'اسم لشگر حداکثر ۲۰ حرفه', army_chars: 'فقط حرف و عدد و فاصله؛ بدون لینک و @',
+  army_bad: 'این اسم رو نمی‌شه گذاشت؛ یه اسم دیگه 😅', army_taken: 'حریفت همین اسمو برداشته؛ یه اسم دیگه بذار', need_army: 'اول یه اسم برای لشگرت بذار',
+  need_units: 'اول همهٔ نیروهاتو بچین', bad_units: 'جای نیروها درست ثبت نشد؛ یه بار دیگه', too_many: 'از این نیرو دیگه نداری',
+  unit_out: 'نیرو باید کامل روی برگه باشه', unit_overlap: 'نیروها نباید روی هم بیفتن', not_draw: 'وقت چیدن تموم شده', is_ready: 'آماده زدی؛ اول «عوضش کنم» رو بزن',
+  not_battle: 'هنوز جنگ شروع نشده', bad_ink: 'خط مداد ثبت نشد؛ دوباره بکش', ink_full: 'برگه دیگه جا نداره؛ یه کم پاک کن',
   plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
   rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
   not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', no_walls: 'دیوارهایت تمام شده؛ فقط می‌توانی حرکت کنی', wall_taken: 'این‌جا دیوار نمی‌شود گذاشت؛ روی دیوار دیگری می‌افتد', wall_blocks: 'این دیوار راه یک نفر را کامل می‌بندد؛ مجاز نیست', bad_wall: 'جای دیوار درست نیست', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_place: 'توپ سفید را جای خالی بگذار (در بریک: پشت خط سر)', bad_pack: 'این بسته در دسترس نیست',
@@ -289,6 +295,23 @@ const liveEsm = {
   ready: (match, since) => api('esmfamil/ready', { body: { match, since } }),
   leave: match => api('esmfamil/leave', { body: { match } }),
 };
+// لشگر کاغذی هم فقط از کارت گروه ساخته می شود: نشستن با کد، بازی، نقاشی (ink جدا) و ترک
+const liveLashgar = {
+  join: code => api('lashgar/join', { body: { code } }),
+  match: (id, since = 0, chat = null) => api('lashgar/match', { q: Object.assign(id ? { id, since } : { since }, chat == null ? {} : { chat }) }),
+  chat: (match, text) => api('lashgar/chat', { body: { match, text } }),
+  army: (match, name, since) => api('lashgar/army', { body: { match, name, since } }),
+  // units: [{k, x, y, r}] نیمهٔ خودم؛ پاسخ سبک {ok}
+  units: (match, units) => api('lashgar/units', { body: { match, units } }),
+  ready: (match, since) => api('lashgar/ready', { body: { match, since } }),
+  unready: (match, since) => api('lashgar/unready', { body: { match, since } }),
+  // x و y نقطه روی نیمهٔ خودم، a کجی کشیدن انگشت هنگام تا کردن (درجه)
+  shoot: (match, x, y, a, since) => api('lashgar/shoot', { body: { match, x, y, a, since } }),
+  // ops: [{op:'s', s:{c, w, e, p}} | {op:'u'} | {op:'c'}]
+  ink: (match, ops) => api('lashgar/ink', { body: { match, ops } }),
+  inkGet: (match, since, snap) => api('lashgar/ink', { q: { match, since, snap: snap ? 1 : 0 } }),
+  leave: match => api('lashgar/leave', { body: { match } }),
+};
 const liveHokm = {
   queueJoin: cfg => api('hokm/queue', { body: { cfg } }),
   queueStatus: () => api('hokm/queue'),
@@ -357,6 +380,8 @@ const P = {
   dice: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 15.5h.01M12 12h.01M15.5 8.5h.01M8.5 15.5h.01"/>',
   arrowUp: '<path d="M7 14l5-5 5 5"/>',
   up: '<path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/>',
+  spin: '<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/>',
+  undo: '<path d="M15 7H9.5a5 5 0 0 0 0 10H14"/><path d="M12 4l3 3-3 3"/>',
   exit: '<path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14"/><path d="M10 16.5L5.5 12 10 7.5M5.5 12H15"/>',
   grid: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9.3 4v16M14.7 4v16M4 9.3h16M4 14.7h16"/>',
   table: '<rect x="3" y="7" width="18" height="10" rx="5"/><path d="M8 17v3M16 17v3"/>',
@@ -402,7 +427,7 @@ function face(p, ring, extra = '') {
 }
 
 /* ---------- کارت پروفایل بازیکن (از لیدربرد و صفحهٔ بازی ها) با درخواست دوستی ---------- */
-const GAME_FA = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل' };
+const GAME_FA = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل', lashgar: 'لشگر کاغذی' };
 async function userCard(pid) {
   const sh = sheet(`<div class="fr-card"><span class="fr-cover cover cover-gc"></span><div class="gp-skel" style="width:84px;height:84px;border-radius:50%"></div>
     <div class="gp-skel" style="width:60%"></div></div>`);
@@ -712,6 +737,14 @@ sfx.bl = {
   tap() { sample('pl_tap', { g: .8, jitter: false }) || sfx.tap(); },
   turn() { sample('pl_turn_audio', { g: .8, jitter: false }) || sfx.turn(); },
 };
+// لشگر کاغذی: خش خش مداد، تا شدن کاغذ، فشار از پشت و خوردن شلیک
+sfx.paper = {
+  scratch(g = .5) { noise(.06, { g: .04 + .1 * g, f: 2400 + Math.random() * 1800, q: 1.6 }); },
+  fold() { noise(.3, { g: .2, f: 900, q: .5 }); noise(.16, { g: .1, f: 2600, q: .8, at: .12 }); },
+  press() { tone(120, .1, { g: .22, to: 70 }); noise(.05, { g: .18, f: 700, q: .7 }); },
+  boom() { tone(150, .5, { type: 'sawtooth', g: .12, to: 40 }); noise(.42, { g: .32, f: 520, q: .6, at: .02 }); tone(70, .34, { g: .28, at: .04 }); },
+  miss() { tone(520, .12, { type: 'triangle', g: .07, to: 380 }); noise(.05, { g: .08, f: 1600, q: 1 }); },
+};
 function setSound(on) { if (!on && sfx.fb) sfx.fb.crowd(false); S.sound = on; save(); if (on) { ctx(); sfx.tap(); } }
 
 /* ---------- ناوبری پایین: پنج بخش فقط با آیکون؛ «بازی‌ها» دکمهٔ گرد طلایی وسط است ---------- */
@@ -884,6 +917,7 @@ const GAME_ART = {
   billiard: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="9" y="3" width="46" height="58" rx="7" fill="#6B3A1F"/><rect x="14" y="8" width="36" height="48" rx="3" fill="#1E8A4C"/><g fill="#0B0F0D"><circle cx="15" cy="9" r="3.4"/><circle cx="49" cy="9" r="3.4"/><circle cx="15" cy="55" r="3.4"/><circle cx="49" cy="55" r="3.4"/><circle cx="14" cy="32" r="3"/><circle cx="50" cy="32" r="3"/></g><circle cx="32" cy="20" r="4.6" fill="#FEC625"/><circle cx="27.4" cy="26.5" r="4.6" fill="#1937A5"/><circle cx="36.6" cy="26.5" r="4.6" fill="#111"/><circle cx="35.6" cy="25.2" r="1.7" fill="#fff"/><circle cx="32" cy="45" r="4.6" fill="#F4F1E8"/><path d="M33 50L46 63" stroke="#D9B27C" stroke-width="2.6" stroke-linecap="round"/></svg>',
   divar: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="10" fill="#18543a"/><g fill="#3a9d68">' + [10, 22, 34, 46].map(y => [10, 22, 34, 46].map(x => `<rect x="${x}" y="${y}" width="9" height="9" rx="2.4"/>`).join('')).join('') + '</g><rect x="8.5" y="31" width="22" height="3.2" rx="1.6" fill="#F5C451"/><rect x="43.2" y="9" width="3.2" height="22" rx="1.6" fill="#F5C451"/><circle cx="26.5" cy="50.5" r="5.2" fill="#DDE3EA"/><circle cx="26.5" cy="50.5" r="3.6" fill="#4C8DFF"/><circle cx="38.5" cy="14.5" r="5.2" fill="#DDE3EA"/><circle cx="38.5" cy="14.5" r="3.6" fill="#FF5A6A"/></svg>',
   esmfamil: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-6 32 32)"><rect x="9" y="6" width="46" height="54" rx="4" fill="#FFFCF2"/><g stroke="#C9D8EE" stroke-width="1.6"><path d="M9 22h46M9 33h46M9 44h46"/></g><path d="M44 6v54" stroke="#E8A3A8" stroke-width="1.6"/><path d="M15 29c3-3 8-3 12 0M15 40c4-2 10-2 15 0" stroke="#1E3A8A" stroke-width="2.4" fill="none" stroke-linecap="round"/><ellipse cx="34" cy="16" rx="7" ry="6.5" fill="none" stroke="#C8323C" stroke-width="2.2"/><text x="34" y="20.5" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="11" fill="#C8323C">ب</text></g></svg>',
+  lashgar: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-5 32 32)"><rect x="9" y="5" width="46" height="55" rx="3" fill="#FCFBF7"/><path d="M9 32.5q4-2.4 8 0t8 0t8 0t8 0t8 0t5 0" fill="none" stroke="#3A3A3A" stroke-width="1.5"/><g fill="none" stroke="#3A3A3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 49q-2 5 3 5h19q5 0 3-5z"/><path d="M19 49l2.5-4h14l2.5 4"/><path d="M25 45q0-4.5 4-4.5t4 4.5"/><path d="M32 43l11-4"/><g transform="rotate(180 39 18)"><circle cx="39" cy="12" r="2.4"/><path d="M39 14.5v6M35.5 17h7M39 20.5l-3 4.5M39 20.5l3 4.5"/></g></g><circle cx="39" cy="18.5" r="3.2" fill="#C8323C"/><path d="M33 12.5l12 12M45 12.5l-12 12" stroke="#C8323C" stroke-width="2.4" stroke-linecap="round"/><path d="M16 12h7v5h-7z" fill="#EF4136" opacity=".75"/><path d="M23 9v12" stroke="#3A3A3A" stroke-width="1.6" stroke-linecap="round"/></g></svg>',
   esm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>',
 };
 const GAMES = [
@@ -893,6 +927,7 @@ const GAMES = [
   { id: 'billiard', name: 'بیلیارد', sub: '۲ نفره یا ۴ نفره یاری', href: 'billiard-lobby.html', tint: 't-bil', cat: 'sport', tag: 'تازه' },
   { id: 'divar', name: 'دیوار', sub: '۲ یا ۴ نفره · راه را ببند', href: 'divar-lobby.html', tint: 't-dv', cat: 'board', tag: 'تازه' },
   { id: 'esmfamil', name: 'اسم‌فامیل', sub: '۲ تا ۱۰ نفر · فقط در گروه', href: 'esmfamil-lobby.html', tint: 't-paper', cat: 'word', tag: 'تازه' },
+  { id: 'lashgar', name: 'لشگر کاغذی', sub: '۲ نفره · فقط در گروه', href: 'lashgar-lobby.html', tint: 't-desk', cat: 'board', tag: 'تازه' },
 ];
 function quickPlay() {
   sheet(`${sheetHead('بازی‌ها')}<div class="qp">${GAMES.map(g => g.soon
@@ -998,7 +1033,7 @@ document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
-  get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, esm: liveEsm, loadSamples,
+  get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
   PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver, onFit, queueFit, appHeight, editing, userCard };
 document.addEventListener('DOMContentLoaded', () => mount());
