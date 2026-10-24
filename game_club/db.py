@@ -636,6 +636,12 @@ class GCDatabase:
                              (match_id, tg_id, time.time() - seconds))
         return int(row["n"]) if row else 0
 
+    async def match_pids(self, match_id: str) -> dict:
+        """{صندلی: (tg_id, کلید عمومی بازیکن)}؛ کلید همان pic است که در آدرس عکس هم می آید (نه آیدی تلگرام)."""
+        rows = await self.all("SELECT mp.color, mp.tg_id, p.pic FROM match_players mp JOIN players p ON p.tg_id = mp.tg_id "
+                              "WHERE mp.match_id = ?", (match_id,))
+        return {r["color"]: (r["tg_id"], r["pic"]) for r in rows if r["pic"]}
+
     async def player_by_pic(self, pic: str) -> dict | None:
         return await self.one("SELECT * FROM players WHERE pic = ? AND pic != ''", (pic,))
 
@@ -932,6 +938,32 @@ class GCDatabase:
             "WHERE r.created_at >= ? GROUP BY m.game", (week,))}
         out["live_by_game"] = {r["game"]: r["n"] for r in await self.all(
             "SELECT game, COUNT(*) AS n FROM matches WHERE status = 'playing' GROUP BY game")}
+        out["games"] = await self.admin_game_stats(now)
+        return out
+
+    async def admin_game_stats(self, now: int) -> dict:
+        """آمار هر بازی: الان در بازی و در انتظار، بازی تمام شده (۲۴ ساعت، ۷ روز، کل)، بازیکن های ۷ روز،
+        بازی امتیازی ۷ روز و ورودی آن، و میانگین مدت بازی (دقیقه، ۷ روز)."""
+        day, week = now - 86400, now - 7 * 86400
+        out: dict = {}
+
+        def put(rows, key):
+            for r in rows:
+                out.setdefault(r["game"] or "ludo", {})[key] = r["n"] or 0
+
+        put(await self.all("SELECT game, COUNT(*) AS n FROM matches WHERE status = 'playing' GROUP BY game"), "live")
+        put(await self.all("SELECT game, COUNT(*) AS n FROM matches WHERE status = 'lobby' GROUP BY game"), "lobby")
+        for key, since in (("day", day), ("week", week), ("all", 0)):
+            put(await self.all("SELECT m.game AS game, COUNT(DISTINCT r.match_id) AS n FROM results r JOIN matches m ON m.id = r.match_id "
+                               "WHERE r.created_at >= ? GROUP BY m.game", (since,)), key)
+        put(await self.all("SELECT m.game AS game, COUNT(DISTINCT r.tg_id) AS n FROM results r JOIN matches m ON m.id = r.match_id "
+                           "WHERE r.created_at >= ? GROUP BY m.game", (week,)), "players")
+        put(await self.all("SELECT m.game AS game, COUNT(DISTINCT r.match_id) AS n FROM results r JOIN matches m ON m.id = r.match_id "
+                           "WHERE r.created_at >= ? AND m.cfg LIKE '%\"stake\"%' GROUP BY m.game", (week,)), "stake")
+        put(await self.all("SELECT m.game AS game, COALESCE(SUM(mp.paid), 0) AS n FROM match_players mp JOIN matches m ON m.id = mp.match_id "
+                           "WHERE m.status = 'over' AND m.updated_at >= ? GROUP BY m.game", (week,)), "entry")
+        put(await self.all("SELECT game, CAST(AVG(updated_at - created_at) / 60.0 + 0.5 AS INTEGER) AS n FROM matches "
+                           "WHERE status = 'over' AND updated_at >= ? GROUP BY game", (week,)), "mins")
         return out
 
     async def admin_daily(self, now: int, days: int = 14) -> list[dict]:

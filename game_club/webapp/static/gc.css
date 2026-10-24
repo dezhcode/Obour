@@ -709,3 +709,7 @@ body.watching #chatBtn{display:inline-flex;align-items:center;justify-content:ce
 body.watching #chatBtn svg{width:19px;height:19px;color:var(--gold);flex:none}
 body.watching #chatBtn .lb{display:inline}
 body.watching #emoBtn{display:none}
+
+/* آواتار بازیکن دیگر: با لمس کارت پروفایلش باز می شود */
+.avatar.tap{cursor:pointer;pointer-events:auto}
+.avatar.tap:active{transform:scale(.94)}

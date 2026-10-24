@@ -396,8 +396,54 @@ function face(p, ring, extra = '') {
   const seed = Math.abs(+p.av || 1);
   const base = p.bot ? avatar(seed) : `<span class="ini" style="background:${FACE_BG[seed % FACE_BG.length]}">${escAttr(initial(p.name))}</span>`;
   const img = p.pic && !p.bot ? `<img src="${escAttr(p.pic)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-face>` : '';
-  return `<span class="avatar ${extra}" style="--ring:${ring || 'var(--surface)'}"><span>${base}${img}</span></span>`;
+  // pid: کلید عمومی بازیکن دیگر (لیدربرد، میز بازی، گفتگو)؛ با لمس، کارت پروفایلش باز می شود
+  const tap = p.pid && !p.bot ? ` data-pid="${escAttr(p.pid)}" role="button" tabindex="0" aria-label="پروفایل ${escAttr(p.name || '')}"` : '';
+  return `<span class="avatar ${extra}${tap ? ' tap' : ''}" style="--ring:${ring || 'var(--surface)'}"${tap}><span>${base}${img}</span></span>`;
 }
+
+/* ---------- کارت پروفایل بازیکن (از لیدربرد و صفحهٔ بازی ها) با درخواست دوستی ---------- */
+const GAME_FA = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل' };
+async function userCard(pid) {
+  const sh = sheet(`<div class="fr-card"><span class="fr-cover cover cover-gc"></span><div class="gp-skel" style="width:84px;height:84px;border-radius:50%"></div>
+    <div class="gp-skel" style="width:60%"></div></div>`);
+  let r;
+  try { r = await GC.data.friendUser(pid); } catch (e) { close(); toast(e.code === 'not_found' ? 'این پروفایل در دسترس نیست' : errText(e)); return; }
+  const draw = () => {
+    const u = r.user, L = level(u);
+    const st = u.playing ? ['play', `در حال بازی ${GAME_FA[u.playing] || ''}`] : u.online ? ['on', 'آنلاین'] : ['', u.seen ? 'آفلاین' : ''];
+    const btn = {
+      none: `<button class="btn btn-block" data-uc="req">${icon('userAdd')}درخواست دوستی</button>`,
+      outgoing: `<div class="fr-sent">${icon('check')}درخواست دوستی فرستادی<button class="btn btn-light btn-sm" data-uc="drop">لغو</button></div>`,
+      incoming: `<button class="btn btn-block" data-uc="acc">${icon('check')}قبول درخواست دوستی</button>`,
+      friend: `<a class="btn btn-light btn-block" href="chat.html?u=${encodeURIComponent(u.uid)}">${icon('chat')}با هم دوستید · پیام بده</a>`,
+      blocked: `<button class="btn btn-light btn-block" data-uc="unblock">رفع بلاک</button>`,
+    }[r.relation] || '';
+    sh.innerHTML = `<span class="grab"></span><div class="fr-card"><span class="fr-cover cover cover-${escAttr(u.cover || 'gc')}"></span>
+        <span class="fr-av big">${face(u)}<i class="dot ${st[0]}"></i></span>
+        <b class="uname">${escAttr(u.name)}</b>${st[1] ? `<small class="fr-st ${st[0]}">${st[1]}</small>` : ''}
+        ${u.bio ? `<p class="fr-bio" dir="auto">${escAttr(u.bio)}</p>` : ''}
+        <div class="fr-nums"><span><b>${FD(L.lv)}</b>سطح</span><span><b>${fa(u.games)}</b>بازی</span><span><b>${fa(u.wins)}</b>برد</span></div></div>
+      <div style="display:grid;gap:8px;margin-top:12px">${btn}<button class="btn btn-light btn-block" data-close>بستن</button></div>`;
+    sh.querySelector('[data-close]').onclick = close;
+    sh.querySelectorAll('[data-uc]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      try {
+        const fn = { req: GC.data.friendReq, acc: GC.data.friendAccept, drop: GC.data.friendDrop, unblock: x => GC.data.friendBlock(x, false) }[b.dataset.uc];
+        const out = await fn(u.uid); sfx.tap(); haptic('success');
+        if (b.dataset.uc === 'req') toast(out.relation === 'friend' ? 'حالا با هم دوستید 🤝' : 'درخواست دوستی رفت');
+        r = { user: u, relation: out.relation || (b.dataset.uc === 'unblock' ? 'none' : r.relation) }; draw();
+      } catch (e) { sfx.error(); toast(errText(e)); b.disabled = false; }
+    });
+    mount(sh);
+  };
+  draw();
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('[data-pid]');
+  if (!a) return;
+  e.preventDefault(); e.stopPropagation(); haptic('select'); userCard(a.dataset.pid);
+}, true);
+document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset && e.target.dataset.pid) { e.preventDefault(); userCard(e.target.dataset.pid); } });
 // عکسی که باز نشد (پنهان، حذف شده، بدون اینترنت تلگرام) کنار می رود تا حرف اول دیده شود
 document.addEventListener('error', e => { const t = e.target; if (t && t.tagName === 'IMG' && t.hasAttribute('data-face')) t.remove(); }, true);
 
@@ -954,6 +1000,6 @@ window.GC = { editName, nameProblem, normName, coach, tg, live, back, haptic, gu
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
   get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, esm: liveEsm, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver, onFit, queueFit, appHeight, editing };
+  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver, onFit, queueFit, appHeight, editing, userCard };
 document.addEventListener('DOMContentLoaded', () => mount());
 })();
