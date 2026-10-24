@@ -33,7 +33,7 @@
   <div class="lg-view" id="view">
     <div class="lg-clip" id="clip"><div class="lg-sheet" id="sheet">
       <div class="lg-half top" id="hTop"><div class="lg-flap" id="fTop"><div class="lg-face front"><div class="lg-rot"><canvas id="cTop"></canvas><svg id="sTop" viewBox="0 0 1000 700" preserveAspectRatio="none"></svg></div></div><div class="lg-face back" id="bTop"></div></div></div>
-      <div class="lg-half bot" id="hBot"><div class="lg-flap" id="fBot"><div class="lg-face front"><canvas id="cBot"></canvas><svg id="sBot" viewBox="0 0 1000 700" preserveAspectRatio="none"></svg></div><div class="lg-face back" id="bBot"></div></div></div>
+      <div class="lg-half bot" id="hBot"><div class="lg-flap" id="fBot"><div class="lg-face front"><canvas id="cBot"></canvas><svg id="sBot" viewBox="0 0 1000 700" preserveAspectRatio="none"></svg><svg id="sAim" viewBox="0 0 1000 700" preserveAspectRatio="none" aria-hidden="true"><circle class="lg-ring" id="aimRing" r="26" cx="-99" cy="-99"/><circle class="lg-aim" id="aimDot" r="12" cx="-99" cy="-99"/></svg></div><div class="lg-face back" id="bBot"></div></div></div>
       <svg class="lg-mid" viewBox="0 0 1000 20" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10C80 6 160 13 240 9S400 6 480 10S640 14 720 9S880 6 1000 10"/></svg>
       <div class="lg-cover" id="cover" hidden></div>
     </div></div>
@@ -43,6 +43,8 @@
     <button class="lg-grip" id="grip" hidden aria-label="برگه رو از اینجا بکش بالا تا تا بخوره"><i data-ic="up"></i><span>بکش بالا</span></button>
     <div class="lg-press" id="press" hidden><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="tr" cx="32" cy="32" r="26"/><circle class="pr" id="pressRing" cx="32" cy="32" r="26"/></svg></div>
     <div class="lg-pop" id="pop" aria-live="polite"></div>
+    <span class="lg-tag" id="turnTag" hidden></span>
+    <div class="lg-ban" id="turnBan" role="status" aria-live="assertive"></div>
   </div>
 </main>
 <section class="lg-dock" id="dock" aria-live="polite"><div class="lg-load"><span class="spinner"></span>در حال باز کردن برگه…</div></section>

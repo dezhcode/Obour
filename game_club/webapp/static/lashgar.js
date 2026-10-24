@@ -60,7 +60,10 @@ const myTurn = () => G() && G().turn && G().turn === me();
 const sheetEl = $('sheet'), view = $('view'), clip = $('clip');
 
 /* ---------- چیدمان برگه: مرحلهٔ چیدن فقط نیمهٔ خودم و لبهٔ دفتر؛ جنگ کل برگه ---------- */
-function fit(force) {
+let fitLater = false;
+function fit(force, soft) {
+  if (soft && (fold.st !== 'flat' || animating || gripD)) { fitLater = true; return; }
+  fitLater = false;
   const stage = $('stage');
   const want = phase() === 'draw' && !WATCH ? 'draw' : 'full';
   const sw = stage.clientWidth, sh = Math.max(160, stage.clientHeight - 8), sW = (Math.min(sw, 560) - 28) / W;
@@ -69,7 +72,9 @@ function fit(force) {
   // چیدن: نیمهٔ خودم و هر قدر جا بود از لبهٔ دفتر روی نیمهٔ حریف (اسم لشگرش و «داره می‌کشه…»)
   strip = want === 'draw' ? Math.round(Math.max(130, Math.min(300, sh / sW - H))) : 0;
   const visH = want === 'draw' ? H + strip : 2 * H;
-  const ns = Math.max(0.12, Math.min(sW, sh / visH));
+  let ns = Math.max(0.12, Math.min(sW, sh / visH));
+  // فقط کارت پایین عوض شده: برای تغییر کوچک، برگه همان اندازه می ماند (بی پرش و بی کشیدن دوبارهٔ نقاشی)
+  if (soft && want === layout && Math.abs(ns - s) / s < 0.06) ns = s;
   const changed = force || ns !== s || want !== layout;
   if (want !== layout && layout) sheetEl.classList.remove('instant'); else sheetEl.classList.add('instant');
   s = ns; layout = want;
@@ -80,10 +85,11 @@ function fit(force) {
   sheetEl.style.transform = `translate(${M}px, ${want === 'draw' ? -(H - strip) * s : 0}px) scale(${s})`;
   if (changed) { sizeCanvas('0'); sizeCanvas('1'); }
   placeOverlays();
+  if (G()) turnUi(true);
 }
 GC.onFit(() => fit());
 // کارت پایین (ابزار، نوبت، نتیجه) که بلند و کوتاه شود، برگه دوباره اندازه می شود
-if (window.ResizeObserver) new ResizeObserver(() => { if (layout) fit(); }).observe($('dock'));
+if (window.ResizeObserver) new ResizeObserver(() => { if (layout) fit(false, true); }).observe($('dock'));
 const sheetRect = () => sheetEl.getBoundingClientRect();
 // نقطهٔ صفحه ← مختصات نیمهٔ پایین (y فاصله از خط وسط)
 function toBot(cx, cy) { const r = sheetRect(), k = r.width / W; return { x: (cx - r.left) / k, y: (cy - r.top) / k - H }; }
@@ -212,20 +218,25 @@ function halfSvg(c) {
   if (!list.length && !mineDraw) return '';
   const { list: shots, dead } = mineDraw ? { list: [], dead: new Set() } : marksOf(c);
   const newest = shown > 0 && g.shots[shown - 1] && g.shots[shown - 1].by !== c ? g.shots[shown - 1] : null;
-  let out = `<g filter="url(#lgPn)">${list.map((u, i) => (drag && drag.i === i && mineDraw ? '' : sym(Object.assign({ c }, u), (dead.has(i) ? ' dead' : '') + (mineDraw && sel === i ? ' pick' : '')))).join('')}</g>`;
+  let out = `<g>${list.map((u, i) => (drag && drag.i === i && mineDraw ? '' : sym(Object.assign({ c }, u), (dead.has(i) ? ' dead' : '') + (mineDraw && sel === i ? ' pick' : '')))).join('')}</g>`;
   out += shots.map(x => x.off ? '' : `<circle class="lg-mark${x.hit && x.hit.length ? '' : ' miss'}${x === newest && fresh ? ' new' : ''}" cx="${x.x}" cy="${x.y}" r="${MARK_R}"/>`).join('');
   out += [...dead].map(i => {
     const u = list[i]; if (!u) return '';
     const k = REACH[u.k] * 0.5, isNew = newest && fresh && (newest.hit || []).includes(i);
     return `<path class="lg-x${isNew ? ' new' : ''}" d="M${u.x - k} ${u.y - k * 0.72}L${u.x + k} ${u.y + k * 0.72}M${u.x - k} ${u.y + k * 0.72}L${u.x + k} ${u.y - k * 0.72}"/>`;
   }).join('');
-  if (c === me() && aim && phase() === 'battle') out += `<circle class="lg-ring" cx="${aim.x}" cy="${aim.y}" r="26"/><circle class="lg-aim" cx="${aim.x}" cy="${aim.y}" r="${MARK_R}"/>`;
   return out;
+}
+// نقطهٔ نشانه روی لایهٔ خودش: کشیدن انگشت فقط دو دایره را جابه جا می کند، نه کل نیروها
+function drawAim() {
+  const on = !!(aim && phase() === 'battle' && myTurn()), x = on ? aim.x : -99, y = on ? aim.y : -99;
+  for (const id of ['aimRing', 'aimDot']) { const el = $(id); el.setAttribute('cx', x); el.setAttribute('cy', y); }
 }
 function renderSheet() {
   if (!G()) return;
   $('sBot').innerHTML = halfSvg(botC());
   $('sTop').innerHTML = halfSvg(topC());
+  drawAim();
   fresh = false;
 }
 
@@ -310,7 +321,7 @@ view.addEventListener('pointerdown', e => {
   }
   if (ph === 'battle' && myTurn() && fold.st === 'flat' && !animating) {
     e.preventDefault(); view.setPointerCapture(e.pointerId); penFinger = e.pointerId;
-    pen = penFrom(e); aim = { x: Math.round(pen.x), y: Math.round(pen.y) }; renderSheet(); placeOverlays(); renderDock();
+    pen = penFrom(e); aim = { x: Math.round(pen.x), y: Math.round(pen.y) }; drawAim(); placeOverlays(); renderDock();
     return;
   }
   if (ph === 'battle' && fold.st === 'folded') { const g = ghostView(); if (g && Math.hypot(e.clientX - g.cx, e.clientY - g.cy) < 90) { e.preventDefault(); view.setPointerCapture(e.pointerId); pressOn(); } }
@@ -319,7 +330,7 @@ view.addEventListener('pointermove', e => {
   if (drag && drag.id === e.pointerId) { moveDrag(e); return; }
   if (penFinger !== e.pointerId) return;
   const p = penFrom(e);
-  if (phase() === 'battle') { if (myTurn() && fold.st === 'flat') { pen = p; aim = { x: Math.round(p.x), y: Math.round(p.y) }; renderSheet(); placeOverlays(); } return; }
+  if (phase() === 'battle') { if (myTurn() && fold.st === 'flat' && !animating) { pen = p; aim = { x: Math.round(p.x), y: Math.round(p.y) }; drawAim(); placeOverlays(); } return; }
   pen = p; if (painting) extendStroke(p); placePen();
 });
 const upView = e => {
@@ -461,6 +472,7 @@ async function unfoldMine() {
   fold.st = 'folding'; $('press').hidden = true;
   await foldTo(botC(), 0, 0, 560);
   fold = { st: 'flat', a: 0 }; placeOverlays(); renderDock();
+  if (fitLater) fit(false, true);
 }
 function pressOn() {
   if (fold.st !== 'folded') return;
@@ -470,7 +482,7 @@ function pressOn() {
     if (fold.st !== 'pressing') return;
     const f = Math.min(1, (performance.now() - pressStart) / PRESS_MS);
     ring.style.strokeDashoffset = PRESS_C * (1 - f);
-    const b = bar(); if (b) b.style.width = Math.round(f * 100) + '%';
+    const b = bar(); if (b) b.style.transform = `scaleX(${f})`;
     if (f >= 1) { fire(); return; }
     pressT = requestAnimationFrame(step);
   };
@@ -480,7 +492,7 @@ function pressOff() {
   if (fold.st !== 'pressing') return;
   cancelAnimationFrame(pressT); fold.st = 'folded';
   $('pressRing').style.strokeDashoffset = PRESS_C;
-  const b = document.getElementById('pressBar'); if (b) b.style.width = '0%';
+  const b = document.getElementById('pressBar'); if (b) b.style.transform = 'scaleX(0)';
   toast('تا پر نشده ول نکن؛ از اول نگه دار');
 }
 async function fire() {
@@ -553,9 +565,32 @@ async function reveal(first, quiet) {
   fit(); renderSheet();
   await loadInk();
   if (quiet) return;
-  await wait(600);
-  toast(first === me() ? 'سکه انداختیم: اول تو شلیک می‌کنی! 🎯' : `سکه انداختیم: اول ${armyOf(first)} شلیک می‌کنه`);
-  sfx.turn();
+  await wait(300);
+  shownTurn = '';            // بنر نوبت اول را turnUi با «سکه انداختیم» نشان می دهد
+  coinToss = true;
+}
+
+/* ---------- نوبت کیست: بنر بزرگ وقتی نوبت عوض می شود، برچسب روی خط وسط، نیمهٔ فعال ---------- */
+let shownTurn = '', coinToss = false;
+function turnUi(first) {
+  const g = G(), t = g && g.phase === 'battle' && !g.over ? g.turn : null, mine = !!(t && t === me());
+  view.classList.toggle('my-turn', mine); view.classList.toggle('foe-turn', !!t && !mine && !WATCH);
+  const tag = $('turnTag');
+  tag.hidden = !t;
+  if (t) {
+    tag.className = 'lg-tag' + (mine ? '' : ' foe');
+    tag.textContent = mine ? '🎯 نوبت تو' : WATCH ? `⏳ نوبت ${armyOf(t)}` : '⏳ نوبت حریف';
+    const v = toView(botC(), 0, 0); tag.style.top = v.y + 'px';
+  }
+  if ((t || '') === shownTurn) return;
+  shownTurn = t || '';
+  if (!t) return;
+  const ban = $('turnBan'), toss = coinToss; coinToss = false;
+  const sub = toss ? (mine ? 'سکه انداختیم؛ اول تو شلیک می‌کنی' : 'سکه انداختیم؛ اول حریف شلیک می‌کنه') : mine ? 'یه نقطه روی نیمهٔ خودت بذار' : 'صبر کن تا شلیک کنه…';
+  ban.className = 'lg-ban' + (mine ? '' : ' foe');
+  ban.innerHTML = `<b>${mine ? 'نوبت توئه! 🎯' : WATCH ? `نوبت ${esc(armyOf(t))}` : `نوبت ${esc(armyOf(t))}`}</b><small>${sub}</small>`;
+  void ban.offsetWidth; ban.classList.add('show');
+  if (!first || toss) { if (mine) { sfx.turn(); haptic('medium'); } }
 }
 
 /* ---------- سربرگ، امتیاز و ساعت ---------- */
@@ -630,6 +665,8 @@ function dockWait() {
       <span class="lg-dots" aria-hidden="true" style="--c:${COLORS[f]}"><i></i><i></i><i></i></span></div>
     <button class="lg-link" id="unready">یه لحظه، می‌خوام عوضش کنم</button></div>`;
 }
+const steps = n => `<ol class="lg-steps" aria-label="قدم های شلیک">${['نقطه بذار', 'تا کن', 'فشار بده'].map((t, i) =>
+  `<li class="${i + 1 < n ? 'done' : i + 1 === n ? 'on' : ''}"${i + 1 === n ? ' aria-current="step"' : ''}><i>${i + 1 < n ? '✓' : FD(i + 1)}</i>${t}</li>`).join('')}</ol>`;
 function dockBattle() {
   const g = G();
   const msg = noteMsg && Date.now() - noteMsg.at < 6000 ? `<p class="lg-hint" style="font-weight:800;color:${noteMsg.kind === 'bad' ? 'var(--lg-red)' : noteMsg.kind === 'ok' ? 'var(--lg-green)' : 'var(--lg-muted)'}">${noteMsg.text}</p>` : '';
@@ -641,11 +678,11 @@ function dockBattle() {
       <div class="lg-react">${QUICK.slice(0, 4).map(q => `<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div></div>`;
   }
   if (fold.st === 'folded' || fold.st === 'pressing' || fold.st === 'firing') {
-    return `<div class="lg-card"><div class="lg-row"><span class="ic">${icon('bolt')}</span><span class="tx"><h2>محکم فشار بده!</h2><p>انگشتت رو روی نقطه نگه دار تا پررنگ بشه.</p></span></div>
-      <div role="progressbar" aria-label="پررنگ شدن نقطه" style="height:12px;border-radius:6px;background:var(--lg-sunk);overflow:hidden"><div id="pressBar" style="width:0%;height:100%;border-radius:6px;background:var(--lg-red)"></div></div>
+    return `<div class="lg-card">${steps(3)}<div class="lg-row"><span class="ic">${icon('bolt')}</span><span class="tx"><h2>محکم فشار بده!</h2><p>از پشت برگه، انگشتت رو روی نقطه نگه دار تا پررنگ بشه.</p></span></div>
+      <div role="progressbar" aria-label="پررنگ شدن نقطه" style="height:12px;border-radius:6px;background:var(--lg-sunk);overflow:hidden"><div id="pressBar" style="width:100%;height:100%;border-radius:6px;background:var(--lg-red);transform:scaleX(0);transform-origin:right"></div></div>
       ${fold.st === 'folded' ? '<button class="lg-link" id="unfold">باز کن، دوباره نشونه بگیرم</button>' : ''}</div>`;
   }
-  return `<div class="lg-card"><div class="lg-row"><span class="ic">${icon('spark')}</span><span class="tx"><h2>نوبت توئه!</h2>
+  return `<div class="lg-card">${steps(aim ? 2 : 1)}<div class="lg-row"><span class="ic">${icon('spark')}</span><span class="tx"><h2>نوبت توئه!</h2>
       <p>${aim ? 'حالا برگه رو از دستهٔ پایین بکش بالا؛ هر چی صاف‌تر، دقیق‌تر.' : 'با مداد قرمز یه نقطه روی نیمهٔ خودت بذار؛ همون فاصله تا خط، اون‌ور می‌خوره.'}</p></span></div>${msg}
     <button class="lg-go" id="foldB"${aim && fold.st === 'flat' ? '' : ' disabled'}><span>${icon('up')}تا کن و شلیک کن</span></button></div>`;
 }
@@ -823,7 +860,7 @@ async function applyNow(v) {
   if (!first) for (const e of evs) await playEvent(e);
   if (g.phase !== 'draw' && (layout === 'draw' || !cv.hidden)) await reveal(g.turn, first);   // رویداد شروع جا ماند
   shown = g.shots.length;
-  renderHead(); renderSheet(); renderDock(); placeOverlays(); tickClock();
+  renderHead(); renderSheet(); renderDock(); placeOverlays(); tickClock(); turnUi(first);
   if (g.over && !overShown) {
     overShown = true; GC.guardClose(false); if (!WATCH) store.set('lgmid', null);
     if (chat) { chat.end(); $('chatBtn').hidden = true; }

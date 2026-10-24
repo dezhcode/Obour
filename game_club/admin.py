@@ -20,6 +20,7 @@ import re
 import time
 
 from . import emoji as emo
+from . import gate
 from . import style as st
 from .config import GCConfig, gc
 from .db import GCDatabase, pic_url
@@ -318,6 +319,10 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
             return {"emojis": emo.listing(), "obour": len(emo.from_obour())}
         if path == "settings":
             return {"settings": _settings_view(await db.settings_all())}
+        if path == "gate":
+            return {"gate": await gate.load(db, "gate")}
+        if path == "popup":
+            return {"popup": await gate.load(db, "popup")}
         if path == "log":
             return {"rows": await db.admin_log(_page(q) * 40, 40)}
         raise GCError("not_found")
@@ -388,6 +393,43 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
             await (emo.set_emoji(db, k, eid) if eid else emo.reset(db, k))
         await db.log_admin(admin, "setting", "emoji", " ".join(k for k, _ in pairs)[:120] or "obour 0")
         return {"ok": True, "n": len(pairs), "emojis": emo.listing()}
+    # ---------- عضویت اجباری و پیام پاپ آپ ----------
+    if path.startswith("gate"):
+        g = await gcrt.ensure()
+        cfg = dict(await gate.load(db, "gate"))
+        chats = list(cfg.get("chats") or [])
+        if path == "gate":
+            cfg["on"] = bool(body.get("on"))
+            if cfg["on"] and not chats:
+                raise GCError("no_chats")
+            cfg = await gate.save(db, "gate", cfg)
+            note = "on" if cfg["on"] else "off"
+        elif path == "gate/add":
+            cfg = await gate.add_chat(db, g.bot, str(body.get("chat") or ""), str(body.get("url") or ""), str(body.get("title") or ""))
+            note = "add " + cfg["chats"][-1]["title"]
+        elif path in ("gate/edit", "gate/remove"):
+            i = _int(body.get("i"))
+            if not 0 <= i < len(chats):
+                raise GCError("not_found")
+            if path == "gate/remove":
+                note = "remove " + chats.pop(i)["title"]
+                if not chats:
+                    cfg["on"] = False
+            else:
+                url = gate.clean_url(body.get("url"))
+                title = " ".join(str(body.get("title") or "").split())[:60]
+                chats[i] = {**chats[i], **({"url": url} if url else {}), **({"title": title} if title else {})}
+                note = "edit " + chats[i]["title"]
+            cfg["chats"] = chats
+            cfg = await gate.save(db, "gate", cfg)
+        else:
+            raise GCError("not_found")
+        await db.log_admin(admin, "gate", "gate", note[:120])
+        return {"ok": True, "gate": cfg}
+    if path == "popup":
+        p = await gate.set_popup(db, body)
+        await db.log_admin(admin, "popup", "popup", ("on " if p["on"] else "off ") + (p["title"] or p["text"])[:100])
+        return {"ok": True, "popup": p}
     if path == "setting":
         key = str(body.get("key") or "")
         if key not in SETTINGS:

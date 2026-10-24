@@ -156,6 +156,7 @@ const ERR = {
   not_friends: 'اول باید با هم دوست باشید', you_blocked: 'این کاربر را بلاک کرده‌ای', cant_add: 'نمی‌شود این کاربر را اضافه کرد',
   too_many_friends: 'فهرست دوستانت پر است', slow_requests: 'درخواست‌ها زیاد شد؛ کمی بعد دوباره امتحان کن', no_request: 'این درخواست دیگر وجود ندارد', bad_game: 'این بازی پیدا نشد',
   name_chars: 'فقط حروف انگلیسی، عدد و _ مجاز است', name_reserved: 'این یوزرنیم را نمی‌شود انتخاب کرد', name_taken: 'این یوزرنیم را کس دیگری برداشته',
+  must_join: 'اول عضو کانال‌های Game Club شو، بعد بزن بریم!',
   banned: 'حساب تو در Game Club مسدود شده است', maintenance: 'در حال به‌روزرسانی هستیم؛ چند دقیقه دیگر دوباره امتحان کن',
   insufficient: 'امتیاز کافی نیست؛ اول کیف را شارژ کن', obour_insufficient: 'موجودی کیف پول عبور کافی نیست',
   no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است', shop_off: 'خدمات عبور فعلا در دسترس نیست',
@@ -188,8 +189,119 @@ async function api(name, { body, q } = {}) {
     });
   } catch (e) { const x = new Error('network'); x.code = 'network'; throw x; }
   let j = {}; try { j = await r.json(); } catch (e) {}
-  if (!r.ok) { const x = new Error(j.error || 'server'); x.code = j.error || 'server'; x.data = j; throw x; }
+  if (!r.ok) {
+    const x = new Error(j.error || 'server'); x.code = j.error || 'server'; x.data = j;
+    if (x.code === 'must_join' && j.chats) showGate(j.chats);   // عضویت اجباری: صفحهٔ «عضو شو»
+    throw x;
+  }
   return j;
+}
+
+/* ---------- عضویت اجباری و پیام پاپ آپ (هر دو از پنل مدیریت؛ با باز شدن هر صفحه یک بار پرسیده می شود) ---------- */
+const BOOT_CSS = `
+.gk-scrim{position:fixed;inset:0;z-index:9500;background:rgba(10,12,22,.62);display:flex;align-items:center;justify-content:center;padding:20px;
+  font-family:var(--font-peyda,inherit);direction:rtl;animation:gk-in .25s ease;-webkit-tap-highlight-color:transparent}
+@keyframes gk-in{from{opacity:0}}
+.gk-card{position:relative;width:min(380px,100%);max-height:calc(100% - 20px);overflow:auto;background:#fff;color:#1C2235;border-radius:24px;
+  box-shadow:0 22px 60px rgba(0,0,0,.45);animation:gk-pop .35s cubic-bezier(.3,1.4,.5,1)}
+@keyframes gk-pop{from{transform:translateY(16px) scale(.94);opacity:0}}
+.gk-img{display:block;width:100%;max-height:52vh;object-fit:cover;border-radius:24px 24px 0 0;background:#EEF0F5}
+.gk-body{padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.gk-body h2{margin:0;font-family:var(--font-rokh,inherit);font-weight:900;font-size:21px;line-height:29px}
+.gk-body p{margin:0;font-size:14px;line-height:24px;color:#424862;white-space:pre-line;overflow-wrap:anywhere}
+.gk-x{position:absolute;top:10px;left:10px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:18px;
+  display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(4px)}
+.gk-x.plain{background:#F1F2F7;color:#424862}
+.gk-btn{height:48px;border:0;border-radius:16px;font:inherit;font-weight:900;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  background:#1668D9;color:#fff;box-shadow:0 4px 0 #0F4FAA;text-decoration:none}
+.gk-btn:active{transform:translateY(3px);box-shadow:none}
+.gk-btn svg{width:22px;height:22px;flex:none}
+.gk-btn.ok{background:#1A9A4A;box-shadow:0 4px 0 #11733A}
+.gk-btn[disabled]{opacity:.6}
+.gk-link{border:0;background:none;font:inherit;font-weight:800;font-size:14px;color:#5B6178;height:38px;cursor:pointer}
+.gk-ic{width:64px;height:64px;margin:4px auto 2px;border-radius:20px;background:#E8F0FF;color:#1668D9;display:grid;place-items:center}
+.gk-ic svg{width:34px;height:34px}
+.gk-head{text-align:center}
+.gk-list{display:flex;flex-direction:column;gap:8px;margin:2px 0 4px}
+.gk-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:#F4F6FA}
+.gk-row .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.gk-row b{font-size:14.5px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gk-row small{font-size:12px;color:#6A7088}
+.gk-row .av{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;background:#1668D9;color:#fff;font-size:18px}
+.gk-row .go{height:36px;padding:0 14px;border:0;border-radius:12px;background:#1668D9;color:#fff;font:inherit;font-weight:900;font-size:13.5px;cursor:pointer}
+.gk-row.done .go{background:#E3F4EA;color:#1A9A4A}
+.gk-err{margin:0;text-align:center;font-size:13px;font-weight:800;color:#C62828;min-height:18px}
+.gk-shake{animation:gk-shake .4s}
+@keyframes gk-shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
+@media (prefers-reduced-motion:reduce){.gk-scrim,.gk-card,.gk-shake{animation:none}}`;
+const escB = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let gateEl = null, bootDone = null;
+function bootCss() { if (!document.getElementById('gkCss')) { const st = document.createElement('style'); st.id = 'gkCss'; st.textContent = BOOT_CSS; document.head.appendChild(st); } }
+function showGate(chats) {
+  bootCss();
+  if (!chats || !chats.length) { if (gateEl) { gateEl.remove(); gateEl = null; } return; }
+  if (!gateEl) { gateEl = document.createElement('div'); gateEl.className = 'gk-scrim'; gateEl.setAttribute('role', 'dialog'); gateEl.setAttribute('aria-modal', 'true'); gateEl.setAttribute('aria-labelledby', 'gkT'); document.body.appendChild(gateEl); }
+  const clicked = new Set(JSON.parse(sessionStorage.getItem('gc_gate_clicked') || '[]'));
+  const many = chats.length > 1;
+  gateEl.innerHTML = `<div class="gk-card"><div class="gk-body">
+    <div class="gk-head"><div class="gk-ic">${icon('bell', 2)}</div><h2 id="gkT">یه قدم تا بازی!</h2>
+      <p>برای بازی توی Game Club باید عضو ${many ? 'این کانال‌ها و گروه‌ها' : 'این ' + (chats[0].kind === 'group' ? 'گروه' : 'کانال')} باشی. عضو که شدی، «عضو شدم» رو بزن.</p></div>
+    <div class="gk-list">${chats.map((c, i) => `<div class="gk-row${clicked.has(c.url) ? ' done' : ''}"><span class="av">${c.kind === 'group' ? '👥' : '📢'}</span>
+      <span class="t"><b>${escB(c.title)}</b><small>${c.kind === 'group' ? 'گروه' : 'کانال'}</small></span>
+      <button class="go" data-i="${i}">${clicked.has(c.url) ? 'باز کن' : 'عضو شو'}</button></div>`).join('')}</div>
+    <p class="gk-err" id="gkErr" role="alert"></p>
+    <button class="gk-btn ok" id="gkOk">${icon('check', 2.6)}عضو شدم</button></div></div>`;
+  gateEl.querySelectorAll('.go').forEach(b => b.onclick = () => {
+    const c = chats[+b.dataset.i]; clicked.add(c.url);
+    try { sessionStorage.setItem('gc_gate_clicked', JSON.stringify([...clicked])); } catch (e) {}
+    b.closest('.gk-row').classList.add('done'); b.textContent = 'باز کن'; haptic('light');
+    if (c.url) openLink(c.url);
+  });
+  const ok = gateEl.querySelector('#gkOk');
+  ok.onclick = async () => {
+    ok.disabled = true; sfx.tap();
+    try {
+      const r = await api('gate/check', { body: {} });
+      if (!r.gate.length) { gateEl.remove(); gateEl = null; haptic('success'); toast('عضویتت تأیید شد؛ بریم سراغ بازی! 🎮'); showPopup(); return; }
+      showGate(r.gate);
+      const err = gateEl.querySelector('#gkErr'); err.textContent = `هنوز عضو ${r.gate.map(c => '«' + c.title + '»').join(' و ')} نشدی`;
+      const card = gateEl.querySelector('.gk-card'); card.classList.remove('gk-shake'); void card.offsetWidth; card.classList.add('gk-shake'); haptic('error');
+    } catch (e) { ok.disabled = false; toast(errText(e)); }
+  };
+}
+let popupData = null;
+function showPopup() {
+  const p = popupData; popupData = null;
+  if (!p || gateEl) return;
+  // صفحهٔ بازی وسط بازی شلوغ نمی شود؛ فقط خانه، لابی ها و بقیهٔ صفحه ها
+  if (/(ludo|hokm|football|billiard|divar|esmfamil|lashgar)\.html$|admin\.html$/.test(location.pathname)) return;
+  const key = 'gc_popup_' + p.v;
+  try {
+    if (sessionStorage.getItem(key)) return;
+    if (p.mode !== 'always' && localStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1'); localStorage.setItem(key, '1');
+  } catch (e) {}
+  bootCss();
+  const el = document.createElement('div'); el.className = 'gk-scrim'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+  if (p.title) el.setAttribute('aria-label', p.title);
+  el.innerHTML = `<div class="gk-card">${p.img ? `<img class="gk-img" src="${escB(p.img)}" alt="">` : ''}
+    <button class="gk-x${p.img ? '' : ' plain'}" aria-label="بستن">✕</button>
+    <div class="gk-body">${p.title ? `<h2>${escB(p.title)}</h2>` : ''}${p.text ? `<p>${escB(p.text)}</p>` : ''}
+      ${p.btn && p.url ? `<button class="gk-btn" id="gkGo">${escB(p.btn)}</button>` : ''}
+      <button class="gk-link" id="gkClose">بستن</button></div></div>`;
+  document.body.appendChild(el);
+  const close = () => { el.remove(); };
+  el.querySelector('.gk-x').onclick = close; el.querySelector('#gkClose').onclick = close;
+  el.addEventListener('click', e => { if (e.target === el) close(); });
+  const go = el.querySelector('#gkGo'); if (go) go.onclick = () => { haptic('light'); openLink(p.url); close(); };
+}
+async function boot() {
+  if (!live || /admin\.html$/.test(location.pathname)) return;
+  try {
+    const r = await api('boot');
+    popupData = r.popup || null;
+    if (r.gate && r.gate.length) showGate(r.gate); else showPopup();
+  } catch (e) {}
 }
 const idem = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 const liveData = {
@@ -1013,5 +1125,5 @@ window.GC = { editName, nameProblem, normName, tg, live, back, haptic, guardClos
   get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
   PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver, onFit, queueFit, appHeight, editing, userCard };
-document.addEventListener('DOMContentLoaded', () => mount());
+document.addEventListener('DOMContentLoaded', () => { mount(); boot(); });
 })();
