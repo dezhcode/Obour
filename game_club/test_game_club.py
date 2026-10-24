@@ -2192,7 +2192,7 @@ def test_esmfamil_group_flow():
     from types import SimpleNamespace as NS
     tmp = tempfile.mkdtemp()
     from app.services import assistant
-    from game_club import esmfamil as ef, groups, service
+    from game_club import esmfamil as ef, groups, service, social
     from game_club.db import GCDatabase
     P, B = groups.plain, groups.buttons
     jobs, prompts = [], []
@@ -2270,6 +2270,9 @@ def test_esmfamil_group_flow():
                 assert v["game"]["letter"] is None
             v = await service.match_view(db, 23, mid)
             assert v["game"]["letter"] == "ب" and v["game"]["line"] == "حرف تازه! آماده؟"
+            # کلید عمومی بازیکن های دیگر برای کارت پروفایل؛ نه برای خود بیننده، و آیدی تلگرام هیچ جا
+            pl = v["game"]["players"]
+            assert "pid" not in pl["2"] and pl["0"]["pid"] == (await db.get_player(21))["pic"] and "21" not in str(pl)
             clock[0] += ef.REVEAL + 0.1
             assert (await service.match_view(db, 21, mid))["game"]["phase"] == "write"
             assert await service.act(db, 21, mid, "answer", data={"sheet": FULL_B}) == {"ok": True}
@@ -2319,7 +2322,13 @@ def test_esmfamil_group_flow():
             assert "برگ همه با امتیاز" in P(bot.edits[-1][1])
             assert (await db.get_player(21))["wins"] == 1
             lb = await service.game_leaderboard(db, 21, "esmfamil", "all")
-            assert lb["rows"][0]["wins"] == 1
+            assert lb["rows"][0]["wins"] == 1 and lb["rows"][0]["pid"] == ""
+            lb = await service.game_leaderboard(db, 22, "esmfamil", "all")
+            assert lb["rows"][0]["pid"] == (await db.get_player(21))["pic"]
+            prof = await social.profile(db, 22, lb["rows"][0]["pid"])
+            assert prof["relation"] == "none" and prof["user"]["wins"] == 1
+            gs = (await db.admin_stats(int(clock[0]) + 5))["games"]["esmfamil"]   # زمان آزمون ساختگی است
+            assert gs["all"] == gs["week"] == gs["day"] == 1 and gs["players"] == 3 and gs.get("live", 0) == 0
             # حالت اینلاین: اسم‌فامیل فقط در گروه پیشنهاد می شود
             got = []
             iq = NS(from_user=NS(id=21, first_name="h", last_name=None, username=None), query="اسم", chat_type="private")

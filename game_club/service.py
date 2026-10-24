@@ -819,7 +819,19 @@ async def chat_view(db: GCDatabase, tg: int, match_id: str, since_id: int) -> li
     rows = await db.chat_since(match_id, max(0, since_id))
     return [{"id": r["id"], "color": r["color"], "text": r["text"], "at": int(r["created_at"]),
              "name": (r.get("name") or "بازیکن")[:24], "av": int(r.get("av") or 1), "pic": pic_url(r),
-             "me": r["tg_id"] == tg} for r in rows]
+             "me": r["tg_id"] == tg, "pid": r.get("pic") if r["tg_id"] != tg else ""} for r in rows]
+
+
+async def _put_pids(db: GCDatabase, match_id: str, game: dict, viewer: int | None) -> None:
+    """کلید عمومی هر بازیکن واقعی (pid) کنار نامش در نمای بازی؛ با لمس آواتار کارت پروفایلش باز می شود.
+    آیدی تلگرام بیرون نمی رود و برای خود بیننده و ربات ها pid نیست."""
+    players = game.get("players") if isinstance(game, dict) else None
+    if not isinstance(players, dict):
+        return
+    for color, (tg_id, pid) in (await db.match_pids(match_id)).items():
+        p = players.get(color)
+        if isinstance(p, dict) and not p.get("bot") and tg_id != viewer:
+            p["pid"] = pid
 
 
 async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, chat_since: int | None = None,
@@ -846,6 +858,7 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, cha
         return out
     st = m["state"]
     out["game"] = _eng(cfg).view(st, color, since, now)
+    await _put_pids(db, match_id, out["game"], tg)
     out["pot"] = st.get("pot", 0)
     if m["status"] == "over":
         won = color in _winners(st)
@@ -868,6 +881,7 @@ async def _watch_view(db: GCDatabase, match_id: str, since: int) -> dict:
            "me": (st.get("order") or [None])[0]}   # صفحه از دید بازیکن اول کشیده می شود
     if m["status"] != "cancelled":
         out["game"] = _eng(cfg).view(st, None, since, now)
+        await _put_pids(db, match_id, out["game"], None)
         out["pot"] = st.get("pot", 0)
     return out
 
@@ -1079,7 +1093,8 @@ async def leaderboard(db: GCDatabase, tg: int, kind: str, period: str) -> dict:
     return {
         "kind": kind, "period": period,
         "rows": [{"name": r["name"] or "بازیکن", "av": r["av"], "pic": pic_url(r), "value": int(r["value"] or 0),
-                  "wins": int(r.get("wins") or 0), "me": r["tg_id"] == tg} for r in rows],
+                  "wins": int(r.get("wins") or 0), "me": r["tg_id"] == tg,
+                  "pid": r.get("pic") if r["tg_id"] != tg else ""} for r in rows],
         "mine": {"value": int(mine.get("value") or 0), "wins": int(mine.get("wins") or 0),
                  "games": int(mine.get("games") or 0), "visible": kind == "top" or bool(me.get("show_spend"))},
     }
@@ -1095,6 +1110,7 @@ async def game_leaderboard(db: GCDatabase, tg: int, game: str, period: str) -> d
     return {
         "game": game, "period": period,
         "rows": [{"name": r["name"] or "بازیکن", "av": r["av"], "pic": pic_url(r), "wins": int(r["wins"] or 0),
-                  "games": int(r["games"] or 0), "value": int(r["value"] or 0), "me": r["tg_id"] == tg} for r in rows],
+                  "games": int(r["games"] or 0), "value": int(r["value"] or 0), "me": r["tg_id"] == tg,
+                  "pid": r.get("pic") if r["tg_id"] != tg else ""} for r in rows],
         "mine": await db.game_rank(tg, game, since),
     }

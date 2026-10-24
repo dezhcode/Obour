@@ -37,6 +37,14 @@
 .chart i:last-child{background:var(--violet)}
 .chart-x{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-muted);direction:ltr;margin-top:4px}
 .games3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2)}
+.gstat{overflow-x:auto;margin:0 calc(var(--space-2) * -1)}
+.gstat table{width:100%;min-width:560px;border-collapse:collapse;font-size:13px}
+.gstat th,.gstat td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+.gstat thead th{font-size:11.5px;color:var(--ink-muted);font-weight:700}
+.gstat tbody th,.gstat tfoot th{text-align:right;font-weight:800}
+.gstat .gn{display:inline-flex;align-items:center;gap:6px}.gstat .gn svg{width:16px;height:16px;color:var(--acc-deep)}
+.gstat small{display:block;font-size:10.5px;color:var(--ink-muted)}
+.gstat tfoot td,.gstat tfoot th{font-weight:900;border-bottom:0}
 .games3 div{background:var(--surface-sunk);border-radius:var(--radius-md);padding:var(--space-2);text-align:center}
 .games3 b{display:block;font-size:18px;font-weight:900}
 .games3 span{font-size:12px;color:var(--ink-muted)}
@@ -135,7 +143,7 @@ const XP = {
 const ic = (n, w) => XP[n] ? icon('x', w).replace('</svg>', XP[n] + '</svg>') : icon(n, w);
 const when = t => { if (!t) return '—'; const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
 const date = t => t ? new Date(t * 1000).toLocaleDateString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-const GAME = { ludo: ['منچ', 'dice'], hokm: ['حکم', 'card'], football: ['فوتبال', 'bolt'] };
+const GAME = { hokm: ['حکم', 'card'], ludo: ['منچ', 'dice'], football: ['فوتبال', 'bolt'], billiard: ['بیلیارد', 'ball'], divar: ['دیوار', 'grid'], esmfamil: ['اسم‌فامیل', 'edit'] };
 const KIND = { charge: 'شارژ', entry: 'ورودی', refund: 'بازگشت', prize: 'جایزه', admin: 'پشتیبانی', transfer: 'انتقال به عبور', shop: 'خرید', gift: 'هدیه', style: 'میز و ورق' };
 const ACT = { points: 'تغییر امتیاز', ban: 'مسدود کردن', unban: 'رفع مسدودی', message: 'پیام مستقیم', close: 'بستن میز', broadcast: 'پیام همگانی', broadcast_cancel: 'توقف پیام همگانی', setting: 'تنظیمات' };
 const SET = {
@@ -222,6 +230,17 @@ function drawDash() {
     <section class="card stack">
       <div class="sec-head" style="margin:0"><h2>بازی‌ها</h2><span class="aside">در بازی الان، ۷ روز</span></div>
       <div class="games3">${Object.entries(GAME).map(([k, [t]]) => `<div><b>${fa(live[k] || 0)}</b><span>${t}، ${fa(week[k] || 0)} بازی</span></div>`).join('')}</div>
+    </section>
+    <section class="card stack">
+      <div class="sec-head" style="margin:0"><h2>آمار هر بازی</h2><span class="aside">بازی تمام‌شده</span></div>
+      <div class="gstat"><table>
+        <thead><tr><th scope="col">بازی</th><th scope="col">الان</th><th scope="col">۲۴ ساعت</th><th scope="col">۷ روز</th><th scope="col">کل</th><th scope="col">بازیکن ۷ روز</th><th scope="col">امتیازی ۷ روز</th><th scope="col">مدت</th></tr></thead>
+        <tbody>${Object.entries(GAME).map(([k, [t, i]]) => { const g = (s.games || {})[k] || {}; return `<tr><th scope="row"><span class="gn">${icon(i)}${t}</span></th>
+          <td><b>${fa(g.live || 0)}</b>${g.lobby ? `<small>+${fa(g.lobby)} منتظر</small>` : ''}</td><td>${fa(g.day || 0)}</td><td>${fa(g.week || 0)}</td><td>${fa(g.all || 0)}</td>
+          <td>${fa(g.players || 0)}</td><td>${fa(g.stake || 0)}${g.entry ? `<small>${fa(g.entry)} ورودی</small>` : ''}</td><td>${g.mins ? fa(g.mins) + ' د' : '—'}</td></tr>`; }).join('')}</tbody>
+        <tfoot><tr><th scope="row">جمع</th>${['live', 'day', 'week', 'all', 'players', 'stake'].map(f => `<td>${fa(Object.values(s.games || {}).reduce((a, g) => a + (g[f] || 0), 0))}</td>`).join('')}<td></td></tr></tfoot>
+      </table></div>
+      <p class="hint" style="margin:0">«بازیکن ۷ روز» هر نفر را در هر بازی یک بار می‌شمارد؛ «مدت» میانگین طول بازی‌های ۷ روز اخیر به دقیقه است.</p>
     </section>
     ${(dash.bc || []).map(b => bcCard(b)).join('')}
     <section class="card stack">
@@ -391,7 +410,7 @@ async function loadLedger() {
 }
 
 /* ---------- پیام همگانی ---------- */
-const TARGETS = [['all', 'همه'], ['active7', 'فعال ۷ روز'], ['active30', 'فعال ۳۰ روز'], ['game:ludo', 'بازیکنان منچ'], ['game:hokm', 'بازیکنان حکم'], ['game:football', 'بازیکنان فوتبال'], ['me', 'فقط خودم']];
+const TARGETS = [['all', 'همه'], ['active7', 'فعال ۷ روز'], ['active30', 'فعال ۳۰ روز'], ['game:ludo', 'بازیکنان منچ'], ['game:hokm', 'بازیکنان حکم'], ['game:football', 'بازیکنان فوتبال'], ['game:billiard', 'بازیکنان بیلیارد'], ['game:divar', 'بازیکنان دیوار'], ['game:esmfamil', 'بازیکنان اسم‌فامیل'], ['me', 'فقط خودم']];
 let EMO = [];
 const emoOf = k => EMO.find(e => e.key === k);
 const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
@@ -514,7 +533,8 @@ function MOCK(name, { q = {}, body } = {}) {
   if (name === 'admin') return { rate: 100, maintenance: MS[0].value, bc: MB.filter(b => b.status === 'active'),
     stats: { all: { players: 1873, points: 412500, playing: 12, lobby: 4, queue: 3, games: 9312, charge: 590000, entry: 812000, prize: 790500, shop: 120000 },
       day: { games: 214, charge: 18500, entry: 26400, prize: 25700, shop: 3000 }, week: { games: 1490, charge: 121000, entry: 180300, prize: 175100, shop: 22000 },
-      new_day: 37, new_week: 245, active_day: 412, active_week: 1104, banned: 3, online: 58, by_game: { ludo: 610, hokm: 702, football: 178 }, live_by_game: { ludo: 4, hokm: 5, football: 3 } },
+      new_day: 37, new_week: 245, active_day: 412, active_week: 1104, banned: 3, online: 58, by_game: { ludo: 610, hokm: 702, football: 178, billiard: 240, divar: 96, esmfamil: 58 }, live_by_game: { ludo: 4, hokm: 5, football: 3, billiard: 2, divar: 1, esmfamil: 1 },
+      games: { hokm: { live: 5, lobby: 2, day: 104, week: 702, all: 4120, players: 380, stake: 260, entry: 31200, mins: 17 }, ludo: { live: 4, day: 88, week: 610, all: 3900, players: 340, stake: 150, entry: 9800, mins: 11 }, football: { live: 3, lobby: 1, day: 22, week: 178, all: 820, players: 120, stake: 40, entry: 3100, mins: 6 }, billiard: { live: 2, day: 31, week: 240, all: 900, players: 150, stake: 60, entry: 5400, mins: 9 }, divar: { live: 1, day: 12, week: 96, all: 300, players: 70, stake: 10, entry: 600, mins: 7 }, esmfamil: { live: 1, lobby: 1, day: 9, week: 58, all: 120, players: 95, mins: 12 } } },
     daily: Array.from({ length: 14 }, (_, i) => ({ t: now() - (13 - i) * 86400, games: 120 + ((i * 53) % 110), new: 20 + ((i * 17) % 30), charge: 9000 + ((i * 3100) % 12000) })) };
   if (name === 'admin/users') { let l = MU.filter(u => !q.q || u.name.includes(q.q) || String(u.id).includes(q.q) || (u.username || '').includes(q.q)); if (q.f === 'banned') l = l.filter(u => u.banned); if (q.f === 'rich') l = l.filter(u => u.points > 0);
     l = l.slice().sort((a, b) => q.sort === 'points' ? b.points - a.points : q.sort === 'games' ? b.games - a.games : q.sort === 'new' ? b.created - a.created : b.seen - a.seen); return { users: l.slice(+q.page * 30, +q.page * 30 + 30), more: l.length > (+q.page + 1) * 30 }; }
