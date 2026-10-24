@@ -509,7 +509,8 @@ def view(st: dict, me: str | None, since: int, now: float) -> dict:
         players[c] = {"name": p["name"], "av": p["av"], "pic": p.get("pic", ""), "bot": False, "out": p["out"], "me": mine,
                       "army": p["army"], "ready": p["ready"], "placed": len(p["units"]), "alive": alive(p),
                       "shots": p["shots"], "hits": p["hits"], "misses": p["misses"],
-                      "units": [dict(u) for u in p["units"]] if (mine or reveal) else None}
+                      # تماشاگر (me=None) از همان چیدن هر دو نیمه را می بیند؛ بازیکن ها تا شروع جنگ فقط نیمهٔ خود را
+                      "units": [dict(u) for u in p["units"]] if (mine or reveal or me is None) else None}
     return {
         "order": list(st["order"]), "players": players, "me": me if me in st["players"] else None,
         "size": st["size"], "army": dict(ARMIES[st["size"]]), "w": W, "h": H, "unit_s": UNIT_S, "mark_r": MARK_R,

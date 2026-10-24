@@ -162,7 +162,7 @@ const ERR = {
   no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است', shop_off: 'خدمات عبور فعلا در دسترس نیست',
   bad_invite: 'این لینک دعوت معتبر نیست', started: 'این میز شروع شده', full: 'این میز پر است', in_match: 'تو الان سر یک میز دیگر هستی',
   need_players: 'هنوز بازیکن کافی سر میز نیست', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
-  group_only: 'اسم‌فامیل فقط توی گروه ساخته می‌شه', sheet_not_full: 'واسه استپ باید همهٔ خونه‌ها پر باشه ✍️', closed: 'دیر شد؛ وقتش تموم شده',
+  group_only: 'این بازی فقط توی گروه یا کانال ساخته می‌شه', sheet_not_full: 'واسه استپ باید همهٔ خونه‌ها پر باشه ✍️', closed: 'دیر شد؛ وقتش تموم شده',
   submitted: 'برگتو که تحویل دادی 😄', no_appeal: 'به این خونه نمی‌شه اعتراض کرد', appealed: 'سر این یکی قبلا اعتراض کردی',
   no_vote: 'رو اعتراض خودت که نمی‌تونی رأی بدی 😄', not_playing: 'تو این بازی نیستی', bad_sheet: 'برگت درست ثبت نشد؛ یه بار دیگه بزن',
   army_short: 'اسم لشگر دست‌کم ۲ حرف باشه', army_long: 'اسم لشگر حداکثر ۲۰ حرفه', army_chars: 'فقط حرف و عدد و فاصله؛ بدون لینک و @',
@@ -1038,8 +1038,8 @@ const GAMES = [
   { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره', href: 'ludo-lobby.html', tint: 't-ludo', cat: 'board' },
   { id: 'billiard', name: 'بیلیارد', sub: '۲ نفره یا ۴ نفره یاری', href: 'billiard-lobby.html', tint: 't-bil', cat: 'sport', tag: 'تازه' },
   { id: 'divar', name: 'دیوار', sub: '۲ یا ۴ نفره · راه را ببند', href: 'divar-lobby.html', tint: 't-dv', cat: 'board', tag: 'تازه' },
-  { id: 'esmfamil', name: 'اسم‌فامیل', sub: '۲ تا ۱۰ نفر · فقط در گروه', href: 'esmfamil-lobby.html', tint: 't-paper', cat: 'word', tag: 'تازه' },
-  { id: 'lashgar', name: 'لشگر کاغذی', sub: '۲ نفره · فقط در گروه', href: 'lashgar-lobby.html', tint: 't-desk', cat: 'board', tag: 'تازه' },
+  { id: 'esmfamil', name: 'اسم‌فامیل', sub: '۲ تا ۱۰ نفر · گروه یا کانال', href: 'esmfamil-lobby.html', tint: 't-paper', cat: 'word', tag: 'تازه' },
+  { id: 'lashgar', name: 'لشگر کاغذی', sub: '۲ نفره · گروه یا کانال', href: 'lashgar-lobby.html', tint: 't-desk', cat: 'board', tag: 'تازه' },
 ];
 function quickPlay() {
   sheet(`${sheetHead('بازی‌ها')}<div class="qp">${GAMES.map(g => g.soon

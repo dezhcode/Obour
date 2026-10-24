@@ -847,13 +847,14 @@ async def on_inline(iq, gdb: GCDatabase) -> None:  # noqa: ANN001
         await iq.answer([], cache_time=5, is_personal=True)
         return
     q = (iq.query or "").strip().lower()
-    in_group = getattr(iq, "chat_type", None) in ("group", "supergroup")
-    allowed = [k for k in GAMES if in_group or k not in GROUP_ONLY]   # اسم‌فامیل و لشگر کاغذی فقط در گروه
+    # اسم‌فامیل و لشگر کاغذی فقط در گروه یا کانال (کارت اینلاین در کانال هم دکمه هایش کار می کند)
+    in_group = getattr(iq, "chat_type", None) in ("group", "supergroup", "channel")
+    allowed = [k for k in GAMES if in_group or k not in GROUP_ONLY]
     games = [k for k in allowed if not q or any(a.startswith(q) or q.startswith(a) for a in INLINE_ALIASES[k])]
     hint = None
     only = next((k for k in GAMES if k in GROUP_ONLY and q and any(a.startswith(q) or q.startswith(a) for a in INLINE_ALIASES[k])), None)
     if not in_group and only:
-        hint = InlineQueryResultsButton(text=f"{GAMES[only]['name']} فقط توی گروه بازی می‌شه؛ راهنما", start_parameter=only)
+        hint = InlineQueryResultsButton(text=f"{GAMES[only]['name']} فقط توی گروه یا کانال بازی می‌شه؛ راهنما", start_parameter=only)
     await iq.answer([await _article(gdb, u.id, g) for g in games or allowed], cache_time=0, is_personal=True, button=hint)
 
 
@@ -872,5 +873,5 @@ async def prepare_share(db: GCDatabase, tg: int, game: str) -> str:
         raise GCError("no_bot")
     prepared = await _bot.save_prepared_inline_message(user_id=tg, result=await _article(db, tg, game),
                                                        allow_user_chats=game not in GROUP_ONLY, allow_group_chats=True,
-                                                       allow_bot_chats=False, allow_channel_chats=False)
+                                                       allow_bot_chats=False, allow_channel_chats=True)
     return prepared.id
