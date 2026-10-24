@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
+<title>Game Club · مار و پله</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<link rel="stylesheet" href="static/cards.css">
+<link rel="stylesheet" href="static/preview.css">
+<style>
+/* لابی مار و پله: دو، سه یا چهار نفره، آزاد یا با امتیاز. صف و دعوت در برگه */
+.seatline{display:flex;justify-content:center;gap:var(--space-3);flex-wrap:wrap}
+.seatw{display:grid;justify-items:center;gap:4px;font-size:12.5px;font-weight:800}
+.seatw .avatar{--size:56px}
+.wait{width:56px;height:56px;border-radius:50%;border:3px dashed var(--line);display:grid;place-items:center;color:var(--ink-muted);font-weight:900;animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.vs{align-self:center;font-size:16px;font-weight:900}
+.linkbox{display:flex;align-items:center;gap:var(--space-2);background:var(--surface-sunk);border-radius:var(--radius-md);padding:6px 6px 6px 12px}
+.linkbox code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;direction:ltr;text-align:left;font-size:12.5px;font-family:ui-monospace,Menlo,monospace}
+.resume{display:grid;gap:4px;justify-items:start}
+.resume b{font-size:18px;font-weight:900}
+.count{font-size:44px;line-height:52px;font-weight:900;text-align:center;color:var(--acc-deep)}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-cap"><span>مار و پله</span></div>
+  <div class="appbar-in">
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>مار و پله</h1></div>
+    <a class="pill" href="shop.html#wallet" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span></a>
+  </div>
+</header>
+<main class="page no-nav">
+  <div class="gp" id="gp"></div>
+  <a class="card card-link resume" id="resume" href="snakes.html" hidden><span class="tag tag-live">بازی نیمه‌تمام</span><b>برگرد سر میز</b><span class="muted">بازی‌ات هنوز ادامه دارد؛ بقیه منتظر تواند.</span></a>
+</main>
+<script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/snakes-board.js"></script>
+<script src="static/demo-snakes.js"></script>
+<script src="static/cards.js"></script>
+<script src="static/preview.js"></script>
+<script src="static/gamepage.js"></script>
+<script>
+(() => {
+  const { fa, FD, store, face, icon, sheet, sheetHead, toast, sfx, haptic, sleep, errText } = GC;
+  const $ = id => document.getElementById(id);
+  GC.back('index.html');
+  let token = null, gp = null;
+  const render = () => { if (gp) gp.refresh(); };
+
+  // هر کس برای خودش؛ رنگ صندلی ها همان رنگ مهره ها (زرد، آبی، قرمز، سبز)
+  const COL = ['#FFC531', '#4C8DFF', '#FF5A6A', '#2FC584'];
+  const one = (p, lab, k) => p ? `<div class="seatw">${face(p, COL[k])}${p.name}<small class="muted" style="font-size:11.5px">${lab}</small></div>` : `<div class="seatw"><span class="wait">؟</span>${lab}</div>`;
+  const seatsHtml = (list, n) => `<div class="seatline">${one(list[0], 'تو', 0)}<b class="vs">مقابل</b>${list.slice(1, n).map((p, i) => one(p, 'حریف', i + 1)).join('')}</div>`;
+  async function go(mid) {
+    token = null; store.set('snmid', mid);
+    for (let n = 3; n >= 1; n--) {
+      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز آماده است!</h2><div class="count">${FD(n)}</div><p class="hint">بازی شروع می‌شود…</p>`, { center: true, dismiss: false });
+      sfx.tick(); haptic('light'); await sleep(650);
+    }
+    location.href = 'snakes.html';
+  }
+
+  /* ---------- صف ناشناس ---------- */
+  async function queueLoop(first) {
+    const t = token = {};
+    let st = first, shown = '';
+    while (token === t) {
+      if (st.state === 'matched') { sfx.turn(); haptic('success'); return go(st.match); }
+      if (st.state !== 'waiting') { GC.close(); return; }
+      const c = st.cfg, n = [2, 3, 4].includes(c.players) ? c.players : 2;
+      const list = [{ name: 'شما', av: 7 }, ...[...Array(n - 1)].map((_, i) => i + 1 < st.found ? { name: 'بازیکن', av: 4 + i } : null)];
+      const line = `${FD(st.found)} از ${FD(st.need)} نفر، ${FD(st.waited)} ثانیه`;
+      if (shown === String(st.found)) { const el = document.getElementById('ql'); if (el) el.textContent = line; }
+      else {
+        shown = String(st.found);
+        const prize = c.mode === 'stake' ? `برنده ${fa(c.entry * n)}` : '';
+        const sh = sheet(`${sheetHead(n > 2 ? `پیدا کردن ${FD(n - 1)} حریف` : 'پیدا کردن حریف')}${seatsHtml(list, n)}
+          <div class="wait-line"><span class="spinner"></span><span id="ql">${line}</span></div>
+          <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · ${prize} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگر تا ${FD(st.bots_in)} ثانیهٔ دیگر کسی نیاید، جای خالی را ربات پر می‌کند` : 'بازی وقتی شروع می‌شود که میز کامل شود'} · ناشناس می‌مانی</p>
+          ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مانم؛ جای خالی را ربات پر کند</button>' : ''}
+          <button class="btn btn-light btn-block" id="qc">انصراف${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
+        const qb = sh.querySelector('#qb');
+        if (qb) qb.onclick = async () => { qb.disabled = true; try { const r = await GC.snakes.queueBots(); if (r.state === 'matched') { token = null; sfx.turn(); haptic('success'); return go(r.match); } } catch (e) { toast(errText(e)); } qb.disabled = false; };
+        sh.querySelector('#qc').onclick = async () => { token = null; try { await GC.snakes.queueLeave(); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
+      }
+      await sleep(1500); if (token !== t) return;
+      try { st = await GC.snakes.queueStatus(); } catch (e) { toast(errText(e)); }
+    }
+  }
+
+  /* ---------- میز دعوت ---------- */
+  async function lobbyLoop(mid) {
+    const t = token = {};
+    let shown = '';
+    while (token === t) {
+      let v;
+      try { v = await GC.snakes.match(mid, 0); } catch (e) { toast(errText(e)); GC.close(); return; }
+      if (v.status === 'playing') return go(mid);
+      if (v.status === 'cancelled') { GC.close(); toast('سازنده میز را بست؛ ورودی‌ات برگشت'); await GC.refreshMe(); render(); return; }
+      const L = v.lobby, c = v.cfg, n = [2, 3, 4].includes(c.players) ? c.players : 2, full = L.seats.length === n, link = L.link;
+      const sig = L.seats.map(s => s.color + s.name).join('|');
+      if (sig === shown) { await sleep(1500); continue; }
+      shown = sig; if (L.seats.length > 1) { sfx.turn(); haptic('light'); }
+      const mine = L.seats.find(s => s.me), opp = L.seats.filter(s => !s.me);
+      const list = [Object.assign({}, mine || {}, { name: 'شما' }), ...[...Array(n - 1)].map((_, i) => opp[i] || null)];
+      const msg = c.mode === 'stake' ? `بیا مار و پله بازی کنیم! ورودی ${c.entry} امتیاز.` : 'بیا یه دست مار و پله بزنیم؛ ببینیم مار کیو نیش می‌زنه 😄';
+      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(msg);
+      const sh = sheet(`${sheetHead(L.host ? 'بازی با دوستان' : 'سر میز دوستت')}
+        ${L.host ? `<p>این لینک را بفرست.${n > 2 ? ` ${FD(n - 1)} نفر که بازش کنند بازی شروع می‌شود.` : ' تا دوستت بازش کند بازی شروع می‌شود.'}${c.mode === 'stake' ? ' ' + fa(c.entry) + ' امتیاز ورودی از کیف هر نفر کم می‌شود.' : ''}</p>
+        <div class="linkbox"><code>${link || 'لینک دعوت فقط داخل تلگرام ساخته می‌شود'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
+        <button class="btn btn-block" id="shr">${icon('send')}ارسال در تلگرام</button>` : '<p>منتظر بقیه و شروع بازی…</p>'}
+        ${seatsHtml(list, n)}
+        <div class="wait-line"><span class="spinner"></span>${full ? 'میز پر شد؛ بازی شروع می‌شود…' : `${FD(L.seats.length)} از ${FD(n)} نفر سر میزند…`}</div>
+        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">منتظر نمی‌مانم؛ جای خالی با ربات</button>' : ''}
+        <button class="btn btn-light btn-block" id="lv">${L.host ? 'بستن میز' : 'بلند شدن از میز'}</button>`, { dismiss: false });
+      const cp = sh.querySelector('#cp');
+      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد؛ لینک را دستی بفرست')); } catch (e) { toast('کپی نشد؛ لینک را دستی بفرست'); } };
+      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط داخل تلگرام ساخته می‌شود');
+      const solo = sh.querySelector('#solo'); if (solo) solo.onclick = async () => { try { await GC.snakes.start(mid); } catch (e) { toast(errText(e)); } };
+      sh.querySelector('#lv').onclick = async () => { token = null; try { await GC.snakes.leave(mid); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
+      await sleep(1500);
+    }
+  }
+
+  /* ---------- صفحهٔ بازی ---------- */
+  async function play(how, cfg, btn) {
+    const c = Object.assign({ game: 'snakes' }, cfg);
+    if (how === 'bot') { c.mode = 'free'; c.entry = 0; c.solo = true; }
+    if (c.mode === 'stake' && GC.points < c.entry) { sfx.error(); haptic('error'); toast(errText({ code: 'insufficient' })); return; }
+    if (btn) btn.disabled = true;
+    try {
+      if (how === 'invite') { const r = await GC.snakes.invite(c); await GC.refreshMe(); lobbyLoop(r.match); }
+      else { const r = await GC.snakes.queueJoin(c); await GC.refreshMe(); queueLoop(r); }
+    } catch (err) { sfx.error(); haptic('error'); toast(errText(err)); }
+    if (btn) btn.disabled = false; render();
+  }
+  gp = GCGame.build({
+    game: 'snakes', title: 'مار و پله', help: 'help.html#hSnakes',
+    modes: [
+      { v: 's4', label: '۴ نفره', ic: icon('users'), desc: 'چهار نفر روی یک صفحه؛ هر کس برای خودش. هر کی زودتر دقیقاً به ۱۰۰ برسه برنده‌ست.', short: 'چهار نفر · تا خانهٔ ۱۰۰', cfg: { players: 4 } },
+      { v: 's3', label: '۳ نفره', ic: icon('users'), desc: 'سه نفر؛ تاس بریز، از نردبان بالا برو و از مار فرار کن.', short: 'سه نفر · تا خانهٔ ۱۰۰', cfg: { players: 3 } },
+      { v: 's2', label: '۲ نفره', ic: icon('user'), desc: 'رو در رو؛ سریع‌ترین مدل بازی.', short: 'دو نفر · تا خانهٔ ۱۰۰', cfg: { players: 2 } },
+    ],
+    rules: [['هدف:', 'همه از خانهٔ ۱ شروع می‌کنند. اولین کسی که دقیقاً به خانهٔ ۱۰۰ برسد برنده است و بازی همان لحظه تمام می‌شود.'],
+      ['نوبت:', 'در نوبتت روی تاس بزن؛ مهره‌ات خودش به همان اندازه جلو می‌رود. تاس را سرور می‌ریزد و دست هیچ‌کس نیست.'],
+      ['نردبان و مار:', 'اگر روی پای نردبان بایستی تا بالای آن می‌روی؛ اگر روی سر مار بایستی تا دمش پایین می‌افتی.'],
+      ['دقیقاً ۱۰۰:', 'اگر عدد تاس بیشتر از فاصله‌ات تا ۱۰۰ باشد، این نوبت از جایت تکان نمی‌خوری.'],
+      ['تاس ۶:', 'شش بیاوری یک نوبت دیگر داری؛ حداکثر دو بار پشت‌سرهم.'],
+      ['وقت:', 'اگر وقت نوبتت تمام شود، تاس به جایت ریخته می‌شود. در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت.'],
+      ['گروه:', 'توی گروه یا کانال آیدی ربات و snakes را تایپ کن (یا در گروه /snakes)؛ هر کس «بشین» را بزند سر میز است و جای خالی با ربات پر می‌شود.']],
+    play,
+  });
+
+  (async () => {
+    try {
+      const me = await GC.refreshMe();
+      gp.load(me);
+      const url = new URL(location.href);
+      const code = (url.searchParams.get('join') || '').trim() || (GC.startParam().startsWith('snakes_') ? GC.startParam().slice(7) : '');
+      const OTHER = { ludo: ['منچ', 'ludo.html'], hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'], esmfamil: ['اسم‌فامیل', 'esmfamil.html'], lashgar: ['لشگر کاغذی', 'lashgar.html'] };
+      if (me.active_match && me.active_game === 'snakes' && GC.live) {
+        const v = await GC.snakes.match(me.active_match, 0).catch(() => null);
+        if (v && v.status === 'lobby') lobbyLoop(v.id);
+        else if (v && v.status === 'playing') { store.set('snmid', v.id); if (code) { location.replace('snakes.html'); return; } $('resume').hidden = false; }
+      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یک بازی ${o[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
+      else if (!GC.live && store.get('snmid', null)) {
+        const v = await GC.snakes.match(store.get('snmid', null), 0).catch(() => null);
+        if (v && v.status === 'playing') $('resume').hidden = false;
+      } else if (me.queue) queueLoop(await GC.snakes.queueStatus());
+      else if (code) {
+        try { const r = await GC.snakes.join(code); await GC.refreshMe(); lobbyLoop(r.match); }
+        catch (err) { toast(errText(err)); }
+      }
+    } catch (e) { toast(errText(e)); }
+    render();
+  })();
+  render();
+})();
+</script>
+</body>
+</html>

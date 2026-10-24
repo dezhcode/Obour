@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
+<title>Game Club · مار و پله</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<link rel="stylesheet" href="static/snakes.css">
+</head>
+<body class="snakes">
+<header class="appbar" id="appbar">
+  <div class="appbar-cap"><span>مار و پله</span></div>
+  <div class="appbar-in">
+    <button class="sn-ib" id="exit" aria-label="خروج از بازی"><i data-ic="exit"></i></button>
+    <div class="sn-title"><b>مار و پله</b><span class="sn-chip" id="mode"></span></div>
+    <button class="sn-ib" id="help" aria-label="آموزش بازی"><i data-ic="help"></i></button>
+    <button class="sn-ib" id="snd" aria-pressed="true"></button>
+  </div>
+</header>
+<div class="sn-seats" id="seats" aria-live="polite"></div>
+<main class="sn-arena" id="arena">
+  <div class="sn-board" id="board">
+    <canvas id="cv" aria-label="صفحهٔ مار و پله" role="img"></canvas>
+    <div class="sn-layer" id="layer"></div>
+    <div class="sn-pop" id="pop" hidden aria-live="assertive"></div>
+  </div>
+</main>
+<div class="sn-feed"><span class="sn-pill" id="feed">در حال وصل شدن…</span></div>
+<footer class="sn-dock" id="dock">
+  <button class="sn-die" id="die" aria-label="انداختن تاس" disabled></button>
+  <div class="sn-tx"><b id="dt">…</b><span id="ds"></span><span class="sn-bar"><i id="tbar"></i></span></div>
+  <button class="sn-chat" id="chatBtn" aria-label="گفتگو"><i data-ic="chat"></i><span class="badge" id="chatBadge" hidden></span></button>
+</footer>
+<script src="static/gc.js"></script>
+<script src="static/tour.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/snakes-board.js"></script>
+<script src="static/demo-snakes.js"></script>
+<script src="static/tchat.js"></script>
+<script src="static/snakes.js"></script>
+</body>
+</html>

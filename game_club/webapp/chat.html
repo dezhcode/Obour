@@ -137,6 +137,11 @@ body{background:var(--ground)}
     sending = false;
   }
   $('chForm').onsubmit = e => { e.preventDefault(); send($('chIn').value); };
+  // لمس دکمهٔ ارسال فوکوس را از ورودی نمی گیرد تا کیبورد باز بماند
+  { const b = document.querySelector('.ch-send'), inp = $('chIn');
+    b.addEventListener('mousedown', e => e.preventDefault());
+    b.addEventListener('touchstart', e => { if (document.activeElement === inp) { e.preventDefault(); b._tap = true; } }, { passive: false });
+    b.addEventListener('touchend', e => { if (!b._tap) return; b._tap = false; e.preventDefault(); b.click(); }); }
   $('chQuick').onclick = e => { const b = e.target.closest('button'); if (b) send(b.textContent); };
   $('chInv').onclick = () => user && SO.invite(user, () => pull(false));
   $('chWho').onclick = () => user && rel === 'friend' && SO.friendSheet(user, what => { if (what) location.href = 'friends.html'; }, { noChat: true });

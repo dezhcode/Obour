@@ -108,7 +108,7 @@
       gp.load(me);
       const url = new URL(location.href);
       const code = (url.searchParams.get('join') || '').trim() || (GC.startParam().startsWith('esmfamil_') ? GC.startParam().slice(9) : '');
-      const OTHER = { ludo: ['منچ', 'ludo.html'], hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'] };
+      const OTHER = { ludo: ['منچ', 'ludo.html'], hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'], snakes: ['مار و پله', 'snakes.html'] };
       if (me.active_match && me.active_game === 'esmfamil' && GC.live) {
         const v = await GC.esm.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);

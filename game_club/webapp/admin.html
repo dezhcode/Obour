@@ -148,7 +148,7 @@ const XP = {
 const ic = (n, w) => XP[n] ? icon('x', w).replace('</svg>', XP[n] + '</svg>') : icon(n, w);
 const when = t => { if (!t) return '—'; const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
 const date = t => t ? new Date(t * 1000).toLocaleDateString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-const GAME = { hokm: ['حکم', 'card'], ludo: ['منچ', 'dice'], football: ['فوتبال', 'bolt'], billiard: ['بیلیارد', 'ball'], divar: ['دیوار', 'grid'], esmfamil: ['اسم‌فامیل', 'edit'], lashgar: ['لشگر کاغذی', 'flag'] };
+const GAME = { hokm: ['حکم', 'card'], ludo: ['منچ', 'dice'], football: ['فوتبال', 'bolt'], billiard: ['بیلیارد', 'ball'], divar: ['دیوار', 'grid'], esmfamil: ['اسم‌فامیل', 'edit'], lashgar: ['لشگر کاغذی', 'flag'], snakes: ['مار و پله', 'dice'] };
 const KIND = { charge: 'شارژ', entry: 'ورودی', refund: 'بازگشت', prize: 'جایزه', admin: 'پشتیبانی', transfer: 'انتقال به عبور', shop: 'خرید', gift: 'هدیه', style: 'میز و ورق' };
 const ACT = { points: 'تغییر امتیاز', ban: 'مسدود کردن', unban: 'رفع مسدودی', message: 'پیام مستقیم', close: 'بستن میز', broadcast: 'پیام همگانی', broadcast_cancel: 'توقف پیام همگانی', setting: 'تنظیمات' };
 const SET = {
@@ -419,7 +419,7 @@ async function loadLedger() {
 }
 
 /* ---------- پیام همگانی ---------- */
-const TARGETS = [['all', 'همه'], ['active7', 'فعال ۷ روز'], ['active30', 'فعال ۳۰ روز'], ['game:ludo', 'بازیکنان منچ'], ['game:hokm', 'بازیکنان حکم'], ['game:football', 'بازیکنان فوتبال'], ['game:billiard', 'بازیکنان بیلیارد'], ['game:divar', 'بازیکنان دیوار'], ['game:esmfamil', 'بازیکنان اسم‌فامیل'], ['game:lashgar', 'بازیکنان لشگر کاغذی'], ['me', 'فقط خودم']];
+const TARGETS = [['all', 'همه'], ['active7', 'فعال ۷ روز'], ['active30', 'فعال ۳۰ روز'], ['game:ludo', 'بازیکنان منچ'], ['game:hokm', 'بازیکنان حکم'], ['game:football', 'بازیکنان فوتبال'], ['game:billiard', 'بازیکنان بیلیارد'], ['game:divar', 'بازیکنان دیوار'], ['game:esmfamil', 'بازیکنان اسم‌فامیل'], ['game:lashgar', 'بازیکنان لشگر کاغذی'], ['game:snakes', 'بازیکنان مار و پله'], ['me', 'فقط خودم']];
 let EMO = [];
 const emoOf = k => EMO.find(e => e.key === k);
 const pct = (a, b) => b ? Math.round(a / b * 100) : 0;

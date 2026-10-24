@@ -18,7 +18,7 @@ MAX_PENDING = 60        # درخواست بی جواب فرستاده شده
 REQ_PER_HOUR = 25
 DM_MAX = 300
 GAME_NAME = {"hokm": "حکم", "ludo": "منچ", "football": "فوتبال", "billiard": "بیلیارد", "divar": "دیوار",
-             "esmfamil": "اسم‌فامیل", "lashgar": "لشگر کاغذی"}
+             "esmfamil": "اسم‌فامیل", "lashgar": "لشگر کاغذی", "snakes": "مار و پله"}
 # میز دعوتی که از صفحهٔ دوستان یا چت ساخته می شود (آزاد؛ سازنده بعدا می تواند خودش میز بسازد).
 # اسم‌فامیل اینجا نیست: فقط در گروه بازی می شود
 INVITE_CFG = {
@@ -27,6 +27,7 @@ INVITE_CFG = {
     "football": {"game": "football", "mode": "free", "entry": 0, "target": 3},
     "billiard": {"game": "billiard", "mode": "free", "entry": 0, "players": 2},
     "divar": {"game": "divar", "mode": "free", "entry": 0, "players": 2, "variant": "classic"},
+    "snakes": {"game": "snakes", "mode": "free", "entry": 0, "players": 2},
 }
 
 

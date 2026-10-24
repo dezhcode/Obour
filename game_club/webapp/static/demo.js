@@ -204,7 +204,7 @@ const ludo = {
 /* میزهای باز برای صفحهٔ خانه (منچ و حکم نمایشی) */
 function demoTables() {
   const out = [];
-  for (const [key, game, mine] of [['demo_football', 'football', '0'], ['demo_hokm', 'hokm', '0'], ['demo_match', 'ludo', 'yellow'], ['demo_billiard', 'billiard', '0'], ['demo_divar', 'divar', '0']]) {
+  for (const [key, game, mine] of [['demo_football', 'football', '0'], ['demo_hokm', 'hokm', '0'], ['demo_match', 'ludo', 'yellow'], ['demo_billiard', 'billiard', '0'], ['demo_divar', 'divar', '0'], ['demo_snakes', 'snakes', '0']]) {
     const m = store.get(key, null); if (!m) continue;
     if (m.status === 'lobby') out.push({ kind: 'lobby', id: m.id, game, cfg: m.cfg, found: m.seats.length, need: m.cfg.players || 4, host: true, players: m.seats });
     else if (m.status === 'playing' && !m.state.over) {
@@ -213,11 +213,12 @@ function demoTables() {
       else if (game === 'hokm') { t.score = [st.score[0], st.score[1]]; t.target = st.target; t.my_turn = (st.phase === 'trump' || st.phase === 'play') && String(st.phase === 'trump' ? st.hakem : st.turn) === '0'; }
       else if (game === 'billiard') { t.score = [0, 1].map(tm => st.solids < 0 ? 0 : 7 - [0, 1, 2, 3, 4, 5, 6].filter(i => st.balls[(st.solids === tm ? 1 : 9) + i]).length); t.target = 7; t.my_turn = st.turn === 0; }
       else if (game === 'divar') { t.my_turn = st.turn === 0; t.left = typeof DVEngine !== 'undefined' ? DVEngine.dist(st, '0') : null; }
+      else if (game === 'snakes') { t.my_turn = st.turn === 0; t.pos = st.players['0'].pos; }
       else t.my_turn = st.order[st.turn] === 'yellow';
       out.push(t);
     }
   }
-  for (const [key, game] of [['demo_fq', 'football'], ['demo_hq', 'hokm'], ['demo_q', 'ludo'], ['demo_bq', 'billiard'], ['demo_dq', 'divar']]) { const q = store.get(key, null); if (q) out.push({ kind: 'queue', game, cfg: q.cfg, found: 1, need: q.cfg.players || 4 }); }
+  for (const [key, game] of [['demo_fq', 'football'], ['demo_hq', 'hokm'], ['demo_q', 'ludo'], ['demo_bq', 'billiard'], ['demo_dq', 'divar'], ['demo_sq', 'snakes']]) { const q = store.get(key, null); if (q) out.push({ kind: 'queue', game, cfg: q.cfg, found: 1, need: q.cfg.players || 4 }); }
   return out;
 }
 
@@ -338,14 +339,14 @@ const data = {
   },
   async dmInvite(u, game) {
     const F = fr(); if (!F.friends.includes(u)) throw err('not_friends');
-    const L = F.dms[u] = F.dms[u] || [], id = (L.length ? L[L.length - 1].id : 0) + 1, name = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال', billiard: 'بیلیارد', divar: 'دیوار' }[game];
+    const L = F.dms[u] = F.dms[u] || [], id = (L.length ? L[L.length - 1].id : 0) + 1, name = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال', billiard: 'بیلیارد', divar: 'دیوار', snakes: 'مار و پله' }[game];
     L.push({ id, me: true, kind: 'invite', text: 'دعوت به ' + name, meta: { game, code: 'DEMO42' }, at: Math.round(Date.now() / 1000) }); save();
     return { match: 'demo', code: 'DEMO42', game, demo: true };
   },
   async groupShare(game) { return { demo: true, game }; },
   // رده بندی هر بازی (نمونه): برنده های این بازی با یوزرنیم
   async gameBoard(game, period) {
-    const K = { week: 1, month: 3.5, all: 9 }[period] || 1, base = { hokm: 41, ludo: 33, football: 26, billiard: 22, divar: 18 }[game] || 30;
+    const K = { week: 1, month: 3.5, all: 9 }[period] || 1, base = { hokm: 41, ludo: 33, football: 26, billiard: 22, divar: 18, snakes: 20 }[game] || 30;
     const names = ['kian_r', 'sara_m', 'amirali', 'negar_x', 'reza_gm', 'mahsa', 'pouya_k', 'leila_m', 'arash_dev', 'sina_h'];
     const rows = names.map((n, i) => ({ name: n, av: (i * 5) % 23 + 1, wins: Math.max(1, Math.round((base - i * 3.4) * K)), games: Math.round((base - i * 3.4) * K * 1.7) + 3, value: 0, me: false }));
     const mine = game === 'hokm' ? { wins: Math.round(9 * K), games: Math.round(14 * K), value: 0, rank: 12 } : game === 'football' ? { wins: 2, games: 6, value: 0, rank: 23 } : { wins: 0, games: 0, value: 0, rank: 0 };

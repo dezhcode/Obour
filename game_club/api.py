@@ -66,10 +66,10 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         raise GCError("banned")
     # تعمیرات: میز تازه ساخته نمی شود؛ بازی های در جریان ادامه دارند
     if gc.maintenance and method == "POST" and not admin.is_admin(tg) and \
-            re.match(r"^(ludo|hokm|football|billiard|divar|esmfamil|lashgar)/(queue|queue/bots|invite|join)$", name):
+            re.match(r"^(ludo|hokm|football|billiard|divar|esmfamil|lashgar|snakes)/(queue|queue/bots|invite|join)$", name):
         raise GCError("maintenance")
     # عضویت اجباری (پنل مدیریت): ساختن یا نشستن سر میز فقط برای عضوهای کانال ها و گروه های لازم
-    if method == "POST" and re.match(r"^(ludo|hokm|football|billiard|divar|esmfamil|lashgar)/(queue|queue/bots|invite|join)$", name):
+    if method == "POST" and re.match(r"^(ludo|hokm|football|billiard|divar|esmfamil|lashgar|snakes)/(queue|queue/bots|invite|join)$", name):
         await gate.require(gdb, g.bot, tg)
     # ---------- باز شدن مینی اپ: کانال های لازم و پیام پاپ آپ ----------
     if name == "boot" and method == "GET":
@@ -200,7 +200,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         kind = "spend" if q.get("kind") == "spend" else "top"
         return await service.leaderboard(gdb, tg, kind, q.get("period") or "week")
 
-    # ---------- میزها: منچ، حکم، فوتبال، بیلیارد، دیوار، اسم‌فامیل و لشگر کاغذی (ludo/...، hokm/...، ...) با یک سرویس ----------
+    # ---------- میزها: منچ، حکم، فوتبال، بیلیارد، دیوار، اسم‌فامیل، لشگر کاغذی و مار و پله (ludo/...، hokm/...، ...) با یک سرویس ----------
     game, _, op = name.partition("/")
     if game in service.GROUP_ONLY and op in ("queue", "queue/bots", "invite"):
         raise GCError("group_only")       # میز اسم‌فامیل و لشگر کاغذی فقط از کارت گروه ساخته می شود
@@ -244,7 +244,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
         acts = {"ludo": ("roll", "move"), "hokm": ("trump", "play"), "football": ("setup", "shot"),
                 "billiard": ("shot", "aim"), "divar": ("move", "wall"),
                 "esmfamil": ("answer", "stop", "submit", "appeal", "vote", "ready"),
-                "lashgar": ("army", "units", "ready", "unready", "shoot")}[game]
+                "lashgar": ("army", "units", "ready", "unready", "shoot"), "snakes": ("roll",)}[game]
         if op in acts and method == "POST":
             return await service.act(gdb, tg, str(body.get("match") or ""), op, body.get("k"),
                                      int(body.get("since") or 0), body)
