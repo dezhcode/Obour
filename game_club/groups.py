@@ -833,6 +833,9 @@ async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArt
     return InlineQueryResultArticle(
         id=token, title=f"{g['icon']} میز {g['name']} بساز",
         description=f"{summary(game, cfg_of(game, g['def']))} · حالتش با خودت",
+        # عکس کنار نتیجه: همان تصویر بازی در مینی اپ (static/thumbs، از روی GAME_ART)
+        thumbnail_url=f"{gc.webapp_url}static/thumbs/{game}.jpg?v=1" if gc.webapp_url else None,
+        thumbnail_width=256, thumbnail_height=256,
         input_message_content=InputRichMessageContent(rich_message=await setup_card(db, await db.draft(token))))
 
 
