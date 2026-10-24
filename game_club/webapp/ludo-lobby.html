@@ -125,7 +125,6 @@
     const c = Object.assign({}, cfg);
     if (how === 'bot') { c.mode = 'free'; c.entry = 0; c.solo = true; }
     if (c.mode === 'stake' && GC.points < c.entry) { sfx.error(); haptic('error'); toast(errText({ code: 'insufficient' })); return; }
-    if (!S.tutorial) await GC.coach('yellow');
     if (btn) btn.disabled = true;
     try {
       if (how === 'invite') { const r = await GC.ludo.invite(c); await GC.refreshMe(); lobbyLoop(r.match); }
@@ -164,7 +163,6 @@
         else if (v && v.status === 'playing') { store.set('mid', v.id); if (code) { location.replace('ludo.html'); return; } $('resume').hidden = false; }
       } else if (me.queue) queueLoop(await GC.ludo.queueStatus());
       else if (code) {
-        if (!S.tutorial) await GC.coach('yellow');
         try { const r = await GC.ludo.join(code); await GC.refreshMe(); lobbyLoop(r.match); }
         catch (err) { toast(errText(err)); }
       }

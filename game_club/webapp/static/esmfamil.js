@@ -430,4 +430,37 @@ async function start() {
 document.addEventListener('pointerdown', () => GC.loadSamples && GC.loadSamples(), { once: true });
 GC.mount();
 start();
+
+/* ---------- آموزش بار اول: قبل از نوشتن (وقت نوشتن را نمی خورد؛ با شروع نوشتن کنار می رود)، و یکی هم سر اولین برگ نتیجه ---------- */
+const writing = () => !!(G() && ['write', 'stop'].includes(G().phase) && !G().submitted);
+function tour() {
+  return {
+    id: 'esmfamil', name: 'اسم‌فامیل', color: '#C8323C', ink: '#fff', help: 'help.html#hEsm', pauseAt: Infinity, pauseText: 'وقت نوشتنه! بقیهٔ آموزش بعد از این دور',
+    intro: 'همون اسم‌فامیل خودمون، با داور هوش مصنوعی: سریع بنویس، جواب تکراری نده و بیشترین امتیاز رو بگیر.',
+    ready: () => !!(G() && !WATCH && !G().over),
+    turn: () => ({ mine: writing(), left: secsLeft() * 1000 }),
+    steps: [
+      { el: '#mini', title: 'حرف این دور', text: 'هر دور یه حرف برای همه با هم رو می‌شه و اینجا می‌بینیش؛ حرف‌ها رو هوش مصنوعی عبور انتخاب می‌کنه.', round: 999 },
+      { el: '#clock', title: 'وقت دور', text: 'ساعت نشون می‌ده چقدر وقت داری؛ ۱۰ ثانیهٔ آخر قرمز می‌شه. آموزش هم موقع نوشتن کنار می‌ره تا وقتت نسوزه.' },
+      { el: () => $('sheet') || $('main'), title: 'برگت رو پر کن', text: '<b>اسم، فامیل، شهر، کشور، غذا، حیوان، میوه، اشیا و رنگ</b> رو با همون حرف بنویس. هر چی می‌نویسی خودکار ذخیره می‌شه.', hand: 'tap', at: [0.65, 0.18] },
+      { el: '#foot', title: 'استپ!', text: 'برگت که کامل شد <b>«استپ!»</b> بزن؛ بقیه فقط ۲۰ ثانیه وقت دارن. نمی‌خوای ادامه بدی؟ برگت رو زودتر تحویل بده.', center: true },
+      { el: '#round', title: 'امتیاز', text: 'جواب درستی که فقط تو نوشتی <b>۱۰</b>، تکراری <b>۵</b>، غلط یا خالی <b>۰</b>. هر کی آخر بازی بیشترین جمع رو داشت می‌بره.' },
+    ],
+  };
+}
+function tour2() {
+  const mineX = () => { const x = document.querySelector('.ef-t td.me .w.x') || document.querySelector('.ef-t td .w.x'); return x && x.closest('td'); };
+  return {
+    id: 'esmfamil2', artId: 'esmfamil', name: 'اسم‌فامیل', color: '#C8323C', ink: '#fff', help: 'help.html#hEsm',
+    introTitle: 'برگ‌ها تصحیح شد!', intro: 'سه نکته دربارهٔ نتیجهٔ هر دور، اعتراض و رفتن به دور بعد.',
+    ready: () => !!(G() && !WATCH && G().phase === 'show' && document.querySelector('.ef-t')),
+    steps: [
+      { el: '.ef-card', title: 'برگ همه', text: 'جواب همه با امتیاز هر خونه؛ جواب‌های رد شده <b>خط خوردن</b> و دلیل داور زیرشون نوشته شده.' },
+      { el: () => mineX() || document.querySelector('.ef-t'), title: 'اعتراض کن', text: 'فکر می‌کنی داور بی‌انصافی کرده؟ روی <b>جواب خط‌خوردهٔ خودت</b> بزن؛ بقیه رأی می‌دن و هر چی اکثریت گفت.', hand: 'tap' },
+      { el: '#rdy', title: 'دور بعد', text: 'آماده که شدی اینو بزن؛ همه که آماده شدن (یا وقتش تموم شد) دور بعد شروع می‌شه.', hand: 'tap' },
+    ],
+  };
+}
+GCTour.auto(tour()); GCTour.auto(tour2());
+$('help').onclick = () => GCTour.start(G() && G().phase === 'show' ? tour2() : tour());
 })();

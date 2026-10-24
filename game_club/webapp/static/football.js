@@ -681,4 +681,27 @@ async function start() {
   poll();
 }
 start();
+
+/* ---------- آموزش بار اول (بعد از انتخاب تیم و «مقابل»؛ نوبتت که برسد و وقت کم شود، کنار می رود) ---------- */
+function tour() {
+  const myDisc = () => [...document.querySelectorAll('#pitch .me')].sort((a, b) => b.getBoundingClientRect().top - a.getBoundingClientRect().top)[1] || document.querySelector('#pitch .me');
+  const G = () => snap && snap.game;
+  return {
+    id: 'football', name: 'فوتبال', color: '#7CE38B', help: 'help.html#hFootball',
+    intro: 'فوتبال دستی با مهره: نوبتی شوت بزن، پاس بده و زودتر از حریف گل بزن.',
+    ready: () => !!(G() && !WATCH && G().phase !== 'setup' && !document.querySelector('.fb-layer:not(.fb-setup)') && !document.querySelector('.fb-setup:not([hidden])') && document.querySelector('#pitch .me')),
+    turn: () => ({ mine: !!(G() && isMe(G().turn) && !G().over), left: deadlineAt ? deadlineAt - Date.now() : null }),
+    steps: [
+      { el: '#pitch', title: 'دروازهٔ تو پایینه', text: 'مهره‌های تو اونایی‌ان که <b>حلقه دارن</b>. توپ رو بفرست توی دروازهٔ <b>بالا</b> و نذار به دروازهٔ پایین برسه.' },
+      { el: myDisc, title: 'بکش عقب و رها کن', text: 'یکی از مهره‌هات رو بگیر و انگشتت رو <b>خلاف جهت شوت</b> بکش؛ فلش جهت رو نشون می‌ده و هر چی بیشتر بکشی محکم‌تر می‌زنی. رها کن تا شوت بزنی.', pad: 14, round: 999, hand: { type: 'drag', from: [0.5, 0.5], to: [0.5, 2.6] } },
+      { el: myDisc, title: 'پشیمون شدی؟', text: 'اگه انگشتت رو <b>روی خود مهره</b> برگردونی و رها کنی، شوت لغو می‌شه. هر نوبت فقط یه شوت داری.', pad: 14, round: 999, hand: 'tap' },
+      { el: '#pitch', title: 'پاس بده', text: 'اگه توپ بعد از ضربه‌ت به یه مهرهٔ دیگه‌ت برسه و کنارش بمونه، <b>پاس کامل</b>ه: توپ به گیرنده می‌چسبه و دوباره نوبت توئه. از دیواره‌ها هم برای شوت کج استفاده کن.' },
+      { el: '#status', title: 'نوبت و وقت', text: 'اینجا می‌بینی نوبت کیه و چقدر وقت داری. با هر پاس وقتت کمی کمتر می‌شه؛ پس سریع تصمیم بگیر!' },
+      { el: '#head', title: 'گل و برد', text: 'هر بار توپ کامل از خط دروازه بگذره گله. اولین کسی که به تعداد گل بازی برسه <b>برنده</b>ست.' },
+      { el: '#chatbar', title: 'کری بخون', text: 'پیام سریع بفرست و حریف رو بترسون 😄', hand: 'tap' },
+    ],
+  };
+}
+GCTour.auto(tour());
+$('help').onclick = () => GCTour.start(tour());
 })();

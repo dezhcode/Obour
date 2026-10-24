@@ -1361,4 +1361,30 @@ async function start() {
   poll();
 }
 start();
+
+/* ---------- آموزش بار اول (نوبتت که برسد و وقت کم شود، کنار می رود؛ از منوی ⋮ دوباره) ---------- */
+function tour() {
+  const both = () => { const a = $('fineUp').getBoundingClientRect(), b = $('fineDown').getBoundingClientRect(), x = Math.min(a.left, b.left), y = Math.min(a.top, b.top);
+    return { x, y, w: Math.max(a.right, b.right) - x, h: Math.max(a.bottom, b.bottom) - y }; };
+  return {
+    id: 'billiard', name: 'بیلیارد', color: '#FFC928', help: 'help.html#hBilliard',
+    intro: 'بیلیارد هشت توپ: توپ‌های گروه خودت رو بنداز و آخر از همه توپ ۸ رو.',
+    ready: () => !!(G() && !WATCH && snap.status === 'playing' && !G().over),
+    turn: () => ({ mine: !!(G() && G().turn === me && !G().over), left: deadlineAt ? deadlineAt - Date.now() : null }),
+    steps: [
+      { el: '#table', title: 'گروه توپ‌ها', text: 'بازی با بریک شروع می‌شه. اولین توپی که بیفته گروهت رو معلوم می‌کنه: <b>تک‌رنگ</b> (۱ تا ۷) یا <b>راه‌راه</b> (۹ تا ۱۵). توپ خودت بیفته، دوباره نوبت توئه.' },
+      { el: '#table', title: 'نشونه بگیر', text: 'یه بار <b>روی میز بزن</b> تا نوک چوب همون‌جا رو نشونه بگیره. خط سفید مسیر توپ سفیده و خط رنگی مسیر توپی که بهش می‌خوره.', hand: 'tap', at: [0.62, 0.32] },
+      { el: '#table', title: 'دقیق تنظیم کن', text: 'انگشتت رو <b>دور توپ سفید بکش</b> تا چوب همراهش بچرخه؛ آروم بکشی خیلی ظریف، تند بکشی سریع.', hand: { type: 'drag', from: [0.3, 0.62], to: [0.72, 0.62] } },
+      { el: '#power', title: 'قدرت و ضربه', text: 'نوار قدرت رو <b>پایین بکش</b>؛ هر چی بیشتر، محکم‌تر. رها کن تا ضربه بخوره.', hand: { type: 'drag', from: [0.5, 0.12], to: [0.5, 0.78] }, pad: 6 },
+      { el: '#english', title: 'پیچ بده', text: 'روی این توپ سفید بزن و نقطهٔ ضربه رو جابه‌جا کن: <b>بالا</b> سفید بعد از برخورد جلو می‌ره، <b>پایین</b> برمی‌گرده، چپ و راست هم کجش می‌کنه.', hand: 'tap', round: 999 },
+      { el: both, title: 'تنظیم خیلی دقیق', text: '<b>FINE AIM</b> رو نگه دار تا چوب خیلی آروم، درجه به درجه بچرخه.', hand: 'hold', at: [0.5, 0.25] },
+      { el: '#table', title: 'خطا نکن', text: 'سفید بیفته، اول به توپ حریف بخوری یا به هیچ توپی نخوری خطاست؛ حریف <b>توپ در دست</b> می‌گیره و سفید رو هر جا بخواد می‌ذاره.' },
+      { el: '#players', title: 'نوبت و توپ ۸', text: 'تایمر بالای سر کسیه که نوبتشه. گروهت که پاک شد، <b>توپ ۸</b> رو بنداز و ببر؛ اگه زودتر یا با خطا بیفته، باختی.' },
+      { el: '#items', title: 'پیام سریع', text: 'یه پیام یا شکلک سریع برای حریف بفرست.', hand: 'tap', round: 999 },
+    ],
+  };
+}
+GCTour.auto(tour());
+$('mHelp').textContent = 'آموزش بیلیارد';
+$('mHelp').addEventListener('click', e => { e.preventDefault(); closeMenu(); GCTour.start(tour()); });
 })();

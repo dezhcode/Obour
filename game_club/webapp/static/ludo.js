@@ -369,7 +369,27 @@ $('rules').onclick = () => sheet(`${sheetHead('قوانین منچ')}
     <li>هر نوبت <b>${FD(Math.round(turnMs / 1000))} ثانیه</b> وقت داری؛ بعدش تاس و حرکت خودکار انجام می‌شود.</li>
     <li>تاس روی سرور ریخته می‌شود؛ نه گوشی تو و نه حریف عددش را تعیین نمی‌کند.</li>
   </ul>
-  <a class="btn btn-light btn-block" href="help.html">راهنمای کامل</a>`);
+  <button class="btn btn-block" id="tourB">${icon('play')}آموزش قدم‌به‌قدم</button>
+  <a class="btn btn-light btn-block" href="help.html">راهنمای کامل</a>`).querySelector('#tourB').onclick = () => { GC.close(); GCTour.start(tour()); };
+
+/* ---------- آموزش بار اول (روی خود صفحه؛ نوبت که برسد و وقت کم شود، کنار می رود) ---------- */
+function tour() {
+  const sec = FD(Math.round(turnMs / 1000));
+  return {
+    id: 'ludo', name: 'منچ', color: '#FFC531', help: 'help.html#hLudo',
+    intro: 'منچ همون بازی قدیمیه: چهار مهره داری و باید زودتر از بقیه همه رو دور صفحه ببری و به خونه برسونی.',
+    turn: () => ({ mine: !!(snap && snap.game && snap.game.turn === me && !snap.game.over), left: deadlineAt ? deadlineAt - Date.now() : null }),
+    steps: [
+      { el: () => document.querySelector(`.yard[data-yard="${me}"]`) || $('board'), title: 'این لونهٔ توئه', text: 'رنگ تو همیشه <b>پایین چپ</b> صفحه‌ست. چهار مهره‌ت اینجا منتظرن تا بیرون بیان.' },
+      { el: '#roll', title: 'تاس بنداز', text: `نوبتت که شد، روی تاس بزن. فقط با <b>۶</b> مهره از لونه بیرون میاد. هر نوبت ${sec} ثانیه وقت داری.`, hand: 'tap' },
+      { el: '#board', title: 'مهره رو انتخاب کن', text: 'مهره‌ای که <b>بالا پایین می‌پره</b> می‌تونه حرکت کنه؛ روش بزن. دایرهٔ خط‌چین نشون می‌ده کجا می‌ره.', hand: 'tap', at: [0.3, 0.62] },
+      { el: '#board', title: 'بزن و جایزه بگیر', text: 'دقیقا روی مهرهٔ حریف بشینی، برمی‌گرده لونه‌ش! <b>۶</b>، زدن یا رسیدن به خونه یه نوبت اضافه می‌ده. روی <b>ستاره‌ها</b> کسی زده نمی‌شه.' },
+      { el: '#board', title: 'برس به خونه', text: 'مهره‌ها در جهت فلش‌ها دور صفحه می‌چرخن، از راهروی رنگ خودت می‌رن تو و به <b>وسط صفحه</b> می‌رسن. هر کی زودتر هر چهارتا رو برسونه، برنده‌ست.', hand: 'tap', at: [0.5, 0.5] },
+      { el: '#turnbar', title: 'حواست به وقت باشه', text: `نوار بالا نشون می‌ده نوبت کیه و چقدر وقت مونده. وقتت تموم بشه، تاس و حرکت <b>خودکار</b> انجام می‌شه.` },
+      { el: '#chatBtn', title: 'با بقیه حرف بزن', text: 'پیام سریع یا متن کوتاه بفرست؛ بالای صفحه برای همه میاد.', hand: 'tap' },
+    ],
+  };
+}
 
 /* ---------- اندازه صفحه: هر چه ارتفاع جا بدهد، بدون اسکرول ---------- */
 function fitBoard() {
@@ -401,8 +421,8 @@ async function start() {
   chatIn(first.chat, true);
   snap = first; since = g.seq; shown = clone(g.pawns); ensurePawns(g); layout(); renderSeats(g); renderTurn(g); mount(); fitBoard();
   if (first.status === 'over') { overShown = true; over(first); return; }
-  if (!S.tutorial && !WATCH) await GC.coach(me);
   poll();
+  if (!WATCH) GCTour.auto(tour());
 }
 start();
 })();
