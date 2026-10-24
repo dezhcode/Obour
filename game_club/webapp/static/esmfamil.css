@@ -184,3 +184,14 @@ body.esm{--ef-bg:#EFE6D2;--ef-paper:#FFFCF2;--ef-line:#C9D8EE;--ef-margin:#E8A3A
 
 /* برگه ها و پیام ها (gc-ui) در این صفحه به رنگ خودکار قرمز */
 body.esm .gc-ui{--acc:#C8323C;--acc-deep:#C8323C;--acc-ink:#FFFFFF;--acc-tint:#FBE8E9}
+
+/* تماشاگر: تب بازیکن ها بالای برگ زنده */
+.ef-wtabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 10px;padding:2px}
+.ef-wtabs::-webkit-scrollbar{display:none}
+.ef-wtabs button{flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:84px;padding:6px 12px;border:0;border-radius:14px;
+  background:var(--ef-chip);color:var(--ef-ink);font:inherit;cursor:pointer}
+.ef-wtabs button b{font-size:13px;font-weight:800;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ef-wtabs button small{font-size:11px;color:var(--ef-label);font-weight:700}
+.ef-wtabs button[aria-selected="true"]{background:var(--ef-ink);color:var(--ef-paper)}
+.ef-wtabs button[aria-selected="true"] small{color:inherit;opacity:.8}
+.ef-sheet.ro .ef-row.bad .ro{text-decoration:underline wavy var(--ef-red);text-underline-offset:6px}

@@ -1388,7 +1388,7 @@ def test_inline_tables():
             # فرستادن از مینی اپ: پیام آماده با کارت تنظیم همین بازی
             pid = await groups.prepare_share(db, 33, "football")
             uid, art, kw = bot.prepared[-1]
-            assert pid == "prep1" and uid == 33 and kw["allow_group_chats"] and not kw["allow_channel_chats"]
+            assert pid == "prep1" and uid == 33 and kw["allow_group_chats"] and kw["allow_channel_chats"]
             assert (await db.draft(art.id))["game"] == "football" and art.input_message_content.rich_message.blocks
             try:
                 await groups.prepare_share(db, 33, "chess")
@@ -2282,9 +2282,10 @@ def test_esmfamil_group_flow():
                 raise AssertionError("stop with half sheet")
             except service.GCError as e:
                 assert e.code == "sheet_not_full"
-            # تماشاگر گروه برگ کسی را نمی بیند
+            # تماشاگر گروه برگ همه را زنده می بیند (بازیکن ها نه)
             w = await service.match_view(db, 99, mid)
-            assert w["watch"] and w["game"]["sheet"] is None and "بهرامی" not in str(w)
+            assert w["watch"] and w["game"]["sheet"] is None and set(w["game"]["sheets"]) == set(w["game"]["order"])
+            assert (await service.match_view(db, 21, mid))["game"]["sheets"] is None
             v = await service.act(db, 21, mid, "stop", data={"sheet": FULL_B})
             assert v["game"]["phase"] == "stop" and v["game"]["stopper"] == "0"
             await service.act(db, 22, mid, "submit", data={"sheet": {"name": "بهار", "fruit": "بادام", "city": "بابل"}})
@@ -2341,6 +2342,9 @@ def test_esmfamil_group_flow():
             iq.chat_type = "supergroup"
             await groups.on_inline(iq, gdb=db)
             assert [r.title for r in got[-1][0]] == ["📝 میز اسم‌فامیل بساز"] and got[-1][1]["button"] is None
+            iq.chat_type = "channel"                                    # کانال هم مثل گروه
+            await groups.on_inline(iq, gdb=db)
+            assert [r.title for r in got[-1][0]] == ["📝 میز اسم‌فامیل بساز"]
             await groups.prepare_share(db, 21, "esmfamil")
             assert bot.prepared[-1][2]["allow_user_chats"] is False and bot.prepared[-1][2]["allow_group_chats"] is True
         finally:
@@ -2424,7 +2428,7 @@ def test_lashgar_rules():
             assert L.check_units(st["players"][c]["units"], 11)[1] is None and len(st["players"][c]["units"]) == 11
         v = L.view(st, "0", 0, 5)
         assert v["players"]["0"]["units"] and v["players"]["1"]["units"] is None and v["players"]["1"]["placed"] == 11
-        assert L.view(st, None, 0, 5)["players"]["0"]["units"] is None
+        assert L.view(st, None, 0, 5)["players"]["0"]["units"]          # تماشاگر از همان چیدن می بیند
         assert L.ready(st, "0", 5) is None and st["phase"] == "draw" and L.unready(st, "0", 6) is None
         assert not st["players"]["0"]["ready"] and L.ready(st, "0", 7) is None
         assert L.set_units(st, "0", [], 8) == "is_ready"
@@ -2587,7 +2591,9 @@ def test_lashgar_group_flow():
             g1 = await service.ink_get(db, 31, mid, 0, False)          # کارهای پشت سر هم: s، s، x
             assert [o["op"] for o in g1["ops"]] == ["s", "s", "x"] and g1["ops"][2]["ref"] == g1["ops"][1]["id"]
             await db.player(99, "watcher")
-            assert (await service.ink_get(db, 99, mid, 0, True))["ops"] == []
+            # تماشاگر از همان چیدن نقاشی و نیروهای هر دو را می بیند
+            assert {o["c"] for o in (await service.ink_get(db, 99, mid, 0, True))["ops"]} == {"0", "1"}
+            assert (await service.match_view(db, 99, mid))["game"]["players"]["0"]["units"] is not None
             v = await service.match_view(db, 32, mid)
             assert v["game"]["players"]["0"]["units"] is None and v["game"]["ink_v"] == (await db.ink_last(mid, "1"))
             # آماده: نیمهٔ حریف و نقاشی اش پیدا می شود؛ بعد از آماده دیگر نمی شود کشید

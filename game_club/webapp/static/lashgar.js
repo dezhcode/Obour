@@ -164,8 +164,9 @@ function flushInk() {
 async function inkSettled() { for (let i = 0; i < 40 && (sending || queue.length); i++) { flushInk(); await (sending || GC.sleep(60)); } }
 // خط ها از سرور: در چیدن فقط مال خودم (مثلا بعد از باز کردن دوبارهٔ صفحه)، از شروع جنگ هر دو
 async function loadInk() {
-  const want = phase() === 'draw' ? (WATCH ? 'none' : 'draw:' + me()) : 'all';
-  if (want === inkFor || want === 'none') return;
+  // تماشاگر از همان چیدن نقاشی هر دو را می بیند و با هر خط تازه (ink_v) دوباره می گیرد
+  const want = phase() === 'draw' ? (WATCH ? 'w:' + (G().ink_v || 0) : 'draw:' + me()) : 'all';
+  if (want === inkFor) return;
   inkFor = want;
   const got = { 0: [], 1: [] };
   let v = 0;
@@ -177,7 +178,7 @@ async function loadInk() {
       if (!r.more) break;
     }
   } catch (e) { inkFor = ''; return; }
-  for (const c of ['0', '1']) if (want === 'all' || c === me()) { ink[c] = got[c]; redraw(c); }
+  for (const c of ['0', '1']) if (want === 'all' || want.startsWith('w:') || c === me()) { ink[c] = got[c]; redraw(c); }
 }
 
 /* ---------- نیروها ---------- */
@@ -701,7 +702,8 @@ function dockOver() {
 }
 function dockWatchDraw() {
   return `<div class="lg-card"><div class="lg-row"><span class="ic">${icon('eye')}</span><span class="tx"><h2>دارن ارتششون رو می‌چینن</h2>
-    <p>${G().order.map(c => `${esc(P(c).army || P(c).name)}: ${P(c).ready ? 'آماده ✓' : 'داره می‌کشه…'}`).join('، ')}</p></span></div></div>`;
+    <p>تو برگهٔ هر دو لشگر رو زنده می‌بینی؛ خودشون تا شروع جنگ برگهٔ همدیگه رو نمی‌بینن 🤫</p>
+    <p>${G().order.map(c => `${esc(P(c).army || P(c).name)}: ${P(c).ready ? 'آماده ✓' : `${FD(P(c).placed)} از ${FD(total())} نیرو`}`).join('، ')}</p></span></div></div>`;
 }
 function renderDock() {
   const g = G(), d = $('dock'); if (!g) return;
@@ -848,7 +850,7 @@ async function applyNow(v) {
   }
   if (!layout) fit(true);
   const cv = $('cover');
-  if (g.phase === 'draw' && !g.over) { cv.hidden = false; coverHtml(); }
+  if (g.phase === 'draw' && !g.over && !WATCH) { cv.hidden = false; coverHtml(); }
   else if (layout !== 'draw') cv.hidden = true;
   loadInk();
   const evs = (g.events || []).filter(e => e.seq > since).sort((a, b) => a.seq - b.seq);
@@ -890,7 +892,7 @@ async function again(btn) {
     const r = await GC.data.groupShare('lashgar');
     if (r.demo) toast('توی تلگرام گروهتو انتخاب می‌کنی و کارت میز همون‌جا می‌ره');
     else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز رفت توی گروه؛ بچه‌ها رو خبر کن! 🎉'); } });
-    else if (at('6.7') && w.switchInlineQuery) w.switchInlineQuery('lashgar', ['groups']);
+    else if (at('6.7') && w.switchInlineQuery) w.switchInlineQuery('lashgar', ['groups', 'channels']);
     else toast('توی گروه بنویس /lashgar');
   } catch (e) { toast(errText(e)); }
   btn.disabled = false;

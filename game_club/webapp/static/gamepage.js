@@ -101,7 +101,7 @@ function build(opt) {
      در تلگرام قدیمی تر حالت اینلاین (@ربات hokm) با انتخاب چت باز می شود */
   async function share(btn) {
     const w = window.Telegram && Telegram.WebApp, at = v => w && w.isVersionAtLeast && w.isVersionAtLeast(v);
-    const chats = opt.who && !opt.who.includes('friends') ? ['groups'] : ['groups', 'users'];
+    const chats = opt.who && !opt.who.includes('friends') ? ['groups', 'channels'] : ['groups', 'users', 'channels'];
     const inline = () => { if (at('6.7') && w.switchInlineQuery) { w.switchInlineQuery(opt.game, chats); return true; } return false; };
     btn.disabled = true;
     try {

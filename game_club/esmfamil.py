@@ -439,7 +439,8 @@ def winners(st: dict) -> set[str]:
 
 
 def view(st: dict, me: str | None, since: int, now: float) -> dict:
-    """هر کس فقط برگ خودش را تا پایان داوری می‌بیند؛ بقیه فقط تعداد خانه‌های پرشده. بعد از داوری، برگ همه."""
+    """هر بازیکن فقط برگ خودش را تا پایان داوری می‌بیند؛ بقیه فقط تعداد خانه‌های پرشده. بعد از داوری، برگ همه.
+    تماشاگر (me=None، از کارت گروه) همان موقع نوشتن هم برگ همه را زنده می‌بیند (sheets)."""
     ph, rnd = st["phase"], st["round"]
     writing = ph in ("write", "stop", "judge")
     me_in = me in st["players"] if me else False
@@ -463,6 +464,7 @@ def view(st: dict, me: str | None, since: int, now: float) -> dict:
         "deadline_ms": max(0, int((st["deadline"] - now) * 1000)) if ph in ("letter", "write", "stop", "show") else 0,
         "waiting": [c for c in active(st) if c not in st["here"]] if ph == "letter" and rnd == 0 else [],
         "sheet": dict(st["sheets"].get(me, {})) if me_in and writing else None,
+        "sheets": {c: dict(st["sheets"].get(c, {})) for c in st["players"]} if me is None and writing else None,
         "submitted": me in st["done"],
         "stopper": st["stopper"],
         "results": st["rounds"],

@@ -99,10 +99,7 @@ function viewLetter() {
 /* ---------- مرحلهٔ نوشتن ---------- */
 function viewWrite() {
   const g = G(), done = g.submitted;
-  if (WATCH) {
-    return `<div class="ef-card" style="padding:14px"><p class="ef-sub" style="margin:0 0 10px">برگ‌ها تا داوری قایمه؛ فقط معلومه هر کی چند تا خونه رو پر کرده 👀</p>
-      <ol class="ef-rank" style="margin:0">${active().map(c => `<li><span class="nm">${who(c)}</span><span class="v">${FD(g.players[c].filled || 0)}/${FD(g.cols.length)}</span></li>`).join('')}</ol></div>`;
-  }
+  if (WATCH) return watchSheets(g);
   return `<div class="ef-sheet${done ? ' done' : ''}" id="sheet">${g.cols.map(({ k, fa }, i) => `<div class="ef-row" data-k="${k}">
       <label for="in-${k}">${fa}</label>
       <input id="in-${k}" data-k="${k}" maxlength="32" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" dir="rtl"
@@ -135,7 +132,7 @@ function noteWrite() {
     const s = Math.max(0, secsLeft());
     return note(g.stopper === me() ? `استپ زدی! بقیه فقط ${FD(s)} ثانیه وقت دارن 😎` : `${who(g.stopper)} استپ زد! فقط ${FD(s)} ثانیه وقت داری، تند تند بنویس!`);
   }
-  if (WATCH) return note('داری تماشا می‌کنی؛ برگ‌ها بعد از داوری رو می‌شه', icon('eye'));
+  if (WATCH) return note('داری تماشا می‌کنی؛ برگ هر کی رو بخوای از تب‌ها ببین 👀', icon('eye'));
   note(null);
 }
 function bindWrite() {
@@ -159,10 +156,31 @@ function bindWrite() {
   flags();
 }
 
+/* تماشاگر: برگ هر بازیکن زنده (سرور فقط به تماشاگر می دهد، نه به بازیکن ها)؛ با تب بین بازیکن ها جابه جا می شود */
+let watchC = null;
+function watchSheets(g) {
+  const list = active();
+  if (!list.includes(watchC)) watchC = list[0];
+  const sh = (g.sheets && g.sheets[watchC]) || {}, p = g.players[watchC] || {};
+  return `<div class="ef-wtabs" role="tablist" aria-label="برگ بازیکن ها">${list.map(c => `<button role="tab" data-wc="${c}" aria-selected="${c === watchC}">
+      <b>${who(c)}</b><small>${g.players[c].done ? '✓ تحویل داد' : `${FD(g.players[c].filled || 0)} از ${FD(g.cols.length)}`}</small></button>`).join('')}</div>
+    <div class="ef-sheet ro" aria-label="برگ ${esc(p.name || '')}">${g.cols.map(({ k, fa }) => {
+      const v = (sh[k] || '').trim();
+      return `<div class="ef-row${v ? (starts(v, g.letter) ? ' ok' : ' bad') : ''}"><label>${fa}</label>${v ? `<span class="ro hand">${esc(v)}</span>` : '<span class="ro empty">…</span>'}</div>`;
+    }).join('')}</div>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-wc]'); if (!b || !WATCH) return;
+  watchC = b.dataset.wc; sfx.tap();
+  const g = G(); if (!g) return;
+  const main = $('main');
+  if (['write', 'stop'].includes(g.phase)) main.innerHTML = viewWrite(); else if (g.phase === 'judge') main.innerHTML = viewJudge();
+});
+
 /* ---------- مرحلهٔ داوری ---------- */
 function viewJudge() {
   const g = G();
-  const mine = WATCH ? '' : `<div class="ef-sheet">${g.cols.map(({ k, fa }) => `<div class="ef-row"><label>${fa}</label>
+  const mine = WATCH ? watchSheets(g) : `<div class="ef-sheet">${g.cols.map(({ k, fa }) => `<div class="ef-row"><label>${fa}</label>
       ${(g.sheet && g.sheet[k]) || vals[k] ? `<span class="ro hand">${esc((g.sheet && g.sheet[k]) || vals[k])}</span>` : '<span class="ro empty">خالی موند</span>'}</div>`).join('')}</div>`;
   return `<div class="ef-jhead"><span class="ic">${PEN}</span><div><h2>داور داره برگ‌ها رو تصحیح می‌کنه…</h2><small>هوش مصنوعی عبور داره برگ همه رو با دقت می‌خونه 🧐</small></div></div>
     <div class="ef-prog"><i id="prog" style="width:4%"></i></div>${mine}
@@ -369,7 +387,7 @@ async function again(btn) {
     const r = await GC.data.groupShare('esmfamil');
     if (r.demo) toast('توی تلگرام گروهتو انتخاب می‌کنی و کارت میز همون‌جا می‌ره');
     else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز رفت توی گروه؛ بچه‌ها رو خبر کن! 🎉'); } });
-    else if (at('6.7') && w.switchInlineQuery) w.switchInlineQuery('esmfamil', ['groups']);
+    else if (at('6.7') && w.switchInlineQuery) w.switchInlineQuery('esmfamil', ['groups', 'channels']);
     else toast('توی گروه بنویس /esmfamil');
   } catch (e) { toast(errText(e)); }
   btn.disabled = false;

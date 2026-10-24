@@ -895,9 +895,7 @@ async def ink_get(db: GCDatabase, tg: int, match_id: str, since: int, snap: bool
         raise GCError("not_found")
     if color is None and not await db.group_table(match_id):
         raise GCError("not_found")
-    draw = m["state"]["phase"] == "draw"
-    if draw and color is None:
-        return {"ops": [], "v": 0, "more": False}
+    draw = m["state"]["phase"] == "draw" and color is not None   # تماشاگر همیشه خط های هر دو نفر را می گیرد
     got = await db.ink_since(match_id, max(0, int(since)), color if draw else None, INK_PAGE, snap)
     ops = []
     for r in got:
@@ -1009,7 +1007,7 @@ async def _watch_view(db: GCDatabase, match_id: str, since: int) -> dict:
     if m["status"] != "cancelled":
         out["game"] = _eng(cfg).view(st, None, since, now)
         if game_of(cfg) == "lashgar":
-            out["game"]["ink_v"] = 0 if st["phase"] == "draw" else await db.ink_last(match_id, None)
+            out["game"]["ink_v"] = await db.ink_last(match_id, None)   # تماشاگر نقاشی هر دو را از همان چیدن می بیند
         await _put_pids(db, match_id, out["game"], None)
         out["pot"] = st.get("pot", 0)
     return out

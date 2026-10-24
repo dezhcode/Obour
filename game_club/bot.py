@@ -4,8 +4,8 @@
 و دیتابیس خودش را دارد. کار اصلی ربات باز کردن مینی اپ است:
   /start            خوش آمد + دکمه ورود
   /start ludo_CODE  لینک دعوت دوست: دکمه مستقیم به همان میز (حکم: hokm_CODE، فوتبال: football_CODE، بیلیارد: billiard_CODE، دیوار: divar_CODE، اسم‌فامیل: esmfamil_CODE، لشگر کاغذی: lashgar_CODE)
-  /esmfamil         در پیوی: اسم‌فامیل فقط در گروه است؛ توضیح و دکمهٔ انتخاب گروه
-  /lashgar          در پیوی: لشگر کاغذی (جنگ کاغذی) هم فقط در گروه است
+  /esmfamil         در پیوی: اسم‌فامیل فقط در گروه یا کانال است؛ توضیح و دکمهٔ انتخاب گروه/کانال
+  /lashgar          در پیوی: لشگر کاغذی (جنگ کاغذی) هم فقط در گروه یا کانال است
   /start obour      آمده از کارت Game Club در مینی اپ عبور
   /points           موجودی امتیاز
   /help             قوانین کوتاه
@@ -222,7 +222,7 @@ def group_steps() -> list:
 def with_group_button(kb: InlineKeyboardMarkup | None) -> InlineKeyboardMarkup:
     """دکمهٔ «بازی توی گروه»: تلگرام فهرست چت ها را باز می کند و @آیدی ربات را خودش می نویسد."""
     btn = st.kb_button("بازی توی گروه", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
-        query="", allow_group_chats=True, allow_user_chats=True))
+        query="", allow_group_chats=True, allow_user_chats=True, allow_channel_chats=True))
     return InlineKeyboardMarkup(inline_keyboard=[[btn], *(kb.inline_keyboard if kb else [])])
 
 
@@ -269,8 +269,8 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
     lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), "، خوش اومدی! اینجا کسی حوصله‌ش سر نمی‌ره 😎"], "",
              [st.E("hokm"), " حکم  ", st.E("ludo"), " منچ  ", st.E("football"), " فوتبال  ", st.E("billiard"), " بیلیارد  ", st.E("divar"), " دیوار"],
              "با رفیقات یا با ناشناس؛ هر جا حوصله‌ت سر رفت 😄",
-             [st.E("esmfamil"), " اسم‌فامیل هم داریم، فقط توی گروه؛ داورش هوش مصنوعی عبوره!"],
-             [st.E("lashgar"), " لشگر کاغذی هم هست؛ همون جنگ کاغذی دهه شصت، فقط توی گروه 🪖"], "", *group_steps()]
+             [st.E("esmfamil"), " اسم‌فامیل هم داریم، توی گروه یا کانال؛ داورش هوش مصنوعی عبوره!"],
+             [st.E("lashgar"), " لشگر کاغذی هم هست؛ همون جنگ کاغذی دهه شصت، توی گروه یا کانال 🪖"], "", *group_steps()]
     if arg == "obour":
         lines += ["", "حساب عبورت به همین تلگرام وصله؛ شارژ از کیف عبور یه ثانیه‌ست ⚡"]
     await message.answer(_h("hello", "Game Club", "منوی اصلی", lines, foot=("coin", "امتیاز", [st.num(me["points"]), " امتیاز"])),
@@ -278,34 +278,34 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
 
 
 def esmfamil_intro() -> list:
-    return [[st.E("esmfamil"), " ", st.B("اسم‌فامیل فقط توی گروه بازی می‌شه")],
+    return [[st.E("esmfamil"), " ", st.B("اسم‌فامیل توی گروه یا کانال بازی می‌شه")],
             "همه با هم یه حرف می‌گیرن و اسم، فامیل، شهر، کشور، غذا، حیوان، میوه، اشیا و رنگ رو پر می‌کنن؛ هر دور 3، 5 یا 8 دقیقه.",
             [st.E("judge"), " حرف هر دور رو هوش مصنوعی عبور انتخاب می‌کنه و برگ‌ها رو هم خودش تصحیح می‌کنه."],
             "جواب درستی که فقط تو نوشتی 10، تکراری 5؛ آخر بازی برگ همه با امتیازا توی گروه میاد و برنده اعلام می‌شه 🏆", "",
-            ["توی گروهت بنویس ", st.iso("/esmfamil"), " یا ", st.iso(bot_at() + " esmfamil")]]
+            ["توی گروهت بنویس ", st.iso("/esmfamil"), " یا توی گروه و کانالت ", st.iso(bot_at() + " esmfamil")]]
 
 
 def esmfamil_kb() -> InlineKeyboardMarkup:
-    """فقط گروه ها در فهرست انتخاب تلگرام می آیند؛ کارت تنظیم میز همان جا ساخته می شود."""
-    btn = st.kb_button("یه گروه انتخاب کن، بزن بریم", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
-        query="esmfamil", allow_group_chats=True, allow_user_chats=False, allow_bot_chats=False, allow_channel_chats=False))
+    """فقط گروه ها و کانال ها در فهرست انتخاب تلگرام می آیند؛ کارت تنظیم میز همان جا ساخته می شود."""
+    btn = st.kb_button("یه گروه یا کانال انتخاب کن، بزن بریم", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
+        query="esmfamil", allow_group_chats=True, allow_user_chats=False, allow_bot_chats=False, allow_channel_chats=True))
     kb = open_kb("esmfamil-lobby.html", "چطوری بازی کنم؟", "help")
     return InlineKeyboardMarkup(inline_keyboard=[[btn], *(kb.inline_keyboard if kb else [])])
 
 
 def lashgar_intro() -> list:
-    return [[st.E("lashgar"), " ", st.B("لشگر کاغذی فقط توی گروه بازی می‌شه")],
+    return [[st.E("lashgar"), " ", st.B("لشگر کاغذی توی گروه یا کانال بازی می‌شه")],
             "همون جنگ کاغذی زنگ تفریح: یه برگه، خط وسط، این‌ور ارتش تو و اون‌ور ارتش حریف. اول اسم لشگرت رو می‌ذاری، "
             "بعد سرباز و تانک و توپ و هلیکوپتر و پرچمت رو می‌چینی و با مداد هر چی دلت خواست می‌کشی؛ نقاشی وقت نداره.",
             [st.E("boom"), " هر شلیک 1 دقیقه وقت داره: یه نقطه روی نیمهٔ خودت، برگه رو تا می‌کنی و از پشت فشار می‌دی؛ "
              "ردش قرینه روی نیمهٔ حریف می‌افته و هر نیرویی که بخوره، خط می‌خوره."],
             "هر کی زودتر پرچم حریف رو بزنه یا همهٔ نیروهاشو خط بزنه، برنده‌ست 🏆", "",
-            ["توی گروهت بنویس ", st.iso("/lashgar"), " یا ", st.iso(bot_at() + " lashgar")]]
+            ["توی گروهت بنویس ", st.iso("/lashgar"), " یا توی گروه و کانالت ", st.iso(bot_at() + " lashgar")]]
 
 
 def lashgar_kb() -> InlineKeyboardMarkup:
-    btn = st.kb_button("یه گروه انتخاب کن، بزن بریم", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
-        query="lashgar", allow_group_chats=True, allow_user_chats=False, allow_bot_chats=False, allow_channel_chats=False))
+    btn = st.kb_button("یه گروه یا کانال انتخاب کن، بزن بریم", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
+        query="lashgar", allow_group_chats=True, allow_user_chats=False, allow_bot_chats=False, allow_channel_chats=True))
     kb = open_kb("lashgar-lobby.html", "چطوری بازی کنم؟", "help")
     return InlineKeyboardMarkup(inline_keyboard=[[btn], *(kb.inline_keyboard if kb else [])])
 
@@ -788,8 +788,8 @@ async def on_text(message: Message) -> None:
 
 COMMANDS = [BotCommand(command="start", description="ورود به Game Club"),
             BotCommand(command="points", description="موجودی امتیاز"),
-            BotCommand(command="esmfamil", description="اسم‌فامیل (فقط توی گروه)"),
-            BotCommand(command="lashgar", description="لشگر کاغذی؛ جنگ کاغذی (فقط توی گروه)"),
+            BotCommand(command="esmfamil", description="اسم‌فامیل (توی گروه یا کانال)"),
+            BotCommand(command="lashgar", description="لشگر کاغذی؛ جنگ کاغذی (توی گروه یا کانال)"),
             BotCommand(command="help", description="قوانین")]
 GROUP_COMMANDS = [BotCommand(command="hokm", description="میز حکم در همین گروه"),
                   BotCommand(command="ludo", description="میز منچ در همین گروه"),
