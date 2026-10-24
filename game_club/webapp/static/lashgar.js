@@ -773,7 +773,6 @@ async function submitName() {
     const r = await API.army(mid, v, since);
     store.set('lg_army', v); inp.blur(); sfx.turn(); haptic('success');
     $('nameScr').dataset.on = ''; await apply(r);
-    if (!store.get('lg_tut', false)) { store.set('lg_tut', true); setTimeout(howTo, 350); }
   } catch (e) { $('nErr').textContent = errText(e); sfx.error(); haptic('error'); b.disabled = false; }
 }
 
@@ -874,7 +873,7 @@ function askExit() {
   sh.querySelector('#leave').onclick = async () => { try { await API.leave(mid); } catch (e) {} GC.guardClose(false); store.set('lgmid', null); location.href = 'index.html'; };
 }
 $('exit').onclick = askExit;
-$('help').onclick = howTo;
+$('help').onclick = () => (phase() === 'draw' && !WATCH ? GCTour.start(tourDraw()) : phase() === 'battle' && !WATCH ? GCTour.start(tourBattle()) : howTo());
 GC.back(askExit);
 function dialog(title, text) {
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('flag')}</span>
@@ -933,6 +932,42 @@ async function start() {
   poll();
 }
 document.addEventListener('pointerdown', () => GC.loadSamples && GC.loadSamples(), { once: true });
+/* ---------- آموزش بار اول: یکی برای چیدن و نقاشی (بعد از اسم)، یکی برای اولین جنگ ---------- */
+const halfRect = top => { const r = sheetRect(); if (!r.width) return null; const h = r.height / 2; return { x: r.left, y: top ? r.top : r.top + h, w: r.width, h: Math.min(h, innerHeight - (top ? r.top : r.top + h)) }; };
+function tourDraw() {
+  return {
+    id: 'lashgar', name: 'لشگر کاغذی', color: '#1A7A35', ink: '#fff', help: 'help.html#hLg',
+    introTitle: 'جنگ کاغذی شروع شد!', intro: 'همون جنگ زنگ تفریح: ارتشت رو روی نیمهٔ خودت بچین، هر چی خواستی بکش و بعد با تا کردن برگه شلیک کن.',
+    ready: () => !!(G() && !WATCH && phase() === 'draw' && me() && P(me()).army && !P(me()).ready && document.querySelector('.lg-chips') && $('nameScr').hidden),
+    after: () => { if (phase() === 'draw') setTool(null); },
+    steps: [
+      { el: '.lg-chips', title: 'ارتشت رو بچین', text: 'نیروها رو از اینجا <b>بکش روی نیمهٔ خودت</b>. با یه لمس روی هر نیرو، می‌چرخونیش یا برش می‌داری.', hand: { type: 'drag', from: [0.5, 0.45], to: [0.45, -2.4] }, before: () => setTool(null) },
+      { el: '#auto', title: 'عجله داری؟', text: '«بقیه رو خودت بچین» نیروهای باقی‌مونده رو یه جای خالی می‌ذاره؛ بعدش هم می‌تونی جابه‌جاشون کنی.', hand: 'tap' },
+      { el: () => halfRect(false), title: 'پرچم فرمانده‌ست', text: 'هر نیرو با یه بار خوردن خط می‌خوره. <b>پرچم</b> رو خوب قایم کن: اگه بخوره، جنگ همون‌جا تمومه. نقاشی‌ها هدف نیستن.', pad: 2, round: 6 },
+      { el: '.lg-pcs', title: 'یه مداد بردار', text: 'مداد رو با <b>یه انگشت</b> روی برگه ببر؛ سرش کمی بالای انگشتته تا ببینی کجا می‌کشی.', hand: 'tap', at: [0.85, 0.4], before: () => setTool({ k: 'pen', c: 0 }) },
+      { el: '#paint', title: 'رنگ کن', text: 'فقط وقتی این دکمه رو <b>نگه داشتی</b> مداد رنگ می‌ده. یه ضربهٔ کوتاه روشن نگهش می‌داره و ضربهٔ بعد خاموشش می‌کنه.', hand: 'hold', round: 999 },
+      { el: '.lg-tools', title: 'پاک‌کن و برگردون', text: 'پاک‌کن هم مثل مداده: با «رنگ کن» پاک می‌کنه. «برگردون» آخرین خط رو برمی‌داره.' },
+      { el: '#ready', title: 'آماده‌ام', text: 'همه چیده شد؟ <b>«آماده‌ام»</b> رو بزن. هر دو که آماده شدید، دفتر کنار می‌ره و جنگ شروع می‌شه. این مرحله وقت نداره.', before: () => setTool(null) },
+    ],
+  };
+}
+function tourBattle() {
+  return {
+    id: 'lashgar2', artId: 'lashgar', name: 'لشگر کاغذی', color: '#C8323C', ink: '#fff', help: 'help.html#hLg', pauseAt: 15000,
+    introTitle: 'وقت جنگه!', intro: 'هر شلیک سه حرکته: نقطه بذار، برگه رو تا کن و از پشت فشار بده.',
+    ready: () => !!(G() && !WATCH && phase() === 'battle' && !animating && $('cover').hidden && fold.st === 'flat'),
+    turn: () => ({ mine: !!myTurn(), left: deadlineAt ? deadlineAt - performance.now() : null }),
+    steps: [
+      { el: '#score', title: 'دو لشگر', text: 'لشگری که نوبتشه دورش روشنه؛ تعداد نیروهای سالم هر طرف هم همین‌جاست.' },
+      { el: () => halfRect(false), title: 'یه نقطه بذار', text: 'نوبتت که شد، با <b>مداد قرمز</b> یه نقطه روی نیمهٔ خودت بذار. همون فاصله تا خط وسط، اون‌ور شلیک می‌شه.', hand: 'tap', at: [0.4, 0.3], pad: 2, round: 6 },
+      { el: () => halfRect(false), title: 'برگه رو تا کن', text: 'دستهٔ پایین برگه رو <b>بکش بالا</b> تا تا بخوره؛ هر چی صاف‌تر بکشی دقیق‌تر. دکمهٔ «تا کن و شلیک کن» هم هست.', hand: { type: 'drag', from: [0.5, 0.96], to: [0.5, 0.1] }, pad: 2, round: 6 },
+      { el: () => halfRect(true), title: 'محکم فشار بده', text: 'از پشت برگه روی نقطه <b>نگه دار</b> تا پررنگ بشه. ردش به هر نیرویی بخوره، خط می‌خوره.', hand: 'hold', at: [0.4, 0.7], pad: 2, round: 6 },
+      { el: '#clock', title: 'هر شلیک ۱ دقیقه', text: 'وقتت تموم بشه نوبتت می‌سوزه؛ <b>۳ بار پشت هم</b> یعنی باخت. پرچم حریف رو بزنی، جنگ همون‌جا تمومه!', center: true },
+    ],
+  };
+}
+GCTour.auto(tourDraw()); GCTour.auto(tourBattle());
+
 GC.mount();
 start();
 })();
