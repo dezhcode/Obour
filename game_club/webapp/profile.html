@@ -174,7 +174,7 @@
   const $ = id => document.getElementById(id);
   GC.back('index.html');
   let me = null, pf = null, tab = 'hokm';
-  const NAME = { hokm: 'حکم', football: 'فوتبال', ludo: 'منچ', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل' };
+  const NAME = { hokm: 'حکم', football: 'فوتبال', ludo: 'منچ', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل', lashgar: 'لشگر کاغذی' };
   const pct = (w, g) => g ? FD(Math.round(w * 100 / g)) + '٪' : '—';
   const ago = t => { const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
 
@@ -213,7 +213,7 @@
   function stat(g) { return pf && pf.games.find(x => x.game === g) || { games: 0, wins: 0, prize: 0 }; }
   function renderGames() {
     // هر بازی یک کاشی کوچک با تصویر و رنگ همان بازی
-    $('gtabs').innerHTML = ['hokm', 'football', 'ludo', 'billiard', 'divar', 'esmfamil'].map(g => { const x = GC.GAMES.find(y => y.id === g) || {}; return `<button role="tab" data-g="${g}" aria-selected="${g === tab}"><span class="g-art ${x.tint || ''}">${GC.GAME_ART[g]()}</span>${NAME[g]}</button>`; }).join('');
+    $('gtabs').innerHTML = ['hokm', 'football', 'ludo', 'billiard', 'divar', 'esmfamil', 'lashgar'].map(g => { const x = GC.GAMES.find(y => y.id === g) || {}; return `<button role="tab" data-g="${g}" aria-selected="${g === tab}"><span class="g-art ${x.tint || ''}">${GC.GAME_ART[g]()}</span>${NAME[g]}</button>`; }).join('');
     const s = stat(tab);
     $('gstat').innerHTML = `<div class="kpi"><b>${fa(s.games)}</b><span>بازی</span></div><div class="kpi"><b class="win">${fa(s.wins)}</b><span>برد</span></div>
       <div class="kpi"><b>${fa(s.games - s.wins)}</b><span>باخت</span></div><div class="kpi"><b class="gold">${pct(s.wins, s.games)}</b><span>درصد برد</span></div>`;

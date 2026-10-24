@@ -1,7 +1,7 @@
 """بازی در گروه های تلگرام: ربات یک «کارت میز» در گروه می فرستد؛ دکمه ها داخل خود پیام اند
 (پیام غنی Bot API 10.3 با بلوک دکمه)، نه کیبورد شیشه ای زیر پیام.
 
-- /hokm، /ludo، /football، /billiard، /divar، /esmfamil (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
+- /hokm، /ludo، /football، /billiard، /divar، /esmfamil، /lashgar (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
   (طول بازی، تعداد بازیکن، مدل) را انتخاب می کند و «باز کردن میز» را می زند؛ سازنده خودش می نشیند.
 - با هر نشستن یا بلند شدن، کارت عوض می شود: چه کسانی نشسته اند (با منشن) و چند جای خالی مانده.
 - وقتی میز پر شد یا سازنده «شروع» را زد، دکمه های میز می روند و کارت «بازی شروع شد» می شود با اسم
@@ -11,6 +11,7 @@
 - همین کارت با @ربات hokm در هر چتی (حالت اینلاین) یا از مینی اپ («فرستادن به گروه») هم فرستاده می شود.
 میزهای گروه همیشه آزاد اند (بدون امتیاز) تا با یک لمس اتفاقی از کسی امتیاز کم نشود.
 اسم‌فامیل فقط همین جا ساخته می شود (۲ تا ۱۰ نفر، بدون ربات)؛ آخر بازی برگ همه با امتیازها در گروه می آید.
+لشگر کاغذی (جنگ کاغذی) هم فقط گروهی است (دو نفره، بدون ربات)؛ آخر جنگ عکس برگهٔ آخر در گروه می آید.
 """
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ import time
 from aiogram import Bot, F, Router
 from aiogram.filters import Command
 from aiogram.types import (
+    BufferedInputFile,
     CallbackQuery,
     EphemeralMessageParameters,
     InlineQueryResultArticle,
@@ -36,7 +38,7 @@ from aiogram.types import (
     RichTextStrikethrough,
 )
 
-from . import esmfamil, service
+from . import esmfamil, lashgar, service
 from . import style as st
 from .config import gc
 from .db import GCDatabase
@@ -68,6 +70,10 @@ GAMES = {
                  "opts": [("rounds", "تعداد دور", [(1, "1 دور · برق‌آسا"), (3, "3 دور"), (5, "5 دور · کامل")]),
                           ("secs", "وقت هر دور", [(180, "3 دقیقه · تند"), (300, "5 دقیقه"), (480, "8 دقیقه · با حوصله")])],
                  "def": {"rounds": 3, "secs": 300}},
+    # لشگر کاغذی (جنگ کاغذی): فقط گروهی، دو نفره، بدون ربات؛ نقاشی وقت ندارد و هر شلیک 1 دقیقه
+    "lashgar": {"name": "لشگر کاغذی", "icon": "🪖", "base": {"game": "lashgar", "mode": "free", "entry": 0},
+                "opts": [("army", "ارتش هر نفر", [(11, "کوچک · 11 نیرو"), (18, "بزرگ · 18 نیرو")])],
+                "def": {"army": 11}},
 }
 GROUP_ONLY = service.GROUP_ONLY
 OPEN_TTL = 15 * 60       # میز یا کارت تنظیمی که این مدت شروع نشود بسته می شود
@@ -86,12 +92,16 @@ def cfg_of(game: str, picks: dict) -> dict:
         out["variant"] = "star" if out["kind"] == 5 else "classic"
     if game == "esmfamil":
         out["players"] = esmfamil.MAX_PLAYERS
+    if game == "lashgar":
+        out["players"] = 2
     return out
 
 
 def need_of(game: str, cfg: dict) -> int:
     if game == "esmfamil":
         return esmfamil.MAX_PLAYERS
+    if game == "lashgar":
+        return 2
     return int(cfg.get("players") or 0) if game in ("ludo", "billiard", "divar") else 4 if game == "hokm" else 2
 
 
@@ -106,6 +116,9 @@ def summary(game: str, cfg: dict) -> str:
         return f"آزاد · {n} نفره · {kind} · هر نفر {fd(10 if n == '2' else 7 if cfg.get('variant') == 'star' else 5)} دیوار"
     if game == "billiard":
         return f"آزاد · {n} نفره · {'یاری (دو تیم دونفره)' if cfg.get('players') == 4 else 'رو در رو'} · ۸ توپ"
+    if game == "lashgar":
+        army = cfg.get("army", 11)
+        return f"تن‌به‌تن · ارتش {'بزرگ' if army == 18 else 'کوچک'} ({fd(army)} نیرو) · هر شلیک 1 دقیقه"
     if game == "esmfamil":
         return f"{fd(cfg.get('rounds', 3))} دور · هر دور {fd(round(cfg.get('secs', 300) / 60))} دقیقه · {fd(esmfamil.MIN_PLAYERS)} تا {n} نفر"
     return f"آزاد · {n} نفره · تا {fd(cfg.get('target', 3))} گل"
@@ -123,7 +136,7 @@ def watch_link(game: str, match_id: str) -> str:
 
 # ---------- اجزای پیام غنی (قالب متنی عبور در یک پاراگراف + ردیف دکمه های داخل پیام) ----------
 OPT_ICON = {"target": "time", "players": "users", "pawns": "ludo", "passes": "users", "kind": "divar", "rounds": "esmfamil",
-            "secs": "time"}
+            "secs": "time", "army": "lashgar"}
 
 
 def who(tg: int, name: str) -> list:
@@ -220,6 +233,8 @@ async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
     cfg, mid = m["cfg"], m["id"]
     need = need_of(game, cfg)
     seats = await _seats(db, m)
+    if m["status"] == "lobby" and game == "lashgar":
+        return _lg_lobby(game, cfg, mid, seats, row)
     if m["status"] == "lobby" and game in GROUP_ONLY:
         return _esm_lobby(game, cfg, mid, seats, row)
     if m["status"] == "lobby":
@@ -240,15 +255,20 @@ async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
         link = watch_link(game, mid)
         if game == "esmfamil":
             players += ["", [st.E("judge"), " حرف هر دور و تصحیح برگ‌ها با هوش مصنوعی عبوره."]]
+        if game == "lashgar":
+            players += ["", "اول اسم لشگر، بعد نقاشی؛ عجله‌ای نیست! هر وقت هر دو آماده شدن، جنگ شروع می‌شه و هر شلیک 1 دقیقه وقت داره."]
         return card(st.frame(game, f"بازی {g['name']}", f"شروع شد · {summary(game, cfg)}", players,
-                             foot=("watch", "تماشا", "بقیه هم زنده می‌بینن؛ فقط تقلب نرسونید 😄")),
-                    *([_row(_bt("watch", "دیدن بازی", "primary", url=link))] if link else []))
+                             foot=("watch", "تماشا", "بقیه هم زنده می‌بینن؛ فقط لو ندید کجا رو بزنن 😄" if game == "lashgar"
+                                   else "بقیه هم زنده می‌بینن؛ فقط تقلب نرسونید 😄")),
+                    *([_row(_bt("watch", "دیدن جنگ" if game == "lashgar" else "دیدن بازی", "primary", url=link))] if link else []))
     if m["status"] == "cancelled":
         return closed_card(game)
     state = m["state"]
     if game == "esmfamil":
         # کارت گروه خلاصه است و برگ کامل جدا می آید؛ کارت اینلاین (بدون چت) خودش برگ کامل می شود
         return esm_result(m, seats, full=not row.get("chat_id"))
+    if game == "lashgar":
+        return lg_result(m, seats)
     win_colors = service._winners(state)
     winners = [s for s in seats if s.get("color") in win_colors]
     res: list = [st.E("trophy"), " برنده: "]
@@ -425,6 +445,90 @@ async def _esm_results(db: GCDatabase, m: dict, row: dict) -> None:
         log.warning("برگ نهایی اسم‌فامیل نرفت", exc_info=True)
 
 
+# ---------- لشگر کاغذی: کارت میز و نتیجهٔ جنگ ----------
+def _lg_lobby(game: str, cfg: dict, mid: str, seats: list[dict], row: dict) -> InputRichMessage:
+    host = next((s for s in seats if s.get("tg") == row["host"]), None)
+    lines = [["سازنده: ", *(who(host["tg"], host["name"]) if host else ["—"])], "",
+             [st.E("lashgar"), " همون جنگ کاغذی زنگ تفریح: اسم لشگر، چیدن نیروها و نقاشی با مداد؛ نقاشی وقت نداره."],
+             [st.E("boom"), " هر شلیک 1 دقیقه: یه نقطه، تا کردن برگه و فشار از پشت؛ هر نیرویی که رد بهش بخوره خط می‌خوره."], "",
+             [st.E("users"), " ", st.B(f"سر میز ({fd(len(seats))} از 2)")]]
+    lines += [[f"{fd(i + 1)}. ", *who(s["tg"], s["name"])] for i, s in enumerate(seats)]
+    lines += [[f"{fd(i + 1)}. ", st.E("seat"), " خالی؛ منتظر یه فرمانده"] for i in range(len(seats), 2)]
+    foot = ("seat", "منتظر حریف", "یه نفر دیگه «بشین» رو بزنه، جنگ شروع می‌شه 🪖") if len(seats) < 2 else \
+        ("party", "میز پر شد", "الان جنگ شروع می‌شه!")
+    return card(st.frame(game, "میز لشگر کاغذی", summary(game, cfg), lines, foot),
+                _row(_bt("seat", "بشین", "success", callback_data=f"gt:join:{mid}"),
+                     _bt("leave", "بلند شو", "danger", callback_data=f"gt:leave:{mid}")))
+
+
+def lg_stats(state: dict) -> dict:
+    """هر فرمانده: شلیک، شلیکی که به چیزی خورد، دقت (درصد) و نیروی سالم از کل."""
+    out = {}
+    for c in state.get("order") or []:
+        mine = [x for x in state.get("shots") or [] if x.get("by") == c]
+        good = sum(1 for x in mine if x.get("hit"))
+        p = state["players"][c]
+        out[c] = {"shots": len(mine), "good": good, "acc": round(good * 100 / len(mine)) if mine else 0,
+                  "alive": lashgar.alive(p), "total": len(p.get("units") or [])}
+    return out
+
+
+def _lg_army(state: dict, c: str) -> str:
+    return state["players"][c].get("army") or "بی‌نام"
+
+
+def lg_result(m: dict, seats: list[dict]) -> InputRichMessage:
+    """کارت آخر جنگ: برنده (اسم لشگر و منشن)، چرا تمام شد، جدول شلیک ها و دکمهٔ جنگ تازه."""
+    state = m["state"]
+    by = {s.get("color"): s for s in seats}
+
+    def man(c: str) -> list:
+        s = by.get(c)
+        name = (s or {}).get("name") or state["players"][c]["name"]
+        return who(s["tg"], name) if s and s.get("tg") else [st.iso(name)]
+    w, why = state.get("winner"), state.get("why")
+    lines: list = []
+    if w:
+        foe = next(c for c in state["order"] if c != w)
+        lines.append([st.E("trophy"), " ", st.B("برنده: "), "لشگر «", st.iso(_lg_army(state, w)), "» (", *man(w), ")"])
+        lines.append({"flag": ["شلیک آخر خورد به پرچم «", st.iso(_lg_army(state, foe)), "»؛ جنگ همون‌جا تموم شد! 🚩"],
+                      "army": ["همهٔ نیروهای «", st.iso(_lg_army(state, foe)), "» خط خوردن! 💥"],
+                      "left": [*man(foe), " وسط جنگ رفت."],
+                      "timeout": [*man(foe), " سه بار پشت هم نوبتشو سوزوند."]}.get(why, ""))
+    else:
+        lines.append("جنگ بی‌برنده تموم شد؛ صلح برقرار شد 🕊")
+    S = lg_stats(state)
+
+    def C(text, head: bool = False, align: str = "center") -> RichBlockTableCell:  # noqa: ANN001
+        return RichBlockTableCell(align=align, valign="middle", text=text, is_header=head or None)
+    order = sorted(state["order"], key=lambda c: c != w)
+    cells = [[C("لشگر", True, "right"), C("شلیک", True), C("خورد", True), C("دقت", True), C("سالم", True)]]
+    for c in order:
+        x = S[c]
+        cells.append([C(_lg_army(state, c), True, "right"), C(fd(x["shots"])), C(fd(x["good"])),
+                      C(f"{fd(x['acc'])}%"), C(f"{fd(x['alive'])} از {fd(x['total'])}")])
+    start = state.get("battle_at") or state.get("started") or m.get("created_at") or time.time()
+    mins = max(1, round(((m.get("updated_at") or time.time()) - start) / 60))
+    head = st.frame("lashgar", "لشگر کاغذی", f"تموم شد · {fd(len(state.get('shots') or []))} شلیک", lines,
+                    foot=("time", "مدت جنگ", f"{fd(mins)} دقیقه"))
+    return _rm([_para(head), InputRichBlockTable(cells=cells, is_bordered=True, is_striped=True, is_compact=True),
+                _row(_bt("new", "یه جنگ دیگه بزنیم؟", "success", callback_data="gt:new:lashgar"))])
+
+
+async def _lg_results(db: GCDatabase, m: dict, row: dict) -> None:
+    """پایان جنگ در گروه: عکس برگهٔ آخر (نقاشی، نیروها و رد همهٔ شلیک ها) به شکل پیام تازه."""
+    if not row.get("chat_id") or not m["state"].get("shots"):
+        return
+    try:
+        from . import lashgar_art
+        png = lashgar_art.render(m["state"], await db.ink_strokes(m["id"]))
+        state, w = m["state"], m["state"].get("winner")
+        cap = f"برگهٔ آخر جنگ؛ لشگر «{_esc(_lg_army(state, w))}» برد! 🏆" if w else "برگهٔ آخر جنگ کاغذی"
+        await _bot.send_photo(row["chat_id"], BufferedInputFile(png, "lashgar.png"), caption=cap)
+    except Exception:  # noqa: BLE001
+        log.warning("عکس برگهٔ آخر لشگر کاغذی نرفت", exc_info=True)
+
+
 # ---------- به روز کردن کارت (از دکمه ها یا هر تغییری در سرویس) ----------
 _bot: Bot | None = None
 _db: GCDatabase | None = None
@@ -474,6 +578,8 @@ async def refresh(db: GCDatabase, match_id: str) -> None:
             await _announce_start(db, m, row)
         elif status == "over" and row["game"] == "esmfamil":
             await _esm_results(db, m, row)
+        elif status == "over" and row["game"] == "lashgar":
+            await _lg_results(db, m, row)
 
 
 async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
@@ -485,12 +591,13 @@ async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
             continue
         tg = s["tg"]
         # اسم‌فامیل میز «پر» ندارد: سازنده شروع می کند و هر کس باید زود برگش را باز کند
-        esm = row["game"] == "esmfamil"
-        go = "برگمو باز کن" if esm else "ورود به بازی"
+        esm, lg = row["game"] == "esmfamil", row["game"] == "lashgar"
+        go = "برگمو باز کن" if esm else "برو سر برگه" if lg else "ورود به بازی"
         # ۱) پیوی ربات (اگر کاربر قبلا ربات را استارت کرده باشد)
         try:
             from .bot import open_kb
             line = (["اسم‌فامیل توی «", st.iso(title), "» شروع شد! برگتو باز کن؛ حرف که رو بشه، ساعت راه می‌افته ✍️"] if esm else
+                    ["جنگ کاغذی توی «", st.iso(title), "» شروع شد! اسم لشگرت رو بذار و ارتشت رو بکش؛ عجله‌ای نیست 🪖"] if lg else
                     ["بازی توی «", st.iso(title), "» شروع شد؛ همه منتظر توان، دیر نکن! 🏃"])
             text = st.to_html(st.frame(row["game"], f"بازی {g['name']}", "شروع شد", [line], foot=("play", "ورود", "دکمهٔ زیر رو بزن")))
             await _bot.send_message(tg, text, reply_markup=open_kb(f"{row['game']}.html", go, "play"))
@@ -501,7 +608,8 @@ async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
             continue
         try:
             rm = card(st.frame(row["game"], f"بازی {g['name']}", "شروع شد",
-                               [[*who(tg, s["name"]), "، اسم‌فامیل شروع شد! بدو برگتو باز کن ✍️" if esm else "، میز پر شد و بازی شروع شد! بدو بیا 🏃"]],
+                               [[*who(tg, s["name"]), "، اسم‌فامیل شروع شد! بدو برگتو باز کن ✍️" if esm else
+                                 "، جنگ کاغذی شروع شد! برو اسم لشگرت رو بذار 🪖" if lg else "، میز پر شد و بازی شروع شد! بدو بیا 🏃"]],
                                foot=("play", "ورود", "این پیام رو فقط تو می‌بینی؛ هیس 🤫")),
                       *([_row(_bt("play", go, "primary", url=link))] if link else []))
             await _send(row["chat_id"], rm, ephemeral_message_parameters=EphemeralMessageParameters(receiver_user_id=tg))
@@ -582,7 +690,7 @@ async def open_table(db: GCDatabase, d: dict) -> str | None:
     return None
 
 
-@router.message(GROUP, Command("hokm", "ludo", "football", "billiard", "divar", "esmfamil"))
+@router.message(GROUP, Command("hokm", "ludo", "football", "billiard", "divar", "esmfamil", "lashgar"))
 async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
     game = (message.text or "").split()[0].lstrip("/").split("@")[0].lower()
     if not message.from_user or game not in GAMES:
@@ -596,7 +704,7 @@ async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
 async def on_play(message: Message) -> None:
     await _send(message.chat.id, card(
         st.frame("brand", "Game Club", "بازی در گروه", ["چی بازی کنیم؟ هر کی زودتر بزنه، میز رو می‌چینه و خودش اول می‌شینه."],
-                 foot=("group", "بازی‌ها", "حکم، منچ، فوتبال، بیلیارد، دیوار و اسم‌فامیل؛ همه مجانی، فقط سر کل‌کل 😄")),
+                 foot=("group", "بازی‌ها", "حکم، منچ، فوتبال، بیلیارد، دیوار، اسم‌فامیل و لشگر کاغذی؛ همه مجانی، فقط سر کل‌کل 😄")),
         _row(*[_bt(k, g["name"], "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}") for k, g in GAMES.items()])))
 
 
@@ -672,7 +780,7 @@ async def _act(cq: CallbackQuery, gdb: GCDatabase, act: str, match_id: str) -> N
         text = {"in_match": "تو الان سر یه میز دیگه‌ای 😅", "full": "میز پره؛ دفعهٔ بعد زودتر بجنب!", "started": "دیر رسیدی؛ بازی شروع شده 😅",
                 "not_host": "فقط سازندهٔ میز می‌تونه شروع کنه.", "banned": "حسابت مسدوده 🚫",
                 "busy": "یه لحظه صبر کن، دوباره بزن.", "not_found": "این میز دیگه نیست 👻",
-                "need_players": "حداقل 2 نفر باید بشینن؛ تنهایی که اسم‌فامیل مزه نداره 😄"}.get(e.code, "نشد؛ یه بار دیگه بزن.")
+                "need_players": "حداقل 2 نفر باید بشینن؛ تنهایی که مزه نداره 😄"}.get(e.code, "نشد؛ یه بار دیگه بزن.")
         await cq.answer(text, show_alert=True)
     await refresh(gdb, m["id"])
 
@@ -714,7 +822,8 @@ async def on_old_inline(cq: CallbackQuery) -> None:
 INLINE_ALIASES = {"hokm": ("hokm", "حکم", "hk"), "ludo": ("ludo", "منچ", "mench"), "football": ("football", "فوتبال", "fb", "soccer"),
                   "billiard": ("billiard", "بیلیارد", "pool", "8ball", "snooker"),
                   "divar": ("divar", "دیوار", "quoridor", "wall", "kooridor"),
-                  "esmfamil": ("esmfamil", "اسم‌فامیل", "اسم فامیل", "اسم", "esm", "namefamily")}
+                  "esmfamil": ("esmfamil", "اسم‌فامیل", "اسم فامیل", "اسم", "esm", "namefamily"),
+                  "lashgar": ("lashgar", "لشگر", "لشکر", "جنگ", "جنگ کاغذی", "jang", "paperwar", "war")}
 
 
 async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArticle:
@@ -736,11 +845,12 @@ async def on_inline(iq, gdb: GCDatabase) -> None:  # noqa: ANN001
         return
     q = (iq.query or "").strip().lower()
     in_group = getattr(iq, "chat_type", None) in ("group", "supergroup")
-    allowed = [k for k in GAMES if in_group or k not in GROUP_ONLY]   # اسم‌فامیل فقط در گروه
+    allowed = [k for k in GAMES if in_group or k not in GROUP_ONLY]   # اسم‌فامیل و لشگر کاغذی فقط در گروه
     games = [k for k in allowed if not q or any(a.startswith(q) or q.startswith(a) for a in INLINE_ALIASES[k])]
     hint = None
-    if not in_group and q and any(any(a.startswith(q) or q.startswith(a) for a in INLINE_ALIASES[k]) for k in GROUP_ONLY):
-        hint = InlineQueryResultsButton(text="اسم‌فامیل فقط توی گروه بازی می‌شه؛ راهنما", start_parameter="esmfamil")
+    only = next((k for k in GAMES if k in GROUP_ONLY and q and any(a.startswith(q) or q.startswith(a) for a in INLINE_ALIASES[k])), None)
+    if not in_group and only:
+        hint = InlineQueryResultsButton(text=f"{GAMES[only]['name']} فقط توی گروه بازی می‌شه؛ راهنما", start_parameter=only)
     await iq.answer([await _article(gdb, u.id, g) for g in games or allowed], cache_time=0, is_personal=True, button=hint)
 
 

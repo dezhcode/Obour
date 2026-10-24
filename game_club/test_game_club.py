@@ -2353,6 +2353,295 @@ def test_esmfamil_group_flow():
     asyncio.run(run())
 
 
+
+class _NoShake:
+    """تصادف بی لرزش برای آزمون های لشگر کاغذی: لرزش دست صفر، نوبت اول همیشه صندلی اول."""
+    def __init__(self):
+        self.r = random.Random(7)
+
+    def gauss(self, mu, sigma):
+        return 0.0
+
+    def randrange(self, n):
+        return 0
+
+    def uniform(self, a, b):
+        return self.r.uniform(a, b)
+
+    def choice(self, seq):
+        return self.r.choice(seq)
+
+
+def _lg(size=11, now=0.0):
+    from game_club import lashgar as L
+    st = L.new_state([{"color": "0", "uid": 1, "name": "kian"}, {"color": "1", "uid": 2, "name": "negar"}], now, size)
+    return L, st
+
+
+def test_lashgar_rules():
+    """لشگر کاغذی: اسم لشگر، چیدن نیروها، قرینهٔ تا شدن، خوردن به شکل نیروها، نوبت و پایان."""
+    L, st = _lg()
+    old = L._rng
+    L._rng = _NoShake()
+    try:
+        # اسم لشگر
+        assert L.set_army(st, "0", "  شیرهای   کلاس پنجم ", 1) is None and st["players"]["0"]["army"] == "شیرهای کلاس پنجم"
+        for bad, code in (("ش", "army_short"), ("گردان " * 5, "army_long"), ("@negar_gm", "army_chars"),
+                          ("t.me/x", "army_chars"), ("لشگر کیر", "army_bad"), ("لشگر_ما", "army_chars")):
+            assert L.set_army(st, "1", bad, 1) == code, bad
+        assert L.set_army(st, "1", "شیرهای کلاس پنجم", 1) == "army_taken"
+        assert L.set_army(st, "1", "گردان عقاب‌ها", 1) is None and L.name_problem("یگان کسی") is None
+        # نیروها: تعداد، مرز برگه، روی هم افتادن
+        assert L.set_units(st, "0", [{"k": "sol", "x": 100, "y": 100}] * 7, 2) == "too_many"    # ارتش کوچک ۶ سرباز دارد
+        assert L.set_units(st, "0", [{"k": "sol", "x": 100, "y": 100}] * 12, 2) == "bad_units"
+        assert L.check_units([{"k": "flag", "x": 300, "y": 300}, {"k": "flag", "x": 600, "y": 300}], 11)[1] == "too_many"
+        assert L.check_units([{"k": "tank", "x": 10, "y": 300}], 11)[1] == "unit_out"
+        assert L.check_units([{"k": "sol", "x": 300, "y": 300}, {"k": "sol", "x": 310, "y": 305}], 11)[1] == "unit_overlap"
+        assert L.check_units([{"k": "boat", "x": 300, "y": 300}], 11)[1] == "bad_units"
+        assert L.ready(st, "0", 3) == "need_units"
+        # شکل نیروها: وسط تانک، سر لولهٔ چرخیده، بین پاهای سرباز و کنار پرچم
+        tank = {"k": "tank", "x": 500, "y": 300, "r": 0}
+        assert L.touches(tank, 500, 300) and not L.touches(tank, 500, 400)
+        tip = (23 * L.UNIT_S, -13 * L.UNIT_S)           # سر لوله در شکل بی چرخش
+        assert L.touches(tank, 500 + tip[0], 300 + tip[1])
+        rot = dict(tank, r=90)                          # rotate(90) ساعتگرد: (x, y) ← (-y, x)
+        assert L.touches(rot, 500 - tip[1], 300 + tip[0]) and not L.touches(rot, 500 + tip[0], 300 + tip[1])
+        sol = {"k": "sol", "x": 200, "y": 200, "r": 0}
+        assert L.touches(sol, 200, 200 - 9 * L.UNIT_S) and L.touches(sol, 200 + 30, 200 - 30) and not L.touches(sol, 160, 240)
+        flag = {"k": "flag", "x": 700, "y": 500, "r": 0}
+        assert L.touches(flag, 700 + 9 * L.UNIT_S, 500 - 10 * L.UNIT_S) and not L.touches(flag, 700 + 30 * L.UNIT_S, 500)
+        # قرینه: بدون کجی و لرزش، x برعکس و همان فاصله از خط؛ با کجی، دورتر از وسط بیشتر جابه جا
+        z = _NoShake()
+        assert L.landing(100, 250, 0, z) == (900, 250)
+        x1, y1 = L.landing(100, 250, 6, z)
+        x2, y2 = L.landing(500, 250, 6, z)
+        assert abs(x1 - 900) + abs(y1 - 250) > 20 and abs(x2 - 500) + abs(y2 - 250) < abs(x1 - 900) + abs(y1 - 250)
+        assert L.landing(100, 250, 40, z) == L.landing(100, 250, L.FOLD_MAX, z)   # کجی بیشتر از حد بریده می شود
+        # چیدن کامل و دید پنهان تا شروع جنگ
+        L._autofill(st, "0")
+        L._autofill(st, "1")
+        for c in "01":
+            assert L.check_units(st["players"][c]["units"], 11)[1] is None and len(st["players"][c]["units"]) == 11
+        v = L.view(st, "0", 0, 5)
+        assert v["players"]["0"]["units"] and v["players"]["1"]["units"] is None and v["players"]["1"]["placed"] == 11
+        assert L.view(st, None, 0, 5)["players"]["0"]["units"] is None
+        assert L.ready(st, "0", 5) is None and st["phase"] == "draw" and L.unready(st, "0", 6) is None
+        assert not st["players"]["0"]["ready"] and L.ready(st, "0", 7) is None
+        assert L.set_units(st, "0", [], 8) == "is_ready"
+        assert L.ready(st, "1", 9) is None and st["phase"] == "battle" and L.current(st) == "0"
+        assert L.view(st, "0", 0, 9)["players"]["1"]["units"]           # جنگ شد: نیمهٔ حریف پیداست
+        assert L.shoot(st, "0", 100, 100, 0, 9.5) == "not_ready"        # کنار رفتن دفترها
+        t = 9 + L.INTRO
+        assert L.shoot(st, "1", 100, 100, 0, t) == "not_your_turn"
+        # شلیک به جای خالی: نوبت می رود
+        foe = st["players"]["1"]["units"]
+        empty = next((x, y) for x in range(40, 1000, 37) for y in range(40, 700, 37)
+                     if not any(L.touches(u, x, y) for u in foe))
+        assert L.shoot(st, "0", 1000 - empty[0], empty[1], 0, t) is None
+        sh = st["shots"][-1]
+        assert sh["hit"] == [] and sh["x"] == empty[0] and sh["y"] == empty[1] and L.current(st) == "1"
+        # وقت شلیک تمام شود، نوبت می سوزد؛ سه بار پشت هم = باخت
+        t += L.SHOT_PAUSE + L.TURN_S + 0.1
+        assert L.tick(st, t) and L.current(st) == "0" and st["players"]["1"]["misses"] == 1
+        # شلیک به سرباز حریف: خط می خورد و آمار ثبت می شود
+        t += L.TIMEOUT_PAUSE
+        i = next(j for j, u in enumerate(foe) if u["k"] == "sol")
+        assert L.shoot(st, "0", 1000 - foe[i]["x"], foe[i]["y"], 0, t) is None
+        assert foe[i]["dead"] and st["shots"][-1]["hit"] == [i] and st["players"]["0"]["hits"] == 1
+        # حریف سه بار نوبتش را می سوزاند ← می بازد
+        for _ in range(2):
+            t += L.SHOT_PAUSE + L.TURN_S + 0.1
+            L.tick(st, t)
+            if st["over"]:
+                break
+            t += L.TIMEOUT_PAUSE
+            j = next(j for j, u in enumerate(foe) if u["k"] != "flag" and not u.get("dead"))
+            assert L.shoot(st, "0", 1000 - foe[j]["x"], foe[j]["y"], 0, t) is None
+        assert st["over"] and st["winner"] == "0" and st["why"] == "timeout" and L.winners(st) == {"0"}
+        # پرچم: جنگ همان دم تمام می شود
+        _, st = _lg()
+        for c in "01":
+            L.set_army(st, c, f"لشگر {c}", 0)
+            L._autofill(st, c)
+            L.ready(st, c, 0)
+        t = L.INTRO
+        fl = next(u for u in st["players"]["1"]["units"] if u["k"] == "flag")
+        assert L.shoot(st, "0", 1000 - fl["x"], fl["y"], 0, t) is None
+        assert st["over"] and st["winner"] == "0" and st["why"] == "flag"
+        # همهٔ نیروهای دیگر خط بخورند هم برنده است (پرچم تنها نمی جنگد)
+        _, st = _lg()
+        for c in "01":
+            L.set_army(st, c, f"لشگر {c}", 0)
+            L._autofill(st, c)
+            L.ready(st, c, 0)
+        for u in st["players"]["1"]["units"]:
+            u["dead"] = u["k"] not in ("flag", "tank")
+        tk = next(u for u in st["players"]["1"]["units"] if u["k"] == "tank")
+        st["players"]["1"]["units"] = [u for u in st["players"]["1"]["units"] if u["k"] != "tank" or u is tk]
+        assert L.shoot(st, "0", 1000 - tk["x"], tk["y"], 0, L.INTRO) is None
+        assert st["over"] and st["why"] == "army"
+        # چیدن بی وقت: یکی آماده، دیگری ده دقیقه دست به برگه نزد ← نیروهایش خودکار و جنگ شروع
+        _, st = _lg()
+        L.set_army(st, "0", "لشگر صفر", 0)
+        L._autofill(st, "0")
+        L.ready(st, "0", 10)
+        assert not L.tick(st, 10 + L.AUTO_AFTER - 1) and L.nudge_due(st, 10 + L.NUDGE_AFTER + 1) == "1"
+        assert L.tick(st, 10 + L.AUTO_AFTER + 1) and st["phase"] == "battle"
+        assert st["players"]["1"]["army"] and len(st["players"]["1"]["units"]) == 11
+        assert any(e["t"] == "auto" for e in st["events"])
+        # هیچ کس آماده نیست و نیم ساعت کسی کاری نکرده ← بی برنده
+        _, st = _lg()
+        assert not L.tick(st, L.IDLE_END - 1) and L.tick(st, L.IDLE_END + 1) and st["over"] and st["winner"] is None
+        # ارتش بزرگ
+        _, st = _lg(18)
+        L._autofill(st, "0")
+        assert len(st["players"]["0"]["units"]) == 18 and L.check_units(st["players"]["0"]["units"], 18)[1] is None
+        # خروج وسط چیدن: حریف برنده
+        _, st = _lg()
+        L.leave(st, "1", 1, "left")
+        assert st["over"] and st["winner"] == "0"
+    finally:
+        L._rng = old
+
+
+def test_lashgar_group_flow():
+    """لشگر کاغذی فقط گروهی: کارت تنظیم با اندازهٔ ارتش، شروع با دو نفر، نقاشی جدا و پنهان تا جنگ، شلیک،
+    کارت نتیجه با اسم لشگرها و عکس برگهٔ آخر در گروه."""
+    from types import SimpleNamespace as NS
+    tmp = tempfile.mkdtemp()
+    from game_club import groups, lashgar as L, service
+    from game_club.db import GCDatabase
+    P, B = groups.plain, groups.buttons
+
+    class Bot(_FakeGroupBot):
+        def __init__(self):
+            super().__init__()
+            self.photos = []
+
+        async def send_photo(self, chat_id, photo, caption=None, **kw):
+            self.photos.append((chat_id, photo, caption))
+            return self.NS(message_id=7)
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        bot = Bot()
+        groups.install(bot, db)
+        old_user, groups.gc.username = groups.gc.username, "gcbot"
+        old_rng, L._rng = L._rng, _NoShake()
+        clock = [5000.0]
+        real = service.time.time
+        service.time.time = lambda: clock[0]
+        try:
+            for bad in ({"army": 12}, {"mode": "stake", "entry": 100}):
+                try:
+                    service.norm_cfg({"game": "lashgar", **bad})
+                    raise AssertionError(bad)
+                except service.GCError as e:
+                    assert e.code == "bad_cfg"
+            chat = NS(id=-1003, title="کلاس پنجم")
+            users = [NS(id=i, first_name=f"u{i}", last_name=None, username=None) for i in (31, 32)]
+            assert await groups.create(db, bot, chat, users[0], "lashgar") is None
+            card = bot.sent[-1][1]
+            token = next(b.callback_data for b in B(card) if b.callback_data.startswith("gs:open:"))[8:]
+            assert "ارتش هر نفر" in P(card) and "✓ کوچک · 11 نیرو" in P(card) and "هر شلیک 1 دقیقه" in P(card)
+            await groups.on_setup(_CQ(31, f"gs:open:{token}", chat=chat), gdb=db)
+            mid = (await db.open_group_table(-1003, "lashgar"))["match_id"]
+            assert (await db.get_match(mid))["cfg"] == {"game": "lashgar", "mode": "free", "entry": 0, "players": 2, "army": 11}
+            rm = bot.edits[-1][1]
+            assert "(1 از 2)" in P(rm) and "ربات" not in P(rm) and len(B(rm)) == 2
+            await groups.on_button(_CQ(32, f"gt:join:{mid}", chat=chat), gdb=db, bot=bot)
+            m = await db.get_match(mid)
+            assert m["status"] == "playing" and m["state"]["phase"] == "draw"
+            assert not any(p["bot"] for p in m["state"]["players"].values())
+            assert "دیدن جنگ" in P(bot.edits[-1][1]) and any(d[0] == 32 and "لشگر" in d[1] for d in bot.dms)
+            # اسم و نیروها؛ نیروها پاسخ سبک دارند
+            v = await service.act(db, 31, mid, "army", data={"name": "شیرهای کلاس پنجم"})
+            assert v["game"]["players"]["0"]["army"] == "شیرهای کلاس پنجم"
+            try:
+                await service.act(db, 32, mid, "army", data={"name": "شیرهای کلاس پنجم"})
+                raise AssertionError("same army name")
+            except service.GCError as e:
+                assert e.code == "army_taken"
+            await service.act(db, 32, mid, "army", data={"name": "گردان عقاب‌ها"})
+            tmp_st = L.new_state([{"color": "0", "name": "x"}, {"color": "1", "name": "y"}], 0)
+            L._autofill(tmp_st, "0")
+            L._autofill(tmp_st, "1")
+            mine = [dict(k=u["k"], x=u["x"], y=u["y"], r=u["r"]) for u in tmp_st["players"]["0"]["units"]]
+            theirs = [dict(k=u["k"], x=u["x"], y=u["y"], r=u["r"]) for u in tmp_st["players"]["1"]["units"]]
+            assert await service.act(db, 31, mid, "units", data={"units": mine}) == {"ok": True}
+            await service.act(db, 32, mid, "units", data={"units": theirs})
+            # نقاشی: جدا ذخیره می شود؛ تا جنگ هر کس فقط خط خودش را می گیرد و تماشاگر هیچ
+            stroke = {"c": 4, "w": 1, "p": [100, 100, 140, 120, 180, 110]}
+            r1 = await service.ink_post(db, 31, mid, [{"op": "s", "s": stroke}, {"op": "s", "s": dict(stroke, c=1)}, {"op": "u"}])
+            assert r1["ok"] and len(r1["ids"]) == 3
+            await service.ink_post(db, 32, mid, [{"op": "s", "s": dict(stroke, c=5, e=1)}])
+            for bad in ([{"op": "s", "s": {"c": 99, "p": [1, 2]}}], [{"op": "s", "s": {"p": [1]}}], [{"op": "z"}], []):
+                try:
+                    await service.ink_post(db, 31, mid, bad)
+                    raise AssertionError(bad)
+                except service.GCError as e:
+                    assert e.code == "bad_ink"
+            g0 = await service.ink_get(db, 31, mid, 0, True)
+            assert [o["s"]["c"] for o in g0["ops"]] == [4] and all(o["c"] == "0" for o in g0["ops"])
+            g1 = await service.ink_get(db, 31, mid, 0, False)          # کارهای پشت سر هم: s، s، x
+            assert [o["op"] for o in g1["ops"]] == ["s", "s", "x"] and g1["ops"][2]["ref"] == g1["ops"][1]["id"]
+            await db.player(99, "watcher")
+            assert (await service.ink_get(db, 99, mid, 0, True))["ops"] == []
+            v = await service.match_view(db, 32, mid)
+            assert v["game"]["players"]["0"]["units"] is None and v["game"]["ink_v"] == (await db.ink_last(mid, "1"))
+            # آماده: نیمهٔ حریف و نقاشی اش پیدا می شود؛ بعد از آماده دیگر نمی شود کشید
+            await service.act(db, 31, mid, "ready")
+            try:
+                await service.ink_post(db, 31, mid, [{"op": "s", "s": stroke}])
+                raise AssertionError("draw after ready")
+            except service.GCError as e:
+                assert e.code == "is_ready"
+            v = await service.act(db, 32, mid, "ready")
+            st = v["game"]
+            assert st["phase"] == "battle" and st["turn"] == "0" and st["players"]["0"]["units"]
+            g = await service.ink_get(db, 32, mid, 0, True)
+            assert sorted({o["c"] for o in g["ops"]}) == ["0", "1"] and (await service.ink_get(db, 99, mid, 0, True))["ops"]
+            w = await service.match_view(db, 99, mid)
+            assert w["watch"] and w["game"]["players"]["1"]["units"] and w["game"]["ink_v"] == await db.ink_last(mid, None)
+            # شلیک به پرچم حریف: جنگ تمام، کارت نتیجه و عکس برگهٔ آخر در گروه
+            clock[0] += L.INTRO
+            try:
+                await service.act(db, 32, mid, "shoot", data={"x": 10, "y": 10, "a": 0})
+                raise AssertionError("not my turn")
+            except service.GCError as e:
+                assert e.code == "not_your_turn"
+            fl = next(u for u in theirs if u["k"] == "flag")
+            v = await service.act(db, 31, mid, "shoot", data={"x": L.W - fl["x"], "y": fl["y"], "a": 0})
+            assert v["status"] == "over" and v["game"]["winner"] == "0" and v["game"]["why"] == "flag" and v["result"]["won"]
+            rm = bot.edits[-1][1]
+            txt = P(rm)
+            assert "برنده" in txt and "شیرهای کلاس پنجم" in txt and "گردان عقاب‌ها" in txt and "پرچم" in txt
+            assert '"id":31' in rm.model_dump_json() and B(rm)[-1].callback_data == "gt:new:lashgar"
+            assert len(bot.photos) == 1 and bot.photos[0][0] == -1003 and "شیرهای کلاس پنجم" in bot.photos[0][2]
+            png = bot.photos[0][1].data
+            assert png[:8] == b"\x89PNG\r\n\x1a\n" and len(png) > 2000
+            assert (await db.get_player(31))["wins"] == 1
+            # میز از مینی اپ ساخته نمی شود؛ فقط گروه. حالت اینلاین در پیوی راهنمای گروه را نشان می دهد
+            got = []
+            iq = NS(from_user=NS(id=31, first_name="h", last_name=None, username=None), query="لشگر", chat_type="private")
+
+            async def answer(results, **kw):
+                got.append((results, kw))
+            iq.answer = answer
+            await groups.on_inline(iq, gdb=db)
+            assert got[-1][1]["button"].start_parameter == "lashgar"
+            iq.chat_type = "group"
+            await groups.on_inline(iq, gdb=db)
+            assert [r.title for r in got[-1][0]] == ["🪖 میز لشگر کاغذی بساز"]
+        finally:
+            L._rng = old_rng
+            service.time.time = real
+            groups.gc.username = old_user
+            await db.close()
+
+    asyncio.run(run())
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

@@ -27,9 +27,10 @@ from .service import GCError
 
 log = logging.getLogger(__name__)
 
-GAMES = ("ludo", "hokm", "football", "billiard", "divar", "esmfamil")
+GAMES = ("ludo", "hokm", "football", "billiard", "divar", "esmfamil", "lashgar")
 PAGES = {"": "خانه", "ludo-lobby.html": "منچ", "hokm-lobby.html": "حکم", "football-lobby.html": "فوتبال",
          "billiard-lobby.html": "بیلیارد", "divar-lobby.html": "دیوار", "esmfamil-lobby.html": "اسم‌فامیل",
+         "lashgar-lobby.html": "لشگر کاغذی",
          "shop.html": "فروشگاه و کیف", "profile.html": "پروفایل", "games.html": "بازی ها", "friends.html": "دوستان"}
 KINDS = ("charge", "entry", "refund", "prize", "admin", "transfer", "shop", "gift", "style")
 # تنظیمات قابل تغییر از پنل: (نوع، کمینه، بیشینه)
@@ -224,6 +225,11 @@ def _score(game: str, st: dict) -> str:
     if game == "esmfamil" and isinstance(st.get("totals"), dict) and isinstance(st.get("players"), dict):
         return f"دور {min(st.get('round', 0) + 1, st.get('rounds_n', 1))}/{st.get('rounds_n', 1)} · " + \
             " · ".join(f"{p['name']} {st['totals'].get(c, 0)}" for c, p in st["players"].items())
+    if game == "lashgar" and isinstance(st.get("players"), dict):
+        from .lashgar import alive
+        if st.get("phase") == "draw":
+            return "چیدن ارتش · " + " · ".join(f"{p['name']} {'آماده' if p.get('ready') else 'هنوز'}" for p in st["players"].values())
+        return " · ".join(f"{p['name']} {alive(p)} نیرو" for p in st["players"].values())
     if game == "ludo" and isinstance(st.get("pawns"), dict):
         fa = {"blue": "آبی", "red": "قرمز", "green": "سبز", "yellow": "زرد"}
         return " · ".join(f"{fa.get(c, c)} {sum(1 for x in ps if x == 56)}" for c, ps in st["pawns"].items())
@@ -408,7 +414,8 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
 TARGET_KEYS = [("all", "همه"), ("active7", "فعال ۷ روز"), ("active30", "فعال ۳۰ روز"), ("game:hokm", "بازیکنان حکم"),
                ("game:ludo", "بازیکنان منچ"), ("game:football", "بازیکنان فوتبال"),
                ("game:billiard", "بازیکنان بیلیارد"), ("game:divar", "بازیکنان دیوار"),
-               ("game:esmfamil", "بازیکنان اسم‌فامیل"), ("me", "فقط خودم")]
+               ("game:esmfamil", "بازیکنان اسم‌فامیل"),
+               ("game:lashgar", "بازیکنان لشگر کاغذی"), ("me", "فقط خودم")]
 
 
 def target_label(t: str) -> str:

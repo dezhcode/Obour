@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme-lock="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
+<title>Game Club · لشگر کاغذی</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<link rel="stylesheet" href="static/preview.css">
+<style>
+/* لابی لشگر کاغذی: این بازی فقط در گروه ساخته می شود؛ اینجا راهنما، فرستادن کارت به گروه، نشستن با کد و برگشت به جنگ */
+.seatgrid{display:flex;justify-content:center;align-items:center;gap:var(--space-4)}
+.seatw{display:grid;justify-items:center;gap:4px;font-size:12px;font-weight:800;max-width:84px;text-align:center}
+.seatw .avatar{--size:54px}
+.seatw small{font-size:11px;color:var(--ink-muted);font-weight:700}
+.vs{font-family:var(--font-rokh);font-weight:900;font-size:22px;color:var(--ink-muted)}
+.wait{width:54px;height:54px;border-radius:50%;border:3px dashed var(--line);display:grid;place-items:center;color:var(--ink-muted);font-weight:900;animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.wait{animation:none}}
+.resume{display:grid;gap:4px;justify-items:start}
+.resume b{font-size:18px;font-weight:900}
+.count{font-size:44px;line-height:52px;font-weight:900;text-align:center;color:var(--acc-deep)}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-cap"><span>لشگر کاغذی</span></div>
+  <div class="appbar-in">
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>لشگر کاغذی</h1></div>
+    <a class="pill" href="shop.html#wallet" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span></a>
+  </div>
+</header>
+<main class="page no-nav">
+  <div class="gp" id="gp"></div>
+  <a class="card card-link resume" id="resume" href="lashgar.html" hidden><span class="tag tag-live">جنگ نیمه‌کاره</span><b>برگرد سر برگه‌ت</b><span class="muted">جنگ هنوز ادامه داره و حریفت منتظره؛ زود بیا!</span></a>
+  <a class="card card-link resume" id="demo" href="lashgar.html" hidden><span class="tag">نمونه</span><b>یه جنگ نمونه بزن</b><span class="muted">بیرون از تلگرام، با یه حریف ساختگی امتحانش کن.</span></a>
+</main>
+<script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/cards.js"></script>
+<script src="static/preview.js"></script>
+<script src="static/gamepage.js"></script>
+<script>
+(() => {
+  const { FD, store, face, icon, sheet, sheetHead, toast, sfx, haptic, sleep, errText } = GC;
+  const $ = id => document.getElementById(id);
+  GC.back('index.html');
+  let token = null, gp = null;
+  const render = () => { if (gp) gp.refresh(); };
+
+  async function go(mid) {
+    token = null; store.set('lgmid', mid);
+    for (let n = 3; n >= 1; n--) {
+      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">حریفت رسید!</h2><div class="count">${FD(n)}</div><p class="hint">برگه رو بردار و مدادها رو آماده کن…</p>`, { center: true, dismiss: false });
+      sfx.tick(); haptic('light'); await sleep(650);
+    }
+    location.href = 'lashgar.html';
+  }
+
+  /* ---------- میز گروه: با نشستن نفر دوم جنگ خودش شروع می شود ---------- */
+  async function lobbyLoop(mid) {
+    const t = token = {};
+    let shown = '';
+    while (token === t) {
+      let v;
+      try { v = await GC.lashgar.match(mid, 0); } catch (e) { toast(errText(e)); GC.close(); return; }
+      if (v.status === 'playing') return go(mid);
+      if (v.status === 'cancelled') { GC.close(); toast('سازنده میز رو جمع کرد 🤷'); await GC.refreshMe(); render(); return; }
+      const L = v.lobby, c = v.cfg;
+      const sig = L.seats.map(s => s.color + s.name).join('|');
+      if (sig === shown) { await sleep(1500); continue; }
+      shown = sig;
+      const seat = s => `<div class="seatw">${face(s, s.me ? '#F5C451' : 'var(--sky)')}<span class="uname">${s.name}</span>${s.me ? '<small>تو</small>' : ''}</div>`;
+      const sh = sheet(`${sheetHead('سر میز لشگر کاغذی')}
+        <p>تن‌به‌تن، ارتش ${c.army === 18 ? 'بزرگ (۱۸ نیرو)' : 'کوچک (۱۱ نیرو)'}؛ نقاشی وقت نداره، هر شلیک ۱ دقیقه.</p>
+        <div class="seatgrid">${seat(L.seats[0])}<span class="vs">در برابر</span>${L.seats[1] ? seat(L.seats[1]) : '<div class="seatw"><span class="wait">؟</span><small>یه حریف از گروه</small></div>'}</div>
+        <div class="wait-line"><span class="spinner"></span>منتظریم یکی از گروه «بشین» رو بزنه؛ همون لحظه جنگ شروع می‌شه</div>
+        <button class="btn btn-light btn-block" id="lv">${L.host ? 'میز رو جمع کن' : 'پاشم برم'}</button>`, { dismiss: false });
+      sh.querySelector('#lv').onclick = async () => { token = null; try { await GC.lashgar.leave(mid); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
+      await sleep(1500);
+    }
+  }
+
+  gp = GCGame.build({
+    game: 'lashgar', title: 'لشگر کاغذی', help: 'help.html#hLg', who: ['group'],
+    whoDesc: 'لشگر کاغذی فقط توی گروه مزه می‌ده: کارت میز رو بفرست تو گروهت؛ اولین کسی که «بشین» رو بزنه حریفته و جنگ همون لحظه شروع می‌شه.',
+    modes: [
+      { v: 'g', label: 'تن‌به‌تن', ic: icon('users'), desc: 'دو نفره، روی یه برگه. اندازهٔ ارتش (کوچک ۱۱ نیرو یا بزرگ ۱۸ نیرو) رو توی کارت گروه انتخاب می‌کنی.', short: 'اندازهٔ ارتش رو توی کارت گروه انتخاب کن', cfg: {} },
+    ],
+    rules: [['فقط توی گروه:', 'توی گروه بنویس /lashgar یا از همین‌جا کارت میز رو بفرست تو گروه. با نشستن نفر دوم، جنگ شروع می‌شه.'],
+      ['اسم لشگر:', 'اول یه اسم باحال برای لشگرت می‌ذاری؛ خودت بنویس یا یکی از پیشنهادها رو بردار.'],
+      ['چیدن و نقاشی:', 'نیروها رو از سینی بکش روی نیمهٔ خودت. مداد رو با یه انگشت ببر و «رنگ کن» رو نگه دار تا بکشه. این مرحله وقت نداره و کسی برگهٔ تو رو نمی‌بینه.'],
+      ['شلیک:', 'یه نقطه روی نیمهٔ خودت بذار، برگه رو تا کن و از پشت فشار بده؛ ردش قرینه روی نیمهٔ حریف می‌افته. هر چی صاف‌تر تا کنی، دقیق‌تر. هر شلیک ۱ دقیقه وقت داره.'],
+      ['خط خوردن:', 'هر نیرویی که رد بهش بخوره خط می‌خوره. نقاشی‌ها هدف نیستن، فقط برای قشنگی‌ان.'],
+      ['برنده:', 'پرچم بخوره، جنگ همون‌جا تمومه؛ وگرنه هر کی زودتر کل ارتش حریف رو خط بزنه می‌بره. عکس برگهٔ آخر جنگ توی گروه هم میاد 🏆']],
+    play: () => {},
+  });
+
+  (async () => {
+    try {
+      const me = await GC.refreshMe();
+      gp.load(me);
+      const url = new URL(location.href);
+      const code = (url.searchParams.get('join') || '').trim() || (GC.startParam().startsWith('lashgar_') ? GC.startParam().slice(8) : '');
+      const OTHER = { ludo: ['منچ', 'ludo.html'], hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'], esmfamil: ['اسم‌فامیل', 'esmfamil.html'] };
+      if (!GC.live) $('demo').hidden = false;
+      if (me.active_match && me.active_game === 'lashgar' && GC.live) {
+        const v = await GC.lashgar.match(me.active_match, 0).catch(() => null);
+        if (v && v.status === 'lobby') lobbyLoop(v.id);
+        else if (v && v.status === 'playing') { store.set('lgmid', v.id); if (code) { location.replace('lashgar.html'); return; } $('resume').hidden = false; }
+      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یه بازی ${o[0]} نیمه‌کاره داری؛ اول اونو تموم کن 😉`; }
+      else if (code && GC.live) {
+        try { const r = await GC.lashgar.join(code); await GC.refreshMe(); lobbyLoop(r.match); }
+        catch (err) { toast(errText(err)); }
+      }
+    } catch (e) { toast(errText(e)); }
+    render();
+  })();
+  render();
+})();
+</script>
+</body>
+</html>
