@@ -21,12 +21,12 @@ SEATS = tuple(str(i) for i in range(10))
 MAX_PLAYERS = 10
 MIN_PLAYERS = 2
 COLS = (("name", "اسم"), ("family", "فامیل"), ("city", "شهر"), ("country", "کشور"),
-        ("food", "غذا"), ("animal", "حیوان"), ("fruit", "میوه"), ("thing", "اشیا"))
+        ("food", "غذا"), ("animal", "حیوان"), ("fruit", "میوه"), ("thing", "اشیا"), ("color", "رنگ"))
 COL_FA = dict(COLS)
 # حرف‌های بازی؛ ث، ذ، ض، ظ، ژ، غ و ء کنار گذاشته شده‌اند (برای بیشتر ستون‌ها جوابی ندارند)
 LETTERS = tuple("ابپتجچحخدرزسشصطعفقکگلمنوهی")
 ROUNDS = (1, 3, 5)
-SECS = (60, 90, 120)
+SECS = (180, 300, 480)    # وقت هر دور: ۳، ۵ یا ۸ دقیقه
 GATHER = 20.0
 REVEAL = 3.5
 STOP_GRACE = 20.0
@@ -63,14 +63,14 @@ def active(st: dict) -> list[str]:
     return [c for c in st["order"] if not st["players"][c]["out"]]
 
 
-def new_state(seats: list[dict], now: float, rounds: int = 3, secs: int = 90) -> dict:
+def new_state(seats: list[dict], now: float, rounds: int = 3, secs: int = 300) -> dict:
     """seats: [{color, uid, name, av, pic}] فقط آدم (این بازی ربات ندارد)."""
     players = {s["color"]: {"uid": s.get("uid"), "name": s["name"], "av": s.get("av", 1), "pic": s.get("pic", ""),
                             "bot": False, "out": False} for s in seats}
     order = [c for c in SEATS if c in players]
     return {
         "game": "esmfamil", "order": order, "players": players, "cols": [k for k, _ in COLS],
-        "rounds_n": max(1, min(int(rounds), max(ROUNDS))), "secs": max(30, min(int(secs), 180)),
+        "rounds_n": max(1, min(int(rounds), max(ROUNDS))), "secs": max(30, min(int(secs), max(SECS))),
         "round": 0, "phase": "letter", "letters": [], "lines": [],
         "sheets": {}, "done": [], "stopper": None, "ready": [], "appeals": {}, "here": [],
         "deadline": now + GATHER, "phase_at": now, "lease": None,

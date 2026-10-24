@@ -1,12 +1,12 @@
 /* نمایش اسم‌فامیل بیرون از تلگرام: یک بازی سه دوره با سه بازیکن ساختگی و داور نمونه، با همان شکل جواب سرور
    (game_club/esmfamil.py view). فقط برای پیش نمایش است؛ در تلگرام همه چیز از سرور می آید. */
 window.EsmDemo = (() => {
-  const COLS = [['name', 'اسم'], ['family', 'فامیل'], ['city', 'شهر'], ['country', 'کشور'], ['food', 'غذا'], ['animal', 'حیوان'], ['fruit', 'میوه'], ['thing', 'اشیا']];
+  const COLS = [['name', 'اسم'], ['family', 'فامیل'], ['city', 'شهر'], ['country', 'کشور'], ['food', 'غذا'], ['animal', 'حیوان'], ['fruit', 'میوه'], ['thing', 'اشیا'], ['color', 'رنگ']];
   const LETTERS = ['ب', 'س', 'م'], LINES = ['حرف «ب»! بزن بریم', 'نوبت «س» شد؛ سریع باش', 'آخرین دور: «م»!'];
   const BANK = {
-    ب: { 1: ['بابک', 'برومند', 'بابل', 'بلغارستان', 'باقالی‌پلو', 'بلبل', 'بلوبری', 'بخاری'], 2: ['بهار', 'بابایی', 'بوشهر', 'بلژیک', 'برنج', 'ببر', 'به', 'بالش'], 3: ['بیژن', 'بهرامی', 'بلوچستان', 'برزیل', 'بریانی', 'بز', '', 'بشقاب'] },
-    س: { 1: ['سارا', 'سلیمانی', 'سمنان', 'سوئد', 'سوپ', 'سنجاب', 'سیب', 'ساعت'], 2: ['سینا', 'سعیدی', 'ساری', 'سنگال', 'سالاد الویه', 'سگ', 'سیب', 'سطل'], 3: ['سهیل', '', 'سنندج', 'سوریه', 'سبزی‌پلو', 'سار', 'سیر', 'سشوار'] },
-    م: { 1: ['مریم', 'محمدی', 'مشهد', 'مصر', 'میرزاقاسمی', 'مار', 'موز', 'میز'], 2: ['مهسا', 'مرادی', 'مازندران', 'مالزی', 'ماکارونی', 'میمون', 'موز', 'مداد'], 3: ['مهدی', 'منصوری', 'مراغه', 'مکزیک', 'ماهی', 'مرغ', 'ماست', 'مبل'] },
+    ب: { 1: ['بابک', 'برومند', 'بابل', 'بلغارستان', 'باقالی‌پلو', 'بلبل', 'بلوبری', 'بخاری', 'بنفش'], 2: ['بهار', 'بابایی', 'بوشهر', 'بلژیک', 'برنج', 'ببر', 'به', 'بالش', 'بژ'], 3: ['بیژن', 'بهرامی', 'بلوچستان', 'برزیل', 'بریانی', 'بز', '', 'بشقاب', 'بنفش'] },
+    س: { 1: ['سارا', 'سلیمانی', 'سمنان', 'سوئد', 'سوپ', 'سنجاب', 'سیب', 'ساعت', 'سبز'], 2: ['سینا', 'سعیدی', 'ساری', 'سنگال', 'سالاد الویه', 'سگ', 'سیب', 'سطل', 'سرمه‌ای'], 3: ['سهیل', '', 'سنندج', 'سوریه', 'سبزی‌پلو', 'سار', 'سیر', 'سشوار', 'سفید'] },
+    م: { 1: ['مریم', 'محمدی', 'مشهد', 'مصر', 'میرزاقاسمی', 'مار', 'موز', 'میز', 'مشکی'], 2: ['مهسا', 'مرادی', 'مازندران', 'مالزی', 'ماکارونی', 'میمون', 'موز', 'مداد', 'مسی'], 3: ['مهدی', 'منصوری', 'مراغه', 'مکزیک', 'ماهی', 'مرغ', 'ماست', 'مبل', 'مشکی'] },
   };
   const NO = { برنج: 'مادهٔ خام است، نه غذا', بلوچستان: 'استان است، نه شهر', سیر: 'سبزی است، نه میوه', مازندران: 'استان است، نه شهر', ماهی: 'حیوان است؛ غذا باید پخته باشد', ماست: 'لبنیات است، نه میوه' };
   const P = { 0: { name: 'tu_demo', av: 7 }, 1: { name: 'negar_gm', av: 5 }, 2: { name: 'sara_m', av: 9 }, 3: { name: 'kian_r', av: 13 } };
@@ -20,7 +20,7 @@ window.EsmDemo = (() => {
   }
   const ev = e => { st.seq++; st.events.push(Object.assign({ seq: st.seq }, e)); st.events = st.events.slice(-20); };
   function startWrite() {
-    st.phase = 'write'; st.deadline = now() + 60; st.sheets = { 0: {} }; st.done = []; st.stopper = null;
+    st.phase = 'write'; st.deadline = now() + 180; st.sheets = { 0: {} }; st.done = []; st.stopper = null;
     st.botDone = { 1: now() + 22 + Math.random() * 8, 2: now() + 34 + Math.random() * 10, 3: now() + 48 };
     ev({ t: 'write' });
   }
@@ -83,9 +83,9 @@ window.EsmDemo = (() => {
     const t = now(), writing = ['write', 'stop', 'judge'].includes(st.phase);
     const shown = st.phase !== 'letter' || t >= st.letterAt;
     return {
-      order: ORDER, me: '0', cols: COLS.map(([k, fa]) => ({ k, fa })), rounds_n: LETTERS.length, round: st.round, secs: 60, phase: st.phase,
+      order: ORDER, me: '0', cols: COLS.map(([k, fa]) => ({ k, fa })), rounds_n: LETTERS.length, round: st.round, secs: 180, phase: st.phase,
       players: Object.fromEntries(ORDER.map(c => [c, { name: P[c].name, av: P[c].av, pic: '', out: false, me: c === '0', total: st.totals[c],
-        done: st.done.includes(c), ready: st.ready.includes(c), filled: writing ? (c === '0' ? Object.keys(st.sheets[0] || {}).length : st.done.includes(c) ? 8 : Math.min(7, Math.floor((t % 60) / 6))) : null }])),
+        done: st.done.includes(c), ready: st.ready.includes(c), filled: writing ? (c === '0' ? Object.keys(st.sheets[0] || {}).length : st.done.includes(c) ? COLS.length : Math.min(COLS.length - 1, Math.floor((t % 60) / 6))) : null }])),
       letter: shown ? LETTERS[st.round] : null, line: shown ? LINES[st.round] : '', waiting: [],
       deadline_ms: Math.max(0, (st.deadline - t) * 1000), sheet: writing ? Object.assign({}, st.sheets[0]) : null, submitted: st.done.includes('0'),
       stopper: st.stopper, results: st.results, totals: st.totals, events: st.events.filter(e => e.seq > since), seq: st.seq,
@@ -93,14 +93,14 @@ window.EsmDemo = (() => {
       over: st.over, winner: st.winners[0] || null, winners: st.winners,
     };
   }
-  const out = since => ({ id: 'demo', status: st.over ? 'over' : 'playing', cfg: { game: 'esmfamil', rounds: 3, secs: 60 }, me: '0', game: view(since || 0) });
+  const out = since => ({ id: 'demo', status: st.over ? 'over' : 'playing', cfg: { game: 'esmfamil', rounds: 3, secs: 180 }, me: '0', game: view(since || 0) });
   const fail = code => { const e = new Error(code); e.code = code; throw e; };
   const sheetIn = sh => { for (const [k, v] of Object.entries(sh || {})) { if (v) st.sheets[0][k] = String(v).slice(0, 32); else delete st.sheets[0][k]; } };
   return {
     async match(id, since) { if (!st) reset(); tick(); return out(since); },
     async answer(id, sh) { if (!['write', 'stop'].includes(st.phase)) fail('closed'); sheetIn(sh); return { ok: true }; },
     async stop(id, sh, since) {
-      sheetIn(sh); if (Object.keys(st.sheets[0]).length < 8) fail('sheet_not_full');
+      sheetIn(sh); if (Object.keys(st.sheets[0]).length < COLS.length) fail('sheet_not_full');
       st.done.push('0'); st.phase = 'stop'; st.stopper = '0'; st.deadline = Math.min(st.deadline, now() + 20); ev({ t: 'stop', c: '0' }); tick(); return out(since);
     },
     async submit(id, sh, since) { sheetIn(sh); if (!st.done.includes('0')) st.done.push('0'); tick(); return out(since); },
