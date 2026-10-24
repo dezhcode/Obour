@@ -225,6 +225,7 @@ body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui .btn.btn-light{--bg:var(-
 .t-bil{background:radial-gradient(circle at 50% 40%,#1F5A36,#0E2C1C 80%)}
 .t-dv{background:radial-gradient(circle at 50% 40%,#1D5A3F,#0B231A 80%)}
 .t-paper{background:radial-gradient(circle at 50% 40%,#F6EEDC,#E2D3B0 85%)}
+.t-sn{background:radial-gradient(circle at 50% 35%,#12396a,#06101f 80%)}
 .t-desk{background:repeating-linear-gradient(92deg,#8E5F38 0,#9A6A40 7px,#865933 13px,#976640 21px)}
 /* برگهٔ «بازی‌ها» از نوار پایین */
 .qp{display:grid;gap:var(--space-2)}
@@ -573,11 +574,14 @@ body.lobby-football,body.football .gc-ui{--edge:#1D5A25;--acc:#2E7D32;--acc-deep
 body.lobby-billiard,body.billiard .gc-ui{--edge:#4A2A18;--acc:#7A4022;--acc-deep:#7A4022;--acc-ink:#FFFFFF;--acc-tint:#F4EBE5}
 body.lobby-divar,body.divar .gc-ui{--edge:#0A2A1C;--acc:#123F2E;--acc-deep:#123F2E;--acc-ink:#F5C451;--acc-tint:#E2EEE8}
 body.lobby-esmfamil{--edge:#B9A47A;--acc:#C8323C;--acc-deep:#C8323C;--acc-ink:#FFFFFF;--acc-tint:#FBE8E9}
+body.lobby-snakes,body.snakes .gc-ui{--edge:#5a3b07;--acc:#16506a;--acc-deep:#16506a;--acc-ink:#F2C14E;--acc-tint:#E3EFF4}
+body.lobby-snakes .gp-edge{background:linear-gradient(#e9b44c 0 2px,var(--edge) 2px)}
 body.lobby-lashgar{--edge:#7A4E2A;--acc:#1A7A35;--acc-deep:#16692D;--acc-ink:#FFFFFF;--acc-tint:#E3F1E8}
 :root[data-theme="dark"] :is(body.lobby-hokm,body.hokm .gc-ui){--acc:#2B8A50;--acc-deep:#7ED6A1;--acc-tint:rgba(43,138,80,.22)}
 :root[data-theme="dark"] :is(body.lobby-ludo,body.game .gc-ui){--acc:#3D74E6;--acc-deep:#9BBBFF;--acc-tint:rgba(61,116,230,.22)}
 :root[data-theme="dark"] :is(body.lobby-football,body.football .gc-ui){--acc:#3A8F3F;--acc-deep:#8BD48F;--acc-tint:rgba(58,143,63,.22)}
 :root[data-theme="dark"] :is(body.lobby-billiard,body.billiard .gc-ui){--acc:#A0582F;--acc-deep:#E4A57D;--acc-tint:rgba(160,88,47,.24)}
+:root[data-theme="dark"] :is(body.lobby-snakes,body.snakes .gc-ui){--acc:#1f6f8f;--acc-ink:#F2C14E;--acc-deep:#F2C14E;--acc-tint:rgba(31,111,143,.3)}
 :root[data-theme="dark"] :is(body.lobby-divar,body.divar .gc-ui){--acc:#1E6B4E;--acc-ink:#F5C451;--acc-deep:#F5C451;--acc-tint:rgba(30,107,78,.3)}
 .gp-lvl{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
 .gp-star{position:relative;width:42px;height:42px;flex:none;display:grid;place-items:center}

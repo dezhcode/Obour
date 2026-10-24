@@ -134,3 +134,15 @@
 @keyframes pv-lg-fold{0%,26%{transform:rotateX(0)}42%,58%{transform:rotateX(178deg)}72%,100%{transform:rotateX(0)}}
 @keyframes pv-lg-dot{0%,8%{opacity:0;transform:scale(2.4)}16%,86%{opacity:1;transform:none}94%,100%{opacity:0}}
 @keyframes pv-lg-hit{0%,70%{opacity:0}78%,94%{opacity:1}100%{opacity:0}}
+
+/* مار و پله: صفحهٔ رندر شده + مهره های مخروطی؛ لایهٔ تمام قد جابه جا می شود (درصد = اندازهٔ صفحه) */
+.pv-sn{container-type:size;background:radial-gradient(120% 70% at 80% 0,#21407a,transparent 60%),radial-gradient(90% 60% at 0 100%,#0f766e,transparent 60%),#070d1c}
+.pv-sn-in{position:absolute;left:50%;top:50%;width:max(min(92cqw,140cqh),92cqh);aspect-ratio:1;transform:translate(-50%,-44%) rotate(-4deg);border-radius:5%;padding:2.2%;box-sizing:border-box;
+  background:linear-gradient(145deg,#f7d98b,#a8721c 55%,#f2c14e);box-shadow:0 0 0 2px #3a2508,0 18px 30px rgba(0,0,0,.55)}
+.pv-sn-in img{display:block;width:100%;height:100%;border-radius:4%}
+.pv-sn-in .pv-layer{inset:2.2%}
+.pv-snp{position:absolute;left:-3.1%;top:-5%;width:6.2%;aspect-ratio:1}
+.pv-snp::before{content:"";position:absolute;left:12%;right:12%;bottom:6%;height:52%;border-radius:50% 50% 42% 42%/70% 70% 34% 34%;background:linear-gradient(180deg,var(--pc),color-mix(in srgb,var(--pc) 55%,#000))}
+.pv-snp::after{content:"";position:absolute;left:22%;right:22%;top:2%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--pc) 45%,color-mix(in srgb,var(--pc) 45%,#000));box-shadow:0 0 0 1px rgba(255,255,255,.6)}
+.pv-sn-run{will-change:transform;animation:pv-sn-run 5s ease-in-out infinite}
+@keyframes pv-sn-run{0%,12%{transform:translate(45%,75%)}17%{transform:translate(50%,70%)}20%{transform:translate(55%,75%)}25%{transform:translate(60%,70%)}28%{transform:translate(65%,75%)}33%{transform:translate(70%,70%)}36%,44%{transform:translate(75%,75%)}66%,90%{transform:translate(35%,15%)}100%{transform:translate(45%,75%)}}

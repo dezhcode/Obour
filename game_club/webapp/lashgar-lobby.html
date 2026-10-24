@@ -104,7 +104,7 @@
       gp.load(me);
       const url = new URL(location.href);
       const code = (url.searchParams.get('join') || '').trim() || (GC.startParam().startsWith('lashgar_') ? GC.startParam().slice(8) : '');
-      const OTHER = { ludo: ['منچ', 'ludo.html'], hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'], esmfamil: ['اسم‌فامیل', 'esmfamil.html'] };
+      const OTHER = { ludo: ['منچ', 'ludo.html'], hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'], esmfamil: ['اسم‌فامیل', 'esmfamil.html'], snakes: ['مار و پله', 'snakes.html'] };
       if (!GC.live) $('demo').hidden = false;
       if (me.active_match && me.active_game === 'lashgar' && GC.live) {
         const v = await GC.lashgar.match(me.active_match, 0).catch(() => null);

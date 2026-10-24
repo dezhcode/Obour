@@ -53,9 +53,18 @@ const TChat = (() => {
     bar.querySelector('.tc-q').onclick = e => { e.stopPropagation(); pop.hidden = !pop.hidden; place(); };
     pop.querySelectorAll('[data-q]').forEach(b => { b.onclick = () => { pop.hidden = true; send(b.textContent); }; });
     // مثل پلاتو بعد از فرستادن کیبورد باز می ماند تا پیام بعدی نوشته شود
-    const submit = async e => { if (e) e.preventDefault(); if (await send(input.value)) { input.value = ''; if (open) input.focus(); typing(); } };
+    const submit = async e => {
+      if (e) e.preventDefault();
+      const kept = document.activeElement === input;
+      if (await send(input.value)) { input.value = ''; if (open || kept) input.focus(); typing(); }
+    };
     if (bar.tagName === 'FORM') bar.addEventListener('submit', submit);
     else { bar.querySelector('.tc-send').onclick = submit; input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(e); }); }
+    // لمس دکمهٔ فرستادن فوکوس را از ورودی نمی گیرد؛ وگرنه کیبورد بسته و بعد از فرستادن دوباره باز می شود
+    const sendBtn = bar.querySelector('.tc-send');
+    sendBtn.addEventListener('mousedown', e => e.preventDefault());
+    sendBtn.addEventListener('touchstart', e => { if (document.activeElement === input) { e.preventDefault(); sendBtn._tap = true; } }, { passive: false });
+    sendBtn.addEventListener('touchend', e => { if (!sendBtn._tap) return; sendBtn._tap = false; e.preventDefault(); sendBtn.click(); });
 
     // ---------- نوار همیشگی (بیلیارد، فوتبال) هنگام نوشتن ----------
     // صفحهٔ بازی با کیبورد کوتاه نمی شود (GC: --app-h)؛ پس نوار هنگام نوشتن فقط خودش (با transform،

@@ -78,6 +78,13 @@ const ART = {
         <circle class="pv-lg-dot" cx="65" cy="40" r="2.6" fill="#C8323C"/></svg><span class="pv-lg-back"></span></div>
       <span class="pv-lg-mid"></span></div></div>`;
   },
+  // صفحهٔ شب جنگل (همان رندر خود بازی در static/previews): مهرهٔ زرد سه خانه می پرد و از نردبان ۲۸ تا ۸۴ بالا می رود
+  snakes() {
+    const pawn = (cls, col, extra = '') => `<span class="pv-layer ${cls}"${extra}><b class="pv-snp" style="--pc:${col}"></b></span>`;
+    return `<div class="pv pv-sn" aria-hidden="true"><div class="pv-sn-in"><img src="static/previews/sn-board.webp" alt="" draggable="false">
+      ${pawn('pv-sn-s', '#4C8DFF', ' style="transform:translate(65%,45%)"')}${pawn('pv-sn-s', '#FF5A6A', ' style="transform:translate(25%,25%)"')}
+      ${pawn('pv-sn-run', '#FFC531')}</div></div>`;
+  },
   esm() {
     return '<div class="pv pv-esm" aria-hidden="true"><span style="--d:0s;--r:-8deg">الف</span><span style="--d:.25s;--r:5deg">ب</span><span style="--d:.5s;--r:-3deg">م</span></div>';
   },

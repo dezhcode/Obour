@@ -28,10 +28,10 @@ from .service import GCError
 
 log = logging.getLogger(__name__)
 
-GAMES = ("ludo", "hokm", "football", "billiard", "divar", "esmfamil", "lashgar")
+GAMES = ("ludo", "hokm", "football", "billiard", "divar", "esmfamil", "lashgar", "snakes")
 PAGES = {"": "خانه", "ludo-lobby.html": "منچ", "hokm-lobby.html": "حکم", "football-lobby.html": "فوتبال",
          "billiard-lobby.html": "بیلیارد", "divar-lobby.html": "دیوار", "esmfamil-lobby.html": "اسم‌فامیل",
-         "lashgar-lobby.html": "لشگر کاغذی",
+         "lashgar-lobby.html": "لشگر کاغذی", "snakes-lobby.html": "مار و پله",
          "shop.html": "فروشگاه و کیف", "profile.html": "پروفایل", "games.html": "بازی ها", "friends.html": "دوستان"}
 KINDS = ("charge", "entry", "refund", "prize", "admin", "transfer", "shop", "gift", "style")
 # تنظیمات قابل تغییر از پنل: (نوع، کمینه، بیشینه)
@@ -223,6 +223,8 @@ def _score(game: str, st: dict) -> str:
     if game == "divar" and isinstance(st.get("players"), dict) and st.get("size"):
         from .divar import dist
         return " · ".join(f"{p['name']} {dist(st, s)} قدم" for s, p in st["players"].items())
+    if game == "snakes" and isinstance(st.get("players"), dict):
+        return " · ".join(f"{p['name']} خانهٔ {p.get('pos', 1)}" for p in st["players"].values())
     if game == "esmfamil" and isinstance(st.get("totals"), dict) and isinstance(st.get("players"), dict):
         return f"دور {min(st.get('round', 0) + 1, st.get('rounds_n', 1))}/{st.get('rounds_n', 1)} · " + \
             " · ".join(f"{p['name']} {st['totals'].get(c, 0)}" for c, p in st["players"].items())
@@ -457,7 +459,7 @@ TARGET_KEYS = [("all", "همه"), ("active7", "فعال ۷ روز"), ("active30"
                ("game:ludo", "بازیکنان منچ"), ("game:football", "بازیکنان فوتبال"),
                ("game:billiard", "بازیکنان بیلیارد"), ("game:divar", "بازیکنان دیوار"),
                ("game:esmfamil", "بازیکنان اسم‌فامیل"),
-               ("game:lashgar", "بازیکنان لشگر کاغذی"), ("me", "فقط خودم")]
+               ("game:lashgar", "بازیکنان لشگر کاغذی"), ("game:snakes", "بازیکنان مار و پله"), ("me", "فقط خودم")]
 
 
 def target_label(t: str) -> str:

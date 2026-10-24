@@ -1350,7 +1350,7 @@ def test_inline_tables():
             assert "حالت بازی" in P(rm) and f"gs:open:{token}" in [b.callback_data for b in B(rm)]
             iq.query = ""
             await groups.on_inline(iq, gdb=db)
-            assert len(got[-1][0]) == 5          # حکم، منچ، فوتبال، بیلیارد، دیوار
+            assert len(got[-1][0]) == 6          # حکم، منچ، فوتبال، بیلیارد، دیوار، مار و پله
             # فقط سازنده تنظیم می کند؛ شناسهٔ پیام اینلاین از همین لمس ثبت می شود
             cq = _CQ(32, f"gs:open:{token}", imid="IM1")
             await groups.on_setup(cq, gdb=db)
@@ -2728,5 +2728,136 @@ def test_gate_and_popup():
         await gate.set_popup(db, {"on": False, "text": "x"})
         assert await gate.popup_view(db) is None
         await db.close()
+
+    asyncio.run(run())
+
+
+# ---------- مار و پله ----------
+def _sn(players=2, bots=False, first=0):
+    from game_club import snakes as Sn
+    seats = [{"color": c, "uid": None if bots else i + 1, "name": c, "bot": bots} for i, c in enumerate(Sn.seats_of(players))]
+    return Sn, Sn.new_state(seats, 0.0, 20, False, players, first)
+
+
+def test_snakes_rules():
+    Sn, st = _sn(3)
+    assert st["order"] == ["0", "1", "2"] and all(p["pos"] == 1 for p in st["players"].values())
+    t = st["next_at"]
+    assert Sn.roll(st, 1, t) == "not_your_turn" and Sn.roll(st, 0, 0.1) == "not_ready"
+    # نردبان: ۱ + ۳ = ۴ ← ۱۴
+    assert Sn.roll(st, 0, t, v=3) is None and st["players"]["0"]["pos"] == 14 and st["turn"] == 1
+    e = st["events"][-2]
+    assert e["t"] == "roll" and e["mid"] == 4 and e["to"] == 14 and e["via"] == "ladder"
+    # مار: ۱۲ + ۵ = ۱۷ ← ۷
+    st["players"]["1"]["pos"] = 12
+    assert Sn.roll(st, 1, st["next_at"], v=5) is None and st["players"]["1"]["pos"] == 7
+    assert st["stats"]["1"]["snakes"] == 1 and st["stats"]["0"]["ladders"] == 1
+    # تاس ۶ نوبت اضافه؛ ششِ سوم پشت هم نوبت را تمام می کند
+    st["players"]["2"]["pos"] = 2
+    for k in range(2):
+        assert Sn.roll(st, 2, st["next_at"], v=6) is None and Sn.current(st) == "2"
+    assert Sn.roll(st, 2, st["next_at"], v=6) is None and Sn.current(st) == "0" and st["bonus"] == 0
+    # دقیقاً ۱۰۰: بیشتر از لازم یعنی همان جا ماندن؛ رسیدن یعنی برد
+    st["players"]["0"]["pos"] = 97
+    assert Sn.roll(st, 0, st["next_at"], v=5) is None and st["players"]["0"]["pos"] == 97 and st["events"][-2]["stay"]
+    st["turn"] = 0
+    assert Sn.roll(st, 0, st["next_at"], v=3) is None and st["over"] and Sn.winners(st) == {"0"}
+    assert Sn.view(st, "0", 0, st["next_at"])["ranking"][0] == "0"
+
+
+def test_snakes_bot_games_and_leave():
+    random.seed(3)
+    for players in (2, 3, 4):
+        for _ in range(5):
+            Sn, st = _sn(players, bots=True)
+            t, k = 0.0, 0
+            while not st["over"] and k < 5000:
+                t = max(t + 0.01, st["next_at"])
+                Sn.tick(st, t)
+                k += 1
+            assert st["over"] and st["players"][st["winner"]]["pos"] == 100
+    # وقت تمام شد: تاس به جای بازیکن ریخته می شود
+    Sn, st = _sn()
+    Sn.tick(st, st["deadline"] + 0.1)
+    assert st["players"]["0"]["misses"] == 1 and any(e["t"] == "roll" and e.get("auto") for e in st["events"])
+    # دو نفره: خروج یعنی برد حریف؛ سه نفره: ربات جای او تاس می ریزد
+    Sn, st = _sn()
+    Sn.leave(st, "0", 1.0)
+    assert st["over"] and Sn.winners(st) == {"1"}
+    Sn, st = _sn(3)
+    Sn.leave(st, "0", 1.0)
+    assert not st["over"] and st["players"]["0"]["out"]
+    Sn.tick(st, st["next_at"] + 0.01)
+    assert st["turn"] == 1
+
+
+def test_snakes_service_flow():
+    from game_club import groups, service
+    from game_club.db import GCDatabase
+    tmp = tempfile.mkdtemp()
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        real = service.time.time
+        clock = [90_000.0]
+        service.time.time = lambda: clock[0]
+        try:
+            for tg in (1, 2, 3):
+                await db.player(tg, f"p{tg}")
+                await db.credit(tg, 1000)
+            for bad in ({"game": "snakes", "players": 5}, {"game": "snakes", "players": 1}):
+                try:
+                    service.norm_cfg(bad)
+                    raise AssertionError("bad cfg passed")
+                except service.GCError as e:
+                    assert e.code == "bad_cfg"
+            # تمرین سه نفره با ربات
+            r = await service.queue_join(db, 1, {"game": "snakes", "mode": "free", "players": 3, "solo": True})
+            mid = r["match"]
+            assert await db.active_match_of(1, "snakes") == mid
+            v = await service.match_view(db, 1, mid)
+            g = v["game"]
+            assert g["n"] == 3 and v["me"] in g["order"] and {int(k): x for k, x in g["ladders"].items()}[28] == 84
+            for _ in range(40):
+                m = await db.get_match(mid)
+                st = m["state"]
+                clock[0] = max(clock[0], st["next_at"]) + 0.2
+                if st["order"][st["turn"]] == v["me"] and not st["over"]:
+                    break
+                await service.match_view(db, 1, mid)
+            v = await service.match_view(db, 1, mid)
+            assert v["game"]["can_roll"]
+            seq = v["game"]["seq"]
+            v = await service.act(db, 1, mid, "roll", since=seq)
+            assert any(e["t"] == "roll" and e["c"] == v["me"] for e in v["game"]["events"])
+            assert (await service.my_tables(db, 1))[0]["game"] == "snakes"
+            await service.leave_any(db, 1, mid)
+            # سه نفره با امتیاز: یک برنده همهٔ جایزه را می برد
+            cfg = {"game": "snakes", "mode": "stake", "entry": 100, "players": 3}
+            inv = await service.invite_create(db, 1, cfg)
+            for tg in (2, 3):
+                await service.invite_join(db, tg, inv["code"])
+            m = await db.get_match(inv["match"])
+            assert m["status"] == "playing" and m["state"]["n"] == 3
+            rows = {r["tg_id"]: r["color"] for r in await db.match_players(inv["match"])}
+            assert rows == {1: "0", 2: "1", 3: "2"}
+
+            def win(mm):
+                from game_club import snakes
+                snakes._finish(mm["state"], "1")
+                mm["status"] = "over"
+                return True, None
+            await service.mutate(db, inv["match"], win)
+            pts = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3)}
+            prize = 300 - 300 * service.gc.rake_percent // 100
+            assert pts == {1: 900, 2: 900 + prize, 3: 900}, pts
+            # گروه: ۲ تا ۴ نفره، پیش فرض ۴
+            assert groups.cfg_of("snakes", {})["players"] == 4 and groups.cfg_of("snakes", {"players": 3})["players"] == 3
+            assert groups.need_of("snakes", groups.cfg_of("snakes", {"players": 2})) == 2
+            assert "100" in groups.summary("snakes", groups.cfg_of("snakes", {}))
+        finally:
+            service.time.time = real
+            await db.close()
 
     asyncio.run(run())

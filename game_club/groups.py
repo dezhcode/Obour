@@ -1,7 +1,7 @@
 """بازی در گروه های تلگرام: ربات یک «کارت میز» در گروه می فرستد؛ دکمه ها داخل خود پیام اند
 (پیام غنی Bot API 10.3 با بلوک دکمه)، نه کیبورد شیشه ای زیر پیام.
 
-- /hokm، /ludo، /football، /billiard، /divar، /esmfamil، /lashgar (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
+- /hokm، /ludo، /football، /billiard، /divar، /esmfamil، /lashgar، /snakes (یا /play برای انتخاب بازی) کارت «تنظیم میز» می فرستد: سازنده حالت بازی
   (طول بازی، تعداد بازیکن، مدل) را انتخاب می کند و «باز کردن میز» را می زند؛ سازنده خودش می نشیند.
 - با هر نشستن یا بلند شدن، کارت عوض می شود: چه کسانی نشسته اند (با منشن) و چند جای خالی مانده.
 - وقتی میز پر شد یا سازنده «شروع» را زد، دکمه های میز می روند و کارت «بازی شروع شد» می شود با اسم
@@ -74,6 +74,9 @@ GAMES = {
     "lashgar": {"name": "لشگر کاغذی", "icon": "🪖", "base": {"game": "lashgar", "mode": "free", "entry": 0},
                 "opts": [("army", "ارتش هر نفر", [(11, "کوچک · 11 نیرو"), (18, "بزرگ · 18 نیرو")])],
                 "def": {"army": 11}},
+    # مار و پله: ۲ تا ۴ نفر؛ جای خالی با ربات
+    "snakes": {"name": "مار و پله", "icon": "🐍", "base": {"game": "snakes", "mode": "free", "entry": 0},
+               "opts": [("players", "تعداد بازیکن", [(2, "2 نفره"), (3, "3 نفره"), (4, "4 نفره")])], "def": {"players": 4}},
 }
 GROUP_ONLY = service.GROUP_ONLY
 OPEN_TTL = 15 * 60       # میز یا کارت تنظیمی که این مدت شروع نشود بسته می شود
@@ -102,7 +105,7 @@ def need_of(game: str, cfg: dict) -> int:
         return esmfamil.MAX_PLAYERS
     if game == "lashgar":
         return 2
-    return int(cfg.get("players") or 0) if game in ("ludo", "billiard", "divar") else 4 if game == "hokm" else 2
+    return int(cfg.get("players") or 0) if game in ("ludo", "billiard", "divar", "snakes") else 4 if game == "hokm" else 2
 
 
 def summary(game: str, cfg: dict) -> str:
@@ -114,6 +117,8 @@ def summary(game: str, cfg: dict) -> str:
     if game == "divar":
         kind = "ستارهٔ وسط · 11×11" if cfg.get("variant") == "star" else "9×9"
         return f"آزاد · {n} نفره · {kind} · هر نفر {fd(10 if n == '2' else 7 if cfg.get('variant') == 'star' else 5)} دیوار"
+    if game == "snakes":
+        return f"آزاد · {n} نفره · هر کی دقیقاً به 100 برسه می‌بره"
     if game == "billiard":
         return f"آزاد · {n} نفره · {'یاری (دو تیم دونفره)' if cfg.get('players') == 4 else 'رو در رو'} · ۸ توپ"
     if game == "lashgar":
@@ -690,7 +695,7 @@ async def open_table(db: GCDatabase, d: dict) -> str | None:
     return None
 
 
-@router.message(GROUP, Command("hokm", "ludo", "football", "billiard", "divar", "esmfamil", "lashgar"))
+@router.message(GROUP, Command("hokm", "ludo", "football", "billiard", "divar", "esmfamil", "lashgar", "snakes"))
 async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
     game = (message.text or "").split()[0].lstrip("/").split("@")[0].lower()
     if not message.from_user or game not in GAMES:
@@ -704,8 +709,9 @@ async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
 async def on_play(message: Message) -> None:
     await _send(message.chat.id, card(
         st.frame("brand", "Game Club", "بازی در گروه", ["چی بازی کنیم؟ هر کی زودتر بزنه، میز رو می‌چینه و خودش اول می‌شینه."],
-                 foot=("group", "بازی‌ها", "حکم، منچ، فوتبال، بیلیارد، دیوار، اسم‌فامیل و لشگر کاغذی؛ همه مجانی، فقط سر کل‌کل 😄")),
-        _row(*[_bt(k, g["name"], "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}") for k, g in GAMES.items()])))
+                 foot=("group", "بازی‌ها", "حکم، منچ، فوتبال، بیلیارد، دیوار، اسم‌فامیل، لشگر کاغذی و مار و پله؛ همه مجانی، فقط سر کل‌کل 😄")),
+        *[_row(*[_bt(k, g["name"], "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}") for k, g in list(GAMES.items())[i:i + 4]])
+          for i in range(0, len(GAMES), 4)]))
 
 
 async def _draft_err(cq: CallbackQuery, text: str) -> None:
@@ -823,7 +829,8 @@ INLINE_ALIASES = {"hokm": ("hokm", "حکم", "hk"), "ludo": ("ludo", "منچ", "
                   "billiard": ("billiard", "بیلیارد", "pool", "8ball", "snooker"),
                   "divar": ("divar", "دیوار", "quoridor", "wall", "kooridor"),
                   "esmfamil": ("esmfamil", "اسم‌فامیل", "اسم فامیل", "اسم", "esm", "namefamily"),
-                  "lashgar": ("lashgar", "لشگر", "لشکر", "جنگ", "جنگ کاغذی", "jang", "paperwar", "war")}
+                  "lashgar": ("lashgar", "لشگر", "لشکر", "جنگ", "جنگ کاغذی", "jang", "paperwar", "war"),
+                  "snakes": ("snakes", "مار و پله", "مار", "پله", "marpele", "snake", "ladder")}
 
 
 async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArticle:

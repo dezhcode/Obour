@@ -39,7 +39,7 @@ const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
 // رنگ نوار تلگرام با زمینه صفحه یکی است تا درز دیده نشود: صفحهٔ خود بازی ها سبز تیره، بقیه پوستهٔ اپ
 // (روشن یا تیره؛ theme.js). با عوض شدن پوسته دوباره رنگ می شود.
 function paintBars() {
-  const game = document.body.matches('.game,.hokm,.divar,.football,.billiard'), night = document.documentElement.dataset.theme === 'dark';
+  const game = document.body.matches('.game,.hokm,.divar,.football,.billiard,.snakes'), night = document.documentElement.dataset.theme === 'dark';
   const paper = document.body.matches('.esm');   // اسم‌فامیل: برگ دفتر، همیشه روشن
   const desk = document.body.matches('.lashgar');   // لشگر کاغذی: میز چوبی مدرسه
   const top = desk ? '#8E5F38' : paper ? '#EFE6D2' : game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8';
@@ -84,7 +84,7 @@ if (!live) {
    اندازهٔ واقعی صفحه عوض شد و یک بار در هر فریم صدا می زند. بعد از بستن کیبورد صفحهٔ بازی به بالا
    برمی گردد (آیفون گاهی جابه جا رهایش می کند). */
 const editing = () => { const a = document.activeElement; return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable); };
-const gameBody = () => !!document.body && document.body.matches('.game,.hokm,.divar,.football,.billiard,.lashgar');
+const gameBody = () => !!document.body && document.body.matches('.game,.hokm,.divar,.football,.billiard,.lashgar,.snakes');
 let appW = 0, appH = 0, fitRaf = 0, fitForce = false;
 const fits = [];
 function syncApp() {
@@ -274,7 +274,7 @@ function showPopup() {
   const p = popupData; popupData = null;
   if (!p || gateEl) return;
   // صفحهٔ بازی وسط بازی شلوغ نمی شود؛ فقط خانه، لابی ها و بقیهٔ صفحه ها
-  if (/(ludo|hokm|football|billiard|divar|esmfamil|lashgar)\.html$|admin\.html$/.test(location.pathname)) return;
+  if (/(ludo|hokm|football|billiard|divar|esmfamil|lashgar|snakes)\.html$|admin\.html$/.test(location.pathname)) return;
   const key = 'gc_popup_' + p.v;
   try {
     if (sessionStorage.getItem(key)) return;
@@ -392,6 +392,19 @@ const liveDivar = {
   // o: "h" افقی یا "v" عمودی؛ r و c گوشهٔ بالا چپ دیوار دو خانه ای
   wall: (match, o, r, c, since) => api('divar/wall', { body: { match, o, r, c, since } }),
   leave: match => api('divar/leave', { body: { match } }),
+};
+const liveSnakes = {
+  queueJoin: cfg => api('snakes/queue', { body: { cfg } }),
+  queueStatus: () => api('snakes/queue'),
+  queueLeave: () => api('snakes/queue/leave', { body: {} }),
+  queueBots: () => api('snakes/queue/bots', { body: {} }),
+  invite: cfg => api('snakes/invite', { body: { cfg } }),
+  join: code => api('snakes/join', { body: { code } }),
+  start: match => api('snakes/start', { body: { match } }),
+  match: (id, since = 0, chat = null) => api('snakes/match', { q: Object.assign(id ? { id, since } : { since }, chat == null ? {} : { chat }) }),
+  chat: (match, text) => api('snakes/chat', { body: { match, text } }),
+  roll: (match, since) => api('snakes/roll', { body: { match, since } }),
+  leave: match => api('snakes/leave', { body: { match } }),
 };
 // اسم‌فامیل فقط از کارت گروه ساخته می شود: اینجا نشستن (کد میز)، بازی و ترک است، نه صف و دعوت
 const liveEsm = {
@@ -539,7 +552,7 @@ function face(p, ring, extra = '') {
 }
 
 /* ---------- کارت پروفایل بازیکن (از لیدربرد و صفحهٔ بازی ها) با درخواست دوستی ---------- */
-const GAME_FA = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل', lashgar: 'لشگر کاغذی' };
+const GAME_FA = { hokm: 'حکم', ludo: 'منچ', football: 'فوتبال', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل', lashgar: 'لشگر کاغذی', snakes: 'مار و پله' };
 async function userCard(pid) {
   const sh = sheet(`<div class="fr-card"><span class="fr-cover cover cover-gc"></span><div class="gp-skel" style="width:84px;height:84px;border-radius:50%"></div>
     <div class="gp-skel" style="width:60%"></div></div>`);
@@ -723,6 +736,9 @@ const sfx = {
   enter() { [523, 659, 784].forEach((f, i) => tone(f, .14, { type: 'triangle', g: .2, at: i * .07 })); },
   capture() { tone(420, .32, { type: 'square', g: .12, to: 70 }); noise(.18, { g: .3, f: 900, q: .7, at: .02 }); tone(90, .2, { g: .35, at: .05 }); },
   home() { tone(880, .35, { g: .2 }); tone(1320, .45, { g: .16, at: .1 }); tone(1760, .5, { g: .1, at: .2 }); },
+  // مار و پله: بالا رفتن از نردبان (پله پله بالا) و سرخوردن روی مار (پایین)
+  ladder() { [523, 587, 659, 784, 880, 1047].forEach((f, i) => tone(f, .12, { type: 'triangle', g: .16, at: i * .12 })); },
+  snake() { tone(660, .9, { type: 'sawtooth', g: .07, to: 110 }); noise(.5, { g: .18, f: 2400, q: 1.2, at: .05 }); },
   six() { [988, 1319, 1568].forEach((f, i) => tone(f, .12, { type: 'triangle', g: .14, at: i * .05 })); },
   turn() { tone(740, .12, { type: 'sine', g: .22 }); tone(988, .22, { type: 'sine', g: .22, at: .11 }); },
   nomove() { tone(180, .22, { type: 'sawtooth', g: .08, to: 140 }); },
@@ -1030,6 +1046,8 @@ const GAME_ART = {
   divar: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="10" fill="#18543a"/><g fill="#3a9d68">' + [10, 22, 34, 46].map(y => [10, 22, 34, 46].map(x => `<rect x="${x}" y="${y}" width="9" height="9" rx="2.4"/>`).join('')).join('') + '</g><rect x="8.5" y="31" width="22" height="3.2" rx="1.6" fill="#F5C451"/><rect x="43.2" y="9" width="3.2" height="22" rx="1.6" fill="#F5C451"/><circle cx="26.5" cy="50.5" r="5.2" fill="#DDE3EA"/><circle cx="26.5" cy="50.5" r="3.6" fill="#4C8DFF"/><circle cx="38.5" cy="14.5" r="5.2" fill="#DDE3EA"/><circle cx="38.5" cy="14.5" r="3.6" fill="#FF5A6A"/></svg>',
   esmfamil: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-6 32 32)"><rect x="9" y="6" width="46" height="54" rx="4" fill="#FFFCF2"/><g stroke="#C9D8EE" stroke-width="1.6"><path d="M9 22h46M9 33h46M9 44h46"/></g><path d="M44 6v54" stroke="#E8A3A8" stroke-width="1.6"/><path d="M15 29c3-3 8-3 12 0M15 40c4-2 10-2 15 0" stroke="#1E3A8A" stroke-width="2.4" fill="none" stroke-linecap="round"/><ellipse cx="34" cy="16" rx="7" ry="6.5" fill="none" stroke="#C8323C" stroke-width="2.2"/><text x="34" y="20.5" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="11" fill="#C8323C">ب</text></g></svg>',
   lashgar: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-5 32 32)"><rect x="9" y="5" width="46" height="55" rx="3" fill="#FCFBF7"/><path d="M9 32.5q4-2.4 8 0t8 0t8 0t8 0t8 0t5 0" fill="none" stroke="#3A3A3A" stroke-width="1.5"/><g fill="none" stroke="#3A3A3A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 49q-2 5 3 5h19q5 0 3-5z"/><path d="M19 49l2.5-4h14l2.5 4"/><path d="M25 45q0-4.5 4-4.5t4 4.5"/><path d="M32 43l11-4"/><g transform="rotate(180 39 18)"><circle cx="39" cy="12" r="2.4"/><path d="M39 14.5v6M35.5 17h7M39 20.5l-3 4.5M39 20.5l3 4.5"/></g></g><circle cx="39" cy="18.5" r="3.2" fill="#C8323C"/><path d="M33 12.5l12 12M45 12.5l-12 12" stroke="#C8323C" stroke-width="2.4" stroke-linecap="round"/><path d="M16 12h7v5h-7z" fill="#EF4136" opacity=".75"/><path d="M23 9v12" stroke="#3A3A3A" stroke-width="1.6" stroke-linecap="round"/></g></svg>',
+  // صفحهٔ شب جنگل: خانه های فیروزه ای، نردبان طلایی و مار سبز راه راه
+  snakes: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="3" y="3" width="58" height="58" rx="10" fill="#e9b44c"/><rect x="6" y="6" width="52" height="52" rx="7" fill="#071c22"/>' + [0, 1, 2, 3].map(r => [0, 1, 2, 3].map(c => `<rect x="${7.5 + c * 12.5}" y="${7.5 + r * 12.5}" width="11.5" height="11.5" rx="2.5" fill="${(r + c) % 2 ? '#1f8276' : '#164a5e'}"/>`).join('')).join('') + '<g stroke-linecap="round"><path d="M17 50L41 15M25 54L49 19" stroke="#8a5412" stroke-width="3.2"/><path d="M17 50L41 15M25 54L49 19" stroke="#e9b44c" stroke-width="1.8"/><path d="M22 46.5l7.5 5M27.5 38.5l7.5 5M33 30.5l7.5 5M38.5 22.5l7.5 5" stroke="#c98a2b" stroke-width="2.2"/><path d="M47 47c-8-2-4-10-12-12s-6-10-14-12" fill="none" stroke="#16804c" stroke-width="6.5"/><path d="M47 47c-8-2-4-10-12-12s-6-10-14-12" fill="none" stroke="#2bb673" stroke-width="4.2" stroke-dasharray="4 4"/></g><circle cx="20" cy="23" r="4.6" fill="#2bb673"/><circle cx="18.6" cy="21.6" r="1.3" fill="#fff"/><circle cx="18.5" cy="21.5" r=".6" fill="#111"/><circle cx="44" cy="40" r="3.4" fill="#FFC531" stroke="#fff" stroke-width="1"/></svg>',
   esm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>',
 };
 const GAMES = [
@@ -1040,6 +1058,7 @@ const GAMES = [
   { id: 'divar', name: 'دیوار', sub: '۲ یا ۴ نفره · راه را ببند', href: 'divar-lobby.html', tint: 't-dv', cat: 'board', tag: 'تازه' },
   { id: 'esmfamil', name: 'اسم‌فامیل', sub: '۲ تا ۱۰ نفر · گروه یا کانال', href: 'esmfamil-lobby.html', tint: 't-paper', cat: 'word', tag: 'تازه' },
   { id: 'lashgar', name: 'لشگر کاغذی', sub: '۲ نفره · گروه یا کانال', href: 'lashgar-lobby.html', tint: 't-desk', cat: 'board', tag: 'تازه' },
+  { id: 'snakes', name: 'مار و پله', sub: '۲ تا ۴ نفره · با ربات، دوستان یا گروه', href: 'snakes-lobby.html', tint: 't-sn', cat: 'board', tag: 'تازه' },
 ];
 function quickPlay() {
   sheet(`${sheetHead('بازی‌ها')}<div class="qp">${GAMES.map(g => g.soon
@@ -1122,7 +1141,7 @@ document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 window.GC = { editName, nameProblem, normName, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
-  get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,
+  get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, get snakes() { return live ? liveSnakes : GC.demo.snakes; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
   PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver, onFit, queueFit, appHeight, editing, userCard };
 document.addEventListener('DOMContentLoaded', () => { mount(); boot(); });
