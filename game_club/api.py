@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 
-from . import admin, bridge, groups, names, service, social
+from . import admin, bridge, gate, groups, names, service, social
 from .bot import gcrt
 from .config import gc
 from .db import pic_url
@@ -68,6 +68,14 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
     if gc.maintenance and method == "POST" and not admin.is_admin(tg) and \
             re.match(r"^(ludo|hokm|football|billiard|divar|esmfamil|lashgar)/(queue|queue/bots|invite|join)$", name):
         raise GCError("maintenance")
+    # عضویت اجباری (پنل مدیریت): ساختن یا نشستن سر میز فقط برای عضوهای کانال ها و گروه های لازم
+    if method == "POST" and re.match(r"^(ludo|hokm|football|billiard|divar|esmfamil|lashgar)/(queue|queue/bots|invite|join)$", name):
+        await gate.require(gdb, g.bot, tg)
+    # ---------- باز شدن مینی اپ: کانال های لازم و پیام پاپ آپ ----------
+    if name == "boot" and method == "GET":
+        return {"gate": await gate.missing(gdb, g.bot, tg), "popup": await gate.popup_view(gdb)}
+    if name == "gate/check" and method == "POST":      # «عضو شدم»: بدون حافظه دوباره از تلگرام
+        return {"gate": await gate.missing(gdb, g.bot, tg, fresh=True)}
 
     # ---------- خود من ----------
     if name == "me" and method == "GET":

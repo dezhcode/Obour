@@ -2647,3 +2647,80 @@ if __name__ == "__main__":
         if name.startswith("test_"):
             fn()
             print("ok", name)
+
+
+def test_gate_and_popup():
+    """عضویت اجباری: عضو نبودن، خطای تلگرام (کسی قفل نشود)، حافظهٔ تأیید؛ پاپ آپ: نسخه، عکس و اعتبارسنجی."""
+    tmp = tempfile.mkdtemp()
+    os.environ["GAME_CLUB_DB_PATH"] = os.path.join(tmp, "gc.db")
+
+    from game_club import gate
+    from game_club.config import gc as gcc
+    from game_club.db import GCDatabase
+    from game_club.service import GCError
+
+    gcc.db_path = os.path.join(tmp, "gc.db")
+
+    class M:
+        def __init__(self, status: str) -> None:
+            self.status = status
+
+    class Bot:
+        joined: set = set()
+        calls = 0
+
+        async def get_chat_member(self, chat, user):
+            Bot.calls += 1
+            if chat == "@broken":
+                raise RuntimeError("bot was kicked")
+            return M("member" if user in Bot.joined else "left")
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        bot = Bot()
+        assert await gate.missing(db, bot, 5) == []                       # خاموش
+        await gate.save(db, "gate", {"on": True, "chats": [{"id": "@news", "title": "کانال", "url": "https://t.me/news"},
+                                                           {"id": "@broken", "title": "خراب", "url": "https://t.me/broken"}]})
+        need = await gate.missing(db, bot, 5)
+        assert [c["title"] for c in need] == ["کانال"]                      # کانال خراب کسی را قفل نمی کند
+        try:
+            await gate.require(db, bot, 5)
+            raise AssertionError("must_join expected")
+        except GCError as e:
+            assert e.code == "must_join" and e.extra["chats"][0]["url"] == "https://t.me/news"
+        Bot.joined.add(5)
+        assert await gate.missing(db, bot, 5, fresh=True) == []
+        n = Bot.calls
+        assert await gate.missing(db, bot, 5) == [] and Bot.calls == n + 1  # عضویت تأیید شده از حافظه (فقط کانال خراب دوباره پرسیده می شود)
+        assert gate.parse_chat("https://t.me/news") == "@news" and gate.parse_chat("-1001234567") == "-1001234567"
+        for bad in ("https://t.me/+AbCd", "x"):
+            try:
+                gate.parse_chat(bad)
+                raise AssertionError(bad)
+            except GCError as e:
+                assert e.code == "need_id"
+        # پاپ آپ
+        import base64
+        jpg = base64.b64encode(b"\xff\xd8\xff\xe0" + b"0" * 100).decode()
+        p = await gate.set_popup(db, {"on": True, "title": "سلام", "text": "متن", "img": "data:image/jpeg;base64," + jpg,
+                                      "btn": "کانال", "url": "@news", "mode": "always"})
+        assert p["v"] == 1 and p["url"] == "https://t.me/news" and p["img"].startswith("media/popup-") and p["mode"] == "always"
+        assert gate.read_media(p["img"][6:])[1] == "image/jpeg"
+        assert gate.read_media("../gc.db") is None
+        p2 = await gate.set_popup(db, {"on": True, "title": "دوباره", "url": ""})
+        assert p2["v"] == 2 and p2["img"] == p["img"] and p2["btn"] == ""   # عکس قبلی می ماند
+        for body, code in (({"on": True, "img": ""}, "empty_popup"), ({"on": True, "text": "x", "btn": "b"}, "need_url"),
+                           ({"on": True, "text": "x", "url": "javascript:alert(1)"}, "bad_url"),
+                           ({"text": "x", "img": "data:image/png;base64," + base64.b64encode(b"<svg>").decode()}, "bad_image")):
+            try:
+                await gate.set_popup(db, body)
+                raise AssertionError(code)
+            except GCError as e:
+                assert e.code == code, (e.code, code)
+        assert (await gate.popup_view(db))["title"] == "دوباره"
+        await gate.set_popup(db, {"on": False, "text": "x"})
+        assert await gate.popup_view(db) is None
+        await db.close()
+
+    asyncio.run(run())

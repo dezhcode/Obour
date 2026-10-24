@@ -83,6 +83,35 @@ class GCRuntime:
                         log.debug("همگام سازی تنظیمات نشد", exc_info=True)
                     return await handler(event, data)
 
+                # عضویت اجباری (پنل مدیریت): در پیوی تا عضو کانال ها/گروه های لازم نشده، فقط پیام «عضو شو»
+                from . import gate as _gate
+
+                @dp.message.outer_middleware()
+                async def _gate_msg(handler, event, data):  # noqa: ANN001, ANN202
+                    u = event.from_user
+                    if event.chat.type == "private" and u and not u.is_bot:
+                        try:
+                            need = await _gate.missing(db, self.bot, u.id)
+                        except Exception:  # noqa: BLE001
+                            need = []
+                        if need:
+                            await event.answer(gate_text(need), reply_markup=gate_kb(need))
+                            return None
+                    return await handler(event, data)
+
+                @dp.callback_query.outer_middleware()
+                async def _gate_cb(handler, event, data):  # noqa: ANN001, ANN202
+                    msg = event.message
+                    if msg and msg.chat.type == "private" and not (event.data or "").startswith("gate:"):
+                        try:
+                            need = await _gate.missing(db, self.bot, event.from_user.id)
+                        except Exception:  # noqa: BLE001
+                            need = []
+                        if need:
+                            await event.answer("اول عضو " + "، ".join(c["title"] for c in need) + " شو 🙏", show_alert=True)
+                            return None
+                    return await handler(event, data)
+
                 from . import groups
 
                 dp.include_router(groups.router)     # اول گروه ها؛ بعد دستورهای پیوی
@@ -118,6 +147,40 @@ NOTICE = {
     "dm": ("chat", "پیام تازه", "بخونش"),
     "dminv": ("link", "دعوت به بازی", "بشین سر میز"),
 }
+
+
+def gate_text(need: list[dict]) -> str:
+    names = "، ".join(f"«{c['title']}»" for c in need)
+    return st.to_html(st.frame("megaphone", "Game Club", "عضویت لازمه", [
+        f"برای بازی توی Game Club اول باید عضو {names} بشی.", "",
+        "عضو که شدی، دکمهٔ «عضو شدم» رو بزن تا بریم سراغ بازی 🎮"]))
+
+
+def gate_kb(need: list[dict]) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(text=("📢 " if c.get("kind") == "channel" else "👥 ") + c["title"], url=c["url"])]
+            for c in need if c.get("url")]
+    rows.append([InlineKeyboardButton(text="✅ عضو شدم", callback_data="gate:ok")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+@router.callback_query(F.data == "gate:ok")
+async def on_gate_ok(cb: CallbackQuery, gdb: GCDatabase) -> None:
+    from . import gate
+
+    need = await gate.missing(gdb, cb.bot, cb.from_user.id, fresh=True)
+    if need:
+        await cb.answer("هنوز عضو " + "، ".join(c["title"] for c in need) + " نشدی 🤔", show_alert=True)
+        try:
+            await cb.message.edit_text(gate_text(need), reply_markup=gate_kb(need))
+        except Exception:  # noqa: BLE001
+            pass
+        return
+    await cb.answer("عضویتت تأیید شد ✅")
+    try:
+        await cb.message.edit_text(st.to_html(st.frame("ok", "Game Club", "خوش اومدی!", [
+            "عضویتت تأیید شد ✅ حالا می‌تونی بازی کنی."])), reply_markup=open_kb("", "بزن بریم بازی"))
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def open_kb(page: str = "", text: str = "ورود به Game Club", icon: str | None = "brand") -> InlineKeyboardMarkup | None:

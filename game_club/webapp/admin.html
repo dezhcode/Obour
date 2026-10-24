@@ -74,6 +74,11 @@
 textarea,.in{width:100%;box-sizing:border-box;border:2px solid var(--line);border-radius:var(--radius-md);background:var(--surface);font:inherit;font-weight:600;color:var(--ink);padding:10px 12px;outline:none}
 textarea:focus,.in:focus{border-color:var(--sky)}
 textarea{min-height:130px;resize:vertical;line-height:24px}
+.lbl{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:800;color:var(--ink-muted)}
+.pimg{min-height:64px;border-radius:var(--radius-md);background:var(--surface-2,#F1F2F7);display:grid;place-items:center;overflow:hidden}
+.pimg img{display:block;width:100%;max-height:260px;object-fit:cover}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn-sm{min-height:34px;font-size:13px;padding:0 12px}
 .fld{display:grid;gap:6px}
 .fld>label{font-weight:800;font-size:13.5px}
 .fld .hint{margin:0;text-align:start}
@@ -154,7 +159,7 @@ const SET = {
   rake_percent: ['سهم عبور از جایزه (٪)', 'از جمع ورودی‌ها کم می‌شود.'],
   notice: ['اطلاعیهٔ صفحهٔ خانه', 'یک خط بالای صفحهٔ خانه برای همه؛ خالی = بدون اطلاعیه.'],
 };
-const TABS = [['dash', 'داشبورد', 'dash'], ['users', 'کاربران', 'users'], ['tables', 'میزها', 'table'], ['ledger', 'تراکنش‌ها', 'wallet'], ['bc', 'پیام همگانی', 'mega'], ['emoji', 'ایموجی‌ها', 'smile'], ['settings', 'تنظیمات', 'gear'], ['log', 'گزارش', 'list']];
+const TABS = [['dash', 'داشبورد', 'dash'], ['users', 'کاربران', 'users'], ['tables', 'میزها', 'table'], ['ledger', 'تراکنش‌ها', 'wallet'], ['bc', 'پیام همگانی', 'mega'], ['emoji', 'ایموجی‌ها', 'smile'], ['popup', 'پاپ‌آپ', 'bell'], ['gate', 'عضویت اجباری', 'link'], ['settings', 'تنظیمات', 'gear'], ['log', 'گزارش', 'list']];
 
 /* ---------- ارتباط با سرور (بیرون از تلگرام: داده نمونه برای دیدن ظاهر) ---------- */
 const call = (name, opt = {}) => GC.live ? GC.api(name, opt) : Promise.resolve(MOCK(name, opt));
@@ -164,7 +169,11 @@ async function act(name, body, ok) {
   try { const r = await post(name, body); haptic('success'); if (ok) toast(ok); return r; }
   catch (e) { haptic('error'); toast(ERR[e.code] || errText(e)); throw e; }
 }
-const ERR = { not_found: 'پیدا نشد (یا دسترسی ادمین نداری)', bad_amount: 'مقدار درست نیست', done_before: 'این کار قبلا انجام شده', insufficient: 'امتیاز کاربر کافی نیست',
+const ERR = { chat_not_found: 'ربات این کانال/گروه رو پیدا نکرد؛ یوزرنیم یا آیدی رو چک کن و ربات رو عضو کن', bot_not_admin: 'ربات Game Club باید ادمین این کانال/گروه باشه',
+  need_id: 'برای کانال/گروه خصوصی آیدی عددی (مثل -100…) رو بنویس و لینک دعوت رو جدا بده', need_url: 'لینک عضویت رو بنویس (ربات نتونست لینک دعوت بسازه)',
+  already: 'این کانال/گروه قبلا اضافه شده', too_many: 'حداکثر ۸ کانال/گروه', no_chats: 'اول یه کانال یا گروه اضافه کن', bad_url: 'لینک باید با https:// شروع بشه',
+  bad_image: 'عکس درست نیست (jpg، png یا webp تا ۱٫۵ مگابایت)', empty_popup: 'پاپ‌آپ خالیه؛ متن، تیتر یا عکس بذار', no_bot: 'ربات Game Club راه نیفتاده',
+  not_found: 'پیدا نشد (یا دسترسی ادمین نداری)', bad_amount: 'مقدار درست نیست', done_before: 'این کار قبلا انجام شده', insufficient: 'امتیاز کاربر کافی نیست',
   bad_text: 'تلگرام متن را نپذیرفت؛ برچسب‌های HTML را بررسی کن', send_blocked: 'کاربر ربات را بسته است', send_failed: 'پیام نرسید', not_open: 'این میز دیگر باز نیست', bad_input: 'ورودی درست نیست' };
 
 /* ---------- مسیر و تب ها ---------- */
@@ -509,6 +518,117 @@ function drawSettings(list) {
   $('view').querySelectorAll('[data-txt]').forEach(i => { i.onchange = () => save(i.dataset.txt, i.value.trim() || null); });
 }
 
+/* ---------- پیام پاپ آپ (با باز شدن مینی اپ) ---------- */
+let pop = null, popImg = null;
+PAGES.popup = async () => { pop = (await get('admin/popup')).popup || {}; popImg = null; drawPopup(); };
+function drawPopup() {
+  const p = pop, img = popImg != null ? popImg : p.img || '';
+  view(`<section class="card stack">
+      <div class="set" style="border:0;padding:0"><span><b>نمایش پاپ‌آپ</b><small>وقتی کاربر مینی‌اپ رو باز می‌کنه، این پیام با دکمهٔ بستن نشون داده می‌شه.</small></span>
+        <button class="switch" role="switch" id="pOn" aria-checked="${!!p.on}" aria-label="نمایش پاپ‌آپ"></button></div>
+      <label class="lbl">تیتر<input class="in" id="pTitle" maxlength="80" value="${esc(p.title || '')}" placeholder="مثلا: جام هفتگی حکم 🏆"></label>
+      <label class="lbl">متن<textarea id="pText" maxlength="1200" placeholder="متن پیام… (خط جدید هم می‌شه)">${esc(p.text || '')}</textarea></label>
+      <div class="lbl">عکس
+        <div class="pimg">${img ? `<img src="${esc(img.startsWith('data:') || img.startsWith('http') ? img : img)}" alt="">` : '<span class="muted">بدون عکس</span>'}</div>
+        <div class="row-btns"><label class="btn btn-light btn-sm">${ic('plus', 2.4)}انتخاب عکس<input type="file" id="pFile" accept="image/*" hidden></label>
+          ${img ? '<button class="btn btn-light btn-sm" id="pNoImg">حذف عکس</button>' : ''}</div></div>
+      <label class="lbl">متن دکمه (اختیاری)<input class="in" id="pBtn" maxlength="40" value="${esc(p.btn || '')}" placeholder="مثلا: عضویت در کانال"></label>
+      <label class="lbl">لینک دکمه<input class="in" id="pUrl" dir="ltr" value="${esc(p.url || '')}" placeholder="https://t.me/channel یا هر لینک https"></label>
+      <div class="lbl">چند بار نشون داده بشه؟
+        <div class="seg"><button data-m="once" aria-pressed="${p.mode !== 'always'}">یک بار برای هر نفر</button><button data-m="always" aria-pressed="${p.mode === 'always'}">هر بار که مینی‌اپ باز می‌شه</button></div></div>
+      <button class="btn btn-block" id="pSave">${ic('send', 2.2)}ذخیره و انتشار</button>
+      <button class="btn btn-light btn-block" id="pPrev">پیش‌نمایش</button>
+    </section>
+    <p class="hint">با هر ذخیره، پاپ‌آپ نسخهٔ تازه حساب می‌شه و دوباره برای همه نمایش داده می‌شه. صفحهٔ بازی‌ها وسط بازی شلوغ نمی‌شه.</p>`);
+  const v = $('view');
+  v.querySelector('#pOn').onclick = e => e.currentTarget.setAttribute('aria-checked', String(e.currentTarget.getAttribute('aria-checked') !== 'true'));
+  v.querySelectorAll('[data-m]').forEach(b => b.onclick = () => v.querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', String(x === b))));
+  const keep = () => Object.assign(pop, { on: v.querySelector('#pOn').getAttribute('aria-checked') === 'true', title: $('pTitle').value, text: $('pText').value,
+    btn: $('pBtn').value, url: $('pUrl').value.trim(), mode: v.querySelector('[data-m][aria-pressed="true"]').dataset.m });
+  $('pFile').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { keep(); popImg = await shrink(f); drawPopup(); } catch (err) { toast('این عکس خونده نشد'); }
+  };
+  const ni = $('pNoImg'); if (ni) ni.onclick = () => { keep(); popImg = ''; drawPopup(); };
+  $('pPrev').onclick = () => { keep(); previewPopup(Object.assign({}, pop, { img: popImg != null ? popImg : pop.img })); };
+  $('pSave').onclick = async () => {
+    keep();
+    const body = { on: pop.on, title: pop.title, text: pop.text, btn: pop.btn, url: pop.url, mode: pop.mode };
+    if (popImg != null) body.img = popImg;
+    try { const r = await act('admin/popup', body, pop.on ? 'منتشر شد ✅' : 'ذخیره شد (خاموش)'); pop = r.popup; popImg = null; drawPopup(); } catch (e) {}
+  };
+}
+// عکس بزرگ گوشی کوچک و فشرده می شود (حداکثر ۱۰۸۰ پیکسل) تا زود باز شود
+function shrink(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onerror = rej;
+    r.onload = () => {
+      const im = new Image();
+      im.onerror = rej;
+      im.onload = () => {
+        const k = Math.min(1, 1080 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        res(c.toDataURL('image/jpeg', 0.85));
+      };
+      im.src = r.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+function previewPopup(p) {
+  const sh = sheet(`<div style="margin:-8px -8px 0">${p.img ? `<img src="${esc(p.img)}" alt="" style="display:block;width:100%;max-height:46vh;object-fit:cover;border-radius:18px">` : ''}</div>
+    ${p.title ? `<h2 style="margin:12px 0 4px;font-weight:900">${esc(p.title)}</h2>` : ''}${p.text ? `<p style="white-space:pre-line;margin:0 0 12px">${esc(p.text)}</p>` : ''}
+    ${p.btn && p.url ? `<button class="btn btn-block">${esc(p.btn)}</button>` : ''}<button class="btn btn-light btn-block" data-close>بستن</button>`, { center: true });
+}
+
+/* ---------- عضویت اجباری ---------- */
+let gate = null;
+PAGES.gate = async () => { gate = (await get('admin/gate')).gate || {}; drawGate(); };
+function drawGate() {
+  const g = gate, list = g.chats || [];
+  view(`<section class="card stack">
+      <div class="set" style="border:0;padding:0"><span><b>عضویت اجباری</b><small>روشن که باشه، برای کار با ربات و بازی کردن باید عضو همهٔ این‌ها باشن؛ توی مینی‌اپ هم صفحهٔ «عضو شو» با دکمهٔ «عضو شدم» میاد. ادمین‌ها مستثنا هستن.</small></span>
+        <button class="switch" role="switch" id="gOn" aria-checked="${!!g.on}" aria-label="عضویت اجباری"></button></div></section>
+    <div class="sec-head" style="margin:0"><h2 class="on-ground">کانال‌ها و گروه‌ها</h2></div>
+    ${list.length ? `<ul class="list">${list.map((c, i) => `<li class="row"><span class="ic-box">${c.kind === 'group' ? '👥' : '📢'}</span>
+      <span class="name">${esc(c.title)}<span class="meta" dir="ltr" style="unicode-bidi:isolate">${esc(c.url)}</span></span>
+      <span class="end"><button class="btn btn-light btn-sm" data-ge="${i}">لینک تازه</button><button class="btn btn-danger-soft btn-sm" data-gr="${i}">حذف</button></span></li>`).join('')}</ul>`
+      : '<div class="card empty">هنوز کانال یا گروهی اضافه نشده.</div>'}
+    <section class="card stack">
+      <div class="sec-head" style="margin:0"><h2>افزودن کانال یا گروه</h2></div>
+      <label class="lbl">یوزرنیم، لینک عمومی یا آیدی عددی<input class="in" id="gChat" dir="ltr" placeholder="@mychannel یا https://t.me/mychannel یا -1001234567890"></label>
+      <label class="lbl">لینک عضویت (برای خصوصی‌ها؛ اختیاری)<input class="in" id="gUrl" dir="ltr" placeholder="https://t.me/+AbCdEf…"></label>
+      <label class="lbl">اسم نمایشی (اختیاری)<input class="in" id="gTitle" maxlength="60" placeholder="اسم خود کانال"></label>
+      <button class="btn btn-block" id="gAdd">${ic('plus', 2.4)}افزودن</button>
+      <p class="hint" style="margin:0;text-align:start">اول ربات Game Club رو <b>ادمین</b> کانال یا گروه کن؛ وگرنه عضویت رو نمی‌شه چک کرد. برای کانال/گروه خصوصی، آیدی عددی رو بنویس؛ اگه لینک ندی، ربات خودش لینک دعوت می‌سازه.</p>
+    </section>`);
+  const v = $('view');
+  v.querySelector('#gOn').onclick = async e => {
+    const on = e.currentTarget.getAttribute('aria-checked') !== 'true';
+    try { gate = (await act('admin/gate', { on }, on ? 'عضویت اجباری روشن شد' : 'خاموش شد')).gate; drawGate(); } catch (err) {}
+  };
+  $('gAdd').onclick = async () => {
+    const chat = $('gChat').value.trim(); if (!chat) { toast('یوزرنیم یا آیدی رو بنویس'); return; }
+    $('gAdd').disabled = true;
+    try { gate = (await act('admin/gate/add', { chat, url: $('gUrl').value.trim(), title: $('gTitle').value.trim() }, 'اضافه شد ✅')).gate; drawGate(); }
+    catch (e) { $('gAdd').disabled = false; }
+  };
+  v.querySelectorAll('[data-gr]').forEach(b => b.onclick = () => confirmDo(`«${list[+b.dataset.gr].title}» از عضویت اجباری حذف بشه؟`, async () => {
+    try { gate = (await act('admin/gate/remove', { i: +b.dataset.gr }, 'حذف شد')).gate; drawGate(); } catch (e) {}
+  }));
+  v.querySelectorAll('[data-ge]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.ge, c = list[i];
+    const sh = sheet(`${sheetHead('لینک تازه برای ' + esc(c.title))}<div class="stack">
+      <input class="in" id="geUrl" dir="ltr" value="${esc(c.url)}"><input class="in" id="geTitle" maxlength="60" value="${esc(c.title)}">
+      <button class="btn btn-block" id="geOk">ذخیره</button></div>`);
+    sh.querySelector('#geOk').onclick = async () => {
+      try { gate = (await act('admin/gate/edit', { i, url: sh.querySelector('#geUrl').value.trim(), title: sh.querySelector('#geTitle').value.trim() }, 'ذخیره شد')).gate; close(); drawGate(); } catch (e) {}
+    };
+  });
+}
+
 /* ---------- گزارش کارها ---------- */
 PAGES.log = async () => {
   const r = await get('admin/log');
@@ -529,7 +649,14 @@ let ME = [['brand', '🎮', 'نماد Game Club'], ['hello', '👋', 'سلام �
   .map(([key, emoji, title], i) => ({ key, emoji, title, id: i % 3 ? '' : String(5368324170671202286n + BigInt(i)) }));
 const MB = [{ id: 3, status: 'active', text: '', copy: true, target: 'همه', buttons: ['ورود به Game Club', 'بازی حکم'], total: 1840, sent: 1210, failed: 3, blocked: 41, created_at: now() - 120, finished_at: null },
   { id: 2, status: 'done', text: 'فوتبال به Game Club اضافه شد ⚽️', copy: false, target: 'فعال ۷ روز', buttons: ['بازی فوتبال'], total: 1702, sent: 1655, failed: 2, blocked: 45, created_at: now() - 86400 * 3, finished_at: now() - 86400 * 3 + 95 }];
+let MPOP = { on: true, v: 3, title: 'جام هفتگی حکم 🏆', text: 'جمعه ساعت ۲۱ مسابقهٔ حکم داریم؛ جایزهٔ نفر اول ۵۰۰۰ امتیاز!', img: '', btn: 'عضویت در کانال', url: 'https://t.me/obour', mode: 'once' };
+let MGATE = { on: false, chats: [{ id: '-1001234567890', title: 'کانال عبور', url: 'https://t.me/obour', kind: 'channel' }] };
 function MOCK(name, { q = {}, body } = {}) {
+  if (name === 'admin/popup') { if (body) MPOP = Object.assign({}, MPOP, body, { v: MPOP.v + 1 }); return { ok: true, popup: MPOP }; }
+  if (name === 'admin/gate') { if (body) MGATE.on = !!body.on; return { ok: true, gate: MGATE }; }
+  if (name === 'admin/gate/add') { MGATE.chats.push({ id: body.chat, title: body.title || body.chat.replace(/^.*\//, ''), url: body.url || 'https://t.me/' + body.chat.replace(/^@|^.*\//g, ''), kind: 'channel' }); return { ok: true, gate: MGATE }; }
+  if (name === 'admin/gate/remove') { MGATE.chats.splice(body.i, 1); return { ok: true, gate: MGATE }; }
+  if (name === 'admin/gate/edit') { Object.assign(MGATE.chats[body.i], { url: body.url, title: body.title }); return { ok: true, gate: MGATE }; }
   if (name === 'admin') return { rate: 100, maintenance: MS[0].value, bc: MB.filter(b => b.status === 'active'),
     stats: { all: { players: 1873, points: 412500, playing: 12, lobby: 4, queue: 3, games: 9312, charge: 590000, entry: 812000, prize: 790500, shop: 120000 },
       day: { games: 214, charge: 18500, entry: 26400, prize: 25700, shop: 3000 }, week: { games: 1490, charge: 121000, entry: 180300, prize: 175100, shop: 22000 },

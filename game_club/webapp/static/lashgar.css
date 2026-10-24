@@ -56,8 +56,8 @@ body.lashgar{--lg-paper:#FCFBF7;--lg-back:#F1EDE3;--lg-ink:#3A3A3A;--lg-red:#C83
 /* برگهٔ تا شده: زیر نیمهٔ بلند شده میز پیداست؛ سایه روی خود دو نیمه */
 .lg-sheet.folded{background:transparent;box-shadow:none}
 .lg-sheet.folded .lg-half:not(.lift) .lg-face.front{box-shadow:0 12px 26px rgba(40,20,5,.45)}
-.lg-sheet.folded .lg-half.lift .lg-face.back{box-shadow:inset 0 30px 40px -30px rgba(0,0,0,.14),0 14px 30px rgba(40,20,5,.5)}
-.lg-sheet.folded .lg-half.top.lift .lg-face.back{box-shadow:inset 0 -30px 40px -30px rgba(0,0,0,.14),0 14px 30px rgba(40,20,5,.5)}
+/* لایهٔ برگهٔ در حال تا شدن یک بار کشیده می شود و فقط می چرخد (بی سایهٔ بیرونی و فیلتر که هر فریم دوباره کشیده شوند) */
+.lg-half.lift .lg-flap{will-change:transform}
 .lg-half{position:absolute;left:0;width:1000px;height:700px;perspective:2400px}
 .lg-half.top{top:0;perspective-origin:50% 100%}
 .lg-half.bot{top:700px;perspective-origin:50% 0}
@@ -73,7 +73,7 @@ body.lashgar{--lg-paper:#FCFBF7;--lg-back:#F1EDE3;--lg-ink:#3A3A3A;--lg-red:#C83
 .lg-half.top .lg-face.back{box-shadow:inset 0 -30px 40px -30px rgba(0,0,0,.14)}
 .lg-rot{position:absolute;inset:0;transform:rotate(180deg)}
 .lg-face canvas,.lg-face svg,.lg-face .thru{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
-.lg-face .thru{opacity:.16;filter:blur(.8px);transform:scaleY(-1)}
+.lg-face .thru{opacity:.16;transform:scaleY(-1)}
 .lg-half.top .lg-face .thru{transform:scaleY(-1) rotate(180deg)}
 .lg-face .ghost{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--lg-red);opacity:.42;filter:blur(1.2px)}
 .lg-mid{position:absolute;left:0;top:692px;width:1000px;height:16px;pointer-events:none;z-index:3}
@@ -291,3 +291,25 @@ body.lashgar{--lg-paper:#FCFBF7;--lg-back:#F1EDE3;--lg-ink:#3A3A3A;--lg-red:#C83
 .h640 .lg-pcs,.h640 .lg-pc,.h640 .lg-pc svg{height:84px}
 .h640 .lg-paint{width:84px;height:84px}
 .h640 .lg-tools .lg-tool:not(.keep){display:none}
+
+/* ---------- نوبت کیست: بنر وسط صفحه، برچسب روی خط وسط، نیمهٔ فعال و قدم های شلیک ---------- */
+.lg-ban{position:absolute;left:50%;top:44%;z-index:12;transform:translate(-50%,-50%);pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:14px 28px;border-radius:22px;background:var(--lg-green);color:#fff;box-shadow:0 14px 34px rgba(0,0,0,.38);text-align:center;opacity:0;white-space:nowrap}
+.lg-ban.foe{background:#3A4234}
+.lg-ban b{font-family:var(--font-rokh);font-weight:900;font-size:27px;line-height:36px}
+.lg-ban small{font-size:13px;font-weight:700;opacity:.92}
+.lg-ban.show{animation:lg-ban 2s cubic-bezier(.3,1.3,.5,1) forwards}
+@keyframes lg-ban{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}12%,80%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.96)}}
+.lg-tag{position:absolute;z-index:6;left:6px;transform:translateY(-50%);pointer-events:none;display:flex;align-items:center;gap:4px;height:26px;padding:0 10px;
+  border-radius:999px;font-size:12px;font-weight:900;color:#fff;background:var(--lg-green);box-shadow:0 3px 8px rgba(0,0,0,.3);white-space:nowrap}
+.lg-tag.foe{background:#59604F}
+.lg-tag[hidden]{display:none}
+.lg-view.my-turn .lg-half.bot .lg-face.front{box-shadow:inset 0 0 0 12px rgba(26,122,53,.55)}
+.lg-view.foe-turn .lg-half.top .lg-face.front{box-shadow:inset 0 0 0 12px rgba(120,128,110,.45)}
+.lg-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.lg-steps li{height:32px;border-radius:10px;background:var(--lg-sunk);color:var(--lg-muted);font-size:12.5px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:4px}
+.lg-steps li i{font-style:normal;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.08);display:grid;place-items:center;font-size:11px}
+.lg-steps li.on{background:var(--lg-green);color:#fff;box-shadow:0 0 0 3px rgba(26,122,53,.25)}
+.lg-steps li.on i{background:rgba(255,255,255,.25)}
+.lg-steps li.done{background:#E3F1E8;color:var(--lg-green)}
+@media (prefers-reduced-motion:reduce){.lg-ban.show{animation:none;opacity:1}}

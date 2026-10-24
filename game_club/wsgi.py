@@ -247,7 +247,8 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
             return _json(start_response, "429 Too Many Requests", {"error": "rate"})
         name = sub[5:].strip("/")
         # متن پیام همگانی پنل مدیریت بلندتر است
-        body = _body(environ, 32768 if name.startswith("admin") else 8192) if method == "POST" else {}
+        body = _body(environ, 2_200_000 if name == "admin/popup" else 32768 if name.startswith("admin") else 8192) \
+            if method == "POST" else {}
         try:
             data = runtime.run(api_handle(name, method, user, _query(environ), body), timeout=45)
             return _json(start_response, "200 OK", data, environ)
@@ -275,6 +276,15 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
             return _send(start_response, "404 Not Found", b"no photo", "text/plain",
                          [("Cache-Control", "public, max-age=3600")])
         return _send(start_response, "200 OK", data, "image/jpeg", [("Cache-Control", "public, max-age=86400")])
+
+    # ---------- عکس پیام پاپ آپ (از پنل مدیریت) ----------
+    if sub.startswith("/media/") and method == "GET":
+        from . import gate
+
+        got = gate.read_media(sub[7:])
+        if not got:
+            return _send(start_response, "404 Not Found", b"not found", "text/plain")
+        return _send(start_response, "200 OK", got[0], got[1], [("Cache-Control", "public, max-age=604800, immutable")])
 
     # ---------- صفحه ها و فایل های ثابت ----------
     if method != "GET":
