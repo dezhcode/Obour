@@ -36,7 +36,7 @@ const ART = {
   },
   // میز، توپ ها و چوب واقعی بیلیارد (پلاتو): چوب به توپ سفید می زند، سفید به یک می خورد و یک به جیب وسط می رود
   billiard() {
-    const ball = (k, x, y) => `<img class="pv-bb" src="static/previews/bl-ball-${k}.webp" alt="" draggable="false" style="left:${x}%;top:${y}%">`;
+    const ball = (k, x, y) => `<img class="pv-bb" src="static/previews/bl-ball-${k}.webp${k ? '' : '?v=2'}" alt="" draggable="false" style="left:${x}%;top:${y}%">`;
     return `<div class="pv pv-bl" aria-hidden="true"><div class="pv-bl-in">
       ${ball(8, 37, 21)}${ball(10, 63, 27)}${ball(3, 41, 35)}${ball(13, 61, 11)}${ball(9, 29, 9)}
       <span class="pv-layer pv-bl-pot">${ball(1, 50, 16.5)}</span>
