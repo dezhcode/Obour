@@ -29,10 +29,8 @@ from aiogram.types import (
     InputRichBlockButtons,
     InputRichBlockDetails,
     InputRichBlockParagraph,
-    InputRichBlockPhoto,
     InputRichBlockTable,
     InputRichMessage,
-    InputMediaPhoto,
     InputRichMessageContent,
     Message,
     RichBlockTableCell,
@@ -167,23 +165,6 @@ def _rm(blocks: list) -> InputRichMessage:
     return InputRichMessage(blocks=blocks, is_rtl=True)
 
 
-def poster_url(game: str) -> str | None:
-    """تصویر ۱۶:۹ بازی (static/posters، رندر از میز و مهره های واقعی)؛ بدون آدرس مینی اپ نیست."""
-    return f"{gc.webapp_url}static/posters/{game}.jpg?v=1" if gc.webapp_url else None
-
-
-def with_poster(rm: InputRichMessage, game: str) -> InputRichMessage:
-    """تصویر بازی بالای کارت؛ همان کارت اینلاین با هر ویرایش (تنظیم، بشین، شروع) عکسش را نگه می دارد."""
-    url = poster_url(game)
-    if not url:
-        return rm
-    return rm.model_copy(update={"blocks": [InputRichBlockPhoto(photo=InputMediaPhoto(media=url)), *(rm.blocks or [])]})
-
-
-def _bare(rm: InputRichMessage) -> InputRichMessage:
-    return rm.model_copy(update={"blocks": [b for b in rm.blocks or [] if not isinstance(b, InputRichBlockPhoto)]})
-
-
 def card(parts: list, *rows: InputRichBlockButtons) -> InputRichMessage:
     return _rm([_para(parts), *rows])
 
@@ -227,7 +208,7 @@ def _player_line(s: dict) -> list:
     return ["• ", st.E("robot"), " ", st.iso(s["name"])] if s.get("bot") else ["• ", *who(s["tg"], s["name"])]
 
 
-async def setup_card(db: GCDatabase, d: dict, poster: bool = True) -> InputRichMessage:
+async def setup_card(db: GCDatabase, d: dict) -> InputRichMessage:
     """کارت تنظیم میز: فقط سازنده حالت را عوض می کند و میز را باز می کند."""
     game, tok = d["game"], d["token"]
     g, cfg = GAMES[game], cfg_of(game, d["cfg"])
@@ -243,7 +224,7 @@ async def setup_card(db: GCDatabase, d: dict, poster: bool = True) -> InputRichM
                                  callback_data=f"gs:{key}={v}:{tok}") for v, lab in opts]))
     blocks.append(_row(_bt("play", "باز کردن میز", "success", callback_data=f"gs:open:{tok}"),
                        _bt("cancel", "لغو", "danger", callback_data=f"gs:cancel:{tok}")))
-    return with_poster(_rm(blocks), game) if poster else _rm(blocks)
+    return _rm(blocks)
 
 
 def closed_card(game: str, text: str = "میز جمع شد.") -> InputRichMessage:
@@ -253,12 +234,6 @@ def closed_card(game: str, text: str = "میز جمع شد.") -> InputRichMessag
 
 
 async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
-    """کارت میز؛ تا پایان بازی عکس ۱۶:۹ بازی بالایش است، کارت پایان و نتیجه فشرده می ماند."""
-    rm = await _render(db, m, row)
-    return with_poster(rm, row["game"]) if m["status"] in ("lobby", "playing") else rm
-
-
-async def _render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
     g, game = GAMES[row["game"]], row["game"]
     cfg, mid = m["cfg"], m["id"]
     need = need_of(game, cfg)
@@ -581,32 +556,16 @@ def _where(row: dict) -> dict | None:
 async def _edit(where: dict | None, rm: InputRichMessage) -> None:
     if not where or not _bot:
         return
-    async def go(r: InputRichMessage) -> None:
-        await _bot.edit_message_text(rich_message=r, parse_mode=None, link_preview_options=None,
-                                     disable_web_page_preview=None, **where)
     try:
-        await go(rm)
+        await _bot.edit_message_text(rich_message=rm, parse_mode=None, link_preview_options=None,
+                                     disable_web_page_preview=None, **where)
     except Exception as e:  # noqa: BLE001  (مثلا «message is not modified» یا پیام پاک شده)
-        if "not modified" in str(e):
-            return
-        if _bare(rm) != rm:   # شاید عکس را نپذیرفت؛ کارت بی عکس بهتر از کارت یخ زده است
-            log.warning("کارت میز با عکس به روز نشد؛ بدون عکس امتحان شد: %s", e)
-            try:
-                await go(_bare(rm))
-            except Exception:  # noqa: BLE001
-                log.debug("کارت میز گروه به روز نشد", exc_info=True)
-            return
-        log.debug("کارت میز گروه به روز نشد", exc_info=True)
+        if "not modified" not in str(e):
+            log.debug("کارت میز گروه به روز نشد", exc_info=True)
 
 
 async def _send(chat_id: int, rm: InputRichMessage, **kw):  # noqa: ANN202
-    try:
-        return await _bot.send_rich_message(chat_id=chat_id, rich_message=rm, **kw)
-    except Exception as e:  # noqa: BLE001
-        if _bare(rm) == rm:
-            raise
-        log.warning("کارت میز با عکس نرفت؛ بدون عکس فرستاده شد: %s", e)
-        return await _bot.send_rich_message(chat_id=chat_id, rich_message=_bare(rm), **kw)
+    return await _bot.send_rich_message(chat_id=chat_id, rich_message=rm, **kw)
 
 
 async def refresh(db: GCDatabase, match_id: str) -> None:
@@ -874,20 +833,9 @@ INLINE_ALIASES = {"hokm": ("hokm", "حکم", "hk"), "ludo": ("ludo", "منچ", "
                   "snakes": ("snakes", "مار و پله", "مار", "پله", "marpele", "snake", "ladder")}
 
 
-# اگر تلگرام نتیجهٔ اینلاینِ دارای عکس را نپذیرفت (ربات در آن چت نیست)، چند دقیقه بدون عکس جواب می دهیم
-_poster_off_until = 0.0
-POSTER_RETRY = 600
-
-
-def _bare_article(a: InlineQueryResultArticle) -> InlineQueryResultArticle:
-    c = a.input_message_content
-    return a.model_copy(update={"input_message_content": InputRichMessageContent(rich_message=_bare(c.rich_message))})
-
-
-async def _article(db: GCDatabase, host: int, game: str, poster: bool = True) -> InlineQueryResultArticle:
+async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArticle:
     """کارت تنظیم میز به شکل نتیجهٔ اینلاین؛ سازنده همان کسی است که فرستاده."""
     g = GAMES[game]
-    poster = poster and time.time() >= _poster_off_until
     token = await db.new_draft(host, game, dict(g["def"]))
     return InlineQueryResultArticle(
         id=token, title=f"{g['icon']} میز {g['name']} بساز",
@@ -895,7 +843,7 @@ async def _article(db: GCDatabase, host: int, game: str, poster: bool = True) ->
         # عکس کنار نتیجه: همان تصویر بازی در مینی اپ (static/thumbs، از روی GAME_ART)
         thumbnail_url=f"{gc.webapp_url}static/thumbs/{game}.jpg?v=1" if gc.webapp_url else None,
         thumbnail_width=256, thumbnail_height=256,
-        input_message_content=InputRichMessageContent(rich_message=await setup_card(db, await db.draft(token), poster=poster)))
+        input_message_content=InputRichMessageContent(rich_message=await setup_card(db, await db.draft(token))))
 
 
 @router.inline_query()
@@ -914,16 +862,7 @@ async def on_inline(iq, gdb: GCDatabase) -> None:  # noqa: ANN001
     only = next((k for k in GAMES if k in GROUP_ONLY and q and any(a.startswith(q) or q.startswith(a) for a in INLINE_ALIASES[k])), None)
     if not in_group and only:
         hint = InlineQueryResultsButton(text=f"{GAMES[only]['name']} فقط توی گروه یا کانال بازی می‌شه؛ راهنما", start_parameter=only)
-    arts = [await _article(gdb, u.id, g) for g in games or allowed]
-    try:
-        await iq.answer(arts, cache_time=0, is_personal=True, button=hint)
-    except Exception as e:  # noqa: BLE001
-        if not any(isinstance(a.input_message_content.rich_message.blocks[0], InputRichBlockPhoto) for a in arts):
-            raise
-        global _poster_off_until
-        _poster_off_until = time.time() + POSTER_RETRY
-        log.warning("تلگرام نتیجهٔ اینلاین با عکس را نپذیرفت؛ %s دقیقه بدون عکس: %s", POSTER_RETRY // 60, e)
-        await iq.answer([_bare_article(a) for a in arts], cache_time=0, is_personal=True, button=hint)
+    await iq.answer([await _article(gdb, u.id, g) for g in games or allowed], cache_time=0, is_personal=True, button=hint)
 
 
 @router.chosen_inline_result()
@@ -939,15 +878,7 @@ async def prepare_share(db: GCDatabase, tg: int, game: str) -> str:
         raise GCError("bad_game")
     if not _bot:
         raise GCError("no_bot")
-    art = await _article(db, tg, game)
-    kw = dict(user_id=tg, allow_user_chats=game not in GROUP_ONLY, allow_group_chats=True, allow_bot_chats=False, allow_channel_chats=True)
-    try:
-        prepared = await _bot.save_prepared_inline_message(result=art, **kw)
-    except Exception as e:  # noqa: BLE001
-        global _poster_off_until
-        if _bare_article(art) == art:
-            raise
-        _poster_off_until = time.time() + POSTER_RETRY
-        log.warning("پیام آمادهٔ با عکس نشد؛ بدون عکس: %s", e)
-        prepared = await _bot.save_prepared_inline_message(result=_bare_article(art), **kw)
+    prepared = await _bot.save_prepared_inline_message(user_id=tg, result=await _article(db, tg, game),
+                                                       allow_user_chats=game not in GROUP_ONLY, allow_group_chats=True,
+                                                       allow_bot_chats=False, allow_channel_chats=True)
     return prepared.id
