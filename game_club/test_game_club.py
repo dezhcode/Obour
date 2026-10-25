@@ -2861,3 +2861,55 @@ def test_snakes_service_flow():
             await db.close()
 
     asyncio.run(run())
+
+
+def test_group_card_poster():
+    """عکس ۱۶:۹ بازی بالای کارت تنظیم و میز (تا پایان بازی)؛ نبودن آدرس مینی اپ یعنی بدون عکس؛ عکس نرسید یعنی کارت بی عکس."""
+    from types import SimpleNamespace as NS
+    from unittest import mock
+    from aiogram.types import InputRichBlockPhoto
+    tmp = tempfile.mkdtemp()
+    from game_club import groups
+    from game_club.db import GCDatabase
+
+    def photos(rm):
+        return [b for b in rm.blocks if isinstance(b, InputRichBlockPhoto)]
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        bot = _FakeGroupBot()
+        groups.install(bot, db)
+        try:
+            await db.player(7, "u7")
+            for game in groups.GAMES:
+                assert os.path.exists(os.path.join(os.path.dirname(__file__), "webapp", "static", "posters", f"{game}.jpg")), game
+            url = mock.patch.object(type(groups.gc), "webapp_url", new_callable=mock.PropertyMock, return_value="https://x.test/gc/")
+            with url:
+                tok = await db.new_draft(7, "snakes", {"players": 4})
+                card = await groups.setup_card(db, await db.draft(tok))
+                assert isinstance(card.blocks[0], InputRichBlockPhoto) and len(photos(card)) == 1
+                assert card.blocks[0].photo.media == "https://x.test/gc/static/posters/snakes.jpg?v=1"
+                assert "╮── " in groups.plain(card) and groups.buttons(card)
+                # کارت میز: عکس در سالن انتظار و حین بازی، نه در کارت پایان
+                m = {"id": "m1", "cfg": {"players": 2}, "state": {"seats": []}, "status": "lobby"}
+                row = {"game": "snakes", "chat_id": 0, "host": 7}
+                assert len(photos(await groups.render(db, m, row))) == 1
+                m["status"] = "cancelled"
+                assert not photos(await groups.render(db, m, row))
+                # عکس نرسید: همان کارت بدون عکس
+                calls = []
+
+                async def edit(**kw):
+                    calls.append(kw["rich_message"])
+                    if len(calls) == 1:
+                        raise RuntimeError("Bad Request: wrong file identifier/HTTP URL specified (photo)")
+                bot.edit_message_text = edit
+                await groups._edit({"inline_message_id": "IM1"}, card)
+                assert len(calls) == 2 and photos(calls[0]) and not photos(calls[1]) and groups.buttons(calls[1])
+            tok2 = await db.new_draft(7, "hokm", {"target": 7})
+            assert not photos(await groups.setup_card(db, await db.draft(tok2)))
+        finally:
+            await db.close()
+
+    asyncio.run(run())
