@@ -2891,9 +2891,38 @@ def test_group_card_poster():
                 assert isinstance(card.blocks[0], InputRichBlockPhoto) and len(photos(card)) == 1
                 assert card.blocks[0].photo.media == "https://x.test/gc/static/posters/snakes.jpg?v=1"
                 assert "╮── " in groups.plain(card) and groups.buttons(card)
-                # نتیجهٔ اینلاین (فهرست بازی ها) بی عکس است تا همیشه نمایش داده شود
+                # نتیجهٔ اینلاین هم عکس دارد؛ اگر تلگرام نپذیرد، همان لحظه فهرست بی عکس می آید (و چند دقیقه همین طور)
                 art = await groups._article(db, 7, "snakes")
-                assert not photos(art.input_message_content.rich_message) and groups.buttons(art.input_message_content.rich_message)
+                assert photos(art.input_message_content.rich_message) and groups.buttons(art.input_message_content.rich_message)
+                got = []
+
+                async def answer(results, **kw):
+                    got.append(results)
+                    if len(got) == 1:
+                        raise RuntimeError("Bad Request: media not allowed")
+                iq = NS(from_user=NS(id=7, first_name="u7", last_name=None, username=None), query="مار", chat_type="supergroup", answer=answer)
+                await groups.on_inline(iq, gdb=db)
+                assert len(got) == 2 and photos(got[0][0].input_message_content.rich_message) and not photos(got[1][0].input_message_content.rich_message)
+                assert groups.buttons(got[1][0].input_message_content.rich_message)
+                await groups.on_inline(iq, gdb=db)       # در بازهٔ قطع: بدون عکس و بدون خطا
+                assert len(got) == 3 and not photos(got[2][0].input_message_content.rich_message)
+                groups._poster_off_until = 0.0
+                await groups.on_inline(iq, gdb=db)       # بعد از بازه دوباره عکس امتحان می شود (و باز نپذیرفتن را ندارد)
+                assert photos(got[3][0].input_message_content.rich_message) and len(got) == 4
+                # «فرستادن به گروه» هم همین
+                real = bot.save_prepared_inline_message
+                n = []
+
+                async def prep(user_id, result, **kw):
+                    n.append(result)
+                    if len(n) == 1:
+                        raise RuntimeError("Bad Request: media not allowed")
+                    return await real(user_id, result, **kw)
+                bot.save_prepared_inline_message = prep
+                groups._poster_off_until = 0.0
+                assert await groups.prepare_share(db, 7, "snakes") == "prep1"
+                assert len(n) == 2 and photos(n[0].input_message_content.rich_message) and not photos(n[1].input_message_content.rich_message)
+                groups._poster_off_until = 0.0
                 # کارت میز: عکس در سالن انتظار و حین بازی، نه در کارت پایان
                 m = {"id": "m1", "cfg": {"players": 2}, "state": {"seats": []}, "status": "lobby"}
                 row = {"game": "snakes", "chat_id": 0, "host": 7}

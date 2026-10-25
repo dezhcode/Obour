@@ -874,9 +874,20 @@ INLINE_ALIASES = {"hokm": ("hokm", "حکم", "hk"), "ludo": ("ludo", "منچ", "
                   "snakes": ("snakes", "مار و پله", "مار", "پله", "marpele", "snake", "ladder")}
 
 
-async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArticle:
+# اگر تلگرام نتیجهٔ اینلاینِ دارای عکس را نپذیرفت (ربات در آن چت نیست)، چند دقیقه بدون عکس جواب می دهیم
+_poster_off_until = 0.0
+POSTER_RETRY = 600
+
+
+def _bare_article(a: InlineQueryResultArticle) -> InlineQueryResultArticle:
+    c = a.input_message_content
+    return a.model_copy(update={"input_message_content": InputRichMessageContent(rich_message=_bare(c.rich_message))})
+
+
+async def _article(db: GCDatabase, host: int, game: str, poster: bool = True) -> InlineQueryResultArticle:
     """کارت تنظیم میز به شکل نتیجهٔ اینلاین؛ سازنده همان کسی است که فرستاده."""
     g = GAMES[game]
+    poster = poster and time.time() >= _poster_off_until
     token = await db.new_draft(host, game, dict(g["def"]))
     return InlineQueryResultArticle(
         id=token, title=f"{g['icon']} میز {g['name']} بساز",
@@ -884,8 +895,7 @@ async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArt
         # عکس کنار نتیجه: همان تصویر بازی در مینی اپ (static/thumbs، از روی GAME_ART)
         thumbnail_url=f"{gc.webapp_url}static/thumbs/{game}.jpg?v=1" if gc.webapp_url else None,
         thumbnail_width=256, thumbnail_height=256,
-        # نتیجهٔ اینلاین بی عکس می ماند تا فهرست بازی ها همیشه بیاید؛ عکس با اولین ویرایش کارت اضافه می شود
-        input_message_content=InputRichMessageContent(rich_message=await setup_card(db, await db.draft(token), poster=False)))
+        input_message_content=InputRichMessageContent(rich_message=await setup_card(db, await db.draft(token), poster=poster)))
 
 
 @router.inline_query()
@@ -904,7 +914,16 @@ async def on_inline(iq, gdb: GCDatabase) -> None:  # noqa: ANN001
     only = next((k for k in GAMES if k in GROUP_ONLY and q and any(a.startswith(q) or q.startswith(a) for a in INLINE_ALIASES[k])), None)
     if not in_group and only:
         hint = InlineQueryResultsButton(text=f"{GAMES[only]['name']} فقط توی گروه یا کانال بازی می‌شه؛ راهنما", start_parameter=only)
-    await iq.answer([await _article(gdb, u.id, g) for g in games or allowed], cache_time=0, is_personal=True, button=hint)
+    arts = [await _article(gdb, u.id, g) for g in games or allowed]
+    try:
+        await iq.answer(arts, cache_time=0, is_personal=True, button=hint)
+    except Exception as e:  # noqa: BLE001
+        if not any(isinstance(a.input_message_content.rich_message.blocks[0], InputRichBlockPhoto) for a in arts):
+            raise
+        global _poster_off_until
+        _poster_off_until = time.time() + POSTER_RETRY
+        log.warning("تلگرام نتیجهٔ اینلاین با عکس را نپذیرفت؛ %s دقیقه بدون عکس: %s", POSTER_RETRY // 60, e)
+        await iq.answer([_bare_article(a) for a in arts], cache_time=0, is_personal=True, button=hint)
 
 
 @router.chosen_inline_result()
@@ -920,7 +939,15 @@ async def prepare_share(db: GCDatabase, tg: int, game: str) -> str:
         raise GCError("bad_game")
     if not _bot:
         raise GCError("no_bot")
-    prepared = await _bot.save_prepared_inline_message(user_id=tg, result=await _article(db, tg, game),
-                                                       allow_user_chats=game not in GROUP_ONLY, allow_group_chats=True,
-                                                       allow_bot_chats=False, allow_channel_chats=True)
+    art = await _article(db, tg, game)
+    kw = dict(user_id=tg, allow_user_chats=game not in GROUP_ONLY, allow_group_chats=True, allow_bot_chats=False, allow_channel_chats=True)
+    try:
+        prepared = await _bot.save_prepared_inline_message(result=art, **kw)
+    except Exception as e:  # noqa: BLE001
+        global _poster_off_until
+        if _bare_article(art) == art:
+            raise
+        _poster_off_until = time.time() + POSTER_RETRY
+        log.warning("پیام آمادهٔ با عکس نشد؛ بدون عکس: %s", e)
+        prepared = await _bot.save_prepared_inline_message(result=_bare_article(art), **kw)
     return prepared.id
