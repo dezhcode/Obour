@@ -2891,6 +2891,9 @@ def test_group_card_poster():
                 assert isinstance(card.blocks[0], InputRichBlockPhoto) and len(photos(card)) == 1
                 assert card.blocks[0].photo.media == "https://x.test/gc/static/posters/snakes.jpg?v=1"
                 assert "╮── " in groups.plain(card) and groups.buttons(card)
+                # نتیجهٔ اینلاین (فهرست بازی ها) بی عکس است تا همیشه نمایش داده شود
+                art = await groups._article(db, 7, "snakes")
+                assert not photos(art.input_message_content.rich_message) and groups.buttons(art.input_message_content.rich_message)
                 # کارت میز: عکس در سالن انتظار و حین بازی، نه در کارت پایان
                 m = {"id": "m1", "cfg": {"players": 2}, "state": {"seats": []}, "status": "lobby"}
                 row = {"game": "snakes", "chat_id": 0, "host": 7}
@@ -2903,7 +2906,7 @@ def test_group_card_poster():
                 async def edit(**kw):
                     calls.append(kw["rich_message"])
                     if len(calls) == 1:
-                        raise RuntimeError("Bad Request: wrong file identifier/HTTP URL specified (photo)")
+                        raise RuntimeError("Bad Request: something Telegram did not like")
                 bot.edit_message_text = edit
                 await groups._edit({"inline_message_id": "IM1"}, card)
                 assert len(calls) == 2 and photos(calls[0]) and not photos(calls[1]) and groups.buttons(calls[1])
