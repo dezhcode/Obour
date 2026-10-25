@@ -184,11 +184,6 @@ def _bare(rm: InputRichMessage) -> InputRichMessage:
     return rm.model_copy(update={"blocks": [b for b in rm.blocks or [] if not isinstance(b, InputRichBlockPhoto)]})
 
 
-def _photo_err(e: Exception) -> bool:
-    t = str(e).lower()
-    return any(k in t for k in ("photo", "media", "wrong file", "http url", "failed to get"))
-
-
 def card(parts: list, *rows: InputRichBlockButtons) -> InputRichMessage:
     return _rm([_para(parts), *rows])
 
@@ -232,7 +227,7 @@ def _player_line(s: dict) -> list:
     return ["• ", st.E("robot"), " ", st.iso(s["name"])] if s.get("bot") else ["• ", *who(s["tg"], s["name"])]
 
 
-async def setup_card(db: GCDatabase, d: dict) -> InputRichMessage:
+async def setup_card(db: GCDatabase, d: dict, poster: bool = True) -> InputRichMessage:
     """کارت تنظیم میز: فقط سازنده حالت را عوض می کند و میز را باز می کند."""
     game, tok = d["game"], d["token"]
     g, cfg = GAMES[game], cfg_of(game, d["cfg"])
@@ -248,7 +243,7 @@ async def setup_card(db: GCDatabase, d: dict) -> InputRichMessage:
                                  callback_data=f"gs:{key}={v}:{tok}") for v, lab in opts]))
     blocks.append(_row(_bt("play", "باز کردن میز", "success", callback_data=f"gs:open:{tok}"),
                        _bt("cancel", "لغو", "danger", callback_data=f"gs:cancel:{tok}")))
-    return with_poster(_rm(blocks), game)
+    return with_poster(_rm(blocks), game) if poster else _rm(blocks)
 
 
 def closed_card(game: str, text: str = "میز جمع شد.") -> InputRichMessage:
@@ -594,8 +589,8 @@ async def _edit(where: dict | None, rm: InputRichMessage) -> None:
     except Exception as e:  # noqa: BLE001  (مثلا «message is not modified» یا پیام پاک شده)
         if "not modified" in str(e):
             return
-        if _photo_err(e) and _bare(rm) != rm:   # عکس نرسید؛ کارت بی عکس بهتر از کارت یخ زده است
-            log.warning("عکس کارت میز گروه نرسید؛ بدون عکس به روز شد: %s", e)
+        if _bare(rm) != rm:   # شاید عکس را نپذیرفت؛ کارت بی عکس بهتر از کارت یخ زده است
+            log.warning("کارت میز با عکس به روز نشد؛ بدون عکس امتحان شد: %s", e)
             try:
                 await go(_bare(rm))
             except Exception:  # noqa: BLE001
@@ -608,9 +603,9 @@ async def _send(chat_id: int, rm: InputRichMessage, **kw):  # noqa: ANN202
     try:
         return await _bot.send_rich_message(chat_id=chat_id, rich_message=rm, **kw)
     except Exception as e:  # noqa: BLE001
-        if not _photo_err(e) or _bare(rm) == rm:
+        if _bare(rm) == rm:
             raise
-        log.warning("عکس کارت میز گروه نرسید؛ بدون عکس فرستاده شد: %s", e)
+        log.warning("کارت میز با عکس نرفت؛ بدون عکس فرستاده شد: %s", e)
         return await _bot.send_rich_message(chat_id=chat_id, rich_message=_bare(rm), **kw)
 
 
@@ -889,7 +884,8 @@ async def _article(db: GCDatabase, host: int, game: str) -> InlineQueryResultArt
         # عکس کنار نتیجه: همان تصویر بازی در مینی اپ (static/thumbs، از روی GAME_ART)
         thumbnail_url=f"{gc.webapp_url}static/thumbs/{game}.jpg?v=1" if gc.webapp_url else None,
         thumbnail_width=256, thumbnail_height=256,
-        input_message_content=InputRichMessageContent(rich_message=await setup_card(db, await db.draft(token))))
+        # نتیجهٔ اینلاین بی عکس می ماند تا فهرست بازی ها همیشه بیاید؛ عکس با اولین ویرایش کارت اضافه می شود
+        input_message_content=InputRichMessageContent(rich_message=await setup_card(db, await db.draft(token), poster=False)))
 
 
 @router.inline_query()
