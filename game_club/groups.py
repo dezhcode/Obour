@@ -29,8 +29,10 @@ from aiogram.types import (
     InputRichBlockButtons,
     InputRichBlockDetails,
     InputRichBlockParagraph,
+    InputRichBlockPhoto,
     InputRichBlockTable,
     InputRichMessage,
+    InputMediaPhoto,
     InputRichMessageContent,
     Message,
     RichBlockTableCell,
@@ -165,6 +167,28 @@ def _rm(blocks: list) -> InputRichMessage:
     return InputRichMessage(blocks=blocks, is_rtl=True)
 
 
+def poster_url(game: str) -> str | None:
+    """تصویر ۱۶:۹ بازی (static/posters، رندر از میز و مهره های واقعی)؛ بدون آدرس مینی اپ نیست."""
+    return f"{gc.webapp_url}static/posters/{game}.jpg?v=1" if gc.webapp_url else None
+
+
+def with_poster(rm: InputRichMessage, game: str) -> InputRichMessage:
+    """تصویر بازی بالای کارت؛ همان کارت اینلاین با هر ویرایش (تنظیم، بشین، شروع) عکسش را نگه می دارد."""
+    url = poster_url(game)
+    if not url:
+        return rm
+    return rm.model_copy(update={"blocks": [InputRichBlockPhoto(photo=InputMediaPhoto(media=url)), *(rm.blocks or [])]})
+
+
+def _bare(rm: InputRichMessage) -> InputRichMessage:
+    return rm.model_copy(update={"blocks": [b for b in rm.blocks or [] if not isinstance(b, InputRichBlockPhoto)]})
+
+
+def _photo_err(e: Exception) -> bool:
+    t = str(e).lower()
+    return any(k in t for k in ("photo", "media", "wrong file", "http url", "failed to get"))
+
+
 def card(parts: list, *rows: InputRichBlockButtons) -> InputRichMessage:
     return _rm([_para(parts), *rows])
 
@@ -224,7 +248,7 @@ async def setup_card(db: GCDatabase, d: dict) -> InputRichMessage:
                                  callback_data=f"gs:{key}={v}:{tok}") for v, lab in opts]))
     blocks.append(_row(_bt("play", "باز کردن میز", "success", callback_data=f"gs:open:{tok}"),
                        _bt("cancel", "لغو", "danger", callback_data=f"gs:cancel:{tok}")))
-    return _rm(blocks)
+    return with_poster(_rm(blocks), game)
 
 
 def closed_card(game: str, text: str = "میز جمع شد.") -> InputRichMessage:
@@ -234,6 +258,12 @@ def closed_card(game: str, text: str = "میز جمع شد.") -> InputRichMessag
 
 
 async def render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
+    """کارت میز؛ تا پایان بازی عکس ۱۶:۹ بازی بالایش است، کارت پایان و نتیجه فشرده می ماند."""
+    rm = await _render(db, m, row)
+    return with_poster(rm, row["game"]) if m["status"] in ("lobby", "playing") else rm
+
+
+async def _render(db: GCDatabase, m: dict, row: dict) -> InputRichMessage:
     g, game = GAMES[row["game"]], row["game"]
     cfg, mid = m["cfg"], m["id"]
     need = need_of(game, cfg)
@@ -556,16 +586,32 @@ def _where(row: dict) -> dict | None:
 async def _edit(where: dict | None, rm: InputRichMessage) -> None:
     if not where or not _bot:
         return
-    try:
-        await _bot.edit_message_text(rich_message=rm, parse_mode=None, link_preview_options=None,
+    async def go(r: InputRichMessage) -> None:
+        await _bot.edit_message_text(rich_message=r, parse_mode=None, link_preview_options=None,
                                      disable_web_page_preview=None, **where)
+    try:
+        await go(rm)
     except Exception as e:  # noqa: BLE001  (مثلا «message is not modified» یا پیام پاک شده)
-        if "not modified" not in str(e):
-            log.debug("کارت میز گروه به روز نشد", exc_info=True)
+        if "not modified" in str(e):
+            return
+        if _photo_err(e) and _bare(rm) != rm:   # عکس نرسید؛ کارت بی عکس بهتر از کارت یخ زده است
+            log.warning("عکس کارت میز گروه نرسید؛ بدون عکس به روز شد: %s", e)
+            try:
+                await go(_bare(rm))
+            except Exception:  # noqa: BLE001
+                log.debug("کارت میز گروه به روز نشد", exc_info=True)
+            return
+        log.debug("کارت میز گروه به روز نشد", exc_info=True)
 
 
 async def _send(chat_id: int, rm: InputRichMessage, **kw):  # noqa: ANN202
-    return await _bot.send_rich_message(chat_id=chat_id, rich_message=rm, **kw)
+    try:
+        return await _bot.send_rich_message(chat_id=chat_id, rich_message=rm, **kw)
+    except Exception as e:  # noqa: BLE001
+        if not _photo_err(e) or _bare(rm) == rm:
+            raise
+        log.warning("عکس کارت میز گروه نرسید؛ بدون عکس فرستاده شد: %s", e)
+        return await _bot.send_rich_message(chat_id=chat_id, rich_message=_bare(rm), **kw)
 
 
 async def refresh(db: GCDatabase, match_id: str) -> None:
