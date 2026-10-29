@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["crates/asotas-core", "crates/uniffi-bindgen"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+publish = false
+
+[workspace.dependencies]
+uniffi = "0.29"
+
+[profile.release]
+# حجم کتابخانه داخل APK کمتر
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "unwind"

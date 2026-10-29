@@ -1,0 +1,123 @@
+# برنامهٔ نیتیو AsoTas: هستهٔ Rust (native-app/crates) + رابط کاربری کاتلین Compose (native-app/android).
+# با هر push که native-app را عوض کند تست Rust و APK آزمایشی (debug) ساخته می شود.
+# Actions → «AsoTas Native» → Run workflow: با شماره نسخه؛ اگر Secrets کلید امضا (همان GC_KEYSTORE_* برنامهٔ
+# Capacitor) باشد APK امضاشدهٔ انتشار هم ساخته می شود.
+name: AsoTas Native
+
+on:
+  push:
+    paths:
+      - "native-app/**"
+      - ".github/workflows/asotas-native.yml"
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "versionCode (هر انتشار در مایکت یکی بیشتر)"
+        required: true
+        default: "1"
+      version_name:
+        description: "versionName (مثلا 0.1.0)"
+        required: true
+        default: "0.1.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: asotas-native-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: native-app
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native-app
+      - run: cargo test --workspace
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  android:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native-app
+          key: android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+          cache-dependency-path: |
+            native-app/android/**/*.gradle.kts
+            native-app/android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Rust library and Kotlin bindings
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          cargo install cargo-ndk --locked
+          bash build-rust.sh
+
+      - name: Signing key
+        env:
+          KS: ${{ secrets.GC_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.GC_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.GC_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.GC_KEY_PASSWORD }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/release.jks"
+            {
+              echo "GC_KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
+              echo "GC_KEYSTORE_PASSWORD=$KS_PASS"
+              echo "GC_KEY_ALIAS=$KEY_ALIAS"
+              echo "GC_KEY_PASSWORD=$KEY_PASS"
+            } >> "$GITHUB_ENV"
+            echo "SIGNED=1" >> "$GITHUB_ENV"
+          else
+            echo "::notice::فقط APK آزمایشی (debug) ساخته می‌شود"
+          fi
+
+      - name: Build APK
+        working-directory: native-app/android
+        env:
+          VCODE: ${{ inputs.version_code || github.run_number }}
+          VNAME: ${{ inputs.version_name || '0.1.0' }}
+        run: |
+          case "$VCODE" in ''|*[!0-9]*) echo "::error::version_code باید عدد باشد"; exit 1;; esac
+          case "$VNAME" in ''|*[!0-9.]*) echo "::error::version_name مثل 0.1.0 باشد"; exit 1;; esac
+          chmod +x gradlew
+          V="-PgcVersionCode=$VCODE -PgcVersionName=$VNAME"
+          ./gradlew --no-daemon assembleDebug $V
+          if [ "$SIGNED" = "1" ]; then ./gradlew --no-daemon assembleRelease bundleRelease $V; fi
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/out/asotas-native-$VNAME-debug.apk"
+          if [ "$SIGNED" = "1" ]; then
+            cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/out/asotas-native-$VNAME.apk"
+            cp app/build/outputs/bundle/release/app-release.aab "$GITHUB_WORKSPACE/out/asotas-native-$VNAME.aab"
+          fi
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asotas-native-${{ inputs.version_name || github.run_number }}
+          path: out/
+          retention-days: 30
