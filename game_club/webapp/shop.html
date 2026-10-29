@@ -65,7 +65,14 @@
 .pack .coin svg{width:34px;height:34px}
 .pack b{font-size:18px;line-height:26px;font-weight:900}
 .pack small{font-size:12px;color:var(--ink-muted)}
-.pack .soon{margin-top:4px;font-size:12px;font-weight:800;color:var(--acc-deep)}
+.pack{border:0;font:inherit;color:inherit;cursor:pointer}
+.pack:disabled{cursor:default}
+.pack .soon,.pack .buy{margin-top:4px;font-size:12px;font-weight:800;color:var(--acc-deep)}
+.pack .buy{padding:6px 14px;border-radius:999px;background:var(--gold);color:var(--gold-ink)}
+.pack:not(:disabled):active{transform:scale(.97)}
+.pack.busy{box-shadow:0 0 0 2px var(--gold)}
+.pack.busy .buy{opacity:.6}
+#packNote .link{border:0;background:none;padding:0;font:inherit;font-weight:800;color:var(--acc-deep);text-decoration:underline}
 </style>
 </head>
 <body>
@@ -148,20 +155,40 @@
     if (me.daily) GC.dailyMount($('daily'), me.daily, async () => { try { me = await GC.refreshMe(); renderWallet(); } catch (e) {} });
     mount();
   }
-  /* ---------- خرید سکه: داخل برنامهٔ اندروید از مایکت (به‌زودی)؛ تو تلگرام سکه با بازی جمع می‌شه ---------- */
-  const PACKS = [50, 120, 250, 600];   // نمونه؛ بسته های واقعی با مایکت از سرور می آیند
+  /* ---------- خرید سکه: داخل برنامهٔ اندروید با پرداخت درون‌برنامه‌ای مایکت؛ تو تلگرام سکه با بازی جمع می‌شه ---------- */
   function renderPacks() {
-    const rate = (me && me.settings && me.settings.rate) || GC.RATE;
+    const S = (me && me.settings) || {}, I = S.iap || {}, rate = S.rate || GC.RATE;
+    const packs = I.packs || [50, 120, 250, 600].map(n => ({ sku: 'coins_' + n, coins: n, toman: n * rate }));
     if (!GC.app) {
       $('packs').innerHTML = '';
       $('packNote').textContent = 'تو تلگرام سکه رو با جایزهٔ روزانه و برد رتبه‌ای جمع می‌کنی و تو برنامهٔ اندروید AsoTas هم می‌شه خریدش';
       return;
     }
-    $('packs').innerHTML = PACKS.map(n => `<div class="pack">${GC.coin()}<b>${fa(n)} سکه</b>
-      <small>${fa(n * rate)} تومان</small><span class="soon">به‌زودی از مایکت</span></div>`).join('');
-    $('packNote').textContent = 'خرید سکه از خود برنامه با پرداخت درون‌برنامه‌ای مایکت به‌زودی باز می‌شه';
+    // برنامهٔ قدیمی تر پلاگین خرید ندارد: اول آپدیت از مایکت
+    const can = I.on && GC.iapReady(), old = I.on && !can;
+    $('packs').innerHTML = packs.map(p => `<button class="pack" data-sku="${p.sku}"${can ? '' : ' disabled'}>${GC.coin()}<b>${fa(p.coins)} سکه</b>
+      <small>${fa(p.toman)} تومان</small><span class="${can ? 'buy' : 'soon'}">${can ? 'خرید با مایکت' : old ? 'اول برنامه رو آپدیت کن' : 'به‌زودی از مایکت'}</span></button>`).join('');
+    $('packNote').innerHTML = can ? 'پولو مایکت می‌گیره و سکه همون لحظه می‌ریزه تو کیفت'
+      : old ? 'خرید سکه تو نسخهٔ تازهٔ برنامه‌ست <button class="link" id="pkUpd">آپدیت از مایکت</button>'
+      : 'خرید سکه از خود برنامه با پرداخت درون‌برنامه‌ای مایکت به‌زودی باز می‌شه';
+    const upd = $('pkUpd'); if (upd) upd.onclick = () => window.GCApp.iap.update();
     mount($('packs'));
   }
+  $('packs').onclick = async e => {
+    const b = e.target.closest('[data-sku]'), I = me && me.settings && me.settings.iap;
+    if (!b || b.disabled || !I || !I.on) return;
+    const all = $('packs').querySelectorAll('.pack');
+    all.forEach(x => { x.disabled = true; }); b.classList.add('busy'); haptic('light');
+    try {
+      const r = await GC.iapBuy(b.dataset.sku, I.key);
+      if (r) { sfx.coin(); haptic('success'); toast(r.mine ? `+${fa(r.coins)} سکه ریخت تو کیفت 🎉` : 'خرید تأیید شد و سکه‌ها رفت تو همون حسابی که خریدو شروع کرده بود'); }
+      else await GC.iapRestore(I.key);
+      me = await GC.refreshMe(); renderWallet();
+    } catch (err) {
+      if (err.code !== 'iap_cancelled') { sfx.error(); haptic('error'); toast(errText(err)); }
+    }
+    b.classList.remove('busy'); renderPacks();
+  };
   $('toDaily').onclick = () => $('daily').scrollIntoView({ behavior: 'smooth', block: 'start' });
   $('toPacks').onclick = () => $('packSec').scrollIntoView({ behavior: 'smooth', block: 'start' });
   $('toHist').onclick = () => $('histSec').scrollIntoView({ behavior: 'smooth', block: 'start' });

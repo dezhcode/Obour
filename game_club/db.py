@@ -291,6 +291,25 @@ CREATE TABLE IF NOT EXISTS app_emails (
   created_at INTEGER NOT NULL
 );
 
+-- خرید سکه از مایکت (iap.py): هر سفارش developerPayload یک خرید است و نشان می دهد سکه مال کیست؛
+-- هر خرید (توکن خرید مایکت) فقط یک بار سکه می دهد
+CREATE TABLE IF NOT EXISTS iap_orders (
+  id TEXT PRIMARY KEY,
+  tg_id INTEGER NOT NULL,
+  sku TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS iap_purchases (
+  token TEXT PRIMARY KEY,
+  order_id TEXT NOT NULL DEFAULT '',
+  tg_id INTEGER NOT NULL,
+  sku TEXT NOT NULL,
+  coins INTEGER NOT NULL,
+  store_order TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS iap_purchases_tg ON iap_purchases(tg_id, created_at);
+
 -- کد ورود ایمیل (فقط هش)؛ sends تعداد کدهای فرستاده شده از window_at
 CREATE TABLE IF NOT EXISTS app_codes (
   email TEXT PRIMARY KEY,
@@ -829,6 +848,29 @@ class GCDatabase:
                 await self._conn.rollback()
                 return None
 
+    async def iap_credit(self, token: str, order_id: str, tg_id: int, sku: str, coins: int, store_order: str,
+                         note: str, idem: str) -> bool:
+        """ثبت خرید مایکت، سکه و ردیف دفتر با هم در یک تراکنش؛ False یعنی این خرید قبلا سکه داده."""
+        now = int(time.time())
+        async with self._lock:
+            assert self._conn
+            try:
+                await self._conn.execute(
+                    "INSERT INTO iap_purchases(token, order_id, tg_id, sku, coins, store_order, created_at) VALUES(?,?,?,?,?,?,?)",
+                    (token, order_id, tg_id, sku, coins, store_order[:80], now))
+                cur = await self._conn.execute("UPDATE players SET points = points + ? WHERE tg_id = ?", (coins, tg_id))
+                if cur.rowcount != 1:
+                    await self._conn.rollback()
+                    raise LookupError("player")
+                await self._conn.execute(
+                    "INSERT INTO ledger(tg_id, kind, amount, note, ref, idem, status, created_at) VALUES(?,?,?,?,?,?,?,?)",
+                    (tg_id, "purchase", coins, note[:120], sku, idem, "done", now))
+                await self._conn.commit()
+                return True
+            except aiosqlite.IntegrityError:
+                await self._conn.rollback()
+                return False
+
     async def earned_since(self, tg_id: int, kind: str, since: int) -> int:
         row = await self.one("SELECT COALESCE(SUM(amount), 0) AS n FROM ledger WHERE tg_id = ? AND kind = ? "
                              "AND status = 'done' AND created_at >= ?", (tg_id, kind, since))
@@ -1106,10 +1148,10 @@ class GCDatabase:
             "lobby": (await q("SELECT COUNT(*) AS n FROM matches WHERE status = 'lobby'"))["n"],
             "queue": (await q("SELECT COUNT(*) AS n FROM queue WHERE claimed IS NULL"))["n"],
             "games": (await q("SELECT COUNT(DISTINCT match_id) AS n FROM results WHERE created_at >= ?", since))["n"],
-            "charge": (await q("SELECT COALESCE(SUM(amount),0) AS n FROM ledger WHERE kind='charge' AND status='done' AND created_at >= ?", since))["n"],
-            "entry": (await q("SELECT COALESCE(-SUM(amount),0) AS n FROM ledger WHERE kind='entry' AND status='done' AND created_at >= ?", since))["n"],
-            "prize": (await q("SELECT COALESCE(SUM(amount),0) AS n FROM ledger WHERE kind='prize' AND status='done' AND created_at >= ?", since))["n"],
-            "shop": (await q("SELECT COALESCE(-SUM(amount),0) AS n FROM ledger WHERE kind IN ('shop','transfer') AND status='done' AND created_at >= ?", since))["n"],
+            # سکهٔ خریده شده از مایکت، سکهٔ هدیه و جایزه (روزانه، برد رتبه ای، شروع) و سکهٔ خرج شده برای آیتم
+            "purchase": (await q("SELECT COALESCE(SUM(amount),0) AS n FROM ledger WHERE kind='purchase' AND status='done' AND created_at >= ?", since))["n"],
+            "earned": (await q("SELECT COALESCE(SUM(amount),0) AS n FROM ledger WHERE kind IN ('daily','reward','gift') AND status='done' AND created_at >= ?", since))["n"],
+            "spent": (await q("SELECT COALESCE(-SUM(amount),0) AS n FROM ledger WHERE kind='style' AND status='done' AND created_at >= ?", since))["n"],
         }
 
     # ---------- ظاهر (میز و ورق) ----------
@@ -1169,7 +1211,7 @@ class GCDatabase:
         return out
 
     async def admin_daily(self, now: int, days: int = 14) -> list[dict]:
-        """نمودار روزانه: بازی تمام شده، بازیکن تازه و شارژ هر روز (روز به وقت تهران تقریبی: UTC+3:30)."""
+        """نمودار روزانه: بازی تمام شده، بازیکن تازه و سکهٔ خریده شده هر روز (روز به وقت تهران تقریبی: UTC+3:30)."""
         tz = 12600
         start = (now + tz) // 86400 * 86400 - tz - (days - 1) * 86400
         bucket = lambda col: f"CAST(({col} - {start}) / 86400 AS INTEGER)"  # noqa: E731
@@ -1177,10 +1219,10 @@ class GCDatabase:
             f"SELECT {bucket('created_at')} AS d, COUNT(DISTINCT match_id) AS n FROM results WHERE created_at >= ? GROUP BY d", (start,))}
         new = {r["d"]: r["n"] for r in await self.all(
             f"SELECT {bucket('created_at')} AS d, COUNT(*) AS n FROM players WHERE created_at >= ? GROUP BY d", (start,))}
-        charge = {r["d"]: r["n"] for r in await self.all(
-            f"SELECT {bucket('created_at')} AS d, SUM(amount) AS n FROM ledger WHERE kind = 'charge' AND status = 'done' "
+        bought = {r["d"]: r["n"] for r in await self.all(
+            f"SELECT {bucket('created_at')} AS d, SUM(amount) AS n FROM ledger WHERE kind = 'purchase' AND status = 'done' "
             "AND created_at >= ? GROUP BY d", (start,))}
-        return [{"t": start + i * 86400, "games": games.get(i, 0), "new": new.get(i, 0), "charge": charge.get(i, 0) or 0}
+        return [{"t": start + i * 86400, "games": games.get(i, 0), "new": new.get(i, 0), "purchase": bought.get(i, 0) or 0}
                 for i in range(days)]
 
     async def admin_players(self, q: str = "", sort: str = "recent", filt: str = "all",

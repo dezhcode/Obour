@@ -169,6 +169,9 @@ const ERR = {
   banned: 'شرمنده داش حسابت تو AsoTas بسته شده', maintenance: 'داریم آپدیت می‌کنیم چند دقیقه دیگه دوباره سر بزن',
   insufficient: 'سکه‌ت کمه داش با جایزهٔ روزانه و برد رتبه‌ای جمعش کن', daily_done: 'جایزهٔ امروزتو گرفتی فردا دوباره سر بزن 😉',
   ranked_off: 'بازی رتبه‌ای فعلاً خاموشه', ranked_online: 'رتبه‌ای فقط با حریف آنلاینه',
+  iap_off: 'خرید سکه فعلاً بسته‌ست', iap_sku: 'این بسته فعلاً فروخته نمی‌شه', iap_item: 'این بسته فعلاً فروخته نمی‌شه',
+  iap_bad: 'خریدت تأیید نشد اگه پولش کم شده به پشتیبانی پیام بده', iap_later: 'پولت رسید ولی تأییدش مونده چند دقیقه دیگه خودش سکه‌ها رو می‌ریزه',
+  iap_unavailable: 'واسه خرید باید مایکت رو گوشیت باشه', iap_failed: 'خرید انجام نشد یه بار دیگه امتحان کن', iap_cancelled: 'خریدو لغو کردی',
   busy: 'یه لحظه دیگه دوباره امتحان کن',
   bad_invite: 'این لینک دعوت به درد نمی‌خوره داش', started: 'این میز بازیش شروع شده', full: 'این میز پره', in_match: 'داش تو الان سر یه میز دیگه‌ای',
   need_players: 'هنوز به اندازهٔ کافی بازیکن سر میز نیست', not_host: 'فقط سازندهٔ میز می‌تونه شروعش کنه',
@@ -468,6 +471,7 @@ async function refreshMe() {
   const me = await GC.data.me();
   points = me.player.points;
   if (me.social) setNavBadge(me.social);
+  if (APP) iapCheck(me);
   mount();
   return me;
 }
@@ -747,6 +751,53 @@ function dailyMount(box, d, done) {
       dailyMount(box, r.daily, done); mount(); if (done) done(r.daily);
     } catch (e) { b.disabled = false; toast(errText(e)); }
   };
+}
+
+/* ---------- خرید سکه از مایکت (فقط داخل برنامهٔ اندروید؛ iap.py و MyketBillingPlugin.java) ----------
+   سفارش از سرور ← پرداخت در مایکت ← تأیید سرور و سکه ← consume تا همان بسته دوباره خریدنی شود.
+   کتابخانهٔ مایکت دو کار هم زمان قبول نمی کند، پس همه پشت هم. خریدی که وسط راه ماند (consume نشده)
+   iapRestore دوباره به سرور می فرستد؛ سرور هر خرید را فقط یک بار سکه می دهد. */
+let iapChain = Promise.resolve();
+function iapQueue(fn) { const p = iapChain.then(fn); iapChain = p.catch(() => {}); return p; }
+const iapReady = () => !!(APP && APP.iap && APP.iap.ok());
+async function iapSettle(p, key) {
+  const r = await api('iap/verify', { body: { json: p.json, signature: p.signature } });
+  points = r.points;
+  await APP.iap.consume(key, p).catch(() => {});      // نشد: دفعهٔ بعد iapRestore دوباره
+  return r;
+}
+// خریدهای مانده؛ سکهٔ تازه (برای همین حساب) را برمی گرداند
+function iapRestore(key) {
+  return iapQueue(async () => {
+    const { purchases = [] } = await APP.iap.owned(key);
+    let got = 0;
+    for (const p of purchases) {
+      try { const r = await iapSettle(p, key); if (!r.again && r.mine) got += r.coins; } catch (e) {}
+    }
+    if (got) { mount(); sfx.coin(); haptic('success'); toast(`خرید قبلیت تأیید شد و +${fa(got)} سکه ریخت تو کیفت 🎉`); }
+    return got;
+  });
+}
+// null یعنی خرید تازه نشد چون همین بسته از قبل مانده بود و همان تأیید شد
+function iapBuy(sku, key) {
+  return iapQueue(async () => {
+    const { order } = await api('iap/order', { body: { sku } });
+    let p;
+    try { p = await APP.iap.buy(key, sku, order); } catch (e) {
+      if (e && e.code === 'owned') return null;
+      throw Object.assign(new Error('iap'), { code: 'iap_' + ((e && e.code) || 'failed') });
+    }
+    const r = await iapSettle(p, key);
+    mount();
+    return r;
+  });
+}
+// بعد از باز شدن صفحه ها: هر ۱۰ دقیقه یک بار سراغ خریدهای مانده
+function iapCheck(me) {
+  const I = me && me.settings && me.settings.iap;
+  if (!I || !I.key || !iapReady() || Date.now() - (+store.get('iap_at', 0) || 0) < 600e3) return;
+  store.set('iap_at', Date.now());
+  iapRestore(I.key).catch(() => {});
 }
 
 /* ---------- ورود به حساب (فقط داخل برنامهٔ اندروید): تلگرام یا ایمیل، appauth.py ----------
@@ -1316,7 +1367,7 @@ function watchOver(game, title, line) {
 const RATE = 500; // هر سکه چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
-window.GC = { editName, login, logoutSheet, dailyMount, esc: escB, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
+window.GC = { editName, login, logoutSheet, dailyMount, iapBuy, iapRestore, iapReady, esc: escB, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
   get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, get snakes() { return live ? liveSnakes : GC.demo.snakes; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,

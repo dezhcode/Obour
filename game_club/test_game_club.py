@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import math
 import os
 import random
@@ -374,6 +375,191 @@ def test_obour_wallet_endpoints_are_gone():
             assert e.code in ("not_found", "bad_game"), e.code
         except Exception as e:  # noqa: BLE001  (دیتابیس تستی برای api در این تست نیست)
             assert "wallet" not in str(e) and "bridge" not in str(e), e
+
+
+# ---------- خرید سکه از مایکت ----------
+# کلید RSA فقط برای آزمون (۱۰۲۴ بیتی)؛ امضا مثل مایکت: SHA1 با PKCS#1 v1.5
+_IAP_KEY = ("MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgNYp515W2dN4yivhSYs2kdtxJu5I0CSRJAfgmQb9D5X/8Q40dW7sHQsdN1D20b5VRUuEdveq1"
+            "rv6m+1tIgb0EQBpuxzWIr2n9UQo3XY2wxUU7QnrOrZOV6YZs+AqNj3HO8/D0O+gEyKxHtGR47kp2C/FWIAG291i6pjG2pbV4bQIDAQAB")
+_IAP_N = int("a0358a79d795b674de328af85262cda476dc49bb923409244901f82641bf43e57ffc438d1d5bbb0742c74dd43db46f955152e11dbdeab5aefea6"
+             "fb5b4881bd04401a6ec73588af69fd510a375d8db0c5453b427acead9395e9866cf80a8d8f71cef3f0f43be804c8ac47b46478ee4a760bf1562001b6"
+             "f758baa631b6a5b5786d", 16)
+_IAP_D = int("464435600b3616b85b5c3fa77a3aeb86debaef7bdd3c05666cbef85f8f269c58e431784f44391f66a7db523f6c70df1fd6734b59081b1164973c"
+             "15b28bb29b7bb7fdfa10cb0e8d62c7a3230a9f52d0deb4fac4c48621506a41cfd8536b9d938ad49f5ca8140b977e8c65ee76a28bb6588719219d44e1"
+             "4c49e16249a495e07e01", 16)
+
+
+def _iap_sign(data: str) -> str:
+    import base64
+    import hashlib
+
+    k = (_IAP_N.bit_length() + 7) // 8
+    info = bytes.fromhex("3021300906052b0e03021a05000414") + hashlib.sha1(data.encode()).digest()
+    em = b"\x00\x01" + b"\xff" * (k - 3 - len(info)) + b"\x00" + info
+    return base64.b64encode(pow(int.from_bytes(em, "big"), _IAP_D, _IAP_N).to_bytes(k, "big")).decode()
+
+
+def test_myket_iap_order_verify_and_credit_once():
+    """خرید مایکت: امضای درست، سکه برای صاحب سفارش، هر خرید یک بار؛ دادهٔ دستکاری شده و API مایکت."""
+    tmp = tempfile.mkdtemp()
+    from game_club import iap
+    from game_club.db import GCDatabase
+    from game_club.service import GCError
+
+    def purchase(sku, token, payload, state=0, pkg="obour.gameclub.app"):
+        data = json.dumps({"orderId": "MK-" + token, "packageName": pkg, "productId": sku, "purchaseTime": 1,
+                           "purchaseState": state, "developerPayload": payload, "purchaseToken": token})
+        return data, _iap_sign(data)
+
+    async def fails(code, coro):
+        try:
+            await coro
+            raise AssertionError("expected " + code)
+        except GCError as e:
+            assert e.code == code, (code, e.code)
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        g = iap.gc
+        old = (g.myket_key, g.myket_token, g.iap_enabled, g.coin_packs, g.point_toman)
+        g.myket_key, g.myket_token, g.iap_enabled, g.coin_packs, g.point_toman = "", "", True, (50, 120, 250, 600), 500
+        real_check = iap.store_check
+        try:
+            for tg in (1, 2):
+                await db.player(tg, f"p{tg}")
+            # بدون کلید عمومی خرید بسته است
+            assert iap.view(True) == {"on": False, "key": "", "packs": iap.packs()}
+            await fails("iap_off", iap.order(db, 1, "coins_120"))
+            g.myket_key = _IAP_KEY
+            assert iap.view(False)["key"] == "" and iap.view(True)["on"] and iap.view(True)["key"] == _IAP_KEY
+            assert iap.packs()[1] == {"sku": "coins_120", "coins": 120, "toman": 60000}
+            await fails("iap_sku", iap.order(db, 1, "coins_7"))
+
+            o = (await iap.order(db, 1, "coins_120"))["order"]
+            data, sig = purchase("coins_120", "tok-1", o)
+            r = await iap.verify(db, 1, data, sig)
+            assert r == {"ok": True, "coins": 120, "again": False, "mine": True, "points": 120}, r
+            # همان خرید دوباره (consume نشده بود): سکهٔ دوباره نمی دهد
+            r = await iap.verify(db, 1, data, sig)
+            assert r["again"] and r["points"] == 120
+            rows = await db.all("SELECT * FROM ledger WHERE tg_id = 1 AND kind = 'purchase'")
+            assert [(x["amount"], x["status"], x["ref"]) for x in rows] == [(120, "done", "coins_120")]
+
+            # دستکاری: بستهٔ بزرگ تر با امضای قبلی، امضای خراب، بستهٔ برنامهٔ دیگر، خرید ناموفق، بستهٔ ناشناس
+            await fails("iap_bad", iap.verify(db, 1, data.replace("coins_120", "coins_600"), sig))
+            await fails("iap_bad", iap.verify(db, 1, data, sig[:-8] + "AAAAAAA="))
+            await fails("iap_bad", iap.verify(db, 1, *purchase("coins_120", "tok-2", o, pkg="com.other")))
+            await fails("iap_bad", iap.verify(db, 1, *purchase("coins_120", "tok-3", o, state=1)))
+            await fails("iap_bad", iap.verify(db, 1, *purchase("coins_9", "tok-4", "")))
+            await fails("iap_bad", iap.verify(db, 1, "not json", sig))
+            # سفارش بستهٔ دیگری بود
+            o50 = (await iap.order(db, 1, "coins_50"))["order"]
+            await fails("iap_bad", iap.verify(db, 1, *purchase("coins_250", "tok-5", o50)))
+
+            # سفارش مال ۱ است ولی برنامه با حساب ۲ می فرستد (حساب عوض شده): سکه مال کسی که پول داده
+            o = (await iap.order(db, 1, "coins_50"))["order"]
+            r = await iap.verify(db, 2, *purchase("coins_50", "tok-6", o))
+            assert r["mine"] is False and r["points"] == 0
+            assert (await db.get_player(1))["points"] == 170
+
+            # با توکن دسترسی هر خرید از API مایکت هم پرسیده می شود
+            g.myket_token = "secret"
+            seen = []
+
+            async def ok(sku, token):
+                seen.append((sku, token))
+                return {"purchaseState": 0, "consumptionState": 0, "developerPayload": o2}
+
+            async def later(sku, token):
+                raise iap.Later("down")
+
+            async def unknown(sku, token):
+                return None
+
+            o2 = (await iap.order(db, 2, "coins_250"))["order"]
+            iap.store_check = later
+            await fails("iap_later", iap.verify(db, 2, *purchase("coins_250", "tok-7", o2)))
+            assert (await db.get_player(2))["points"] == 0        # چیزی داده نشد؛ دفعهٔ بعد دوباره
+            iap.store_check = unknown
+            await fails("iap_bad", iap.verify(db, 2, *purchase("coins_250", "tok-7", o2)))
+            iap.store_check = ok
+            r = await iap.verify(db, 2, *purchase("coins_250", "tok-7", o2))
+            assert r["points"] == 250 and seen == [("coins_250", "tok-7")]
+            # payload مایکت با دادهٔ خرید نخواند
+            o3 = (await iap.order(db, 2, "coins_250"))["order"]
+            await fails("iap_bad", iap.verify(db, 2, *purchase("coins_250", "tok-8", o3)))
+            # خرید از پنل خاموش شد: سفارش تازه نه، ولی خرید نیمه کارهٔ قبلی هنوز تأیید می شود
+            g.iap_enabled = False
+            await fails("iap_off", iap.order(db, 2, "coins_50"))
+            iap.store_check = lambda sku, token: ok(sku, token)
+            o2 = o3
+            r = await iap.verify(db, 2, *purchase("coins_250", "tok-8", o3))
+            assert r["points"] == 500
+        finally:
+            g.myket_key, g.myket_token, g.iap_enabled, g.coin_packs, g.point_toman = old
+            iap.store_check = real_check
+            await db.close()
+
+    asyncio.run(run())
+
+
+def test_myket_store_check_paths():
+    """پرسش خرید از API مایکت: مسیر تازه، برگشت به مسیر قدیمی، خرید ناشناس، توکن خراب و قطعی شبکه."""
+    import httpx
+
+    from game_club import iap
+
+    calls = []
+
+    def answer(req):
+        calls.append((req.method, req.url.path, req.headers.get("X-Access-Token"), req.content.decode()))
+        return replies.pop(0)
+
+    real = httpx.AsyncClient
+
+    class Fake(real):
+        def __init__(self, **kw):
+            super().__init__(transport=httpx.MockTransport(answer), **kw)
+
+    old = (iap.gc.myket_token, iap.gc.app_package)
+    iap.gc.myket_token, iap.gc.app_package = "tok", "obour.gameclub.app"
+    httpx.AsyncClient = Fake
+    try:
+        replies = [httpx.Response(200, json={"purchaseState": 0, "developerPayload": "o1"})]
+        assert asyncio.run(iap.store_check("coins_50", "t1")) == {"purchaseState": 0, "developerPayload": "o1"}
+        assert calls[-1] == ("POST", "/api/partners/applications/obour.gameclub.app/purchases/products/coins_50/verify",
+                             "tok", '{"tokenId":"t1"}')
+        # مسیر تازه نبود: همان پرسش از مسیر قدیمی
+        replies = [httpx.Response(404, text="Not Found"), httpx.Response(200, json={"purchaseState": 1})]
+        assert asyncio.run(iap.store_check("coins_50", "t2")) == {"purchaseState": 1}
+        assert calls[-1][:2] == ("GET", "/api/applications/obour.gameclub.app/purchases/products/coins_50/tokens/t2")
+        replies = [httpx.Response(404, json={"code": 404, "messageCode": "PurchaseNotFound"})]
+        assert asyncio.run(iap.store_check("coins_50", "t3")) is None
+        for bad in (httpx.Response(401, json={"messageCode": "InvalidToken"}), httpx.Response(502, text="bad gateway")):
+            replies = [bad]
+            try:
+                asyncio.run(iap.store_check("coins_50", "t4"))
+                raise AssertionError("expected Later")
+            except iap.Later:
+                pass
+
+        def down(req):
+            raise httpx.ConnectError("down", request=req)
+
+        class Down(real):
+            def __init__(self, **kw):
+                super().__init__(transport=httpx.MockTransport(down), **kw)
+
+        httpx.AsyncClient = Down
+        try:
+            asyncio.run(iap.store_check("coins_50", "t5"))
+            raise AssertionError("expected Later")
+        except iap.Later:
+            pass
+    finally:
+        httpx.AsyncClient = real
+        iap.gc.myket_token, iap.gc.app_package = old
 
 
 # ---------- حکم ----------

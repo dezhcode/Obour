@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 
-from . import admin, appauth, gate, groups, names, service, social
+from . import admin, appauth, gate, groups, iap, names, service, social
 from .bot import gcrt
 from .config import gc
 from .db import pic_url
@@ -99,8 +99,18 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "is_admin": admin.is_admin(tg) and not in_app, "banned": bool(player.get("banned")), "style": service.style_of(player),
             "notice": gc.notice, "maintenance": gc.maintenance,
             "settings": {"ranked": gc.ranked_enabled, "rate": gc.point_toman, "turn_s": gc.turn_seconds, "bot": gc.username,
-                         "rank": {"win": gc.rank_win, "lose": gc.rank_lose, "coins": gc.rank_coins, "day": gc.rank_coins_day}},
+                         "rank": {"win": gc.rank_win, "lose": gc.rank_lose, "coins": gc.rank_coins, "day": gc.rank_coins_day},
+                         "iap": iap.view(in_app)},
         }
+    # ---------- خرید سکه از مایکت (فقط داخل برنامهٔ اندروید؛ iap.py) ----------
+    if name == "iap/order" and method == "POST":
+        if not in_app:
+            raise GCError("iap_off")
+        return await iap.order(gdb, tg, str(body.get("sku") or ""))
+    if name == "iap/verify" and method == "POST":
+        if not in_app:
+            raise GCError("iap_off")
+        return await iap.verify(gdb, tg, str(body.get("json") or "")[:4000], str(body.get("signature") or "")[:2000])
     # ---------- دوستان و پیام خصوصی ----------
     if name == "friends" and method == "GET":
         return await social.friends_view(gdb, tg)

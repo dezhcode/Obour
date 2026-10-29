@@ -21,6 +21,11 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // فقط کتابخانهٔ خرید درون برنامه ای مایکت
+        maven {
+            url 'https://jitpack.io'
+            content { includeGroup 'com.github.myketstore' }
+        }
     }
 }
 

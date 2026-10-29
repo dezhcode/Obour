@@ -35,6 +35,14 @@ class GCConfig:
     # هدیهٔ شروع هر حساب و جایزهٔ ورود روزانه (روزهای پشت هم؛ بعد از روز آخر از نو)
     start_coins: int = max(0, _int_env("GAME_CLUB_START_COINS", "10"))
     daily_coins: tuple[int, ...] = _ints("GAME_CLUB_DAILY", "1,1,2,2,3,3,5")
+    # خرید سکه از مایکت (فقط برنامهٔ اندروید، iap.py). کلید عمومی RSA و توکن دسترسی هر دو از پنل توسعه دهندهٔ
+    # مایکت (بخش محصولات درون برنامه ای). بدون کلید عمومی خرید بسته است؛ توکن یعنی هر خرید از API خود مایکت هم
+    # پرسیده می شود (پیشنهادی). شناسهٔ محصول هر بسته در پنل مایکت: coins_<تعداد> (مثلا coins_120)
+    iap_enabled: bool = _bool("GAME_CLUB_IAP", "true")
+    myket_key: str = os.getenv("GAME_CLUB_MYKET_PUBLIC_KEY", "").strip()
+    myket_token: str = os.getenv("GAME_CLUB_MYKET_ACCESS_TOKEN", "").strip()
+    app_package: str = os.getenv("GAME_CLUB_APP_PACKAGE", "").strip() or "obour.gameclub.app"
+    coin_packs: tuple[int, ...] = _ints("GAME_CLUB_COIN_PACKS", "50,120,250,600")
     turn_seconds: int = min(60, max(8, _int_env("GAME_CLUB_TURN_SECONDS", "20")))
     # چند ثانیه صبر در صف بازی آزاد قبل از پر کردن جای خالی با ربات
     # ۰ = صف ناشناس هیچ وقت خودکار با ربات پر نمی شود؛ میز وقتی کامل شد شروع می شود

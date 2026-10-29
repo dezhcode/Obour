@@ -105,6 +105,16 @@
     document.body.appendChild(el);
   }
 
+  // ---------- خرید سکه از مایکت: پلاگین MyketBilling خود برنامه (از نسخهٔ ۲؛ نسخهٔ قدیمی تر ندارد) ----------
+  // key کلید عمومی مایکت از سرور (me.settings.iap.key)؛ خطاها کد دارند: cancelled، owned، unavailable، item، failed
+  const iap = {
+    ok: () => native && !!(C.isPluginAvailable && C.isPluginAvailable('MyketBilling')),
+    buy: (key, sku, payload) => call('MyketBilling', 'purchase', { key, sku, payload }),
+    owned: key => call('MyketBilling', 'owned', { key }),
+    consume: (key, p) => call('MyketBilling', 'consume', { key, json: p.json, signature: p.signature }),
+    update: () => { try { window.open(STORE, '_blank'); } catch (e) { window.open(STORE_WEB, '_blank'); } },
+  };
+
   // ---------- آپدیت خودکار صفحه ها و بازی ها ----------
   const OTA_EVERY = 20 * 60e3;
   async function ota() {
@@ -132,5 +142,5 @@
     addEventListener('load', () => { setTimeout(() => ota().catch(() => {}), 1500); });
   }
 
-  window.GCApp = { base: cfg.base, bundle: cfg.bundle, native, call, token, srv, bars, login };
+  window.GCApp = { base: cfg.base, bundle: cfg.bundle, native, call, token, srv, bars, login, iap };
 })();
