@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Game Club</string>
-    <string name="title_activity_main">Game Club</string>
+    <string name="app_name">AsoTas</string>
+    <string name="title_activity_main">AsoTas</string>
     <string name="package_name">obour.gameclub.app</string>
     <string name="custom_url_scheme">obour.gameclub.app</string>
 </resources>

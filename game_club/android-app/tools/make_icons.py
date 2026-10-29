@@ -1,9 +1,11 @@
-"""آیکون و صفحهٔ شروع برنامهٔ اندروید Game Club، از روی همان تاس سفید دکمهٔ «بازی ها» در منوی مینی اپ.
+"""آیکون و صفحهٔ شروع برنامهٔ اندروید AsoTas از روی شخصیت برند («تاسی» داش‌مشتی).
 
     python3 game_club/android-app/tools/make_icons.py
 
-خروجی: mipmap ها (آیکون معمولی، گرد و لایه های adaptive)، splash ها و store/icon-512.png برای مایکت.
-فقط Pillow لازم دارد؛ خروجی ها در مخزن هستند و build اندروید به این اسکریپت نیازی ندارد.
+ورودی ها (game_club/android-app/art):
+  mascot-icon.png  آیکون کامل با زمینهٔ آبی و بنفش (نیم تنه)؛ برای آیکون معمولی و گرد و آیکون ۵۱۲ مایکت
+  mascot-full.png  همان شخصیت با تمام قد و زمینهٔ شفاف؛ لایهٔ جلوی آیکون adaptive و صفحهٔ شروع
+خروجی: mipmap ها، splash ها و store/icon-512.png. فقط Pillow لازم است؛ خروجی ها در مخزن هستند.
 """
 from __future__ import annotations
 
@@ -12,50 +14,30 @@ import os
 from PIL import Image, ImageDraw, ImageFilter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ART = os.path.join(HERE, "..", "art")
 RES = os.path.join(HERE, "..", "android", "app", "src", "main", "res")
 STORE = os.path.join(HERE, "..", "store")
-SKY, VIOLET = (43, 110, 242), (124, 102, 242)
-PIPS = [(76, 141, 255), (255, 90, 106), (47, 197, 132), (255, 197, 49)]   # رنگ مهره های چهار بازیکن
-INK = (28, 34, 53)
+# همان رنگ های زمینهٔ آیکون (گوشهٔ بالا چپ آبی، پایین راست بنفش) و نور طلایی پشت شخصیت
+TL, TR, BL, BR = (18, 104, 240), (98, 97, 250), (42, 105, 247), (124, 78, 251)
+GLOW = (255, 214, 120)
 DENS = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
-SS = 4   # نمونه برداری بیشتر برای لبه های نرم
+SS = 4
 
 
-def gradient(n: int) -> Image.Image:
-    """زمینهٔ آبی به بنفش (مورب) با نور ملایم بالا."""
-    g = Image.new("RGB", (n, n))
-    px = g.load()
-    for y in range(n):
-        for x in range(n):
-            t = (x + y) / (2 * (n - 1))
-            px[x, y] = tuple(round(a + (b - a) * t) for a, b in zip(SKY, VIOLET))
-    glow = Image.new("L", (n, n), 0)
-    ImageDraw.Draw(glow).ellipse((-n * .2, -n * .45, n * 1.2, n * .55), fill=70)
-    glow = glow.filter(ImageFilter.GaussianBlur(n / 8))
-    return Image.composite(Image.new("RGB", (n, n), (255, 255, 255)), g, glow)
-
-
-def die(n: int, frac: float) -> Image.Image:
-    """تاس سفید کج (۹ درجه) با سایه، پنج خال: چهار گوشه به رنگ بازیکن ها و وسط سرمه ای. شفاف، n×n."""
-    big = n * SS
-    s = big * frac
-    layer = Image.new("RGBA", (big, big), (0, 0, 0, 0))
-    x0, y0 = (big - s) / 2, (big - s) / 2
-    r = s * .26
-    # سایهٔ زیر تاس
-    sh = Image.new("L", (big, big), 0)
-    ImageDraw.Draw(sh).rounded_rectangle((x0, y0 + s * .09, x0 + s, y0 + s * 1.09), r, fill=120)
-    sh = sh.filter(ImageFilter.GaussianBlur(s * .07))
-    layer.paste(Image.new("RGBA", (big, big), (16, 20, 60, 255)), (0, 0), sh)
-    d = ImageDraw.Draw(layer)
-    d.rounded_rectangle((x0, y0, x0 + s, y0 + s), r, fill=(205, 211, 224, 255))            # لبهٔ پایین (عمق)
-    d.rounded_rectangle((x0, y0, x0 + s, y0 + s * .93), r, fill=(255, 255, 255, 255))
-    pr, pad = s * .095, s * .25
-    spots = [(pad, pad, PIPS[0]), (s - pad, pad, PIPS[1]), (s / 2, s * .465, INK), (pad, s * .93 - pad, PIPS[2]), (s - pad, s * .93 - pad, PIPS[3])]
-    for cx, cy, col in spots:
-        d.ellipse((x0 + cx - pr, y0 + cy - pr, x0 + cx + pr, y0 + cy + pr), fill=col + (255,))
-    layer = layer.rotate(9, resample=Image.BICUBIC, center=(big / 2, big / 2))
-    return layer.resize((n, n), Image.LANCZOS)
+def background(w: int, h: int, glow_at=(.5, .42), glow_r=.34) -> Image.Image:
+    """زمینهٔ آبی به بنفش (درون یابی چهار گوشه) با هالهٔ طلایی نرم."""
+    # ۲×۲ پیکسل گوشه ها، اول ۶۴×۶۴ (دوخطی) و بعد اندازهٔ نهایی: گرادیان نرم بدون نوار
+    g = Image.new("RGB", (2, 2))
+    for (x, y), c in zip(((0, 0), (1, 0), (0, 1), (1, 1)), (TL, TR, BL, BR)):
+        g.putpixel((x, y), c)
+    g = g.resize((64, 64), Image.BILINEAR).resize((w, h), Image.BICUBIC).convert("RGBA")
+    m = Image.new("L", (w, h), 0)
+    r = min(w, h) * glow_r
+    cx, cy = w * glow_at[0], h * glow_at[1]
+    ImageDraw.Draw(m).ellipse((cx - r, cy - r, cx + r, cy + r), fill=105)
+    m = m.filter(ImageFilter.GaussianBlur(r * .5))
+    g.paste(Image.new("RGBA", (w, h), GLOW + (255,)), (0, 0), m)
+    return g
 
 
 def masked(img: Image.Image, shape: str) -> Image.Image:
@@ -70,10 +52,23 @@ def masked(img: Image.Image, shape: str) -> Image.Image:
     return out
 
 
-def full_icon(n: int, frac: float = .6) -> Image.Image:
-    bg = gradient(n).convert("RGBA")
-    bg.alpha_composite(die(n, frac))
-    return bg
+def fit(img: Image.Image, box: int) -> Image.Image:
+    k = box / max(img.size)
+    return img.resize((max(1, round(img.width * k)), max(1, round(img.height * k))), Image.LANCZOS)
+
+
+def foreground(full: Image.Image, n: int) -> Image.Image:
+    """لایهٔ جلوی آیکون adaptive (۱۰۸ واحد) با همان ترکیب آیکون اصلی: کلاه از ۱۶٪ بالا، دست ها تا ۸۰٪.
+    گوشی ها معمولا ۸۰ واحد وسط را نشان می دهند (کلاه تا دست ها کامل)؛ جلیقه تا لبهٔ پایین ادامه دارد تا جای برش
+    دیده نشود؛ با سخت ترین برش (دایرهٔ ۷۲ واحدی) هم صورت و کلاه کامل است."""
+    layer = Image.new("RGBA", (n, n), (0, 0, 0, 0))
+    h = n * .97                                   # قد کامل شخصیت به این اندازه؛ دست ها حدود ۶۶٪ قد
+    w = round(h * full.width / full.height)
+    body = full.resize((w, round(h)), Image.LANCZOS)
+    top = round(n * .16)
+    body = body.crop((0, 0, w, min(body.height, n - top)))
+    layer.alpha_composite(body, ((n - w) // 2, top))
+    return layer
 
 
 def save(img: Image.Image, *parts: str) -> None:
@@ -83,25 +78,27 @@ def save(img: Image.Image, *parts: str) -> None:
 
 
 def main() -> None:
+    icon = Image.open(os.path.join(ART, "mascot-icon.png")).convert("RGB")
+    full = Image.open(os.path.join(ART, "mascot-full.png")).convert("RGBA")
     for dens, k in DENS.items():
         legacy, fg = round(48 * k), round(108 * k)
-        base = full_icon(legacy)
-        save(masked(base, "square"), RES, f"mipmap-{dens}", "ic_launcher.png")
-        save(masked(base, "circle"), RES, f"mipmap-{dens}", "ic_launcher_round.png")
-        # adaptive: لایهٔ جلو فقط تاس (در محدودهٔ امن ۶۶ از ۱۰۸)، لایهٔ پشت زمینهٔ رنگی
-        save(die(fg, .44), RES, f"mipmap-{dens}", "ic_launcher_foreground.png")
-        save(gradient(fg), RES, f"mipmap-{dens}", "ic_launcher_background.png")
-        # صفحهٔ شروع اندروید ۱۱ و پایین تر (عمودی و افقی)
+        small = icon.resize((legacy, legacy), Image.LANCZOS)
+        save(masked(small, "square"), RES, f"mipmap-{dens}", "ic_launcher.png")
+        save(masked(small, "circle"), RES, f"mipmap-{dens}", "ic_launcher_round.png")
+        save(foreground(full, fg), RES, f"mipmap-{dens}", "ic_launcher_foreground.png")
+        save(background(fg, fg).convert("RGB"), RES, f"mipmap-{dens}", "ic_launcher_background.png")
+        # صفحهٔ شروع اندروید ۱۱ و پایین تر: شخصیت تمام قد روی همان زمینه
         for orient, (w, h) in (("port", (320, 480)), ("land", (480, 320))):
             W, H = round(w * k), round(h * k)
-            sp = gradient(max(W, H)).crop((0, 0, W, H)).convert("RGBA")
-            m = round(min(W, H) * .42)
-            sp.alpha_composite(die(m, .72), ((W - m) // 2, (H - m) // 2))
+            sp = background(W, H, glow_at=(.5, .47), glow_r=.30)
+            c = fit(full, round(min(W, H) * (.62 if orient == "port" else .72)))
+            sp.alpha_composite(c, ((W - c.width) // 2, (H - c.height) // 2))
             save(sp.convert("RGB"), RES, f"drawable-{orient}-{dens}", "splash.png")
-    sp = gradient(480).crop((0, 80, 480, 400)).convert("RGBA")
-    sp.alpha_composite(die(140, .72), (170, 90))
+    sp = background(480, 320, glow_at=(.5, .47), glow_r=.30)
+    c = fit(full, 230)
+    sp.alpha_composite(c, ((480 - c.width) // 2, (320 - c.height) // 2))
     save(sp.convert("RGB"), RES, "drawable", "splash.png")
-    save(full_icon(512).convert("RGB"), STORE, "icon-512.png")
+    save(icon.resize((512, 512), Image.LANCZOS), STORE, "icon-512.png")
     print("آیکون ها و splash ساخته شدند")
 
 
