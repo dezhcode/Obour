@@ -69,7 +69,7 @@
     el.setAttribute('role', 'status');
     el.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(var(--sa-b,0px) + 84px);z-index:99999;display:flex;gap:10px;align-items:center;'
       + 'padding:12px 14px;border-radius:16px;background:#1B2340;color:#fff;font:600 14px/1.5 Peyda,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.35);direction:rtl';
-    el.innerHTML = '<span style="flex:1">نسخهٔ تازهٔ Game Club آمده؛ از مایکت به‌روزش کن.</span>'
+    el.innerHTML = '<span style="flex:1">نسخهٔ تازهٔ برنامه آمده؛ از مایکت به‌روزش کن.</span>'
       + '<button type="button" style="border:0;border-radius:12px;padding:8px 14px;background:#FFC93C;color:#1B2340;font:inherit">به‌روزرسانی</button>'
       + '<button type="button" aria-label="بستن" style="border:0;background:none;color:#fff;font:inherit;padding:4px 6px">✕</button>';
     const [go, x] = el.querySelectorAll('button');
