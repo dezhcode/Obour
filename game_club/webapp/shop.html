@@ -95,39 +95,39 @@ html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
 
   <section aria-labelledby="hTbl">
     <div class="sec-head"><h2 id="hTbl" class="on-ground">میز حکم</h2></div>
-    <div class="sk-grid" id="skinTables"><p class="hint" style="color:var(--ink)">در حال بارگذاری…</p></div>
+    <div class="sk-grid" id="skinTables"><p class="hint" style="color:var(--ink)">یه لحظه…</p></div>
   </section>
   <section aria-labelledby="hCards">
     <div class="sec-head"><h2 id="hCards" class="on-ground">ورق حکم</h2></div>
     <div class="sk-grid" id="cards"></div>
-    <p class="hint" style="color:var(--ink);margin-top:var(--space-2)">با امتیاز بخر؛ یک بار خرید برای همیشه مال توست. در بازی، میز و ورقی را می‌بینی که خودت انتخاب کرده‌ای.</p>
+    <p class="hint" style="color:var(--ink);margin-top:var(--space-2)">با امتیاز بخر و یه بار که بخری برای همیشه مال خودته و سر بازی همون میز و ورقی رو می‌بینی که خودت انتخاب کردی</p>
   </section>
 
   <section class="stack" id="obourSec" hidden aria-labelledby="hOb">
     <div class="sec-head"><h2 id="hOb" class="on-ground">خدمات عبور</h2></div>
     <div class="obour"><svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#151B42"/><path d="M10 22.5l7-11.5 7 11.5" fill="none" stroke="#3BF0CF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="22.5" r="2" fill="#B36BFF"/></svg>
-      <span>هر خرید مستقیم روی <b>حساب عبورت</b> ثبت می‌شود و کانفیگ در ربات عبور تحویل داده می‌شود.</span></div>
+      <span>هر خرید مستقیم روی <b>حساب عبورت</b> ثبت می‌شه و کانفیگ تو ربات عبور تحویلت داده می‌شه</span></div>
     <div class="stack" id="items" aria-label="پلن‌ها"></div>
     <section class="card item" aria-label="انتقال">
       <span class="ic-box"><i data-ic="wallet"></i></span>
-      <div><h3>انتقال به کیف پول عبور</h3><p class="muted">امتیاز را به تومان در کیف عبور ببر و هر خدمتی خواستی بخر، مثل اشتراک هوش مصنوعی.</p>
+      <div><h3>انتقال به کیف پول عبور</h3><p class="muted">امتیازتو به تومن ببر تو کیف عبور و هر چی خواستی بخر مثل اشتراک هوش مصنوعی</p>
         <div class="item-foot"><span class="muted" id="trRate"></span><button class="btn btn-sm" id="transfer">انتقال</button></div></div>
     </section>
   </section>
-  <p class="hint" style="color:var(--ink)" id="sampleNote" hidden>پیش‌نمایش است؛ قیمت‌ها نمونه‌اند.</p>
+  <p class="hint" style="color:var(--ink)" id="sampleNote" hidden>این پیش‌نمایشه و قیمتا نمونه‌ان</p>
 
   <section aria-labelledby="hHist" id="histSec">
     <div class="sec-head"><h2 id="hHist" class="on-ground">تاریخچهٔ امتیاز</h2></div>
-    <div class="hist" id="hist"><p class="hint">در حال بارگذاری…</p></div>
+    <div class="hist" id="hist"><p class="hint">یه لحظه…</p></div>
   </section>
 
   <details class="rules">
     <summary>قانون امتیاز<i data-ic="fwd"></i></summary>
     <ul>
-      <li><i data-ic="check"></i><span>هر امتیاز معادل <b id="rate">…</b> تومان از کیف پول عبور است.</span></li>
-      <li class="shop-only"><i data-ic="check"></i><span>امتیاز فقط برای خدمات عبور خرج می‌شود و به پول نقد برنمی‌گردد.</span></li>
-      <li><i data-ic="check"></i><span>ورودی بازی امتیازی تا پایان بازی قفل می‌ماند و یک‌جا به برنده می‌رسد.</span></li>
-      <li><i data-ic="check"></i><span>اگر بازی شروع نشود یا ناتمام بماند، ورودی برمی‌گردد.</span></li>
+      <li><i data-ic="check"></i><span>هر امتیاز معادل <b id="rate">…</b> تومن از کیف پول عبوره</span></li>
+      <li class="shop-only"><i data-ic="check"></i><span>امتیاز فقط واسه خدمات عبور خرج می‌شه و پول نقد نمی‌شه</span></li>
+      <li><i data-ic="check"></i><span>ورودی بازی امتیازی تا آخر بازی قفل می‌مونه و یه‌جا می‌رسه به برنده</span></li>
+      <li><i data-ic="check"></i><span>اگه بازی شروع نشه یا نصفه بمونه ورودیت برمی‌گرده</span></li>
     </ul>
   </details>
 </main>
@@ -154,8 +154,8 @@ html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
     $('hist').innerHTML = me.history.length ? me.history.map(l => {
       const [ic, bg, fg, lab] = KIND[l.kind] || KIND.gift, day = dayOf(l.created_at), head = day !== last ? `<p class="day">${day}</p>` : '';
       last = day;
-      return `${head}<div class="tx"><span class="ic-box" style="background:${bg};color:${fg}">${icon(ic)}</span><span class="name">${l.note || lab}<span class="meta">${clock(l.created_at)}${l.status === 'pending' ? ' · در حال انجام' : ''}</span></span><span class="v ${l.amount >= 0 ? 'plus-a' : 'minus-a'}" dir="ltr">${l.amount >= 0 ? '+' : '−'}${fa(Math.abs(l.amount))}</span></div>`;
-    }).join('') : '<p class="hint" style="padding:12px 0">هنوز تراکنشی نداری. با شارژ از کیف پول عبور شروع کن.</p>';
+      return `${head}<div class="tx"><span class="ic-box" style="background:${bg};color:${fg}">${icon(ic)}</span><span class="name">${l.note || lab}<span class="meta">${clock(l.created_at)}${l.status === 'pending' ? ' · داره انجام می‌شه' : ''}</span></span><span class="v ${l.amount >= 0 ? 'plus-a' : 'minus-a'}" dir="ltr">${l.amount >= 0 ? '+' : '−'}${fa(Math.abs(l.amount))}</span></div>`;
+    }).join('') : '<p class="hint" style="padding:12px 0">هنوز تراکنشی نداری داش با شارژ از کیف پول عبور شروع کن</p>';
     mount();
   }
   function charge() {
@@ -164,9 +164,9 @@ html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
     const sh = sheet(`${sheetHead('شارژ از کیف پول عبور')}
       <div class="pot"><span>موجودی کیف پول عبور</span><b>${me.obour.linked ? fa(me.obour.balance) + ' تومان' : 'وصل نیست'}</b></div>
       <ul class="list">${packs.map((p, i) => `<li class="row pkg"><span class="ic-box" style="background:var(--coin-tint)">${GC.coin()}</span><span class="name">${fa(p)} امتیاز<span class="meta">${fa(p * rate)} تومان از کیف عبور</span></span><button class="btn btn-sm" data-i="${i}"${me.obour.balance < p * rate ? ' disabled' : ''}>شارژ</button></li>`).join('')}</ul>
-      <p class="hint">کیف عبور کم است؟ اول در ربات عبور شارژش کن (کارت‌به‌کارت، تتر یا استارز).</p>
+      <p class="hint">کیف عبورت کمه؟ اول تو ربات عبور شارژش کن با کارت‌به‌کارت یا تتر یا استارز</p>
       <button class="btn btn-light btn-block" id="obourBot">${icon('wallet')}شارژ کیف پول عبور</button>`);
-    sh.querySelector('#obourBot').onclick = () => { const b = me.settings.obour_bot; b ? GC.openLink('https://t.me/' + b) : toast('ربات عبور در دسترس نیست'); };
+    sh.querySelector('#obourBot').onclick = () => { const b = me.settings.obour_bot; b ? GC.openLink('https://t.me/' + b) : toast('ربات عبور الان در دسترس نیست'); };
     sh.addEventListener('click', async e => {
       const b = e.target.closest('[data-i]'); if (!b || b.disabled) return;
       b.disabled = true;
@@ -203,7 +203,7 @@ html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
     const u = e.target.closest('[data-use]');
     if (u) {
       u.disabled = true;
-      try { await GC.data.styleUse(u.dataset.use); haptic('select'); toast('انتخاب شد؛ در بازی بعدی همین را می‌بینی'); loadStyle(); }
+      try { await GC.data.styleUse(u.dataset.use); haptic('select'); toast('حله انتخاب شد و بازی بعدی همینو می‌بینی'); loadStyle(); }
       catch (err) { u.disabled = false; toast(errText(err)); }
       return;
     }
@@ -215,7 +215,7 @@ html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
       <div class="receipt"><div><span>هزینه</span>${amount(it.price)}</div><div><span>موجودی بعد از خرید</span>${amount(Math.max(0, GC.points - it.price), 'ink')}</div><div><span>مدت</span><b>برای همیشه</b></div></div>
       ${short ? `<p class="need" style="text-align:center">${fa(it.price - GC.points)} امتیاز کم داری</p><button class="btn btn-block" id="needCharge">${icon('plus')}شارژ کیف امتیاز</button>`
         : `<button class="btn btn-block" id="ok">${icon('check')}خرید و استفاده</button>`}
-      <button class="btn btn-light btn-block" data-close>انصراف</button>`);
+      <button class="btn btn-light btn-block" data-close>بیخیال</button>`);
     const nc = sh.querySelector('#needCharge'); if (nc) nc.onclick = () => { GC.close(); charge(); };
     const ok = sh.querySelector('#ok');
     if (ok) ok.onclick = async () => {
@@ -235,10 +235,10 @@ html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
     const bal = GC.points;
     $('items').innerHTML = shop.plans.length ? shop.plans.map(p => {
       const short = bal < p.points;
-      return `<article class="card item"><span class="ic-box">${icon('globe')}</span><div><h3>${p.title}</h3><p class="muted">${p.gb ? FD(p.gb) + ' گیگ' : ''}${p.days ? ' · ' + FD(p.days) + ' روز' : ''} · تحویل فوری در ربات عبور</p>
+      return `<article class="card item"><span class="ic-box">${icon('globe')}</span><div><h3>${p.title}</h3><p class="muted">${p.gb ? FD(p.gb) + ' گیگ' : ''}${p.days ? ' · ' + FD(p.days) + ' روز' : ''} · تحویل فوری تو ربات عبور</p>
         <div class="item-foot"><div>${amount(p.points, 'lg')}<small>${fa(p.price)} تومان</small></div>
         ${short ? `<span class="need">${fa(p.points - bal)} امتیاز کم داری</span>` : `<button class="btn btn-sm" data-plan="${p.id}">دریافت</button>`}</div></div></article>`;
-    }).join('') : '<p class="hint" style="color:var(--ink)">فعلا پلنی برای فروش نیست.</p>';
+    }).join('') : '<p class="hint" style="color:var(--ink)">فعلاً پلنی واسه فروش نیست</p>';
     mount();
   }
   function done(title, sub) {
@@ -250,25 +250,25 @@ html:not(.shop-on) .wacts{grid-template-columns:repeat(2,minmax(0,1fr))}
     const sh = sheet(`${sheetHead('تأیید خرید')}
       <div class="receipt"><div><span>پلن</span><b>${p.title}</b></div><div><span>هزینه</span>${amount(p.points)}</div><div><span>موجودی بعد از خرید</span>${amount(GC.points - p.points, 'ink')}</div><div><span>تحویل</span><b>ربات عبور</b></div></div>
       <button class="btn btn-block" id="ok">${icon('check')}پرداخت با امتیاز</button>
-      <button class="btn btn-light btn-block" data-close>انصراف</button>`);
+      <button class="btn btn-light btn-block" data-close>بیخیال</button>`);
     sh.querySelector('#ok').onclick = async ev => {
       ev.target.disabled = true;
       try {
         const r = await GC.data.buy(p.id);
         await GC.refreshMe();
-        if (r.ok) { sfx.coin(); haptic('success'); done('خرید انجام شد', 'کانفیگ همین حالا در ربات عبور برایت فرستاده شد.'); }
-        else { haptic('warning'); done('مبلغ به کیف عبور رفت', `ساخت سرویس الان ممکن نشد؛ ${fa(r.credited)} تومان در کیف پول عبورت است و می‌توانی همان‌جا بخری.`); }
+        if (r.ok) { sfx.coin(); haptic('success'); done('خرید انجام شد', 'کانفیگت همین الان تو ربات عبور برات اومد'); }
+        else { haptic('warning'); done('مبلغ به کیف عبور رفت', `الان سرویس ساخته نشد ولی ${fa(r.credited)} تومن تو کیف پول عبورته و همون‌جا می‌تونی بخری`); }
         loadObour();
       } catch (err) { ev.target.disabled = false; sfx.error(); haptic('error'); toast(errText(err)); }
     };
   });
   $('transfer').onclick = () => {
     const opts = [100, 250, 500, 1000].filter(v => v <= GC.points);
-    if (!opts.length) { toast('برای انتقال حداقل ۱۰۰ امتیاز لازم است'); return; }
-    const sh = sheet(`${sheetHead('انتقال به کیف پول عبور')}<div class="chips" id="tv">${opts.map(v => `<button class="chip" data-v="${v}">${GC.coin()}${fa(v)}</button>`).join('')}</div><p class="hint">هر امتیاز ${fa(shop ? shop.rate : GC.RATE)} تومان. انتقال برگشت ندارد.</p>`);
+    if (!opts.length) { toast('واسه انتقال حداقل ۱۰۰ امتیاز لازمه'); return; }
+    const sh = sheet(`${sheetHead('انتقال به کیف پول عبور')}<div class="chips" id="tv">${opts.map(v => `<button class="chip" data-v="${v}">${GC.coin()}${fa(v)}</button>`).join('')}</div><p class="hint">هر امتیاز ${fa(shop ? shop.rate : GC.RATE)} تومنه و انتقال برگشت نداره</p>`);
     sh.querySelector('#tv').onclick = async e => {
       const c = e.target.closest('[data-v]'); if (!c) return;
-      try { const r = await GC.data.transfer(+c.dataset.v); await GC.refreshMe(); sfx.coin(); haptic('success'); done('انتقال انجام شد', `${fa(r.toman)} تومان به کیف پول عبورت اضافه شد.`); loadObour(); }
+      try { const r = await GC.data.transfer(+c.dataset.v); await GC.refreshMe(); sfx.coin(); haptic('success'); done('انتقال انجام شد', `${fa(r.toman)} تومن به کیف پول عبورت اضافه شد`); loadObour(); }
       catch (err) { sfx.error(); toast(errText(err)); }
     };
   };

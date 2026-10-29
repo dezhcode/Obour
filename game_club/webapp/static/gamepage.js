@@ -36,7 +36,7 @@ function build(opt) {
     }
     const L = GC.level(stats);
     $('gpLvl').innerHTML = `<span class="gp-star"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR}"/></svg><b>${FD(L.lv)}</b></span>
-      <span class="gp-prog"><span class="gp-row"><b>${LV_TITLE(L.lv)} · سطح ${FD(L.lv)} در ${opt.title}</b><span>${rank ? `رتبهٔ ${FD(rank)} این هفته` : stats.games ? `${FD(stats.games)} بازی، ${FD(stats.wins)} برد` : 'اولین بازی‌ات را شروع کن'}</span></span>
+      <span class="gp-prog"><span class="gp-row"><b>${LV_TITLE(L.lv)} · سطح ${FD(L.lv)} در ${opt.title}</b><span>${rank ? `رتبهٔ ${FD(rank)} این هفته` : stats.games ? `${FD(stats.games)} بازی · ${FD(stats.wins)} برد` : 'اولین بازیتو شروع کن'}</span></span>
       <span class="gp-bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span></span>`;
   }
   // وقتی در جعبه از بالای صفحه رد شد، نوار وضعیت گوشی رنگ زمینه می گیرد تا تب ها زیرش خوانا بمانند
@@ -45,10 +45,10 @@ function build(opt) {
   /* ---------- تب بازی: سه ردیف چیپ (حالت، حریف، ورودی) و نوار شناور با خلاصه و یک دکمه ---------- */
   const WHO = [['online', 'آنلاین', 'globe'], ['friends', 'دوستان', 'link'], ['group', 'گروه', 'users'], ['bot', 'ربات', 'bot']];
   const WHO_DESC = {
-    online: 'با بازیکن‌های واقعی، ناشناس',
-    friends: opt.privateSub || 'لینک دعوت می‌سازی و برای دوستانت می‌فرستی',
-    group: 'کارت میز را در گروه تلگرام می‌فرستی؛ هر کس بخواهد می‌نشیند',
-    bot: 'تمرین، همیشه آزاد و بدون انتظار',
+    online: 'با بازیکنای واقعی و ناشناس',
+    friends: opt.privateSub || 'لینک دعوت می‌سازی و واسه رفیقات می‌فرستی',
+    group: 'کارت میزو تو گروه تلگرام می‌فرستی و هر کی بخواد می‌شینه',
+    bot: 'تمرین همیشه آزاد و بی‌معطلی',
   };
   const GO = { online: ['پیدا کردن حریف', 'play'], friends: ['ساختن لینک دعوت', 'link'], group: ['فرستادن به گروه', 'send'], bot: ['شروع با ربات', 'play'] };
   // بازی فقط گروهی (اسم‌فامیل): opt.who = ['group']
@@ -65,7 +65,7 @@ function build(opt) {
   const entryOf = () => staked() && settings.entries.includes(pick.entry) ? pick.entry : 0;
   // جایزه: همهٔ ورودی ها به برنده؛ در حالت تیمی (حکم، بیلیارد یاری) بین دو یار تقسیم می شود
   const payout = v => modeOf().team ? v * 2 : v * (modeOf().cfg.players || 2);
-  const prize = v => `${modeOf().team ? 'هر برنده' : 'برنده'} ${fa(payout(v))} می‌برد`;
+  const prize = v => `${modeOf().team ? 'هر برنده' : 'برنده'} ${fa(payout(v))} می‌بره`;
   const cfgOf = () => {
     const e = entryOf();
     return Object.assign({}, modeOf().cfg, pick.who === 'friends' ? pick.extra : {}, { mode: e ? 'stake' : 'free', entry: e });
@@ -83,7 +83,7 @@ function build(opt) {
         <div class="chips">${x.opts.map(([v, l, s]) => chip('x:' + x.key, v, l + (s ? ` <small>${s}</small>` : ''), '', String(pick.extra[x.key]) === String(v))).join('')}</div>`).join('') : ''}
       ${staked() ? `<h2 class="gp-h">ورودی</h2>
         <div class="chips">${chip('entry', 0, 'آزاد', '', !e)}${settings.entries.map(v => chip('entry', v, `${fa(v)} <small>← ${fa(payout(v))}</small>`, GC.coin(), e === v, GC.points < v ? ' disabled' : '')).join('')}</div>
-        <p class="gp-sub">${e ? `هر نفر ${fa(e)} امتیاز می‌دهد · ${prize(e)}` : 'بدون امتیاز؛ فقط برای سرگرمی'}</p>` : ''}`;
+        <p class="gp-sub">${e ? `هر نفر ${fa(e)} امتیاز می‌ده · ${prize(e)}` : 'بی‌امتیاز و فقط واسه حال کردن'}</p>` : ''}`;
   }
   function dock() {
     const el = $('gpDock'); el.hidden = tab !== 'play'; if (el.hidden) return;
@@ -101,16 +101,16 @@ function build(opt) {
   /* فرستادن کارت میز به گروه یا چت: تلگرام پنجرهٔ انتخاب چت را باز می کند (WebApp 8.0+)؛
      در تلگرام قدیمی تر حالت اینلاین (@ربات hokm) با انتخاب چت باز می شود */
   async function share(btn) {
-    if (GC.app) { toast('این بازی فعلاً توی گروه‌های تلگرام بازی می‌شه؛ اتاق دوستانه‌ش به‌زودی توی برنامه هم میاد'); return; }
+    if (GC.app) { toast('این بازی فعلاً تو گروه‌های تلگرام بازی می‌شه و اتاق دوستانه‌ش به‌زودی تو برنامه هم میاد'); return; }
     const w = window.Telegram && Telegram.WebApp, at = v => w && w.isVersionAtLeast && w.isVersionAtLeast(v);
     const chats = opt.who && !opt.who.includes('friends') ? ['groups', 'channels'] : ['groups', 'users', 'channels'];
     const inline = () => { if (at('6.7') && w.switchInlineQuery) { w.switchInlineQuery(opt.game, chats); return true; } return false; };
     btn.disabled = true;
     try {
       const r = await GC.data.groupShare(opt.game);
-      if (r.demo) toast('در تلگرام، گروه را انتخاب می‌کنی و کارت میز همان‌جا فرستاده می‌شود');
-      else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز فرستاده شد'); } });
-      else if (!inline()) toast(`در گروه بنویس /${opt.game}`);
+      if (r.demo) toast('تو تلگرام گروهتو انتخاب می‌کنی و کارت میز همون‌جا می‌ره');
+      else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز رفت 🎉'); } });
+      else if (!inline()) toast(`تو گروه بنویس /${opt.game}`);
     } catch (e) { if (!inline()) toast(errText(e)); }
     btn.disabled = false;
   }
@@ -120,14 +120,14 @@ function build(opt) {
     const C = window.GCCards;
     const tile = i => `<button class="gp-item${i.on ? ' on' : ''}" data-item="${i.id}">
       ${i.kind === 'table' ? `<span class="sw felt tbl-${i.look}"></span>` : `<span class="sw cs cards-${i.look}">${C.back('', 'left:16%;top:14%;transform:rotate(-10deg)')}${C.face(12, '', 'left:46%;top:10%;transform:rotate(8deg)')}</span>`}
-      <b>${i.name.replace(/^(میز|ورق) /, '')}</b>${i.on ? '<small class="use">در حال استفاده</small>' : i.owned ? '<small>داری · انتخاب کن</small>' : `<small class="price">${GC.coin()}${fa(i.price)}</small>`}</button>`;
+      <b>${i.name.replace(/^(میز|ورق) /, '')}</b>${i.on ? '<small class="use">داری استفاده می‌کنی</small>' : i.owned ? '<small>داری · انتخاب کن</small>' : `<small class="price">${GC.coin()}${fa(i.price)}</small>`}</button>`;
     return `<h2 class="gp-h">میز</h2><div class="gp-items r3">${sty.items.filter(i => i.kind === 'table').map(tile).join('')}</div>
       <h2 class="gp-h">ورق</h2><div class="gp-items r3">${sty.items.filter(i => i.kind === 'cards').map(tile).join('')}</div>`;
   }
   async function pickItem(id) {
     const i = sty.items.find(x => x.id === id); if (!i || i.on) return;
     if (i.owned) { try { sty = await GC.data.styleUse(id); style = { table: sty.table, cards: sty.cards }; sfx.tap(); banner(); draw(); } catch (e) { toast(errText(e)); } return; }
-    const sh = sheet(`${sheetHead(i.name)}<p class="gp-lead">یک بار بخری برای همیشه مال توست و سر هر میز حکم همین را می‌بینی.</p>
+    const sh = sheet(`${sheetHead(i.name)}<p class="gp-lead">یه بار بخری برای همیشه مال خودته و سر هر میز حکم همینو می‌بینی</p>
       <button class="btn btn-block" id="gpBuy"${GC.points < i.price ? ' disabled' : ''}>${GC.points < i.price ? fa(i.price - GC.points) + ' امتیاز کم داری' : `خرید با ${fa(i.price)} امتیاز`}</button>`);
     sh.querySelector('#gpBuy').onclick = async ev => {
       ev.currentTarget.disabled = true;
@@ -144,9 +144,9 @@ function build(opt) {
     const rows = board.rows.map((r, i) => `<li class="${r.me ? 'me' : ''}"><span class="n" style="color:${medal[i] || 'var(--ink-muted)'}">${FD(i + 1)}</span>${face(r)}
       <span class="nm uname">${r.name}</span><span class="w"><b>${FD(r.wins)}</b> برد</span></li>`).join('');
     const m = board.mine || {}, inList = board.rows.some(r => r.me);
-    return `${per}${board.sample ? '<span class="tag tag-sample gp-sample">داده‌ها نمونه‌اند</span>' : ''}
-      ${rows ? `<ol class="gp-board">${rows}</ol>` : `<div class="gp-empty">${icon('trophy')}<b>هنوز کسی در این بازه نبرده</b><small>اولین برنده تو باش</small></div>`}
-      ${!inList ? `<div class="gp-mine"><span class="n">${m.rank ? FD(m.rank) : '—'}</span><span class="t"><b>جایگاه شما</b><small>${m.wins ? `${FD(m.wins)} برد از ${FD(m.games)} بازی` : m.games ? `${FD(m.games)} بازی، هنوز بی‌برد` : 'یک بازی ببر تا در رده‌بندی بیایی'}</small></span></div>` : ''}`;
+    return `${per}${board.sample ? '<span class="tag tag-sample gp-sample">اینا نمونه‌ان</span>' : ''}
+      ${rows ? `<ol class="gp-board">${rows}</ol>` : `<div class="gp-empty">${icon('trophy')}<b>هنوز کسی تو این بازه نبرده</b><small>اولین برنده تو باش داش</small></div>`}
+      ${!inList ? `<div class="gp-mine"><span class="n">${m.rank ? FD(m.rank) : '—'}</span><span class="t"><b>جای تو</b><small>${m.wins ? `${FD(m.wins)} برد از ${FD(m.games)} بازی` : m.games ? `${FD(m.games)} بازی، هنوز بی‌برد` : 'یه بازی ببر تا بیای تو رده‌بندی'}</small></span></div>` : ''}`;
   }
   async function loadBoard() {
     board = null; if (tab === 'board') draw();

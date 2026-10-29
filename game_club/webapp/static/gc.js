@@ -11,7 +11,7 @@ const store = {
 };
 const S = Object.assign({
   bal: 1250, shopOn: false, wins: 0, games: 0, won: 0, spent: 0, mode: 'free', notify: {}, sound: true, tutorial: false, showSpend: false,
-  ledger: [{ t: 'هدیهٔ شروع AsoTas', a: 1250, k: 'gift', at: Date.now() - 864e5 }],
+  ledger: [{ t: 'هدیهٔ شروع از طرف تاسی 🎁', a: 1250, k: 'gift', at: Date.now() - 864e5 }],
 }, store.get('state', {}));
 const save = () => store.set('state', S);
 document.documentElement.classList.toggle('shop-on', !!S.shopOn);
@@ -161,32 +161,32 @@ function startParam() { try { return (tg && tg.initDataUnsafe && tg.initDataUnsa
 
 /* ---------- API سرور ---------- */
 const ERR = {
-  not_owned: 'اول این طرح را بخر',
-  name_short: 'یوزرنیم دست‌کم ۳ نویسه است', name_long: 'یوزرنیم حداکثر ۱۶ نویسه است', name_start: 'یوزرنیم باید با حرف انگلیسی شروع شود',
-  not_friends: 'اول باید با هم دوست باشید', you_blocked: 'این کاربر را بلاک کرده‌ای', cant_add: 'نمی‌شود این کاربر را اضافه کرد',
-  too_many_friends: 'فهرست دوستانت پر است', slow_requests: 'درخواست‌ها زیاد شد؛ کمی بعد دوباره امتحان کن', no_request: 'این درخواست دیگر وجود ندارد', bad_game: 'این بازی پیدا نشد',
-  name_chars: 'فقط حروف انگلیسی، عدد و _ مجاز است', name_reserved: 'این یوزرنیم را نمی‌شود انتخاب کرد', name_taken: 'این یوزرنیم را کس دیگری برداشته',
-  must_join: 'اول عضو کانال‌های AsoTas شو، بعد بزن بریم!',
-  banned: 'حساب تو در AsoTas مسدود شده است', maintenance: 'در حال به‌روزرسانی هستیم؛ چند دقیقه دیگر دوباره امتحان کن',
-  insufficient: 'امتیاز کافی نیست؛ اول کیف را شارژ کن', obour_insufficient: 'موجودی کیف پول عبور کافی نیست',
-  no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است', shop_off: 'خدمات عبور فعلا در دسترس نیست',
-  bad_invite: 'این لینک دعوت معتبر نیست', started: 'این میز شروع شده', full: 'این میز پر است', in_match: 'تو الان سر یک میز دیگر هستی',
-  need_players: 'هنوز بازیکن کافی سر میز نیست', not_host: 'فقط سازندهٔ میز می‌تواند شروع کند',
-  group_only: 'این بازی فقط توی گروه یا کانال ساخته می‌شه', sheet_not_full: 'واسه استپ باید همهٔ خونه‌ها پر باشه ✍️', closed: 'دیر شد؛ وقتش تموم شده',
+  not_owned: 'اول این طرحو بخر داش',
+  name_short: 'یوزرنیم حداقل ۳ تا حرف باشه', name_long: 'یوزرنیم حداکثر ۱۶ تا حرفه', name_start: 'یوزرنیم باید با حرف انگلیسی شروع بشه',
+  not_friends: 'اول باید با هم رفیق بشید', you_blocked: 'این بنده خدا رو بلاک کردی', cant_add: 'این یکی رو نمی‌شه اضافه کرد',
+  too_many_friends: 'لیست رفیقات پر شده', slow_requests: 'درخواستا زیاد شد یه کم دیگه دوباره امتحان کن', no_request: 'این درخواست دیگه نیست', bad_game: 'این بازی پیدا نشد داش',
+  name_chars: 'فقط حرف انگلیسی و عدد و _ قبوله', name_reserved: 'این یوزرنیمو نمی‌شه برداشت', name_taken: 'این یوزرنیمو یکی دیگه زودتر برداشته',
+  must_join: 'اول عضو کانالای AsoTas شو بعد بزن بریم!',
+  banned: 'شرمنده داش حسابت تو AsoTas بسته شده', maintenance: 'داریم آپدیت می‌کنیم چند دقیقه دیگه دوباره سر بزن',
+  insufficient: 'امتیازت کمه داش اول کیفتو شارژ کن', obour_insufficient: 'موجودی کیف پول عبورت کمه',
+  no_obour: 'اول یه بار ربات عبور رو استارت کن', busy: 'یه لحظه دیگه دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلاً خاموشه', shop_off: 'خدمات عبور فعلاً در دسترس نیست',
+  bad_invite: 'این لینک دعوت به درد نمی‌خوره داش', started: 'این میز بازیش شروع شده', full: 'این میز پره', in_match: 'داش تو الان سر یه میز دیگه‌ای',
+  need_players: 'هنوز به اندازهٔ کافی بازیکن سر میز نیست', not_host: 'فقط سازندهٔ میز می‌تونه شروعش کنه',
+  group_only: 'این بازی فقط توی گروه یا کانال ساخته می‌شه', sheet_not_full: 'واسه استپ باید همهٔ خونه‌ها پر باشه ✍️', closed: 'دیر شد داش وقتش تموم شده',
   submitted: 'برگتو که تحویل دادی 😄', no_appeal: 'به این خونه نمی‌شه اعتراض کرد', appealed: 'سر این یکی قبلا اعتراض کردی',
-  no_vote: 'رو اعتراض خودت که نمی‌تونی رأی بدی 😄', not_playing: 'تو این بازی نیستی', bad_sheet: 'برگت درست ثبت نشد؛ یه بار دیگه بزن',
-  army_short: 'اسم لشگر دست‌کم ۲ حرف باشه', army_long: 'اسم لشگر حداکثر ۲۰ حرفه', army_chars: 'فقط حرف و عدد و فاصله؛ بدون لینک و @',
-  army_bad: 'این اسم رو نمی‌شه گذاشت؛ یه اسم دیگه 😅', army_taken: 'حریفت همین اسمو برداشته؛ یه اسم دیگه بذار', need_army: 'اول یه اسم برای لشگرت بذار',
-  need_units: 'اول همهٔ نیروهاتو بچین', bad_units: 'جای نیروها درست ثبت نشد؛ یه بار دیگه', too_many: 'از این نیرو دیگه نداری',
-  unit_out: 'نیرو باید کامل روی برگه باشه', unit_overlap: 'نیروها نباید روی هم بیفتن', not_draw: 'وقت چیدن تموم شده', is_ready: 'آماده زدی؛ اول «عوضش کنم» رو بزن',
-  not_battle: 'هنوز جنگ شروع نشده', bad_ink: 'خط مداد ثبت نشد؛ دوباره بکش', ink_full: 'برگه دیگه جا نداره؛ یه کم پاک کن',
-  plan_unavailable: 'این پلن الان فروخته نمی‌شود', auth: 'نشست منقضی شده؛ مینی‌اپ را ببند و دوباره باز کن',
-  rate: 'درخواست‌ها زیاد شد؛ چند ثانیه صبر کن', network: 'اتصال برقرار نشد؛ اینترنتت را بررسی کن', server: 'خطای سرور؛ دوباره امتحان کن',
-  not_your_turn: 'الان نوبت تو نیست', empty: 'اول یک چیزی بنویس', chat_slow: 'کمی آهسته‌تر؛ چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تواند حرکت کند', no_walls: 'دیوارهایت تمام شده؛ فقط می‌توانی حرکت کنی', wall_taken: 'این‌جا دیوار نمی‌شود گذاشت؛ روی دیوار دیگری می‌افتد', wall_blocks: 'این دیوار راه یک نفر را کامل می‌بندد؛ مجاز نیست', bad_wall: 'جای دیوار درست نیست', illegal_card: 'این برگ را نمی‌شود بازی کرد؛ باید از خال شروع‌شده بیاوری', not_play_phase: 'یک لحظه صبر کن', not_trump_phase: 'یک لحظه صبر کن', bad_suit: 'یک خال را انتخاب کن', not_ready: 'یک لحظه صبر کن تا مهره‌ها بایستند', bad_shot: 'شوت درست ثبت نشد؛ دوباره بزن', bad_setup: 'یک تیم و چیدمان انتخاب کن', not_setup: 'بازی شروع شده است', not_found: 'این میز پیدا نشد', bad_place: 'توپ سفید را جای خالی بگذار (در بریک: پشت خط سر)', bad_pack: 'این بسته در دسترس نیست',
+  no_vote: 'رو اعتراض خودت که نمی‌تونی رأی بدی 😄', not_playing: 'تو این بازی نیستی', bad_sheet: 'برگت درست ثبت نشد یه بار دیگه بزن',
+  army_short: 'اسم لشگر دست‌کم ۲ حرف باشه', army_long: 'اسم لشگر حداکثر ۲۰ حرفه', army_chars: 'فقط حرف و عدد و فاصله بدون لینک و @',
+  army_bad: 'این اسمو نمی‌شه گذاشت یه اسم دیگه بذار 😅', army_taken: 'حریفت همین اسمو برداشته یه اسم دیگه بذار', need_army: 'اول یه اسم برای لشگرت بذار',
+  need_units: 'اول همهٔ نیروهاتو بچین', bad_units: 'جای نیروها درست ثبت نشد یه بار دیگه بچین', too_many: 'از این نیرو دیگه نداری',
+  unit_out: 'نیرو باید کامل روی برگه باشه', unit_overlap: 'نیروها نباید روی هم بیفتن', not_draw: 'وقت چیدن تموم شده', is_ready: 'آماده رو زدی اول «عوضش کنم» رو بزن',
+  not_battle: 'هنوز جنگ شروع نشده', bad_ink: 'خط مداد ثبت نشد دوباره بکش', ink_full: 'برگه دیگه جا نداره یه کم پاک کن',
+  plan_unavailable: 'این پلن الان فروخته نمی‌شه', auth: 'نشستت تموم شده داش ببندش و دوباره باز کن',
+  rate: 'یواش‌تر داش چند ثانیه صبر کن', network: 'وصل نشد داش اینترنتتو یه نگاه بنداز', server: 'سرور یه لحظه گیج زد دوباره امتحان کن',
+  not_your_turn: 'صبر کن داش الان نوبت تو نیست', empty: 'اول یه چیزی بنویس', chat_slow: 'یواش‌تر داش چند ثانیه صبر کن', illegal_move: 'این مهره نمی‌تونه تکون بخوره', no_walls: 'دیواراتو تموم کردی فقط می‌تونی راه بری', wall_taken: 'اینجا دیوار نمی‌شه گذاشت می‌افته رو یه دیوار دیگه', wall_blocks: 'این دیوار راه یکی رو کامل می‌بنده و قبول نیست', bad_wall: 'جای دیوار درست نیست داش', illegal_card: 'این برگو نمی‌شه بازی کرد باید از همون خالی که اومده بیاری', not_play_phase: 'یه لحظه صبر کن داش', not_trump_phase: 'یه لحظه صبر کن داش', bad_suit: 'یه خال انتخاب کن', not_ready: 'یه لحظه صبر کن مهره‌ها وایسن', bad_shot: 'شوت درست ثبت نشد دوباره بزن', bad_setup: 'یه تیم و یه چیدمان انتخاب کن', not_setup: 'بازی شروع شده', not_found: 'این میز پیدا نشد داش', bad_place: 'توپ سفیدو یه جای خالی بذار و تو بریک پشت خط سر', bad_pack: 'این بسته فعلاً نیست',
 };
 const errText = e => {
   const c = String((e && e.code) || '');
-  if (c.startsWith('name_wait:')) return `یوزرنیم را ${FD(c.split(':')[1])} روز دیگر می‌توانی عوض کنی`;
+  if (c.startsWith('name_wait:')) return `یوزرنیمو ${FD(c.split(':')[1])} روز دیگه می‌تونی عوض کنی`;
   return ERR[c] || ERR.server;
 };
 async function api(name, { body, q } = {}, again) {
@@ -259,7 +259,7 @@ function showGate(chats) {
   const many = chats.length > 1;
   gateEl.innerHTML = `<div class="gk-card"><div class="gk-body">
     <div class="gk-head"><div class="gk-ic">${icon('bell', 2)}</div><h2 id="gkT">یه قدم تا بازی!</h2>
-      <p>برای بازی توی AsoTas باید عضو ${many ? 'این کانال‌ها و گروه‌ها' : 'این ' + (chats[0].kind === 'group' ? 'گروه' : 'کانال')} باشی. عضو که شدی، «عضو شدم» رو بزن.</p></div>
+      <p>داش واسه بازی تو AsoTas باید عضو ${many ? 'این کانال‌ها و گروه‌ها' : 'این ' + (chats[0].kind === 'group' ? 'گروه' : 'کانال')} باشی عضو که شدی «عضو شدم» رو بزن</p></div>
     <div class="gk-list">${chats.map((c, i) => `<div class="gk-row${clicked.has(c.url) ? ' done' : ''}"><span class="av">${c.kind === 'group' ? '👥' : '📢'}</span>
       <span class="t"><b>${escB(c.title)}</b><small>${c.kind === 'group' ? 'گروه' : 'کانال'}</small></span>
       <button class="go" data-i="${i}">${clicked.has(c.url) ? 'باز کن' : 'عضو شو'}</button></div>`).join('')}</div>
@@ -276,9 +276,9 @@ function showGate(chats) {
     ok.disabled = true; sfx.tap();
     try {
       const r = await api('gate/check', { body: {} });
-      if (!r.gate.length) { gateEl.remove(); gateEl = null; haptic('success'); toast('عضویتت تأیید شد؛ بریم سراغ بازی! 🎮'); showPopup(); return; }
+      if (!r.gate.length) { gateEl.remove(); gateEl = null; haptic('success'); toast('دمت گرم عضو شدی بزن بریم سراغ بازی! 🎮'); showPopup(); return; }
       showGate(r.gate);
-      const err = gateEl.querySelector('#gkErr'); err.textContent = `هنوز عضو ${r.gate.map(c => '«' + c.title + '»').join(' و ')} نشدی`;
+      const err = gateEl.querySelector('#gkErr'); err.textContent = `هنوز عضو ${r.gate.map(c => '«' + c.title + '»').join(' و ')} نشدی رفیق`;
       const card = gateEl.querySelector('.gk-card'); card.classList.remove('gk-shake'); void card.offsetWidth; card.classList.add('gk-shake'); haptic('error');
     } catch (e) { ok.disabled = false; toast(errText(e)); }
   };
@@ -571,15 +571,15 @@ async function userCard(pid) {
   const sh = sheet(`<div class="fr-card"><span class="fr-cover cover cover-gc"></span><div class="gp-skel" style="width:84px;height:84px;border-radius:50%"></div>
     <div class="gp-skel" style="width:60%"></div></div>`);
   let r;
-  try { r = await GC.data.friendUser(pid); } catch (e) { close(); toast(e.code === 'not_found' ? 'این پروفایل در دسترس نیست' : errText(e)); return; }
+  try { r = await GC.data.friendUser(pid); } catch (e) { close(); toast(e.code === 'not_found' ? 'این پروفایل دیگه در دسترس نیست' : errText(e)); return; }
   const draw = () => {
     const u = r.user, L = level(u);
     const st = u.playing ? ['play', `در حال بازی ${GAME_FA[u.playing] || ''}`] : u.online ? ['on', 'آنلاین'] : ['', u.seen ? 'آفلاین' : ''];
     const btn = {
       none: `<button class="btn btn-block" data-uc="req">${icon('userAdd')}درخواست دوستی</button>`,
-      outgoing: `<div class="fr-sent">${icon('check')}درخواست دوستی فرستادی<button class="btn btn-light btn-sm" data-uc="drop">لغو</button></div>`,
+      outgoing: `<div class="fr-sent">${icon('check')}درخواست دوستی رفت<button class="btn btn-light btn-sm" data-uc="drop">لغو</button></div>`,
       incoming: `<button class="btn btn-block" data-uc="acc">${icon('check')}قبول درخواست دوستی</button>`,
-      friend: `<a class="btn btn-light btn-block" href="chat.html?u=${encodeURIComponent(u.uid)}">${icon('chat')}با هم دوستید · پیام بده</a>`,
+      friend: `<a class="btn btn-light btn-block" href="chat.html?u=${encodeURIComponent(u.uid)}">${icon('chat')}رفیقید · پیام بده</a>`,
       blocked: `<button class="btn btn-light btn-block" data-uc="unblock">رفع بلاک</button>`,
     }[r.relation] || '';
     sh.innerHTML = `<span class="grab"></span><div class="fr-card"><span class="fr-cover cover cover-${escAttr(u.cover || 'gc')}"></span>
@@ -594,7 +594,7 @@ async function userCard(pid) {
       try {
         const fn = { req: GC.data.friendReq, acc: GC.data.friendAccept, drop: GC.data.friendDrop, unblock: x => GC.data.friendBlock(x, false) }[b.dataset.uc];
         const out = await fn(u.uid); sfx.tap(); haptic('success');
-        if (b.dataset.uc === 'req') toast(out.relation === 'friend' ? 'حالا با هم دوستید 🤝' : 'درخواست دوستی رفت');
+        if (b.dataset.uc === 'req') toast(out.relation === 'friend' ? 'دمت گرم حالا رفیقید 🤝' : 'درخواست دوستی رفت 🤝');
         r = { user: u, relation: out.relation || (b.dataset.uc === 'unblock' ? 'none' : r.relation) }; draw();
       } catch (e) { sfx.error(); toast(errText(e)); b.disabled = false; }
     });
@@ -664,17 +664,17 @@ function editName(me, done) {
   const cur = me.name || '', next = +me.name_next || 0, now = Date.now() / 1000;
   const wait = next > now ? Math.ceil((next - now) / 86400) : 0;
   const sh = sheet(`${sheetHead('یوزرنیم')}
-    <p class="un-lead">اسم تو در بازی‌ها، رده‌بندی و بین دوستان. دوستانت با همین پیدایت می‌کنند.</p>
+    <p class="un-lead">اسمت تو بازیا و رده‌بندی و پیش رفیقات همینه و رفیقات با همین پیدات می‌کنن</p>
     <label class="un-box" dir="ltr"><input id="unIn" value="${cur}" maxlength="${NAME_MAX + 4}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="unMsg"${wait ? ' disabled' : ''}><span id="unN" class="un-n"></span></label>
     <p class="un-msg" id="unMsg" role="status"></p>
     <div class="un-sug" id="unSug" hidden></div>
     <ul class="un-rules" id="unRules"></ul>
-    <button class="btn btn-block" id="unGo" disabled>${wait ? `${FD(wait)} روز دیگر می‌توانی عوضش کنی` : 'ثبت یوزرنیم'}</button>
-    <p class="un-note">${me.name_next ? 'هر ۳۰ روز یک بار می‌شود یوزرنیم را عوض کرد.' : 'اولین تغییر آزاد است؛ بعد از آن هر ۳۰ روز یک بار.'}</p>`);
+    <button class="btn btn-block" id="unGo" disabled>${wait ? `${FD(wait)} روز دیگه می‌تونی عوضش کنی` : 'ثبت یوزرنیم'}</button>
+    <p class="un-note">${me.name_next ? 'هر ۳۰ روز یه بار می‌شه یوزرنیمو عوض کرد' : 'بار اول مجانیه و بعدش هر ۳۰ روز یه بار'}</p>`);
   const inp = sh.querySelector('#unIn'), msg = sh.querySelector('#unMsg'), go = sh.querySelector('#unGo'),
     sug = sh.querySelector('#unSug'), rules = sh.querySelector('#unRules'), cnt = sh.querySelector('#unN');
   let seq = 0, timer = 0, okName = '';
-  const RULES = [['len', 'از ۳ تا ۱۶ نویسه'], ['chars', 'اول حرف انگلیسی؛ بعد حرف، عدد یا _'], ['free', 'کسی برش نداشته باشد']];
+  const RULES = [['len', 'از ۳ تا ۱۶ نویسه'], ['chars', 'اولش حرف انگلیسی و بعدش حرف و عدد و _'], ['free', 'کسی زودتر برش نداشته باشه']];
   function paint(st) {
     rules.innerHTML = RULES.map(([k, txt]) => `<li class="${st[k] === true ? 'ok' : st[k] === false ? 'bad' : ''}"><i>${st[k] === true ? icon('check', 3) : st[k] === false ? icon('close', 3) : ''}</i>${txt}</li>`).join('');
   }
@@ -688,15 +688,15 @@ function editName(me, done) {
       chars: n.length ? !(bad === 'name_start' || bad === 'name_chars') : null, free: null };
     sh.classList.remove('un-good', 'un-err');
     if (!n) { msg.textContent = ''; paint(st); return; }
-    if (n === cur) { msg.textContent = 'یوزرنیم فعلی تو'; st.free = true; paint(st); return; }
+    if (n === cur) { msg.textContent = 'یوزرنیم الانت'; st.free = true; paint(st); return; }
     if (bad) { msg.textContent = ERR[bad]; sh.classList.add('un-err'); paint(st); return; }
-    msg.textContent = 'در حال بررسی…'; paint(st);
+    msg.textContent = 'دارم نگاه می‌کنم…'; paint(st);
     const my = ++seq; clearTimeout(timer);
     timer = setTimeout(async () => {
       try {
         const r = await GC.data.nameCheck(n);
         if (my !== seq) return;
-        if (r.ok) { okName = n; st.free = true; msg.innerHTML = `<bdi class="uname">${n}</bdi> آزاد است`; sh.classList.add('un-good'); go.disabled = !!wait; }
+        if (r.ok) { okName = n; st.free = true; msg.innerHTML = `<bdi class="uname">${n}</bdi> آزاده`; sh.classList.add('un-good'); go.disabled = !!wait; }
         else {
           st.free = r.error === 'name_taken' ? false : null; msg.textContent = ERR[r.error] || ERR.server; sh.classList.add('un-err');
           if (r.suggest && r.suggest.length) { sug.hidden = false; sug.innerHTML = '<span>پیشنهاد:</span>' + r.suggest.map(s => `<button class="chip sm" data-s="${s}" dir="ltr">${s}</button>`).join(''); }
@@ -710,7 +710,7 @@ function editName(me, done) {
   go.addEventListener('click', async () => {
     if (!okName) return;
     go.disabled = true;
-    try { const r = await GC.data.setName(okName); close(); haptic('success'); toast('یوزرنیمت شد ' + r.name); done && done(r); }
+    try { const r = await GC.data.setName(okName); close(); haptic('success'); toast('حله یوزرنیمت شد ' + r.name); done && done(r); }
     catch (e) { toast(errText(e)); go.disabled = false; }
   });
   check();
@@ -1065,14 +1065,14 @@ const GAME_ART = {
   esm: () => '<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="rotate(-10 32 32)"><rect x="4" y="14" width="28" height="32" rx="8" fill="#fff"/><text x="18" y="38" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">ب</text><rect x="32" y="22" width="28" height="32" rx="8" fill="#fff"/><text x="46" y="46" text-anchor="middle" font-family="Rokh,sans-serif" font-weight="900" font-size="20" fill="#E07A1F">م</text></g></svg>',
 };
 const GAMES = [
-  { id: 'hokm', name: 'حکم', sub: '۴ نفره · با یار، ناشناس یا ربات', href: 'hokm-lobby.html', tint: 't-felt', cat: 'card', tag: 'محبوب' },
+  { id: 'hokm', name: 'حکم', sub: '۴ نفره · با یار و ناشناس یا ربات', href: 'hokm-lobby.html', tint: 't-felt', cat: 'card', tag: 'محبوب' },
   { id: 'football', name: 'فوتبال', sub: '۲ نفره · نوبتی', href: 'football-lobby.html', tint: 't-green', cat: 'sport', tag: 'تازه' },
   { id: 'ludo', name: 'منچ', sub: '۲ یا ۴ نفره', href: 'ludo-lobby.html', tint: 't-ludo', cat: 'board' },
   { id: 'billiard', name: 'بیلیارد', sub: '۲ نفره یا ۴ نفره یاری', href: 'billiard-lobby.html', tint: 't-bil', cat: 'sport', tag: 'تازه' },
-  { id: 'divar', name: 'دیوار', sub: '۲ یا ۴ نفره · راه را ببند', href: 'divar-lobby.html', tint: 't-dv', cat: 'board', tag: 'تازه' },
+  { id: 'divar', name: 'دیوار', sub: '۲ یا ۴ نفره · راهو ببند', href: 'divar-lobby.html', tint: 't-dv', cat: 'board', tag: 'تازه' },
   { id: 'esmfamil', name: 'اسم‌فامیل', sub: '۲ تا ۱۰ نفر · گروه یا کانال', href: 'esmfamil-lobby.html', tint: 't-paper', cat: 'word', tag: 'تازه' },
   { id: 'lashgar', name: 'لشگر کاغذی', sub: '۲ نفره · گروه یا کانال', href: 'lashgar-lobby.html', tint: 't-desk', cat: 'board', tag: 'تازه' },
-  { id: 'snakes', name: 'مار و پله', sub: '۲ تا ۴ نفره · با ربات، دوستان یا گروه', href: 'snakes-lobby.html', tint: 't-sn', cat: 'board', tag: 'تازه' },
+  { id: 'snakes', name: 'مار و پله', sub: '۲ تا ۴ نفره · با ربات و رفقا یا تو گروه', href: 'snakes-lobby.html', tint: 't-sn', cat: 'board', tag: 'تازه' },
 ];
 function quickPlay() {
   sheet(`${sheetHead('بازی‌ها')}<div class="qp">${GAMES.map(g => g.soon
@@ -1100,7 +1100,7 @@ const LB = {
   spend: [[2, 0, 24500], [6, 0, 18200], [0, 0, 15900], [7, 0, 11300], [1, 0, 9600], [4, 0, 7400], [3, 0, 5200], [5, 0, 3900], [9, 0, 2800], [8, 0, 1900]],
 };
 const SHOP = [
-  { id: 'cfg10', cat: 'net', ic: 'globe', t: 'کانفیگ ۱۰ گیگ یک‌ماهه', s: 'اینترنت آزاد عبور، تحویل فوری', p: 950 },
+  { id: 'cfg10', cat: 'net', ic: 'globe', t: 'کانفیگ ۱۰ گیگ یک‌ماهه', s: 'اینترنت آزاد عبور با تحویل فوری', p: 950 },
   { id: 'cfg30', cat: 'net', ic: 'globe', t: 'کانفیگ ۳۰ گیگ یک‌ماهه', s: 'برای مصرف زیاد', p: 2200 },
   { id: 'gb5', cat: 'extra', ic: 'bolt', t: '۵ گیگ حجم اضافه', s: 'روی سرویس فعلی‌ات در عبور', p: 400 },
   { id: 'ren7', cat: 'extra', ic: 'clock', t: 'تمدید ۷ روزه', s: 'روی سرویس فعلی‌ات در عبور', p: 350 },

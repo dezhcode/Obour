@@ -54,8 +54,8 @@
   </div>
 </header>
 <main class="page">
-  <span class="tag tag-sample" id="flSample" hidden style="justify-self:start">داده‌ها نمونه‌اند</span>
-  <label class="fl-search"><i data-ic="search"></i><span class="sr">جستجو در دوستان</span><input id="flQ" placeholder="جستجو در دوستان" autocomplete="off" autocapitalize="off"></label>
+  <span class="tag tag-sample" id="flSample" hidden style="justify-self:start">اینا نمونه‌ان</span>
+  <label class="fl-search"><i data-ic="search"></i><span class="sr">بین رفیقات بگرد</span><input id="flQ" placeholder="بین رفیقات بگرد" autocomplete="off" autocapitalize="off"></label>
   <div class="fl-tabs" role="tablist" id="flTabs"></div>
   <div class="stack" id="flBody" style="gap:12px"><div class="gp-skel"></div><div class="gp-skel"></div><div class="gp-skel"></div></div>
 </main>
@@ -74,7 +74,7 @@
       <button class="fl-who" data-who="${esc(f.uid)}">${SO.av(f)}<span class="t"><b class="uname">${esc(f.name)}</b><small class="${st.cls}">${st.text}</small></span></button>
       <a class="fl-ib" href="chat.html?u=${encodeURIComponent(f.uid)}" aria-label="پیام به ${esc(f.name)}">${icon('chat')}${f.unread ? `<span class="u">${FD(Math.min(f.unread, 9))}</span>` : ''}</a>
       <button class="fl-ib gold" data-inv="${esc(f.uid)}" aria-label="دعوت ${esc(f.name)} به بازی">${icon('pad')}</button></li>`; };
-  const reqRow = (f, kind) => `<li class="fl-row"><button class="fl-who" data-find="${esc(f.name)}">${GC.face(f)}<span class="t"><b class="uname">${esc(f.name)}</b><small>${kind === 'in' ? 'می‌خواهد دوستت شود' : kind === 'out' ? 'منتظر جواب' : 'بلاک شده'}</small></span></button>
+  const reqRow = (f, kind) => `<li class="fl-row"><button class="fl-who" data-find="${esc(f.name)}">${GC.face(f)}<span class="t"><b class="uname">${esc(f.name)}</b><small>${kind === 'in' ? 'می‌خواد رفیقت بشه' : kind === 'out' ? 'منتظر جوابه' : 'بلاکش کردی'}</small></span></button>
       ${kind === 'in' ? `<button class="fl-ib" data-drop="${esc(f.uid)}" aria-label="رد درخواست ${esc(f.name)}">${icon('close')}</button><button class="fl-acc" data-acc="${esc(f.uid)}">قبول</button>`
         : kind === 'out' ? `<button class="fl-lite" data-drop="${esc(f.uid)}">لغو</button>` : `<button class="fl-lite" data-unblock="${esc(f.uid)}">رفع بلاک</button>`}</li>`;
   const empty = (ic, t, s, btn) => `<div class="fl-empty"><span class="ic">${icon(ic)}</span><b>${t}</b><small>${s}</small>${btn || ''}</div>`;
@@ -89,17 +89,17 @@
     if (tab === 'friends') {
       const list = data.friends.filter(f => !q || f.name.includes(q));
       const on = list.filter(f => f.online), off = list.filter(f => !f.online);
-      if (!data.friends.length) html = empty('users', 'هنوز دوستی نداری', 'با یوزرنیم دوستانت را پیدا کن و با هم بازی کنید.', `<button class="btn" data-add>${icon('userAdd')}افزودن دوست</button>`);
-      else if (!list.length) html = empty('search', 'پیدا نشد', 'در دوستانت کسی با این اسم نیست.');
+      if (!data.friends.length) html = empty('users', 'هنوز رفیقی نداری داش', 'رفیقاتو با یوزرنیمشون پیدا کن و با هم بازی کنید', `<button class="btn" data-add>${icon('userAdd')}افزودن دوست</button>`);
+      else if (!list.length) html = empty('search', 'پیدا نشد', 'بین رفیقات کسی با این اسم نیست');
       else {
         if (on.length) html += `<h2 class="fl-h">آنلاین <i>${FD(on.length)}</i></h2><ul class="fl-list">${on.map(row).join('')}</ul>`;
         if (off.length) html += `<h2 class="fl-h">آفلاین <i>${FD(off.length)}</i></h2><ul class="fl-list">${off.map(row).join('')}</ul>`;
       }
     } else {
       if (data.incoming.length) html += `<h2 class="fl-h">درخواست‌های تازه <i>${FD(data.incoming.length)}</i></h2><ul class="fl-list">${data.incoming.map(f => reqRow(f, 'in')).join('')}</ul>`;
-      if (data.outgoing.length) html += `<h2 class="fl-h">فرستاده‌ای</h2><ul class="fl-list">${data.outgoing.map(f => reqRow(f, 'out')).join('')}</ul>`;
+      if (data.outgoing.length) html += `<h2 class="fl-h">فرستادی</h2><ul class="fl-list">${data.outgoing.map(f => reqRow(f, 'out')).join('')}</ul>`;
       if (data.blocked.length) html += `<h2 class="fl-h">بلاک شده‌ها</h2><ul class="fl-list">${data.blocked.map(f => reqRow(f, 'blk')).join('')}</ul>`;
-      if (!html) html = empty('userAdd', 'درخواستی نداری', 'وقتی کسی برایت درخواست دوستی بفرستد اینجا می‌بینی.');
+      if (!html) html = empty('userAdd', 'درخواستی نداری', 'هر کی بخواد رفیقت بشه اینجا می‌بینیش');
     }
     $('flBody').innerHTML = html;
     mount($('flBody'));
@@ -125,7 +125,7 @@
     const b = e.target.closest('[data-acc],[data-drop],[data-unblock]'); if (!b) return;
     b.disabled = true;
     try {
-      if (b.dataset.acc) { await GC.data.friendAccept(b.dataset.acc); sfx.turn(); haptic('success'); toast('حالا با هم دوستید'); }
+      if (b.dataset.acc) { await GC.data.friendAccept(b.dataset.acc); sfx.turn(); haptic('success'); toast('دمت گرم حالا رفیقید 🤝'); }
       else if (b.dataset.drop) await GC.data.friendDrop(b.dataset.drop);
       else await GC.data.friendBlock(b.dataset.unblock, false);
       await load();

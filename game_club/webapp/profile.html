@@ -104,7 +104,7 @@
   <div class="appbar-cap"><span>پروفایل</span></div>
   <div class="appbar-in">
     <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>پروفایل</h1></div>
-    <span class="tag tag-sample" id="pfSample" hidden>داده‌ها نمونه‌اند</span>
+    <span class="tag tag-sample" id="pfSample" hidden>اینا نمونه‌ان</span>
   </div>
 </header>
 <main class="page">
@@ -146,7 +146,7 @@
 
   <section aria-labelledby="hRecent">
     <div class="sec-head"><h2 id="hRecent">آخرین بازی‌ها</h2></div>
-    <div class="recent" id="recent"><p class="hint" style="padding:12px 0">در حال بارگذاری…</p></div>
+    <div class="recent" id="recent"><p class="hint" style="padding:12px 0">یه لحظه…</p></div>
   </section>
 
   <section aria-labelledby="hBadge">
@@ -157,10 +157,10 @@
   <section aria-labelledby="hSet">
     <div class="sec-head"><h2 id="hSet">تنظیمات</h2></div>
     <div class="sets">
-      <div class="set"><span><b>پوسته</b><small>خودکار: مثل تلگرام</small></span><div class="seg" id="segTheme" role="group" aria-label="پوسته"><button data-m="auto">خودکار</button><button data-m="light">روشن</button><button data-m="dark">تیره</button></div></div>
-      <div class="set"><span><b>صدای بازی</b><small>صدای ورق، تاس، توپ و جمعیت</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
-      <div class="set"><span><b>نمایش من در فهرست خرج</b><small>در رده‌بندی «بیشترین خرج» دیده شوی</small></span><button class="switch" role="switch" id="swSpend" aria-label="نمایش من در فهرست خرج"></button></div>
-      <div class="set"><span><b>تکان برگ‌ها در حکم</b><small>با کج کردن گوشی، برگ‌های وسط میز سُر می‌خورند</small></span><button class="switch" role="switch" id="swTilt" aria-label="تکان برگ‌ها در حکم"></button></div>
+      <div class="set"><span><b>پوسته</b><small>خودکار مثل تلگرام</small></span><div class="seg" id="segTheme" role="group" aria-label="پوسته"><button data-m="auto">خودکار</button><button data-m="light">روشن</button><button data-m="dark">تیره</button></div></div>
+      <div class="set"><span><b>صدای بازی</b><small>صدای ورق و تاس و توپ و تماشاچیا</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
+      <div class="set"><span><b>منو تو لیست خرج نشون بده</b><small>تو رده‌بندی «بیشترین خرج» دیده بشی</small></span><button class="switch" role="switch" id="swSpend" aria-label="نمایش من در فهرست خرج"></button></div>
+      <div class="set"><span><b>تکون خوردن برگا تو حکم</b><small>گوشی رو کج کنی برگای وسط میز سُر می‌خورن</small></span><button class="switch" role="switch" id="swTilt" aria-label="تکان برگ‌ها در حکم"></button></div>
     </div>
   </section>
 </main>
@@ -192,7 +192,7 @@
     $('pfBio').classList.toggle('empty', !p.bio);
     const days = p.joined ? Math.max(1, Math.round((Date.now() / 1000 - p.joined) / 86400)) : 0;
     $('kWins').textContent = fa(p.wins); $('kAge').textContent = days ? FD(days) + ' روز' : '—'; $('kLv').textContent = FD(L.lv);
-    $('lvTxt').textContent = `${FD(L.left)} تجربه تا سطح ${FD(L.lv + 1)} · هر بازی ۱۰ و هر برد ۱۵`;
+    $('lvTxt').textContent = `${FD(L.left)} تجربهٔ دیگه تا سطح ${FD(L.lv + 1)} · هر بازی ۱۰ و هر برد ۱۵`;
     $('kPts').textContent = fa(p.points);
     $('swSound').setAttribute('aria-checked', String(!!S.sound));
     $('swTilt').setAttribute('aria-checked', String(S.tilt !== false));
@@ -224,7 +224,7 @@
     $('recent').innerHTML = pf.recent.length ? pf.recent.map(r => `<div class="rg">${art(r.game)}
         <span class="t"><b>${NAME[r.game] || ''}<span class="res ${r.won ? 'w' : 'l'}">${r.won ? 'برد' : 'باخت'}</span></b><small>${r.mode === 'stake' ? 'ورودی ' + fa(r.entry) : 'آزاد'} · ${ago(r.at)}</small></span>
         <span class="v ${r.prize ? '' : 'muted'}">${r.prize ? amount(r.prize) : '—'}</span></div>`).join('')
-      : `<div style="display:grid;justify-items:center;gap:10px;padding:16px 0;text-align:center"><p class="hint">هنوز بازی‌ای را تمام نکرده‌ای.</p><a class="btn btn-gold btn-sm" href="hokm-lobby.html">اولین بازی را شروع کن</a></div>`;
+      : `<div style="display:grid;justify-items:center;gap:10px;padding:16px 0;text-align:center"><p class="hint">هنوز هیچ بازی‌ای رو تموم نکردی داش</p><a class="btn btn-gold btn-sm" href="hokm-lobby.html">اولین بازیتو شروع کن</a></div>`;
   }
   // نشان ها از کارنامهٔ واقعی؛ هر کدام با پیشرفتش
   function renderBadges() {
@@ -261,8 +261,8 @@
   // درباره من: یک جمله، حداکثر ۸۰ نویسه
   $('pfBio').onclick = () => {
     if (!me) return;
-    const sh = GC.sheet(`${GC.sheetHead('درباره من')}<p class="hint" style="text-align:start">یک جمله دربارهٔ خودت؛ دوستانت در پروفایلت می‌بینند.</p>
-      <textarea id="bioIn" class="pf-ta" maxlength="80" rows="3" placeholder="مثلا: عاشق حکم و دست‌های آخرِ نفس‌گیر"></textarea>
+    const sh = GC.sheet(`${GC.sheetHead('درباره من')}<p class="hint" style="text-align:start">یه جمله دربارهٔ خودت بنویس که رفیقات تو پروفایلت ببینن</p>
+      <textarea id="bioIn" class="pf-ta" maxlength="80" rows="3" placeholder="مثلاً عاشق حکم و دستای آخرِ نفس‌گیرم"></textarea>
       <span class="pf-tn" id="bioN"></span><button class="btn btn-block" id="bioGo">ذخیره</button>`);
     const inp = sh.querySelector('#bioIn'), n = sh.querySelector('#bioN');
     inp.value = me.player.bio || '';
@@ -270,7 +270,7 @@
     inp.oninput = count; count(); setTimeout(() => inp.focus(), 80);
     sh.querySelector('#bioGo').onclick = async ev => {
       ev.currentTarget.disabled = true;
-      try { const r = await GC.data.saveProfile({ bio: inp.value }); me.player.bio = r.bio; GC.close(); renderMe(); toast('ذخیره شد'); }
+      try { const r = await GC.data.saveProfile({ bio: inp.value }); me.player.bio = r.bio; GC.close(); renderMe(); toast('حله ذخیره شد'); }
       catch (e) { toast(errText(e)); ev.currentTarget.disabled = false; }
     };
   };
@@ -279,7 +279,7 @@
     if (!me) return;
     const cur = me.player.cover || 'gc', covers = me.covers || [{ id: 'gc', name: 'AsoTas' }];
     const sh = GC.sheet(`${GC.sheetHead('کاور پروفایل')}<div class="pf-covers">${covers.map(c => `<button class="pf-cv${c.id === cur ? ' on' : ''}" data-cv="${c.id}"><span class="cover cover-${c.id}"><span class="cv-mark">${coverMark(c.id)}</span></span><b>${c.name}</b>${c.id === cur ? '<small>انتخاب شده</small>' : ''}</button>`).join('')}</div>
-      <p class="hint">کاورهای تازه به‌زودی اضافه می‌شوند.</p>`);
+      <p class="hint">کاورای تازه به‌زودی میان</p>`);
     sh.querySelectorAll('[data-cv]').forEach(b => b.onclick = async () => {
       if (b.dataset.cv === cur) { GC.close(); return; }
       try { const r = await GC.data.saveProfile({ cover: b.dataset.cv }); me.player.cover = r.cover; GC.close(); renderMe(); }

@@ -133,12 +133,12 @@ window.GCTour = (() => {
       const art = cfg.art || (window.GC && GC.GAME_ART && GC.GAME_ART[aid] ? `<span class="g-art ${(GC.GAMES.find(g => g.id === aid) || {}).tint || ''}">${GC.GAME_ART[aid]()}</span>` : '');
       ui.card.className = 'gt-card mid gt-intro';
       ui.card.innerHTML = done
-        ? `<div class="gt-done">${window.GC ? GC.icon('check', 3) : '✓'}</div><h3 id="gtT">${esc(cfg.outroTitle || 'آماده‌ای! 🎉')}</h3>
-           <p>${esc(cfg.outro || 'همه چی رو بلدی. هر وقت خواستی، از دکمهٔ راهنمای بالای صفحه دوباره این آموزش رو ببین.')}</p>
-           <div class="gt-foot"><button class="gt-btn gt-next" data-a="end">${esc(cfg.endLabel || 'بزن بریم!')}</button>${cfg.help ? `<a class="gt-link" href="${cfg.help}">قوانین کامل ${esc(cfg.name || '')}</a>` : ''}</div>`
+        ? `<div class="gt-done">${window.GC ? GC.icon('check', 3) : '✓'}</div><h3 id="gtT">${esc(cfg.outroTitle || 'آماده‌ای داش! 🎉')}</h3>
+           <p>${esc(cfg.outro || 'همه چی رو بلدی هر وقت خواستی از دکمهٔ راهنمای بالای صفحه دوباره این آموزشو ببین')}</p>
+           <div class="gt-foot"><button class="gt-btn gt-next" data-a="end">${esc(cfg.endLabel || 'بزن بریم!')}</button>${cfg.help ? `<a class="gt-link" href="${cfg.help}">قانونای کامل ${esc(cfg.name || '')}</a>` : ''}</div>`
         : `${art ? `<div class="gt-art">${art}</div>` : ''}<span class="gt-kick">آموزش سریع · ${FD(steps.length)} قدم</span>
-           <h3 id="gtT">${esc(cfg.introTitle || `به ${cfg.name} خوش اومدی!`)}</h3><p>${esc(cfg.intro || 'یه دور سریع با هم ببینیم چطوری بازی می‌شه و چطوری می‌بری.')}</p>
-           <div class="gt-foot"><button class="gt-btn gt-next" data-a="next">یادم بده</button><button class="gt-btn gt-ghost" data-a="skip">بلدم، بریم</button></div>`;
+           <h3 id="gtT">${esc(cfg.introTitle || `به ${cfg.name} خوش اومدی!`)}</h3><p>${esc(cfg.intro || 'یه دور سریع با هم ببینیم چطوری بازی می‌شه و چطوری می‌بری')}</p>
+           <div class="gt-foot"><button class="gt-btn gt-next" data-a="next">یادم بده</button><button class="gt-btn gt-ghost" data-a="skip">بلدم بزن بریم</button></div>`;
       bind(); focus(); return;
     }
     const s = steps[i];
@@ -233,7 +233,7 @@ function focus() { const b = st.ui.card.querySelector('.gt-next'); if (b && kb) 
     st.paused = byUser ? 'user' : why || 'turn';
     st.ui.root.hidden = true;
     st.ui.pill.hidden = st.paused === 'sheet';
-    st.ui.pill.innerHTML = `<span>${esc(st.cfg.pauseText || 'نوبت توئه! آموزش صبر می‌کنه')}</span><b>ادامهٔ آموزش</b><i aria-label="بستن آموزش">✕</i>`;
+    st.ui.pill.innerHTML = `<span>${esc(st.cfg.pauseText || 'نوبت توئه! آموزش صبر می‌کنه تا بازیتو بکنی')}</span><b>ادامهٔ آموزش</b><i aria-label="بستن آموزش">✕</i>`;
   }
   function resume() {
     if (!st || !st.paused) return;
