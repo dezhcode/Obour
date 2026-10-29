@@ -46,6 +46,10 @@ pub struct TableInfo {
     pub id: Option<String>,
     pub found: i64,
     pub need: i64,
+    /// نوبت من است (فقط بازی در جریان)
+    pub my_turn: bool,
+    /// سازندهٔ میز دعوت منم
+    pub host: bool,
 }
 
 /// خلاصهٔ `GET /gc/api/me` برای صفحهٔ خانه
@@ -134,6 +138,8 @@ pub struct DmMessage {
     pub at: i64,
     pub game: Option<String>,
     pub code: Option<String>,
+    /// شناسهٔ میز دعوت
+    pub match_id: Option<String>,
 }
 
 /// `GET dm`: طرف گفتگو، رابطه و پیام ها
@@ -357,6 +363,8 @@ impl TableInfo {
             id: opt_text(&v["id"]),
             found: int(&v["found"]),
             need: int(&v["need"]),
+            my_turn: truthy(&v["my_turn"]),
+            host: truthy(&v["host"]),
         }
     }
 }
@@ -418,6 +426,7 @@ impl DmChat {
                 at: int(&m["at"]),
                 game: opt_text(&m["meta"]["game"]),
                 code: opt_text(&m["meta"]["code"]),
+                match_id: opt_text(&m["meta"]["match"]),
             }),
         }
     }

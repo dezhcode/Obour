@@ -14,6 +14,7 @@ use serde_json::{json, Value};
 use ureq::Agent;
 
 use crate::error::ApiError;
+use crate::games::*;
 use crate::models::*;
 use crate::store::TokenStore;
 
@@ -25,6 +26,11 @@ pub struct Client {
     store: TokenStore,
     /// دو درخواست هم زمان فقط یک حساب مهمان بسازند
     guest: Mutex<()>,
+}
+
+/// تنظیم میز (JSON از کاتلین)
+fn cfg_value(cfg_json: &str) -> Result<Value, ApiError> {
+    serde_json::from_str(cfg_json).map_err(|e| ApiError::Server { code: "bad_body".into(), extra_json: e.to_string() })
 }
 
 /// کلید یکتای هر خرید (۸ تا ۶۴ نویسهٔ A-Za-z0-9_-، api._idem)
@@ -225,6 +231,65 @@ impl Client {
         Ok(GameInvite { match_id: text(&j["match"]), code: text(&j["code"]), game: text(&j["game"]) })
     }
 
+    // ---------- میزها (برای همهٔ بازی ها؛ cfg_json مثل {"players":2,"pawns":2,"mode":"free"}) ----------
+
+    /// صف ناشناس؛ با "solo": true (دوستانه) میز با ربات همان جا ساخته می شود
+    pub fn queue_join(&self, game: String, cfg_json: String) -> Result<QueueState, ApiError> {
+        let body = json!({ "cfg": cfg_value(&cfg_json)? });
+        Ok(QueueState::from_json(&self.api(&format!("{game}/queue"), Req::Post(&body))?))
+    }
+
+    pub fn queue_status(&self, game: String) -> Result<QueueState, ApiError> {
+        Ok(QueueState::from_json(&self.api(&format!("{game}/queue"), Req::Get(&[]))?))
+    }
+
+    /// منتظر نمی مانم: ربات ها جای خالی را پر کنند
+    pub fn queue_bots(&self, game: String) -> Result<QueueState, ApiError> {
+        Ok(QueueState::from_json(&self.api(&format!("{game}/queue/bots"), Req::Post(&json!({})))?))
+    }
+
+    pub fn queue_leave(&self, game: String) -> Result<(), ApiError> {
+        self.api(&format!("{game}/queue/leave"), Req::Post(&json!({})))?;
+        Ok(())
+    }
+
+    /// میز دعوت دوستانه با لینک و کد
+    pub fn invite_create(&self, game: String, cfg_json: String) -> Result<Invited, ApiError> {
+        let j = self.api(&format!("{game}/invite"), Req::Post(&json!({ "cfg": cfg_value(&cfg_json)? })))?;
+        Ok(Invited { match_id: text(&j["match"]), code: text(&j["code"]), link: text(&j["link"]) })
+    }
+
+    /// نشستن سر میز دعوت با کد؛ شناسهٔ میز
+    pub fn invite_join(&self, game: String, code: String) -> Result<String, ApiError> {
+        Ok(text(&self.api(&format!("{game}/join"), Req::Post(&json!({ "code": code })))?["match"]))
+    }
+
+    /// سازندهٔ میز شروع می کند (جای خالی با ربات)
+    pub fn lobby_start(&self, game: String, match_id: String) -> Result<(), ApiError> {
+        self.api(&format!("{game}/start"), Req::Post(&json!({ "match": match_id })))?;
+        Ok(())
+    }
+
+    /// بلند شدن از میز یا ترک بازی
+    pub fn leave_match(&self, game: String, match_id: String) -> Result<(), ApiError> {
+        self.api(&format!("{game}/leave"), Req::Post(&json!({ "match": match_id })))?;
+        Ok(())
+    }
+
+    /// میز از دید من؛ since = آخرین رویداد دیده شده
+    pub fn match_view(&self, game: String, match_id: String, since: i64) -> Result<MatchView, ApiError> {
+        let q = [("id".to_string(), match_id), ("since".to_string(), since.max(0).to_string())];
+        let j = self.api(&format!("{game}/match"), Req::Get(&q))?;
+        Ok(MatchView::from_json(&j, &game, &|u: &str| self.resolve(u)))
+    }
+
+    /// حرکت در بازی (منچ: roll، move با k = شمارهٔ مهره)؛ میز تازه برمی گردد
+    pub fn act(&self, game: String, match_id: String, action: String, k: Option<i64>, since: i64) -> Result<MatchView, ApiError> {
+        let body = json!({ "match": match_id, "k": k, "since": since.max(0) });
+        let j = self.api(&format!("{game}/{action}"), Req::Post(&body))?;
+        Ok(MatchView::from_json(&j, &game, &|u: &str| self.resolve(u)))
+    }
+
     // ---------- فروشگاه ظاهر و پروفایل ----------
     pub fn styles(&self) -> Result<Styles, ApiError> {
         Ok(Styles::from_json(&self.api("style", Req::Get(&[]))?))
@@ -400,6 +465,50 @@ mod tests {
         assert_eq!((p.games[0].wins, p.recent[0].cups, p.recent[0].mode.as_str()), (3, 20, "ranked"));
         assert_eq!(c.save_profile(Some("عاشق حکم".into()), None).unwrap(), "عاشق حکم");
         assert_ne!(idem(), idem());
+    }
+
+    #[test]
+    fn tables_and_ludo() {
+        let mut server = Server::new();
+        let dir = tempfile::tempdir().unwrap();
+        TokenStore::open(&dir.path().to_string_lossy()).set(Some("t".into()));
+        server.mock("POST", "/gc/api/ludo/queue").match_body(Matcher::Json(json!({ "cfg": { "players": 2, "pawns": 2, "mode": "free" } })))
+            .with_body(r#"{"state": "waiting", "waited": 3, "cfg": {"players": 2, "mode": "free"}, "found": 1, "need": 2, "bots_in": 12, "can_bots": true}"#).create();
+        server.mock("POST", "/gc/api/ludo/queue/bots").with_body(r#"{"state": "matched", "match": "m7"}"#).create();
+        server.mock("POST", "/gc/api/ludo/invite")
+            .with_body(r#"{"match": "m8", "code": "XY12", "link": "https://t.me/bot?start=ludo_XY12"}"#).create();
+        server.mock("GET", "/gc/api/ludo/match").match_query(Matcher::UrlEncoded("id".into(), "m8".into()))
+            .with_body(r#"{"id": "m8", "status": "lobby", "cfg": {"players": 2, "pawns": 2, "mode": "free"}, "me": "yellow",
+                "lobby": {"seats": [{"color": "yellow", "name": "tasi", "av": 3, "pic": "", "me": true}], "code": "XY12", "host": true, "link": "L"}}"#).create();
+        server.mock("POST", "/gc/api/ludo/roll").match_body(Matcher::Json(json!({ "match": "m7", "k": null, "since": 4 })))
+            .with_body(r#"{"id": "m7", "status": "playing", "cfg": {"players": 2, "pawns": 2, "mode": "free"}, "me": "yellow",
+                "game": {"order": ["red", "yellow"], "players": {"red": {"name": "bot", "av": 2, "pic": "", "bot": true, "out": false, "me": false},
+                    "yellow": {"name": "tasi", "av": 3, "pic": "", "bot": false, "out": false, "me": true}},
+                    "pawns": {"red": [-1, 5], "yellow": [-1, -1]}, "turn": "yellow", "phase": "move", "dice": 6, "movable": [0, 1],
+                    "deadline_ms": 18000, "turn_ms": 20000, "last": {"yellow": 6}, "done": {"red": 0, "yellow": 0},
+                    "events": [{"seq": 5, "t": "roll", "c": "yellow", "v": 6, "auto": false},
+                               {"seq": 6, "t": "move", "c": "red", "k": 1, "frm": 3, "to": 5, "cap": [["yellow", 0]], "fin": false}],
+                    "seq": 6, "over": false, "winner": null}}"#).create();
+        let c = client(&server, &dir);
+
+        let q = c.queue_join("ludo".into(), r#"{"players":2,"pawns":2,"mode":"free"}"#.into()).unwrap();
+        assert_eq!((q.state.as_str(), q.found, q.need, q.bots_in, q.can_bots), ("waiting", 1, 2, Some(12), true));
+        assert_eq!(c.queue_bots("ludo".into()).unwrap().match_id.as_deref(), Some("m7"));
+        let inv = c.invite_create("ludo".into(), r#"{"players":2,"pawns":2,"mode":"free"}"#.into()).unwrap();
+        assert_eq!((inv.match_id.as_str(), inv.code.as_str()), ("m8", "XY12"));
+
+        let lobby = c.match_view("ludo".into(), "m8".into(), 0).unwrap();
+        let l = lobby.lobby.unwrap();
+        assert!(l.host && l.seats[0].me);
+        assert_eq!((lobby.status.as_str(), lobby.players, lobby.ludo), ("lobby", 2, None));
+
+        let v = c.act("ludo".into(), "m7".into(), "roll".into(), None, 4).unwrap();
+        let g = v.ludo.unwrap();
+        assert_eq!((g.dice, g.movable.clone(), g.turn.as_deref()), (Some(6), vec![0, 1], Some("yellow")));
+        assert_eq!(g.pawns["red"], vec![-1, 5]);
+        assert!(g.players["yellow"].me && g.players["red"].bot);
+        assert_eq!((g.events.len(), g.events[1].from, g.events[1].to, g.events[1].caps.clone()), (2, 3, 5, vec!["yellow:0".to_string()]));
+        assert!(c.queue_join("ludo".into(), "not json".into()).is_err());
     }
 
     #[test]
