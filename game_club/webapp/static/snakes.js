@@ -132,7 +132,7 @@ function renderSeats(g) {
   box.innerHTML = g.order.map(s => {
     const p = g.players[s], on = (animC != null ? animC : g.turn) === s && !g.over;
     return `<div class="sn-seat${on ? ' on' : ''}${p.out ? ' out' : ''}" data-s="${s}" style="--pc:${COL[s]}"><span class="tm"><i></i></span>${isMe(s) ? '<span class="me">تو</span>' : ''}
-      ${face(p, COL[s])}<span class="nm">${isMe(s) ? 'شما' : String(p.name || '').replace(/[<>&]/g, '')}</span><span class="ps">خانهٔ ${FD(vpos[s] || p.pos)}</span>
+      ${face(p, COL[s])}<span class="nm">${isMe(s) ? 'خودت' : String(p.name || '').replace(/[<>&]/g, '')}</span><span class="ps">خونهٔ ${FD(vpos[s] || p.pos)}</span>
       <span class="pb"><i style="transform:scaleX(${((vpos[s] || p.pos) / 100).toFixed(3)})"></i></span></div>`;
   }).join('');
   for (const s of g.order) if (els[s]) { els[s].classList.toggle('turn', (animC != null ? animC : g.turn) === s && !g.over); els[s].classList.toggle('win', g.over && g.winner === s); }
@@ -146,8 +146,8 @@ function renderDock(g) {
   const t = $('dt'), sub = $('ds');
   t.classList.toggle('mine', myTurn);
   if (animC != null && !g.over) { t.classList.toggle('mine', isMe(animC)); t.textContent = isMe(animC) ? 'تاس تو' : `نوبت ${nameOf(animC)}`; sub.textContent = 'مهره داره می‌ره…'; }
-  else if (g.over) { t.textContent = g.winner != null ? `${nameOf(g.winner)} برد!` : 'بازی تمام شد'; sub.textContent = ''; }
-  else if (myTurn) { t.textContent = g.bonus ? 'باز نوبت توئه!' : 'نوبت شماست'; sub.textContent = mine ? 'روی تاس بزن تا بریزه' : 'یه لحظه…'; }
+  else if (g.over) { t.textContent = g.winner != null ? `${nameOf(g.winner)} برد!` : 'بازی تموم شد'; sub.textContent = ''; }
+  else if (myTurn) { t.textContent = g.bonus ? 'باز نوبت توئه!' : 'نوبت توئه'; sub.textContent = mine ? 'روی تاس بزن تا بریزه' : 'یه لحظه…'; }
   else if (g.turn) { t.textContent = `نوبت ${nameOf(g.turn)}`; sub.textContent = g.players[g.turn].bot || g.players[g.turn].out ? 'داره تاس می‌ریزه…' : 'منتظر تاسشیم…'; }
   clearTimeout(readyT);
   if (myTurn && !mine && !busy && !acting && readyAt > Date.now()) readyT = setTimeout(() => G() && renderDock(G()), readyAt - Date.now() + 30);
@@ -177,8 +177,8 @@ async function play(e) {
     return;
   }
   if (e.t === 'turn') { if (isMe(e.c) && G() && !G().over) { sfx.turn(); haptic('light'); } return; }
-  if (e.t === 'timeout') { if (isMe(e.c)) feed('وقتت تموم شد؛ خودمون جات تاس ریختیم', 'bad'); return; }
-  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}${g && g.n > 2 ? '؛ ربات جایش تاس می‌ریزد' : ''}`); return; }
+  if (e.t === 'timeout') { if (isMe(e.c)) feed('وقتت تموم شد و خودمون جات تاس ریختیم', 'bad'); return; }
+  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازیو ول کرد و رفت'}${g && g.n > 2 ? ' و ربات جاش تاس می‌ریزه' : ''}`); return; }
   if (e.t === 'win') { if (els[e.c]) els[e.c].classList.add('win'); pop('six', isMe(e.c) ? 'رسیدی به ۱۰۰!' : `${nameOf(e.c)} رسید به ۱۰۰`, null, null, 1600); }
 }
 async function showRoll(e, g) {
@@ -189,7 +189,7 @@ async function showRoll(e, g) {
     else await spin(e.v);
     if (e.v === 6) sfx.six();
     if (e.stay) {
-      feed(mine ? `${FD(e.v)} آوردی؛ باید دقیقاً به ۱۰۰ برسی` : `${who} ${FD(e.v)} آورد؛ باید دقیقاً به ۱۰۰ برسه`, mine ? 'mine' : '');
+      feed(mine ? `${FD(e.v)} آوردی ولی باید دقیقاً برسی ۱۰۰` : `${who} ${FD(e.v)} آورد ولی باید دقیقاً برسه ۱۰۰`, mine ? 'mine' : '');
       if (mine) { sfx.nomove(); haptic('warning'); }
       await sleep(STEP_MS * 2);
     } else {
@@ -212,14 +212,14 @@ async function showRoll(e, g) {
       }
       target(0);
     }
-    if (e.bonus) { pop('six', mine ? 'شیش آوردی؛ یه نوبت دیگه!' : `${who} شیش آورد؛ دوباره می‌ریزه`, null, null, 1100); }
+    if (e.bonus) { pop('six', mine ? 'شیش آوردی یه نوبت دیگه!' : `${who} شیش آورد و دوباره می‌ریزه`, null, null, 1100); }
     placeAll(); renderSeats(g);
     await sleep(120);
   }
 }
 
 /* ---------- گفتگو ---------- */
-const QUICK = ['سلام!', 'خوش‌بازی!', 'شیش بیا!', 'اون مار مال من نبود 😅', 'زود باش', 'یک دست دیگه؟'];
+const QUICK = ['سلام!', 'خوش‌بازی!', 'شیش بیا!', 'اون مار مال من نبود 😅', 'زود باش', 'یه دست دیگه؟'];
 const chat = TChat.init({
   btn: $('chatBtn'), badge: $('chatBadge'), quick: QUICK, face: m => face(m, COL[m.color] || '#FFFFFF'),
   rest: () => { const r = $('dock').getBoundingClientRect(); return r.height ? innerHeight - r.top + 8 : 140; },
@@ -280,53 +280,53 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 /* ---------- پایان، خروج ---------- */
 function over(v) {
   const g = v.game;
-  if (WATCH) { sfx.win(); return GC.watchOver('snakes', 'بازی تمام شد', g.winner == null ? 'بازی بدون برنده بسته شد.' : `${nameOf(g.winner)} اول به ۱۰۰ رسید و برد.`); }
+  if (WATCH) { sfx.win(); return GC.watchOver('snakes', 'بازی تموم شد', g.winner == null ? 'بازی بی برنده بسته شد' : `${nameOf(g.winner)} اول رسید ۱۰۰ و برد`); }
   chat.end(); $('chatBtn').hidden = true;
   const r = v.result || {}, won = !!r.won;
   GC.guardClose(false); store.set('snmid', null);
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
   const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { rolls: 0, ladders: 0, snakes: 0 };
   const stake = v.cfg.mode === 'stake', ended = g.winner == null, left = g.n === 2 && Object.values(g.players).some(p => !p.me && p.out);
-  const rank = (g.ranking || g.order).map((s, i) => `<div class="${s === g.winner ? 'w' : ''}" style="--pc:${COL[s]}"><b class="k">${FD(i + 1)}</b><i></i><span>${isMe(s) ? 'شما' : String(g.players[s].name || '').replace(/[<>&]/g, '')}</span><small>خانهٔ ${FD(g.players[s].pos)}</small></div>`).join('');
+  const rank = (g.ranking || g.order).map((s, i) => `<div class="${s === g.winner ? 'w' : ''}" style="--pc:${COL[s]}"><b class="k">${FD(i + 1)}</b><i></i><span>${isMe(s) ? 'خودت' : String(g.players[s].name || '').replace(/[<>&]/g, '')}</span><small>خونهٔ ${FD(g.players[s].pos)}</small></div>`).join('');
   sheet(`<div class="sn-res">
       <span class="ic${won ? '' : ' lost'}">${SVG.trophy}</span>
-      <h2>${ended ? 'بازی تمام شد' : won ? (left ? 'حریف رفت؛ تو بردی!' : 'برنده شدی!') : `${nameOf(g.winner)} زودتر رسید`}</h2>
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه به کیف امتیازت اضافه شد.</p>` : ended ? '<p>ورودی‌ها برگشت.</p>' : `<p>ورودی این بازی (${fa(r.lost || v.cfg.entry)} امتیاز) را باختی.</p>`)
-        : `<p>${won ? 'اولین نفری بودی که دقیقاً به ۱۰۰ رسید.' : 'بازی آزاد بود؛ چیزی از دست ندادی.'}</p>`}
+      <h2>${ended ? 'بازی تموم شد' : won ? (left ? 'حریف رفت و تو بردی!' : 'برنده شدی!') : `${nameOf(g.winner)} زودتر رسید`}</h2>
+      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه ریخت تو کیف امتیازت 🎉</p>` : ended ? '<p>ورودیا برگشت</p>' : `<p>ورودی این بازیو (${fa(r.lost || v.cfg.entry)} امتیاز) باختی فدای سرت</p>`)
+        : `<p>${won ? 'اولین نفری بودی که دقیقاً رسید ۱۰۰ دمت گرم' : 'بازی آزاد بود و چیزی از دست ندادی'}</p>`}
       <div class="sn-rank">${rank}</div>
       <div class="facts"><div><b>${FD(st.rolls)}</b><span>بار تاس</span></div><div><b>${FD(st.ladders)}</b><span>نردبون</span></div><div><b>${FD(st.snakes)}</b><span>نیش مار</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت</span></div></div>
     </div>
     <a class="btn btn-block" href="snakes-lobby.html">یه دست دیگه</a>
-    <a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+    <a class="btn btn-light btn-block" href="index.html">خونه</a>`, { center: true, dismiss: false });
   GC.refreshMe().catch(() => {});
 }
 function cancelled() {
   if (overShown) return;
   overShown = true;
-  if (WATCH) { GC.watchOver('snakes', 'این بازی بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
+  if (WATCH) { GC.watchOver('snakes', 'این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   chat.end(); GC.guardClose(false); store.set('snmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازی را بست و ورودی همه به کیف امتیازشان برگشت.</p>
-      <div class="dlg-acts"><a class="btn" href="snakes-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و ورودی همه برگشت تو کیفشون</p>
+      <div class="dlg-acts"><a class="btn" href="snakes-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
-  if (watchMid) { GC.watchOver('snakes', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
+  if (watchMid) { GC.watchOver('snakes', 'این بازیو نمی‌شه دید', 'بازی یا تموم شده یا هنوز شروع نشده'); return; }
   store.set('snmid', null);
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز وارد بازی‌ای نشده‌ای.</p>
-      <div class="dlg-acts"><a class="btn" href="snakes-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی یا تموم شده یا هنوز تو هیچ بازی‌ای نیستی</p>
+      <div class="dlg-acts"><a class="btn" href="snakes-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake', many = G() && G().n > 2;
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
-      <h2 id="dT">از بازی بیرون می‌روی؟</h2>
-      <p id="dD">${many ? 'خروج یعنی باخت تو؛ ربات جایت تا آخر بازی تاس می‌ریزد.' : 'خروج یعنی باخت همین بازی و حریف برنده می‌شود.'}</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
+      <h2 id="dT">می‌خوای بری؟</h2>
+      <p id="dD">${many ? 'بری یعنی باختی و ربات تا آخر بازی جات تاس می‌ریزه' : 'بری یعنی همین بازیو باختی و حریف می‌بره'}</p>
+      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گرده` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
-      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ بازی می‌ماند</button>
-      <p class="dlg-fine">بازی در صفحهٔ خانه می‌ماند و با یک لمس برمی‌گردی. تا نیستی، وقت هر نوبتت که تمام شود تاس به جایت ریخته می‌شود${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}.</p>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برو خونه بازی سر جاش می‌مونه</button>
+      <p class="dlg-fine">بازی تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی وقت هر نوبتت که تموم شه تاس به جات ریخته می‌شه${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
     </div>`, { center: true });
   sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
@@ -367,16 +367,16 @@ start();
 function tour() {
   return {
     id: 'snakes', name: 'مار و پله', color: '#f2c14e', ink: '#2a1b02', help: 'help.html#hSnakes',
-    intro: 'تاس بریز و از خونهٔ ۱ برو بالا؛ هر کی زودتر دقیقاً به خونهٔ ۱۰۰ برسه برنده‌ست.',
+    intro: 'تاس بریز و از خونهٔ ۱ برو بالا و هر کی زودتر دقیقاً برسه خونهٔ ۱۰۰ برده',
     ready: () => !!(G() && !WATCH && !G().over && els[me]),
     turn: () => ({ mine: !!(G() && G().turn === me && !G().over), left: deadlineAt ? deadlineAt - Date.now() : null }),
     steps: [
-      { el: () => els[me], title: 'این مهرهٔ توئه', text: () => `مهرهٔ ${me === '0' ? 'زرد' : me === '1' ? 'آبی' : me === '2' ? 'قرمز' : 'سبز'} مال توئه و از خونهٔ <b>۱</b> شروع می‌کنی. خونه‌ها مارپیچ تا <b>۱۰۰</b> بالا می‌رن.`, pad: 14, round: 999 },
-      { el: '#die', title: 'تاس بریز', text: 'نوبتت که شد تاس طلایی می‌شه؛ بزن روش تا بریزه. مهره‌ت خودش به همون اندازه جلو می‌ره. <b>شیش</b> بیاری یه نوبت دیگه داری!', hand: 'tap' },
-      { el: '#board', title: 'نردبون و مار', text: 'پای <b>نردبون</b> برسی، می‌ری بالا؛ سر <b>مار</b> برسی، تا دمش پایین می‌افتی.' },
-      { el: '#board', title: 'دقیقاً ۱۰۰', text: 'برای بردن باید <b>دقیقاً</b> به ۱۰۰ برسی؛ اگه تاس بیشتر از لازم بیاد، همون‌جا می‌مونی.' },
-      { el: '#seats', title: 'نوبت و وقت', text: 'نوار طلایی بالای کسیه که نوبتشه. وقتت تموم بشه، خودمون جات تاس می‌ریزیم.' },
-      { el: '#chatBtn', title: 'با بقیه حرف بزن', text: 'پیام سریع یا متن کوتاه بفرست.', hand: 'tap' },
+      { el: () => els[me], title: 'این مهرهٔ توئه', text: () => `مهرهٔ ${me === '0' ? 'زرد' : me === '1' ? 'آبی' : me === '2' ? 'قرمز' : 'سبز'} مال توئه و از خونهٔ <b>۱</b> شروع می‌کنی<br>خونه‌ها مارپیچ تا <b>۱۰۰</b> می‌رن بالا`, pad: 14, round: 999 },
+      { el: '#die', title: 'تاس بریز', text: 'نوبتت که شد تاس طلایی می‌شه و بزن روش تا بریزه<br>مهره‌ت خودش همون‌قدر می‌ره جلو و <b>شیش</b> بیاری یه نوبت دیگه داری!', hand: 'tap' },
+      { el: '#board', title: 'نردبون و مار', text: 'پای <b>نردبون</b> برسی می‌ری بالا و سر <b>مار</b> برسی تا دمش سُر می‌خوری پایین' },
+      { el: '#board', title: 'دقیقاً ۱۰۰', text: 'برای بردن باید <b>دقیقاً</b> برسی ۱۰۰ و اگه تاس بیشتر از لازم بیاد همون‌جا می‌مونی' },
+      { el: '#seats', title: 'نوبت و وقت', text: 'نوار طلایی بالا سر کسیه که نوبتشه<br>وقتت تموم بشه خودمون جات تاس می‌ریزیم' },
+      { el: '#chatBtn', title: 'با بقیه حرف بزن', text: 'پیام سریع یا یه متن کوتاه بفرست', hand: 'tap' },
     ],
   };
 }

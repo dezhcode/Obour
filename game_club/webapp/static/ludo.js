@@ -113,7 +113,7 @@ function renderSeats(g) {
     el.classList.toggle('turn', g.turn === c);
     const done = g.done[c] || 0, total = Math.max((g.pawns[c] || []).length, done);
     el.innerHTML = `${face(pl, 'var(--c)', 'timer')}
-      <div class="seat-txt" dir="rtl"><span class="seat-name">${pl.me ? 'شما' : pl.name}${pl.out ? ' (رفت)' : ''}</span><span class="prog" title="مهره‌های رسیده">${Array.from({ length: total }, (_, i) => `<i class="${i < done ? 'done' : ''}"></i>`).join('')}</span></div>
+      <div class="seat-txt" dir="rtl"><span class="seat-name">${pl.me ? 'خودت' : pl.name}${pl.out ? ' (رفت)' : ''}</span><span class="prog" title="مهره‌های رسیده">${Array.from({ length: total }, (_, i) => `<i class="${i < done ? 'done' : ''}"></i>`).join('')}</span></div>
       <span class="die sm c-${c}${g.last[c] ? '' : ' ghost'}" data-die="${c}">${pips(g.last[c] || 0)}</span>`;
   }
   document.querySelectorAll('.yard').forEach(y => y.classList.toggle('turn', g.turn === y.dataset.yard));
@@ -131,15 +131,15 @@ function feed(c, text) {
 }
 function renderTurn(g) {
   const tb = $('turnbar');
-  if (g.over) { tb.className = 'turnbar c-' + (g.winner || me); $('turnTxt').textContent = 'بازی تمام شد'; dock('بازی تمام شد', '', 'wait'); return; }
+  if (g.over) { tb.className = 'turnbar c-' + (g.winner || me); $('turnTxt').textContent = 'بازی تموم شد'; dock('بازی تموم شد', '', 'wait'); return; }
   tb.className = 'turnbar c-' + g.turn;
   const mine = g.turn === me;
-  $('turnTxt').textContent = mine ? 'نوبت شماست' : 'نوبت ' + nameOf(g.turn);
+  $('turnTxt').textContent = mine ? 'نوبت توئه' : 'نوبت ' + nameOf(g.turn);
   const hk = mine && g.phase === 'move' ? JSON.stringify([g.dice, g.movable, shown[me]]) : '';
   if (hk !== hintKey) { clearHints(); hintKey = hk; if (hk) showHints(g.dice, g.movable); }
-  if (mine && g.phase === 'roll') dock('نوبت شماست', 'روی تاس بزن تا بریزد', 'roll');
-  else if (mine && g.phase === 'move') dock(FD(g.dice) + ' آوردی', 'مهره‌ای را که بالا و پایین می‌پرد بزن؛ دایرهٔ خط‌چین مقصدش است', 'pick');
-  else dock('نوبت ' + nameOf(g.turn), g.players[g.turn] && g.players[g.turn].bot ? 'ربات فکر می‌کند…' : WATCH ? 'منتظر حرکت…' : 'منتظر حرکت حریف…', 'wait');
+  if (mine && g.phase === 'roll') dock('نوبت توئه', 'بزن رو تاس تا بریزه', 'roll');
+  else if (mine && g.phase === 'move') dock(FD(g.dice) + ' آوردی', 'مهره‌ای که بالا پایین می‌پره رو بزن و دایرهٔ خط‌چین جاییه که می‌ره', 'pick');
+  else dock('نوبت ' + nameOf(g.turn), g.players[g.turn] && g.players[g.turn].bot ? 'ربات داره فکر می‌کنه…' : WATCH ? 'منتظر حرکتیم…' : 'منتظریم حریف بازی کنه…', 'wait');
   setDeadline(g.deadline_ms, g._at); turnMs = g.turn_ms || 20000; tickTimer();
 }
 function clearHints() {
@@ -200,17 +200,17 @@ function blocked(c, v, allYard) {
   (els[c] || []).forEach(el => { el.classList.remove('stuck'); void el.offsetWidth; el.classList.add('stuck'); setTimeout(() => el.classList.remove('stuck'), 700); });
   const b = document.createElement('div');
   b.className = 'blocked c-' + c; b.setAttribute('aria-hidden', 'true');
-  b.innerHTML = `<span class="die sm c-${c}">${pips(v)}</span><span>${allYard ? 'برای ورود ۶ لازم است' : 'حرکتی نیست'}</span>`;
+  b.innerHTML = `<span class="die sm c-${c}">${pips(v)}</span><span>${allYard ? 'واسه اومدن تو ۶ لازمه' : 'حرکتی نداری'}</span>`;
   $('frame').appendChild(b); setTimeout(() => b.remove(), 1300);
 }
 async function play(e) {
   const c = e.c;
-  if (e.t === 'roll') { await rollAnim(c, e.v); if (e.auto && c === me) feed(c, 'وقتت تمام شد؛ تاس خودکار ریخته شد'); return; }
+  if (e.t === 'roll') { await rollAnim(c, e.v); if (e.auto && c === me) feed(c, 'وقتت تموم شد و تاس خودکار ریخته شد'); return; }
   if (e.t === 'nomove') {
     sfx.nomove(); if (c === me) haptic('warning');
     const allYard = (shown[c] || []).every(p => p < 0);
     blocked(c, e.v, allYard);
-    feed(c, (c === me ? FD(e.v) + ' آوردی' : nameOf(c) + ' ' + FD(e.v) + ' آورد') + '؛ ' + (allYard ? 'برای ورود مهره ۶ لازم است' : 'حرکتی ممکن نبود'));
+    feed(c, (c === me ? FD(e.v) + ' آوردی' : nameOf(c) + ' ' + FD(e.v) + ' آورد') + ' ولی ' + (allYard ? 'واسه اومدن مهره ۶ لازمه' : 'حرکتی نبود'));
     await sleep(1000); return;
   }
   if (e.t === 'move') {
@@ -226,20 +226,20 @@ async function play(e) {
       e.cap.forEach(([o, j]) => { if (shown[o]) shown[o][j] = -1; });
       layout(); await sleep(300);
       const v = e.cap[0][0];
-      feed(c, c === me ? `مهرهٔ ${nameOf(v)} را زدی! یک نوبت اضافه` : v === me ? `${nameOf(c)} مهرهٔ تو را زد و به لانه برگرداند` : `${nameOf(c)} مهرهٔ ${nameOf(v)} را زد`);
-    } else if (e.fin) { sfx.home(); const [x, y] = SEAT[c].fin; flash(c, x, y); feed(c, (c === me ? 'یک مهره به مرکز رساندی' : nameOf(c) + ' یک مهره به مرکز رساند') + '! یک نوبت اضافه'); }
-    else if (e.frm < 0) feed(c, c === me ? '۶ آوردی و مهره وارد شد' : nameOf(c) + ' ۶ آورد و مهره وارد کرد');
-    if (e.auto && c === me) feed(c, 'وقتت تمام شد؛ بهترین حرکت انجام شد');
+      feed(c, c === me ? `مهرهٔ ${nameOf(v)} رو زدی! یه نوبت جایزه` : v === me ? `${nameOf(c)} مهره‌تو زد و فرستادش لونه` : `${nameOf(c)} مهرهٔ ${nameOf(v)} رو زد`);
+    } else if (e.fin) { sfx.home(); const [x, y] = SEAT[c].fin; flash(c, x, y); feed(c, (c === me ? 'یه مهره رسوندی وسط' : nameOf(c) + ' یه مهره رسوند وسط') + '! یه نوبت جایزه'); }
+    else if (e.frm < 0) feed(c, c === me ? '۶ آوردی و مهره اومد تو' : nameOf(c) + ' ۶ آورد و یه مهره آورد تو');
+    if (e.auto && c === me) feed(c, 'وقتت تموم شد و بهترین حرکتو خودمون زدیم');
     return;
   }
-  if (e.t === 'six3') { feed(c, (c === me ? 'سه بار ۶ آوردی' : nameOf(c) + ' سه بار ۶ آورد') + '؛ نوبت سوخت'); return; }
-  if (e.t === 'timeout' && c === me && e.n >= 2 && snap && snap.cfg.mode === 'stake') { toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یک نوبت دیگر غیبت = باخت'); return; }
-  if (e.t === 'leave') { feed(c, (c === me ? 'از بازی بیرون رفتی' : nameOf(c) + (e.why === 'timeout' ? ' به‌خاطر غیبت حذف شد' : ' از بازی رفت'))); return; }
+  if (e.t === 'six3') { feed(c, (c === me ? 'سه بار ۶ آوردی' : nameOf(c) + ' سه بار ۶ آورد') + ' و نوبت سوخت'); return; }
+  if (e.t === 'timeout' && c === me && e.n >= 2 && snap && snap.cfg.mode === 'stake') { toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یه نوبت دیگه غیبت کنی باختی'); return; }
+  if (e.t === 'leave') { feed(c, (c === me ? 'از بازی اومدی بیرون' : nameOf(c) + (e.why === 'timeout' ? ' به‌خاطر غیبت حذف شد' : ' از بازی رفت'))); return; }
 }
 
 /* ---------- گفتگوی سر میز: نوار و پیام های شناور مثل بیلیارد (tchat.js) ----------
    پیام ها با همان پرس و جوی هر ۰٫۹ ثانیه می آیند (chat=آخرین شماره). */
-const QUICK = ['سلام!', 'خوش‌بازی!', 'آفرین', 'شانسی بود', 'زود باش', 'یک دست دیگه؟'];
+const QUICK = ['سلام!', 'خوش‌بازی!', 'آفرین', 'شانسی بود', 'زود باش', 'یه دست دیگه؟'];
 const chat = TChat.init({
   btn: $('chatBtn'), badge: $('chatBadge'), quick: QUICK, face: m => face(m, COL[m.color] ? COL[m.color].hex : 'var(--surface)'),
   rest: () => { const r = $('dock').getBoundingClientRect(); return r.height ? innerHeight - r.top + 8 : 140; },
@@ -302,7 +302,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 
 /* ---------- پایان، خروج ---------- */
 function over(v) {
-  if (WATCH) { const w = v.game.winner; sfx.win(); GC.watchOver('ludo', 'بازی تمام شد', w ? nameOf(w) + ' برد.' : 'بازی بدون برنده تمام شد.'); return; }
+  if (WATCH) { const w = v.game.winner; sfx.win(); GC.watchOver('ludo', 'بازی تموم شد', w ? nameOf(w) + ' برد' : 'بازی بی برنده تموم شد'); return; }
   endChat();
   const g = v.game, r = v.result || {}, w = g.winner, won = w === me;
   GC.guardClose(false); store.set('mid', null);
@@ -311,41 +311,41 @@ function over(v) {
   const stake = v.cfg.mode === 'stake';
   sheet(`<div class="result">
       <div class="crown-pawn">${pawn(w || me, !!w).replace('viewBox="0 0 40 50"', 'viewBox="0 -4 40 54"')}</div>
-      <h2>${won ? 'بردی!' : w ? nameOf(w) + ' برد' : 'بازی تمام شد'}</h2>
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p class="muted">جایزه به کیف امتیازت اضافه شد.</p>` : `<p class="muted">ورودی این دست (${fa(r.lost || v.cfg.entry)} امتیاز) را باختی.</p>`)
-        : `<p class="muted">${won ? 'بازی آزاد بود و جایزه نداشت.' : 'بازی آزاد بود؛ چیزی از دست ندادی.'}</p>`}
+      <h2>${won ? 'بردی!' : w ? nameOf(w) + ' برد' : 'بازی تموم شد'}</h2>
+      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p class="muted">جایزه ریخت تو کیف امتیازت 🎉</p>` : `<p class="muted">ورودی این دستو (${fa(r.lost || v.cfg.entry)} امتیاز) باختی فدای سرت</p>`)
+        : `<p class="muted">${won ? 'بازی آزاد بود و جایزه نداشت ولی دمت گرم' : 'بازی آزاد بود و چیزی از دست ندادی'}</p>`}
       <div class="facts"><div><b>${FD(st.caps)}</b><span>مهره زدی</span></div><div><b>${FD(st.sixes)}</b><span>بار ۶ آوردی</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
     </div>
-    <a class="btn btn-block" href="ludo-lobby.html">${icon('dice')}یک دست دیگر</a>
-    <a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+    <a class="btn btn-block" href="ludo-lobby.html">${icon('dice')}یه دست دیگه</a>
+    <a class="btn btn-light btn-block" href="index.html">خونه</a>`, { center: true, dismiss: false });
   GC.refreshMe().catch(() => {});
 }
 function cancelled() {
   if (overShown) return;
-  if (WATCH) { overShown = true; GC.watchOver('ludo', 'این میز بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
+  if (WATCH) { overShown = true; GC.watchOver('ludo', 'این میز بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   overShown = true; endChat(); GC.guardClose(false); store.set('mid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میز را بست و ورودی همه به کیف امتیازشان برگشت.</p>
-      <div class="dlg-acts"><a class="btn" href="ludo-lobby.html">میز تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میزو بست و ورودی همه برگشت تو کیفشون</p>
+      <div class="dlg-acts"><a class="btn" href="ludo-lobby.html">میز تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
-  if (watchMid) { GC.watchOver('ludo', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
+  if (watchMid) { GC.watchOver('ludo', 'این بازیو نمی‌شه دید', 'بازی یا تموم شده یا هنوز شروع نشده'); return; }
   store.set('mid', null);
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">میزی پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز سر میزی ننشسته‌ای.</p>
-      <div class="dlg-acts"><a class="btn" href="ludo-lobby.html">یک میز بساز</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">میزی پیدا نشد</h2><p id="dD">این بازی یا تموم شده یا هنوز سر میزی ننشستی</p>
+      <div class="dlg-acts"><a class="btn" href="ludo-lobby.html">یه میز بساز</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake';
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
-      <h2 id="dT">از بازی بیرون می‌روی؟</h2>
-      <p id="dD">${stake ? 'خروج یعنی باختِ همین دست؛ میز بدون تو ادامه می‌دهد.' : 'این دست برای تو تمام می‌شود و بقیه بدون تو ادامه می‌دهند.'}</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
+      <h2 id="dT">می‌خوای بری؟</h2>
+      <p id="dD">${stake ? 'بری یعنی همین دستو باختی و میز بی تو ادامه می‌ده' : 'این دست واسه تو تموم می‌شه و بقیه بی تو ادامه می‌دن'}</p>
+      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گرده` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
-      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ سر میز می‌مانم</button>
-      <p class="dlg-fine">میز در صفحهٔ خانه می‌ماند و با یک لمس برمی‌گردی. تا نیستی، نوبت‌هایت خودکار بازی می‌شود${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}.</p>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برو خونه سر میز می‌مونم</button>
+      <p class="dlg-fine">میز تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی نوبتات خودکار بازی می‌شه${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
     </div>`, { center: true });
   sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
@@ -362,12 +362,12 @@ sndBtn.onclick = () => { setSound(!S.sound); syncSnd(); };
 syncSnd();
 $('rules').onclick = () => sheet(`${sheetHead('قوانین منچ')}
   <ul class="rules-mini">
-    <li>رنگ تو همیشه <b>پایین چپ</b> است. مهره‌ها در جهت فلش‌ها می‌چرخند و از راهروی رنگ خودت به مرکز می‌رسند.</li>
-    <li>فقط با <b>۶</b> مهره از لانه بیرون می‌آید.</li>
-    <li>۶، زدن مهرهٔ حریف یا رسیدن به مرکز <b>یک نوبت اضافه</b> می‌دهد. سه بار ۶ پشت‌سرهم نوبت را می‌سوزاند.</li>
-    <li>اگر دقیقاً روی مهرهٔ حریف بنشینی، به لانه‌اش برمی‌گردد. روی <b>ستاره</b> و خانهٔ شروع کسی زده نمی‌شود.</li>
-    <li>هر نوبت <b>${FD(Math.round(turnMs / 1000))} ثانیه</b> وقت داری؛ بعدش تاس و حرکت خودکار انجام می‌شود.</li>
-    <li>تاس روی سرور ریخته می‌شود؛ نه گوشی تو و نه حریف عددش را تعیین نمی‌کند.</li>
+    <li>رنگ تو همیشه <b>پایین چپ</b>ه و مهره‌ها تو جهت فلش‌ها می‌چرخن و از راهروی رنگ خودت می‌رسن وسط</li>
+    <li>فقط با <b>۶</b> مهره از لونه میاد بیرون</li>
+    <li>۶ آوردن یا زدن مهرهٔ حریف یا رسیدن به وسط <b>یه نوبت جایزه</b> داره و سه بار ۶ پشت‌سرهم نوبتو می‌سوزونه</li>
+    <li>اگه دقیقاً رو مهرهٔ حریف بشینی برمی‌گرده لونه‌ش ولی رو <b>ستاره</b> و خونهٔ شروع کسی زده نمی‌شه</li>
+    <li>هر نوبت <b>${FD(Math.round(turnMs / 1000))} ثانیه</b> وقت داری و بعدش تاس و حرکت خودکار انجام می‌شه</li>
+    <li>تاسو سرور می‌ریزه و نه گوشی تو نه گوشی حریف عددشو تعیین نمی‌کنه</li>
   </ul>
   <button class="btn btn-block" id="tourB">${icon('play')}آموزش قدم‌به‌قدم</button>
   <a class="btn btn-light btn-block" href="help.html">راهنمای کامل</a>`).querySelector('#tourB').onclick = () => { GC.close(); GCTour.start(tour()); };
@@ -377,16 +377,16 @@ function tour() {
   const sec = FD(Math.round(turnMs / 1000));
   return {
     id: 'ludo', name: 'منچ', color: '#FFC531', help: 'help.html#hLudo',
-    intro: 'منچ همون بازی قدیمیه: چهار مهره داری و باید زودتر از بقیه همه رو دور صفحه ببری و به خونه برسونی.',
+    intro: 'منچ همون بازی قدیمی خودمونه 😎 چهار تا مهره داری و باید زودتر از بقیه همه رو دور صفحه ببری و برسونی خونه',
     turn: () => ({ mine: !!(snap && snap.game && snap.game.turn === me && !snap.game.over), left: deadlineAt ? deadlineAt - Date.now() : null }),
     steps: [
-      { el: () => document.querySelector(`.yard[data-yard="${me}"]`) || $('board'), title: 'این لونهٔ توئه', text: 'رنگ تو همیشه <b>پایین چپ</b> صفحه‌ست. چهار مهره‌ت اینجا منتظرن تا بیرون بیان.' },
-      { el: '#roll', title: 'تاس بنداز', text: `نوبتت که شد، روی تاس بزن. فقط با <b>۶</b> مهره از لونه بیرون میاد. هر نوبت ${sec} ثانیه وقت داری.`, hand: 'tap' },
-      { el: '#board', title: 'مهره رو انتخاب کن', text: 'مهره‌ای که <b>بالا پایین می‌پره</b> می‌تونه حرکت کنه؛ روش بزن. دایرهٔ خط‌چین نشون می‌ده کجا می‌ره.', hand: 'tap', at: [0.3, 0.62] },
-      { el: '#board', title: 'بزن و جایزه بگیر', text: 'دقیقا روی مهرهٔ حریف بشینی، برمی‌گرده لونه‌ش! <b>۶</b>، زدن یا رسیدن به خونه یه نوبت اضافه می‌ده. روی <b>ستاره‌ها</b> کسی زده نمی‌شه.' },
-      { el: '#board', title: 'برس به خونه', text: 'مهره‌ها در جهت فلش‌ها دور صفحه می‌چرخن، از راهروی رنگ خودت می‌رن تو و به <b>وسط صفحه</b> می‌رسن. هر کی زودتر هر چهارتا رو برسونه، برنده‌ست.', hand: 'tap', at: [0.5, 0.5] },
-      { el: '#turnbar', title: 'حواست به وقت باشه', text: `نوار بالا نشون می‌ده نوبت کیه و چقدر وقت مونده. وقتت تموم بشه، تاس و حرکت <b>خودکار</b> انجام می‌شه.` },
-      { el: '#chatBtn', title: 'با بقیه حرف بزن', text: 'پیام سریع یا متن کوتاه بفرست؛ بالای صفحه برای همه میاد.', hand: 'tap' },
+      { el: () => document.querySelector(`.yard[data-yard="${me}"]`) || $('board'), title: 'این لونهٔ توئه', text: 'رنگ تو همیشه <b>پایین چپ</b> صفحه‌ست و چهار تا مهره‌ت اینجا منتظرن بیان بیرون' },
+      { el: '#roll', title: 'تاس بنداز', text: `نوبتت که شد بزن رو تاس<br>فقط با <b>۶</b> مهره از لونه میاد بیرون و هر نوبت ${sec} ثانیه وقت داری`, hand: 'tap' },
+      { el: '#board', title: 'مهره رو انتخاب کن', text: 'مهره‌ای که <b>بالا پایین می‌پره</b> می‌تونه حرکت کنه پس بزن روش<br>دایرهٔ خط‌چین نشون می‌ده کجا می‌ره', hand: 'tap', at: [0.3, 0.62] },
+      { el: '#board', title: 'بزن و جایزه بگیر', text: 'دقیقاً رو مهرهٔ حریف بشینی برمی‌گرده لونه‌ش! <br><b>۶</b> آوردن یا زدن یا رسیدن به خونه یه نوبت جایزه داره ولی رو <b>ستاره‌ها</b> کسی زده نمی‌شه' },
+      { el: '#board', title: 'برس به خونه', text: 'مهره‌ها تو جهت فلش‌ها دور صفحه می‌چرخن و از راهروی رنگ خودت می‌رسن <b>وسط صفحه</b><br>هر کی زودتر هر چهارتا رو برسونه برده', hand: 'tap', at: [0.5, 0.5] },
+      { el: '#turnbar', title: 'حواست به وقت باشه', text: `نوار بالا نشون می‌ده نوبت کیه و چقدر وقت مونده<br>وقتت تموم بشه تاس و حرکت <b>خودکار</b> انجام می‌شه` },
+      { el: '#chatBtn', title: 'با بقیه حرف بزن', text: 'پیام سریع یا یه متن کوتاه بفرست تا بالای صفحه واسه همه بیاد', hand: 'tap' },
     ],
   };
 }
@@ -405,7 +405,7 @@ GC.onFit(fitBoard);   // فقط وقتی اندازهٔ صفحه واقعا عو
 /* ---------- شروع ---------- */
 async function start() {
   buildBoard(); fitBoard(); GC.portrait(true);
-  dock('در حال وصل شدن…', '', 'wait');
+  dock('داریم وصل می‌شیم…', '', 'wait');
   let first;
   try { first = await GC.ludo.match(mid, 0, 0); }
   catch (e) { return e.code === 'not_found' ? noMatch() : (toast(errText(e)), setTimeout(start, 2500)); }

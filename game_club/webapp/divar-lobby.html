@@ -36,7 +36,7 @@
 </header>
 <main class="page no-nav">
   <div class="gp" id="gp"></div>
-  <a class="card card-link resume" id="resume" href="divar.html" hidden><span class="tag tag-live">بازی نیمه‌تمام</span><b>برگرد سر میز</b><span class="muted">بازی‌ات هنوز ادامه دارد؛ بقیه منتظر تواند.</span></a>
+  <a class="card card-link resume" id="resume" href="divar.html" hidden><span class="tag tag-live">بازی نیمه‌کاره</span><b>برگرد سر میز</b><span class="muted">بازیت هنوز تموم نشده و بقیه منتظرتن</span></a>
 </main>
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
@@ -62,7 +62,7 @@
   async function go(mid) {
     token = null; store.set('dmid', mid);
     for (let n = 3; n >= 1; n--) {
-      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز آماده است!</h2><div class="count">${FD(n)}</div><p class="hint">بازی شروع می‌شود…</p>`, { center: true, dismiss: false });
+      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز حاضره!</h2><div class="count">${FD(n)}</div><p class="hint">الان بازی شروع می‌شه…</p>`, { center: true, dismiss: false });
       sfx.tick(); haptic('light'); await sleep(650);
     }
     location.href = 'divar.html';
@@ -76,17 +76,17 @@
       if (st.state === 'matched') { sfx.turn(); haptic('success'); return go(st.match); }
       if (st.state !== 'waiting') { GC.close(); return; }
       const c = st.cfg, n = c.players === 4 ? 4 : 2;
-      const list = [{ name: 'شما', av: 7 }, ...[...Array(n - 1)].map((_, i) => i + 1 < st.found ? { name: 'بازیکن', av: 4 + i } : null)];
-      const line = `${FD(st.found)} از ${FD(st.need)} نفر، ${FD(st.waited)} ثانیه`;
+      const list = [{ name: 'خودت', av: 7 }, ...[...Array(n - 1)].map((_, i) => i + 1 < st.found ? { name: 'بازیکن', av: 4 + i } : null)];
+      const line = `${FD(st.found)} از ${FD(st.need)} نفر · ${FD(st.waited)} ثانیه`;
       if (shown === String(st.found)) { const el = document.getElementById('ql'); if (el) el.textContent = line; }
       else {
         shown = String(st.found);
         const prize = c.mode === 'stake' ? `برنده ${fa(c.entry * n)}` : '';
         const sh = sheet(`${sheetHead(n === 4 ? 'پیدا کردن سه حریف' : 'پیدا کردن حریف')}${seatsHtml(list, n)}
           <div class="wait-line"><span class="spinner"></span><span id="ql">${line}</span></div>
-          <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · ${prize} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگر تا ${FD(st.bots_in)} ثانیهٔ دیگر کسی نیاید، جای خالی را ربات پر می‌کند` : 'بازی وقتی شروع می‌شود که میز کامل شود'} · ناشناس می‌مانی</p>
-          ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مانم؛ جای خالی را ربات پر کند</button>' : ''}
-          <button class="btn btn-light btn-block" id="qc">انصراف${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
+          <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · ${prize} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگه تا ${FD(st.bots_in)} ثانیهٔ دیگه کسی نیاد ربات جای خالیو پر می‌کنه` : 'میز که پر شه بازی شروع می‌شه'} · ناشناس می‌مونی</p>
+          ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مونم بذار ربات جای خالیو پر کنه</button>' : ''}
+          <button class="btn btn-light btn-block" id="qc">بی‌خیال${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
         const qb = sh.querySelector('#qb');
         if (qb) qb.onclick = async () => { qb.disabled = true; try { const r = await GC.divar.queueBots(); if (r.state === 'matched') { token = null; sfx.turn(); haptic('success'); return go(r.match); } } catch (e) { toast(errText(e)); } qb.disabled = false; };
         sh.querySelector('#qc').onclick = async () => { token = null; try { await GC.divar.queueLeave(); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
@@ -104,26 +104,26 @@
       let v;
       try { v = await GC.divar.match(mid, 0); } catch (e) { toast(errText(e)); GC.close(); return; }
       if (v.status === 'playing') return go(mid);
-      if (v.status === 'cancelled') { GC.close(); toast('سازنده میز را بست؛ ورودی‌ات برگشت'); await GC.refreshMe(); render(); return; }
+      if (v.status === 'cancelled') { GC.close(); toast('سازنده میزو بست و ورودیت برگشت'); await GC.refreshMe(); render(); return; }
       const L = v.lobby, c = v.cfg, n = c.players === 4 ? 4 : 2, full = L.seats.length === n, link = L.link;
       const sig = L.seats.map(s => s.color + s.name).join('|');
       if (sig === shown) { await sleep(1500); continue; }
       shown = sig; if (L.seats.length > 1) { sfx.turn(); haptic('light'); }
       const mine = L.seats.find(s => s.me), opp = L.seats.filter(s => !s.me);
-      const list = [Object.assign({}, mine || {}, { name: 'شما' }), ...[...Array(n - 1)].map((_, i) => opp[i] || null)];
-      const msg = c.mode === 'stake' ? `بیا دیوار بازی کنیم! ورودی ${c.entry} امتیاز.` : n === 4 ? 'بیا چهار نفره دیوار بازی کنیم؛ ببینیم کی زودتر می‌رسه!' : 'بیا یه دست دیوار بزنیم؛ راهتو می‌بندم 😄';
+      const list = [Object.assign({}, mine || {}, { name: 'خودت' }), ...[...Array(n - 1)].map((_, i) => opp[i] || null)];
+      const msg = c.mode === 'stake' ? `بیا دیوار بزنیم! ورودی ${c.entry} امتیاز` : n === 4 ? 'بیا چهار نفره دیوار بزنیم ببینیم کی زودتر می‌رسه!' : 'بیا یه دست دیوار بزنیم راهتو می‌بندم 😄';
       const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(msg);
-      const sh = sheet(`${sheetHead(L.host ? (n === 4 ? 'بازی با یار' : 'بازی با دوست') : 'سر میز دوستت')}
-        ${L.host ? `<p>این لینک را بفرست.${n === 4 ? ' سه نفر که بازش کنند بازی شروع می‌شود.' : ' تا دوستت بازش کند بازی شروع می‌شود.'}${c.mode === 'stake' ? ' ' + fa(c.entry) + ' امتیاز ورودی از کیف هر نفر کم می‌شود.' : ''}</p>
-        <div class="linkbox"><code>${link || 'لینک دعوت فقط داخل تلگرام ساخته می‌شود'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
-        <button class="btn btn-block" id="shr">${icon('send')}ارسال در تلگرام</button>` : '<p>منتظر بقیه و شروع بازی…</p>'}
+      const sh = sheet(`${sheetHead(L.host ? (n === 4 ? 'بازی با یار' : 'بازی با رفیقت') : 'سر میز رفیقت')}
+        ${L.host ? `<p>این لینکو بفرست${n === 4 ? ' و سه نفر که بازش کنن بازی شروع می‌شه' : ' تا رفیقت بازش کنه بازی شروع می‌شه'}${c.mode === 'stake' ? '<br>' + fa(c.entry) + ' امتیاز ورودی از کیف هر نفر کم می‌شه' : ''}</p>
+        <div class="linkbox"><code>${link || 'لینک دعوت فقط تو تلگرام ساخته می‌شه'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
+        <button class="btn btn-block" id="shr">${icon('send')}بفرست تو تلگرام</button>` : '<p>منتظر بقیه‌ایم تا بازی شروع شه…</p>'}
         ${seatsHtml(list, n)}
-        <div class="wait-line"><span class="spinner"></span>${full ? 'میز پر شد؛ بازی شروع می‌شود…' : `${FD(L.seats.length)} از ${FD(n)} نفر سر میزند…`}</div>
-        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">منتظر نمی‌مانم؛ جای خالی با ربات</button>' : ''}
+        <div class="wait-line"><span class="spinner"></span>${full ? 'میز پر شد الان بازی شروع می‌شه…' : `${FD(L.seats.length)} از ${FD(n)} نفر سر میزن…`}</div>
+        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">منتظر نمی‌مونم جای خالی با ربات</button>' : ''}
         <button class="btn btn-light btn-block" id="lv">${L.host ? 'بستن میز' : 'بلند شدن از میز'}</button>`, { dismiss: false });
       const cp = sh.querySelector('#cp');
-      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد؛ لینک را دستی بفرست')); } catch (e) { toast('کپی نشد؛ لینک را دستی بفرست'); } };
-      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط داخل تلگرام ساخته می‌شود');
+      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد لینکو دستی بفرست')); } catch (e) { toast('کپی نشد لینکو دستی بفرست'); } };
+      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط تو تلگرام ساخته می‌شه');
       const solo = sh.querySelector('#solo'); if (solo) solo.onclick = async () => { try { await GC.divar.start(mid); } catch (e) { toast(errText(e)); } };
       sh.querySelector('#lv').onclick = async () => { token = null; try { await GC.divar.leave(mid); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
       await sleep(1500);
@@ -145,22 +145,22 @@
   gp = GCGame.build({
     game: 'divar', title: 'دیوار', help: 'help.html#hDivar',
     modes: [
-      { v: 'd2', label: '۲ نفره', ic: icon('user'), desc: 'رو در رو روی صفحهٔ ۹×۹، هر نفر ۱۰ دیوار. اول به ضلع روبه‌رو برس.', short: '۹×۹ · هر نفر ۱۰ دیوار', cfg: { players: 2, variant: 'classic' } },
-      { v: 'd4', label: '۴ نفره', ic: icon('users'), desc: 'چهار نفر از چهار طرف، هر کس به ضلع روبه‌رو. هر نفر ۵ دیوار.', short: '۹×۹ · هر نفر ۵ دیوار', cfg: { players: 4, variant: 'classic' } },
-      { v: 'd5', label: 'ستاره', ic: icon('spark'), desc: 'چهار نفره روی صفحهٔ ۱۱×۱۱؛ همه به ستارهٔ وسط. هر نفر ۷ دیوار.', short: '۱۱×۱۱ · همه به وسط', cfg: { players: 4, variant: 'star' } },
+      { v: 'd2', label: '۲ نفره', ic: icon('user'), desc: 'رو در رو تو صفحهٔ ۹×۹ و هر نفر ۱۰ تا دیوار · زودتر برس اون طرف', short: '۹×۹ · هر نفر ۱۰ دیوار', cfg: { players: 2, variant: 'classic' } },
+      { v: 'd4', label: '۴ نفره', ic: icon('users'), desc: 'چهار نفر از چهار طرف و هر کی به ضلع روبه‌رو · هر نفر ۵ تا دیوار', short: '۹×۹ · هر نفر ۵ دیوار', cfg: { players: 4, variant: 'classic' } },
+      { v: 'd5', label: 'ستاره', ic: icon('spark'), desc: 'چهار نفره رو صفحهٔ ۱۱×۱۱ و همه به ستارهٔ وسط · هر نفر ۷ تا دیوار', short: '۱۱×۱۱ · همه به وسط', cfg: { players: 4, variant: 'star' } },
     ],
-    rules: [['هدف:', 'زودتر از بقیه مهره‌ات را به ضلع روبه‌رو برسان (در «ستاره» به خانهٔ ستارهٔ وسط صفحه). اولین کسی که برسد برنده است و بازی همان لحظه تمام می‌شود.'],
-      ['هر نوبت یکی از این دو:', 'یک خانه بالا، پایین، چپ یا راست برو (خانه‌های روشن)، یا یک دیوار را از سینی پایین بگیر و روی شیار بین خانه‌ها رها کن.'],
-      ['دیوار:', 'هر دیوار دو خانه را می‌پوشاند و برداشته نمی‌شود. دیوارها روی هم نمی‌افتند و ضربدری از هم رد نمی‌شوند. دیواری که راه کسی را کامل ببندد مجاز نیست؛ جای غیرمجاز قرمز می‌شود.'],
-      ['پرش:', 'اگر مهره‌ای درست کنارت باشد و بینتان دیوار نباشد، از رویش می‌پری. اگر پشتش دیوار یا مهرهٔ دیگری باشد، کج به چپ یا راستِ همان مهره می‌روی.'],
-      ['تعداد دیوار:', '۲ نفره هر نفر ۱۰ دیوار، ۴ نفره ۵ دیوار و ۴ نفرهٔ ستاره ۷ دیوار.'],
-      ['وقت:', 'اگر وقت نوبتت تمام شود، یک قدم در کوتاه‌ترین راه به جایت برداشته می‌شود. در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت.'],
-      ['ترفند:', 'دیوارهایت را زود خرج نکن؛ وقتی حریف نزدیک مقصد است دیوار بگذار و قبل از هر دیوار راه خودت را هم نگاه کن.']],
+    rules: [['هدف', 'زودتر از بقیه مهره‌تو برسون به ضلع روبه‌رو (تو «ستاره» به خونهٔ ستارهٔ وسط)<br>اولین کسی که برسه برده و بازی همون لحظه تموم می‌شه'],
+      ['هر نوبت یکی از این دو تا', 'یا یه خونه برو بالا و پایین و چپ و راست (خونه‌های روشن) یا یه دیوار از سینی پایین بردار و بذارش رو شیار بین خونه‌ها'],
+      ['دیوار', 'هر دیوار دو تا خونه رو می‌پوشونه و دیگه برداشته نمی‌شه<br>دیوارا رو هم نمی‌افتن و ضربدری از هم رد نمی‌شن<br>دیواری که راه کسیو کامل ببنده قبول نیست و جای غیرمجاز قرمز می‌شه'],
+      ['پرش', 'اگه یه مهره درست کنارت باشه و بینتون دیوار نباشه از روش می‌پری<br>اگه پشتش دیوار یا یه مهرهٔ دیگه باشه کج می‌ری چپ یا راستِ همون مهره'],
+      ['تعداد دیوار', '۲ نفره هر نفر ۱۰ تا و ۴ نفره ۵ تا و ۴ نفرهٔ ستاره ۷ تا'],
+      ['وقت', 'اگه وقت نوبتت تموم بشه یه قدم تو کوتاه‌ترین راه به جات برداشته می‌شه<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت'],
+      ['یه نکته از تاسی', 'دیواراتو زود خرج نکن داش<br>وقتی حریف نزدیک مقصده دیوار بذار و قبل هر دیوار یه نگاه به راه خودت هم بنداز']],
     play,
     // میزهای رایگان: انتخاب همین جا ذخیره می شود و سر میز بعدی همان دیده می شود
     looks: {
-      html: () => `<p class="gp-sub" style="margin:0 4px">همهٔ میزها رایگان‌اند. ظاهر فقط برای خودت عوض می‌شود.</p>
-        <div class="dv-looks">${DVThemes.LIST.map(t => `<button class="dv-look" data-look="${t.id}" aria-pressed="${DVThemes.get() === t.id}">${DVThemes.mini(t.id)}<b>${t.name}</b><small${DVThemes.get() === t.id ? ' class="use"' : ''}>${DVThemes.get() === t.id ? 'در حال استفاده' : t.sub}</small></button>`).join('')}</div>`,
+      html: () => `<p class="gp-sub" style="margin:0 4px">همهٔ میزها مجانیه و ظاهرش فقط برای خودت عوض می‌شه</p>
+        <div class="dv-looks">${DVThemes.LIST.map(t => `<button class="dv-look" data-look="${t.id}" aria-pressed="${DVThemes.get() === t.id}">${DVThemes.mini(t.id)}<b>${t.name}</b><small${DVThemes.get() === t.id ? ' class="use"' : ''}>${DVThemes.get() === t.id ? 'الان همینه' : t.sub}</small></button>`).join('')}</div>`,
       click: e => { const b = e.target.closest('[data-look]'); if (!b || b.dataset.look === DVThemes.get()) return false; DVThemes.set(b.dataset.look); return true; },
     },
   });
@@ -176,7 +176,7 @@
         const v = await GC.divar.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);
         else if (v && v.status === 'playing') { store.set('dmid', v.id); if (code) { location.replace('divar.html'); return; } $('resume').hidden = false; }
-      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یک بازی ${o[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
+      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یه بازی ${o[0]} نیمه‌کاره داری اول اونو تموم کن`; }
       else if (!GC.live && store.get('dmid', null)) {
         const v = await GC.divar.match(store.get('dmid', null), 0).catch(() => null);
         if (v && v.status === 'playing') $('resume').hidden = false;
