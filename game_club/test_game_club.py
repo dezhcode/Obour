@@ -2985,3 +2985,217 @@ def test_app_guest_sessions_and_bundle():
         gbot.gcrt.db = old_db
         run(db.close())
         loop.close()
+
+
+def test_app_login_telegram_and_email():
+    """ورود برنامهٔ اندروید: لینک ربات با تأیید و رمز poll جدا، کد ایمیل (هش، حد حدس و فرستادن)،
+    ایمیل تازه روی همان مهمان، ایمیل قدیمی به حساب خودش، پنل مدیریت و عضویت اجباری بیرون از تلگرام نیستند."""
+    import io
+    import json
+    from types import SimpleNamespace as NS
+    from game_club import appauth, gate, mailer, wsgi as W
+    from game_club import api as gapi, bot as gbot
+    from game_club.db import GCDatabase
+    loop = asyncio.new_event_loop()
+    run = loop.run_until_complete
+    tmp = tempfile.mkdtemp()
+    db = GCDatabase(os.path.join(tmp, "gc.db"))
+    run(db.connect())
+    old_db, old_user = gbot.gcrt.db, gbot.gc.username
+    sent = []
+
+    async def fake_send(to, code, minutes):
+        sent.append((to, code, minutes))
+
+    async def broken_send(to, code, minutes):
+        raise OSError("smtp down")
+    try:
+        # --- تلگرام: لینک، تأیید در ربات، نتیجه فقط با poll و فقط یک بار ---
+        g = run(appauth.new_guest(db, "Galaxy A51"))
+        r = run(appauth.tg_start(db, "Galaxy A51"))
+        assert r["code"] != r["poll"] and r["code"] not in json.dumps(run(db.all("SELECT * FROM app_tg_logins")))
+        assert run(appauth.tg_check(db, r["poll"], g["token"])) == {"state": "wait"}
+        assert run(appauth.tg_pending(db, r["code"]))["device"] == "Galaxy A51"
+        assert run(appauth.tg_check(db, r["code"])) == {"state": "expired"}            # کد لینک جای poll کار نمی کند
+        assert not run(appauth.tg_decide(db, r["code"], -5, True))                       # فقط آیدی تلگرام واقعی
+        run(db.player(77, "Ali", "ali"))
+        assert run(appauth.tg_decide(db, r["code"], 77, True)) and not run(appauth.tg_decide(db, r["code"], 78, True))
+        ok = run(appauth.tg_check(db, r["poll"], g["token"]))
+        assert ok["state"] == "ok" and ok["account"] == {"kind": "telegram"} and ok["token"] != g["token"]
+        assert run(appauth.session_player(db, ok["token"]))["tg_id"] == 77
+        assert run(appauth.session_player(db, g["token"])) is None                     # نشست مهمان همین گوشی بسته شد
+        assert run(appauth.tg_check(db, r["poll"])) == {"state": "expired"}              # یک بار
+        r2 = run(appauth.tg_start(db))
+        assert run(appauth.tg_decide(db, r2["code"], 77, False)) and run(appauth.tg_check(db, r2["poll"])) == {"state": "no"}
+        r3 = run(appauth.tg_start(db, now=time.time() - appauth.LOGIN_TTL - 5))
+        assert run(appauth.tg_pending(db, r3["code"])) is None and not run(appauth.tg_decide(db, r3["code"], 77, True))
+        assert run(appauth.tg_check(db, r3["poll"])) == {"state": "expired"}
+
+        # --- ربات: پیام تأیید با اسم گوشی و دکمه ها؛ لینک کهنه پیام خطا ---
+        class Msg:
+            def __init__(self):
+                self.from_user, self.out = NS(id=88, first_name="Sara", last_name=None, username=None), []
+
+            async def answer(self, text, reply_markup=None, **kw):
+                self.out.append((text, reply_markup))
+
+        class CQ:
+            def __init__(self, data):
+                self.from_user, self.data, self.answers, self.views = NS(id=88, first_name="Sara", last_name=None, username=None), data, [], []
+                self.message = NS(edit_text=self._edit)
+
+            async def _edit(self, text, reply_markup=None):
+                self.views.append(text)
+
+            async def answer(self, text=None, show_alert=False):
+                self.answers.append(text)
+        r4 = run(appauth.tg_start(db, "Pixel 8"))
+        m = Msg()
+        run(gbot.on_start(m, command=NS(args="login_" + r4["code"]), gdb=db))
+        text, kb = m.out[-1]
+        assert "Pixel 8" in text and [b.callback_data for row in kb.inline_keyboard for b in row] == [f"al:ok:{r4['code']}", f"al:no:{r4['code']}"]
+        cq = CQ(f"al:ok:{r4['code']}")
+        run(gbot.on_app_login(cq, gdb=db))
+        assert cq.answers == ["حله ✅"] and "وارد شدی" in cq.views[-1]
+        assert run(appauth.session_player(db, run(appauth.tg_check(db, r4["poll"]))["token"]))["tg_id"] == 88
+        cq = CQ(f"al:ok:{r4['code']}")
+        run(gbot.on_app_login(cq, gdb=db))
+        assert "کار نمی‌کنه" in cq.answers[-1] and not cq.views
+        m = Msg()
+        run(gbot.on_start(m, command=NS(args="login_" + "x" * 24), gdb=db))
+        assert "کار نمی‌کنه" in m.out[-1][0] and m.out[-1][1] is None
+
+        # --- ایمیل: کد هش شده، صبر بین فرستادن ها، سقف ساعتی، حدس اشتباه ---
+        assert appauth.norm_email(" Ali.R+x@Gmail.COM ") == "ali.r+x@gmail.com"
+        for bad in ("", "ali", "ali@", "@x.com", "a b@x.com", "ali@x", "a@x..com"):
+            assert appauth.norm_email(bad) is None, bad
+        try:
+            run(appauth.email_start(db, "ali@gmail.com"))      # SMTP تنظیم نشده
+            raise AssertionError("email_off")
+        except appauth.LoginError as e:
+            assert e.code == "email_off" and not mailer.enabled()
+        t0 = time.time()
+        assert run(appauth.email_start(db, "Ali@Gmail.com", send=fake_send, now=t0))["email"] == "ali@gmail.com"
+        to, code, minutes = sent[-1]
+        assert to == "ali@gmail.com" and len(code) == 6 and code.isdigit() and minutes == 10
+        assert code not in json.dumps(run(db.all("SELECT * FROM app_codes")))
+        try:
+            run(appauth.email_start(db, "ali@gmail.com", send=fake_send, now=t0 + 10))
+            raise AssertionError("email_wait")
+        except appauth.LoginError as e:
+            assert e.code == "email_wait" and e.extra["wait"] == 50
+        for i in range(1, 5):
+            run(appauth.email_start(db, "ali@gmail.com", send=fake_send, now=t0 + 61 * i))
+        try:
+            run(appauth.email_start(db, "ali@gmail.com", send=fake_send, now=t0 + 61 * 5))
+            raise AssertionError("email_limit")
+        except appauth.LoginError as e:
+            assert e.code == "email_limit" and 0 < e.extra["wait"] <= 3600
+        code = sent[-1][1]
+        g2 = run(appauth.new_guest(db, "Redmi"))
+        gid = g2["player"]["tg_id"]
+        wrong = "000000" if code != "000000" else "111111"
+        for left in (4, 3):
+            try:
+                run(appauth.email_verify(db, "ali@gmail.com", wrong, g2["token"], now=t0 + 400))
+                raise AssertionError("code_bad")
+            except appauth.LoginError as e:
+                assert e.code == "code_bad" and e.extra["left"] == left
+        # کد درست (با عدد فارسی): ایمیل تازه روی همین مهمان می نشیند و توکن عوض نمی شود
+        fa = code.translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+        v = run(appauth.email_verify(db, "ali@gmail.com", fa, g2["token"], "Redmi", now=t0 + 400))
+        assert v == {"token": g2["token"], "account": {"kind": "email", "email": "ali@gmail.com"}}
+        assert run(appauth.account(db, gid)) == {"kind": "email", "email": "ali@gmail.com"}
+        try:
+            run(appauth.email_verify(db, "ali@gmail.com", code, g2["token"], now=t0 + 401))   # کد یک بار
+            raise AssertionError("code_expired")
+        except appauth.LoginError as e:
+            assert e.code == "code_expired"
+        # گوشی دیگر: همان ایمیل به همان حساب می برد و مهمان آن گوشی بسته می شود
+        g3 = run(appauth.new_guest(db, "iPhone"))
+        run(appauth.email_start(db, "ali@gmail.com", send=fake_send, now=t0 + 4000))
+        v = run(appauth.email_verify(db, "ali@gmail.com", sent[-1][1], g3["token"], "Moto", now=t0 + 4001))
+        assert v["token"] not in (g2["token"], g3["token"]) and run(appauth.session_player(db, v["token"]))["tg_id"] == gid
+        assert run(appauth.session_player(db, g3["token"])) is None
+        # پنج حدس اشتباه: کد می سوزد
+        run(appauth.email_start(db, "sara@x.ir", send=fake_send, now=t0 + 5000))
+        wrong = "000000" if sent[-1][1] != "000000" else "111111"
+        errs = []
+        for _ in range(6):
+            try:
+                run(appauth.email_verify(db, "sara@x.ir", wrong, now=t0 + 5001))
+            except appauth.LoginError as e:
+                errs.append(e.code)
+        assert errs == ["code_bad"] * 4 + ["code_tries", "code_tries"]
+        # ایمیل تازه وقتی حساب ایمیلی یا تلگرامی وارد است: حساب تازه (ایمیل قبلی عوض نمی شود)
+        run(appauth.email_start(db, "new@x.ir", send=fake_send, now=t0 + 6000))
+        v = run(appauth.email_verify(db, "new@x.ir", sent[-1][1], ok["token"], now=t0 + 6001))
+        nid = run(appauth.session_player(db, v["token"]))["tg_id"]
+        assert nid < 0 and nid != gid and run(appauth.account(db, 77)) == {"kind": "telegram"}
+        assert run(appauth.session_player(db, ok["token"])) is None                    # جای حساب تلگرامی روی این گوشی
+        assert run(appauth.account(db, gid))["email"] == "ali@gmail.com"
+        # SMTP خراب: send_fail و دوباره فرستادن بی معطلی آزاد است
+        try:
+            run(appauth.email_start(db, "z@x.ir", send=broken_send, now=t0 + 7000))
+            raise AssertionError("send_fail")
+        except appauth.LoginError as e:
+            assert e.code == "send_fail"
+        run(appauth.email_start(db, "z@x.ir", send=fake_send, now=t0 + 7001))
+
+        # --- wsgi: مسیرها، خطاها، CORS؛ API برنامه: حساب، بدون پنل مدیریت و عضویت اجباری ---
+        class RT:
+            def run(self, coro, timeout=None):
+                return run(coro)
+        gbot.gcrt.db = db
+
+        def call(method, path, headers=None, body=b"", ip="5.6.7.8"):
+            env = {"REQUEST_METHOD": method, "PATH_INFO": path, "QUERY_STRING": "", "CONTENT_LENGTH": str(len(body)),
+                   "wsgi.input": io.BytesIO(body), "REMOTE_ADDR": ip, "HTTP_ORIGIN": "https://localhost"}
+            env.update(headers or {})
+            got = {}
+            out = W.handle(env, lambda s_, h, *a: got.update(status=s_, h=dict(h)), path, RT(), lambda e: False)
+            return got["status"], got["h"], json.loads(b"".join(out) or b"{}")
+        gbot.gc.username = ""
+        assert call("POST", "/gc/app/login/tg", body=b"{}")[2] == {"error": "tg_off"}
+        gbot.gc.username = "gcbot"
+        s_, h_, b_ = call("POST", "/gc/app/login/tg", body=b'{"device":"Pixel"}')
+        assert s_.startswith("200") and h_["Access-Control-Allow-Origin"] == "https://localhost"
+        assert b_["link"].startswith("https://t.me/gcbot?start=login_") and len(b_["link"]) - len("https://t.me/gcbot?start=") <= 64
+        assert call("POST", "/gc/app/login/tg/check", body=json.dumps({"poll": b_["poll"]}).encode())[2] == {"state": "wait"}
+        assert call("POST", "/gc/app/login/email", body=b'{"email":"nope"}')[2] == {"error": "bad_email"}
+        assert call("POST", "/gc/app/login/email", body=b'{"email":"a@b.co"}')[2] == {"error": "email_off"}
+        assert call("POST", "/gc/app/login/email/verify", body=b'{"email":"q@b.co","code":"1"}')[2] == {"error": "code_expired"}
+        codes = [call("POST", "/gc/app/login/email", body=b'{"email":"x"}', ip="7.7.7.7")[0][:3] for _ in range(21)]
+        assert codes.count("400") == 20 and codes[-1] == "429"
+
+        class OB:
+            class db:
+                @staticmethod
+                async def get_setting(k, d=""):
+                    return d
+
+                @staticmethod
+                async def get_user_by_tg(tg):
+                    return None
+        real_ob, gapi._obour = gapi._obour, lambda: OB
+        r5 = run(appauth.tg_start(db))
+        run(appauth.tg_decide(db, r5["code"], 77, True))
+        t77 = run(appauth.tg_check(db, r5["poll"]))["token"]
+        from app.config import config as obour_cfg
+        old_ids = list(obour_cfg.admin_ids)
+        obour_cfg.admin_ids[:] = [77]
+        try:
+            run(gate.save(db, "gate", {"on": True, "chats": [{"id": "@c", "title": "c", "url": "https://t.me/c"}]}))
+            s_, _, me = call("GET", "/gc/api/me", {"HTTP_X_GC_TOKEN": t77})
+            assert s_.startswith("200") and me["account"] == {"kind": "telegram"} and me["is_admin"] is False, (s_, me)
+            assert call("GET", "/gc/api/admin", {"HTTP_X_GC_TOKEN": t77})[2] == {"error": "not_found"}
+            assert call("GET", "/gc/api/boot", {"HTTP_X_GC_TOKEN": t77})[2]["gate"] == []
+            assert call("GET", "/gc/api/me", {"HTTP_X_GC_TOKEN": v["token"]})[2]["account"] == {"kind": "email", "email": "new@x.ir"}
+        finally:
+            gapi._obour = real_ob
+            obour_cfg.admin_ids[:] = old_ids
+            run(gate.save(db, "gate", {"on": False, "chats": []}))
+    finally:
+        gbot.gcrt.db, gbot.gc.username = old_db, old_user
+        run(db.close())
+        loop.close()

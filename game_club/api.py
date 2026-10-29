@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 
-from . import admin, bridge, gate, groups, names, service, social
+from . import admin, appauth, bridge, gate, groups, names, service, social
 from .bot import gcrt
 from .config import gc
 from .db import pic_url
@@ -50,6 +50,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
     g = await gcrt.ensure()
     gdb = g.db
     tg = user.id
+    # برنامهٔ اندروید: پنل مدیریت و عضویت اجباری کانال فقط در تلگرام
+    in_app = bool(getattr(user, "app", False))
     # نام و عکس هر بار از initData تلگرام به روز می شود
     full = getattr(user, "full_name", "") or user.first_name
     player = await gdb.player(tg, full or user.username or "بازیکن", user.username or None,
@@ -60,6 +62,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
 
     # ---------- پنل مدیریت ----------
     if name == "admin" or name.startswith("admin/"):
+        if in_app:
+            raise GCError("not_found")
         return await admin.handle(name, method, tg, q, body, gdb)
     # کاربر مسدود فقط صفحه خانه را می بیند (با پیام مسدودی)
     if player.get("banned") and name != "me":
@@ -69,11 +73,12 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             re.match(r"^(ludo|hokm|football|billiard|divar|esmfamil|lashgar|snakes)/(queue|queue/bots|invite|join)$", name):
         raise GCError("maintenance")
     # عضویت اجباری (پنل مدیریت): ساختن یا نشستن سر میز فقط برای عضوهای کانال ها و گروه های لازم
-    if method == "POST" and re.match(r"^(ludo|hokm|football|billiard|divar|esmfamil|lashgar|snakes)/(queue|queue/bots|invite|join)$", name):
+    if method == "POST" and not in_app and \
+            re.match(r"^(ludo|hokm|football|billiard|divar|esmfamil|lashgar|snakes)/(queue|queue/bots|invite|join)$", name):
         await gate.require(gdb, g.bot, tg)
     # ---------- باز شدن مینی اپ: کانال های لازم و پیام پاپ آپ ----------
     if name == "boot" and method == "GET":
-        return {"gate": await gate.missing(gdb, g.bot, tg), "popup": await gate.popup_view(gdb)}
+        return {"gate": [] if in_app else await gate.missing(gdb, g.bot, tg), "popup": await gate.popup_view(gdb)}
     if name == "gate/check" and method == "POST":      # «عضو شدم»: بدون حافظه دوباره از تلگرام
         return {"gate": await gate.missing(gdb, g.bot, tg, fresh=True)}
 
@@ -97,7 +102,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "queue": bool(q_row and not q_row["claimed"]),
             "tables": await service.my_tables(gdb, tg),
             "social": await social.badge(gdb, tg),
-            "is_admin": admin.is_admin(tg), "banned": bool(player.get("banned")), "style": service.style_of(player),
+            "account": await appauth.account(gdb, tg),
+            "is_admin": admin.is_admin(tg) and not in_app, "banned": bool(player.get("banned")), "style": service.style_of(player),
             "notice": gc.notice, "maintenance": gc.maintenance,
             "settings": {"stake": gc.stake_enabled, "shop": gc.shop_enabled, "entries": list(gc.entries), "packs": list(gc.charge_packs),
                          "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,

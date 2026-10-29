@@ -385,6 +385,11 @@
       style = Object.assign({ table: 'a', cards: 'a' }, me.style || {});
       notify = me.notify || [];
       renderHeader(); renderNameHint();
+      // برنامهٔ اندروید: بار اول ورود با تلگرام یا ایمیل (یا فعلاً مهمون)
+      if (GC.app && me.account && !GC.store.get('welcome', false)) {
+        GC.store.set('welcome', true);
+        if (me.account.kind === 'guest') GC.login({ welcome: true, guestGames: me.player.games });
+      }
       sig = ''; setTables(me.tables || []);
       const note = me.banned ? 'شرمنده داش حسابت تو AsoTas بسته شده اگه پیگیری می‌خوای به پشتیبانی عبور پیام بده'
         : me.maintenance ? 'داریم آپدیت می‌کنیم و تا چند دقیقه میز تازه ساخته نمی‌شه' : (me.notice || '');

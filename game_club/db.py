@@ -269,6 +269,34 @@ CREATE TABLE IF NOT EXISTS app_sessions (
   seen_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS app_sessions_tg ON app_sessions(tg_id);
+
+-- ورود برنامه با ایمیل: هر حساب حداکثر یک ایمیل (حساب ایمیلی تلگرام ندارد و tg_id منفی دارد)
+CREATE TABLE IF NOT EXISTS app_emails (
+  email TEXT PRIMARY KEY,
+  tg_id INTEGER NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL
+);
+
+-- کد ورود ایمیل (فقط هش)؛ sends تعداد کدهای فرستاده شده از window_at
+CREATE TABLE IF NOT EXISTS app_codes (
+  email TEXT PRIMARY KEY,
+  code_hash TEXT NOT NULL,
+  tries INTEGER NOT NULL DEFAULT 0,
+  sent_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  sends INTEGER NOT NULL DEFAULT 1,
+  window_at INTEGER NOT NULL
+);
+
+-- ورود برنامه با تلگرام: لینک ربات (کد) و رمز جدای پرسیدن نتیجه (poll)، هر دو فقط هش
+CREATE TABLE IF NOT EXISTS app_tg_logins (
+  code_hash TEXT PRIMARY KEY,
+  poll_hash TEXT NOT NULL UNIQUE,
+  device TEXT NOT NULL DEFAULT '',
+  tg_id INTEGER,
+  state TEXT NOT NULL DEFAULT 'wait',
+  created_at INTEGER NOT NULL
+);
 """
 
 

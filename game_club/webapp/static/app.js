@@ -1,6 +1,7 @@
 /* برنامهٔ اندروید AsoTas (Capacitor). فقط وقتی بار می شود که صفحه ها از داخل برنامه باز شوند؛
    appbundle.py این اسکریپت را به جای SDK تلگرام در هر صفحه می گذارد و app-config.js (GC_APP) را پیش از آن.
    - حساب مهمان: بار اول از سرور یک حساب و توکن نشست می گیرد (یوزرنیم تصادفی، مثل مینی اپ)؛
+   - ورود با تلگرام (لینک ربات و تأیید در تلگرام) یا ایمیل (کد ۶ رقمی): GCApp.login، برگه اش در gc.js؛
    - آدرس سرور: صفحه ها داخل برنامه اند، API و عکس پروفایل از سرور (GCApp.srv)؛
    - نوار وضعیت گوشی: رنگ آیکن ها با زمینهٔ صفحه (GCApp.bars)؛
    - آپدیت خودکار: نسخهٔ تازهٔ صفحه ها و بازی ها از سرور دانلود و نگه داشته می شود و دفعهٔ بعد که
@@ -49,6 +50,32 @@
     }
     return pending;
   }
+  // ---------- ورود با تلگرام و ایمیل (appauth.py) ----------
+  async function post(path, body) {
+    let r;
+    try {
+      r = await fetch(cfg.base + path, {
+        method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json', 'X-GC-Token': ls.get(KEY) },
+        body: JSON.stringify(body || {}),
+      });
+    } catch (e) { throw Object.assign(new Error('network'), { code: 'network' }); }
+    let j = {};
+    try { j = await r.json(); } catch (e) {}
+    if (!r.ok) throw Object.assign(new Error(j.error || 'server'), { code: r.status === 429 ? 'rate' : (j.error || 'server'), extra: j });
+    return j;
+  }
+  // توکن تازه جای توکن قبلی این گوشی می نشیند؛ صفحه بعدش از نو بار می شود تا همه چیز مال حساب تازه باشد
+  const keep = j => { if (j && j.token) ls.set(KEY, j.token); return j; };
+  const login = {
+    tg: () => post('app/login/tg', { device: device() }),
+    tgCheck: poll => post('app/login/tg/check', { poll }).then(keep),
+    email: email => post('app/login/email', { email }),
+    emailVerify: (email, code) => post('app/login/email/verify', { email, code, device: device() }).then(keep),
+    logout: () => post('app/logout').catch(() => {}).then(() => { ls.set(KEY, ''); }),
+    // لینک t.me بیرون از برنامه باز می شود (اپ تلگرام، وگرنه مرورگر)
+    open: url => { try { window.open(url, '_blank'); } catch (e) { location.href = url; } },
+  };
+
   // آدرس هایی که سرور می دهد (عکس پروفایل، عکس پیام پاپ آپ) نسبی اند؛ داخل برنامه باید از سرور بیایند
   const srv = u => (u && /^(pic|media)\//.test(u)) ? cfg.base + u : u;
 
@@ -105,5 +132,5 @@
     addEventListener('load', () => { setTimeout(() => ota().catch(() => {}), 1500); });
   }
 
-  window.GCApp = { base: cfg.base, bundle: cfg.bundle, native, call, token, srv, bars };
+  window.GCApp = { base: cfg.base, bundle: cfg.bundle, native, call, token, srv, bars, login };
 })();

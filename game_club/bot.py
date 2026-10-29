@@ -7,6 +7,7 @@
   /esmfamil         در پیوی: اسم‌فامیل فقط در گروه یا کانال است؛ توضیح و دکمهٔ انتخاب گروه/کانال
   /lashgar          در پیوی: لشگر کاغذی (جنگ کاغذی) هم فقط در گروه یا کانال است
   /start obour      آمده از کارت AsoTas در مینی اپ عبور
+  /start login_CODE «ورود با تلگرام» برنامهٔ اندروید: تأیید با دکمه (appauth.py)
   /points           موجودی امتیاز
   /help             قوانین کوتاه
 در گروه ها (groups.py): @آیدی ربات (حالت اینلاین) یا /hokm، /ludo، /football، /billiard، /divar، /esmfamil، /lashgar، /snakes، /play کارت تنظیم میز می فرستد.
@@ -240,6 +241,9 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
             foot=(None, None, "اگه فکر می‌کنی اشتباه شده به پشتیبانی عبور پیام بده آدمای خوبی‌ان 😄")))
         return
     arg = (command.args or "").strip()
+    if arg.startswith("login_"):   # «ورود با تلگرام» برنامهٔ اندروید
+        await app_login_ask(message, gdb, arg[6:])
+        return
     if arg == "esmfamil":   # از دکمهٔ راهنمای حالت اینلاین در پیوی
         await message.answer(_h("esmfamil", "اسم‌فامیل", "بازی گروهی", esmfamil_intro(),
                                 foot=(None, None, "دکمهٔ زیر رو بزن و گروهتو انتخاب کن 👇")), reply_markup=esmfamil_kb())
@@ -278,6 +282,45 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         lines += ["", "حساب عبورت به همین تلگرام وصله و شارژ از کیف عبور یه ثانیه‌ست ⚡"]
     await message.answer(_h("hello", "AsoTas", "منوی اصلی", lines, foot=("coin", "امتیاز", [st.num(me["points"]), " امتیاز"])),
                          reply_markup=with_group_button(open_kb()))
+
+
+async def app_login_ask(message: Message, gdb: GCDatabase, code: str) -> None:
+    """تأیید ورود برنامه با همین تلگرام؛ اسم گوشی را نشان می دهد تا کسی لینک خودش را برای دیگری نفرستد."""
+    from . import appauth
+
+    row = await appauth.tg_pending(gdb, code)
+    if not row:
+        await message.answer(_h("warn", "ورود به اپ AsoTas", "این لینک دیگه کار نمی‌کنه", [
+            "لینک ورود یا وقتش گذشته یا یه بار استفاده شده 🤷"], foot=(None, None, "تو اپ دوباره «ورود با تلگرام» رو بزن")))
+        return
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [st.kb_button("آره خودمم بزن بریم", "ok", callback_data=f"al:ok:{code}")],
+        [st.kb_button("نه من نبودم", "cancel", callback_data=f"al:no:{code}")]])
+    await message.answer(_h("link", "ورود به اپ AsoTas", "خودتی داش؟", [
+        "یه گوشی می‌خواد با همین تلگرامت وارد اپ AsoTas بشه 📱", ["گوشی ", st.iso(row["device"] or "اندروید")], "",
+        "اگه خودت تو اپ «ورود با تلگرام» رو زدی تأیید کن",
+        "اگه خودت نبودی بزن «نه» و این لینکو واسه هیچ‌کس نفرست 🔒"]), reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("al:"))
+async def on_app_login(cb: CallbackQuery, gdb: GCDatabase) -> None:
+    from . import appauth
+
+    u = cb.from_user
+    _, act, code = (cb.data.split(":", 2) + ["", ""])[:3]
+    ok = act == "ok"
+    me = await gdb.player(u.id, " ".join(x for x in (u.first_name, u.last_name) if x).strip() or u.username or "بازیکن", u.username)
+    if me.get("banned") or not await appauth.tg_decide(gdb, code, u.id, ok):
+        await cb.answer("این لینک دیگه کار نمی‌کنه از تو اپ دوباره «ورود با تلگرام» رو بزن 🤷", show_alert=True)
+        return
+    await cb.answer("حله ✅" if ok else "باشه رد شد 👍")
+    text = _h("ok", "ورود به اپ AsoTas", "حله وارد شدی ✅", [
+        "برگرد تو اپ AsoTas خودش میره تو حسابت 😎", "پروفایل و رفقا و بازیات همون‌جا منتظرتن"]) if ok else \
+        _h("cancel", "ورود به اپ AsoTas", "ورود رد شد 👍", ["کسی با این لینک وارد حسابت نشد خیالت راحت 🔒"])
+    try:
+        await cb.message.edit_text(text)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def esmfamil_intro() -> list:

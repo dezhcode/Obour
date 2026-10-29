@@ -84,6 +84,11 @@
 .sets{display:grid;padding:4px 14px;border-radius:var(--radius-xl);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
 .set{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:56px}
 .set+.set{border-top:1px solid var(--line)}
+.set[hidden]{display:none}
+.set[hidden]+.set{border-top:0}
+.set .btn-sm{flex:none}
+.acc-guest small{color:var(--danger)}
+.acc-mail{text-align:right;overflow-wrap:anywhere}
 .pf-ta{width:100%;box-sizing:border-box;padding:12px 14px;border:0;border-radius:16px;background:var(--surface-sunk);color:var(--ink);font:inherit;font-size:15px;line-height:24px;resize:none;outline:2px solid transparent}
 .pf-ta:focus{outline-color:var(--acc)}
 .pf-tn{margin-top:-14px;font-size:12px;color:var(--ink-muted);text-align:end}
@@ -157,6 +162,7 @@
   <section aria-labelledby="hSet">
     <div class="sec-head"><h2 id="hSet">تنظیمات</h2></div>
     <div class="sets">
+      <div class="set" id="pfAcc" hidden></div>
       <div class="set"><span><b>پوسته</b><small>خودکار مثل تلگرام</small></span><div class="seg" id="segTheme" role="group" aria-label="پوسته"><button data-m="auto">خودکار</button><button data-m="light">روشن</button><button data-m="dark">تیره</button></div></div>
       <div class="set"><span><b>صدای بازی</b><small>صدای ورق و تاس و توپ و تماشاچیا</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
       <div class="set"><span><b>منو تو لیست خرج نشون بده</b><small>تو رده‌بندی «بیشترین خرج» دیده بشی</small></span><button class="switch" role="switch" id="swSpend" aria-label="نمایش من در فهرست خرج"></button></div>
@@ -287,11 +293,24 @@
     });
   };
 
+  // حساب برنامهٔ اندروید: مهمان (ذخیره با تلگرام یا ایمیل) یا وارد شده (خروج)
+  function renderAcc() {
+    const box = $('pfAcc'), a = me && me.account;
+    if (!GC.app || !a) { box.hidden = true; return; }
+    box.hidden = false;
+    box.classList.toggle('acc-guest', a.kind === 'guest');
+    box.innerHTML = a.kind === 'guest'
+      ? `<span><b>حسابت مهمونه 😬</b><small>اگه برنامه پاک شه یا گوشیتو عوض کنی همه‌چی می‌پره</small></span><button class="btn btn-sm" id="accIn">ذخیرهٔ حساب</button>`
+      : `<span><b>${a.kind === 'telegram' ? 'وارد شدی با تلگرام ✈️' : 'وارد شدی با ایمیل 📬'}</b><small${a.kind === 'email' ? ' dir="ltr" class="acc-mail"' : ''}>${a.kind === 'email' ? GC.esc(a.email) : 'همون حساب ربات تلگرام AsoTas'}</small></span><button class="btn btn-sm btn-light" id="accOut">خروج</button>`;
+    const b = box.querySelector('button');
+    b.onclick = a.kind === 'guest' ? () => GC.login({ guestGames: me.player.games }) : () => GC.logoutSheet();
+  }
+
   async function load() {
     try {
       [me, pf] = await Promise.all([GC.refreshMe(), GC.data.profile()]);
       $('pfSample').hidden = !pf.sample;
-      renderMe(); renderGames(); renderRecent(); renderBadges(); GC.mount();
+      renderMe(); renderAcc(); renderGames(); renderRecent(); renderBadges(); GC.mount();
     } catch (e) { toast(errText(e)); }
     try { renderCollection(await GC.data.style()); } catch (e) { if (me) renderCollection(null); }
   }
