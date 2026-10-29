@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- پنجرهٔ خام اندروید؛ رنگ ها و ظاهر اصلی در Compose (ui/Theme.kt) -->
+    <style name="Theme.AsoTas" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/ic_launcher_background</item>
+    </style>
+</resources>
