@@ -150,7 +150,7 @@ class Config:
     panel_timeout: float = float(os.getenv("PANEL_TIMEOUT", "8") or 8)
 
     # ===== AsoTas (ربات جدای بازی) =====
-    # فقط یوزرنیم لازم است تا کارت «بازی کن و امتیاز بگیر» در صفحه اصلی
+    # فقط یوزرنیم لازم است تا کارت AsoTas در صفحه اصلی
     # مینی اپ عبور نشان داده شود؛ خالی = کارت پنهان. توکن را خود AsoTas
     # از همین .env می خواند (پوشه game_club).
     game_club_bot_username: str = os.getenv("GAME_CLUB_BOT_USERNAME", "").strip().lstrip("@")

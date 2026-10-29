@@ -1,7 +1,8 @@
 """دیتابیس جدای AsoTas (SQLite با WAL).
 
 قواعد مالی همان قواعد عبور است:
-- هر تغییر امتیاز اتمیک است (UPDATE ... WHERE points >= ?)
+- ستون points موجودی سکه است (پول داخل بازی) و هر تغییرش اتمیک است (UPDATE ... WHERE points >= ?)
+- legacy_points امتیازهای قدیمی (پول واقعی) است که refund.py به کیف عبور برمی گرداند
 - هر ردیف دفتر (ledger) یک idem یکتا دارد تا درخواست تکراری دو بار ثبت نشود
 - وضعیت میز با شماره نسخه ذخیره می شود؛ اگر دو پروسه همزمان بنویسند،
   دومی رد می شود و دوباره از نو می خواند (Passenger چند پروسه دارد)
@@ -35,8 +36,9 @@ CREATE TABLE IF NOT EXISTS players (
   seen_at INTEGER NOT NULL
 );
 
--- هر تغییر امتیاز یک ردیف. amount مثبت = ورود، منفی = خروج
--- kind: charge, entry, refund, prize, shop, transfer, gift
+-- هر تغییر سکه یک ردیف. amount مثبت = ورود، منفی = خروج
+-- سکه: gift (هدیهٔ شروع)، daily (جایزهٔ روزانه)، reward (برد رتبه ای)، style (خرید آیتم)، admin
+-- امتیاز قدیمی (legacy_points): charge, entry, refund, prize, shop, transfer و obour (برگشت به کیف عبور)
 CREATE TABLE IF NOT EXISTS ledger (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tg_id INTEGER NOT NULL,
@@ -95,6 +97,18 @@ CREATE TABLE IF NOT EXISTS results (
   PRIMARY KEY (match_id, tg_id)
 );
 CREATE INDEX IF NOT EXISTS results_time ON results(created_at);
+
+-- جام هر بازیکن در هر بازی (بازی رتبه ای): برد +، باخت − (کمتر از صفر نمی شود)
+CREATE TABLE IF NOT EXISTS ranks (
+  tg_id INTEGER NOT NULL,
+  game TEXT NOT NULL,
+  cups INTEGER NOT NULL DEFAULT 0,
+  games INTEGER NOT NULL DEFAULT 0,
+  wins INTEGER NOT NULL DEFAULT 0,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (tg_id, game)
+);
+CREATE INDEX IF NOT EXISTS ranks_board ON ranks(game, cups);
 
 CREATE TABLE IF NOT EXISTS notify (
   tg_id INTEGER NOT NULL,
@@ -349,9 +363,21 @@ class GCDatabase:
             await self._conn.execute("ALTER TABLE players ADD COLUMN cover TEXT NOT NULL DEFAULT 'gc'")
         if "tg_name" not in have:
             await self._conn.execute("ALTER TABLE players ADD COLUMN tg_name TEXT NOT NULL DEFAULT ''")
-        for col in ("nick_ok", "uname_at", "uname_seen", "kots"):
+        for col in ("nick_ok", "uname_at", "uname_seen", "kots", "daily_day", "daily_streak"):
             if col not in have:
                 await self._conn.execute(f"ALTER TABLE players ADD COLUMN {col} INTEGER NOT NULL DEFAULT 0")
+        if "legacy_points" not in have:
+            # سکه جای امتیاز: امتیاز قدیمی (پول واقعی) یک بار کنار می رود تا refund.py به کیف عبور برگرداند.
+            # فقط پروسه ای که ستون را ساخت جابه جا می کند (پروسهٔ دیگر روی ستون تکراری خطا می گیرد و رد می شود)
+            try:
+                await self._conn.execute("ALTER TABLE players ADD COLUMN legacy_points INTEGER NOT NULL DEFAULT 0")
+            except aiosqlite.OperationalError:
+                pass
+            else:
+                await self._conn.execute("UPDATE players SET legacy_points = points, points = 0")
+        cur = await self._conn.execute("PRAGMA table_info(results)")
+        if "cups" not in {r[1] for r in await cur.fetchall()}:
+            await self._conn.execute("ALTER TABLE results ADD COLUMN cups INTEGER NOT NULL DEFAULT 0")
         cur = await self._conn.execute("PRAGMA table_info(group_tables)")
         if "inline_message_id" not in {r[1] for r in await cur.fetchall()}:
             await self._conn.execute("ALTER TABLE group_tables ADD COLUMN inline_message_id TEXT NOT NULL DEFAULT ''")
@@ -775,6 +801,75 @@ class GCDatabase:
             return False
         return await self.execute("UPDATE players SET points = points + ? WHERE tg_id = ?", (amount, tg_id)) == 1
 
+    async def credit_legacy(self, tg_id: int, amount: int) -> bool:
+        """امتیاز قدیمی (جایزه و برگشت ورودی میزهای امتیازی که پیش از سکه شروع شده بودند)."""
+        if amount <= 0:
+            return False
+        return await self.execute("UPDATE players SET legacy_points = legacy_points + ? WHERE tg_id = ?", (amount, tg_id)) == 1
+
+    async def take_legacy(self, tg_id: int, amount: int, note: str, ref: str, idem: str) -> int | None:
+        """کم شدن امتیاز قدیمی و ردیف دفتر pending با هم در یک تراکنش (برگشت به کیف عبور)؛ None اگر نشد."""
+        if amount <= 0:
+            return None
+        async with self._lock:
+            assert self._conn
+            try:
+                cur = await self._conn.execute(
+                    "UPDATE players SET legacy_points = legacy_points - ? WHERE tg_id = ? AND legacy_points >= ?",
+                    (amount, tg_id, amount))
+                if cur.rowcount != 1:
+                    await self._conn.rollback()
+                    return None
+                cur = await self._conn.execute(
+                    "INSERT INTO ledger(tg_id, kind, amount, note, ref, idem, status, created_at) VALUES(?,?,?,?,?,?,?,?)",
+                    (tg_id, "obour", -amount, note[:120], ref, idem, "pending", int(time.time())))
+                await self._conn.commit()
+                return cur.lastrowid
+            except aiosqlite.IntegrityError:
+                await self._conn.rollback()
+                return None
+
+    async def earned_since(self, tg_id: int, kind: str, since: int) -> int:
+        row = await self.one("SELECT COALESCE(SUM(amount), 0) AS n FROM ledger WHERE tg_id = ? AND kind = ? "
+                             "AND status = 'done' AND created_at >= ?", (tg_id, kind, since))
+        return int(row["n"] if row else 0)
+
+    async def claim_daily(self, tg_id: int, old_day: int, day: int, streak: int) -> bool:
+        """جایزهٔ روزانه فقط یک بار: ردیف فقط اگر روز قبلی همان باشد که خوانده شده عوض می شود."""
+        return await self.execute("UPDATE players SET daily_day = ?, daily_streak = ? WHERE tg_id = ? AND daily_day = ?",
+                                  (day, streak, tg_id, old_day)) == 1
+
+    # ---------- جام (بازی رتبه ای) ----------
+    async def rank_of(self, tg_id: int, game: str) -> dict:
+        return await self.one("SELECT cups, games, wins FROM ranks WHERE tg_id = ? AND game = ?", (tg_id, game)) \
+            or {"cups": 0, "games": 0, "wins": 0}
+
+    async def ranks_of(self, tg_id: int) -> dict:
+        return {r["game"]: {"cups": r["cups"], "games": r["games"], "wins": r["wins"]}
+                for r in await self.all("SELECT game, cups, games, wins FROM ranks WHERE tg_id = ?", (tg_id,))}
+
+    async def rank_add(self, tg_id: int, game: str, delta: int, won: bool) -> int:
+        """جام بعد از یک بازی رتبه ای؛ تغییر واقعی (جام کمتر از صفر نمی شود)."""
+        old = (await self.rank_of(tg_id, game))["cups"]
+        await self.execute(
+            "INSERT INTO ranks(tg_id, game, cups, games, wins, updated_at) VALUES(?,?,?,1,?,?) "
+            "ON CONFLICT(tg_id, game) DO UPDATE SET cups = MAX(0, cups + ?), games = games + 1, wins = wins + ?, "
+            "updated_at = excluded.updated_at", (tg_id, game, max(0, delta), int(won), int(time.time()), delta, int(won)))
+        return (await self.rank_of(tg_id, game))["cups"] - old
+
+    async def cup_board(self, game: str, limit: int = 30) -> list[dict]:
+        return await self.all(
+            "SELECT k.tg_id, p.name, p.av, p.photo, p.pic, k.cups, k.wins, k.games FROM ranks k JOIN players p ON p.tg_id = k.tg_id "
+            "WHERE k.game = ? AND k.cups > 0 ORDER BY k.cups DESC, k.wins DESC, k.updated_at ASC LIMIT ?", (game, limit))
+
+    async def cup_rank(self, tg_id: int, game: str) -> dict:
+        me = await self.rank_of(tg_id, game)
+        rank = 0
+        if me["cups"]:
+            row = await self.one("SELECT COUNT(*) AS n FROM ranks WHERE game = ? AND cups > ?", (game, me["cups"]))
+            rank = int(row["n"] if row else 0) + 1
+        return {**me, "rank": rank}
+
     async def add_ledger(self, tg_id: int, kind: str, amount: int, note: str = "", ref: str = "",
                          idem: str | None = None, status: str = "done") -> int | None:
         """None یعنی همین idem قبلا ثبت شده."""
@@ -808,7 +903,7 @@ class GCDatabase:
 
     async def recent_games(self, tg_id: int, limit: int = 10) -> list[dict]:
         return await self.all(
-            "SELECT m.game AS game, r.won AS won, r.prize AS prize, r.created_at AS at, m.cfg AS cfg "
+            "SELECT m.game AS game, r.won AS won, r.prize AS prize, r.cups AS cups, r.created_at AS at, m.cfg AS cfg "
             "FROM results r JOIN matches m ON m.id = r.match_id WHERE r.tg_id = ? ORDER BY r.created_at DESC LIMIT ?",
             (tg_id, limit))
 
@@ -886,14 +981,18 @@ class GCDatabase:
     async def mark_settled(self, match_id: str) -> bool:
         return await self.execute("UPDATE matches SET settled = 1 WHERE id = ? AND settled = 0", (match_id,)) == 1
 
-    async def add_result(self, match_id: str, tg_id: int, won: bool, prize: int) -> None:
+    async def add_result(self, match_id: str, tg_id: int, won: bool, prize: int, cups: int = 0) -> None:
+        """prize: سکهٔ جایزهٔ برد رتبه ای (یا جایزهٔ میزهای امتیازی قدیمی)؛ cups: تغییر جام."""
         try:
-            await self.execute("INSERT INTO results(match_id, tg_id, won, prize, created_at) VALUES(?,?,?,?,?)",
-                               (match_id, tg_id, int(won), prize, int(time.time())))
+            await self.execute("INSERT INTO results(match_id, tg_id, won, prize, cups, created_at) VALUES(?,?,?,?,?,?)",
+                               (match_id, tg_id, int(won), prize, cups, int(time.time())))
         except aiosqlite.IntegrityError:
             return
         await self.execute("UPDATE players SET games = games + 1, wins = wins + ? WHERE tg_id = ?",
                            (int(won), tg_id))
+
+    async def result_row(self, match_id: str, tg_id: int) -> dict | None:
+        return await self.one("SELECT won, prize, cups FROM results WHERE match_id = ? AND tg_id = ?", (match_id, tg_id))
 
     async def add_kots(self, tg_id: int, n: int) -> None:
         """دست هایی که تیم بازیکن در حکم هفت به صفر برد (نشان «کوت‌کن»)."""

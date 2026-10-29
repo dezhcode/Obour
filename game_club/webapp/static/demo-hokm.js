@@ -128,13 +128,14 @@ function makeMatch(cfg, guest) {
   const names = [...BOTS].sort(() => Math.random() - .5);
   const seats = SEATS.map(s => s === '0' ? { color: s, name: 'شما', av: 7 } : guest && s === '2' ? { color: s, name: 'دوست شما', av: 11, bot: true }
     : { color: s, name: names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true });
-  const st = newState(seats, cfg.target); st.pot = cfg.mode === 'stake' ? cfg.entry * 4 : 0; st.stake = cfg.mode === 'stake';
+  const st = newState(seats, cfg.target); st.stake = cfg.mode !== 'free';
   return { id: 'hk' + Date.now().toString(36), status: 'playing', cfg: Object.assign({ game: 'hokm', players: 4 }, cfg), state: st, settled: false };
 }
 function settle(m) {
   if (m.settled || m.status !== 'over') return; m.settled = true; m.chat = [];
   const won = m.state.winner === 0; S.games++;
-  if (won) { S.wins++; if (m.cfg.mode === 'stake') { const p = m.state.pot / 2; S.bal += p; S.won += p; GC.ledger('جایزهٔ حکم', p, 'prize'); } }
+  if (won) S.wins++;
+  if (m.cfg.mode === 'ranked') m.rank = GC.demo.rank('hokm', won);
   save();
 }
 const QUIPS = ['سلام!', 'خوش‌بازی!', 'آفرین', 'حکم خوبی بود', 'زود باش', 'یار حواست باشه', 'یک دست دیگه؟'];
@@ -151,26 +152,21 @@ function out(m, since, chat) {
   const o = { id: m.id, status: m.status, cfg: m.cfg, me: '0' };
   if (chat != null) o.chat = (m.chat || []).filter(x => x.id > chat).slice(-40);
   if (m.status === 'lobby') { o.lobby = { seats: m.seats, code: m.code, host: true, link: 'https://t.me/your_gameclub_bot?start=hokm_' + m.code }; return o; }
-  o.game = view(m.state, '0', since); o.pot = m.state.pot || 0;
-  if (m.status === 'over') { const won = m.state.winner === 0; o.result = { won, prize: won ? o.pot / 2 : 0, lost: won ? 0 : m.cfg.entry }; }
+  o.game = view(m.state, '0', since);
+  if (m.status === 'over') { const won = m.state.winner === 0; o.result = Object.assign({ won, coins: 0, cups: 0 }, m.rank); }
   return o;
-}
-function payEntry(cfg) {
-  if (cfg.mode !== 'stake') return;
-  if (S.bal < cfg.entry) throw err('insufficient');
-  S.bal -= cfg.entry; S.spent += cfg.entry; GC.ledger('ورودی حکم', -cfg.entry, 'entry'); save();
 }
 const hokm = {
   async queueJoin(cfg) {
     if (cfg.solo) { const mm = makeMatch(Object.assign({}, cfg, { mode: 'free', entry: 0 })); saveM(mm); return { state: 'matched', match: mm.id }; }
-    payEntry(cfg); store.set('demo_hq', { cfg, t0: Date.now() }); return hokm.queueStatus();
+    store.set('demo_hq', { cfg, t0: Date.now() }); return hokm.queueStatus();
   },
   async queueStatus() {
     const q = store.get('demo_hq', null), m = loadM();
     if (!q) return m && m.status === 'playing' ? { state: 'matched', match: m.id } : { state: 'none' };
     const waited = (Date.now() - q.t0) / 1000;
     if (waited > 4) { const mm = makeMatch(q.cfg); saveM(mm); store.set('demo_hq', null); return { state: 'matched', match: mm.id }; }
-    return { state: 'waiting', waited: Math.floor(waited), cfg: Object.assign({ players: 4 }, q.cfg), found: 1 + Math.min(3, Math.floor(waited / 1.2)), need: 4, bots_in: null, can_bots: q.cfg.mode !== 'stake' };
+    return { state: 'waiting', waited: Math.floor(waited), cfg: Object.assign({ players: 4 }, q.cfg), found: 1 + Math.min(3, Math.floor(waited / 1.2)), need: 4, bots_in: null, can_bots: q.cfg.mode === 'free' };
   },
   async queueBots() {
     const q = store.get('demo_hq', null); if (!q) return hokm.queueStatus();
@@ -178,11 +174,10 @@ const hokm = {
   },
   async queueLeave() {
     const q = store.get('demo_hq', null); store.set('demo_hq', null);
-    if (q && q.cfg.mode === 'stake') { S.bal += q.cfg.entry; S.spent -= q.cfg.entry; GC.ledger('انصراف از صف حکم', q.cfg.entry, 'refund'); save(); }
     return { state: 'none' };
   },
   async invite(cfg) {
-    payEntry(cfg);
+    
     const code = Math.random().toString(36).slice(2, 8).toUpperCase();
     const m = { id: 'hk' + Date.now().toString(36), status: 'lobby', cfg: Object.assign({ game: 'hokm', players: 4 }, cfg), code, t0: Date.now(), seats: [{ color: '0', name: 'شما', av: 7, me: true }] };
     saveM(m); return { match: m.id, code, link: 'https://t.me/your_gameclub_bot?start=hokm_' + code };
@@ -213,7 +208,7 @@ const hokm = {
   async play(id, k, since) { return hokm.act(id, 'play', k, since); },
   async leave(id) {
     const m = loadM();
-    if (m && m.status === 'lobby') { saveM(null); if (m.cfg.mode === 'stake') { S.bal += m.cfg.entry; GC.ledger('لغو میز حکم', m.cfg.entry, 'refund'); save(); } return { left: true }; }
+    if (m && m.status === 'lobby') { saveM(null); return { left: true }; }
     if (m && m.status === 'playing') return hokm.act(id, 'leave', null, 0);
     return { left: true };
   },

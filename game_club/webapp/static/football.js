@@ -522,7 +522,7 @@ async function play(e) {
   }
   if (e.t === 'goal') { await showGoal(e); return; }
   if (e.t === 'reset') { sfx.fb.whistle(); rot = []; els.forEach((el, i) => { if (i < 12) { const n = el.querySelector('.in svg'); if (n) n.style.transform = ''; } }); await glide(e.pos); return; }
-  if (e.t === 'timeout') { if (WATCH) { toast(`${nameOf(e.c)} شوت نزد`); return; } if (e.c === me) toast(snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی و بازیو باختی' : 'یه نوبت دیگه غیبت کنی باختی') : 'وقتت تموم شد و نوبت رسید به حریف'); else toast(`${nameOf(e.c)} شوت نزد و نوبت توئه`); return; }
+  if (e.t === 'timeout') { if (WATCH) { toast(`${nameOf(e.c)} شوت نزد`); return; } if (e.c === me) toast(snap.cfg.mode !== 'free' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی و بازیو باختی' : 'یه نوبت دیگه غیبت کنی باختی') : 'وقتت تموم شد و نوبت رسید به حریف'); else toast(`${nameOf(e.c)} شوت نزد و نوبت توئه`); return; }
   if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازیو ول کرد و رفت'}`); return; }
 }
 
@@ -598,13 +598,12 @@ function over(v) {
   GC.guardClose(false); store.set('fmid', null);
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
   const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { shots: 0, goals: 0 };
-  const stake = v.cfg.mode === 'stake', ended = g.winner == null, left = (g.players[opp()] || {}).out;
+  const ended = g.winner == null, left = (g.players[opp()] || {}).out;
   sheet(`<div class="fb-res">
       <span class="ic${won ? '' : ' lost'}">${TROPHY}</span>
       <h2>${ended ? 'بازی تموم شد' : won ? (left ? 'حریف رفت و تو بردی!' : 'بردی!') : 'این دستو باختی'}</h2>
       <div class="final">${discHtml((teams[me] || {}).team, (teams[me] || {}).kit, 40)}<b>${FD(g.score[+me])} - ${FD(g.score[+opp()])}</b>${discHtml((teams[opp()] || {}).team, (teams[opp()] || {}).kit, 40)}</div>
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه ریخت تو کیف امتیازت 🎉</p>` : ended ? '<p>ورودیا برگشت</p>' : `<p>ورودی این بازیو (${fa(r.lost || v.cfg.entry)} امتیاز) باختی فدای سرت</p>`)
-        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت ولی دمت گرم' : 'بازی آزاد بود و چیزی از دست ندادی'}</p>`}
+      ${v.cfg.mode === 'free' ? `<p>${won ? 'بازی دوستانه بود و جام و سکه نداشت ولی دمت گرم' : 'بازی دوستانه بود و چیزی از دست ندادی'}</p>` : GC.rankResult(v, ended)}
       <div class="facts"><div><b>${FD(st.goals)}</b><span>گل زدی</span></div><div><b>${FD(st.shots)}</b><span>شوت</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
     </div>
     <a class="btn btn-block" href="football-lobby.html">یه دست دیگه</a>
@@ -616,7 +615,7 @@ function cancelled() {
   if (WATCH) { overShown = true; GC.watchOver('football', 'این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   overShown = true; endChat(); closeSetup(); GC.guardClose(false); store.set('fmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و ورودی همه برگشت تو کیفشون</p>
+      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و جام کسی کم نشد</p>
       <div class="dlg-acts"><a class="btn" href="football-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
@@ -628,15 +627,15 @@ function noMatch() {
 }
 function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
-  const stake = snap.cfg.mode === 'stake';
+  const stake = snap.cfg.mode !== 'free';
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
       <h2 id="dT">می‌خوای بری؟</h2>
       <p id="dD">بری یعنی همین بازیو باختی و حریف می‌بره</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گرده` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</div>
+      <div class="dlg-note">${stake ? 'بازی رتبه‌ایه و رفتنت یعنی باخت و کم شدن جام' : 'بازی دوستانه‌ست و چیزی از دست نمی‌دی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
       <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برو خونه بازی سر جاش می‌مونه</button>
-      <p class="dlg-fine">بازی تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی نوبتت می‌سوزه${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
+      <p class="dlg-fine">بازی تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی نوبتت می‌سوزه${stake ? '<br>تو بازی رتبه‌ای سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
     </div>`, { center: true });
   sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
@@ -666,7 +665,7 @@ async function start() {
   mid = first.id; me = first.me;
   // تماشاگر چیزی نمی نویسد: جای نوار پیام، برچسب «در حال تماشا»
   if (WATCH) { $('chatbar').innerHTML = '<button class="fb-say" id="chatBtn"></button>'; GC.watchPill(); } else store.set('fmid', mid);
-  if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
+  if (first.cfg.mode !== 'free' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   const g = first.game;
   snap = first;

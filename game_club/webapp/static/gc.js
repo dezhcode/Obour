@@ -10,11 +10,10 @@ const store = {
   set(k, v) { try { localStorage.setItem('gclub_' + k, JSON.stringify(v)); } catch (e) {} },
 };
 const S = Object.assign({
-  bal: 1250, shopOn: false, wins: 0, games: 0, won: 0, spent: 0, mode: 'free', notify: {}, sound: true, tutorial: false, showSpend: false,
-  ledger: [{ t: 'هدیهٔ شروع از طرف تاسی 🎁', a: 1250, k: 'gift', at: Date.now() - 864e5 }],
+  bal: 120, wins: 0, games: 0, mode: 'free', notify: {}, sound: true, tutorial: false,
+  ledger: [{ t: 'هدیهٔ شروع از طرف تاسی 🎁', a: 120, k: 'gift', at: Date.now() - 864e5 }],
 }, store.get('state', {}));
 const save = () => store.set('state', S);
-document.documentElement.classList.toggle('shop-on', !!S.shopOn);
 function ledger(t, a, k) { S.ledger.unshift({ t, a, k, at: Date.now() }); S.ledger = S.ledger.slice(0, 40); }
 
 /* ---------- SDK مینی اپ تلگرام ----------
@@ -168,8 +167,9 @@ const ERR = {
   name_chars: 'فقط حرف انگلیسی و عدد و _ قبوله', name_reserved: 'این یوزرنیمو نمی‌شه برداشت', name_taken: 'این یوزرنیمو یکی دیگه زودتر برداشته',
   must_join: 'اول عضو کانالای AsoTas شو بعد بزن بریم!',
   banned: 'شرمنده داش حسابت تو AsoTas بسته شده', maintenance: 'داریم آپدیت می‌کنیم چند دقیقه دیگه دوباره سر بزن',
-  insufficient: 'امتیازت کمه داش اول کیفتو شارژ کن', obour_insufficient: 'موجودی کیف پول عبورت کمه',
-  no_obour: 'اول یه بار ربات عبور رو استارت کن', busy: 'یه لحظه دیگه دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلاً خاموشه', shop_off: 'خدمات عبور فعلاً در دسترس نیست',
+  insufficient: 'سکه‌ت کمه داش با جایزهٔ روزانه و برد رتبه‌ای جمعش کن', daily_done: 'جایزهٔ امروزتو گرفتی فردا دوباره سر بزن 😉',
+  ranked_off: 'بازی رتبه‌ای فعلاً خاموشه', ranked_online: 'رتبه‌ای فقط با حریف آنلاینه',
+  busy: 'یه لحظه دیگه دوباره امتحان کن',
   bad_invite: 'این لینک دعوت به درد نمی‌خوره داش', started: 'این میز بازیش شروع شده', full: 'این میز پره', in_match: 'داش تو الان سر یه میز دیگه‌ای',
   need_players: 'هنوز به اندازهٔ کافی بازیکن سر میز نیست', not_host: 'فقط سازندهٔ میز می‌تونه شروعش کنه',
   group_only: 'این بازی فقط توی گروه یا کانال ساخته می‌شه', sheet_not_full: 'واسه استپ باید همهٔ خونه‌ها پر باشه ✍️', closed: 'دیر شد داش وقتش تموم شده',
@@ -320,14 +320,11 @@ async function boot() {
 const idem = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 const liveData = {
   me: () => api('me'),
-  charge: points => api('wallet/charge', { body: { points, idem: idem() } }),
+  daily: () => api('daily', { body: {} }),
   notify: game => api('notify', { body: { game } }),
   setFlag: (f, v) => api('settings', { body: { [f]: v ? 1 : 0 } }),
   leaderboard: (kind, period) => api('leaderboard', { q: { kind, period } }),
   gameBoard: (game, period) => api('leaderboard', { q: { game, period } }),
-  shop: () => api('shop'),
-  buy: plan_id => api('shop/buy', { body: { plan_id, idem: idem() } }),
-  transfer: points => api('shop/transfer', { body: { points, idem: idem() } }),
   style: () => api('style'),
   styleBuy: id => api('style/buy', { body: { id, idem: idem() } }),
   styleUse: id => api('style/use', { body: { id } }),
@@ -470,10 +467,6 @@ let points = null;
 async function refreshMe() {
   const me = await GC.data.me();
   points = me.player.points;
-  // فروشگاه فقط وقتی سرور روشنش کرده باشد دیده می شود (پیش فرض خاموش)
-  const shop = !!(me.settings && me.settings.shop);
-  if (S.shopOn !== shop) { S.shopOn = shop; save(); }
-  document.documentElement.classList.toggle('shop-on', shop);
   if (me.social) setNavBadge(me.social);
   mount();
   return me;
@@ -486,6 +479,7 @@ const P = {
   trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H4.5v1.5A3.5 3.5 0 0 0 8 11M16 6h3.5v1.5A3.5 3.5 0 0 1 16 11M12 13v4M8 20h8M9.5 17h5"/>',
   wallet: '<path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><rect x="4" y="8" width="16" height="11" rx="2.5"/><path d="M16 13.5h.01"/>',
   bag: '<path d="M4.5 8h15l-1.3 11.2a2 2 0 0 1-2 1.8H7.8a2 2 0 0 1-2-1.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
+  gift: '<rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v7a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-7M12 8v12.5"/><path d="M12 8C10.5 4.5 7 4 6.6 6.1 6.3 7.7 8.6 8 12 8zM12 8c1.5-3.5 5-4 5.4-1.9.3 1.6-2 1.9-5.4 1.9z"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8M12 17h.01"/>',
   back: '<path d="M9 5l7 7-7 7"/>',
   fwd: '<path d="M15 5l-7 7 7 7"/>',
@@ -535,6 +529,18 @@ const icon = (n, w = 2.2) => `<svg viewBox="0 0 24 24" fill="none" stroke="curre
 const COIN = '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="17.5" r="13" fill="#E09A00"/><circle cx="16" cy="15" r="13" fill="#FFC43B"/><circle cx="16" cy="15" r="9.4" fill="none" stroke="#E09A00" stroke-width="2"/><path d="M16 9.3l1.75 3.6 3.95.55-2.86 2.73.68 3.92L16 18.2l-3.52 1.9.68-3.92-2.86-2.73 3.95-.55z" fill="#FFF3C4"/></svg>';
 const coin = () => `<span class="coin">${COIN}</span>`;
 const amount = (n, cls = '') => `<span class="amount ${cls}">${coin()}<span>${fa(n)}</span></span>`;
+/* نتیجهٔ میز رقابتی تو صفحهٔ آخر بازی: جام و سکهٔ بازی رتبه‌ای (بازی دوستانه چیزی نداره) */
+function rankResult(v, ended) {
+  const r = v.result || {}, mode = v.cfg.mode;
+  if (mode === 'free') return '';
+  if (mode !== 'ranked') return `<p>${r.won ? 'این میز از قبل امتیازی بود و جایزه‌ش با امتیازای قدیمیت برمی‌گرده به کیف عبور' : 'این میز از قبل امتیازی بود فدای سرت'}</p>`;
+  if (ended) return '<p>بازی بی‌نتیجه بسته شد و جامت دست نخورد</p>';
+  const c = r.cups || 0, k = r.coins || 0, rk = r.rank;
+  const cup = `<span class="rk-cup${c < 0 ? ' rk-down' : ''}">${icon('trophy')}<b dir="ltr">${c > 0 ? '+' : c < 0 ? '−' : ''}${fa(Math.abs(c))}</b> جام</span>`;
+  const note = r.won ? (k ? 'سکه‌ش ریخت تو کیفت 🎉' : 'جامش مال تو دمت گرم') : c ? 'فدای سرت دست بعد جبران کن' : 'جامی نداشتی که کم بشه';
+  return `<div class="rk-res"><div class="rk-row">${cup}${k ? `<span class="amount lg">${coin()}<span dir="ltr">+${fa(k)}</span></span>` : ''}</div>
+    <p>${note}${rk ? `<br><b>لیگ ${rk.league}</b> · ${fa(rk.cups)} جام` : ''}</p></div>`;
+}
 
 /* ---------- آواتار ساده کارتونی (بدون عکس) ---------- */
 function avatar(seed) {
@@ -716,6 +722,31 @@ function editName(me, done) {
   });
   check();
   if (!wait) setTimeout(() => { inp.focus(); inp.select(); }, 80);
+}
+
+/* ---------- جایزهٔ ورود روزانه (فروشگاه و خانه)؛ d = me.daily: {claimed, day, next, plan} ---------- */
+function dailyHtml(d) {
+  const boxes = d.plan.map((n, i) => {
+    const k = i + 1, done = k <= d.day, today = !d.claimed && k === d.next;
+    return `<li class="dl-d${done ? ' done' : ''}${today ? ' today' : ''}${k === d.plan.length ? ' big' : ''}"><small>روز ${FD(k)}</small>${coin()}<b>${FD(n)}</b>${done ? `<i>${icon('check', 3)}</i>` : ''}</li>`;
+  }).join('');
+  return `<div class="dl"><div class="dl-h"><b>جایزهٔ روزانهٔ تاسی 🎁</b><small>${d.claimed ? 'امروزو گرفتی فردا دوباره سر بزن تا زنجیره‌ت نشکنه'
+    : 'هر روز پشت هم بیای بیشتر می‌گیری و روز آخر یه جایزهٔ درشت داره'}</small></div>
+    <ol class="dl-row">${boxes}</ol>
+    <button class="btn btn-block btn-gold dl-go"${d.claimed ? ' disabled' : ''}>${d.claimed ? 'فردا دوباره بیا 😉' : `بگیرش · ${FD(d.plan[(d.next || 1) - 1])} سکه`}</button></div>`;
+}
+// box: جای کارت جایزه؛ done(daily تازه) بعد از گرفتن
+function dailyMount(box, d, done) {
+  box.innerHTML = dailyHtml(d); mount(box);
+  const b = box.querySelector('.dl-go');
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const r = await GC.data.daily();
+      points = r.points; sfx.coin(); haptic('success'); toast(`+${fa(r.coins)} سکه ریخت تو کیفت 🎉`);
+      dailyMount(box, r.daily, done); mount(); if (done) done(r.daily);
+    } catch (e) { b.disabled = false; toast(errText(e)); }
+  };
 }
 
 /* ---------- ورود به حساب (فقط داخل برنامهٔ اندروید): تلگرام یا ایمیل، appauth.py ----------
@@ -1239,13 +1270,6 @@ const LB = {
   top: [[0, 48, 12400], [1, 41, 9850], [2, 37, 8200], [3, 33, 6900], [4, 29, 5750], [5, 26, 4300], [6, 22, 3950], [7, 19, 3100], [8, 17, 2650], [9, 15, 2200]],
   spend: [[2, 0, 24500], [6, 0, 18200], [0, 0, 15900], [7, 0, 11300], [1, 0, 9600], [4, 0, 7400], [3, 0, 5200], [5, 0, 3900], [9, 0, 2800], [8, 0, 1900]],
 };
-const SHOP = [
-  { id: 'cfg10', cat: 'net', ic: 'globe', t: 'کانفیگ ۱۰ گیگ یک‌ماهه', s: 'اینترنت آزاد عبور با تحویل فوری', p: 950 },
-  { id: 'cfg30', cat: 'net', ic: 'globe', t: 'کانفیگ ۳۰ گیگ یک‌ماهه', s: 'برای مصرف زیاد', p: 2200 },
-  { id: 'gb5', cat: 'extra', ic: 'bolt', t: '۵ گیگ حجم اضافه', s: 'روی سرویس فعلی‌ات در عبور', p: 400 },
-  { id: 'ren7', cat: 'extra', ic: 'clock', t: 'تمدید ۷ روزه', s: 'روی سرویس فعلی‌ات در عبور', p: 350 },
-  { id: 'ai1', cat: 'ai', ic: 'spark', t: 'اشتراک هوش مصنوعی یک‌ماهه', s: 'از فروشگاه هوش مصنوعی عبور', p: 3800 },
-];
 /* ---------- هندسه منچ (۱۵×۱۵): مسیر ۵۲ خانه، شروع هر رنگ، راهروی خانه ---------- */
 const LUDO = {
   TRACK: [[1,6],[2,6],[3,6],[4,6],[5,6],[6,5],[6,4],[6,3],[6,2],[6,1],[6,0],[7,0],[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[14,7],[14,8],[13,8],[12,8],[11,8],[10,8],[9,8],[8,9],[8,10],[8,11],[8,12],[8,13],[8,14],[7,14],[6,14],[6,13],[6,12],[6,11],[6,10],[6,9],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8],[0,7],[0,6]],
@@ -1289,14 +1313,14 @@ function watchOver(game, title, line) {
       <h2 id="wT">${title}</h2><p id="wD">${line}</p>
       <div class="dlg-acts"><a class="btn" href="${game}-lobby.html">خودت بازی کن</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
 }
-const RATE = 100; // هر امتیاز چند تومان (نمونه)
+const RATE = 500; // هر سکه چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
-window.GC = { editName, login, logoutSheet, esc: escB, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
+window.GC = { editName, login, logoutSheet, dailyMount, esc: escB, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
   get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, get snakes() { return live ? liveSnakes : GC.demo.snakes; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,
   get points() { return points == null ? S.bal : points; }, set points(v) { points = v; mount(); },
-  PEOPLE, LB, SHOP, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver, onFit, queueFit, appHeight, editing, userCard };
+  PEOPLE, LB, RATE, LUDO, boardArt, FD, fa, rand, sleep, store, S, save, ledger, icon, COIN, coin, amount, rankResult, avatar, avatarEl, face, initial, COL, pawn, pips, toast, sheet, close, sheetHead, sfx, setSound, nav, mount, GAMES, GAME_ART, quickPlay, level, onShow, page, isActive, go, takeHash, setNavBadge, fileIcon, ICON_FILES, watchId, watchPill, watchOver, onFit, queueFit, appHeight, editing, userCard };
 document.addEventListener('DOMContentLoaded', () => { mount(); boot(); });
 })();

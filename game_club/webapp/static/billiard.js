@@ -1165,7 +1165,7 @@ async function play(e) {
     await sleep(500); snd.rack(); setBalls(e.balls); for (const b of balls) b.q = startQuat(); return;
   }
   if (e.t === 'spot') { const b = balls[e.k]; b.on = true; b.x = e.at[0]; b.y = e.at[1]; return; }
-  if (e.t === 'timeout') { lastShot = { c: e.c, pots: [] }; if (!WATCH && isMe(e.c) && snap.cfg.mode === 'stake' && e.n >= 2) toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یه نوبت دیگه غیبت کنی از بازی بیرونی'); return; }
+  if (e.t === 'timeout') { lastShot = { c: e.c, pots: [] }; if (!WATCH && isMe(e.c) && snap.cfg.mode !== 'free' && e.n >= 2) toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یه نوبت دیگه غیبت کنی از بازی بیرونی'); return; }
   if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازیو ول کرد و رفت'}${G() && G().n === 4 ? ' و ربات جاش بازی می‌کنه' : ''}`); return; }
   if (e.t === 'win' || e.t === 'end') { if (e.balls) setBalls(e.balls); return; }
 }
@@ -1283,13 +1283,12 @@ function over(v) {
   GC.guardClose(false); store.set('bmid', null);
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
   const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { shots: 0, pots: 0, fouls: 0 };
-  const stake = v.cfg.mode === 'stake', ended = g.winner == null;
+  const ended = g.winner == null;
   sheet(`<div class="bl-res">
       <span class="ic${won ? '' : ' lost'}">${TROPHY}</span>
       <h2>${ended ? 'بازی تموم شد' : won ? (team ? 'تیمتون برد!' : 'بردی!') : (team ? 'تیم حریف برد' : 'این دستو باختی')}</h2>
       ${WHY[lastWin.why] ? `<p>${WHY[lastWin.why]}</p>` : ''}
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه ریخت تو کیف امتیازت 🎉</p>` : ended ? '<p>ورودیا برگشت</p>' : `<p>ورودی این بازیو (${fa(r.lost || v.cfg.entry)} امتیاز) باختی فدای سرت</p>`)
-        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت ولی دمت گرم' : 'بازی آزاد بود و چیزی از دست ندادی'}</p>`}
+      ${v.cfg.mode === 'free' ? `<p>${won ? 'بازی دوستانه بود و جام و سکه نداشت ولی دمت گرم' : 'بازی دوستانه بود و چیزی از دست ندادی'}</p>` : GC.rankResult(v, ended)}
       <div class="facts"><div><b>${FD(st.pots)}</b><span>توپ انداختی</span></div><div><b>${FD(st.shots)}</b><span>ضربه</span></div><div><b>${FD(st.fouls)}</b><span>خطا</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت</span></div></div>
     </div>
     <a class="btn btn-block" href="billiard-lobby.html">یه دست دیگه</a>
@@ -1302,7 +1301,7 @@ function cancelled() {
   if (WATCH) { GC.watchOver('billiard', 'این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   GC.guardClose(false); store.set('bmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و ورودی همه برگشت تو کیفشون</p>
+      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و جام کسی کم نشد</p>
       <div class="dlg-acts"><a class="btn" href="billiard-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
@@ -1314,15 +1313,15 @@ function noMatch() {
 }
 function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
-  const stake = snap.cfg.mode === 'stake', team = G() && G().n === 4;
+  const stake = snap.cfg.mode !== 'free', team = G() && G().n === 4;
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
       <h2 id="dT">می‌خوای بری؟</h2>
       <p id="dD">${team ? 'از این به بعد ربات جات کنار یارت بازی می‌کنه و اگه تیمت ببره سهمی نمی‌گیری' : 'بری یعنی همین بازیو باختی و حریف می‌بره'}</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گرده` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</div>
+      <div class="dlg-note">${stake ? 'بازی رتبه‌ایه و رفتنت یعنی باخت و کم شدن جام' : 'بازی دوستانه‌ست و چیزی از دست نمی‌دی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
       <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برو خونه بازی سر جاش می‌مونه</button>
-      <p class="dlg-fine">تا نیستی نوبتت می‌سوزه و حریف توپ در دست می‌گیره${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی از بازی بیرونی' : ''}</p>
+      <p class="dlg-fine">تا نیستی نوبتت می‌سوزه و حریف توپ در دست می‌گیره${stake ? '<br>تو بازی رتبه‌ای سه نوبت غیبت پشت‌سرهم یعنی از بازی بیرونی' : ''}</p>
     </div>`, { center: true });
   sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
@@ -1350,7 +1349,7 @@ async function start() {
   if (first.status === 'cancelled') return cancelled();
   mid = first.id; me = first.me;
   if (WATCH) { $('chatbar').hidden = true; } else store.set('bmid', mid);
-  if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
+  if (first.cfg.mode !== 'free' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   snap = first; since = first.game.seq;
   await apply(first, false);

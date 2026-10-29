@@ -286,13 +286,12 @@ function over(v) {
   GC.guardClose(false); store.set('snmid', null);
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
   const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { rolls: 0, ladders: 0, snakes: 0 };
-  const stake = v.cfg.mode === 'stake', ended = g.winner == null, left = g.n === 2 && Object.values(g.players).some(p => !p.me && p.out);
+  const ended = g.winner == null, left = g.n === 2 && Object.values(g.players).some(p => !p.me && p.out);
   const rank = (g.ranking || g.order).map((s, i) => `<div class="${s === g.winner ? 'w' : ''}" style="--pc:${COL[s]}"><b class="k">${FD(i + 1)}</b><i></i><span>${isMe(s) ? 'خودت' : String(g.players[s].name || '').replace(/[<>&]/g, '')}</span><small>خونهٔ ${FD(g.players[s].pos)}</small></div>`).join('');
   sheet(`<div class="sn-res">
       <span class="ic${won ? '' : ' lost'}">${SVG.trophy}</span>
       <h2>${ended ? 'بازی تموم شد' : won ? (left ? 'حریف رفت و تو بردی!' : 'برنده شدی!') : `${nameOf(g.winner)} زودتر رسید`}</h2>
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه ریخت تو کیف امتیازت 🎉</p>` : ended ? '<p>ورودیا برگشت</p>' : `<p>ورودی این بازیو (${fa(r.lost || v.cfg.entry)} امتیاز) باختی فدای سرت</p>`)
-        : `<p>${won ? 'اولین نفری بودی که دقیقاً رسید ۱۰۰ دمت گرم' : 'بازی آزاد بود و چیزی از دست ندادی'}</p>`}
+      ${v.cfg.mode === 'free' ? `<p>${won ? 'اولین نفری بودی که دقیقاً رسید ۱۰۰ دمت گرم' : 'بازی دوستانه بود و چیزی از دست ندادی'}</p>` : GC.rankResult(v, ended)}
       <div class="sn-rank">${rank}</div>
       <div class="facts"><div><b>${FD(st.rolls)}</b><span>بار تاس</span></div><div><b>${FD(st.ladders)}</b><span>نردبون</span></div><div><b>${FD(st.snakes)}</b><span>نیش مار</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت</span></div></div>
     </div>
@@ -306,7 +305,7 @@ function cancelled() {
   if (WATCH) { GC.watchOver('snakes', 'این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   chat.end(); GC.guardClose(false); store.set('snmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و ورودی همه برگشت تو کیفشون</p>
+      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و جام کسی کم نشد</p>
       <div class="dlg-acts"><a class="btn" href="snakes-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
@@ -318,15 +317,15 @@ function noMatch() {
 }
 function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
-  const stake = snap.cfg.mode === 'stake', many = G() && G().n > 2;
+  const stake = snap.cfg.mode !== 'free', many = G() && G().n > 2;
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
       <h2 id="dT">می‌خوای بری؟</h2>
       <p id="dD">${many ? 'بری یعنی باختی و ربات تا آخر بازی جات تاس می‌ریزه' : 'بری یعنی همین بازیو باختی و حریف می‌بره'}</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گرده` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</div>
+      <div class="dlg-note">${stake ? 'بازی رتبه‌ایه و رفتنت یعنی باخت و کم شدن جام' : 'بازی دوستانه‌ست و چیزی از دست نمی‌دی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
       <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برو خونه بازی سر جاش می‌مونه</button>
-      <p class="dlg-fine">بازی تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی وقت هر نوبتت که تموم شه تاس به جات ریخته می‌شه${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
+      <p class="dlg-fine">بازی تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی وقت هر نوبتت که تموم شه تاس به جات ریخته می‌شه${stake ? '<br>تو بازی رتبه‌ای سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
     </div>`, { center: true });
   sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
@@ -354,7 +353,7 @@ async function start() {
   if (first.status === 'cancelled') return cancelled();
   mid = first.id; me = WATCH ? (first.game ? first.game.order[0] : '0') : first.me;
   if (WATCH) GC.watchPill(); else store.set('snmid', mid);
-  if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
+  if (first.cfg.mode !== 'free' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   since = first.game ? first.game.seq : 0;
   await apply(first, false);

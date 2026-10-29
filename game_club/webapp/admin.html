@@ -149,14 +149,17 @@ const ic = (n, w) => XP[n] ? icon('x', w).replace('</svg>', XP[n] + '</svg>') : 
 const when = t => { if (!t) return '—'; const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
 const date = t => t ? new Date(t * 1000).toLocaleDateString('fa-IR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 const GAME = { hokm: ['حکم', 'card'], ludo: ['منچ', 'dice'], football: ['فوتبال', 'bolt'], billiard: ['بیلیارد', 'ball'], divar: ['دیوار', 'grid'], esmfamil: ['اسم‌فامیل', 'edit'], lashgar: ['لشگر کاغذی', 'flag'], snakes: ['مار و پله', 'dice'] };
-const KIND = { charge: 'شارژ', entry: 'ورودی', refund: 'بازگشت', prize: 'جایزه', admin: 'پشتیبانی', transfer: 'انتقال به عبور', shop: 'خرید', gift: 'هدیه', style: 'میز و ورق' };
-const ACT = { points: 'تغییر امتیاز', ban: 'مسدود کردن', unban: 'رفع مسدودی', message: 'پیام مستقیم', close: 'بستن میز', broadcast: 'پیام همگانی', broadcast_cancel: 'توقف پیام همگانی', setting: 'تنظیمات' };
+const KIND = { daily: 'جایزهٔ روزانه', reward: 'برد رتبه‌ای', gift: 'هدیه', style: 'میز و ورق', admin: 'پشتیبانی', obour: 'برگشت به کیف عبور',
+  charge: 'شارژ (قدیمی)', entry: 'ورودی (قدیمی)', refund: 'بازگشت (قدیمی)', prize: 'جایزه (قدیمی)', transfer: 'انتقال به عبور', shop: 'خرید عبور (قدیمی)' };
+const ACT = { points: 'تغییر سکه', ban: 'مسدود کردن', unban: 'رفع مسدودی', message: 'پیام مستقیم', close: 'بستن میز', broadcast: 'پیام همگانی', broadcast_cancel: 'توقف پیام همگانی', setting: 'تنظیمات' };
 const SET = {
   maintenance: ['حالت تعمیرات', 'میز تازه ساخته نمی‌شود؛ بازی‌های در جریان ادامه دارند. ادمین‌ها مستثنا هستند.'],
-  stake_enabled: ['بازی با امتیاز', 'خاموش = فقط بازی آزاد (بدون ورودی و جایزه).'],
+  ranked_enabled: ['بازی رتبه‌ای', 'خاموش = فقط بازی دوستانه (بدون جام و سکهٔ برد).'],
   turn_seconds: ['زمان هر نوبت (ثانیه)', 'برای میزهای تازه.'],
   bot_fill_seconds: ['پر کردن صف با ربات (ثانیه)', '۰ = صف آزاد هیچ‌وقت خودکار با ربات پر نمی‌شود.'],
-  rake_percent: ['سهم عبور از جایزه (٪)', 'از جمع ورودی‌ها کم می‌شود.'],
+  rank_coins: ['سکهٔ هر برد رتبه‌ای', 'از طرف بازی به برنده (۰ = فقط جام).'],
+  rank_coins_day: ['سقف سکهٔ برد در روز', 'هر بازیکن به وقت ایران.'],
+  start_coins: ['سکهٔ هدیهٔ شروع', 'یک بار برای هر حساب تازه.'],
   notice: ['اطلاعیهٔ صفحهٔ خانه', 'یک خط بالای صفحهٔ خانه برای همه؛ خالی = بدون اطلاعیه.'],
 };
 const TABS = [['dash', 'داشبورد', 'dash'], ['users', 'کاربران', 'users'], ['tables', 'میزها', 'table'], ['ledger', 'تراکنش‌ها', 'wallet'], ['bc', 'پیام همگانی', 'mega'], ['emoji', 'ایموجی‌ها', 'smile'], ['popup', 'پاپ‌آپ', 'bell'], ['gate', 'عضویت اجباری', 'link'], ['settings', 'تنظیمات', 'gear'], ['log', 'گزارش', 'list']];
@@ -218,7 +221,7 @@ function drawDash() {
       <div class="kpi hot"><span><i class="dot"></i>آنلاین الان</span><b>${fa(s.online)}</b><small>${fa(a.playing)} میز در بازی، ${fa(a.queue)} در صف</small></div>
       <div class="kpi"><span>بازیکن‌ها</span><b>${fa(a.players)}</b><small>+${fa(s.new_day)} امروز · +${fa(s.new_week)} این هفته</small></div>
       <div class="kpi"><span>فعال</span><b>${fa(s.active_day)}</b><small>۲۴ ساعت، ${fa(s.active_week)} در ۷ روز</small></div>
-      <div class="kpi"><span>امتیاز در گردش</span><b>${fa(a.points)}</b><small>${fa(a.points * rate)} تومان</small></div>
+      <div class="kpi"><span>سکه در گردش</span><b>${fa(a.points)}</b><small>${fa(a.points * rate)} تومان</small></div>
     </div>
     <section class="card stack">
       <div class="seg" id="span"><button data-v="day" aria-pressed="${span === 'day'}">۲۴ ساعت</button><button data-v="week" aria-pressed="${span === 'week'}">۷ روز</button><button data-v="all" aria-pressed="${span === 'all'}">کل</button></div>
@@ -276,8 +279,8 @@ const userRow = u => `<li class="row" data-user="${u.id}">${face(u, u.banned ? '
 PAGES.users = async () => {
   view(`
     <label class="search">${ic('search')}<input id="uq" type="search" placeholder="نام، @یوزرنیم یا آیدی عددی" value="${esc(uq.q)}" enterkeyhint="search" autocomplete="off"></label>
-    <div class="chips" id="uf">${[['all', 'همه'], ['active', 'فعال ۷ روز'], ['rich', 'دارای امتیاز'], ['banned', 'مسدود']].map(([k, t]) => `<button class="chip sm" data-f="${k}" aria-pressed="${uq.f === k}">${t}</button>`).join('')}</div>
-    <div class="seg" id="us">${[['recent', 'آخرین بازدید'], ['new', 'تازه‌ها'], ['points', 'امتیاز'], ['games', 'بازی']].map(([k, t]) => `<button data-v="${k}" aria-pressed="${uq.sort === k}">${t}</button>`).join('')}</div>
+    <div class="chips" id="uf">${[['all', 'همه'], ['active', 'فعال ۷ روز'], ['rich', 'دارای سکه'], ['banned', 'مسدود']].map(([k, t]) => `<button class="chip sm" data-f="${k}" aria-pressed="${uq.f === k}">${t}</button>`).join('')}</div>
+    <div class="seg" id="us">${[['recent', 'آخرین بازدید'], ['new', 'تازه‌ها'], ['points', 'سکه'], ['games', 'بازی']].map(([k, t]) => `<button data-v="${k}" aria-pressed="${uq.sort === k}">${t}</button>`).join('')}</div>
     <ul class="list" id="ul"><li class="sk"></li></ul>
     <button class="btn btn-light more" id="umore" hidden>بیشتر</button>`);
   $('uq').oninput = () => { clearTimeout(uTimer); uTimer = setTimeout(() => { uq.q = $('uq').value.trim(); loadUsers(true); }, 350); };
@@ -306,17 +309,17 @@ PAGES.user = async id => {
       <span class="id" id="cid" title="کپی آیدی">${u.tg_name ? 'تلگرام: ' + esc(u.tg_name) + ' · ' : ''}${u.username ? '@' + esc(u.username) + ' · ' : ''}${u.id}</span>
       <span class="muted" style="font-size:12.5px">عضویت ${date(u.created)} · آخرین بازدید ${when(u.seen)}</span>
       ${u.banned && u.ban_note ? `<div class="warn" style="width:100%">${ic('ban')}دلیل مسدودی: ${esc(u.ban_note)}</div>` : ''}
-      <div class="facts"><div><b>${fa(u.points)}</b><span>امتیاز</span></div><div><b>${fa(u.games)}</b><span>بازی</span></div><div><b>${fa(u.wins)}</b><span>برد</span></div><div><b>${fa(rate)}٪</b><span>درصد برد</span></div></div>
+      <div class="facts"><div><b>${fa(u.points)}</b><span>سکه</span></div><div><b>${fa(u.games)}</b><span>بازی</span></div><div><b>${fa(u.wins)}</b><span>برد</span></div><div><b>${fa(rate)}٪</b><span>درصد برد</span></div></div>
       <div class="acts">
-        <button class="btn btn-success" id="aPlus">${icon('plus')}افزودن امتیاز</button>
-        <button class="btn btn-light" id="aMinus">${ic('minus')}کسر امتیاز</button>
+        <button class="btn btn-success" id="aPlus">${icon('plus')}افزودن سکه</button>
+        <button class="btn btn-light" id="aMinus">${ic('minus')}کسر سکه</button>
         <button class="btn btn-soft" id="aMsg">${icon('send')}پیام مستقیم</button>
         ${u.admin ? '' : u.banned ? `<button class="btn btn-soft" id="aBan">${icon('check')}رفع مسدودی</button>` : `<button class="btn btn-danger-soft" id="aBan">${ic('ban')}مسدود کردن</button>`}
       </div>
     </section>
     ${r.tables.length ? `<section><div class="sec-head"><h2 class="on-ground">میزهای باز</h2></div><ul class="list">${r.tables.map(t => `<li class="row"${t.id ? ` data-table="${esc(t.id)}"` : ''}><span class="ic-box">${icon((GAME[t.game] || GAME.ludo)[1])}</span><span class="name">${(GAME[t.game] || GAME.ludo)[0]}<span class="meta">${t.kind === 'queue' ? 'در صف' : t.kind === 'lobby' ? 'میز دعوت' : 'در بازی'}</span></span><span class="end">${t.id ? '›' : ''}</span></li>`).join('')}</ul></section>` : ''}
     <section><div class="sec-head"><h2 class="on-ground">آخرین بازی‌ها</h2></div>
-      <ul class="list">${r.results.length ? r.results.map(x => `<li class="row" data-table="${esc(x.match_id)}"><span class="ic-box">${icon((GAME[x.game] || GAME.ludo)[1])}</span><span class="name">${(GAME[x.game] || GAME.ludo)[0]} · ${x.cfg.mode === 'stake' ? 'امتیازی ' + fa(x.cfg.entry || 0) : 'آزاد'}<span class="meta">${when(x.created_at)}</span></span><span class="end"><span class="tag ${x.won ? 't-ok' : 't-off'}">${x.won ? 'برد' : 'باخت'}</span>${x.prize ? `<small>+${fa(x.prize)}</small>` : ''}</span></li>`).join('') : '<li class="empty">هنوز بازی نکرده</li>'}</ul></section>
+      <ul class="list">${r.results.length ? r.results.map(x => `<li class="row" data-table="${esc(x.match_id)}"><span class="ic-box">${icon((GAME[x.game] || GAME.ludo)[1])}</span><span class="name">${(GAME[x.game] || GAME.ludo)[0]} · ${x.cfg.mode === 'ranked' ? 'رتبه‌ای' : x.cfg.mode === 'stake' ? 'امتیازی ' + fa(x.cfg.entry || 0) : 'آزاد'}<span class="meta">${when(x.created_at)}</span></span><span class="end"><span class="tag ${x.won ? 't-ok' : 't-off'}">${x.won ? 'برد' : 'باخت'}</span>${x.prize ? `<small>+${fa(x.prize)}</small>` : ''}</span></li>`).join('') : '<li class="empty">هنوز بازی نکرده</li>'}</ul></section>
     <section><div class="sec-head"><h2 class="on-ground">تراکنش‌ها</h2></div>
       <ul class="list">${r.ledger.length ? r.ledger.map(l => `<li class="row" style="cursor:default"><span class="ic-box">${icon(l.amount >= 0 ? 'plus' : 'up')}</span><span class="name">${esc(l.note || KIND[l.kind] || l.kind)}<span class="meta">${KIND[l.kind] || esc(l.kind)} · ${when(l.created_at)}${l.status !== 'done' ? ' · ' + (l.status === 'failed' ? 'ناموفق' : 'در انتظار') : ''}</span></span><span class="end ${l.amount >= 0 ? 'plus-a' : 'minus-a'}" dir="ltr">${l.amount >= 0 ? '+' : '−'}${fa(Math.abs(l.amount))}</span></li>`).join('') : '<li class="empty">تراکنشی ندارد</li>'}</ul></section>`);
   $('cid').onclick = () => { try { navigator.clipboard.writeText(String(u.id)); toast('آیدی کپی شد'); } catch (e) {} };
@@ -327,7 +330,7 @@ PAGES.user = async id => {
 };
 function pointsSheet(u, sign) {
   const key = idem();
-  const sh = sheet(`${sheetHead(sign > 0 ? 'افزودن امتیاز' : 'کسر امتیاز')}
+  const sh = sheet(`${sheetHead(sign > 0 ? 'افزودن سکه' : 'کسر سکه')}
     <p class="hint" style="text-align:start">${esc(u.name)} · موجودی فعلی ${fa(u.points)}</p>
     <div class="fld"><label for="pa">مقدار</label><input class="in" id="pa" type="number" inputmode="numeric" min="1" placeholder="مثلا ۵۰۰" dir="ltr"></div>
     <div class="chips">${[50, 100, 500, 1000].map(v => `<button class="chip sm" data-v="${v}">${fa(v)}</button>`).join('')}</div>
@@ -355,7 +358,7 @@ function msgSheet(u) {
 function banSheet(u) {
   if (u.banned) { act('admin/ban', { id: u.id, banned: false }, 'مسدودی برداشته شد').then(show, () => {}); return; }
   const sh = sheet(`${sheetHead('مسدود کردن کاربر')}
-    <p class="hint" style="text-align:start">${esc(u.name)} دیگر نمی‌تواند بازی کند یا امتیاز جابه‌جا کند. اگر در صف باشد بیرون می‌رود و ورودی‌اش برمی‌گردد؛ میزی که الان در آن است ادامه پیدا می‌کند.</p>
+    <p class="hint" style="text-align:start">${esc(u.name)} دیگر نمی‌تواند بازی کند یا سکه جابه‌جا کند. اگر در صف باشد بیرون می‌رود و ورودی‌اش برمی‌گردد؛ میزی که الان در آن است ادامه پیدا می‌کند.</p>
     <div class="fld"><label for="bn">دلیل (فقط برای ادمین‌ها)</label><input class="in" id="bn" maxlength="200" placeholder="مثلا تقلب در بازی"></div>
     <button class="btn btn-danger btn-block" id="bgo">${ic('ban')}مسدود کن</button>`);
   sh.querySelector('#bgo').onclick = async e => {
@@ -369,7 +372,7 @@ let tMode = 'live';
 const tableRow = t => {
   const [g, i] = GAME[t.game] || GAME.ludo;
   const st = t.status === 'playing' ? '<span class="tag t-live">در بازی</span>' : t.status === 'lobby' ? '<span class="tag">در انتظار</span>' : t.status === 'cancelled' ? '<span class="tag t-off">لغو</span>' : '<span class="tag t-ok">تمام</span>';
-  return `<li class="row" data-table="${esc(t.id)}"><span class="ic-box">${icon(i)}</span><span class="name">${g} · ${t.mode === 'stake' ? 'امتیازی ' + fa(t.entry) : 'آزاد'}${t.score ? ' · <bdi dir="ltr">' + esc(t.score) + '</bdi>' : ''}<span class="meta">${esc(t.players.join('، ') || '—')}</span></span><span class="end">${st}<small>${when(t.updated)}</small></span></li>`;
+  return `<li class="row" data-table="${esc(t.id)}"><span class="ic-box">${icon(i)}</span><span class="name">${g} · ${t.mode === 'ranked' ? 'رتبه‌ای' : t.mode === 'stake' ? 'امتیازی ' + fa(t.entry) : 'آزاد'}${t.score ? ' · <bdi dir="ltr">' + esc(t.score) + '</bdi>' : ''}<span class="meta">${esc(t.players.join('، ') || '—')}</span></span><span class="end">${st}<small>${when(t.updated)}</small></span></li>`;
 };
 PAGES.tables = async () => {
   view(`<div class="seg" id="tm"><button data-v="live" aria-pressed="${tMode === 'live'}">باز و در جریان</button><button data-v="over" aria-pressed="${tMode === 'over'}">تمام‌شده</button></div><ul class="list" id="tl"><li class="sk"></li></ul>`);
@@ -383,7 +386,7 @@ async function openTable(id) {
   const sh = sheet(`${sheetHead(g + ' · ' + esc(t.id))}
     <div class="kv">
       <span>وضعیت</span><b>${{ playing: 'در بازی', lobby: 'در انتظار بازیکن', over: 'تمام شده', cancelled: 'لغو شده' }[t.status] || t.status}</b>
-      <span>نوع</span><b>${t.mode === 'stake' ? 'امتیازی · ورودی ' + fa(t.entry) : 'آزاد'}${t.invite ? ' · دعوتی' : ''}</b>
+      <span>نوع</span><b>${t.mode === 'ranked' ? 'رتبه‌ای' : t.mode === 'stake' ? 'امتیازی · ورودی ' + fa(t.entry) : 'آزاد'}${t.invite ? ' · دعوتی' : ''}</b>
       ${t.pot ? `<span>جمع ورودی</span><b>${fa(t.pot)}</b>` : ''}
       ${t.score ? `<span>امتیاز</span><b><bdi dir="ltr">${esc(t.score)}</bdi></b>` : ''}
       <span>ساخته شده</span><b>${date(t.created)}</b>
@@ -395,7 +398,7 @@ async function openTable(id) {
   const b = sh.querySelector('#tclose');
   if (b) b.onclick = () => confirmDo('این میز بسته شود و ورودی‌ها برگردد؟', async () => {
     b.disabled = true;
-    try { const x = await act('admin/close', { id: t.id }); close(); toast('میز بسته شد؛ ' + fa(x.refunded) + ' امتیاز برگشت'); show(); } catch (e) { b.disabled = false; }
+    try { const x = await act('admin/close', { id: t.id }); close(); toast('میز بسته شد' + (x.refunded ? '؛ ' + fa(x.refunded) + ' امتیاز قدیمی برگشت' : '')); show(); } catch (e) { b.disabled = false; }
   });
 }
 function confirmDo(text, fn) {
@@ -641,11 +644,12 @@ const MU = Array.from({ length: 34 }, (_, i) => ({ id: 100200300 + i * 7919, nam
 const MT = [{ id: 'K7QX2M', game: 'hokm', status: 'playing', mode: 'stake', entry: 100, players: ['سارا', 'علی', 'نگار', 'رضا'], score: '4 - 2', created: now() - 900, updated: now() - 20, pot: 400, invite: false },
   { id: 'P9ZT1A', game: 'football', status: 'playing', mode: 'free', entry: 0, players: ['مریم', 'امیر'], score: '1 - 1', created: now() - 400, updated: now() - 5, pot: 0, invite: true },
   { id: 'L2WQ8C', game: 'ludo', status: 'lobby', mode: 'stake', entry: 50, players: ['کیان'], score: '', created: now() - 120, updated: now() - 120, pot: 50, invite: true }];
-let MS = [{ key: 'maintenance', kind: 'bool', min: 0, max: 1, value: false, env: false, custom: false }, { key: 'stake_enabled', kind: 'bool', min: 0, max: 1, value: true, env: true, custom: false },
+let MS = [{ key: 'maintenance', kind: 'bool', min: 0, max: 1, value: false, env: false, custom: false }, { key: 'ranked_enabled', kind: 'bool', min: 0, max: 1, value: true, env: true, custom: false },
   { key: 'turn_seconds', kind: 'int', min: 8, max: 60, value: 20, env: 20, custom: false }, { key: 'bot_fill_seconds', kind: 'int', min: 0, max: 120, value: 0, env: 0, custom: false },
-  { key: 'rake_percent', kind: 'int', min: 0, max: 30, value: 0, env: 0, custom: false }, { key: 'notice', kind: 'text', min: 0, max: 300, value: '', env: '', custom: false }];
+  { key: 'rank_coins', kind: 'int', min: 0, max: 20, value: 2, env: 2, custom: false }, { key: 'rank_coins_day', kind: 'int', min: 0, max: 100, value: 10, env: 10, custom: false },
+  { key: 'start_coins', kind: 'int', min: 0, max: 100, value: 10, env: 10, custom: false }, { key: 'notice', kind: 'text', min: 0, max: 300, value: '', env: '', custom: false }];
 let ME = [['brand', '🎮', 'نماد AsoTas'], ['hello', '👋', 'سلام و خوش آمد'], ['hokm', '🃏', 'حکم'], ['ludo', '🎲', 'منچ'], ['football', '⚽', 'فوتبال'], ['seat', '🪑', 'بنشین و جای خالی'],
-  ['watch', '👀', 'دیدن بازی'], ['trophy', '🏆', 'برنده'], ['coin', '💰', 'امتیاز و کیف'], ['gift', '🎁', 'هدیه'], ['fire', '🔥', 'محبوب'], ['party', '🎉', 'تبریک'], ['megaphone', '📢', 'پیام همگانی']]
+  ['watch', '👀', 'دیدن بازی'], ['trophy', '🏆', 'برنده'], ['coin', '💰', 'سکه و کیف'], ['gift', '🎁', 'هدیه'], ['fire', '🔥', 'محبوب'], ['party', '🎉', 'تبریک'], ['megaphone', '📢', 'پیام همگانی']]
   .map(([key, emoji, title], i) => ({ key, emoji, title, id: i % 3 ? '' : String(5368324170671202286n + BigInt(i)) }));
 const MB = [{ id: 3, status: 'active', text: '', copy: true, target: 'همه', buttons: ['ورود به AsoTas', 'بازی حکم'], total: 1840, sent: 1210, failed: 3, blocked: 41, created_at: now() - 120, finished_at: null },
   { id: 2, status: 'done', text: 'فوتبال به AsoTas اضافه شد ⚽️', copy: false, target: 'فعال ۷ روز', buttons: ['بازی فوتبال'], total: 1702, sent: 1655, failed: 2, blocked: 45, created_at: now() - 86400 * 3, finished_at: now() - 86400 * 3 + 95 }];

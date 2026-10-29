@@ -71,8 +71,8 @@ def test_stake_idle_forfeit():
     assert st["over"] and any(e["t"] == "leave" and e["why"] == "timeout" for e in st["events"])
 
 
-def test_stake_money_flow():
-    """ورودی، جایزه و بازگشت پول با دو بازیکن واقعی؛ جمع امتیازها ثابت می ماند."""
+def test_ranked_cups_coins_daily_and_gift():
+    """رتبه ای بدون ورودی: جام برنده و بازنده، سکهٔ برد با سقف روزانه؛ جایزهٔ روزانه پشت هم؛ هدیهٔ شروع یک بار."""
     tmp = tempfile.mkdtemp()
     os.environ["GAME_CLUB_DB_PATH"] = os.path.join(tmp, "gc.db")
 
@@ -82,100 +82,138 @@ def test_stake_money_flow():
     async def run():
         db = GCDatabase(os.path.join(tmp, "gc.db"))
         await db.connect()
-        for tg in (1, 2):
-            await db.player(tg, f"p{tg}")
-            await db.credit(tg, 500)
-        cfg = {"mode": "stake", "entry": 100, "players": 2, "pawns": 2}
-        assert (await service.queue_join(db, 1, cfg))["state"] == "waiting"
-        assert (await db.get_player(1))["points"] == 400
-        r = await service.queue_join(db, 2, cfg)
-        assert r["state"] == "matched"
-        mid = r["match"]
-        # بازیکن ۱ بیرون می رود، ۲ می برد
-        await service.leave_any(db, 1, mid)
-        p1, p2 = (await db.get_player(1))["points"], (await db.get_player(2))["points"]
-        assert (p1, p2) == (400, 600), (p1, p2)
-        # تسویه دوباره پولی جابه جا نمی کند
-        m = await db.get_match(mid)
-        await service.settle(db, m)
-        assert (await db.get_player(2))["points"] == 600
-        # میز دعوت: نشستن، بلند شدن، دوباره نشستن = دوباره ورودی
-        inv = await service.invite_create(db, 1, cfg)
-        assert (await db.get_player(1))["points"] == 300
-        m = await db.get_match(inv["match"])
-        await service.lobby_leave(db, 1, m)                    # میزبان می بندد = بازگشت
-        assert (await db.get_player(1))["points"] == 400
-        # صف: انصراف = بازگشت
-        await service.queue_join(db, 2, cfg)
-        assert (await db.get_player(2))["points"] == 500
-        await service.queue_leave(db, 2)
-        assert (await db.get_player(2))["points"] == 600
-        assert (await db.get_player(1))["points"] + (await db.get_player(2))["points"] == 1000
-        await db.close()
+        old = (service.gc.rank_coins, service.gc.rank_coins_day, service.gc.daily_coins, service.gc.start_coins)
+        service.gc.rank_coins, service.gc.rank_coins_day, service.gc.daily_coins, service.gc.start_coins = 2, 3, (1, 2, 5), 10
+        try:
+            for tg in (1, 2):
+                await db.player(tg, f"p{tg}")
+            # صفحهٔ قدیمی «stake» می فرستد: همان رتبه ای و بی ورودی
+            assert service.norm_cfg({"mode": "stake", "entry": 100, "players": 2, "pawns": 2}) == \
+                {"game": "ludo", "mode": "ranked", "entry": 0, "players": 2, "pawns": 2}
+            cfg = {"mode": "ranked", "players": 2, "pawns": 2}
+            for e, fn in (("ranked_online", service.invite_create(db, 1, cfg)),):
+                try:
+                    await fn
+                    raise AssertionError(e)
+                except service.GCError as x:
+                    assert x.code == e
+            wins = []
+            for rnd in range(3):
+                assert (await service.queue_join(db, 1, cfg))["state"] == "waiting"
+                try:
+                    await service.queue_bots(db, 1)
+                    raise AssertionError("ranked with bots")
+                except service.GCError as x:
+                    assert x.code == "need_players"
+                mid = (await service.queue_join(db, 2, cfg))["match"]
+                await service.leave_any(db, 1, mid)            # ۱ می رود، ۲ می برد
+                v = await service.match_view(db, 2, mid)
+                wins.append((v["result"]["cups"], v["result"]["coins"]))
+                await service.settle(db, await db.get_match(mid))   # دوباره: بی اثر
+            # سکه ۲ + ۱ (سقف ۳ در روز) + ۰؛ جام ۲۰ هر بار؛ بازنده کمتر از صفر نمی رود
+            assert wins == [(20, 2), (20, 1), (20, 0)], wins
+            assert (await db.get_player(2))["points"] == 3 and (await db.rank_of(2, "ludo")) == {"cups": 60, "games": 3, "wins": 3}
+            assert (await db.get_player(1))["points"] == 0 and (await db.rank_of(1, "ludo"))["cups"] == 0
+            lose = await service.match_view(db, 1, mid)
+            assert lose["result"] == {"won": False, "coins": 0, "cups": 0, "rank": {"cups": 0, "games": 3, "wins": 0, "league": "برنزی"}}
+            assert service.league(0) == "برنزی" and service.league(150) == "نقره‌ای" and service.league(1000) == "قهرمان"
+            board = await service.game_leaderboard(db, 1, "ludo", "cup")
+            assert [r["cups"] for r in board["rows"]] == [60] and board["mine"]["rank"] == 0
+            assert (await service.game_leaderboard(db, 2, "ludo", "cup"))["mine"]["rank"] == 1
+            # جایزهٔ روزانه: روز ۱، ۲، ۳ و دوباره ۱؛ یک روز جا بماند از اول
+            t0 = 1_800_000_000
+            got = []
+            for d in (0, 1, 2, 3, 5):
+                r = await service.daily_claim(db, 1, now=t0 + d * 86400)
+                got.append((r["coins"], r["daily"]["day"]))
+                try:
+                    await service.daily_claim(db, 1, now=t0 + d * 86400 + 60)
+                    raise AssertionError("twice a day")
+                except service.GCError as x:
+                    assert x.code == "daily_done"
+            assert got == [(1, 1), (2, 2), (5, 3), (1, 1), (1, 1)], got
+            assert service.daily_view(await db.get_player(1), now=t0 + 6 * 86400) == {"claimed": False, "day": 1, "next": 2, "plan": [1, 2, 5]}
+            # هدیهٔ شروع یک بار
+            await service.welcome_gift(db, 1)
+            await service.welcome_gift(db, 1)
+            assert (await db.get_player(1))["points"] == 10 + 10 and [l["kind"] for l in await db.ledger_of(1)].count("gift") == 1
+        finally:
+            service.gc.rank_coins, service.gc.rank_coins_day, service.gc.daily_coins, service.gc.start_coins = old
+            await db.close()
 
     asyncio.run(run())
 
 
-def test_buy_obour_plan_with_points():
-    """خرید پلن عبور با امتیاز از راه سرویس خرید خود عبور (پنل ساختگی)."""
-    import types
+def test_legacy_points_migrate_and_refund():
+    """امتیاز قدیمی یک بار به legacy_points می رود (سکه صفر)، میز امتیازی قدیمی به همان برمی گرداند و
+    refund_legacy با نرخ ۵۰۰ به کیف عبور می ریزد؛ نیمه کاره ها با همان idem تمام می شوند."""
+    import sqlite3
 
     tmp = tempfile.mkdtemp()
     from app.db import Database
-    from game_club import bridge
+    from game_club import bridge, service
     from game_club.db import GCDatabase
 
-    class Panel:
-        base_url = "https://panel.example"
-
-        def __init__(self, fail=False):
-            self.fail, self.made = fail, []
-
-        async def username_taken(self, name):
-            return False
-
-        async def create_service(self, username, **kw):
-            if self.fail:
-                from app.panel import PanelSafeError
-                raise PanelSafeError("down")
-            self.made.append(username)
-            return types.SimpleNamespace(subscription_url="/sub/" + username)
-
-        async def remove(self, name):
-            pass
-
-        async def get_user(self, name):
-            return None
+    path = os.path.join(tmp, "gc.db")
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE players (tg_id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT '', username TEXT,"
+                " av INTEGER NOT NULL DEFAULT 0, points INTEGER NOT NULL DEFAULT 0, games INTEGER NOT NULL DEFAULT 0,"
+                " wins INTEGER NOT NULL DEFAULT 0, show_spend INTEGER NOT NULL DEFAULT 0, tutorial INTEGER NOT NULL DEFAULT 0,"
+                " sound INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL, seen_at INTEGER NOT NULL)")
+    for tg, pts in ((77, 300), (78, 100), (79, 0), (80, 40)):
+        con.execute("INSERT INTO players(tg_id, name, points, created_at, seen_at) VALUES(?,?,?,1,1)", (tg, f"u{tg}", pts))
+    con.commit()
+    con.close()
 
     async def run():
+        gdb = GCDatabase(path)
+        await gdb.connect()
+        gdb2 = GCDatabase(path)            # پروسهٔ دوم: دوباره جابه جا نمی کند
+        await gdb2.connect()
+        await gdb2.close()
         odb = Database(os.path.join(tmp, "o.db"))
         await odb.connect()
-        gdb = GCDatabase(os.path.join(tmp, "gc.db"))
-        await gdb.connect()
-        u = await odb.get_or_create_user(77, None, "x")
-        await odb.execute("INSERT INTO plans(title, data_gb, duration_days, price, is_active) VALUES('p', 10, 30, 95000, 1)")
-        plan = (await odb.active_plans())[0]
-        await gdb.player(77, "x")
-        await gdb.credit(77, 2000)
-        pts = bridge.points_for(95000)
-        panel = Panel()
-        r = await bridge.buy(gdb, odb, panel, None, 77, plan["id"], "buy-test-0001")
-        assert r["ok"] and len(panel.made) == 1
-        assert (await gdb.get_player(77))["points"] == 2000 - pts
-        assert (await odb.get_user(u["id"]))["balance"] == pts * 100 - 95000
-        r = await bridge.buy(gdb, odb, panel, None, 77, plan["id"], "buy-test-0001")   # تکرار
-        assert r.get("repeat") and len(panel.made) == 1 and (await gdb.get_player(77))["points"] == 2000 - pts
-        r = await bridge.buy(gdb, odb, Panel(fail=True), None, 77, plan["id"], "buy-test-0002")
-        assert not r["ok"] and r["credited"] == pts * 100              # پول در کیف عبور ماند
-        assert (await odb.get_user(u["id"]))["balance"] == 2 * pts * 100 - 95000
-        await gdb.close()
-        await odb.close()
+        try:
+            p = await gdb.get_player(77)
+            assert (p["points"], p["legacy_points"]) == (0, 300)
+            u77 = await odb.get_or_create_user(77, None, "x")
+            u80 = await odb.get_or_create_user(80, None, "y")
+            # میز امتیازی قدیمی که منتظر بازیکن مانده: بستن = ورودی به legacy_points
+            await gdb.create_match("OLD1", "lobby", {"game": "ludo", "mode": "stake", "entry": 100, "players": 2, "pawns": 2},
+                                   {"lobby": True, "seats": [{"color": "yellow", "tg": 77, "paid": 100, "ref": "r1", "name": "u", "av": 1}]},
+                                   77, invite="ABC123")
+            await gdb.add_match_player("OLD1", 77, "yellow", 100)
+            try:
+                await service.invite_join(gdb, 79, "ABC123")
+                raise AssertionError("joined a legacy stake table")
+            except service.GCError as e:
+                assert e.code == "started"
+            assert (await service.admin_close(gdb, "OLD1"))["refunded"] == 100
+            assert (await gdb.get_player(77))["legacy_points"] == 400 and (await gdb.get_player(77))["points"] == 0
+            # برگشت: ۴۰۰ × ۵۰۰ = ۲۰۰ هزار تومان؛ دوباره = هیچ
+            assert await bridge.refund_legacy(gdb, odb, 77, 500) == 200_000
+            assert (await odb.get_user(u77["id"]))["balance"] == 200_000 and (await gdb.get_player(77))["legacy_points"] == 0
+            assert await bridge.refund_legacy(gdb, odb, 77, 500) == 0 and (await odb.get_user(u77["id"]))["balance"] == 200_000
+            led = (await gdb.ledger_of(77))[0]
+            assert led["kind"] == "obour" and led["amount"] == -400 and led["status"] == "done"
+            # بی حساب عبور: می ماند
+            assert await bridge.refund_legacy(gdb, odb, 78, 500) is None and (await gdb.get_player(78))["legacy_points"] == 100
+            assert await bridge.refund_legacy(gdb, odb, 79, 500) == 0
+            # قطع وسط کار: امتیاز کم شده و ردیف pending؛ finish_pending یک بار واریز می کند
+            assert await gdb.take_legacy(80, 40, "x", str(40 * 500), "obour:80:1")
+            assert (await gdb.get_player(80))["legacy_points"] == 0
+            assert await bridge.finish_pending(gdb, odb) == 1 and await bridge.finish_pending(gdb, odb) == 0
+            assert (await odb.get_user(u80["id"]))["balance"] == 20_000
+            assert await gdb.take_legacy(80, 1, "x", "500", "obour:80:2") is None      # موجودی نیست
+        finally:
+            await gdb.close()
+            await odb.close()
 
     asyncio.run(run())
 
 
 def test_notify_and_admin_close():
-    """بازیکنی که بیرون رفته حداکثر دو بار خبر نوبت و یک بار نتیجه می گیرد؛ بستن میز پول را برمی گرداند."""
+    """بازیکنی که بیرون رفته حداکثر دو بار خبر نوبت و یک بار نتیجه می گیرد؛ ادمین میز را می بندد."""
     import time as _t
 
     tmp = tempfile.mkdtemp()
@@ -193,8 +231,7 @@ def test_notify_and_admin_close():
         await db.connect()
         for tg in (1, 2):
             await db.player(tg, f"p{tg}")
-            await db.credit(tg, 500)
-        cfg = {"mode": "stake", "entry": 100, "players": 2, "pawns": 2}
+        cfg = {"mode": "ranked", "players": 2, "pawns": 2}
         await service.queue_join(db, 1, cfg)
         mid = (await service.queue_join(db, 2, cfg))["match"]
         # فقط بازیکن ۱ صفحه را می پرسد؛ بازیکن ۲ بیرون است. زمان را با ددلاین جلو می بریم.
@@ -212,15 +249,12 @@ def test_notify_and_admin_close():
         # ممکن است نوبت بازیکن ۲ اصلا نرسیده باشد؛ پس صفر هم درست است)
         turn_pings = [x for x in sent if x[0] == 2 and "نوبت" in x[1]]
         assert len(turn_pings) <= 2, sent
-        # نتیجه برای غایب: هر دو بازیکن غایب اند و هر کدام زودتر سه نوبت جا بیندازد می بازد،
-        # پس بازیکن ۲ یا خبر باخت (index) می گیرد یا خبر برد (wallet)
-        assert any(x[0] == 2 and x[2] in ("index.html", "shop.html") and "منچ" in x[1] for x in sent), sent
-        # بستن میز دعوت توسط ادمین = بازگشت ورودی
-        before = (await db.get_player(1))["points"]
-        inv = await service.invite_create(db, 1, cfg)
-        assert (await db.get_player(1))["points"] == before - 100
+        # نتیجه برای غایب (برد یا باخت) با دکمهٔ صفحهٔ همان بازی
+        assert any(x[0] == 2 and x[2] == "ludo-lobby.html" and "منچ" in x[1] for x in sent), sent
+        # بستن میز دعوت توسط ادمین
+        inv = await service.invite_create(db, 1, {"mode": "free", "players": 2, "pawns": 2})
         r = await service.admin_close(db, inv["match"])
-        assert r["refunded"] == 100 and (await db.get_player(1))["points"] == before
+        assert r["refunded"] == 0
         assert (await db.get_match(inv["match"]))["status"] == "cancelled"
         st = await db.stats(0)
         assert st["players"] == 2 and st["games"] == 1
@@ -324,22 +358,22 @@ def test_table_chat():
 
 
 
-def test_shop_off_by_default():
-    """فروشگاه پیش فرض خاموش است: فهرست، خرید و انتقال همه shop_off می دهند."""
+def test_obour_wallet_endpoints_are_gone():
+    """سکه از عبور شارژ نمی شود و خدمات عبور نمی خرد: مسیرهای قدیمی کیف و فروشگاه عبور دیگر نیستند."""
     import types
 
     from game_club import api
-    from game_club.config import gc as gconf
     from game_club.service import GCError
 
-    assert gconf.shop_enabled is False
     user = types.SimpleNamespace(id=1, first_name="x", username=None)
-    for name, method in (("shop", "GET"), ("shop/buy", "POST"), ("shop/transfer", "POST")):
+    for name, method in (("wallet/charge", "POST"), ("shop", "GET"), ("shop/buy", "POST"), ("shop/transfer", "POST")):
         try:
             asyncio.run(api.handle(name, method, user, {}, {"plan_id": 1, "points": 100, "idem": "x" * 16}))
-            raise AssertionError(name + " worked while the shop is off")
+            raise AssertionError(name + " still works")
         except GCError as e:
-            assert e.code == "shop_off", e.code
+            assert e.code in ("not_found", "bad_game"), e.code
+        except Exception as e:  # noqa: BLE001  (دیتابیس تستی برای api در این تست نیست)
+            assert "wallet" not in str(e) and "bridge" not in str(e), e
 
 
 # ---------- حکم ----------
@@ -476,22 +510,32 @@ def test_hokm_service_flow():
             assert m["status"] == "over"
             assert (await db.get_player(1))["kots"] == m["state"]["kots"][0] >= 2
 
-            cfg = {"game": "hokm", "mode": "stake", "entry": 100, "target": 3}
-            inv = await service.invite_create(db, 1, cfg)
-            for tg in (2, 3, 4):
-                await service.invite_join(db, tg, inv["code"])
-            rows = {r["tg_id"]: r["color"] for r in await db.match_players(inv["match"])}
-            assert rows == {1: "0", 2: "2", 3: "1", 4: "3"}, rows          # ۲ یار سازنده است
-            assert [(await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)] == [900] * 4
-            await play_out(db, [1, 2, 3, 4], inv["match"])
-            m = await db.get_match(inv["match"])
+            # رتبه ای: فقط صف آنلاین؛ تیم برنده جام و سکه می گیرد، بازنده جام از دست می دهد (کمتر از صفر نه)
+            cfg = {"game": "hokm", "mode": "ranked", "target": 3}
+            try:
+                await service.invite_create(db, 1, cfg)
+                raise AssertionError("ranked invite")
+            except service.GCError as e:
+                assert e.code == "ranked_online"
+            before = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)}
+            for tg in (1, 2, 3, 4):
+                r = await service.queue_join(db, tg, cfg)
+            rows = {r["tg_id"]: r["color"] for r in await db.match_players(r["match"])}
+            assert rows == {1: "0", 2: "2", 3: "1", 4: "3"}, rows
+            assert {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)} == before   # ورودی ندارد
+            await play_out(db, [1, 2, 3, 4], r["match"])
+            m = await db.get_match(r["match"])
             win = m["state"]["winner"]
-            pts = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)}
             winners = {tg for tg, c in rows.items() if int(c) % 2 == win}
-            assert all(pts[tg] == 1100 for tg in winners) and all(pts[tg] == 900 for tg in pts if tg not in winners), pts
-            assert sum(pts.values()) == 4000
+            pts = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)}
+            cups = {tg: (await db.rank_of(tg, "hokm"))["cups"] for tg in (1, 2, 3, 4)}
+            assert all(pts[tg] == before[tg] + service.gc.rank_coins and cups[tg] == service.gc.rank_win for tg in winners), (pts, cups)
+            assert all(pts[tg] == before[tg] and cups[tg] == 0 for tg in pts if tg not in winners), (pts, cups)
             await service.settle(db, m)                                      # تسویه دوباره چیزی جابه جا نمی کند
             assert {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)} == pts
+            v = await service.match_view(db, next(iter(winners)), r["match"])
+            assert v["result"]["cups"] == service.gc.rank_win and v["result"]["coins"] == service.gc.rank_coins
+            assert v["result"]["rank"]["league"] == "برنزی"
         finally:
             await db.close()
             service.time.time = real
@@ -565,10 +609,10 @@ def test_queue_waits_for_full_table_and_bots_on_request():
             await db.credit(3, 500)
             m3 = await db.get_match(inv["match"])
             await service.lobby_leave(db, 3, m3)
-            await service.queue_join(db, 3, {"game": "hokm", "mode": "stake", "entry": 100, "target": 3})
+            await service.queue_join(db, 3, {"game": "hokm", "mode": "ranked", "target": 3})
             try:
                 await service.queue_bots(db, 3)
-                raise AssertionError("stake queue must not take bots")
+                raise AssertionError("ranked queue must not take bots")
             except service.GCError as e:
                 assert e.code == "need_players"
         finally:
@@ -778,10 +822,10 @@ def test_football_service_flow():
             assert (await service.my_tables(db, 1))[0]["score"] == [0, 0]
             await service.leave_any(db, 1, mid)
             assert (await db.get_match(mid))["status"] == "over"
-            # بازی امتیازی با دعوت: برنده کل ورودی ها را می برد
-            cfg = {"game": "football", "mode": "stake", "entry": 100, "target": 2, "passes": 3}
-            inv = await service.invite_create(db, 1, cfg)
-            await service.invite_join(db, 2, inv["code"])
+            # رتبه ای از صف: برنده جام و سکه می گیرد
+            cfg = {"game": "football", "mode": "ranked", "target": 2, "passes": 0}
+            await service.queue_join(db, 1, cfg)
+            inv = await service.queue_join(db, 2, cfg)
             m = await db.get_match(inv["match"])
             assert m["status"] == "playing"
             for tg in (1, 2):
@@ -790,7 +834,7 @@ def test_football_service_flow():
             kits = {s: p["kit"] for s, p in m["state"]["players"].items()}
             assert sorted(kits.values()) == ["away", "home"]                  # تیم یکسان: یکی لباس مهمان
             from game_club import football as F
-            assert m["state"]["passes"] == 3 and m["state"]["target"] == 2
+            assert m["state"]["passes"] == 0 and m["state"]["target"] == 2 and m["state"]["stake"]
             rows = {r["color"]: r["tg_id"] for r in await db.match_players(inv["match"])}
             for _ in range(300):
                 m = await db.get_match(inv["match"])
@@ -804,7 +848,8 @@ def test_football_service_flow():
             m = await db.get_match(inv["match"])
             assert m["status"] == "over", m["state"]["score"]
             pts = sorted([(await db.get_player(1))["points"], (await db.get_player(2))["points"]])
-            assert pts == [900, 1100], pts
+            assert pts == [1000, 1000 + service.gc.rank_coins], pts
+            assert sorted([(await db.rank_of(tg, "football"))["cups"] for tg in (1, 2)]) == [0, service.gc.rank_win]
         finally:
             service.time.time = real
             await db.close()
@@ -912,7 +957,7 @@ def test_admin_panel():
 
 
 def test_style_shop():
-    """میز و ورق حکم: A رایگان، بقیه با امتیاز؛ خرید یک بار، همان idem بی اثر، استفاده فقط از خریده شده."""
+    """میز و ورق حکم: A رایگان، بقیه با سکه؛ خرید یک بار، همان idem بی اثر، استفاده فقط از خریده شده."""
     tmp = tempfile.mkdtemp()
     from game_club import service
     from game_club.db import GCDatabase
@@ -921,7 +966,7 @@ def test_style_shop():
         db = GCDatabase(os.path.join(tmp, "gc.db"))
         await db.connect()
         await db.player(5, "a")
-        await db.credit(5, 600)
+        await db.credit(5, 100)
         v = await service.style_view(db, 5)
         assert v["table"] == "a" and v["cards"] == "a"
         assert {i["id"] for i in v["items"] if i["owned"]} == {"table:a", "cards:a", "cards:m"}
@@ -933,19 +978,18 @@ def test_style_shop():
         except service.GCError as e:
             assert e.code == "not_owned"
         v = await service.style_buy(db, 5, "table:b", "idem-style-1")
-        assert v["table"] == "b" and v["points"] == 100
+        assert v["table"] == "b" and v["points"] == 20
         v = await service.style_buy(db, 5, "table:b", "idem-style-1")        # تکرار همان درخواست
-        assert v["points"] == 100
+        assert v["points"] == 20
         try:
-            await service.style_buy(db, 5, "cards:c", "idem-style-2")         # ۳۰۰ لازم است، ۱۰۰ دارد
+            await service.style_buy(db, 5, "cards:c", "idem-style-2")         # ۵۰ لازم است، ۲۰ دارد
             raise AssertionError("bought without points")
         except service.GCError as e:
             assert e.code == "insufficient"
         await service.style_use(db, 5, "table:a")
         v = await service.style_use(db, 5, "table:b")
-        assert v["table"] == "b" and (await db.get_player(5))["points"] == 100
-        assert (await db.ledger_of(5))[0]["kind"] in ("style", "charge")
-        assert any(r["kind"] == "style" and r["amount"] == -500 for r in await db.ledger_of(5))
+        assert v["table"] == "b" and (await db.get_player(5))["points"] == 20
+        assert any(r["kind"] == "style" and r["amount"] == -80 for r in await db.ledger_of(5))
         await db.close()
     asyncio.run(run())
 
@@ -1868,16 +1912,15 @@ def test_billiard_service_flow():
             assert (await service.my_tables(db, 1))[0]["game"] == "billiard"
             await service.leave_any(db, 1, mid)
             assert (await db.get_match(mid))["status"] == "over"
-            # چهار نفره یاری با امتیاز: اولین مهمان یار سازنده (صندلی ۲) و جایزه بین تیم برنده
-            cfg = {"game": "billiard", "mode": "stake", "entry": 100, "players": 4}
-            inv = await service.invite_create(db, 1, cfg)
-            for tg in (2, 3, 4):
-                await service.invite_join(db, tg, inv["code"])
+            # چهار نفره یاری رتبه ای: جام و سکه برای هر دو یار تیم برنده
+            cfg = {"game": "billiard", "mode": "ranked", "players": 4}
+            for tg in (1, 2, 3, 4):
+                inv = await service.queue_join(db, tg, cfg)
             m = await db.get_match(inv["match"])
             assert m["status"] == "playing"
             rows = {r["tg_id"]: r["color"] for r in await db.match_players(inv["match"])}
             assert rows == {1: "0", 2: "2", 3: "1", 4: "3"}
-            assert [(await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)] == [900] * 4
+            assert [(await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)] == [1000] * 4
 
             def win0(mm):
                 from game_club import billiard
@@ -1886,7 +1929,9 @@ def test_billiard_service_flow():
                 return True, None
             await service.mutate(db, inv["match"], win0)
             pts = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)}
-            assert pts == {1: 1100, 2: 1100, 3: 900, 4: 900}, pts
+            c = service.gc.rank_coins
+            assert pts == {1: 1000 + c, 2: 1000 + c, 3: 1000, 4: 1000}, pts
+            assert {tg: (await db.rank_of(tg, "billiard"))["cups"] for tg in (1, 2, 3, 4)} == {1: 20, 2: 20, 3: 0, 4: 0}
         finally:
             service.time.time = real
             await db.close()
@@ -2021,11 +2066,10 @@ def test_divar_service_flow():
             assert (await service.my_tables(db, 1))[0]["game"] == "divar"
             await service.leave_any(db, 1, mid)
             assert (await db.get_match(mid))["status"] == "over"
-            # چهار نفرهٔ ستاره با امتیاز: یک برنده همهٔ جایزه را می برد
-            cfg = {"game": "divar", "mode": "stake", "entry": 100, "players": 4, "variant": "star"}
-            inv = await service.invite_create(db, 1, cfg)
-            for tg in (2, 3, 4):
-                await service.invite_join(db, tg, inv["code"])
+            # چهار نفرهٔ ستاره رتبه ای: یک برنده جام و سکه می گیرد
+            cfg = {"game": "divar", "mode": "ranked", "players": 4, "variant": "star"}
+            for tg in (1, 2, 3, 4):
+                inv = await service.queue_join(db, tg, cfg)
             m = await db.get_match(inv["match"])
             assert m["status"] == "playing" and m["state"]["size"] == 11
             rows = {r["tg_id"]: r["color"] for r in await db.match_players(inv["match"])}
@@ -2038,8 +2082,8 @@ def test_divar_service_flow():
                 return True, None
             await service.mutate(db, inv["match"], win)
             pts = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3, 4)}
-            prize = 400 - 400 * service.gc.rake_percent // 100
-            assert pts == {1: 900, 2: 900, 3: 900 + prize, 4: 900}, pts
+            assert pts == {1: 1000, 2: 1000, 3: 1000 + service.gc.rank_coins, 4: 1000}, pts
+            assert (await db.rank_of(3, "divar"))["cups"] == service.gc.rank_win and (await db.rank_of(1, "divar"))["cups"] == 0
             # گروه: انتخاب «۴ نفره · ستاره» به players و variant تبدیل می شود
             c = groups.cfg_of("divar", {"kind": 5})
             assert c["players"] == 4 and c["variant"] == "star" and service.norm_cfg(c)["variant"] == "star"
@@ -2837,11 +2881,10 @@ def test_snakes_service_flow():
             assert any(e["t"] == "roll" and e["c"] == v["me"] for e in v["game"]["events"])
             assert (await service.my_tables(db, 1))[0]["game"] == "snakes"
             await service.leave_any(db, 1, mid)
-            # سه نفره با امتیاز: یک برنده همهٔ جایزه را می برد
-            cfg = {"game": "snakes", "mode": "stake", "entry": 100, "players": 3}
-            inv = await service.invite_create(db, 1, cfg)
-            for tg in (2, 3):
-                await service.invite_join(db, tg, inv["code"])
+            # سه نفره رتبه ای: یک برنده جام و سکه می گیرد
+            cfg = {"game": "snakes", "mode": "ranked", "players": 3}
+            for tg in (1, 2, 3):
+                inv = await service.queue_join(db, tg, cfg)
             m = await db.get_match(inv["match"])
             assert m["status"] == "playing" and m["state"]["n"] == 3
             rows = {r["tg_id"]: r["color"] for r in await db.match_players(inv["match"])}
@@ -2854,8 +2897,7 @@ def test_snakes_service_flow():
                 return True, None
             await service.mutate(db, inv["match"], win)
             pts = {tg: (await db.get_player(tg))["points"] for tg in (1, 2, 3)}
-            prize = 300 - 300 * service.gc.rake_percent // 100
-            assert pts == {1: 900, 2: 900 + prize, 3: 900}, pts
+            assert pts == {1: 1000, 2: 1000 + service.gc.rank_coins, 3: 1000}, pts
             # گروه: ۲ تا ۴ نفره، پیش فرض ۴
             assert groups.cfg_of("snakes", {})["players"] == 4 and groups.cfg_of("snakes", {"players": 3})["players"] == 3
             assert groups.need_of("snakes", groups.cfg_of("snakes", {"players": 2})) == 2
@@ -2924,25 +2966,11 @@ def test_app_guest_sessions_and_bundle():
         s_, h_, b_ = call("POST", "/gc/app/guest", {"HTTP_ORIGIN": "https://localhost"}, b'{"device":"Pixel 8"}')
         tok = json.loads(b_)["token"]
         assert s_.startswith("200") and h_["Access-Control-Allow-Origin"] == "https://localhost" and set(json.loads(b_)) == {"token"}
-        from game_club import api as gapi
-
-        class OB:   # کیف عبور: مهمان اصلا سراغش نمی رود
-            class db:
-                @staticmethod
-                async def get_setting(k, d=""):
-                    return d
-
-                @staticmethod
-                async def get_user_by_tg(tg):
-                    raise AssertionError("guest must not touch the Obour wallet")
-        real_ob, gapi._obour = gapi._obour, lambda: OB
-        try:
-            s_, h_, b_ = call("GET", "/gc/api/me", {"HTTP_X_GC_TOKEN": tok, "HTTP_ORIGIN": "https://localhost"})
-        finally:
-            gapi._obour = real_ob
+        s_, h_, b_ = call("GET", "/gc/api/me", {"HTTP_X_GC_TOKEN": tok, "HTTP_ORIGIN": "https://localhost"})
         me = json.loads(b_)
         assert s_.startswith("200") and h_["Access-Control-Allow-Origin"] == "https://localhost", (s_, b_)
-        assert me["player"]["name"] and me["player"]["pic"] == "" and me["obour"] == {"linked": False, "balance": 0}
+        assert me["player"]["name"] and me["player"]["pic"] == "" and "obour" not in me
+        assert me["daily"]["claimed"] is False and me["ranks"] == {} and me["settings"]["ranked"] is True
         s_, _, b_ = call("GET", "/gc/api/friends", {"HTTP_X_GC_TOKEN": tok})
         assert s_.startswith("200"), b_
         assert call("GET", "/gc/api/me", {"HTTP_X_GC_TOKEN": "gcs_" + "b" * 43})[0].startswith("401")
@@ -2994,7 +3022,7 @@ def test_app_login_telegram_and_email():
     import json
     from types import SimpleNamespace as NS
     from game_club import appauth, gate, mailer, wsgi as W
-    from game_club import api as gapi, bot as gbot
+    from game_club import bot as gbot
     from game_club.db import GCDatabase
     loop = asyncio.new_event_loop()
     run = loop.run_until_complete
@@ -3167,17 +3195,6 @@ def test_app_login_telegram_and_email():
         assert call("POST", "/gc/app/login/email/verify", body=b'{"email":"q@b.co","code":"1"}')[2] == {"error": "code_expired"}
         codes = [call("POST", "/gc/app/login/email", body=b'{"email":"x"}', ip="7.7.7.7")[0][:3] for _ in range(21)]
         assert codes.count("400") == 20 and codes[-1] == "429"
-
-        class OB:
-            class db:
-                @staticmethod
-                async def get_setting(k, d=""):
-                    return d
-
-                @staticmethod
-                async def get_user_by_tg(tg):
-                    return None
-        real_ob, gapi._obour = gapi._obour, lambda: OB
         r5 = run(appauth.tg_start(db))
         run(appauth.tg_decide(db, r5["code"], 77, True))
         t77 = run(appauth.tg_check(db, r5["poll"]))["token"]
@@ -3192,7 +3209,6 @@ def test_app_login_telegram_and_email():
             assert call("GET", "/gc/api/boot", {"HTTP_X_GC_TOKEN": t77})[2]["gate"] == []
             assert call("GET", "/gc/api/me", {"HTTP_X_GC_TOKEN": v["token"]})[2]["account"] == {"kind": "email", "email": "new@x.ir"}
         finally:
-            gapi._obour = real_ob
             obour_cfg.admin_ids[:] = old_ids
             run(gate.save(db, "gate", {"on": False, "chats": []}))
     finally:
