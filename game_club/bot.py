@@ -141,21 +141,21 @@ gcrt = GCRuntime()
 
 # نوع اعلان -> (ایموجی، زیرعنوان، متن دکمه)
 NOTICE = {
-    "turn": ("turn", "نوبت توئه!", "برگرد سر بازی"),
-    "join": ("seat", "یکی سر میزت نشست", "برو سر میز"),
-    "over": ("trophy", "نتیجهٔ بازی", "باز کردن AsoTas"),
-    "freq": ("friend", "درخواست دوستی", "ببین کیه"),
-    "facc": ("friend", "رفیق تازه", "دیدن رفیقا"),
-    "dm": ("chat", "پیام تازه", "بخونش"),
-    "dminv": ("link", "دعوت به بازی", "بشین سر میز"),
+    "turn": ("turn", "نوبت توئه داش!", "بپر سر بازی"),
+    "join": ("seat", "یکی نشست سر میزت", "برو سر میز"),
+    "over": ("trophy", "بازی تموم شد", "ببین چی شد"),
+    "freq": ("friend", "یکی می‌خواد رفیقت بشه", "ببین کیه"),
+    "facc": ("friend", "یه رفیق تازه داری", "رفیقامو نشون بده"),
+    "dm": ("chat", "پیام داری داش", "بخونش"),
+    "dminv": ("link", "دعوتت کردن سر میز", "بشین سر میز"),
 }
 
 
 def gate_text(need: list[dict]) -> str:
-    names = "، ".join(f"«{c['title']}»" for c in need)
-    return st.to_html(st.frame("megaphone", "AsoTas", "عضویت لازمه", [
-        f"برای بازی توی AsoTas اول باید عضو {names} بشی.", "",
-        "عضو که شدی، دکمهٔ «عضو شدم» رو بزن تا بریم سراغ بازی 🎮"]))
+    names = " و ".join(f"«{c['title']}»" for c in need)
+    return st.to_html(st.frame("megaphone", "AsoTas", "اول عضو شو داش", [
+        f"واسه بازی تو AsoTas اول باید عضو {names} بشی", "",
+        "عضو که شدی دکمهٔ «عضو شدم» رو بزن بریم سراغ بازی 🎮"]))
 
 
 def gate_kb(need: list[dict]) -> InlineKeyboardMarkup:
@@ -171,16 +171,16 @@ async def on_gate_ok(cb: CallbackQuery, gdb: GCDatabase) -> None:
 
     need = await gate.missing(gdb, cb.bot, cb.from_user.id, fresh=True)
     if need:
-        await cb.answer("هنوز عضو " + "، ".join(c["title"] for c in need) + " نشدی 🤔", show_alert=True)
+        await cb.answer("هنوز عضو " + " و ".join(c["title"] for c in need) + " نشدی رفیق 🤔", show_alert=True)
         try:
             await cb.message.edit_text(gate_text(need), reply_markup=gate_kb(need))
         except Exception:  # noqa: BLE001
             pass
         return
-    await cb.answer("عضویتت تأیید شد ✅")
+    await cb.answer("دمت گرم عضو شدی ✅")
     try:
-        await cb.message.edit_text(st.to_html(st.frame("ok", "AsoTas", "خوش اومدی!", [
-            "عضویتت تأیید شد ✅ حالا می‌تونی بازی کنی."])), reply_markup=open_kb("", "بزن بریم بازی"))
+        await cb.message.edit_text(st.to_html(st.frame("ok", "AsoTas", "خوش اومدی داش!", [
+            "حله عضو شدی ✅ حالا بزن بریم سراغ بازی"])), reply_markup=open_kb("", "بزن بریم بازی"))
     except Exception:  # noqa: BLE001
         pass
 
@@ -214,16 +214,16 @@ def bot_at() -> str:
 
 
 def group_steps() -> list:
-    return [[st.E("group"), " ", st.B("بازی توی گروه")],
-            ["1. توی گروهت بنویس ", st.iso(bot_at()), " و یه فاصله بذار"],
-            "2. از لیستی که بالای کیبورد باز می‌شه، بازی رو انتخاب کن: حکم، منچ، فوتبال، بیلیارد، دیوار، اسم‌فامیل، لشگر کاغذی یا مار و پله",
-            "3. حالت بازی رو بچین و «باز کردن میز» رو بزن",
-            "4. رفیقات «بشین» رو می‌زنن؛ میز که پر شد، بازی شروع می‌شه 🎉"]
+    return [[st.E("group"), " ", st.B("بازی تو گروه")],
+            ["1️⃣ تو گروهت بنویس ", st.iso(bot_at()), " و یه فاصله بذار"],
+            "2️⃣ از لیستی که بالای کیبورد باز می‌شه بازیتو انتخاب کن 🎲",
+            "3️⃣ حالت بازی رو بچین و «باز کردن میز» رو بزن",
+            "4️⃣ رفیقات «بشین» رو می‌زنن و میز که پر شد بازی شروع می‌شه 🎉"]
 
 
 def with_group_button(kb: InlineKeyboardMarkup | None) -> InlineKeyboardMarkup:
     """دکمهٔ «بازی توی گروه»: تلگرام فهرست چت ها را باز می کند و @آیدی ربات را خودش می نویسد."""
-    btn = st.kb_button("بازی توی گروه", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
+    btn = st.kb_button("بازی تو گروه", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
         query="", allow_group_chats=True, allow_user_chats=True, allow_channel_chats=True))
     return InlineKeyboardMarkup(inline_keyboard=[[btn], *(kb.inline_keyboard if kb else [])])
 
@@ -235,18 +235,18 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         return
     me = await gdb.player(u.id, _name(message), u.username)
     if me.get("banned"):
-        await message.answer(_h("ban", "AsoTas", "حساب مسدود", [
-            "حسابت توی AsoTas مسدود شده 🚫"],
-            foot=(None, None, "اگه فکر می‌کنی اشتباه شده، به پشتیبانی عبور پیام بده؛ آدمای خوبی‌ان 😄")))
+        await message.answer(_h("ban", "AsoTas", "حسابت بسته‌ست", [
+            "شرمنده داش حسابت تو AsoTas بسته شده 🚫"],
+            foot=(None, None, "اگه فکر می‌کنی اشتباه شده به پشتیبانی عبور پیام بده آدمای خوبی‌ان 😄")))
         return
     arg = (command.args or "").strip()
     if arg == "esmfamil":   # از دکمهٔ راهنمای حالت اینلاین در پیوی
         await message.answer(_h("esmfamil", "اسم‌فامیل", "بازی گروهی", esmfamil_intro(),
-                                foot=(None, None, "دکمهٔ زیر رو بزن و گروهت رو انتخاب کن 👇")), reply_markup=esmfamil_kb())
+                                foot=(None, None, "دکمهٔ زیر رو بزن و گروهتو انتخاب کن 👇")), reply_markup=esmfamil_kb())
         return
     if arg == "lashgar":
         await message.answer(_h("lashgar", "لشگر کاغذی", "بازی گروهی", lashgar_intro(),
-                                foot=(None, None, "دکمهٔ زیر رو بزن و گروهت رو انتخاب کن 👇")), reply_markup=lashgar_kb())
+                                foot=(None, None, "دکمهٔ زیر رو بزن و گروهتو انتخاب کن 👇")), reply_markup=lashgar_kb())
         return
     game = arg.split("_", 1)[0]
     if game in GAME_FA and "_" in arg:
@@ -254,60 +254,60 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         code = "".join(ch for ch in arg.split("_", 1)[1].upper() if ch.isalnum())[:12]
         m = await gdb.match_by_invite(code)
         if not m or m["status"] != "lobby":
-            await message.answer(_h(game, f"میز {name}", "دیر رسیدی 😅", [
-                "این میز یا جمع شده یا بازیش شروع شده."], foot=(None, None, "عیب نداره؛ خودت یه میز تازه بچین 👇")),
+            await message.answer(_h(game, f"میز {name}", "دیر رسیدی داش 😅", [
+                "این میز یا جمع شده یا بازیش شروع شده"], foot=(None, None, "فدای سرت خودت یه میز تازه بچین 👇")),
                 reply_markup=open_kb(f"{game}-lobby.html", f"میز تازهٔ {name}", "new"))
             return
         stake = m["cfg"]["mode"] == "stake"
-        who = {"hokm": "یه دست حکم (یار خودش!)", "football": "یه بازی فوتبال", "ludo": "یه دست منچ",
-               "billiard": "یه دست بیلیارد" + (" (یار خودش!)" if m["cfg"].get("players") == 4 else ""),
+        who = {"hokm": "یه دست حکم که یارش باشی", "football": "یه بازی فوتبال", "ludo": "یه دست منچ",
+               "billiard": "یه دست بیلیارد" + (" که یارش باشی" if m["cfg"].get("players") == 4 else ""),
                "divar": "یه دست دیوار" + (" چهار نفره" if m["cfg"].get("players") == 4 else ""),
-               "esmfamil": "یه دست اسم‌فامیل با داور هوش مصنوعی", "lashgar": "یه جنگ کاغذی (لشگر کاغذی!)",
+               "esmfamil": "یه دست اسم‌فامیل با داور هوش مصنوعی", "lashgar": "یه جنگ کاغذی حسابی",
                "snakes": "یه دست مار و پله" + (f" {m['cfg'].get('players')} نفره" if m["cfg"].get("players") else "")}[game]
-        await message.answer(_h(game, f"میز {name}", "دعوتت کردن!", [
-            f"رفیقت تو رو به {who} دعوت کرده؛ منتظره بشینی کنارش 😎"],
+        await message.answer(_h(game, f"میز {name}", "دعوتت کردن داش!", [
+            f"رفیقت دعوتت کرده به {who} 😎 منتظره بشینی کنارش"],
             foot=("coin", "نوع میز", ["با امتیاز · ورودی ", st.num(m["cfg"]["entry"])] if stake else "آزاد · مجانی")),
             reply_markup=open_kb(f"{game}-lobby.html?join={code}", "بشین سر میز", "seat"))
         return
-    lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), "، خوش اومدی! اینجا کسی حوصله‌ش سر نمی‌ره 😎"], "",
+    lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), " خوش اومدی داش! من تاسی‌ام 🎩 اینجا کسی حوصله‌ش سر نمی‌ره"], "",
              [st.E("hokm"), " حکم  ", st.E("ludo"), " منچ  ", st.E("football"), " فوتبال  ", st.E("billiard"), " بیلیارد  ", st.E("divar"), " دیوار  ", st.E("snakes"), " مار و پله"],
-             "با رفیقات یا با ناشناس؛ هر جا حوصله‌ت سر رفت 😄",
-             [st.E("esmfamil"), " اسم‌فامیل هم داریم، توی گروه یا کانال؛ داورش هوش مصنوعی عبوره!"],
-             [st.E("lashgar"), " لشگر کاغذی هم هست؛ همون جنگ کاغذی دهه شصت، توی گروه یا کانال 🪖"], "", *group_steps()]
+             "با رفیقات یا با ناشناس هر وقت حوصله‌ت سر رفت بیا 😄",
+             [st.E("esmfamil"), " اسم‌فامیل هم داریم تو گروه یا کانال که داورش هوش مصنوعی عبوره!"],
+             [st.E("lashgar"), " لشگر کاغذی هم هست همون جنگ کاغذی زنگ تفریح تو گروه یا کانال 🪖"], "", *group_steps()]
     if arg == "obour":
-        lines += ["", "حساب عبورت به همین تلگرام وصله؛ شارژ از کیف عبور یه ثانیه‌ست ⚡"]
+        lines += ["", "حساب عبورت به همین تلگرام وصله و شارژ از کیف عبور یه ثانیه‌ست ⚡"]
     await message.answer(_h("hello", "AsoTas", "منوی اصلی", lines, foot=("coin", "امتیاز", [st.num(me["points"]), " امتیاز"])),
                          reply_markup=with_group_button(open_kb()))
 
 
 def esmfamil_intro() -> list:
-    return [[st.E("esmfamil"), " ", st.B("اسم‌فامیل توی گروه یا کانال بازی می‌شه")],
-            "همه با هم یه حرف می‌گیرن و اسم، فامیل، شهر، کشور، غذا، حیوان، میوه، اشیا و رنگ رو پر می‌کنن؛ هر دور 3، 5 یا 8 دقیقه.",
-            [st.E("judge"), " حرف هر دور رو هوش مصنوعی عبور انتخاب می‌کنه و برگ‌ها رو هم خودش تصحیح می‌کنه."],
-            "جواب درستی که فقط تو نوشتی 10، تکراری 5؛ آخر بازی برگ همه با امتیازا توی گروه میاد و برنده اعلام می‌شه 🏆", "",
-            ["توی گروهت بنویس ", st.iso("/esmfamil"), " یا توی گروه و کانالت ", st.iso(bot_at() + " esmfamil")]]
+    return [[st.E("esmfamil"), " ", st.B("اسم‌فامیل تو گروه یا کانال بازی می‌شه")],
+            "همه با هم یه حرف می‌گیرن و اسم و فامیل و شهر و کشور و غذا و حیوون و میوه و اشیا و رنگ رو پر می‌کنن ✍️ هر دور 3 یا 5 یا 8 دقیقه‌ست",
+            [st.E("judge"), " حرف هر دور رو هوش مصنوعی عبور انتخاب می‌کنه و برگه‌ها رو هم خودش تصحیح می‌کنه"],
+            "جواب درستی که فقط تو نوشتی 10 امتیاز داره و تکراری 5 🏆 آخر بازی برگ همه با امتیازا تو گروه میاد و برنده معلوم می‌شه", "",
+            ["تو گروهت بنویس ", st.iso("/esmfamil"), " یا تو گروه و کانالت ", st.iso(bot_at() + " esmfamil")]]
 
 
 def esmfamil_kb() -> InlineKeyboardMarkup:
     """فقط گروه ها و کانال ها در فهرست انتخاب تلگرام می آیند؛ کارت تنظیم میز همان جا ساخته می شود."""
-    btn = st.kb_button("یه گروه یا کانال انتخاب کن، بزن بریم", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
+    btn = st.kb_button("یه گروه یا کانال انتخاب کن بزن بریم", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
         query="esmfamil", allow_group_chats=True, allow_user_chats=False, allow_bot_chats=False, allow_channel_chats=True))
     kb = open_kb("esmfamil-lobby.html", "چطوری بازی کنم؟", "help")
     return InlineKeyboardMarkup(inline_keyboard=[[btn], *(kb.inline_keyboard if kb else [])])
 
 
 def lashgar_intro() -> list:
-    return [[st.E("lashgar"), " ", st.B("لشگر کاغذی توی گروه یا کانال بازی می‌شه")],
-            "همون جنگ کاغذی زنگ تفریح: یه برگه، خط وسط، این‌ور ارتش تو و اون‌ور ارتش حریف. اول اسم لشگرت رو می‌ذاری، "
-            "بعد سرباز و تانک و توپ و هلیکوپتر و پرچمت رو می‌چینی و با مداد هر چی دلت خواست می‌کشی؛ نقاشی وقت نداره.",
-            [st.E("boom"), " هر شلیک 1 دقیقه وقت داره: یه نقطه روی نیمهٔ خودت، برگه رو تا می‌کنی و از پشت فشار می‌دی؛ "
-             "ردش قرینه روی نیمهٔ حریف می‌افته و هر نیرویی که بخوره، خط می‌خوره."],
-            "هر کی زودتر پرچم حریف رو بزنه یا همهٔ نیروهاشو خط بزنه، برنده‌ست 🏆", "",
-            ["توی گروهت بنویس ", st.iso("/lashgar"), " یا توی گروه و کانالت ", st.iso(bot_at() + " lashgar")]]
+    return [[st.E("lashgar"), " ", st.B("لشگر کاغذی تو گروه یا کانال بازی می‌شه")],
+            "همون جنگ کاغذی زنگ تفریح 📝 یه برگه با یه خط وسطش که این‌ور ارتش توئه و اون‌ور ارتش حریف "
+            "اول اسم لشگرتو می‌ذاری بعد سرباز و تانک و توپ و هلیکوپتر و پرچمتو می‌چینی و با مداد هر چی دلت خواست می‌کشی و نقاشی هم وقت نداره",
+            [st.E("boom"), " هر شلیک 1 دقیقه وقت داره 💥 یه نقطه رو نیمهٔ خودت می‌ذاری و برگه رو تا می‌کنی و از پشت فشار می‌دی "
+             "ردش قرینه می‌افته رو نیمهٔ حریف و هر نیرویی بخوره خط می‌خوره"],
+            "هر کی زودتر پرچم حریفو بزنه یا همهٔ نیروهاشو خط بزنه برنده‌ست 🏆", "",
+            ["تو گروهت بنویس ", st.iso("/lashgar"), " یا تو گروه و کانالت ", st.iso(bot_at() + " lashgar")]]
 
 
 def lashgar_kb() -> InlineKeyboardMarkup:
-    btn = st.kb_button("یه گروه یا کانال انتخاب کن، بزن بریم", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
+    btn = st.kb_button("یه گروه یا کانال انتخاب کن بزن بریم", "group", switch_inline_query_chosen_chat=SwitchInlineQueryChosenChat(
         query="lashgar", allow_group_chats=True, allow_user_chats=False, allow_bot_chats=False, allow_channel_chats=True))
     kb = open_kb("lashgar-lobby.html", "چطوری بازی کنم؟", "help")
     return InlineKeyboardMarkup(inline_keyboard=[[btn], *(kb.inline_keyboard if kb else [])])
@@ -317,14 +317,14 @@ def lashgar_kb() -> InlineKeyboardMarkup:
 async def on_lashgar(message: Message) -> None:
     """در پیوی: این بازی گروهی است (در گروه همین دستور را groups.py جواب می دهد)."""
     await message.answer(_h("lashgar", "لشگر کاغذی", "بازی گروهی", lashgar_intro(),
-                            foot=(None, None, "دکمهٔ زیر رو بزن و گروهت رو انتخاب کن 👇")), reply_markup=lashgar_kb())
+                            foot=(None, None, "دکمهٔ زیر رو بزن و گروهتو انتخاب کن 👇")), reply_markup=lashgar_kb())
 
 
 @router.message(Command("esmfamil"))
 async def on_esmfamil(message: Message) -> None:
     """در پیوی: این بازی گروهی است (در گروه همین دستور را groups.py جواب می دهد)."""
     await message.answer(_h("esmfamil", "اسم‌فامیل", "بازی گروهی", esmfamil_intro(),
-                            foot=(None, None, "دکمهٔ زیر رو بزن و گروهت رو انتخاب کن 👇")), reply_markup=esmfamil_kb())
+                            foot=(None, None, "دکمهٔ زیر رو بزن و گروهتو انتخاب کن 👇")), reply_markup=esmfamil_kb())
 
 
 @router.message(Command("points"))
@@ -334,8 +334,8 @@ async def on_points(message: Message, gdb: GCDatabase) -> None:
         return
     p = await gdb.player(u.id, _name(message), u.username)
     rate = round(p["wins"] * 100 / p["games"]) if p["games"] else 0
-    vibe = ("هنوز بازی نکردی؛ زمین منتظرته!" if not p["games"] else "داری می‌ترکونی 🔥" if rate >= 60
-            else "بد نیست؛ یه کم دیگه تمرین 😉" if rate >= 35 else "شانس با تو قهره؛ ولی آشتی می‌کنه 😄")
+    vibe = ("هنوز بازی نکردی داش زمین منتظرته!" if not p["games"] else "داری می‌ترکونی 🔥" if rate >= 60
+            else "بد نیست یه کم دیگه تمرین کنی آس می‌شی 😉" if rate >= 35 else "شانس فعلاً باهات قهره ولی آشتی می‌کنه 😄")
     await message.answer(_h("coin", "کیف امتیاز", "AsoTas", [
         [st.E("trophy"), " برد: ", st.num(p["wins"]), " از ", st.num(p["games"]), " بازی"], vibe],
         foot=("coin", "موجودی", [st.num(p["points"]), " امتیاز"])),
@@ -344,11 +344,11 @@ async def on_points(message: Message, gdb: GCDatabase) -> None:
 
 @router.message(Command("help"))
 async def on_help(message: Message) -> None:
-    await message.answer(_h("help", "راهنما", "بازی توی گروه", [
+    await message.answer(_h("help", "راهنما", "بازی تو گروه", [
         *group_steps(), "",
-        "لازم نیست ربات عضو گروه باشه؛ فقط آیدیش رو بنویس 😉",
-        "دکمهٔ «بازی توی گروه» هم گروهت رو باز می‌کنه و آیدی رو خودش می‌نویسه.",
-    ], foot=(None, None, "قوانین هر بازی توی «راهنمای کامل» هست")),
+        "لازم نیست ربات عضو گروهت باشه فقط آیدیشو بنویس 😉",
+        "دکمهٔ «بازی تو گروه» هم گروهتو باز می‌کنه و آیدی رو خودش می‌نویسه",
+    ], foot=(None, None, "قانون هر بازی تو «راهنمای کامل» هست")),
         reply_markup=with_group_button(open_kb("help.html", "راهنمای کامل", "help")))
 
 
@@ -784,16 +784,16 @@ async def on_bc_buttons(message: Message, gdb: GCDatabase) -> None:
 
 @router.message(F.chat.type == "private", F.text)
 async def on_text(message: Message) -> None:
-    await message.answer(_h("brand", "AsoTas", "بزن بریم", ["برای بازی، AsoTas رو باز کن 👇"],
-                            foot=(None, None, ["یا توی گروهت بنویس ", st.iso(bot_at()), " و یه بازی انتخاب کن"])),
+    await message.answer(_h("brand", "AsoTas", "بزن بریم داش", ["واسه بازی AsoTas رو باز کن 👇"],
+                            foot=(None, None, ["یا تو گروهت بنویس ", st.iso(bot_at()), " و یه بازی انتخاب کن"])),
                          reply_markup=with_group_button(open_kb()))
 
 
 COMMANDS = [BotCommand(command="start", description="ورود به AsoTas"),
             BotCommand(command="points", description="موجودی امتیاز"),
-            BotCommand(command="esmfamil", description="اسم‌فامیل (توی گروه یا کانال)"),
-            BotCommand(command="lashgar", description="لشگر کاغذی؛ جنگ کاغذی (توی گروه یا کانال)"),
-            BotCommand(command="help", description="قوانین")]
+            BotCommand(command="esmfamil", description="اسم‌فامیل تو گروه یا کانال"),
+            BotCommand(command="lashgar", description="لشگر کاغذی تو گروه یا کانال"),
+            BotCommand(command="help", description="راهنما و قانونا")]
 GROUP_COMMANDS = [BotCommand(command="hokm", description="میز حکم در همین گروه"),
                   BotCommand(command="ludo", description="میز منچ در همین گروه"),
                   BotCommand(command="football", description="میز فوتبال در همین گروه"),
@@ -801,7 +801,7 @@ GROUP_COMMANDS = [BotCommand(command="hokm", description="میز حکم در ه�
                   BotCommand(command="divar", description="میز دیوار در همین گروه"),
                   BotCommand(command="snakes", description="میز مار و پله در همین گروه"),
                   BotCommand(command="esmfamil", description="اسم‌فامیل با داور هوش مصنوعی"),
-                  BotCommand(command="lashgar", description="لشگر کاغذی؛ جنگ کاغذی دهه شصت"),
+                  BotCommand(command="lashgar", description="لشگر کاغذی همون جنگ کاغذی زنگ تفریح"),
                   BotCommand(command="play", description="انتخاب بازی")]
 UPDATES = ["message", "callback_query", "inline_query", "chosen_inline_result"]
 

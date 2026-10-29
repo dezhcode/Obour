@@ -1243,14 +1243,14 @@ def test_group_tables():
             m = await db.get_match(row["match_id"])
             assert m["cfg"]["target"] == 3 and row["message_id"] == 101 and (await db.draft(token))["status"] == "open"
             where, rm = bot.edits[-1]
-            assert where == (-1001, 101) and "3 صندلی مونده" in P(rm) and "تا 3 دست" in P(rm)
+            assert where == (-1001, 101) and "3 تا صندلی مونده" in P(rm) and "تا 3 دست" in P(rm)
             assert [b.style for b in B(rm)[:2]] == ["success", "danger"] and B(rm)[0].callback_data == f"gt:join:{m['id']}"
             assert "بازه" in await groups.create(db, bot, chat, users[1], "hokm")
             # نشستن با دکمهٔ داخل پیام
             for u in (12, 13):
                 await groups.on_button(_CQ(u, f"gt:join:{m['id']}", chat=chat), gdb=db, bot=bot)
             last = bot.edits[-1][1]
-            assert '"id":13' in last.model_dump_json() and "1 صندلی مونده" in P(last) and "(3 از 4)" in P(last)
+            assert '"id":13' in last.model_dump_json() and "1 تا صندلی مونده" in P(last) and "(3 از 4)" in P(last)
             cq = _CQ(13, f"gt:join:{m['id']}", chat=chat)
             await groups.on_button(cq, gdb=db, bot=bot)
             assert "نشستی" in cq.answers[-1]
@@ -2320,7 +2320,7 @@ def test_esmfamil_group_flow():
             assert '"id":21' in dump                           # منشن برنده
             assert "بهرامی" in dump and "باقالی پلو" in dump and '"type":"table"' in dump and '"type":"details"' in dump
             assert B(final)[-1].callback_data == "gt:new:esmfamil"
-            assert "برگ همه با امتیاز" in P(bot.edits[-1][1])
+            assert "برگ همه رو با امتیاز" in P(bot.edits[-1][1])
             assert (await db.get_player(21))["wins"] == 1
             lb = await service.game_leaderboard(db, 21, "esmfamil", "all")
             assert lb["rows"][0]["wins"] == 1 and lb["rows"][0]["pid"] == ""
