@@ -245,5 +245,9 @@ body.football .appbar-in{min-height:0;padding-block:var(--space-2) 2px;gap:var(-
 .fb-res p{font-size:13.5px;color:var(--ink-muted)}
 .fb-res .final{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:18px;background:var(--surface-sunk)}
 .fb-res .final b{font-size:32px;font-weight:800}
+.fb-res .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.fb-res .facts div{display:grid;gap:2px;padding:8px 4px;border-radius:14px;background:var(--surface-sunk)}
+.fb-res .facts b{font-size:18px;font-weight:900}
+.fb-res .facts span{font-size:11.5px;color:var(--ink-muted)}
 body.football .sheet{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.fb-goal .rays,.fb-crowd.cheer,.fb-passtag{animation:none}}

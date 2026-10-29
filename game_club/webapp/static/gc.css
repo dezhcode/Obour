@@ -54,8 +54,6 @@ body:is(.game,.hokm,.divar,.football,.billiard){color-scheme:dark;
 /* ---------- پایه ---------- */
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-/* فروشگاه در دوره آزمایشی خاموش است؛ هر چیز مربوط به خرید فقط با html.shop-on دیده می شود */
-html:not(.shop-on) .shop-only{display:none!important}
 html{-webkit-text-size-adjust:100%;direction:rtl}
 body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--font-peyda);font-size:14.5px;line-height:24px;font-weight:400;background:var(--ground)}
 body:is(.game,.hokm,.divar,.football,.billiard){background:linear-gradient(180deg,#0F201B 0,#0B1714 55%,#09130F) fixed var(--ground)}
@@ -122,6 +120,12 @@ body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui .btn.btn-light{--bg:var(-
 .amount{display:inline-flex;align-items:center;gap:var(--space-1);font-weight:900;color:var(--coin-text)}
 .amount.lg{font-size:22px;line-height:28px}
 .amount.ink{color:var(--ink)}
+.rk-res{display:grid;gap:var(--space-2);justify-items:center;text-align:center}
+.rk-row{display:flex;align-items:center;justify-content:center;gap:var(--space-3);flex-wrap:wrap}
+.rk-cup{display:inline-flex;align-items:center;gap:var(--space-1);font-size:22px;line-height:28px;font-weight:900;color:var(--coin-text)}
+.rk-cup svg{width:24px;height:24px}
+.rk-cup.rk-down{color:var(--ink-muted)}
+.rk-res p b{font-weight:800}
 .pill{display:inline-flex;min-height:44px;align-items:center;gap:var(--space-2);background:var(--surface);color:var(--ink);border-radius:var(--radius-pill);padding:4px 6px 4px 14px;box-shadow:var(--depth-sm);font-weight:900;font-size:16px}
 .pill .plus{width:30px;height:30px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center}
 .pill .plus svg{width:16px;height:16px}
@@ -521,6 +525,23 @@ body.game .page{gap:var(--space-2);padding-block:var(--space-2) var(--space-2);p
 body.game .appbar-in{gap:var(--space-2)}
 body.game .appbar .turnbar{padding-inline-end:10px}
 body.game .appbar .turnbar .time{width:44px}
+
+/* ---------- جایزهٔ ورود روزانه ---------- */
+.dl{display:grid;gap:12px;padding:16px;border-radius:var(--radius-xl);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.dl-h b{display:block;font-size:16px;line-height:24px;font-weight:900}
+.dl-h small{display:block;font-size:12.5px;line-height:20px;color:var(--ink-muted)}
+.dl-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0;padding:0;list-style:none}
+.dl-d{position:relative;display:grid;justify-items:center;gap:2px;padding:7px 2px 6px;border-radius:14px;background:var(--surface-sunk);box-shadow:inset 0 0 0 1.5px var(--line)}
+.dl-d small{font-size:10px;line-height:14px;font-weight:700;color:var(--ink-muted);white-space:nowrap}
+.dl-d .coin svg{width:20px;height:20px}
+.dl-d b{font-size:13px;line-height:18px;font-weight:900;color:var(--coin-text)}
+.dl-d.big{background:var(--coin-tint)}
+.dl-d.today{background:var(--coin-tint);box-shadow:inset 0 0 0 2px var(--gold, #F5C451);animation:dlPulse 1.6s ease-in-out infinite}
+.dl-d.done{opacity:.55}
+.dl-d i{position:absolute;top:-6px;inset-inline-end:-4px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--success);color:#fff}
+.dl-d i svg{width:11px;height:11px}
+@keyframes dlPulse{50%{transform:translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.dl-d.today{animation:none}}
 
 /* ---------- برگهٔ ورود به حساب (برنامهٔ اندروید) ---------- */
 .acc{display:grid;gap:12px}

@@ -8,13 +8,13 @@
   /lashgar          در پیوی: لشگر کاغذی (جنگ کاغذی) هم فقط در گروه یا کانال است
   /start obour      آمده از کارت AsoTas در مینی اپ عبور
   /start login_CODE «ورود با تلگرام» برنامهٔ اندروید: تأیید با دکمه (appauth.py)
-  /points           موجودی امتیاز
+  /points           موجودی سکه (و کارنامه)
   /help             قوانین کوتاه
 در گروه ها (groups.py): @آیدی ربات (حالت اینلاین) یا /hokm، /ludo، /football، /billiard، /divar، /esmfamil، /lashgar، /snakes، /play کارت تنظیم میز می فرستد.
 /start و /help راه اینلاین را یاد می دهند و دکمهٔ «بازی توی گروه» دارند.
 ادمین ها (ADMIN_IDS عبور):
   /gcstats                  آمار امروز و همه
-  /gcpoints <tg_id> <مقدار>  افزودن یا کسر امتیاز (منفی = کسر)
+  /gcpoints <tg_id> <مقدار>  افزودن یا کسر سکه (منفی = کسر)
   /gcclose <match_id>       بستن میز گیرکرده و برگرداندن ورودی ها
 """
 from __future__ import annotations
@@ -262,7 +262,6 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
                 "این میز یا جمع شده یا بازیش شروع شده"], foot=(None, None, "فدای سرت خودت یه میز تازه بچین 👇")),
                 reply_markup=open_kb(f"{game}-lobby.html", f"میز تازهٔ {name}", "new"))
             return
-        stake = m["cfg"]["mode"] == "stake"
         who = {"hokm": "یه دست حکم که یارش باشی", "football": "یه بازی فوتبال", "ludo": "یه دست منچ",
                "billiard": "یه دست بیلیارد" + (" که یارش باشی" if m["cfg"].get("players") == 4 else ""),
                "divar": "یه دست دیوار" + (" چهار نفره" if m["cfg"].get("players") == 4 else ""),
@@ -270,7 +269,7 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
                "snakes": "یه دست مار و پله" + (f" {m['cfg'].get('players')} نفره" if m["cfg"].get("players") else "")}[game]
         await message.answer(_h(game, f"میز {name}", "دعوتت کردن داش!", [
             f"رفیقت دعوتت کرده به {who} 😎 منتظره بشینی کنارش"],
-            foot=("coin", "نوع میز", ["با امتیاز · ورودی ", st.num(m["cfg"]["entry"])] if stake else "آزاد · مجانی")),
+            foot=("coin", "نوع میز", "دوستانه · مجانی")),
             reply_markup=open_kb(f"{game}-lobby.html?join={code}", "بشین سر میز", "seat"))
         return
     lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), " خوش اومدی داش! من تاسی‌ام 🎩 اینجا کسی حوصله‌ش سر نمی‌ره"], "",
@@ -278,9 +277,7 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
              "با رفیقات یا با ناشناس هر وقت حوصله‌ت سر رفت بیا 😄",
              [st.E("esmfamil"), " اسم‌فامیل هم داریم تو گروه یا کانال که داورش هوش مصنوعی عبوره!"],
              [st.E("lashgar"), " لشگر کاغذی هم هست همون جنگ کاغذی زنگ تفریح تو گروه یا کانال 🪖"], "", *group_steps()]
-    if arg == "obour":
-        lines += ["", "حساب عبورت به همین تلگرام وصله و شارژ از کیف عبور یه ثانیه‌ست ⚡"]
-    await message.answer(_h("hello", "AsoTas", "منوی اصلی", lines, foot=("coin", "امتیاز", [st.num(me["points"]), " امتیاز"])),
+    await message.answer(_h("hello", "AsoTas", "منوی اصلی", lines, foot=("coin", "سکه", [st.num(me["points"]), " سکه"])),
                          reply_markup=with_group_button(open_kb()))
 
 
@@ -379,10 +376,11 @@ async def on_points(message: Message, gdb: GCDatabase) -> None:
     rate = round(p["wins"] * 100 / p["games"]) if p["games"] else 0
     vibe = ("هنوز بازی نکردی داش زمین منتظرته!" if not p["games"] else "داری می‌ترکونی 🔥" if rate >= 60
             else "بد نیست یه کم دیگه تمرین کنی آس می‌شی 😉" if rate >= 35 else "شانس فعلاً باهات قهره ولی آشتی می‌کنه 😄")
-    await message.answer(_h("coin", "کیف امتیاز", "AsoTas", [
-        [st.E("trophy"), " برد: ", st.num(p["wins"]), " از ", st.num(p["games"]), " بازی"], vibe],
-        foot=("coin", "موجودی", [st.num(p["points"]), " امتیاز"])),
-        reply_markup=open_kb("shop.html", "کیف امتیاز", "coin"))
+    await message.answer(_h("coin", "کیف سکه", "AsoTas", [
+        [st.E("trophy"), " برد: ", st.num(p["wins"]), " از ", st.num(p["games"]), " بازی"], vibe, "",
+        "سکه رو با جایزهٔ روزانه و برد رتبه‌ای جمع می‌کنی و باهاش میز و ورق و آیتم می‌خری 🪙"],
+        foot=("coin", "موجودی", [st.num(p["points"]), " سکه"])),
+        reply_markup=open_kb("shop.html", "فروشگاه و جایزهٔ روزانه", "coin"))
 
 
 @router.message(Command("help"))
@@ -412,13 +410,11 @@ async def on_stats(message: Message, gdb: GCDatabase) -> None:
     allt = await gdb.stats(0)
     n = st.num
     await message.answer(_h("chart", "آمار AsoTas", "امروز و کل", [
-        ["بازیکن: ", n(allt["players"]), " · امتیاز در گردش: ", n(allt["points"])],
+        ["بازیکن: ", n(allt["players"]), " · سکه در گردش: ", n(allt["points"])],
         ["الان: ", n(allt["playing"]), " میز در بازی، ", n(allt["lobby"]), " میز دعوت، ", n(allt["queue"]), " نفر تو صف"], "",
         [st.B("24 ساعت گذشته")],
         ["بازی تموم‌شده: ", n(day["games"])],
-        ["شارژ: ", n(day["charge"]), " امتیاز (", n(day["charge"] * gc.point_toman), " تومان)"],
-        ["ورودی: ", n(day["entry"]), " · جایزه: ", n(day["prize"])],
-    ], foot=("coin", "خرج تو عبور", [n(day["shop"]), " امتیاز"])))
+    ]))
 
 
 @router.message(Command("gcpoints"))
@@ -439,9 +435,9 @@ async def on_points_admin(message: Message, command: CommandObject, gdb: GCDatab
     ok = (await service.earn(gdb, tg, amount, "admin", "تنظیم دستی پشتیبانی", "admin", idem) if amount > 0
           else await service.spend(gdb, tg, -amount, "admin", "تنظیم دستی پشتیبانی", "admin", idem))
     p = await gdb.get_player(tg)
-    await message.answer(_h("ok" if ok else "warn", "تغییر امتیاز", st.iso(tg), [
-        "انجام شد ✅" if ok else "نشد؛ موجودیش کافی نیست؟"], foot=("coin", "موجودی الان", [st.num(p["points"]), " امتیاز"])))
-    log.warning("ادمین %s امتیاز %s را %+d کرد (ok=%s)", message.from_user.id, tg, amount, ok)
+    await message.answer(_h("ok" if ok else "warn", "تغییر سکه", st.iso(tg), [
+        "انجام شد ✅" if ok else "نشد؛ موجودیش کافی نیست؟"], foot=("coin", "موجودی الان", [st.num(p["points"]), " سکه"])))
+    log.warning("ادمین %s سکهٔ %s را %+d کرد (ok=%s)", message.from_user.id, tg, amount, ok)
 
 
 @router.message(Command("gcclose"))
@@ -456,7 +452,7 @@ async def on_close(message: Message, command: CommandObject, gdb: GCDatabase) ->
     except service.GCError:
         await message.answer("میز بازی با این شناسه پیدا نشد 🤔")
         return
-    await message.answer(_h("ok", "میز بسته شد", st.iso(mid), [], foot=("coin", "ورودی برگشتی", [st.num(r["refunded"]), " امتیاز"])))
+    await message.answer(_h("ok", "میز بسته شد", st.iso(mid), [], foot=("coin", "ورودی برگشتی (امتیاز قدیمی)", [st.num(r["refunded"]), " امتیاز"])))
 
 
 @router.message(Command("admin"))
@@ -833,7 +829,7 @@ async def on_text(message: Message) -> None:
 
 
 COMMANDS = [BotCommand(command="start", description="ورود به AsoTas"),
-            BotCommand(command="points", description="موجودی امتیاز"),
+            BotCommand(command="points", description="موجودی سکه"),
             BotCommand(command="esmfamil", description="اسم‌فامیل تو گروه یا کانال"),
             BotCommand(command="lashgar", description="لشگر کاغذی تو گروه یا کانال"),
             BotCommand(command="help", description="راهنما و قانونا")]

@@ -33,14 +33,16 @@ PAGES = {"": "خانه", "ludo-lobby.html": "منچ", "hokm-lobby.html": "حکم
          "billiard-lobby.html": "بیلیارد", "divar-lobby.html": "دیوار", "esmfamil-lobby.html": "اسم‌فامیل",
          "lashgar-lobby.html": "لشگر کاغذی", "snakes-lobby.html": "مار و پله",
          "shop.html": "فروشگاه و کیف", "profile.html": "پروفایل", "games.html": "بازی ها", "friends.html": "دوستان"}
-KINDS = ("charge", "entry", "refund", "prize", "admin", "transfer", "shop", "gift", "style")
+KINDS = ("daily", "reward", "gift", "style", "admin", "obour", "charge", "entry", "refund", "prize", "transfer", "shop")
 # تنظیمات قابل تغییر از پنل: (نوع، کمینه، بیشینه)
 SETTINGS = {
     "maintenance": ("bool", 0, 1),
-    "stake_enabled": ("bool", 0, 1),
+    "ranked_enabled": ("bool", 0, 1),
     "turn_seconds": ("int", 8, 60),
     "bot_fill_seconds": ("int", 0, 120),
-    "rake_percent": ("int", 0, 30),
+    "rank_coins": ("int", 0, 20),
+    "rank_coins_day": ("int", 0, 100),
+    "start_coins": ("int", 0, 100),
     "notice": ("text", 0, 300),
 }
 _BC_TAG = re.compile(r"</?(b|strong|i|em|u|s|a|code|pre|tg-spoiler|blockquote|tg-emoji)(\s[^>]*)?>", re.I)

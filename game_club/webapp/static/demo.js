@@ -103,14 +103,14 @@ const loadM = () => store.get('demo_match', null), saveM = m => store.set('demo_
 function makeMatch(cfg, guest) {
   const colors = SEATS[cfg.players], names = [...BOTS].sort(() => Math.random() - .5);
   const seats = colors.map(c => c === 'yellow' ? { color: c, name: 'خودت', av: 7 } : guest && c === 'red' ? { color: c, name: 'رفیقت', av: 11, bot: true } : { color: c, name: names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true });
-  const st = newState(seats, cfg.pawns, cfg.mode === 'stake', 'yellow');
-  st.pot = cfg.mode === 'stake' ? cfg.entry * colors.length : 0;
+  const st = newState(seats, cfg.pawns, cfg.mode !== 'free', 'yellow');
   return { id: 'demo' + Date.now().toString(36), status: 'playing', cfg, state: st, settled: false };
 }
 function settle(m) {
   if (m.settled || m.status !== 'over') return; m.settled = true; m.chat = [];
   const won = m.state.winner === 'yellow'; S.games++;
-  if (won) { S.wins++; if (m.cfg.mode === 'stake') { S.bal += m.state.pot; S.won += m.state.pot; GC.ledger('جایزهٔ منچ', m.state.pot, 'prize'); } }
+  if (won) S.wins++;
+  if (m.cfg.mode === 'ranked') m.rank = GC.demo.rank('ludo', won);
   save();
 }
 /* گفتگوی نمایشی: ربات ها گاهی جواب کوتاه می دهند */
@@ -128,26 +128,21 @@ function out(m, since, chat) {
   const o = { id: m.id, status: m.status, cfg: m.cfg, me: 'yellow' };
   if (chat != null) o.chat = (m.chat || []).filter(x => x.id > chat).slice(-40);
   if (m.status === 'lobby') { o.lobby = { seats: m.seats, code: m.code, host: true, link: 'https://t.me/your_gameclub_bot?start=ludo_' + m.code }; return o; }
-  o.game = view(m.state, 'yellow', since); o.pot = m.state.pot || 0;
-  if (m.status === 'over') o.result = { won: m.state.winner === 'yellow', prize: m.state.winner === 'yellow' ? o.pot : 0, lost: m.state.winner === 'yellow' ? 0 : m.cfg.entry };
+  o.game = view(m.state, 'yellow', since);
+  if (m.status === 'over') o.result = Object.assign({ won: m.state.winner === 'yellow', coins: 0, cups: 0 }, m.rank);
   return o;
-}
-function payEntry(cfg) {
-  if (cfg.mode !== 'stake') return;
-  if (S.bal < cfg.entry) throw err('insufficient');
-  S.bal -= cfg.entry; S.spent += cfg.entry; GC.ledger('ورودی منچ', -cfg.entry, 'entry'); save();
 }
 const ludo = {
   async queueJoin(cfg) {
     if (cfg.solo) { const mm = makeMatch(Object.assign({}, cfg, { mode: 'free', entry: 0 })); saveM(mm); return { state: 'matched', match: mm.id }; }
-    payEntry(cfg); store.set('demo_q', { cfg, t0: Date.now() }); return ludo.queueStatus();
+    store.set('demo_q', { cfg, t0: Date.now() }); return ludo.queueStatus();
   },
   async queueStatus() {
     const q = store.get('demo_q', null), m = loadM();
     if (!q) return m && m.status === 'playing' ? { state: 'matched', match: m.id } : { state: 'none' };
     const waited = (Date.now() - q.t0) / 1000;
     if (waited > 3.2) { const mm = makeMatch(q.cfg); saveM(mm); store.set('demo_q', null); return { state: 'matched', match: mm.id }; }
-    return { state: 'waiting', waited: Math.floor(waited), cfg: q.cfg, found: 1 + Math.min(q.cfg.players - 1, Math.floor(waited / 1.1)), need: q.cfg.players, bots_in: null, can_bots: q.cfg.mode !== 'stake' };
+    return { state: 'waiting', waited: Math.floor(waited), cfg: q.cfg, found: 1 + Math.min(q.cfg.players - 1, Math.floor(waited / 1.1)), need: q.cfg.players, bots_in: null, can_bots: q.cfg.mode === 'free' };
   },
   async queueBots() {
     const q = store.get('demo_q', null); if (!q) return ludo.queueStatus();
@@ -155,11 +150,10 @@ const ludo = {
   },
   async queueLeave() {
     const q = store.get('demo_q', null); store.set('demo_q', null);
-    if (q && q.cfg.mode === 'stake') { S.bal += q.cfg.entry; S.spent -= q.cfg.entry; GC.ledger('انصراف از صف منچ', q.cfg.entry, 'refund'); save(); }
     return { state: 'none' };
   },
   async invite(cfg) {
-    payEntry(cfg);
+    
     const code = Math.random().toString(36).slice(2, 8).toUpperCase();
     const m = { id: 'demo' + Date.now().toString(36), status: 'lobby', cfg, code, t0: Date.now(), seats: [{ color: SEATS[cfg.players][0], name: 'خودت', av: 7, me: true }] };
     saveM(m); return { match: m.id, code, link: 'https://t.me/your_gameclub_bot?start=ludo_' + code };
@@ -188,7 +182,7 @@ const ludo = {
   },
   async roll(id, since) { return ludo.act(id, 'roll', null, since); },
   async move(id, k, since) { return ludo.act(id, 'move', k, since); },
-  async leave(id) { const m = loadM(); if (m && m.status === 'lobby') { saveM(null); if (m.cfg.mode === 'stake') { S.bal += m.cfg.entry; GC.ledger('لغو میز منچ', m.cfg.entry, 'refund'); save(); } return { left: true }; } if (m && m.status === 'playing') { S.games++; save(); return ludo.act(id, 'leave', null, 0); } return { left: true }; },
+  async leave(id) { const m = loadM(); if (m && m.status === 'lobby') { saveM(null); return { left: true }; } if (m && m.status === 'playing') { S.games++; save(); return ludo.act(id, 'leave', null, 0); } return { left: true }; },
   async chat(id, text) {
     const m = loadM(); if (!m || m.id !== id || m.status !== 'playing') throw err('not_found');
     text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 140); if (!text) throw err('empty');
@@ -239,17 +233,40 @@ function fr() {
   return S.fr;
 }
 /* ---------- داده نمایشی بقیه صفحه ها ---------- */
-const STYLE = [['table:a', 'table', 'a', 'میز کلاسیک', 0], ['table:b', 'table', 'b', 'میز کافه شب', 500], ['table:c', 'table', 'c', 'میز AsoTas', 500],
-  ['cards:m', 'cards', 'm', 'ورق مدرن', 0], ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 300], ['cards:c', 'cards', 'c', 'ورق AsoTas', 300], ['cards:d', 'cards', 'd', 'ورق رنگ تمام', 300]];
+const DAILY = [1, 1, 2, 2, 3, 3, 5];
+const today = () => Math.floor((Date.now() / 1000 + 12600) / 86400);
+function daily() {
+  const d = S.daily || { day: 0, streak: 0 }, t = today(), claimed = d.day === t, cont = d.day === t - 1;
+  const streak = claimed || cont ? d.streak : 0, next = claimed ? streak : streak % DAILY.length + 1;
+  return { plan: DAILY, day: claimed ? streak : streak % DAILY.length, next, claimed };
+}
+const LEAGUES = [[1000, 'قهرمان'], [600, 'الماسی'], [300, 'طلایی'], [100, 'نقره‌ای'], [0, 'برنزی']];
+const league = c => LEAGUES.find(([f]) => c >= f)[1];
+function ranks() {
+  const R = S.ranks || {};
+  return Object.fromEntries(Object.entries(R).map(([g, r]) => [g, Object.assign({}, r, { league: league(r.cups) })]));
+}
+// آخر بازی رتبه ای نمونه: +۲۰ جام و ۲ سکه برای برد، −۱۰ جام برای باخت (کمتر از صفر نه)
+function rank(game, won) {
+  S.ranks = S.ranks || {}; const r = S.ranks[game] = S.ranks[game] || { cups: 0, games: 0, wins: 0 };
+  const cups = won ? 20 : -Math.min(10, r.cups), coins = won ? 2 : 0;
+  r.cups += cups; r.games++; if (won) r.wins++;
+  if (coins) { S.bal += coins; GC.ledger('جایزهٔ بازی رتبه‌ای', coins, 'reward'); }
+  save();
+  return { cups, coins, rank: Object.assign({}, r, { league: league(r.cups) }) };
+}
+const STYLE = [['table:a', 'table', 'a', 'میز کلاسیک', 0], ['table:b', 'table', 'b', 'میز کافه شب', 80], ['table:c', 'table', 'c', 'میز AsoTas', 80],
+  ['cards:m', 'cards', 'm', 'ورق مدرن', 0], ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 50], ['cards:c', 'cards', 'c', 'ورق AsoTas', 50], ['cards:d', 'cards', 'd', 'ورق رنگ تمام', 50]];
 const data = {
   async me() {
     const F = fr(), unread = Object.keys(F.dms).reduce((a, u) => a + F.dms[u].filter(m => !m.me && m.id > (F.read[u] || 0)).length, 0);
     return { social: { requests: F.incoming.length, unread }, covers: [{ id: 'gc', name: 'AsoTas' }], player: { bio: S.bio || '', cover: S.cover || 'gc', name: S.uname || 'lucky_falcon', name_next: S.unameAt ? S.unameAt + 30 * 86400 : 0, name_hint: !S.unameSeen && !S.unameAt,
-        joined: Math.round(Date.now() / 1000) - 42 * 86400, av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: S.showSpend ? 1 : 0 },
+        joined: Math.round(Date.now() / 1000) - 42 * 86400, av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: 0 },
       history: S.ledger.map(l => ({ kind: l.k, amount: l.a, note: l.t, created_at: Math.round(l.at / 1000) })),
-      notify: Object.keys(S.notify).filter(k => S.notify[k]), obour: { linked: true, balance: 240000 }, active_match: await ludo.active(), tables: demoTables(),
+      notify: Object.keys(S.notify).filter(k => S.notify[k]), active_match: await ludo.active(), tables: demoTables(),
+      daily: daily(), ranks: ranks(), account: { kind: 'telegram' },
       style: Object.assign({ table: 'a', cards: 'a' }, S.style || {}),
-      settings: { stake: true, shop: false, entries: [50, 100, 250, 500], packs: [250, 500, 1000, 2500], rate: GC.RATE, turn_s: 20, rake: 0, bot: '', obour_bot: '' } };
+      settings: { ranked: true, rate: GC.RATE, turn_s: 20, bot: '', rank: { win: 20, lose: 10, coins: 2, day: 10 } } };
   },
   // فروشگاه ظاهر (همان کاتالوگ service.STYLE_ITEMS)
   async style() {
@@ -270,9 +287,9 @@ const data = {
   // پروفایل نمونه بیرون از تلگرام (کارنامهٔ واقعی هر بازی از سرور می آید)
   async profile() {
     const t = Date.now() / 1000;
-    return { sample: true, games: [{ game: 'hokm', games: 14, wins: 9, prize: 600 }, { game: 'football', games: 6, wins: 2, prize: 0 }, { game: 'ludo', games: Math.max(3, S.games), wins: Math.max(1, S.wins), prize: S.won || 0 }],
-      recent: [{ game: 'hokm', won: true, prize: 200, at: t - 3600, mode: 'stake', entry: 100 }, { game: 'football', won: false, prize: 0, at: t - 7200, mode: 'free', entry: 0 },
-        { game: 'hokm', won: true, prize: 0, at: t - 90000, mode: 'free', entry: 0 }, { game: 'ludo', won: false, prize: 0, at: t - 100000, mode: 'stake', entry: 50 }] };
+    return { sample: true, games: [{ game: 'hokm', games: 14, wins: 9, prize: 12 }, { game: 'football', games: 6, wins: 2, prize: 0 }, { game: 'ludo', games: Math.max(3, S.games), wins: Math.max(1, S.wins), prize: 0 }],
+      recent: [{ game: 'hokm', won: true, prize: 2, cups: 20, at: t - 3600, mode: 'ranked' }, { game: 'football', won: false, prize: 0, cups: 0, at: t - 7200, mode: 'free' },
+        { game: 'hokm', won: true, prize: 0, cups: 0, at: t - 90000, mode: 'free' }, { game: 'ludo', won: false, prize: 0, cups: -10, at: t - 100000, mode: 'ranked' }] };
   },
   // یوزرنیم نمونه: همان قاعده ها؛ چند اسم «گرفته شده» برای دیدن پیام و پیشنهادها
   async nameCheck(n) {
@@ -290,13 +307,18 @@ const data = {
   },
   async saveProfile(b) { if ('bio' in b) S.bio = String(b.bio || '').replace(/[<>&"'`\\]/g, '').trim().slice(0, 80); if ('cover' in b) S.cover = b.cover; save(); return { ok: true, bio: S.bio || '', cover: S.cover || 'gc' }; },
   async nameSeen() { S.unameSeen = true; save(); return { ok: true }; },
-  async charge(points) { S.bal += points; GC.ledger('شارژ از کیف پول عبور', points, 'charge'); save(); return { ok: true, points }; },
+  // جایزهٔ روزانه نمونه (همان قاعدهٔ service.daily_claim)
+  async daily() {
+    const d = daily(); if (d.claimed) throw err('daily_done');
+    const coins = d.plan[d.next - 1]; S.daily = { day: today(), streak: d.next }; S.bal += coins; GC.ledger('جایزهٔ روزانه · روز ' + d.next, coins, 'daily'); save();
+    return { coins, points: S.bal, daily: daily() };
+  },
   async notify(game) { S.notify[game] = !S.notify[game]; save(); return { on: S.notify[game] }; },
-  async setFlag(f, v) { if (f === 'show_spend') { S.showSpend = !!v; save(); } return { ok: true }; },
+  async setFlag() { return { ok: true }; },
   async leaderboard(kind, period) {
     const K = { week: 1, month: 3.8, all: 9.5 }[period] || 1;
     const rows = GC.LB[kind].map(([p, w, v]) => ({ name: GC.PEOPLE[p][0], av: GC.PEOPLE[p][1], wins: Math.round(w * K), value: Math.round(v * K / 50) * 50, me: false }));
-    return { kind, period, rows, sample: true, mine: { value: kind === 'top' ? S.won : S.spent, wins: S.wins, games: S.games, visible: kind === 'top' || !!S.showSpend } };
+    return { kind, period, rows, sample: true, mine: { value: 0, wins: S.wins, games: S.games, visible: kind === 'top' } };
   },
   // ---------- دوستان و پیام خصوصی (نمونه بیرون از تلگرام) ----------
   async friends() {
@@ -350,11 +372,12 @@ const data = {
     const names = ['kian_r', 'sara_m', 'amirali', 'negar_x', 'reza_gm', 'mahsa', 'pouya_k', 'leila_m', 'arash_dev', 'sina_h'];
     const rows = names.map((n, i) => ({ name: n, av: (i * 5) % 23 + 1, wins: Math.max(1, Math.round((base - i * 3.4) * K)), games: Math.round((base - i * 3.4) * K * 1.7) + 3, value: 0, me: false }));
     const mine = game === 'hokm' ? { wins: Math.round(9 * K), games: Math.round(14 * K), value: 0, rank: 12 } : game === 'football' ? { wins: 2, games: 6, value: 0, rank: 23 } : { wins: 0, games: 0, value: 0, rank: 0 };
+    if (period === 'cup') {
+      const r = ranks()[game] || { cups: 0 }, cupRows = names.map((n, i) => { const c = Math.max(20, Math.round((base - i * 3.4) * 24)); return { name: n, av: (i * 5) % 23 + 1, cups: c, league: league(c), wins: 0, games: 0, me: false }; });
+      return { game, period, rows: cupRows, mine: { cups: r.cups, league: league(r.cups), rank: r.cups ? cupRows.filter(x => x.cups > r.cups).length + 1 : 0 }, sample: true };
+    }
     return { game, period, rows, mine, sample: true };
   },
-  async shop() { if (!S.shopOn) throw err('shop_off'); return { plans: GC.SHOP.filter(s => s.cat === 'net').map((s, i) => ({ id: i + 1, title: s.t, gb: [10, 30][i], days: 30, price: s.p * GC.RATE, points: s.p })), rate: GC.RATE, obour: { linked: true, balance: 240000 }, sample: true }; },
-  async buy(planId) { if (!S.shopOn) throw err('shop_off'); const p = (await data.shop()).plans.find(x => x.id === planId); if (S.bal < p.points) throw err('insufficient'); S.bal -= p.points; S.spent += p.points; GC.ledger('خرید: ' + p.title, -p.points, 'shop'); save(); return { ok: true, title: p.title }; },
-  async transfer(points) { if (!S.shopOn) throw err('shop_off'); if (S.bal < points) throw err('insufficient'); S.bal -= points; S.spent += points; GC.ledger('انتقال به کیف پول عبور', -points, 'transfer'); save(); return { ok: true, points, toman: points * GC.RATE }; },
 };
-GC.demo = { ludo, data };
+GC.demo = { ludo, data, rank };
 })();

@@ -65,7 +65,7 @@
   <div class="appbar-cap"><span>میز حکم</span></div>
   <div class="appbar-in">
     <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>حکم</h1></div>
-    <a class="pill" href="shop.html#wallet" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span></a>
+    <a class="pill" href="shop.html#daily" aria-label="کیف سکه"><span data-coin></span><span class="num" data-bal>…</span></a>
   </div>
 </header>
 <main class="page no-nav">
@@ -113,9 +113,9 @@
       shown = String(st.found);
       const sh = sheet(`${sheetHead('پیدا کردن حریف')}${seatsHtml(list)}
         <div class="wait-line"><span class="spinner"></span><span id="ql">${line}</span></div>
-        <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · جایزهٔ هر برنده ${fa(c.entry * 2)} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگه تا ${FD(st.bots_in)} ثانیهٔ دیگه کسی نیاد ربات جای خالیو پر می‌کنه` : 'میز که پر شه بازی شروع می‌شه'} · ناشناس می‌مونی</p>
+        <p class="hint">${c.mode !== 'free' ? 'رتبه‌ای 🏆 · فقط با بازیکن واقعی · برد یعنی جام و سکه' : st.bots_in != null && st.bots_in > 0 ? `اگه تا ${FD(st.bots_in)} ثانیهٔ دیگه کسی نیاد ربات جای خالیو پر می‌کنه` : 'میز که پر شه بازی شروع می‌شه'} · ناشناس می‌مونی</p>
         ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مونم بذار ربات جای خالیو پر کنه</button>' : ''}
-        <button class="btn btn-light btn-block" id="qc">بی‌خیال${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
+        <button class="btn btn-light btn-block" id="qc">بی‌خیال</button>`, { dismiss: false });
       const qb = sh.querySelector('#qb');
       if (qb) qb.onclick = async () => { qb.disabled = true; try { const r = await GC.hokm.queueBots(); if (r.state === 'matched') { token = null; sfx.turn(); haptic('success'); return go(r.match); } } catch (e) { toast(errText(e)); } qb.disabled = false; };
       sh.querySelector('#qc').onclick = async () => { token = null; try { await GC.hokm.queueLeave(); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
@@ -141,9 +141,9 @@
       // صندلی ۰ سازنده، ۲ یار او، ۱ و ۳ حریف ها؛ از دید خودم: من، یار، دو حریف
       const mine = (L.seats.find(s => s.me) || { color: '0' }).color, at = k => L.seats.find(s => s.color === String((+mine + k) % 4));
       const list = [0, 2, 1, 3].map(k => { const s = at(k); return s ? Object.assign({}, s, { name: s.me ? 'خودت' : s.name }) : null; });
-      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(c.mode === 'stake' ? `بیا یار من شو تو حکم! ورودی ${c.entry} امتیاز` : 'بیا یار من شو حکم بزنیم!');
+      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent('بیا یار من شو حکم بزنیم!');
       const sh = sheet(`${sheetHead(L.host ? 'بازی با یار' : 'سر میز رفیقت')}
-        ${L.host ? `<p>این لینکو بفرست و اولین کسی که بازش کنه یارت می‌شه و بعدیا حریف${c.mode === 'stake' ? ' و ' + fa(c.entry) + ' امتیاز ورودی از کیف خودش کم می‌شه' : ''}</p>
+        ${L.host ? `<p>این لینکو بفرست و اولین کسی که بازش کنه یارت می‌شه و بعدیا حریف</p>
         <div class="linkbox"><code>${link || 'لینک دعوت فقط تو تلگرام ساخته می‌شه'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
         <button class="btn btn-block" id="shr">${icon('send')}بفرست تو تلگرام</button>` : '<p>منتظر بقیه‌ایم تا سازندهٔ میز بازیو شروع کنه…</p>'}
         ${seatsHtml(list)}
@@ -187,7 +187,7 @@
         <section class="hs-sec"><div class="h"><b>ورق</b><span>${find('cards', pick.cards).name}</span></div>
           <div class="hs-row r4">${sty.items.filter(i => i.kind === 'cards').map(i => tile(i, 'cards')).join('')}</div></section>
         <div class="hs-foot">${cost ? `<p class="hs-note">${need.map(i => i.name).join(' و ')} رو نداری ولی یه بار بخری تا همیشه مال خودته</p>` : ''}
-        <button class="hs-go${cost && !short ? ' buy' : ''}" id="hsGo"${short ? ' disabled' : ''}>${!cost ? 'همین · ' + GO[how] : short ? fa(cost - GC.points) + ' امتیاز کم داری' : `خرید با ${fa(cost)} امتیاز و ${GO[how]}`}</button></div>`;
+        <button class="hs-go${cost && !short ? ' buy' : ''}" id="hsGo"${short ? ' disabled' : ''}>${!cost ? 'همین · ' + GO[how] : short ? fa(cost - GC.points) + ' سکه کم داری' : `خرید با ${fa(cost)} سکه و ${GO[how]}`}</button></div>`;
       el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { pick[b.dataset.k] = b.dataset.look; sfx.tap(); haptic('select'); draw(); });
       el.querySelector('#hsX').onclick = () => { el.remove(); };
       el.querySelector('#hsGo').onclick = async ev => {
@@ -211,7 +211,6 @@
   function play(how, cfg, btn) {
     const c = Object.assign({ game: 'hokm' }, cfg);
     if (how === 'bot') { c.mode = 'free'; c.entry = 0; c.solo = true; }
-    if (c.mode === 'stake' && GC.points < c.entry) { sfx.error(); haptic('error'); toast(errText({ code: 'insufficient' })); return; }
     setup(how, async () => {
       if (btn) btn.disabled = true;
       try {

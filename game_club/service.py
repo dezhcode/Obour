@@ -1,10 +1,12 @@
-"""میزها، صف ناشناس، دعوت، امتیاز و تسویه.
+"""میزها، صف ناشناس، دعوت، سکه، جام و تسویه.
 
-قاعده پول در بازی امتیازی:
-- ورودی هنگام ورود به صف یا نشستن سر میز دعوت کم می شود (ledger: entry)
-- اگر بازی شروع نشد (انصراف، لغو میز) همان ورودی برمی گردد (refund)
-- پایان بازی: کل ورودی ها منهای سهم عبور (GAME_CLUB_RAKE) به برنده (prize)
-- بازی امتیازی هیچ وقت با ربات پر نمی شود؛ ربات فقط در بازی آزاد می نشیند
+سکه فقط پول داخل بازی است (players.points): هدیهٔ شروع، جایزهٔ روزانه، برد رتبه ای و خرید درون برنامه ای
+می آورد و فقط آیتم می خرد. بازی ورودی ندارد.
+بازی رتبه ای (mode=ranked): فقط صف آنلاین با بازیکن واقعی (نه دعوت، نه ربات)؛ برنده جام (+GAME_CLUB_RANK_WIN)
+و چند سکه از طرف بازی (سقف روزانه دارد) می گیرد و بازنده جام از دست می دهد. در موتورها همان پرچم قدیمی
+stake است: سه نوبت غیبت پشت سر هم یعنی باخت.
+میزهای امتیازی قدیمی (mode=stake) که پیش از سکه شروع شده اند با همان قاعدهٔ قبلی تمام می شوند، ولی جایزه و
+برگشت ورودی شان به legacy_points می رود تا refund.py به کیف عبور برگرداند.
 همه این ها idem دارند تا درخواست تکراری دو بار پول جابه جا نکند.
 """
 from __future__ import annotations
@@ -153,116 +155,70 @@ def _code(n: int) -> str:
 
 
 # ---------- تنظیم میز ----------
-def norm_cfg(raw: dict) -> dict:
-    if raw.get("game") == "esmfamil":
-        # همیشه آزاد: داوری با هوش مصنوعی است و سر امتیاز بازی نمی شود
-        try:
-            rounds = int(raw.get("rounds") or 3)
-            secs = int(raw.get("secs") or 300)
-        except (TypeError, ValueError):
-            raise GCError("bad_cfg") from None
-        if raw.get("mode") == "stake" or rounds not in esmfamil.ROUNDS or secs not in esmfamil.SECS:
-            raise GCError("bad_cfg")
-        return {"game": "esmfamil", "mode": "free", "entry": 0, "players": esmfamil.MAX_PLAYERS,
-                "rounds": rounds, "secs": secs}
-    if raw.get("game") == "lashgar":
-        # دو نفره و همیشه آزاد (میز گروه)؛ فقط اندازهٔ ارتش انتخاب می شود
-        try:
-            army = int(raw.get("army") or 11)
-        except (TypeError, ValueError):
-            raise GCError("bad_cfg") from None
-        if raw.get("mode") == "stake" or army not in lashgar.ARMIES:
-            raise GCError("bad_cfg")
-        return {"game": "lashgar", "mode": "free", "entry": 0, "players": 2, "army": army}
-    mode = "stake" if raw.get("mode") == "stake" else "free"
-    if mode == "stake" and not gc.stake_enabled:
-        raise GCError("stake_off")
-    if raw.get("game") == "hokm":
-        try:
-            target = int(raw.get("target") or 7)
-            entry = int(raw.get("entry") or 0)
-        except (TypeError, ValueError):
-            raise GCError("bad_cfg") from None
-        if target not in (3, 7):
-            raise GCError("bad_cfg")
-        if mode == "stake":
-            if entry not in gc.entries:
-                raise GCError("bad_entry")
-        else:
-            entry = 0
-        return {"game": "hokm", "mode": mode, "entry": entry, "players": 4, "target": target}
-    if raw.get("game") == "football":
-        try:
-            target = int(raw.get("target") or 3)
-            entry = int(raw.get("entry") or 0)
-            passes = int(raw.get("passes") or 0)
-        except (TypeError, ValueError):
-            raise GCError("bad_cfg") from None
-        if target not in football.GOALS_TO_WIN or passes not in football.PASS_LIMITS:
-            raise GCError("bad_cfg")
-        if mode == "stake":
-            if entry not in gc.entries:
-                raise GCError("bad_entry")
-        else:
-            entry = 0
-        return {"game": "football", "mode": mode, "entry": entry, "players": 2, "target": target, "passes": passes}
-    if raw.get("game") == "billiard":
-        try:
-            players = int(raw.get("players") or 2)
-            entry = int(raw.get("entry") or 0)
-        except (TypeError, ValueError):
-            raise GCError("bad_cfg") from None
-        if players not in (2, 4):
-            raise GCError("bad_cfg")
-        if mode == "stake":
-            if entry not in gc.entries:
-                raise GCError("bad_entry")
-        else:
-            entry = 0
-        return {"game": "billiard", "mode": mode, "entry": entry, "players": players}
-    if raw.get("game") == "divar":
-        try:
-            players = int(raw.get("players") or 2)
-            entry = int(raw.get("entry") or 0)
-        except (TypeError, ValueError):
-            raise GCError("bad_cfg") from None
-        variant = "star" if raw.get("variant") == "star" else "classic"
-        if players not in (2, 4) or (variant == "star" and players != 4):
-            raise GCError("bad_cfg")
-        if mode == "stake":
-            if entry not in gc.entries:
-                raise GCError("bad_entry")
-        else:
-            entry = 0
-        return {"game": "divar", "mode": mode, "entry": entry, "players": players, "variant": variant}
-    if raw.get("game") == "snakes":
-        try:
-            players = int(raw.get("players") or 2)
-            entry = int(raw.get("entry") or 0)
-        except (TypeError, ValueError):
-            raise GCError("bad_cfg") from None
-        if players not in (2, 3, 4):
-            raise GCError("bad_cfg")
-        if mode == "stake":
-            if entry not in gc.entries:
-                raise GCError("bad_entry")
-        else:
-            entry = 0
-        return {"game": "snakes", "mode": mode, "entry": entry, "players": players}
+def _mode(raw: dict) -> str:
+    """free یا ranked. «stake» صفحه های قدیمی (کش) همان رتبه ای است؛ ورودی دیگر نیست."""
+    if raw.get("mode") not in ("ranked", "stake"):
+        return "free"
+    if not gc.ranked_enabled:
+        raise GCError("ranked_off")
+    return "ranked"
+
+
+def _ints_of(raw: dict, **defaults: int) -> dict:
     try:
-        players = int(raw.get("players") or 2)
-        pawns = int(raw.get("pawns") or 2)
-        entry = int(raw.get("entry") or 0)
+        return {k: int(raw.get(k) or d) for k, d in defaults.items()}
     except (TypeError, ValueError):
         raise GCError("bad_cfg") from None
-    if players not in (2, 4) or pawns not in (2, 4):
+
+
+def norm_cfg(raw: dict) -> dict:
+    """تنظیمات میز. entry همیشه ۰ است (فقط برای سازگاری با صفحه های قدیمی و کلید صف می ماند)."""
+    game = raw.get("game")
+    if game in GROUP_ONLY and raw.get("mode") in ("ranked", "stake"):
         raise GCError("bad_cfg")
-    if mode == "stake":
-        if entry not in gc.entries:
-            raise GCError("bad_entry")
-    else:
-        entry = 0
-    return {"game": "ludo", "mode": mode, "entry": entry, "players": players, "pawns": pawns}
+    if game == "esmfamil":
+        # همیشه آزاد: داوری با هوش مصنوعی است
+        v = _ints_of(raw, rounds=3, secs=300)
+        if v["rounds"] not in esmfamil.ROUNDS or v["secs"] not in esmfamil.SECS:
+            raise GCError("bad_cfg")
+        return {"game": "esmfamil", "mode": "free", "entry": 0, "players": esmfamil.MAX_PLAYERS, **v}
+    if game == "lashgar":
+        # دو نفره و همیشه آزاد (میز گروه)؛ فقط اندازهٔ ارتش انتخاب می شود
+        v = _ints_of(raw, army=11)
+        if v["army"] not in lashgar.ARMIES:
+            raise GCError("bad_cfg")
+        return {"game": "lashgar", "mode": "free", "entry": 0, "players": 2, **v}
+    mode = _mode(raw)
+    if game == "hokm":
+        v = _ints_of(raw, target=7)
+        if v["target"] not in (3, 7):
+            raise GCError("bad_cfg")
+        return {"game": "hokm", "mode": mode, "entry": 0, "players": 4, **v}
+    if game == "football":
+        v = _ints_of(raw, target=3, passes=0)
+        if v["target"] not in football.GOALS_TO_WIN or v["passes"] not in football.PASS_LIMITS:
+            raise GCError("bad_cfg")
+        return {"game": "football", "mode": mode, "entry": 0, "players": 2, "target": v["target"], "passes": v["passes"]}
+    if game == "billiard":
+        v = _ints_of(raw, players=2)
+        if v["players"] not in (2, 4):
+            raise GCError("bad_cfg")
+        return {"game": "billiard", "mode": mode, "entry": 0, **v}
+    if game == "divar":
+        v = _ints_of(raw, players=2)
+        variant = "star" if raw.get("variant") == "star" else "classic"
+        if v["players"] not in (2, 4) or (variant == "star" and v["players"] != 4):
+            raise GCError("bad_cfg")
+        return {"game": "divar", "mode": mode, "entry": 0, **v, "variant": variant}
+    if game == "snakes":
+        v = _ints_of(raw, players=2)
+        if v["players"] not in (2, 3, 4):
+            raise GCError("bad_cfg")
+        return {"game": "snakes", "mode": mode, "entry": 0, **v}
+    v = _ints_of(raw, players=2, pawns=2)
+    if v["players"] not in (2, 4) or v["pawns"] not in (2, 4):
+        raise GCError("bad_cfg")
+    return {"game": "ludo", "mode": mode, "entry": 0, **v}
 
 
 def cfg_key(cfg: dict) -> str:
@@ -283,9 +239,9 @@ def cfg_key(cfg: dict) -> str:
     return f"{cfg['mode']}:{cfg['entry']}:{cfg['players']}:{cfg['pawns']}"
 
 
-# ---------- امتیاز ----------
+# ---------- سکه ----------
 async def spend(db: GCDatabase, tg: int, amount: int, kind: str, note: str, ref: str, idem: str) -> bool:
-    """کسر امتیاز با ردیف دفتر. همان idem دوباره = همان نتیجه قبلی."""
+    """کسر سکه با ردیف دفتر. همان idem دوباره = همان نتیجه قبلی."""
     lid = await db.add_ledger(tg, kind, -amount, note, ref, idem, status="pending")
     if lid is None:
         row = await db.ledger_by_idem(idem)
@@ -311,6 +267,63 @@ async def earn(db: GCDatabase, tg: int, amount: int, kind: str, note: str, ref: 
     return False
 
 
+async def earn_legacy(db: GCDatabase, tg: int, amount: int, kind: str, note: str, ref: str, idem: str) -> bool:
+    """امتیاز قدیمی (جایزه و برگشت ورودی میزهای امتیازی پیش از سکه)؛ refund.py به کیف عبور برمی گرداند."""
+    if amount <= 0:
+        return False
+    lid = await db.add_ledger(tg, kind, amount, note, ref, idem, status="pending")
+    if lid is None:
+        return False
+    await db.player(tg)
+    if await db.credit_legacy(tg, amount):
+        await db.set_ledger_status(lid, "done")
+        return True
+    await db.set_ledger_status(lid, "failed")
+    return False
+
+
+def _iran_day(now: float | None = None) -> int:
+    """شمارهٔ روز به وقت ایران (UTC+3:30)؛ جایزهٔ روزانه و سقف سکهٔ برد رتبه ای با همین عوض می شوند."""
+    return int(((now or time.time()) + 12600) // 86400)
+
+
+async def welcome_gift(db: GCDatabase, tg: int) -> None:
+    """هدیهٔ شروع، یک بار برای هر حساب."""
+    if gc.start_coins and not await db.ledger_by_idem(f"gift:start:{tg}"):
+        await earn(db, tg, gc.start_coins, "gift", "هدیهٔ شروع از طرف تاسی 🎁", "start", f"gift:start:{tg}")
+
+
+def daily_view(p: dict, now: float | None = None) -> dict:
+    """جایزهٔ ورود روزانه: روز چندم پشت سر هم، امروز گرفته یا نه، سکهٔ هر روز."""
+    today, last, streak = _iran_day(now), int(p.get("daily_day") or 0), int(p.get("daily_streak") or 0)
+    plan = list(gc.daily_coins)
+    if last == today:
+        return {"claimed": True, "day": streak, "next": (streak % len(plan)) + 1, "plan": plan}
+    nxt = (streak % len(plan)) + 1 if last == today - 1 else 1
+    return {"claimed": False, "day": nxt - 1, "next": nxt, "plan": plan}
+
+
+async def daily_claim(db: GCDatabase, tg: int, now: float | None = None) -> dict:
+    p = await db.get_player(tg) or {}
+    v = daily_view(p, now)
+    if v["claimed"]:
+        raise GCError("daily_done")
+    today, streak = _iran_day(now), v["next"]
+    if not await db.claim_daily(tg, int(p.get("daily_day") or 0), today, streak):
+        raise GCError("daily_done")
+    amount = v["plan"][streak - 1]
+    await earn(db, tg, amount, "daily", f"جایزهٔ روز {streak}", "daily", f"daily:{tg}:{today}")
+    p = await db.get_player(tg) or {}
+    return {"coins": amount, "points": int(p.get("points") or 0), "daily": daily_view(p, now)}
+
+
+LEAGUES = ((1000, "قهرمان"), (600, "الماسی"), (300, "طلایی"), (100, "نقره‌ای"), (0, "برنزی"))
+
+
+def league(cups: int) -> str:
+    return next(name for floor, name in LEAGUES if cups >= floor)
+
+
 # ---------- ساخت و تغییر میز ----------
 async def _seat_info(db: GCDatabase, tg: int) -> dict:
     p = await db.get_player(tg) or {}
@@ -332,30 +345,30 @@ async def _start_game(db: GCDatabase, match_id: str, cfg: dict, humans: list[dic
     bot_names = {s["name"] for s in seats}
     for c in colors if game_of(cfg) not in GROUP_ONLY else ():   # اسم‌فامیل و لشگر کاغذی ربات ندارند
         if c not in used:
-            if cfg["mode"] == "stake":
+            if cfg["mode"] != "free":     # رتبه ای (و امتیازی قدیمی) فقط با بازیکن واقعی
                 raise GCError("need_players")
             bn = next(n for n in names.random_candidates() if n not in bot_names)
             bot_names.add(bn)
             seats.append({"color": c, "uid": None, "name": bn, "av": random.randint(1, 23), "bot": True})
     if game_of(cfg) == "hokm":
-        state = hokm.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"])
+        state = hokm.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] != "free", cfg["target"])
     elif game_of(cfg) == "football":
-        state = football.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["target"],
+        state = football.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] != "free", cfg["target"],
                                    passes=cfg.get("passes", 0))
     elif game_of(cfg) == "billiard":
-        state = billiard.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["players"])
+        state = billiard.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] != "free", cfg["players"])
     elif game_of(cfg) == "divar":
-        state = divar.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["players"],
+        state = divar.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] != "free", cfg["players"],
                                 cfg.get("variant", "classic"))
     elif game_of(cfg) == "snakes":
-        state = snakes.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] == "stake", cfg["players"])
+        state = snakes.new_state(seats, time.time(), gc.turn_seconds, cfg["mode"] != "free", cfg["players"])
     elif game_of(cfg) == "esmfamil":
         state = esmfamil.new_state(seats, time.time(), cfg["rounds"], cfg["secs"])
     elif game_of(cfg) == "lashgar":
         state = lashgar.new_state(seats, time.time(), cfg.get("army", 11))
     else:
         first = random.choice([s["color"] for s in seats if not s["bot"]])
-        state = ludo.new_state(seats, cfg["pawns"], time.time(), gc.turn_seconds, cfg["mode"] == "stake", first)
+        state = ludo.new_state(seats, cfg["pawns"], time.time(), gc.turn_seconds, cfg["mode"] != "free", first)
     state["pot"] = sum(s.get("paid", 0) for s in seats)
     if create:
         await db.create_match(match_id, "playing", cfg, state, humans[0]["tg"])
@@ -457,16 +470,16 @@ async def _esm_run(db: GCDatabase, match_id: str, job: str, st: dict) -> None:
 
 
 # ---------- فروشگاه ظاهر: میز و ورق حکم ----------
-# (نوع، طرح، نام، قیمت به امتیاز)؛ طرح A رایگان و پیش فرض است
+# (نوع، طرح، نام، قیمت به سکه)؛ طرح A رایگان و پیش فرض است. هر سکه GAME_CLUB_POINT_TOMAN تومان
 STYLE_ITEMS = {
     "table:a": ("table", "a", "میز کلاسیک", 0),
-    "table:b": ("table", "b", "میز کافه شب", 500),
-    "table:c": ("table", "c", "میز AsoTas", 500),
+    "table:b": ("table", "b", "میز کافه شب", 80),
+    "table:c": ("table", "c", "میز AsoTas", 80),
     "cards:m": ("cards", "m", "ورق مدرن", 0),       # درشت خوان (طرح قبلی بازی)، رایگان
     "cards:a": ("cards", "a", "ورق کلاسیک", 0),
-    "cards:b": ("cards", "b", "ورق کافه شب", 300),
-    "cards:c": ("cards", "c", "ورق AsoTas", 300),
-    "cards:d": ("cards", "d", "ورق رنگ تمام", 300),
+    "cards:b": ("cards", "b", "ورق کافه شب", 50),
+    "cards:c": ("cards", "c", "ورق AsoTas", 50),
+    "cards:d": ("cards", "d", "ورق رنگ تمام", 50),
 }
 
 
@@ -488,7 +501,7 @@ async def style_view(db: GCDatabase, tg: int) -> dict:
 
 
 async def style_buy(db: GCDatabase, tg: int, item: str, idem: str) -> dict:
-    """خرید یک میز یا ورق با امتیاز؛ بعد از خرید همان هم انتخاب می شود. همان idem دوباره = بی اثر."""
+    """خرید یک میز یا ورق با سکه؛ بعد از خرید همان هم انتخاب می شود. همان idem دوباره = بی اثر."""
     if item not in STYLE_ITEMS:
         raise GCError("not_found")
     kind, look, name, price = STYLE_ITEMS[item]
@@ -511,26 +524,37 @@ async def style_use(db: GCDatabase, tg: int, item: str) -> dict:
 
 
 async def settle(db: GCDatabase, m: dict) -> None:
-    """یک بار و فقط یک بار: جایزه، نتیجه ها، آزاد کردن بازیکن ها."""
+    """یک بار و فقط یک بار: جام و سکهٔ رتبه ای (یا جایزهٔ میز امتیازی قدیمی)، نتیجه ها، آزاد کردن بازیکن ها."""
     if not await db.mark_settled(m["id"]):
         return
     st, cfg = m["state"], m["cfg"]
     rows = await db.match_players(m["id"])
     winners = _winners(st)
-    name = _gname(cfg)
-    shares = prize_shares(st, rows)
+    name, game = _gname(cfg), game_of(cfg)
+    legacy = cfg["mode"] == "stake"
+    shares = _legacy_shares(st, rows) if legacy else {}
+    good = _good_winners(st, rows) if cfg["mode"] == "ranked" and winners else set()
+    got: dict[int, tuple[int, int]] = {}      # tg -> (سکه یا جایزه، تغییر جام)
     for r in rows:
         won = r["color"] in winners
-        share = shares.get(r["tg_id"], 0)
-        if cfg["mode"] == "stake":
+        prize = cups = 0
+        if legacy:
+            prize = shares.get(r["tg_id"], 0)
             if not winners and r["paid"]:
-                await earn(db, r["tg_id"], r["paid"], "refund", f"بازگشت ورودی {name}", m["id"], f"endrefund:{m['id']}:{r['tg_id']}")
-            elif share:
+                await earn_legacy(db, r["tg_id"], r["paid"], "refund", f"بازگشت ورودی {name}", m["id"],
+                                  f"endrefund:{m['id']}:{r['tg_id']}")
+            elif prize:
                 # منچ یک برنده دارد (idem قبلی همان می ماند)؛ در حکم هر عضو تیم برنده سهم خودش را می گیرد
-                idem = f"prize:{m['id']}" if game_of(cfg) == "ludo" else f"prize:{m['id']}:{r['tg_id']}"
-                await earn(db, r["tg_id"], share, "prize", f"جایزهٔ {name}", m["id"], idem)
-        await db.add_result(m["id"], r["tg_id"], won, share if cfg["mode"] == "stake" else 0)
-        kots = st.get("kots") if game_of(cfg) == "hokm" else None
+                idem = f"prize:{m['id']}" if game == "ludo" else f"prize:{m['id']}:{r['tg_id']}"
+                await earn_legacy(db, r["tg_id"], prize, "prize", f"جایزهٔ {name}", m["id"], idem)
+        elif winners and cfg["mode"] == "ranked":
+            ok = r["tg_id"] in good
+            cups = await db.rank_add(r["tg_id"], game, gc.rank_win if ok else -gc.rank_lose, ok)
+            if ok:
+                prize = await _rank_coins(db, r["tg_id"], m["id"], name)
+        got[r["tg_id"]] = (prize, cups)
+        await db.add_result(m["id"], r["tg_id"], won, prize, cups)
+        kots = st.get("kots") if game == "hokm" else None
         if kots and kots[int(r["color"]) % 2]:
             await db.add_kots(r["tg_id"], kots[int(r["color"]) % 2])
     await db.deactivate(m["id"])
@@ -539,36 +563,49 @@ async def settle(db: GCDatabase, m: dict) -> None:
         if not await _away(db, m["id"], r["tg_id"], now):
             continue
         won = r["color"] in winners
-        share = shares.get(r["tg_id"], 0)
-        if game_of(cfg) == "esmfamil":   # برگ کامل همه را ربات در خود گروه فرستاده است
+        prize, cups = got.get(r["tg_id"], (0, 0))
+        if game == "esmfamil":   # برگ کامل همه را ربات در خود گروه فرستاده است
             text = "اسم‌فامیل رو بردی داش! 🎉 برگت از همه پرتر بود برو برگ همه رو تو گروه ببین 😎" if won else \
                 "اسم‌فامیل تموم شد و این دفعه نشد 😅 برگ همه با امتیازا تو گروهه دست بعد مال توئه!" if winners else \
                 "اسم‌فامیل تموم شد برو نتیجه رو تو گروه ببین"
-        elif game_of(cfg) == "lashgar":   # برگهٔ آخر جنگ را ربات در خود گروه فرستاده است
+        elif game == "lashgar":   # برگهٔ آخر جنگ را ربات در خود گروه فرستاده است
             text = "لشگرت جنگو برد فرمانده! 🎉 برگهٔ آخر جنگو تو گروه ببین 😎" if won else \
                 "این جنگو باختی 😅 برگهٔ آخر تو گروهه جنگ بعد مال توئه!" if winners else \
                 "جنگ کاغذی تموم شد برو نتیجه رو تو گروه ببین"
+        elif won and cfg["mode"] == "ranked":
+            text = f"{name} رتبه‌ای رو بردی داش! 🏆 {cups:+} جام" + (f" و {prize} سکه جایزه ریخت تو کیفت" if prize else "") + " دمت گرم!"
         elif won:
-            text = f"{name} رو بردی داش! 🎉 {share:,} امتیاز جایزه ریخت تو کیفت دمت گرم!" if cfg["mode"] == "stake" and share else f"{name} رو بردی! 🎉 حریفا هنوز تو شوکن"
+            text = f"{name} رو بردی! 🎉 حریفا هنوز تو شوکن"
         else:
             text = f"بازی {name} تموم شد و این دفعه نشد فدای سرت دست بعد مال توئه 😉" if winners else f"بازی {name} تموم شد"
-        await _notify(db, r["tg_id"], f"over:{m['id']}:{r['tg_id']}", text, "shop.html" if won and share else "index.html")
+        await _notify(db, r["tg_id"], f"over:{m['id']}:{r['tg_id']}", text, _gpage(cfg).replace(".html", "-lobby.html"))
     await _hook(db, m["id"])
 
 
-def prize_shares(st: dict, rows: list[dict]) -> dict:
-    """جایزه هر نفر (فقط بازی امتیازی). منچ: همه به برنده. حکم و بیلیارد یاری: بین اعضای
-    تیم برنده که بازی را ترک نکرده اند تقسیم می شود."""
+def _good_winners(st: dict, rows: list[dict]) -> set:
+    """برنده هایی که جایزه می گیرند: در بازی های تیمی و چندنفره کسی که وسط بازی رفته (out) چیزی نمی گیرد."""
+    winners = _winners(st)
+    return {r["tg_id"] for r in rows if r["color"] in winners
+            and not (st.get("game") in ("hokm", "billiard", "divar", "snakes") and st["players"].get(r["color"], {}).get("out"))}
+
+
+async def _rank_coins(db: GCDatabase, tg: int, match_id: str, name: str) -> int:
+    """سکهٔ برد رتبه ای با سقف روزانه (به وقت ایران)."""
+    day0 = _iran_day() * 86400 - 12600
+    room = gc.rank_coins_day - await db.earned_since(tg, "reward", day0)
+    n = max(0, min(gc.rank_coins, room))
+    if n and await earn(db, tg, n, "reward", f"برد رتبه‌ای {name}", match_id, f"reward:{match_id}:{tg}"):
+        return n
+    return 0
+
+
+def _legacy_shares(st: dict, rows: list[dict]) -> dict:
+    """جایزهٔ میزهای امتیازی قدیمی (پیش از سکه): همهٔ ورودی ها بین برنده هایی که نرفته اند."""
     if not st.get("stake"):
         return {}
-    winners = _winners(st)
     pot = sum(r["paid"] for r in rows)
-    prize = pot - pot * gc.rake_percent // 100
-    got = [r for r in rows if r["color"] in winners
-           and not (st.get("game") in ("hokm", "billiard", "divar", "snakes") and st["players"].get(r["color"], {}).get("out"))]
-    if not got or not prize:
-        return {}
-    return {r["tg_id"]: prize // len(got) for r in got}
+    good = _good_winners(st, rows)
+    return {tg: pot // len(good) for tg in good} if good and pot else {}
 
 
 def _color_of(rows: list[dict], tg: int) -> str | None:
@@ -593,13 +630,7 @@ async def queue_join(db: GCDatabase, tg: int, raw_cfg: dict) -> dict:
         if old["cfg_key"] == cfg_key(cfg) and not old["claimed"]:
             return await queue_status(db, tg)
         await queue_leave(db, tg)
-    held = 0
-    if cfg["mode"] == "stake":
-        ref = f"q{tg}-{int(time.time() * 1000)}"
-        if not await spend(db, tg, cfg["entry"], "entry", f"ورودی {_gname(cfg)}", ref, f"entry:{ref}"):
-            raise GCError("insufficient")
-        held = cfg["entry"]
-    await db.queue_put(tg, cfg_key(cfg), cfg, held)
+    await db.queue_put(tg, cfg_key(cfg), cfg, 0)
     await try_match(db, cfg)
     return await queue_status(db, tg)
 
@@ -680,15 +711,17 @@ async def queue_leave(db: GCDatabase, tg: int) -> dict:
         await db.queue_del(tg)
         return {"state": "matched", "match": row["claimed"]}
     await db.queue_del(tg)
-    if row["held"]:
-        await earn(db, tg, row["held"], "refund", f"انصراف از صف {_gname(json.loads(row['cfg']))}", "queue",
-                   f"qrefund:{tg}:{row['created_at']}")
+    if row["held"]:   # صف امتیازی قدیمی
+        await earn_legacy(db, tg, row["held"], "refund", f"انصراف از صف {_gname(json.loads(row['cfg']))}", "queue",
+                          f"qrefund:{tg}:{row['created_at']}")
     return {"state": "none"}
 
 
 # ---------- میز دعوت ----------
 async def invite_create(db: GCDatabase, tg: int, raw_cfg: dict) -> dict:
     cfg = norm_cfg(raw_cfg)
+    if cfg["mode"] != "free":     # رتبه ای فقط با صف آنلاین (میز رفیقا جام نمی دهد)
+        raise GCError("ranked_online")
     if await db.active_match_of(tg):
         raise GCError("in_match")
     if await db.queue_row(tg):
@@ -696,10 +729,6 @@ async def invite_create(db: GCDatabase, tg: int, raw_cfg: dict) -> dict:
     mid, code = _code(10), _code(6)
     colors = _seat_order(cfg)
     paid, ref = 0, f"{mid}:{tg}:{int(time.time() * 1000)}"
-    if cfg["mode"] == "stake":
-        if not await spend(db, tg, cfg["entry"], "entry", f"ورودی {_gname(cfg)}", mid, "entry:" + ref):
-            raise GCError("insufficient")
-        paid = cfg["entry"]
     info = await _seat_info(db, tg)
     state = {"lobby": True, "seats": [{"color": colors[0], "tg": tg, "paid": paid, "ref": ref, **info}]}
     await db.create_match(mid, "lobby", cfg, state, tg, invite=code)
@@ -720,12 +749,9 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
     if other:
         raise GCError("in_match", match=other)
     cfg = m["cfg"]
-    # هر نشستن یک ref تازه دارد؛ کسی که بلند شد و دوباره نشست، دوباره ورودی می دهد
+    if cfg["mode"] != "free":     # میز امتیازی قدیمی که هنوز باز مانده: کسی تازه نمی نشیند
+        raise GCError("started")
     paid, ref = 0, f"{m['id']}:{tg}:{int(time.time() * 1000)}"
-    if cfg["mode"] == "stake":
-        if not await spend(db, tg, cfg["entry"], "entry", f"ورودی {_gname(cfg)}", m["id"], "entry:" + ref):
-            raise GCError("insufficient")
-        paid = cfg["entry"]
     info = await _seat_info(db, tg)
 
     def sit(mm: dict):
@@ -745,8 +771,6 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
     except GCError:
         color = "busy"
     if color in ("full", "started", "busy"):
-        if paid:
-            await earn(db, tg, paid, "refund", f"بازگشت ورودی {_gname(cfg)}", m["id"], "refund:" + ref)
         raise GCError(color)
     if color:
         await db.add_match_player(m["id"], tg, color, paid)
@@ -776,7 +800,7 @@ async def lobby_start(db: GCDatabase, tg: int, match_id: str) -> None:
         raise GCError("not_found")
     if m["host"] != tg:
         raise GCError("not_host")
-    if m["cfg"]["mode"] == "stake" and len(m["state"]["seats"]) < m["cfg"]["players"]:
+    if m["cfg"]["mode"] != "free" and len(m["state"]["seats"]) < m["cfg"]["players"]:
         raise GCError("need_players")
     if game_of(m["cfg"]) in GROUP_ONLY and len(m["state"]["seats"]) < \
             (esmfamil.MIN_PLAYERS if game_of(m["cfg"]) == "esmfamil" else m["cfg"]["players"]):
@@ -796,7 +820,7 @@ async def lobby_leave(db: GCDatabase, tg: int, m: dict) -> None:
         if ok:
             for s in m["state"]["seats"]:
                 if s["paid"]:
-                    await earn(db, s["tg"], s["paid"], "refund", f"لغو میز {_gname(m['cfg'])}", m["id"], "refund:" + s["ref"])
+                    await earn_legacy(db, s["tg"], s["paid"], "refund", f"لغو میز {_gname(m['cfg'])}", m["id"], "refund:" + s["ref"])
             await db.deactivate(m["id"])
             await _hook(db, m["id"])
         return
@@ -812,7 +836,7 @@ async def lobby_leave(db: GCDatabase, tg: int, m: dict) -> None:
     if seat:
         await db.execute("DELETE FROM match_players WHERE match_id = ? AND tg_id = ?", (m["id"], tg))
         if seat["paid"]:
-            await earn(db, tg, seat["paid"], "refund", f"خروج از میز {_gname(m['cfg'])}", m["id"], "refund:" + seat["ref"])
+            await earn_legacy(db, tg, seat["paid"], "refund", f"خروج از میز {_gname(m['cfg'])}", m["id"], "refund:" + seat["ref"])
         await _hook(db, m["id"])
 
 
@@ -1008,11 +1032,13 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, cha
     if game_of(cfg) == "lashgar":
         out["game"]["ink_v"] = await db.ink_last(match_id, color if st["phase"] == "draw" else None)
     await _put_pids(db, match_id, out["game"], tg)
-    out["pot"] = st.get("pot", 0)
     if m["status"] == "over":
         won = color in _winners(st)
-        out["result"] = {"won": won, "prize": prize_shares(st, rows).get(tg, 0),
-                         "lost": next((r["paid"] for r in rows if r["tg_id"] == tg), 0) if not won else 0}
+        res = await db.result_row(match_id, tg) or {}
+        out["result"] = {"won": won, "coins": int(res.get("prize") or 0), "cups": int(res.get("cups") or 0)}
+        if cfg["mode"] == "ranked":
+            out["result"]["rank"] = r = await db.rank_of(tg, game_of(cfg))
+            r["league"] = league(r["cups"])
     return out
 
 
@@ -1114,7 +1140,7 @@ async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
     dv, lg, sn = st.get("game") == "divar", st.get("game") == "lashgar", st.get("game") == "snakes"
     team_game = hk or ((bl or dv) and st.get("n") == 4) or (sn and st.get("n", 2) > 2)
     extra = " 3 بار نوبت سوختن پشت هم یعنی باخت" if lg else \
-        (" تو بازی امتیازی 3 بار غیبت یعنی بیرون رفتن از بازی" if team_game else " تو بازی امتیازی 3 بار غیبت یعنی باخت") \
+        (" تو بازی رتبه‌ای 3 بار غیبت یعنی بیرون رفتن از بازی" if team_game else " تو بازی رتبه‌ای 3 بار غیبت یعنی باخت") \
         if st.get("stake") else ""
     what = ("حکم رو انتخاب کن" if st["phase"] == "trump" else "برگتو بنداز") if hk \
         else "شوتتو بزن وگرنه توپ می‌ره دست حریف" if fb \
@@ -1128,7 +1154,7 @@ async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
 
 
 async def admin_close(db: GCDatabase, match_id: str) -> dict:
-    """بستن میز گیرکرده توسط ادمین: میز لغو و همه ورودی ها برمی گردد."""
+    """بستن میز گیرکرده توسط ادمین: میز لغو و ورودی میزهای امتیازی قدیمی به legacy_points برمی گردد."""
     m = await db.get_match(match_id)
     if not m or m["status"] not in ("lobby", "playing"):
         raise GCError("not_open")
@@ -1145,13 +1171,13 @@ async def admin_close(db: GCDatabase, match_id: str) -> dict:
     refunded = 0
     if m["status"] == "lobby":
         for seat in m["state"].get("seats", []):
-            if seat.get("paid") and await earn(db, seat["tg"], seat["paid"], "refund", "بستن میز توسط پشتیبانی",
-                                                match_id, "refund:" + seat["ref"]):
+            if seat.get("paid") and await earn_legacy(db, seat["tg"], seat["paid"], "refund", "بستن میز توسط پشتیبانی",
+                                                      match_id, "refund:" + seat["ref"]):
                 refunded += seat["paid"]
     else:
         for r in await db.match_players(match_id):
-            if r["paid"] and await earn(db, r["tg_id"], r["paid"], "refund", "بستن میز توسط پشتیبانی",
-                                        match_id, f"cancel:{match_id}:{r['tg_id']}"):
+            if r["paid"] and await earn_legacy(db, r["tg_id"], r["paid"], "refund", "بستن میز توسط پشتیبانی",
+                                               match_id, f"cancel:{match_id}:{r['tg_id']}"):
                 refunded += r["paid"]
     await db.mark_settled(match_id)
     await db.deactivate(match_id)
@@ -1280,9 +1306,17 @@ async def leaderboard(db: GCDatabase, tg: int, kind: str, period: str) -> dict:
 
 
 async def game_leaderboard(db: GCDatabase, tg: int, game: str, period: str) -> dict:
-    """رده بندی هر بازی جدا (صفحهٔ همان بازی): بیشترین برد در این بازه."""
+    """رده بندی هر بازی جدا (صفحهٔ همان بازی): cup = بیشترین جام رتبه ای، وگرنه بیشترین برد در این بازه."""
     if game not in GAMES:
         raise GCError("bad_game")
+    if period == "cup":
+        return {
+            "game": game, "period": period,
+            "rows": [{"name": r["name"] or "بازیکن", "av": r["av"], "pic": pic_url(r), "cups": int(r["cups"]),
+                      "league": league(int(r["cups"])), "wins": int(r["wins"]), "games": int(r["games"]),
+                      "me": r["tg_id"] == tg, "pid": r.get("pic") if r["tg_id"] != tg else ""} for r in await db.cup_board(game)],
+            "mine": {**(mine := await db.cup_rank(tg, game)), "league": league(mine["cups"])},
+        }
     span = PERIODS.get(period, PERIODS["week"])
     since = int(time.time() - span) if span else 0
     rows = await db.game_board(game, since)

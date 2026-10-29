@@ -165,7 +165,7 @@
     </a>
     <div class="hd-acts">
       <button class="icon-btn bell" id="bell" aria-label="اعلان‌ها"><i data-ic="bell"></i><span class="badge" id="bellN" hidden></span></button>
-      <a class="pill" href="shop.html#wallet" aria-label="کیف امتیاز"><span class="plus"><i data-ic="plus"></i></span><span class="num" data-bal>…</span><span data-coin></span></a>
+      <a class="pill" href="shop.html#daily" aria-label="کیف سکه"><span class="plus"><i data-ic="plus"></i></span><span class="num" data-bal>…</span><span data-coin></span></a>
     </div>
   </div>
 </header>
@@ -178,6 +178,8 @@
     <span class="nh-tx"><small>اسمت تو بازی اینه</small><b class="uname" id="nhName"></b></span>
     <span class="nh-acts"><button class="btn btn-light btn-sm" id="nhOk">همین خوبه</button><button class="btn btn-sm" id="nhEdit">عوضش کن</button></span>
   </section>
+
+  <section class="hm-daily" id="daily" aria-label="جایزهٔ روزانه" hidden></section>
 
   <section aria-labelledby="hGames">
     <h1 class="home-q" id="hGames">چی بازی کنیم؟</h1>
@@ -202,14 +204,6 @@
     <span class="chev"><i data-ic="fwd"></i></span>
   </a>
 
-  <section class="shop-only" aria-labelledby="hShop">
-    <div class="sec-head"><h2 id="hShop">امتیازتو تو عبور خرج کن</h2><a href="shop.html">همه</a></div>
-    <div class="card stack">
-      <div class="obour"><svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#151B42"/><path d="M10 22.5l7-11.5 7 11.5" fill="none" stroke="#3BF0CF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="22.5" r="2" fill="#B36BFF"/></svg>
-        <span>سفارشت مستقیم رو <b>حساب عبورت</b> ثبت می‌شه و لازم نیست جدا بخری</span></div>
-      <ul class="list" id="shopTeaser"></ul>
-    </div>
-  </section>
 
   <div class="hm-cont" id="cont" aria-live="polite" hidden></div>
 </main>
@@ -219,7 +213,7 @@
 <script src="static/preview.js"></script>
 <script>
 (() => {
-  const { fa, FD, toast, face, amount, icon, errText, store, sheet, sheetHead, GAME_ART } = GC;
+  const { fa, FD, toast, face, icon, errText, store, sheet, sheetHead, GAME_ART } = GC;
   const C = window.GCCards;
   const $ = id => document.getElementById(id);
   GC.back(null);
@@ -271,9 +265,7 @@
     const nm = document.createElement('bdi'); nm.className = 'uname'; nm.textContent = p.name || '';
     $('meName').replaceChildren(nm);
     const sub = $('meSub');
-    // برنامهٔ اندروید (مهمان) کیف عبور ندارد؛ همان سطح بازیکن را می بیند
-    if (!me.obour.linked && !GC.app) { sub.className = 'me-sub bad'; sub.textContent = 'هنوز تو ربات عبور نیستی'; }
-    else { sub.className = 'me-sub'; sub.innerHTML = `سطح ${FD(L.lv)}<span class="bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span>`; sub.title = `${FD(L.left)} امتیاز تا سطح ${FD(L.lv + 1)}`; }
+    sub.className = 'me-sub'; sub.innerHTML = `سطح ${FD(L.lv)}<span class="bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span>`; sub.title = `${FD(L.left)} تجربه تا سطح ${FD(L.lv + 1)}`;
   }
   // اعلان ها: میزی که نوبت توست، میزی که منتظر توست و پیام مدیریت
   function alerts() {
@@ -391,6 +383,8 @@
         if (me.account.kind === 'guest') GC.login({ welcome: true, guestGames: me.player.games });
       }
       sig = ''; setTables(me.tables || []);
+      // جایزهٔ روزانه فقط تا وقتی امروز گرفته نشده رو خونه دیده می شه (بعدش تو فروشگاه)
+      if (me.daily && !me.daily.claimed) { $('daily').hidden = false; GC.dailyMount($('daily'), me.daily); } else $('daily').hidden = true;
       const note = me.banned ? 'شرمنده داش حسابت تو AsoTas بسته شده اگه پیگیری می‌خوای به پشتیبانی عبور پیام بده'
         : me.maintenance ? 'داریم آپدیت می‌کنیم و تا چند دقیقه میز تازه ساخته نمی‌شه' : (me.notice || '');
       if (note) { $('noteTx').textContent = note; $('noteIc').innerHTML = icon(me.banned ? 'shield' : me.maintenance ? 'clock' : 'bell'); $('noteBar').hidden = false; $('noteBar').classList.toggle('bad', !!me.banned); }
@@ -405,11 +399,6 @@
       $('rankT').textContent = on.length ? 'رفیقای آنلاین' : 'دوستان';
       $('rankS').textContent = on.length ? `${FD(on.length)} نفر الان آنلاینن` : fr.friends.length ? `${FD(fr.friends.length)} رفیق داری · الان کسی آنلاین نیست` : 'رفیقاتو با یوزرنیمشون اضافه کن';
     } catch (e) { $('rankS').textContent = errText(e); }
-    if (GC.S.shopOn) try {
-      const sh = await GC.data.shop();
-      $('shopTeaser').innerHTML = sh.plans.slice(0, 2).map(p => `<li><a class="row" href="shop.html"><span class="ic-box" style="background:var(--obour-night);color:var(--obour-aqua)">${icon('globe')}</span><span class="name">${p.title}<span class="meta">${p.days ? FD(p.days) + ' روزه' : ''}</span></span>${amount(p.points)}</a></li>`).join('')
-        || '<li class="hint">فعلاً پلنی واسه فروش نیست</li>';
-    } catch (e) { $('shopTeaser').innerHTML = `<li class="hint">${errText(e)}</li>`; }
     GC.mount();
   }
   GC.page(load);

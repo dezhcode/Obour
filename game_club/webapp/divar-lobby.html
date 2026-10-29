@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="static/preview.css">
 <link rel="stylesheet" href="static/divar.css">
 <style>
-/* لابی دیوار: دو نفره یا چهار نفره (کلاسیک یا ستاره)، آزاد یا با امتیاز. صف و دعوت در برگه */
+/* لابی دیوار: دو نفره یا چهار نفره (کلاسیک یا ستاره)، دوستانه یا رتبه‌ای. صف و دعوت در برگه */
 .seatline{display:flex;justify-content:center;gap:var(--space-3);flex-wrap:wrap}
 .seatw{display:grid;justify-items:center;gap:4px;font-size:12.5px;font-weight:800}
 .seatw .avatar{--size:56px}
@@ -31,7 +31,7 @@
   <div class="appbar-cap"><span>میز دیوار</span></div>
   <div class="appbar-in">
     <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>دیوار</h1></div>
-    <a class="pill" href="shop.html#wallet" aria-label="کیف امتیاز"><span data-coin></span><span class="num" data-bal>…</span></a>
+    <a class="pill" href="shop.html#daily" aria-label="کیف سکه"><span data-coin></span><span class="num" data-bal>…</span></a>
   </div>
 </header>
 <main class="page no-nav">
@@ -81,12 +81,11 @@
       if (shown === String(st.found)) { const el = document.getElementById('ql'); if (el) el.textContent = line; }
       else {
         shown = String(st.found);
-        const prize = c.mode === 'stake' ? `برنده ${fa(c.entry * n)}` : '';
         const sh = sheet(`${sheetHead(n === 4 ? 'پیدا کردن سه حریف' : 'پیدا کردن حریف')}${seatsHtml(list, n)}
           <div class="wait-line"><span class="spinner"></span><span id="ql">${line}</span></div>
-          <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · ${prize} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگه تا ${FD(st.bots_in)} ثانیهٔ دیگه کسی نیاد ربات جای خالیو پر می‌کنه` : 'میز که پر شه بازی شروع می‌شه'} · ناشناس می‌مونی</p>
+          <p class="hint">${c.mode !== 'free' ? 'رتبه‌ای 🏆 · فقط با بازیکن واقعی · برد یعنی جام و سکه' : st.bots_in != null && st.bots_in > 0 ? `اگه تا ${FD(st.bots_in)} ثانیهٔ دیگه کسی نیاد ربات جای خالیو پر می‌کنه` : 'میز که پر شه بازی شروع می‌شه'} · ناشناس می‌مونی</p>
           ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مونم بذار ربات جای خالیو پر کنه</button>' : ''}
-          <button class="btn btn-light btn-block" id="qc">بی‌خیال${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
+          <button class="btn btn-light btn-block" id="qc">بی‌خیال</button>`, { dismiss: false });
         const qb = sh.querySelector('#qb');
         if (qb) qb.onclick = async () => { qb.disabled = true; try { const r = await GC.divar.queueBots(); if (r.state === 'matched') { token = null; sfx.turn(); haptic('success'); return go(r.match); } } catch (e) { toast(errText(e)); } qb.disabled = false; };
         sh.querySelector('#qc').onclick = async () => { token = null; try { await GC.divar.queueLeave(); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
@@ -111,10 +110,10 @@
       shown = sig; if (L.seats.length > 1) { sfx.turn(); haptic('light'); }
       const mine = L.seats.find(s => s.me), opp = L.seats.filter(s => !s.me);
       const list = [Object.assign({}, mine || {}, { name: 'خودت' }), ...[...Array(n - 1)].map((_, i) => opp[i] || null)];
-      const msg = c.mode === 'stake' ? `بیا دیوار بزنیم! ورودی ${c.entry} امتیاز` : n === 4 ? 'بیا چهار نفره دیوار بزنیم ببینیم کی زودتر می‌رسه!' : 'بیا یه دست دیوار بزنیم راهتو می‌بندم 😄';
+      const msg = n === 4 ? 'بیا چهار نفره دیوار بزنیم ببینیم کی زودتر می‌رسه!' : 'بیا یه دست دیوار بزنیم راهتو می‌بندم 😄';
       const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(msg);
       const sh = sheet(`${sheetHead(L.host ? (n === 4 ? 'بازی با یار' : 'بازی با رفیقت') : 'سر میز رفیقت')}
-        ${L.host ? `<p>این لینکو بفرست${n === 4 ? ' و سه نفر که بازش کنن بازی شروع می‌شه' : ' تا رفیقت بازش کنه بازی شروع می‌شه'}${c.mode === 'stake' ? '<br>' + fa(c.entry) + ' امتیاز ورودی از کیف هر نفر کم می‌شه' : ''}</p>
+        ${L.host ? `<p>این لینکو بفرست${n === 4 ? ' و سه نفر که بازش کنن بازی شروع می‌شه' : ' تا رفیقت بازش کنه بازی شروع می‌شه'}</p>
         <div class="linkbox"><code>${link || 'لینک دعوت فقط تو تلگرام ساخته می‌شه'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
         <button class="btn btn-block" id="shr">${icon('send')}بفرست تو تلگرام</button>` : '<p>منتظر بقیه‌ایم تا بازی شروع شه…</p>'}
         ${seatsHtml(list, n)}
@@ -134,7 +133,6 @@
   async function play(how, cfg, btn) {
     const c = Object.assign({ game: 'divar' }, cfg);
     if (how === 'bot') { c.mode = 'free'; c.entry = 0; c.solo = true; }
-    if (c.mode === 'stake' && GC.points < c.entry) { sfx.error(); haptic('error'); toast(errText({ code: 'insufficient' })); return; }
     if (btn) btn.disabled = true;
     try {
       if (how === 'invite') { const r = await GC.divar.invite(c); await GC.refreshMe(); lobbyLoop(r.match); }
@@ -154,7 +152,7 @@
       ['دیوار', 'هر دیوار دو تا خونه رو می‌پوشونه و دیگه برداشته نمی‌شه<br>دیوارا رو هم نمی‌افتن و ضربدری از هم رد نمی‌شن<br>دیواری که راه کسیو کامل ببنده قبول نیست و جای غیرمجاز قرمز می‌شه'],
       ['پرش', 'اگه یه مهره درست کنارت باشه و بینتون دیوار نباشه از روش می‌پری<br>اگه پشتش دیوار یا یه مهرهٔ دیگه باشه کج می‌ری چپ یا راستِ همون مهره'],
       ['تعداد دیوار', '۲ نفره هر نفر ۱۰ تا و ۴ نفره ۵ تا و ۴ نفرهٔ ستاره ۷ تا'],
-      ['وقت', 'اگه وقت نوبتت تموم بشه یه قدم تو کوتاه‌ترین راه به جات برداشته می‌شه<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت'],
+      ['وقت', 'اگه وقت نوبتت تموم بشه یه قدم تو کوتاه‌ترین راه به جات برداشته می‌شه<br>تو بازی رتبه‌ای سه نوبت غیبت پشت‌سرهم یعنی باخت'],
       ['یه نکته از تاسی', 'دیواراتو زود خرج نکن داش<br>وقتی حریف نزدیک مقصده دیوار بذار و قبل هر دیوار یه نگاه به راه خودت هم بنداز']],
     play,
     // میزهای رایگان: انتخاب همین جا ذخیره می شود و سر میز بعدی همان دیده می شود

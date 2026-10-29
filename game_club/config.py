@@ -23,17 +23,18 @@ class GCConfig:
     path: str = "/" + (os.getenv("GAME_CLUB_PATH", "").strip().strip("/") or "gc")
     # رشته تصادفی جدا از WEBHOOK_SECRET عبور؛ بدونش وبهوک AsoTas بسته است
     webhook_secret: str = os.getenv("GAME_CLUB_WEBHOOK_SECRET", "").strip()
-    # هر امتیاز چند تومان از کیف پول عبور
-    point_toman: int = max(1, _int_env("GAME_CLUB_POINT_TOMAN", "100"))
-    # کلید خاموش کردن بازی امتیازی (فقط بازی آزاد می ماند)
-    stake_enabled: bool = _bool("GAME_CLUB_STAKE", "true")
-    # فروشگاه (خرید خدمات عبور و انتقال امتیاز). در دوره آزمایشی خاموش است:
-    # نه دیده می شود و نه از API چیزی خریده می شود.
-    shop_enabled: bool = _bool("GAME_CLUB_SHOP", "false")
-    entries: tuple[int, ...] = _ints("GAME_CLUB_ENTRIES", "50,100,250,500")
-    charge_packs: tuple[int, ...] = _ints("GAME_CLUB_PACKS", "250,500,1000,2500")
-    # سهم عبور از جایزه به درصد؛ پیش فرض صفر (برنده همه را می برد)
-    rake_percent: int = min(30, max(0, _int_env("GAME_CLUB_RAKE", "0")))
+    # هر سکه چند تومان: قیمت بسته های سکه، و نرخ برگشت امتیازهای قدیمی به کیف عبور (refund.py)
+    point_toman: int = max(1, _int_env("GAME_CLUB_POINT_TOMAN", "500"))
+    # سکه فقط پول داخل بازی است: با بازی و جایزه یا خرید درون برنامه ای جمع می شود و فقط آیتم می خرد
+    # (نه ورودی بازی، نه خدمات عبور، نه انتقال). بازی رتبه ای ورودی ندارد: برد جام و چند سکه از طرف بازی.
+    ranked_enabled: bool = _bool("GAME_CLUB_RANKED", "true")
+    rank_win: int = max(1, _int_env("GAME_CLUB_RANK_WIN", "20"))
+    rank_lose: int = max(0, _int_env("GAME_CLUB_RANK_LOSE", "10"))
+    rank_coins: int = max(0, _int_env("GAME_CLUB_RANK_COINS", "2"))
+    rank_coins_day: int = max(0, _int_env("GAME_CLUB_RANK_COINS_DAY", "10"))
+    # هدیهٔ شروع هر حساب و جایزهٔ ورود روزانه (روزهای پشت هم؛ بعد از روز آخر از نو)
+    start_coins: int = max(0, _int_env("GAME_CLUB_START_COINS", "10"))
+    daily_coins: tuple[int, ...] = _ints("GAME_CLUB_DAILY", "1,1,2,2,3,3,5")
     turn_seconds: int = min(60, max(8, _int_env("GAME_CLUB_TURN_SECONDS", "20")))
     # چند ثانیه صبر در صف بازی آزاد قبل از پر کردن جای خالی با ربات
     # ۰ = صف ناشناس هیچ وقت خودکار با ربات پر نمی شود؛ میز وقتی کامل شد شروع می شود

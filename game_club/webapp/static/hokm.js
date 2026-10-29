@@ -547,7 +547,7 @@ async function play(e) {
     return;
   }
   if (e.t === 'hand') { if (e.kot) await kotParty(e); if (e.score[e.team] < g.target) await handResult(e); return; }
-  if (e.t === 'timeout' && e.c === me && snap.cfg.mode === 'stake' && e.n >= 2) { toast(e.n >= 3 ? 'سه نوبت غایب بودی و ربات جات بازی می‌کنه' : 'یه نوبت دیگه غیبت کنی از بازی بیرونی'); return; }
+  if (e.t === 'timeout' && e.c === me && snap.cfg.mode !== 'free' && e.n >= 2) { toast(e.n >= 3 ? 'سه نوبت غایب بودی و ربات جات بازی می‌کنه' : 'یه نوبت دیگه غیبت کنی از بازی بیرونی'); return; }
   if (e.t === 'leave' && e.c !== me) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'رفت'} و ربات جاش بازی می‌کنه`); return; }
 }
 function bars(score, target) {
@@ -783,7 +783,7 @@ function over(v) {
   GC.guardClose(false); store.set('hmid', null);
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
   const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { tricks: 0, hakem: 0 };
-  const stake = v.cfg.mode === 'stake', ended = g.winner == null;
+  const ended = g.winner == null;
   const P = g.players || {}, seat = k => String((+me + k) % 4), pa = P[seat(2)] || {}, o1 = P[seat(1)] || {}, o2 = P[seat(3)] || {};
   const oppsLeft = o1.out && o2.out, mine = g.score[us], theirs = g.score[1 - us];
   const kind = ended ? 'draw' : won ? 'win' : 'lose';
@@ -794,11 +794,13 @@ function over(v) {
       ${win ? `<span class="e-rib">${svgP(CROWN)}برنده</span>` : ''}
       <span class="e-duo">${face(a, cls === 'us' ? '#9BE3B8' : 'var(--surface)')}${face(b, cls === 'us' ? '#9BE3B8' : 'var(--surface)')}</span>
       <b class="e-sc" data-n="${score}" data-at="350">${FD(score)}</b><span class="e-nm">${names}</span></div>`;
-  const reward = stake
-    ? (won ? `<div class="e-rw e-gold"><span class="e-coin">${GC.coin()}</span><span><b data-n="${r.prize || 0}" data-pre="+" data-at="700">+${fa(r.prize || 0)}</b><small>جایزه ریخت تو کیف امتیازت 🎉</small></span></div>`
-      : ended ? `<div class="e-rw"><span class="e-ic">${icon('wallet')}</span><span><b>ورودی برگشت</b><small>${fa(v.cfg.entry)} امتیاز به کیفت برگشت</small></span></div>`
-      : `<div class="e-rw e-dim"><span class="e-ic">${icon('wallet')}</span><span><b>−${fa(r.lost || v.cfg.entry)} امتیاز</b><small>ورودی این بازی بود دست بعد جبران کن</small></span></div>`)
-    : `<div class="e-rw"><span class="e-ic">${icon('users')}</span><span><b>بازی آزاد</b><small>${won ? 'جایزه نداشت ولی برد بُرده!' : 'چیزی از دست ندادی'}</small></span></div>`;
+  const c = r.cups || 0, k = r.coins || 0, rk = r.rank, lg = rk ? `لیگ ${rk.league} · ${fa(rk.cups)} جام` : '';
+  const reward = v.cfg.mode === 'free'
+    ? `<div class="e-rw"><span class="e-ic">${icon('users')}</span><span><b>بازی دوستانه</b><small>${won ? 'جام و سکه نداشت ولی برد بُرده!' : 'چیزی از دست ندادی'}</small></span></div>`
+    : v.cfg.mode !== 'ranked' ? `<div class="e-rw"><span class="e-ic">${icon('wallet')}</span><span><b>میز امتیازی قدیمی</b><small>${won ? 'جایزه‌ش با امتیازای قدیمیت برمی‌گرده به کیف عبور' : 'فدای سرت'}</small></span></div>`
+    : ended ? `<div class="e-rw"><span class="e-ic">${icon('trophy')}</span><span><b>بی‌نتیجه</b><small>بازی بسته شد و جامت دست نخورد</small></span></div>`
+    : won ? `<div class="e-rw e-gold"><span class="e-ic">${icon('trophy')}</span><span><b data-n="${c}" data-pre="+" data-at="700">+${fa(c)}</b><small>جام گرفتی${k ? ` و ${fa(k)} سکه ریخت تو کیفت 🎉` : ''}${lg ? '<br>' + lg : ''}</small></span></div>`
+    : `<div class="e-rw e-dim"><span class="e-ic">${icon('trophy')}</span><span><b>${c ? '−' + fa(-c) + ' جام' : 'جامی کم نشد'}</b><small>${c ? 'فدای سرت دست بعد جبران کن' : 'جامی نداشتی که کم بشه'}${lg ? '<br>' + lg : ''}</small></span></div>`;
   const el = document.createElement('div');
   el.className = 'hk-end gc-ui ' + kind; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'endT');
   el.innerHTML = `${kind === 'win' && !reduced() ? confetti() : ''}
@@ -826,7 +828,7 @@ function over(v) {
     </div>`;
   document.body.appendChild(el);
   countUp(el);
-  if (kind === 'win' && stake && r.prize) setTimeout(() => { sfx.coin(); haptic('success'); }, 1500);
+  if (kind === 'win' && r.coins) setTimeout(() => { sfx.coin(); haptic('success'); }, 1500);
   GC.refreshMe().catch(() => {});
 }
 function cancelled() {
@@ -834,7 +836,7 @@ function cancelled() {
   if (WATCH) { overShown = true; GC.watchOver('hokm', 'این میز بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   overShown = true; endChat(); GC.guardClose(false); store.set('hmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میزو بست و ورودی همه برگشت تو کیفشون</p>
+      <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میزو بست و جام کسی کم نشد</p>
       <div class="dlg-acts"><a class="btn" href="hokm-lobby.html">میز تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
@@ -850,7 +852,7 @@ function closeExit() { if (!exitEl) return; const el = exitEl; exitEl = null; el
 function askExit() {
   if (exitEl) { closeExit(); return; }
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
-  const stake = snap.cfg.mode === 'stake', g = snap.game, P = g.players || {}, pa = P[String((+me + 2) % 4)] || {};
+  const stake = snap.cfg.mode !== 'free', g = snap.game, P = g.players || {}, pa = P[String((+me + 2) % 4)] || {};
   haptic('light');
   exitEl = document.createElement('div'); exitEl.className = 'hk-exit gc-ui';
   exitEl.innerHTML = `<div class="x-sh" role="alertdialog" aria-modal="true" aria-labelledby="exT" aria-describedby="exD">
@@ -860,10 +862,10 @@ function askExit() {
       <p id="exD">اگه بری ربات جات کنار ${pa.name || 'یارت'} بازی می‌کنه</p>
       <div class="x-opts">
         <button class="x-opt" id="exHome"><span class="x-ic">${icon('home')}</span><span><b>فعلاً برو خونه</b><small>سر میز می‌مونی و از صفحهٔ خونه با یه لمس برمی‌گردی</small></span></button>
-        <button class="x-opt x-bad" id="exLeave"><span class="x-ic">${icon('exit')}</span><span><b>ترک بازی</b><small>${stake ? `ورودی ${fa(snap.cfg.entry)} امتیاز برنمی‌گرده و از جایزه سهمی نداری` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</small></span></button>
+        <button class="x-opt x-bad" id="exLeave"><span class="x-ic">${icon('exit')}</span><span><b>ترک بازی</b><small>${stake ? 'بازی رتبه‌ایه و رفتنت یعنی باخت و کم شدن جام' : 'بازی دوستانه‌ست و چیزی از دست نمی‌دی'}</small></span></button>
       </div>
       <button class="x-stay" id="exStay">ادامهٔ بازی</button>
-      <p class="x-fine">تا نیستی نوبتات خودکار بازی می‌شه${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی از بازی بیرونی' : ''}</p>
+      <p class="x-fine">تا نیستی نوبتات خودکار بازی می‌شه${stake ? '<br>تو بازی رتبه‌ای سه نوبت غیبت پشت‌سرهم یعنی از بازی بیرونی' : ''}</p>
     </div>`;
   document.body.appendChild(exitEl);
   const el = exitEl;
@@ -873,7 +875,7 @@ function askExit() {
   let armed = 0;
   el.querySelector('#exLeave').onclick = async ev => {
     const b = ev.currentTarget;
-    // بازی امتیازی: یک لمس دیگر برای اطمینان
+    // بازی رتبه ای: یک لمس دیگر برای اطمینان
     if (stake && Date.now() - armed > 3000) { armed = Date.now(); b.classList.add('x-arm'); b.querySelector('b').textContent = 'مطمئنی؟ یه بار دیگه بزن'; haptic('warning'); setTimeout(() => { if (b.isConnected && Date.now() - armed >= 2900) { b.classList.remove('x-arm'); b.querySelector('b').textContent = 'ترک بازی'; } }, 3000); return; }
     b.disabled = true;
     try { await GC.hokm.leave(mid); } catch (e) {}
@@ -1163,7 +1165,7 @@ async function start() {
   if (first.status === 'cancelled') return cancelled();
   mid = first.id; me = first.me;
   if (WATCH) GC.watchPill(); else store.set('hmid', mid);
-  if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
+  if (first.cfg.mode !== 'free' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   const g = first.game;
   const evs = (g.events || []).slice().sort((a, b) => a.seq - b.seq);

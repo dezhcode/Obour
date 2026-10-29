@@ -131,8 +131,8 @@
       <p class="pf-xp" id="lvTxt">&nbsp;</p>
       <div class="pf-bal">
         <span data-coin></span><b id="kPts">…</b>
-        <a class="pf-plus" href="shop.html#charge" aria-label="شارژ امتیاز"><i data-ic="plus"></i></a>
-        <a class="pf-hist" href="shop.html#hist" aria-label="تاریخچهٔ امتیاز"><i data-ic="wallet"></i></a>
+        <a class="pf-plus" href="shop.html#daily" aria-label="جایزهٔ روزانه"><i data-ic="plus"></i></a>
+        <a class="pf-hist" href="shop.html#hist" aria-label="تاریخچهٔ سکه"><i data-ic="wallet"></i></a>
       </div>
     </div>
   </section>
@@ -165,7 +165,6 @@
       <div class="set" id="pfAcc" hidden></div>
       <div class="set"><span><b>پوسته</b><small>خودکار مثل تلگرام</small></span><div class="seg" id="segTheme" role="group" aria-label="پوسته"><button data-m="auto">خودکار</button><button data-m="light">روشن</button><button data-m="dark">تیره</button></div></div>
       <div class="set"><span><b>صدای بازی</b><small>صدای ورق و تاس و توپ و تماشاچیا</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
-      <div class="set"><span><b>منو تو لیست خرج نشون بده</b><small>تو رده‌بندی «بیشترین خرج» دیده بشی</small></span><button class="switch" role="switch" id="swSpend" aria-label="نمایش من در فهرست خرج"></button></div>
       <div class="set"><span><b>تکون خوردن برگا تو حکم</b><small>گوشی رو کج کنی برگای وسط میز سُر می‌خورن</small></span><button class="switch" role="switch" id="swTilt" aria-label="تکان برگ‌ها در حکم"></button></div>
     </div>
   </section>
@@ -202,7 +201,6 @@
     $('kPts').textContent = fa(p.points);
     $('swSound').setAttribute('aria-checked', String(!!S.sound));
     $('swTilt').setAttribute('aria-checked', String(S.tilt !== false));
-    $('swSpend').setAttribute('aria-checked', String(!!p.show_spend));
   }
   // کلکسیون: میزها، ورق ها و کاورهایی که داری
   function renderCollection(sty) {
@@ -228,21 +226,22 @@
   function renderRecent() {
     const art = g => { const x = GC.GAMES.find(y => y.id === g) || GC.GAMES[2]; return `<span class="g-art ${x.tint}">${GC.GAME_ART[x.id]()}</span>`; };
     $('recent').innerHTML = pf.recent.length ? pf.recent.map(r => `<div class="rg">${art(r.game)}
-        <span class="t"><b>${NAME[r.game] || ''}<span class="res ${r.won ? 'w' : 'l'}">${r.won ? 'برد' : 'باخت'}</span></b><small>${r.mode === 'stake' ? 'ورودی ' + fa(r.entry) : 'آزاد'} · ${ago(r.at)}</small></span>
-        <span class="v ${r.prize ? '' : 'muted'}">${r.prize ? amount(r.prize) : '—'}</span></div>`).join('')
+        <span class="t"><b>${NAME[r.game] || ''}<span class="res ${r.won ? 'w' : 'l'}">${r.won ? 'برد' : 'باخت'}</span></b><small>${r.mode === 'ranked' ? 'رتبه‌ای' + (r.cups ? ` · ${r.cups > 0 ? '+' : '−'}${fa(Math.abs(r.cups))} جام` : '') : r.mode === 'stake' ? 'امتیازی قدیمی' : 'دوستانه'} · ${ago(r.at)}</small></span>
+        <span class="v ${r.prize && r.mode === 'ranked' ? '' : 'muted'}">${r.prize && r.mode === 'ranked' ? amount(r.prize) : '—'}</span></div>`).join('')
       : `<div style="display:grid;justify-items:center;gap:10px;padding:16px 0;text-align:center"><p class="hint">هنوز هیچ بازی‌ای رو تموم نکردی داش</p><a class="btn btn-gold btn-sm" href="hokm-lobby.html">اولین بازیتو شروع کن</a></div>`;
   }
   // نشان ها از کارنامهٔ واقعی؛ هر کدام با پیشرفتش
   function renderBadges() {
     const p = me.player, L = GC.level(p), played = new Set(pf.games.filter(g => g.games).map(g => g.game));
-    const prize = pf.games.reduce((a, g) => a + g.prize, 0), kots = p.kots || 0;
+    const cups = Math.max(0, ...Object.values(me.ranks || {}).map(r => r.cups)), kots = p.kots || 0;
     const B = [
       ['اولین برد', 'trophy', '#F5C451', '#3A2A00', p.wins >= 1, `${fa(Math.min(p.wins, 1))} از ۱`],
       ['۱۰ برد', 'bolt', '#FF8A95', '#3A0A10', p.wins >= 10, `${fa(Math.min(p.wins, 10))} از ۱۰`],
       ['۵۰ بازی', 'dice', '#7FAEFF', '#0B2251', p.games >= 50, `${fa(Math.min(p.games, 50))} از ۵۰`],
       ['همه‌کاره', 'pad', '#5FE39A', '#08331B', played.size >= 3, `${fa(played.size)} از ۳ بازی`],
       ['سطح ۵', 'spark', '#C9B8FF', '#22124F', L.lv >= 5, `سطح ${fa(L.lv)}`],
-      ['جایزه‌بگیر', 'wallet', '#FFD25E', '#3A2A00', prize > 0, prize ? amount(prize) : 'برد امتیازی'],
+      // لیگ نقره ای: ۱۰۰ جام تو یکی از بازیای رتبه ای
+      ['لیگ نقره‌ای', 'flag', '#D9DEE8', '#2A3140', cups >= 100, `${fa(Math.min(cups, 100))} از ۱۰۰ جام`],
       // کوت: دست حکم هفت به صفر (شمارش روی سرور، آخر هر بازی)
       ['کوت‌کن', 'cards', '#7FE0C0', '#06302A', kots >= 1, `${fa(Math.min(kots, 1))} از ۱ کوت`],
       ['استاد کوت', 'cards', '#FFB86B', '#3A1C00', kots >= 5, `${fa(Math.min(kots, 5))} از ۵ کوت`],
@@ -256,11 +255,6 @@
   const syncTheme = () => $('segTheme').querySelectorAll('[data-m]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === GCTheme.mode())));
   $('segTheme').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; GCTheme.set(b.dataset.m); GC.haptic('select'); syncTheme(); };
   syncTheme();
-  $('swSpend').onclick = async () => {
-    const on = $('swSpend').getAttribute('aria-checked') !== 'true';
-    $('swSpend').setAttribute('aria-checked', String(on));
-    try { await GC.data.setFlag('show_spend', on); if (me) me.player.show_spend = on ? 1 : 0; } catch (e) { $('swSpend').setAttribute('aria-checked', String(!on)); toast(errText(e)); }
-  };
 
   $('editName').onclick = () => { if (me) GC.editName(me.player, r => { Object.assign(me.player, r); renderMe(); }); };
   $('pfSet').onclick = () => $('hSet').scrollIntoView({ behavior: 'smooth', block: 'start' });

@@ -204,13 +204,14 @@ const loadM = () => store.get('demo_billiard', null), saveM = m => store.set('de
 function makeMatch(cfg, guest) {
   const n = cfg.players === 4 ? 4 : 2, names = [...BOTS].sort(() => Math.random() - .5), order = seatsOf(n);
   const seats = order.map((c, k) => k === 0 ? { color: c, name: 'شما', av: 7 } : (guest && k === (n === 4 ? 2 : 1) ? { color: c, name: 'دوست شما', av: 11, bot: true } : { color: c, name: names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true }));
-  const st = newState(seats, n); st.pot = cfg.mode === 'stake' ? cfg.entry * n : 0; st.stake = cfg.mode === 'stake';
+  const st = newState(seats, n); st.stake = cfg.mode !== 'free';
   return { id: 'bl' + Date.now().toString(36), status: 'playing', cfg: Object.assign({ game: 'billiard', players: n }, cfg), state: st, settled: false };
 }
 function settle(m) {
   if (m.settled || m.status !== 'over') return; m.settled = true; m.chat = [];
   const won = m.state.winner === 0; S.games++;
-  if (won) { S.wins++; if (m.cfg.mode === 'stake') { const share = Math.floor(m.state.pot / (m.cfg.players === 4 ? 2 : 1)); S.bal += share; S.won += share; GC.ledger('جایزهٔ بیلیارد', share, 'prize'); } }
+  if (won) S.wins++;
+  if (m.cfg.mode === 'ranked') m.rank = GC.demo.rank('billiard', won);
   save();
 }
 const QUIPS = ['سلام!', 'خوش‌بازی!', 'عجب ضربه‌ای!', 'شانس آوردی', 'زود باش', 'یک دست دیگه؟'];
@@ -226,35 +227,29 @@ function out(m, since, chat) {
   const o = { id: m.id, status: m.status, cfg: m.cfg, me: '0' };
   if (chat != null) o.chat = (m.chat || []).filter(x => x.id > chat).slice(-40);
   if (m.status === 'lobby') { o.lobby = { seats: m.seats, code: m.code, host: true, link: 'https://t.me/your_gameclub_bot?start=billiard_' + m.code }; return o; }
-  o.game = view(m.state, '0', since); o.pot = m.state.pot || 0;
-  if (m.status === 'over') { const won = m.state.winner === 0; o.result = { won, prize: won && m.cfg.mode === 'stake' ? Math.floor(o.pot / (m.cfg.players === 4 ? 2 : 1)) : 0, lost: won ? 0 : m.cfg.entry }; }
+  o.game = view(m.state, '0', since);
+  if (m.status === 'over') { const won = m.state.winner === 0; o.result = Object.assign({ won, coins: 0, cups: 0 }, m.rank); }
   return o;
-}
-function payEntry(cfg) {
-  if (cfg.mode !== 'stake') return;
-  if (S.bal < cfg.entry) throw err('insufficient');
-  S.bal -= cfg.entry; S.spent += cfg.entry; GC.ledger('ورودی بیلیارد', -cfg.entry, 'entry'); save();
 }
 const billiard = {
   async queueJoin(cfg) {
     if (cfg.solo) { const mm = makeMatch(Object.assign({}, cfg, { mode: 'free', entry: 0 })); saveM(mm); return { state: 'matched', match: mm.id }; }
-    payEntry(cfg); store.set('demo_bq', { cfg, t0: Date.now() }); return billiard.queueStatus();
+    store.set('demo_bq', { cfg, t0: Date.now() }); return billiard.queueStatus();
   },
   async queueStatus() {
     const q = store.get('demo_bq', null), m = loadM();
     if (!q) return m && m.status === 'playing' ? { state: 'matched', match: m.id } : { state: 'none' };
     const waited = (Date.now() - q.t0) / 1000, need = q.cfg.players === 4 ? 4 : 2;
     if (waited > 3) { const mm = makeMatch(q.cfg); saveM(mm); store.set('demo_bq', null); return { state: 'matched', match: mm.id }; }
-    return { state: 'waiting', waited: Math.floor(waited), cfg: Object.assign({ players: need }, q.cfg), found: 1, need, bots_in: null, can_bots: q.cfg.mode !== 'stake' };
+    return { state: 'waiting', waited: Math.floor(waited), cfg: Object.assign({ players: need }, q.cfg), found: 1, need, bots_in: null, can_bots: q.cfg.mode === 'free' };
   },
   async queueBots() { const q = store.get('demo_bq', null); if (!q) return billiard.queueStatus(); const mm = makeMatch(q.cfg); saveM(mm); store.set('demo_bq', null); return { state: 'matched', match: mm.id }; },
   async queueLeave() {
     const q = store.get('demo_bq', null); store.set('demo_bq', null);
-    if (q && q.cfg.mode === 'stake') { S.bal += q.cfg.entry; S.spent -= q.cfg.entry; GC.ledger('انصراف از صف بیلیارد', q.cfg.entry, 'refund'); save(); }
     return { state: 'none' };
   },
   async invite(cfg) {
-    payEntry(cfg);
+    
     const code = Math.random().toString(36).slice(2, 8).toUpperCase(), n = cfg.players === 4 ? 4 : 2;
     const m = { id: 'bl' + Date.now().toString(36), status: 'lobby', cfg: Object.assign({ game: 'billiard', players: n }, cfg), code, t0: Date.now(), seats: [{ color: '0', name: 'شما', av: 7, me: true }] };
     saveM(m); return { match: m.id, code, link: 'https://t.me/your_gameclub_bot?start=billiard_' + code };
@@ -290,7 +285,7 @@ const billiard = {
   },
   async leave(id) {
     const m = loadM();
-    if (m && m.status === 'lobby') { saveM(null); if (m.cfg.mode === 'stake') { S.bal += m.cfg.entry; GC.ledger('لغو میز بیلیارد', m.cfg.entry, 'refund'); save(); } return { left: true }; }
+    if (m && m.status === 'lobby') { saveM(null); return { left: true }; }
     if (m && m.status === 'playing') {
       const st = m.state; st.players['0'].out = true; ev(st, { t: 'leave', c: '0', why: 'left' });
       finish(st, 1, 'left'); m.status = 'over'; settle(m); saveM(m); return out(m, 0);

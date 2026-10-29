@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 
-from . import admin, appauth, bridge, gate, groups, names, service, social
+from . import admin, appauth, gate, groups, names, service, social
 from .bot import gcrt
 from .config import gc
 from .db import pic_url
@@ -26,12 +26,6 @@ def _idem(body: dict) -> str:
     return v
 
 
-def _obour():
-    from app.runtime import runtime
-
-    return runtime
-
-
 def _name_state(p: dict) -> dict:
     """یوزرنیم و اینکه کی می شود دوباره عوضش کرد (بار اول آزاد است)."""
     at = int(p.get("uname_at") or 0)
@@ -44,9 +38,6 @@ def invite_link(code: str, game: str = "ludo") -> str:
 
 
 async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # noqa: ANN001
-    # فروشگاه در دوره آزمایشی خاموش است (GAME_CLUB_SHOP): نه فهرست، نه خرید، نه انتقال
-    if name.startswith("shop") and not gc.shop_enabled:
-        raise GCError("shop_off")
     g = await gcrt.ensure()
     gdb = g.db
     tg = user.id
@@ -56,7 +47,6 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
     full = getattr(user, "full_name", "") or user.first_name
     player = await gdb.player(tg, full or user.username or "بازیکن", user.username or None,
                               getattr(user, "photo_url", None))
-    ob = _obour()
     await admin.sync_settings(gdb)          # تنظیمات پنل مدیریت (هر ۱۰ ثانیه)
     await admin.resume_if_needed(gdb)       # پیام همگانی نیمه کاره (هر دقیقه)
 
@@ -84,7 +74,9 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
 
     # ---------- خود من ----------
     if name == "me" and method == "GET":
-        ou = None if tg < 0 else await bridge.obour_account(ob.db, tg)   # مهمان برنامه حساب عبور ندارد
+        await service.welcome_gift(gdb, tg)
+        player = await gdb.get_player(tg) or player
+        ranks = await gdb.ranks_of(tg)
         active = await gdb.active_match_of(tg)
         q_row = await gdb.queue_row(tg)
         return {
@@ -96,7 +88,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "covers": [{"id": k, "name": v} for k, v in service.COVERS.items()],
             "history": await gdb.history(tg),
             "notify": await gdb.notify_of(tg),
-            "obour": {"linked": bool(ou), "balance": int(ou["balance"]) if ou else 0},
+            "daily": service.daily_view(player),
+            "ranks": {k: {**v, "league": service.league(v["cups"])} for k, v in ranks.items()},
             "active_match": active,
             "active_game": await gdb.match_game(active) if active else None,
             "queue": bool(q_row and not q_row["claimed"]),
@@ -105,9 +98,8 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             "account": await appauth.account(gdb, tg),
             "is_admin": admin.is_admin(tg) and not in_app, "banned": bool(player.get("banned")), "style": service.style_of(player),
             "notice": gc.notice, "maintenance": gc.maintenance,
-            "settings": {"stake": gc.stake_enabled, "shop": gc.shop_enabled, "entries": list(gc.entries), "packs": list(gc.charge_packs),
-                         "rate": gc.point_toman, "turn_s": gc.turn_seconds, "rake": gc.rake_percent,
-                         "bot": gc.username, "obour_bot": await ob.db.get_setting("bot_username", "")},
+            "settings": {"ranked": gc.ranked_enabled, "rate": gc.point_toman, "turn_s": gc.turn_seconds, "bot": gc.username,
+                         "rank": {"win": gc.rank_win, "lose": gc.rank_lose, "coins": gc.rank_coins, "day": gc.rank_coins_day}},
         }
     # ---------- دوستان و پیام خصوصی ----------
     if name == "friends" and method == "GET":
@@ -160,7 +152,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             except ValueError:
                 cfg = {}
             recent.append({"game": r["game"], "won": bool(r["won"]), "prize": int(r["prize"] or 0), "at": int(r["at"]),
-                           "mode": cfg.get("mode", "free"), "entry": int(cfg.get("entry") or 0)})
+                           "cups": int(r["cups"] or 0), "mode": cfg.get("mode", "free")})
         return {"games": [{"game": g["game"], "games": int(g["games"]), "wins": int(g["wins"]), "prize": int(g["prize"])}
                           for g in await gdb.game_stats(tg)],
                 "recent": recent}
@@ -187,17 +179,9 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             raise GCError("bad_game")
         return {"on": await gdb.toggle_notify(tg, game)}
 
-    # ---------- کیف امتیاز و عبور ----------
-    if name == "wallet/charge" and method == "POST":
-        return await bridge.charge(gdb, ob.db, tg, int(body.get("points") or 0), _idem(body))
-    if name == "shop" and method == "GET":
-        ou = await bridge.obour_account(ob.db, tg)
-        return {"plans": await bridge.plans(ob.db), "rate": gc.point_toman,
-                "obour": {"linked": bool(ou), "balance": int(ou["balance"]) if ou else 0}}
-    if name == "shop/buy" and method == "POST":
-        return await bridge.buy(gdb, ob.db, ob.panel, ob.bot, tg, int(body.get("plan_id") or 0), _idem(body))
-    if name == "shop/transfer" and method == "POST":
-        return await bridge.transfer(gdb, ob.db, tg, int(body.get("points") or 0), _idem(body))
+    # ---------- سکه: جایزهٔ روزانه ----------
+    if name == "daily" and method == "POST":
+        return await service.daily_claim(gdb, tg)
 
     # ---------- رده بندی ----------
     if name == "leaderboard" and method == "GET" and q.get("game"):

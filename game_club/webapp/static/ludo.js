@@ -233,7 +233,7 @@ async function play(e) {
     return;
   }
   if (e.t === 'six3') { feed(c, (c === me ? 'سه بار ۶ آوردی' : nameOf(c) + ' سه بار ۶ آورد') + ' و نوبت سوخت'); return; }
-  if (e.t === 'timeout' && c === me && e.n >= 2 && snap && snap.cfg.mode === 'stake') { toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یه نوبت دیگه غیبت کنی باختی'); return; }
+  if (e.t === 'timeout' && c === me && e.n >= 2 && snap && snap.cfg.mode !== 'free') { toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یه نوبت دیگه غیبت کنی باختی'); return; }
   if (e.t === 'leave') { feed(c, (c === me ? 'از بازی اومدی بیرون' : nameOf(c) + (e.why === 'timeout' ? ' به‌خاطر غیبت حذف شد' : ' از بازی رفت'))); return; }
 }
 
@@ -308,12 +308,10 @@ function over(v) {
   GC.guardClose(false); store.set('mid', null);
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
   const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { caps: 0, sixes: 0 };
-  const stake = v.cfg.mode === 'stake';
   sheet(`<div class="result">
       <div class="crown-pawn">${pawn(w || me, !!w).replace('viewBox="0 0 40 50"', 'viewBox="0 -4 40 54"')}</div>
       <h2>${won ? 'بردی!' : w ? nameOf(w) + ' برد' : 'بازی تموم شد'}</h2>
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p class="muted">جایزه ریخت تو کیف امتیازت 🎉</p>` : `<p class="muted">ورودی این دستو (${fa(r.lost || v.cfg.entry)} امتیاز) باختی فدای سرت</p>`)
-        : `<p class="muted">${won ? 'بازی آزاد بود و جایزه نداشت ولی دمت گرم' : 'بازی آزاد بود و چیزی از دست ندادی'}</p>`}
+      ${v.cfg.mode === 'free' ? `<p class="muted">${won ? 'بازی دوستانه بود و جام و سکه نداشت ولی دمت گرم' : 'بازی دوستانه بود و چیزی از دست ندادی'}</p>` : GC.rankResult(v, !w)}
       <div class="facts"><div><b>${FD(st.caps)}</b><span>مهره زدی</span></div><div><b>${FD(st.sixes)}</b><span>بار ۶ آوردی</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
     </div>
     <a class="btn btn-block" href="ludo-lobby.html">${icon('dice')}یه دست دیگه</a>
@@ -325,7 +323,7 @@ function cancelled() {
   if (WATCH) { overShown = true; GC.watchOver('ludo', 'این میز بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   overShown = true; endChat(); GC.guardClose(false); store.set('mid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میزو بست و ورودی همه برگشت تو کیفشون</p>
+      <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میزو بست و جام کسی کم نشد</p>
       <div class="dlg-acts"><a class="btn" href="ludo-lobby.html">میز تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
@@ -337,15 +335,15 @@ function noMatch() {
 }
 function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
-  const stake = snap.cfg.mode === 'stake';
+  const stake = snap.cfg.mode !== 'free';
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
       <h2 id="dT">می‌خوای بری؟</h2>
       <p id="dD">${stake ? 'بری یعنی همین دستو باختی و میز بی تو ادامه می‌ده' : 'این دست واسه تو تموم می‌شه و بقیه بی تو ادامه می‌دن'}</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گرده` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</div>
+      <div class="dlg-note">${stake ? 'بازی رتبه‌ایه و رفتنت یعنی باخت و کم شدن جام' : 'بازی دوستانه‌ست و چیزی از دست نمی‌دی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
       <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برو خونه سر میز می‌مونم</button>
-      <p class="dlg-fine">میز تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی نوبتات خودکار بازی می‌شه${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
+      <p class="dlg-fine">میز تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی نوبتات خودکار بازی می‌شه${stake ? '<br>تو بازی رتبه‌ای سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
     </div>`, { center: true });
   sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
@@ -417,7 +415,7 @@ async function start() {
   $('myDie').className = 'die c-' + me + ' ghost';
   // تماشاگر: صفحه از دید اولین رنگ؛ بعد از چرخاندن، «من» هیچ رنگی نیست تا نوبت و دکمه ها مال کسی نشود
   if (WATCH) { me = 'watch'; GC.watchPill(); } else store.set('mid', mid);
-  if (first.cfg.mode === 'stake' && first.status === 'playing') GC.guardClose(true);
+  if (first.cfg.mode !== 'free' && first.status === 'playing') GC.guardClose(true);
   chatIn(first.chat, true);
   snap = first; since = g.seq; shown = clone(g.pawns); ensurePawns(g); layout(); renderSeats(g); renderTurn(g); mount(); fitBoard();
   if (first.status === 'over') { overShown = true; over(first); return; }
