@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# راه اندازی کامل عبور و Game Club روی هاست با یک بار اجرا:
+# راه اندازی کامل عبور و AsoTas روی هاست با یک بار اجرا:
 #
 #   bash setup_all.sh                 شاخه فعلی (بار اول: main)
 #   bash setup_all.sh <branch>        یک شاخه دیگر
@@ -19,7 +19,7 @@
 #   ۴. setup_env.py: توکن دو ربات، آیدی ادمین، آدرس و پنل، سکرت های وبهوک
 #   ۵. درج پلن ها، فقط اگر دیتابیس هیچ پلنی ندارد (قیمت های تو دست نمی خورند)
 #   ۶. ری استارت پسنجر و بیدار کردن اپ
-#   ۷. ثبت وبهوک، دستورها و دکمه منوی ربات عبور و ربات Game Club
+#   ۷. ثبت وبهوک، دستورها و دکمه منوی ربات عبور و ربات AsoTas
 #   ۸. check_setup.py: گزارش نهایی سلامت
 #
 # هر بار اجرا امن است: مقادیر درست .env، دیتابیس ها و پلن ها دست نمی خورند.
@@ -166,10 +166,10 @@ PY
   local hooks_ok=1
   python manage_webhook.py set || { hooks_ok=0; warn "وبهوک ربات عبور ثبت نشد"; }
   if python -c "from game_club.config import gc; raise SystemExit(0 if gc.token else 1)" 2>/dev/null; then
-    step "۷. وبهوک ربات Game Club"
-    python manage_webhook.py gc-set || { hooks_ok=0; warn "وبهوک Game Club ثبت نشد"; }
+    step "۷. وبهوک ربات AsoTas"
+    python manage_webhook.py gc-set || { hooks_ok=0; warn "وبهوک AsoTas ثبت نشد"; }
   else
-    warn "GAME_CLUB_BOT_TOKEN خالی است؛ Game Club خاموش می ماند"
+    warn "GAME_CLUB_BOT_TOKEN خالی است؛ AsoTas خاموش می ماند"
   fi
 
   # ۸. گزارش

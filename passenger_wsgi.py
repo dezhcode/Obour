@@ -20,7 +20,7 @@
   GET   /setwebhook?key=SECRET    ثبت وبهوک روی تلگرام + فهرست دستورها
   GET   /setcommands?key=SECRET   ثبت فقط فهرست دستورها
   GET   /delwebhook?key=SECRET    حذف وبهوک
-  *     /gc/...                   Game Club: مینی اپ، API، وبهوک ربات دوم (game_club/wsgi.py)
+  *     /gc/...                   AsoTas: مینی اپ، API، وبهوک ربات دوم (game_club/wsgi.py)
 """
 from __future__ import annotations
 
@@ -147,7 +147,7 @@ def application(environ, start_response):  # noqa: ANN001, ANN201
     path = _path(environ)
     method = environ.get("REQUEST_METHOD", "GET").upper()
 
-    # ---------- Game Club (ربات و مینی اپ بازی، زیر /gc) ----------
+    # ---------- AsoTas (ربات و مینی اپ بازی، زیر /gc) ----------
     # ماژول جدا دارد؛ اگر خراب باشد فقط همین مسیرها خطا می دهند.
     try:
         from game_club.wsgi import handle as gc_handle

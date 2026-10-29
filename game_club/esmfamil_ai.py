@@ -41,7 +41,7 @@ def _assistant():
 def ready() -> bool:
     try:
         return _assistant().ready(FEATURE)
-    except Exception:  # noqa: BLE001  (Game Club بدون ربات عبور هم کار می کند)
+    except Exception:  # noqa: BLE001  (AsoTas بدون ربات عبور هم کار می کند)
         return False
 
 

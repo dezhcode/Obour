@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
 <script src="static/theme.js"></script>
-<title>Game Club</title>
+<title>AsoTas</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
 <link rel="stylesheet" href="static/cards.css">
@@ -157,7 +157,7 @@
 </head>
 <body>
 <header class="appbar">
-  <div class="appbar-cap"><span lang="en" dir="ltr">Game Club</span></div>
+  <div class="appbar-cap"><span lang="en" dir="ltr">AsoTas</span></div>
   <div class="appbar-in">
     <a class="me-chip" href="profile.html" aria-label="پروفایل من">
       <span id="meAv"></span>
@@ -283,7 +283,7 @@
       if (t.kind === 'playing' && t.my_turn) out.push({ href: g.id + '.html', game: t.game, id: t.id, k: t.kind, ic: 'clock', c: 'var(--acc)', bg: 'var(--acc-tint)', t: `نوبت شماست در ${g.name}`, s: 'سر میز برگرد تا وقتت نسوزد' });
       else if (t.kind === 'lobby') out.push({ href: g.href, ic: 'users', c: '#1F6B3B', bg: '#E3F1E8', t: `میز ${g.name} منتظر است`, s: `${FD(t.found)} از ${FD(t.need)} نفر نشسته‌اند` });
     }
-    if (me && me.notice) out.push({ ic: 'bell', c: 'var(--ink-muted)', bg: 'var(--surface-sunk)', t: 'پیام Game Club', s: me.notice });
+    if (me && me.notice) out.push({ ic: 'bell', c: 'var(--ink-muted)', bg: 'var(--surface-sunk)', t: 'پیام AsoTas', s: me.notice });
     return out;
   }
   function renderBell() {
@@ -374,7 +374,7 @@
   $('invite').onclick = () => {
     const bot = me && me.settings && me.settings.bot;
     if (!bot) { toast('لینک دعوت فقط داخل تلگرام ساخته می‌شود'); return; }
-    GC.openLink('https://t.me/share/url?url=' + encodeURIComponent('https://t.me/' + bot) + '&text=' + encodeURIComponent('بیا Game Club با هم حکم، فوتبال و منچ بازی کنیم!'));
+    GC.openLink('https://t.me/share/url?url=' + encodeURIComponent('https://t.me/' + bot) + '&text=' + encodeURIComponent('بیا توی AsoTas با هم حکم، فوتبال و منچ بازی کنیم!'));
   };
 
   renderAll();
@@ -386,7 +386,7 @@
       notify = me.notify || [];
       renderHeader(); renderNameHint();
       sig = ''; setTables(me.tables || []);
-      const note = me.banned ? 'حساب تو در Game Club مسدود شده است. برای پیگیری به پشتیبانی عبور پیام بده.'
+      const note = me.banned ? 'حساب تو در AsoTas مسدود شده است. برای پیگیری به پشتیبانی عبور پیام بده.'
         : me.maintenance ? 'در حال به‌روزرسانی هستیم؛ تا چند دقیقه دیگر میز تازه ساخته نمی‌شود.' : (me.notice || '');
       if (note) { $('noteTx').textContent = note; $('noteIc').innerHTML = icon(me.banned ? 'shield' : me.maintenance ? 'clock' : 'bell'); $('noteBar').hidden = false; $('noteBar').classList.toggle('bad', !!me.banned); }
       $('admLink').hidden = !me.is_admin;

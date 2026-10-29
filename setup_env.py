@@ -15,7 +15,7 @@
 این اسکریپت:
   - اگر .env نباشد از روی .env.example می سازد
   - BOT_TOKEN و GAME_CLUB_BOT_TOKEN را می پرسد، شکلشان را چک می کند و با getMe
-    تایید می کند؛ یوزرنیم ربات Game Club را خودش در GAME_CLUB_BOT_USERNAME می نویسد
+    تایید می کند؛ یوزرنیم ربات AsoTas را خودش در GAME_CLUB_BOT_USERNAME می نویسد
   - ADMIN_IDS را می پرسد (آیدی عددی، با کاما)
   - WEBHOOK_SECRET، WEBHOOK_PATH، ADMIN_KEY و GAME_CLUB_WEBHOOK_SECRET را اگر خالی
     یا نامعتبر باشند می سازد؛ مقدار درست موجود را دست نمی زند (مگر با --rotate)
@@ -239,7 +239,7 @@ def resolve_token(name: str, title: str, given: str | None, env: EnvFile, ask: A
         if not TOKEN_RE.match(value):
             print(f"  {BAD} شکل توکن درست نیست (باید مثل 123456789:AA... باشد)")
         elif forbid and value == forbid:
-            print(f"  {BAD} ربات Game Club باید یک ربات جدا از ربات عبور باشد (توکن یکسان است)")
+            print(f"  {BAD} ربات AsoTas باید یک ربات جدا از ربات عبور باشد (توکن یکسان است)")
         else:
             if not verify:
                 return value, ""
@@ -326,7 +326,7 @@ def load_from(a: argparse.Namespace) -> dict[str, str]:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="ثبت توکن، سکرت وبهوک و آیدی ادمین در .env")
     p.add_argument("--bot-token", help="توکن ربات عبور (BOT_TOKEN)")
-    p.add_argument("--gc-token", help="توکن ربات Game Club (GAME_CLUB_BOT_TOKEN)")
+    p.add_argument("--gc-token", help="توکن ربات AsoTas (GAME_CLUB_BOT_TOKEN)")
     p.add_argument("--admin-ids", help="آیدی عددی ادمین ها، با کاما")
     p.add_argument("--env", default=str(ENV_PATH), help="مسیر فایل .env (پیش فرض: کنار همین اسکریپت)")
     p.add_argument("--panel", action="store_true", help="اطلاعات پنل PasarGuard را دوباره بپرس")
@@ -387,15 +387,15 @@ def main(argv: list[str] | None = None) -> int:
     token, _ = resolve_token("BOT_TOKEN", "ربات عبور", a.bot_token, env, ask, verify, required=True)
     put("BOT_TOKEN", token)
 
-    # ۲. ربات Game Club
-    print("— ربات Game Club (یک ربات جدا در BotFather؛ خالی = Game Club خاموش)")
-    gc_token, gc_user = resolve_token("GAME_CLUB_BOT_TOKEN", "ربات Game Club", a.gc_token, env, ask,
+    # ۲. ربات AsoTas
+    print("— ربات AsoTas (یک ربات جدا در BotFather؛ خالی = AsoTas خاموش)")
+    gc_token, gc_user = resolve_token("GAME_CLUB_BOT_TOKEN", "ربات AsoTas", a.gc_token, env, ask,
                                       verify, required=False, forbid=token)
     put("GAME_CLUB_BOT_TOKEN", gc_token)
     if gc_user:
         put("GAME_CLUB_BOT_USERNAME", gc_user)
     elif gc_token and not env.get("GAME_CLUB_BOT_USERNAME"):
-        user = ask.text("یوزرنیم ربات Game Club (بدون @)", "").lstrip("@")
+        user = ask.text("یوزرنیم ربات AsoTas (بدون @)", "").lstrip("@")
         if user and not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{3,31}", user):
             print(f"  {BAD} یوزرنیم معتبر نیست؛ بعدا در .env بنویس")
         elif user:
@@ -455,7 +455,7 @@ def main(argv: list[str] | None = None) -> int:
     if env.added:
         print(f"\nکلیدهای تازه انتهای فایل اضافه شدند: {', '.join(env.added)}")
     if env.get("GAME_CLUB_BOT_TOKEN") and not env.get("GAME_CLUB_BOT_USERNAME"):
-        print("\nهشدار: GAME_CLUB_BOT_USERNAME خالی است؛ کارت Game Club در مینی اپ عبور نشان داده نمی شود.")
+        print("\nهشدار: GAME_CLUB_BOT_USERNAME خالی است؛ کارت AsoTas در مینی اپ عبور نشان داده نمی شود.")
     if not env.get("WEBHOOK_BASE_URL").startswith("https://"):
         print("\nهشدار: WEBHOOK_BASE_URL با https:// شروع نمی شود؛ وبهوک و مینی اپ کار نمی کنند.")
 
@@ -487,7 +487,7 @@ def main(argv: list[str] | None = None) -> int:
     print("  ۱. ری استارت:            ./restart.sh")
     print("  ۲. وبهوک ربات عبور:      python manage_webhook.py set")
     if gc_token:
-        print("  ۳. وبهوک Game Club:      python manage_webhook.py gc-set")
+        print("  ۳. وبهوک AsoTas:      python manage_webhook.py gc-set")
     if rotated and not created:
         print("  (سکرت یا مسیر وبهوک عوض شد؛ تا قدم ۲ و ۳ را نزنی ربات ها آپدیت نمی گیرند)")
     print("  یا همه با هم:            python setup_env.py --apply")

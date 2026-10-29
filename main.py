@@ -61,7 +61,7 @@ async def main() -> None:
 
     asyncio.create_task(_cleanup_loop())
 
-    # ربات Game Club (اگر توکنش در .env هست) کنار عبور روی همین loop.
+    # ربات AsoTas (اگر توکنش در .env هست) کنار عبور روی همین loop.
     # در حالت polling فقط خود ربات کار می کند؛ مینی اپ و API آن زیر
     # Passenger (passenger_wsgi.py، مسیر /gc) سرو می شوند.
     from game_club.config import gc as gc_cfg
@@ -72,7 +72,7 @@ async def main() -> None:
         g = await gcrt.ensure()
         await g.bot.delete_webhook(drop_pending_updates=True)
         asyncio.create_task(g.dp.start_polling(g.bot, handle_signals=False))
-        log.info("Game Club bot started (polling)")
+        log.info("AsoTas bot started (polling)")
 
     log.info("Obour bot started (polling)")
 

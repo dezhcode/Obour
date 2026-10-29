@@ -1,5 +1,5 @@
 /* بیلیارد: همان چیدمان طراحی شدهٔ صفحهٔ بازی، روی قاب مرجع ۶۰۰×۱۲۸۰ (هر چیز بر حسب --u).
-   پس زمینه و آیکن های دکمه ها از آرتِ خودِ پلاتو (static/plato) می آیند؛ بوم و بقیه طراحی Game Club است. */
+   پس زمینه و آیکن های دکمه ها از آرتِ خودِ پلاتو (static/plato) می آیند؛ بوم و بقیه طراحی AsoTas است. */
 html:has(body.billiard){overflow:hidden}
 body.billiard{margin:0;height:100vh;height:var(--app-h,100dvh);overflow:hidden;color:#fff;
   font-family:Roboto,"Segoe UI",Rokh,Vazirmatn,Tahoma,system-ui,sans-serif;

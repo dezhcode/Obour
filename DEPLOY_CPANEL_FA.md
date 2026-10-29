@@ -148,7 +148,7 @@ cd /home/wmkmbrcs/obour && bash setup_all.sh --once >/dev/null 2>&1
 
 ## قدم ۴: ساخت فایل تنظیمات
 
-**راه سریع:** این اسکریپت `.env` را می سازد، توکن ربات عبور، توکن ربات Game Club و
+**راه سریع:** این اسکریپت `.env` را می سازد، توکن ربات عبور، توکن ربات AsoTas و
 آیدی ادمین را می پرسد (توکن را با getMe تایید می کند)، `WEBHOOK_SECRET`،
 `WEBHOOK_PATH`، `ADMIN_KEY` و `GAME_CLUB_WEBHOOK_SECRET` را خودش می سازد و
 دسترسی فایل را 600 می کند:

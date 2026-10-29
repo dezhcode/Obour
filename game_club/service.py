@@ -134,7 +134,7 @@ async def _notify(db: GCDatabase, tg: int | None, key: str, text: str, page: str
     try:
         await notifier(tg, text, page, key=key.split(":", 1)[0])
     except Exception:  # noqa: BLE001
-        log.debug("اعلان Game Club نرفت", exc_info=True)
+        log.debug("اعلان AsoTas نرفت", exc_info=True)
 
 
 async def _away(db: GCDatabase, match_id: str, tg: int, now: float) -> bool:
@@ -461,17 +461,17 @@ async def _esm_run(db: GCDatabase, match_id: str, job: str, st: dict) -> None:
 STYLE_ITEMS = {
     "table:a": ("table", "a", "میز کلاسیک", 0),
     "table:b": ("table", "b", "میز کافه شب", 500),
-    "table:c": ("table", "c", "میز Game Club", 500),
+    "table:c": ("table", "c", "میز AsoTas", 500),
     "cards:m": ("cards", "m", "ورق مدرن", 0),       # درشت خوان (طرح قبلی بازی)، رایگان
     "cards:a": ("cards", "a", "ورق کلاسیک", 0),
     "cards:b": ("cards", "b", "ورق کافه شب", 300),
-    "cards:c": ("cards", "c", "ورق Game Club", 300),
+    "cards:c": ("cards", "c", "ورق AsoTas", 300),
     "cards:d": ("cards", "d", "ورق رنگ تمام", 300),
 }
 
 
 # کاورهای پروفایل؛ طرح های بعدی همین جا (و کلاس cover-<id> در gc.css) اضافه می شوند
-COVERS = {"gc": "Game Club"}
+COVERS = {"gc": "AsoTas"}
 
 
 def style_of(player: dict) -> dict:

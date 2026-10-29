@@ -1,4 +1,4 @@
-"""مسیرهای Game Club زیر Passenger (همه با پیشوند GAME_CLUB_PATH، پیش فرض /gc).
+"""مسیرهای AsoTas زیر Passenger (همه با پیشوند GAME_CLUB_PATH، پیش فرض /gc).
 
   GET   /gc                 ریدایرکت به /gc/ (آدرس های نسبی صفحه ها درست شوند)
   GET   /gc/                صفحه خانه؛ /gc/<page>.html بقیه صفحه ها
@@ -8,7 +8,7 @@
   POST  /gc/app/logout      برنامهٔ اندروید: بستن توکن
   GET   /gc/app/manifest    برنامهٔ اندروید: نسخهٔ تازهٔ صفحه ها و بازی ها (appbundle.py)
   GET   /gc/app/bundle/<v>.zip  همان بسته برای آپدیت خودکار
-  POST  /gc/hook            وبهوک ربات Game Club (هدر secret token)
+  POST  /gc/hook            وبهوک ربات AsoTas (هدر secret token)
   GET   /gc/setwebhook?key= ثبت وبهوک، دستورها و دکمه منو (ADMIN_KEY عبور)
   GET   /gc/pic/<key>       عکس پروفایل تلگرام بازیکن (از Bot API، نگه داشته روی دیسک)
 """
@@ -303,7 +303,7 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
                 update = Update.model_validate(raw, context={"bot": g.bot})
                 runtime.run(g.dp.feed_update(g.bot, update), timeout=50)
         except Exception:  # noqa: BLE001
-            log.exception("آپدیت Game Club پردازش نشد")
+            log.exception("آپدیت AsoTas پردازش نشد")
         return _send(start_response, "200 OK", b"ok", "text/plain")
 
     if sub == "/setwebhook":
@@ -350,7 +350,7 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
         except GCError as e:
             return _json(start_response, "400 Bad Request", {"error": e.code, **e.extra})
         except Exception:  # noqa: BLE001
-            log.exception("API Game Club خطا داد: %s", name)
+            log.exception("API AsoTas خطا داد: %s", name)
             return _json(start_response, "500 Internal Server Error", {"error": "server"})
 
     # ---------- عکس پروفایل ----------

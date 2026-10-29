@@ -1,5 +1,5 @@
 /* حکم: میز سبز مدرن، ورق «درشت‌خوان» (عدد و نماد بزرگ بالا سمت راست)، دست بادبزنی و
-   برگ های هر دور روی هم وسط میز. طرح: صفحه طراحی «حکم Game Club». */
+   برگ های هر دور روی هم وسط میز. طرح: صفحه طراحی «حکم AsoTas». */
 html:has(body.hokm){overflow:hidden}
 body.hokm{--felt:#1A7A47;--gold:#F5C451;--gold-ink:#3A2A00;--red:#D62839;--black:#1C2230;
   margin:0;height:100vh;height:var(--app-h,100dvh);overflow:hidden;display:flex;flex-direction:column;color:#fff;

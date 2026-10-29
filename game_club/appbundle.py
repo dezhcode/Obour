@@ -66,7 +66,7 @@ def _transform(rel: str, data: bytes) -> bytes:
 
 
 def build(base: str) -> Bundle:
-    """بستهٔ کامل. base آدرس سرور Game Club با / آخر، مثلا https://dezhcode.pyho.ir/obour/gc/"""
+    """بستهٔ کامل. base آدرس سرور AsoTas با / آخر، مثلا https://dezhcode.pyho.ir/obour/gc/"""
     files = {}
     for rel, full in _walk():
         with open(full, "rb") as fh:
@@ -121,10 +121,10 @@ def manifest() -> dict:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="ساختن www برنامهٔ اندروید Game Club")
+    ap = argparse.ArgumentParser(description="ساختن www برنامهٔ اندروید AsoTas")
     ap.add_argument("--out", required=True, help="پوشهٔ خروجی (مثلا game_club/android-app/www)")
     ap.add_argument("--base", default=os.getenv("GC_APP_BASE", "https://dezhcode.pyho.ir/obour/gc/"),
-                    help="آدرس سرور Game Club با / آخر")
+                    help="آدرس سرور AsoTas با / آخر")
     a = ap.parse_args()
     base = a.base if a.base.endswith("/") else a.base + "/"
     b = build(base)

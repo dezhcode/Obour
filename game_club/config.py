@@ -1,4 +1,4 @@
-"""تنظیمات Game Club از همان .env مرکزی عبور (app.config آن را بار می کند)."""
+"""تنظیمات AsoTas از همان .env مرکزی عبور (app.config آن را بار می کند)."""
 from __future__ import annotations
 
 import os
@@ -19,9 +19,9 @@ class GCConfig:
     token: str = os.getenv("GAME_CLUB_BOT_TOKEN", "").strip()
     username: str = os.getenv("GAME_CLUB_BOT_USERNAME", "").strip().lstrip("@")
     db_path: str = _abs_path(os.getenv("GAME_CLUB_DB_PATH", "").strip() or "data/game_club.db")
-    # زیرمسیر Game Club روی همان دامنه عبور، مثلا https://site/obour/gc/
+    # زیرمسیر AsoTas روی همان دامنه عبور، مثلا https://site/obour/gc/
     path: str = "/" + (os.getenv("GAME_CLUB_PATH", "").strip().strip("/") or "gc")
-    # رشته تصادفی جدا از WEBHOOK_SECRET عبور؛ بدونش وبهوک Game Club بسته است
+    # رشته تصادفی جدا از WEBHOOK_SECRET عبور؛ بدونش وبهوک AsoTas بسته است
     webhook_secret: str = os.getenv("GAME_CLUB_WEBHOOK_SECRET", "").strip()
     # هر امتیاز چند تومان از کیف پول عبور
     point_toman: int = max(1, _int_env("GAME_CLUB_POINT_TOMAN", "100"))

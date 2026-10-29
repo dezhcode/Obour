@@ -1,4 +1,4 @@
-/* Game Club — ابزار مشترک همه صفحه ها.
+/* AsoTas — ابزار مشترک همه صفحه ها.
    نسخه پیش نمایش: وضعیت (موجودی، آمار، تنظیمات) فقط در مرورگر ذخیره می شود. */
 (() => {
 const FD = s => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
@@ -11,7 +11,7 @@ const store = {
 };
 const S = Object.assign({
   bal: 1250, shopOn: false, wins: 0, games: 0, won: 0, spent: 0, mode: 'free', notify: {}, sound: true, tutorial: false, showSpend: false,
-  ledger: [{ t: 'هدیهٔ شروع Game Club', a: 1250, k: 'gift', at: Date.now() - 864e5 }],
+  ledger: [{ t: 'هدیهٔ شروع AsoTas', a: 1250, k: 'gift', at: Date.now() - 864e5 }],
 }, store.get('state', {}));
 const save = () => store.set('state', S);
 document.documentElement.classList.toggle('shop-on', !!S.shopOn);
@@ -166,8 +166,8 @@ const ERR = {
   not_friends: 'اول باید با هم دوست باشید', you_blocked: 'این کاربر را بلاک کرده‌ای', cant_add: 'نمی‌شود این کاربر را اضافه کرد',
   too_many_friends: 'فهرست دوستانت پر است', slow_requests: 'درخواست‌ها زیاد شد؛ کمی بعد دوباره امتحان کن', no_request: 'این درخواست دیگر وجود ندارد', bad_game: 'این بازی پیدا نشد',
   name_chars: 'فقط حروف انگلیسی، عدد و _ مجاز است', name_reserved: 'این یوزرنیم را نمی‌شود انتخاب کرد', name_taken: 'این یوزرنیم را کس دیگری برداشته',
-  must_join: 'اول عضو کانال‌های Game Club شو، بعد بزن بریم!',
-  banned: 'حساب تو در Game Club مسدود شده است', maintenance: 'در حال به‌روزرسانی هستیم؛ چند دقیقه دیگر دوباره امتحان کن',
+  must_join: 'اول عضو کانال‌های AsoTas شو، بعد بزن بریم!',
+  banned: 'حساب تو در AsoTas مسدود شده است', maintenance: 'در حال به‌روزرسانی هستیم؛ چند دقیقه دیگر دوباره امتحان کن',
   insufficient: 'امتیاز کافی نیست؛ اول کیف را شارژ کن', obour_insufficient: 'موجودی کیف پول عبور کافی نیست',
   no_obour: 'اول یک بار ربات عبور را استارت کن', busy: 'یک لحظه بعد دوباره امتحان کن', stake_off: 'بازی با امتیاز فعلا خاموش است', shop_off: 'خدمات عبور فعلا در دسترس نیست',
   bad_invite: 'این لینک دعوت معتبر نیست', started: 'این میز شروع شده', full: 'این میز پر است', in_match: 'تو الان سر یک میز دیگر هستی',
@@ -259,7 +259,7 @@ function showGate(chats) {
   const many = chats.length > 1;
   gateEl.innerHTML = `<div class="gk-card"><div class="gk-body">
     <div class="gk-head"><div class="gk-ic">${icon('bell', 2)}</div><h2 id="gkT">یه قدم تا بازی!</h2>
-      <p>برای بازی توی Game Club باید عضو ${many ? 'این کانال‌ها و گروه‌ها' : 'این ' + (chats[0].kind === 'group' ? 'گروه' : 'کانال')} باشی. عضو که شدی، «عضو شدم» رو بزن.</p></div>
+      <p>برای بازی توی AsoTas باید عضو ${many ? 'این کانال‌ها و گروه‌ها' : 'این ' + (chats[0].kind === 'group' ? 'گروه' : 'کانال')} باشی. عضو که شدی، «عضو شدم» رو بزن.</p></div>
     <div class="gk-list">${chats.map((c, i) => `<div class="gk-row${clicked.has(c.url) ? ' done' : ''}"><span class="av">${c.kind === 'group' ? '👥' : '📢'}</span>
       <span class="t"><b>${escB(c.title)}</b><small>${c.kind === 'group' ? 'گروه' : 'کانال'}</small></span>
       <button class="go" data-i="${i}">${clicked.has(c.url) ? 'باز کن' : 'عضو شو'}</button></div>`).join('')}</div>
@@ -906,7 +906,7 @@ let navEl = null;
 function nav(active) {
   if (mountingView) return;
   if (navEl) { setActive(active, false); return; }
-  const n = navEl = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های Game Club');
+  const n = navEl = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های AsoTas');
   // نام هر بخش زیر آیکونش؛ «بازی‌ها» وسط یک تاس است که کمی بالاتر از نوار نشسته و با لمس می چرخد
   const die = [1, 0, 1, 0, 1, 0, 1, 0, 1].map(p => `<i${p ? ' class="p"' : ''}></i>`).join('');
   n.innerHTML = `<div class="nav-in"><span class="nav-pill" aria-hidden="true"></span>${NAV.map(([id, href, label, ic]) =>
@@ -1093,7 +1093,7 @@ function mount(root = document) {
 }
 document.addEventListener('click', e => { if (e.target.closest('.btn,.chip,.seg button,.choice,.nav a,.nav button,.icon-btn')) { sfx.tap(); haptic('select'); } }, true);
 
-/* ---------- داده نمونه (تا وقتی API Game Club ساخته شود) ---------- */
+/* ---------- داده نمونه (تا وقتی API AsoTas ساخته شود) ---------- */
 const PEOPLE = [['کیان ر.', 3], ['مهسا ک.', 5], ['امیرعلی م.', 2], ['نگار س.', 9], ['رضا ت.', 12], ['پریا ن.', 13], ['سینا ح.', 6], ['هستی ا.', 17], ['آرش د.', 10], ['یاسمن ف.', 21]];
 const LB = {
   top: [[0, 48, 12400], [1, 41, 9850], [2, 37, 8200], [3, 33, 6900], [4, 29, 5750], [5, 26, 4300], [6, 22, 3950], [7, 19, 3100], [8, 17, 2650], [9, 15, 2200]],
