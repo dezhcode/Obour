@@ -71,6 +71,15 @@ pub struct Me {
     pub requests: i64,
     pub unread: i64,
     pub tables: Vec<TableInfo>,
+    /// کاور پروفایل (gc) و همهٔ کاورها
+    pub cover: String,
+    /// دست های حکم هفت به صفر (برای نشان ها)
+    pub kots: i64,
+    /// بیشترین جام در یکی از بازی های رتبه ای (نشان لیگ)
+    pub max_cups: i64,
+    pub sound: bool,
+    /// تاریخچهٔ سکه
+    pub history: Vec<Ledger>,
     pub banned: bool,
     pub maintenance: bool,
     pub notice: String,
@@ -98,6 +107,105 @@ pub struct Friend {
     /// آخرین بار آنلاین (ثانیهٔ یونیکس)
     pub seen: i64,
     pub unread: i64,
+}
+
+/// کارت یک بازیکن (friends/find و friends/user): همان آدم، کارنامه و وضعیت، و رابطه با من
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct UserCard {
+    pub person: Person,
+    pub games: i64,
+    pub wins: i64,
+    pub joined: i64,
+    pub online: bool,
+    pub playing: Option<String>,
+    pub seen: i64,
+    /// none، outgoing، incoming، friend، blocked یا self
+    pub relation: String,
+}
+
+/// یک پیام خصوصی؛ دعوت به بازی بازی و کد میز را هم دارد
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct DmMessage {
+    pub id: i64,
+    pub me: bool,
+    /// text یا invite
+    pub kind: String,
+    pub text: String,
+    pub at: i64,
+    pub game: Option<String>,
+    pub code: Option<String>,
+}
+
+/// `GET dm`: طرف گفتگو، رابطه و پیام ها
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct DmChat {
+    pub user: Friend,
+    pub relation: String,
+    pub messages: Vec<DmMessage>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct GameInvite {
+    pub match_id: String,
+    pub code: String,
+    pub game: String,
+}
+
+/// یک طرح میز یا ورق حکم در فروشگاه
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct StyleItem {
+    pub id: String,
+    /// table یا cards
+    pub kind: String,
+    pub look: String,
+    pub name: String,
+    pub price: i64,
+    pub owned: bool,
+    pub on: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Styles {
+    pub items: Vec<StyleItem>,
+    pub table: String,
+    pub cards: String,
+    pub points: i64,
+}
+
+/// یک ردیف تاریخچهٔ سکه
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Ledger {
+    pub kind: String,
+    pub amount: i64,
+    pub note: String,
+    pub status: String,
+    pub at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct GameStat {
+    pub game: String,
+    pub games: i64,
+    pub wins: i64,
+    pub prize: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct RecentGame {
+    pub game: String,
+    pub won: bool,
+    pub prize: i64,
+    pub at: i64,
+    pub cups: i64,
+    /// free، ranked یا stake
+    pub mode: String,
+}
+
+/// `GET profile`: کارنامهٔ هر بازی و آخرین بازی ها
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Profile {
+    pub games: Vec<GameStat>,
+    pub recent: Vec<RecentGame>,
 }
 
 /// `GET /gc/api/friends`
@@ -265,25 +373,97 @@ impl Person {
     }
 }
 
+fn list<T>(v: &Value, f: impl Fn(&Value) -> T) -> Vec<T> {
+    v.as_array().map(|a| a.iter().map(f).collect()).unwrap_or_default()
+}
+
+impl Friend {
+    pub(crate) fn from_json(f: &Value, resolve: &impl Fn(&str) -> String) -> Self {
+        Friend {
+            person: Person::from_json(f, resolve),
+            online: truthy(&f["online"]),
+            playing: opt_text(&f["playing"]),
+            seen: int(&f["seen"]),
+            unread: int(&f["unread"]),
+        }
+    }
+}
+
+impl UserCard {
+    pub(crate) fn from_json(v: &Value, resolve: &impl Fn(&str) -> String) -> Self {
+        let u = &v["user"];
+        UserCard {
+            person: Person::from_json(u, resolve),
+            games: int(&u["games"]),
+            wins: int(&u["wins"]),
+            joined: int(&u["joined"]),
+            online: truthy(&u["online"]),
+            playing: opt_text(&u["playing"]),
+            seen: int(&u["seen"]),
+            relation: text(&v["relation"]),
+        }
+    }
+}
+
+impl DmChat {
+    pub(crate) fn from_json(v: &Value, resolve: &impl Fn(&str) -> String) -> Self {
+        DmChat {
+            user: Friend::from_json(&v["user"], resolve),
+            relation: text(&v["relation"]),
+            messages: list(&v["messages"], |m| DmMessage {
+                id: int(&m["id"]),
+                me: truthy(&m["me"]),
+                kind: text(&m["kind"]),
+                text: text(&m["text"]),
+                at: int(&m["at"]),
+                game: opt_text(&m["meta"]["game"]),
+                code: opt_text(&m["meta"]["code"]),
+            }),
+        }
+    }
+}
+
+impl Styles {
+    pub(crate) fn from_json(v: &Value) -> Self {
+        Styles {
+            items: list(&v["items"], |i| StyleItem {
+                id: text(&i["id"]),
+                kind: text(&i["kind"]),
+                look: text(&i["look"]),
+                name: text(&i["name"]),
+                price: int(&i["price"]),
+                owned: truthy(&i["owned"]),
+                on: truthy(&i["on"]),
+            }),
+            table: text(&v["table"]),
+            cards: text(&v["cards"]),
+            points: int(&v["points"]),
+        }
+    }
+}
+
+impl Profile {
+    pub(crate) fn from_json(v: &Value) -> Self {
+        Profile {
+            games: list(&v["games"], |g| GameStat { game: text(&g["game"]), games: int(&g["games"]), wins: int(&g["wins"]), prize: int(&g["prize"]) }),
+            recent: list(&v["recent"], |r| RecentGame {
+                game: text(&r["game"]),
+                won: truthy(&r["won"]),
+                prize: int(&r["prize"]),
+                at: int(&r["at"]),
+                cups: int(&r["cups"]),
+                mode: opt_text(&r["mode"]).unwrap_or_else(|| "free".into()),
+            }),
+        }
+    }
+}
+
 impl Friends {
     pub(crate) fn from_json(v: &Value, resolve: impl Fn(&str) -> String) -> Self {
         let people = |k: &str| -> Vec<Person> {
             v[k].as_array().map(|a| a.iter().map(|p| Person::from_json(p, &resolve)).collect()).unwrap_or_default()
         };
-        let friends = v["friends"]
-            .as_array()
-            .map(|a| {
-                a.iter()
-                    .map(|f| Friend {
-                        person: Person::from_json(f, &resolve),
-                        online: truthy(&f["online"]),
-                        playing: opt_text(&f["playing"]),
-                        seen: int(&f["seen"]),
-                        unread: int(&f["unread"]),
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
+        let friends = list(&v["friends"], |f| Friend::from_json(f, &resolve));
         Friends { friends, incoming: people("incoming"), outgoing: people("outgoing"), blocked: people("blocked") }
     }
 }
@@ -308,7 +488,18 @@ impl Me {
             daily: Daily::from_json(&v["daily"]),
             requests: int(&v["social"]["requests"]),
             unread: int(&v["social"]["unread"]),
-            tables: v["tables"].as_array().map(|a| a.iter().map(TableInfo::from_json).collect()).unwrap_or_default(),
+            tables: list(&v["tables"], TableInfo::from_json),
+            cover: opt_text(&p["cover"]).unwrap_or_else(|| "gc".into()),
+            kots: int(&p["kots"]),
+            max_cups: v["ranks"].as_object().map(|o| o.values().map(|r| int(&r["cups"])).max().unwrap_or(0)).unwrap_or(0).max(0),
+            sound: p.get("sound").map(truthy).unwrap_or(true),
+            history: list(&v["history"], |l| Ledger {
+                kind: text(&l["kind"]),
+                amount: int(&l["amount"]),
+                note: text(&l["note"]),
+                status: text(&l["status"]),
+                at: int(&l["created_at"]),
+            }),
             banned: truthy(&v["banned"]),
             maintenance: truthy(&v["maintenance"]),
             notice: text(&v["notice"]),

@@ -77,6 +77,46 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** موجودی سکه برای سربرگ ها */
     val balance: Long? get() = (home as? HomeState.Ready)?.me?.coins
+    val me: Me? get() = (home as? HomeState.Ready)?.me
+
+    /** برگه یا پنجرهٔ باز روی صفحه */
+    var sheet by mutableStateOf<Sheet?>(null)
+        private set
+
+    fun openSheet(s: Sheet) {
+        sheet = s
+    }
+
+    fun closeSheet() {
+        sheet = null
+    }
+
+    /** لرزش برگ ها در حکم (فقط روی همین گوشی، مثل S.tilt مینی اپ) */
+    var tilt by mutableStateOf(prefs.getBoolean("tilt", true))
+        private set
+
+    fun toggleTilt() {
+        tilt = !tilt
+        prefs.edit().putBoolean("tilt", tilt).apply()
+    }
+
+    fun toggleSound() {
+        val on = !(me?.sound ?: true)
+        update { it.copy(sound = on) }
+        profile.setSound(on)
+    }
+
+    val social = SocialModel(viewModelScope, client, ::toast) { refresh() }
+    val shop = ShopModel(viewModelScope, client, ::toast) { coins -> update { it.copy(coins = coins) } }
+    val profile = ProfileModel(viewModelScope, client, ::toast)
+
+    fun setBio(bio: String) {
+        update { it.copy(bio = bio) }
+    }
+
+    fun setCover(id: String) {
+        update { it.copy(cover = id) }
+    }
 
     init {
         // بار اول: برگهٔ «خوش اومدی» (ورود یا «فعلاً مهمون می‌مونم»)
@@ -122,7 +162,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun selectTab(t: Tab) {
         tab = t
+        when (t) {
+            Tab.FRIENDS -> loadFriends()
+            Tab.SHOP -> shop.load()
+            Tab.PROFILE -> { profile.load(); shop.load() }
+            else -> Unit
+        }
     }
+
+    /** دوستان از نو (بعد از قبول، حذف، ...) */
+    fun reloadFriends() = loadFriends()
 
     fun chooseTheme(m: ThemeMode) {
         theme = m

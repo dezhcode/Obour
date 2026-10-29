@@ -27,6 +27,14 @@ pub struct Client {
     guest: Mutex<()>,
 }
 
+/// کلید یکتای هر خرید (۸ تا ۶۴ نویسهٔ A-Za-z0-9_-، api._idem)
+fn idem() -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static N: AtomicU64 = AtomicU64::new(0);
+    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    format!("n{t:x}_{:x}", N.fetch_add(1, Ordering::Relaxed))
+}
+
 enum Req<'a> {
     Get(&'a [(String, String)]),
     Post(&'a Value),
@@ -169,6 +177,92 @@ impl Client {
         Ok(Friends::from_json(&j, |u| self.resolve(u)))
     }
 
+    // ---------- دوستان (social.py) ----------
+    /// پیدا کردن با یوزرنیم
+    pub fn friend_find(&self, name: String) -> Result<UserCard, ApiError> {
+        let j = self.api("friends/find", Req::Get(&[("n".to_string(), name)]))?;
+        Ok(UserCard::from_json(&j, &|u: &str| self.resolve(u)))
+    }
+
+    /// پروفایل یک نفر (کارت دوست)
+    pub fn friend_user(&self, uid: String) -> Result<UserCard, ApiError> {
+        let j = self.api("friends/user", Req::Get(&[("u".to_string(), uid)]))?;
+        Ok(UserCard::from_json(&j, &|u: &str| self.resolve(u)))
+    }
+
+    /// درخواست دوستی؛ رابطهٔ تازه (outgoing یا اگر او هم خواسته بود friend)
+    pub fn friend_request(&self, uid: String) -> Result<String, ApiError> {
+        Ok(text(&self.api("friends/request", Req::Post(&json!({ "uid": uid })))?["relation"]))
+    }
+
+    pub fn friend_accept(&self, uid: String) -> Result<String, ApiError> {
+        Ok(text(&self.api("friends/accept", Req::Post(&json!({ "uid": uid })))?["relation"]))
+    }
+
+    /// رد درخواست، پس گرفتن درخواست یا حذف از دوستان
+    pub fn friend_drop(&self, uid: String) -> Result<String, ApiError> {
+        Ok(text(&self.api("friends/drop", Req::Post(&json!({ "uid": uid })))?["relation"]))
+    }
+
+    pub fn friend_block(&self, uid: String, on: bool) -> Result<String, ApiError> {
+        Ok(text(&self.api("friends/block", Req::Post(&json!({ "uid": uid, "on": on })))?["relation"]))
+    }
+
+    /// پیام های خصوصی با یک دوست (since = آخرین id دیده شده، ۰ برای همه)
+    pub fn dm(&self, uid: String, since: i64) -> Result<DmChat, ApiError> {
+        let q = [("u".to_string(), uid), ("since".to_string(), since.max(0).to_string())];
+        let j = self.api("dm", Req::Get(&q))?;
+        Ok(DmChat::from_json(&j, &|u: &str| self.resolve(u)))
+    }
+
+    pub fn dm_send(&self, uid: String, message: String) -> Result<i64, ApiError> {
+        Ok(int(&self.api("dm", Req::Post(&json!({ "uid": uid, "text": message })))?["id"]))
+    }
+
+    /// میز آزاد می سازد و کارت دعوتش را در چت دوست می گذارد
+    pub fn dm_invite(&self, uid: String, game: String) -> Result<GameInvite, ApiError> {
+        let j = self.api("dm/invite", Req::Post(&json!({ "uid": uid, "game": game })))?;
+        Ok(GameInvite { match_id: text(&j["match"]), code: text(&j["code"]), game: text(&j["game"]) })
+    }
+
+    // ---------- فروشگاه ظاهر و پروفایل ----------
+    pub fn styles(&self) -> Result<Styles, ApiError> {
+        Ok(Styles::from_json(&self.api("style", Req::Get(&[]))?))
+    }
+
+    /// خرید (و انتخاب) یک طرح؛ کلید یکتای هر خرید تا لمس دوباره دوبار کم نکند
+    pub fn style_buy(&self, id: String) -> Result<Styles, ApiError> {
+        Ok(Styles::from_json(&self.api("style/buy", Req::Post(&json!({ "id": id, "idem": idem() })))?))
+    }
+
+    pub fn style_use(&self, id: String) -> Result<Styles, ApiError> {
+        Ok(Styles::from_json(&self.api("style/use", Req::Post(&json!({ "id": id })))?))
+    }
+
+    pub fn profile(&self) -> Result<Profile, ApiError> {
+        Ok(Profile::from_json(&self.api("profile", Req::Get(&[]))?))
+    }
+
+    /// «درباره من» (تا ۸۰ نویسه) و کاور؛ None یعنی دست نخورد. bio تازه برمی گردد
+    pub fn save_profile(&self, bio: Option<String>, cover: Option<String>) -> Result<String, ApiError> {
+        let mut body = json!({});
+        if let Some(b) = bio {
+            body["bio"] = json!(b.chars().take(80).collect::<String>());
+        }
+        if let Some(c) = cover {
+            body["cover"] = json!(c);
+        }
+        Ok(text(&self.api("settings", Req::Post(&body))?["bio"]))
+    }
+
+    /// تنظیم روشن/خاموش روی سرور (sound، tutorial، show_spend)
+    pub fn set_flag(&self, name: String, on: bool) -> Result<(), ApiError> {
+        let mut body = json!({});
+        body[name] = json!(on);
+        self.api("settings", Req::Post(&body))?;
+        Ok(())
+    }
+
     /// کارت «اسمت تو بازی اینه» دیده شد و دیگر نمی آید
     pub fn name_seen(&self) -> Result<(), ApiError> {
         self.api("name/seen", Req::Post(&json!({})))?;
@@ -247,12 +341,66 @@ mod tests {
         "account": {"kind": "email", "email": "a@b.ir"},
         "daily": {"claimed": false, "day": 2, "next": 3, "plan": [10, 20, 30]},
         "social": {"requests": 2, "unread": 7},
+        "ranks": {"hokm": {"cups": 120, "league": "نقره‌ای"}, "ludo": {"cups": 30}},
+        "history": [{"kind": "daily", "amount": 10, "note": "جایزهٔ روز ۱", "status": "approved", "created_at": 1700000000}],
         "tables": [{"kind": "queue", "game": "hokm", "found": 2, "need": 4},
                    {"kind": "playing", "id": "m1", "game": "ludo", "players": []}],
         "banned": false, "maintenance": false, "notice": "",
         "settings": {"ranked": true},
         "active_match": null, "active_game": null
     }"#;
+
+    #[test]
+    fn social_chat_shop_profile() {
+        let mut server = Server::new();
+        let dir = tempfile::tempdir().unwrap();
+        TokenStore::open(&dir.path().to_string_lossy()).set(Some("t".into()));
+        server.mock("GET", "/gc/api/friends/find").match_query(Matcher::UrlEncoded("n".into(), "sara".into()))
+            .with_body(r#"{"user": {"uid": "u2", "name": "sara", "av": 4, "pic": "", "bio": "hi", "games": 12, "wins": 5}, "relation": "none"}"#).create();
+        let req = server.mock("POST", "/gc/api/friends/request").match_body(Matcher::Json(json!({ "uid": "u2" })))
+            .with_body(r#"{"relation": "outgoing"}"#).expect(1).create();
+        server.mock("POST", "/gc/api/friends/block").match_body(Matcher::Json(json!({ "uid": "u2", "on": false })))
+            .with_body(r#"{"relation": "none"}"#).create();
+        server.mock("GET", "/gc/api/dm").match_query(Matcher::AllOf(vec![
+            Matcher::UrlEncoded("u".into(), "u2".into()), Matcher::UrlEncoded("since".into(), "7".into())]))
+            .with_body(r#"{"user": {"uid": "u2", "name": "sara", "av": 4, "pic": "", "online": true, "playing": null, "seen": 0},
+                "relation": "friend", "messages": [
+                {"id": 8, "me": false, "kind": "text", "text": "salam", "at": 1700000000},
+                {"id": 9, "me": true, "kind": "invite", "text": "دعوت به حکم", "at": 1700000060, "meta": {"game": "hokm", "code": "AB12", "match": "m9"}}]}"#).create();
+        server.mock("POST", "/gc/api/dm").match_body(Matcher::Json(json!({ "uid": "u2", "text": "بزن بریم!" })))
+            .with_body(r#"{"id": 10}"#).create();
+        server.mock("POST", "/gc/api/style/buy").match_body(Matcher::PartialJson(json!({ "id": "table:b" })))
+            .with_body(r#"{"items": [{"id": "table:a", "kind": "table", "look": "a", "name": "میز کلاسیک", "price": 0, "owned": true, "on": false},
+                {"id": "table:b", "kind": "table", "look": "b", "name": "میز کافه شب", "price": 80, "owned": true, "on": true}],
+                "table": "b", "cards": "a", "points": 40}"#).create();
+        server.mock("GET", "/gc/api/profile").with_body(r#"{"games": [{"game": "hokm", "games": 4, "wins": 3, "prize": 0}],
+            "recent": [{"game": "hokm", "won": true, "prize": 6, "at": 1700000000, "cups": 20, "mode": "ranked"}]}"#).create();
+        server.mock("POST", "/gc/api/settings").match_body(Matcher::Json(json!({ "bio": "عاشق حکم" })))
+            .with_body(r#"{"ok": true, "bio": "عاشق حکم", "cover": "gc"}"#).create();
+        let c = client(&server, &dir);
+
+        let u = c.friend_find("sara".into()).unwrap();
+        assert_eq!((u.person.uid.as_str(), u.games, u.wins, u.relation.as_str()), ("u2", 12, 5, "none"));
+        assert_eq!(c.friend_request("u2".into()).unwrap(), "outgoing");
+        req.assert();
+        assert_eq!(c.friend_block("u2".into(), false).unwrap(), "none");
+
+        let chat = c.dm("u2".into(), 7).unwrap();
+        assert!(chat.user.online);
+        assert_eq!(chat.messages.len(), 2);
+        assert_eq!((chat.messages[1].kind.as_str(), chat.messages[1].game.as_deref(), chat.messages[1].code.as_deref()), ("invite", Some("hokm"), Some("AB12")));
+        assert_eq!(chat.messages[0].game, None);
+        assert_eq!(c.dm_send("u2".into(), "بزن بریم!".into()).unwrap(), 10);
+
+        let s = c.style_buy("table:b".into()).unwrap();
+        assert_eq!((s.table.as_str(), s.points, s.items.len()), ("b", 40, 2));
+        assert!(s.items[1].on && s.items[1].owned);
+
+        let p = c.profile().unwrap();
+        assert_eq!((p.games[0].wins, p.recent[0].cups, p.recent[0].mode.as_str()), (3, 20, "ranked"));
+        assert_eq!(c.save_profile(Some("عاشق حکم".into()), None).unwrap(), "عاشق حکم");
+        assert_ne!(idem(), idem());
+    }
 
     #[test]
     fn level_matches_mini_app() {
@@ -335,6 +483,8 @@ mod tests {
         assert_eq!(m.tables.len(), 2);
         assert_eq!((m.tables[0].kind.as_str(), m.tables[0].game.as_str(), m.tables[0].found, m.tables[0].need), ("queue", "hokm", 2, 4));
         assert_eq!(m.tables[1].id.as_deref(), Some("m1"));
+        assert_eq!((m.cover.as_str(), m.max_cups, m.sound), ("gc", 120, true));
+        assert_eq!((m.history.len(), m.history[0].amount, m.history[0].at), (1, 10, 1700000000));
 
         // برنامه دوباره باز شد: همان توکن از فایل
         assert!(client(&server, &dir).has_session());

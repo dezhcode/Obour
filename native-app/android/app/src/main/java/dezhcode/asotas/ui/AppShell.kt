@@ -42,22 +42,25 @@ import dezhcode.asotas.Tab
 fun AppShell(vm: AppViewModel, openLink: (String) -> Unit) {
     val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottom = navBottom + 64.dp
-    BackHandler(enabled = vm.tab != Tab.HOME) { vm.selectTab(Tab.HOME) }
+    BackHandler(enabled = vm.tab != Tab.HOME && vm.social.chat == null) { vm.selectTab(Tab.HOME) }
     Box(Modifier.fillMaxSize().background(Aso.c.ground)) {
         Box(Modifier.fillMaxSize().statusBarsPadding()) {
             when (vm.tab) {
                 Tab.HOME -> HomeScreen(vm, bottom)
                 Tab.GAMES -> GamesScreen(vm, bottom)
-                Tab.FRIENDS -> SoonScreen(vm, "دوستان", "users", "فهرست رفیقا، درخواست دوستی و چت تو مرحلهٔ بعد میاد", bottom)
+                Tab.FRIENDS -> FriendsScreen(vm, bottom)
                 Tab.SHOP -> ShopScreen(vm, bottom)
                 Tab.PROFILE -> ProfileScreen(vm, bottom)
             }
         }
         BottomNav(vm, Modifier.align(Alignment.BottomCenter))
+        // چت خصوصی روی همه چیز (بی نوار پایین)، مثل صفحهٔ جدای chat.html
+        vm.social.chat?.let { ChatScreen(vm, it) }
         ToastHost(vm.toasts, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom + 40.dp))
     }
     LoginSheet(vm, openLink)
     NameSheet(vm)
+    SheetHost(vm)
 }
 
 private val NAV = listOf(Tab.HOME to ("خانه" to "home"), Tab.FRIENDS to ("دوستان" to "users"), Tab.GAMES to ("بازی‌ها" to ""),
