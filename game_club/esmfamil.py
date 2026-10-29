@@ -229,7 +229,7 @@ def judge_input(st: dict) -> dict:
 
 def simple_verdicts(st: dict) -> dict:
     """داوری بی‌هوش مصنوعی: هر جوابی که با حرف شروع شود و دست کم دو حرف باشد قبول است."""
-    return {k: {norm(a): {"ok": len(norm(a)) >= 2, "why": "" if len(norm(a)) >= 2 else "خیلی کوتاه است", "same": norm(a)}
+    return {k: {norm(a): {"ok": len(norm(a)) >= 2, "why": "" if len(norm(a)) >= 2 else "خیلی کوتاهه", "same": norm(a)}
                 for a in answers} for k, answers in judge_input(st).items()}
 
 
@@ -267,7 +267,7 @@ def apply_judgement(st: dict, verdicts: dict | None, by: str, now: float, rnd: i
             if not a:
                 row[k] = {"a": "", "ok": False, "s": 0, "why": "", "key": ""}
             elif not starts(a, L):
-                row[k] = {"a": a, "ok": False, "s": 0, "why": f"با «{L}» شروع نمی‌شود", "key": "", "fix": True}
+                row[k] = {"a": a, "ok": False, "s": 0, "why": f"با «{L}» شروع نمی‌شه", "key": "", "fix": True}
             else:
                 v = verdicts.get(k, {}).get(norm(a)) or simple[k][norm(a)]
                 ok = bool(v.get("ok"))
