@@ -78,7 +78,7 @@ fun ProfileScreen(vm: AppViewModel, bottom: Dp) {
                         val shape = RoundedCornerShape(16.dp)
                         Box(
                             Modifier.weight(1f).clip(shape).background(if (on) c.surface else androidx.compose.ui.graphics.Color.Transparent)
-                                .then(if (on) Modifier.lined(shape) else Modifier).press { vm.setTheme(m) }.padding(vertical = 8.dp),
+                                .then(if (on) Modifier.lined(shape) else Modifier).press { vm.chooseTheme(m) }.padding(vertical = 8.dp),
                             contentAlignment = Alignment.Center,
                         ) { Text(label, style = peyda(14f, 20f, 800), color = if (on) c.ink else c.inkMuted) }
                     }

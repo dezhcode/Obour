@@ -124,7 +124,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         tab = t
     }
 
-    fun setTheme(m: ThemeMode) {
+    fun chooseTheme(m: ThemeMode) {
         theme = m
         prefs.edit().putString("theme", m.name).apply()
     }
