@@ -98,14 +98,14 @@ body{background:var(--ground)}
   function bubble(m) {
     if (m.kind === 'invite') {
       const g = (m.meta && m.meta.game) || 'hokm', x = GC.GAMES.find(y => y.id === g) || GC.GAMES[0], code = (m.meta && m.meta.code) || '';
-      return `<div class="ch-inv ${m.me ? 'me' : 'them'}"><div class="h"><span class="g-art ${x.tint}">${GC.GAME_ART[g]()}</span><span><b>دعوت به ${x.name}</b><small>${m.me ? 'منتظر دوستت سر میز' : 'میز آزاد · ' + clock(m.at)}</small></span></div>
-        ${m.me ? `<a class="btn btn-light btn-block" href="${g}-lobby.html">برو سر میز</a>` : `<a class="btn btn-block" href="${g}-lobby.html?join=${encodeURIComponent(code)}">بپیوند</a>`}</div>`;
+      return `<div class="ch-inv ${m.me ? 'me' : 'them'}"><div class="h"><span class="g-art ${x.tint}">${GC.GAME_ART[g]()}</span><span><b>دعوت به ${x.name}</b><small>${m.me ? 'سر میز منتظر رفیقتی' : 'میز آزاد · ' + clock(m.at)}</small></span></div>
+        ${m.me ? `<a class="btn btn-light btn-block" href="${g}-lobby.html">برو سر میز</a>` : `<a class="btn btn-block" href="${g}-lobby.html?join=${encodeURIComponent(code)}">بشین سر میز</a>`}</div>`;
     }
     return `<div class="ch-m ${m.me ? 'me' : 'them'}"><span dir="auto">${esc(m.text)}</span><time>${clock(m.at)}</time></div>`;
   }
   function render() {
     if (!msgs.length) {
-      $('chLog').innerHTML = user ? `<div class="ch-empty">${face(user)}<b class="uname">${esc(user.name)}</b>اولین پیام را بفرست یا به یک بازی دعوتش کن.</div>` : '';
+      $('chLog').innerHTML = user ? `<div class="ch-empty">${face(user)}<b class="uname">${esc(user.name)}</b>اولین پیامو بفرست یا دعوتش کن به یه بازی</div>` : '';
     } else {
       let html = '', day = '';
       for (const m of msgs) { const d = dayOf(m.at); if (d !== day) { day = d; html += `<span class="ch-day">${d}</span>`; } html += bubble(m); }
@@ -115,7 +115,7 @@ body{background:var(--ground)}
     $('chQuick').hidden = !can; $('chForm').hidden = !can; $('chInv').hidden = !can;
     let off = $('chBar').querySelector('.ch-off');
     if (!can && !off) { off = document.createElement('p'); off.className = 'ch-off'; $('chBar').appendChild(off); }
-    if (off) { off.hidden = can; off.textContent = rel === 'blocked' ? 'این کاربر را بلاک کرده‌ای.' : 'دیگر با هم دوست نیستید؛ پیام فرستاده نمی‌شود.'; }
+    if (off) { off.hidden = can; off.textContent = rel === 'blocked' ? 'این بنده خدا رو بلاک کردی' : 'دیگه رفیق نیستید و پیام نمی‌ره'; }
     mount($('chLog'));
   }
   const bottom = () => scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
@@ -126,7 +126,7 @@ body{background:var(--ground)}
       if (first) msgs = r.messages; else if (r.messages.length) { msgs = msgs.concat(r.messages.filter(m => !msgs.some(x => x.id === m.id))); if (r.messages.some(m => !m.me)) { sfx.tap(); haptic('light'); } }
       if (msgs.length) last = msgs[msgs.length - 1].id;
       if (first || r.messages.length) { render(); bottom(); }
-    } catch (e) { if (first) { toast(errText(e)); $('chLog').innerHTML = `<div class="ch-empty"><b>این گفتگو در دسترس نیست</b>${errText(e)}</div>`; $('chBar').hidden = true; return false; } }
+    } catch (e) { if (first) { toast(errText(e)); $('chLog').innerHTML = `<div class="ch-empty"><b>این گفتگو دیگه در دسترس نیست</b>${errText(e)}</div>`; $('chBar').hidden = true; return false; } }
     return true;
   }
   async function send(text) {

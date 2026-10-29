@@ -102,7 +102,7 @@ const err = code => { const e = new Error(code); e.code = code; return e; };
 const loadM = () => store.get('demo_match', null), saveM = m => store.set('demo_match', m);
 function makeMatch(cfg, guest) {
   const colors = SEATS[cfg.players], names = [...BOTS].sort(() => Math.random() - .5);
-  const seats = colors.map(c => c === 'yellow' ? { color: c, name: 'شما', av: 7 } : guest && c === 'red' ? { color: c, name: 'دوست شما', av: 11, bot: true } : { color: c, name: names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true });
+  const seats = colors.map(c => c === 'yellow' ? { color: c, name: 'خودت', av: 7 } : guest && c === 'red' ? { color: c, name: 'رفیقت', av: 11, bot: true } : { color: c, name: names.pop(), av: 1 + Math.floor(Math.random() * 22), bot: true });
   const st = newState(seats, cfg.pawns, cfg.mode === 'stake', 'yellow');
   st.pot = cfg.mode === 'stake' ? cfg.entry * colors.length : 0;
   return { id: 'demo' + Date.now().toString(36), status: 'playing', cfg, state: st, settled: false };
@@ -114,7 +114,7 @@ function settle(m) {
   save();
 }
 /* گفتگوی نمایشی: ربات ها گاهی جواب کوتاه می دهند */
-const QUIPS = ['سلام!', 'خوش‌بازی!', 'آفرین', 'شانسی بود', 'زود باش', 'این دفعه می‌برم', 'یک دست دیگه؟'];
+const QUIPS = ['سلام!', 'خوش‌بازی!', 'آفرین', 'شانسی بود', 'زود باش', 'این دفعه می‌برم', 'یه دست دیگه؟'];
 function botTalk(m) {
   if (m.status !== 'playing') return;
   m.chat = m.chat || []; m.chatAt = m.chatAt || Date.now();
@@ -161,7 +161,7 @@ const ludo = {
   async invite(cfg) {
     payEntry(cfg);
     const code = Math.random().toString(36).slice(2, 8).toUpperCase();
-    const m = { id: 'demo' + Date.now().toString(36), status: 'lobby', cfg, code, t0: Date.now(), seats: [{ color: SEATS[cfg.players][0], name: 'شما', av: 7, me: true }] };
+    const m = { id: 'demo' + Date.now().toString(36), status: 'lobby', cfg, code, t0: Date.now(), seats: [{ color: SEATS[cfg.players][0], name: 'خودت', av: 7, me: true }] };
     saveM(m); return { match: m.id, code, link: 'https://t.me/your_gameclub_bot?start=ludo_' + code };
   },
   async join() { throw err('bad_invite'); },
@@ -169,7 +169,7 @@ const ludo = {
   async match(id, since = 0, chat = null) {
     let m = loadM(); if (!m || (id && m.id !== id)) throw err('not_found');
     if (m.status === 'lobby') {
-      if (m.seats.length === 1 && Date.now() - m.t0 > 5000) { m.seats.push({ color: SEATS[m.cfg.players][1], name: 'دوست شما', av: 11, me: false }); saveM(m); }
+      if (m.seats.length === 1 && Date.now() - m.t0 > 5000) { m.seats.push({ color: SEATS[m.cfg.players][1], name: 'رفیقت', av: 11, me: false }); saveM(m); }
       if (m.seats.length === m.cfg.players) { await ludo.start(m.id); m = loadM(); }
       return out(m, since);
     }
@@ -195,7 +195,7 @@ const ludo = {
     m.chat = m.chat || []; const last = m.chat.filter(x => x.me).pop();
     if (last && Date.now() / 1000 - last.at < 1.5) throw err('chat_slow');
     const id2 = (m.chat.length ? m.chat[m.chat.length - 1].id : 0) + 1;
-    m.chat.push({ id: id2, color: 'yellow', name: 'شما', av: 7, pic: '', text, at: Math.round(Date.now() / 1000), me: true });
+    m.chat.push({ id: id2, color: 'yellow', name: 'خودت', av: 7, pic: '', text, at: Math.round(Date.now() / 1000), me: true });
     m.chatAt = Date.now() - 7000; saveM(m); return { ok: true, id: id2 };
   },
   async active() { const m = loadM(); return m && (m.status === 'playing' || m.status === 'lobby') ? m.id : null; },
@@ -334,7 +334,7 @@ const data = {
     text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300); if (!text) throw err('empty');
     const L = F.dms[u] = F.dms[u] || [], id = (L.length ? L[L.length - 1].id : 0) + 1;
     L.push({ id, me: true, kind: 'text', text, at: Math.round(Date.now() / 1000) }); save();
-    if (PPL[u].online) setTimeout(() => { const M = fr().dms[u]; M.push({ id: M[M.length - 1].id + 1, me: false, kind: 'text', text: ['باشه، بزن بریم!', 'الان میام', 'عالی بود', 'یه دست دیگه؟'][Math.floor(Math.random() * 4)], at: Math.round(Date.now() / 1000) }); save(); }, 1800);
+    if (PPL[u].online) setTimeout(() => { const M = fr().dms[u]; M.push({ id: M[M.length - 1].id + 1, me: false, kind: 'text', text: ['باشه بزن بریم!', 'الان میام', 'عالی بود', 'یه دست دیگه؟'][Math.floor(Math.random() * 4)], at: Math.round(Date.now() / 1000) }); save(); }, 1800);
     return { id };
   },
   async dmInvite(u, game) {

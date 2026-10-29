@@ -161,7 +161,7 @@
   <div class="appbar-in">
     <a class="me-chip" href="profile.html" aria-label="پروفایل من">
       <span id="meAv"></span>
-      <span style="min-width:0"><span class="me-name" id="meName">سلام!</span><span class="me-sub" id="meSub">…</span></span>
+      <span style="min-width:0"><span class="me-name" id="meName">سلام داش!</span><span class="me-sub" id="meSub">…</span></span>
     </a>
     <div class="hd-acts">
       <button class="icon-btn bell" id="bell" aria-label="اعلان‌ها"><i data-ic="bell"></i><span class="badge" id="bellN" hidden></span></button>
@@ -175,7 +175,7 @@
 
   <section class="name-hint" id="nameHint" aria-label="یوزرنیم تو" hidden>
     <span class="nh-ic"><i data-ic="user"></i></span>
-    <span class="nh-tx"><small>یوزرنیم تو در بازی</small><b class="uname" id="nhName"></b></span>
+    <span class="nh-tx"><small>اسمت تو بازی اینه</small><b class="uname" id="nhName"></b></span>
     <span class="nh-acts"><button class="btn btn-light btn-sm" id="nhOk">همین خوبه</button><button class="btn btn-sm" id="nhEdit">عوضش کن</button></span>
   </section>
 
@@ -185,28 +185,28 @@
   </section>
 
   <section id="tablesSec" aria-labelledby="hTables" hidden>
-    <div class="sec-head"><h2 id="hTables">میزهای دیگرت</h2></div>
+    <div class="sec-head"><h2 id="hTables">میزای دیگه‌ت</h2></div>
     <div class="tables" id="tables"></div>
   </section>
 
   <section class="quick" aria-label="کارهای سریع">
     <button class="qa" id="invite"><span class="ic" style="background:var(--acc-tint);color:var(--acc)"><i data-ic="userAdd"></i></span><b>دعوت دوست</b><small>با هم بازی کنیم</small></button>
-    <a class="qa" href="shop.html"><span class="ic" style="background:#E3F1E8;color:#1F6B3B"><i data-ic="cards"></i></span><b>ورق و میز</b><small>ظاهر حکم</small></a>
-    <a class="qa" href="help.html"><span class="ic" style="background:var(--surface-sunk);color:var(--ink-muted)"><i data-ic="help"></i></span><b>راهنما</b><small>قانون بازی‌ها</small></a>
+    <a class="qa" href="shop.html"><span class="ic" style="background:#E3F1E8;color:#1F6B3B"><i data-ic="cards"></i></span><b>ورق و میز</b><small>قیافهٔ حکم</small></a>
+    <a class="qa" href="help.html"><span class="ic" style="background:var(--surface-sunk);color:var(--ink-muted)"><i data-ic="help"></i></span><b>راهنما</b><small>قانون بازیا</small></a>
   </section>
 
   <a class="rank-card" id="rankCard" href="friends.html" aria-label="دوستان">
     <span class="pos" id="rankPos">…</span>
-    <span class="t"><b id="rankT">دوستان</b><small id="rankS">در حال بارگذاری…</small></span>
+    <span class="t"><b id="rankT">دوستان</b><small id="rankS">یه لحظه…</small></span>
     <span class="faces" id="rankFaces"></span>
     <span class="chev"><i data-ic="fwd"></i></span>
   </a>
 
   <section class="shop-only" aria-labelledby="hShop">
-    <div class="sec-head"><h2 id="hShop">امتیازت را در عبور خرج کن</h2><a href="shop.html">همه</a></div>
+    <div class="sec-head"><h2 id="hShop">امتیازتو تو عبور خرج کن</h2><a href="shop.html">همه</a></div>
     <div class="card stack">
       <div class="obour"><svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="10" fill="#151B42"/><path d="M10 22.5l7-11.5 7 11.5" fill="none" stroke="#3BF0CF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17" cy="22.5" r="2" fill="#B36BFF"/></svg>
-        <span>سفارش مستقیم روی <b>حساب عبورت</b> ثبت می‌شود؛ خرید جدا لازم نیست.</span></div>
+        <span>سفارشت مستقیم رو <b>حساب عبورت</b> ثبت می‌شه و لازم نیست جدا بخری</span></div>
       <ul class="list" id="shopTeaser"></ul>
     </div>
   </section>
@@ -272,7 +272,7 @@
     $('meName').replaceChildren(nm);
     const sub = $('meSub');
     // برنامهٔ اندروید (مهمان) کیف عبور ندارد؛ همان سطح بازیکن را می بیند
-    if (!me.obour.linked && !GC.app) { sub.className = 'me-sub bad'; sub.textContent = 'هنوز در ربات عبور نیستی'; }
+    if (!me.obour.linked && !GC.app) { sub.className = 'me-sub bad'; sub.textContent = 'هنوز تو ربات عبور نیستی'; }
     else { sub.className = 'me-sub'; sub.innerHTML = `سطح ${FD(L.lv)}<span class="bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span>`; sub.title = `${FD(L.left)} امتیاز تا سطح ${FD(L.lv + 1)}`; }
   }
   // اعلان ها: میزی که نوبت توست، میزی که منتظر توست و پیام مدیریت
@@ -280,21 +280,21 @@
     const out = [];
     for (const t of tables) {
       const g = GC.GAMES.find(x => x.id === t.game) || GC.GAMES[2];
-      if (t.kind === 'playing' && t.my_turn) out.push({ href: g.id + '.html', game: t.game, id: t.id, k: t.kind, ic: 'clock', c: 'var(--acc)', bg: 'var(--acc-tint)', t: `نوبت شماست در ${g.name}`, s: 'سر میز برگرد تا وقتت نسوزد' });
-      else if (t.kind === 'lobby') out.push({ href: g.href, ic: 'users', c: '#1F6B3B', bg: '#E3F1E8', t: `میز ${g.name} منتظر است`, s: `${FD(t.found)} از ${FD(t.need)} نفر نشسته‌اند` });
+      if (t.kind === 'playing' && t.my_turn) out.push({ href: g.id + '.html', game: t.game, id: t.id, k: t.kind, ic: 'clock', c: 'var(--acc)', bg: 'var(--acc-tint)', t: `نوبت توئه تو ${g.name}`, s: 'برگرد سر میز تا وقتت نسوخته' });
+      else if (t.kind === 'lobby') out.push({ href: g.href, ic: 'users', c: '#1F6B3B', bg: '#E3F1E8', t: `میز ${g.name} منتظرته`, s: `${FD(t.found)} از ${FD(t.need)} نفر نشستن` });
     }
-    if (me && me.notice) out.push({ ic: 'bell', c: 'var(--ink-muted)', bg: 'var(--surface-sunk)', t: 'پیام AsoTas', s: me.notice });
+    if (me && me.notice) out.push({ ic: 'bell', c: 'var(--ink-muted)', bg: 'var(--surface-sunk)', t: 'پیام از طرف تاسی', s: me.notice });
     return out;
   }
   function renderBell() {
     const n = alerts().filter(a => a.ic !== 'users').length, b = $('bellN');
     b.hidden = !n; b.textContent = FD(n);
-    $('bell').setAttribute('aria-label', n ? `اعلان‌ها، ${FD(n)} تازه` : 'اعلان‌ها');
+    $('bell').setAttribute('aria-label', n ? `اعلان‌ها ${FD(n)} تا تازه` : 'اعلان‌ها');
   }
   $('bell').onclick = () => {
     const list = alerts();
     const sh = sheet(`${sheetHead('اعلان‌ها')}<div class="ntf">${list.length ? list.map(a => `<${a.href ? `a href="${a.href}" data-g="${a.game || ''}" data-id="${a.id || ''}" data-k="${a.k || ''}"` : 'div'}><span class="ic" style="background:${a.bg};color:${a.c}">${icon(a.ic)}</span><span><b>${a.t}</b><small>${a.s}</small></span><span>${a.href ? icon('fwd') : ''}</span></${a.href ? 'a' : 'div'}>`).join('')
-      : '<p class="hint">اعلان تازه‌ای نداری. وقتی نوبتت شد یا میزی منتظرت بود، اینجا می‌بینی.</p>'}</div>`);
+      : '<p class="hint">فعلاً خبری نیست داش هر وقت نوبتت شد یا یه میز منتظرت بود اینجا می‌بینی</p>'}</div>`);
     sh.querySelectorAll('a[data-id]').forEach(a => a.addEventListener('click', () => { const g = GC.GAMES.find(x => x.id === a.dataset.g); if (a.dataset.k === 'playing' && a.dataset.id && g) store.set(KEY[g.id], a.dataset.id); }));
   };
 
@@ -305,11 +305,11 @@
     return playing.find(t => t.my_turn) || playing[0] || tables[0] || null;
   }
   function stateLine(t) {
-    if (t.kind === 'queue') return { k: 'دنبال حریف', h: 'در صف بازی', p: `${FD(t.found)} از ${FD(t.need)} نفر پیدا شد` };
-    if (t.kind === 'lobby') return { k: 'میز دوستانه', h: t.host ? 'منتظر دوستانت' : 'منتظر بقیه', p: `${FD(t.found)} از ${FD(t.need)} نفر نشسته‌اند` };
-    const sc = t.score ? `ما ${FD(t.score[0])} – ${FD(t.score[1])} آنها · تا ${FD(t.target)}` : t.left != null ? `تا مقصد ${FD(t.left)} قدم مانده` : t.pos != null ? `خانهٔ ${FD(t.pos)} از ۱۰۰`
-      : t.alive ? `${FD(t.alive[0])} نیروی سالم داری، حریف ${FD(t.alive[1])}` : t.phase === 'draw' ? 'دارید ارتشتون رو می‌چینید' : 'بازی در جریان است';
-    return { k: 'بازی نیمه‌تمام', h: t.my_turn ? 'نوبت شماست!' : 'بازی در جریان است', p: sc };
+    if (t.kind === 'queue') return { k: 'دنبال حریف', h: 'تو صف بازی', p: `${FD(t.found)} از ${FD(t.need)} نفر پیدا شد` };
+    if (t.kind === 'lobby') return { k: 'میز دوستانه', h: t.host ? 'منتظر رفیقاتی' : 'منتظر بقیه', p: `${FD(t.found)} از ${FD(t.need)} نفر نشستن` };
+    const sc = t.score ? `ما ${FD(t.score[0])} – ${FD(t.score[1])} اونا · تا ${FD(t.target)}` : t.left != null ? `تا مقصد ${FD(t.left)} قدم مونده` : t.pos != null ? `خانهٔ ${FD(t.pos)} از ۱۰۰`
+      : t.alive ? `${FD(t.alive[0])} نیروی سالم داری و حریف ${FD(t.alive[1])}` : t.phase === 'draw' ? 'دارید ارتشتون رو می‌چینید' : 'بازی داره پیش می‌ره';
+    return { k: 'بازی نصفه‌کاره', h: t.my_turn ? 'نوبت توئه!' : 'بازی داره پیش می‌ره', p: sc };
   }
   // نوار شناور بالای ناوبری: میزی که نوبت توست، یا بازی در جریان، یا صف و میز دوستانه
   function renderCont() {
@@ -320,8 +320,8 @@
     const href = t.kind === 'playing' ? g.id + '.html' : g.href;
     c.hidden = false; c.classList.toggle('turn', !!t.my_turn);
     c.innerHTML = `<span class="g-art ${g.tint}">${GAME_ART[g.id]()}</span>
-      <span class="t"><b>${t.my_turn ? `نوبت شماست در ${g.name}` : `${st.k} · ${g.name}`}</b><small>${t.kind === 'playing' ? '<i class="live"></i>' : '<span class="spinner"></span>'}${st.p}</small></span>
-      <a class="go" href="${href}" data-k="${t.kind}" data-g="${g.id}" data-id="${t.id || ''}">${t.my_turn ? 'بازی کن' : 'برگرد'}${icon('fwd')}</a>`;
+      <span class="t"><b>${t.my_turn ? `نوبت توئه تو ${g.name}` : `${st.k} · ${g.name}`}</b><small>${t.kind === 'playing' ? '<i class="live"></i>' : '<span class="spinner"></span>'}${st.p}</small></span>
+      <a class="go" href="${href}" data-k="${t.kind}" data-g="${g.id}" data-id="${t.id || ''}">${t.my_turn ? 'بزن بریم' : 'برگرد'}${icon('fwd')}</a>`;
     c.querySelector('.go').addEventListener('click', e => { const a = e.currentTarget; if (a.dataset.k === 'playing' && a.dataset.id) store.set(KEY[a.dataset.g], a.dataset.id); GC.haptic('light'); });
   }
 
@@ -346,7 +346,7 @@
     const open = new Set(tables.map(t => t.game));
     const badge = { hokm: '<span class="hm-bdg hot">محبوب</span>', football: '<span class="hm-bdg new">تازه</span>', billiard: '<span class="hm-bdg new">تازه</span>', divar: '<span class="hm-bdg new">تازه</span>', snakes: '<span class="hm-bdg new">تازه</span>', esmfamil: '<span class="hm-bdg new">تازه</span>', lashgar: '<span class="hm-bdg new">تازه</span>' };
     $('games').innerHTML = GC.GAMES.map(g => {
-      if (g.soon) return `<div class="hm-tl hm-soon">${ESM}<span class="t"><b>${g.name}</b><small>به‌زودی می‌آید</small></span><button class="hm-notify" data-notify="${g.id}"></button></div>`;
+      if (g.soon) return `<div class="hm-tl hm-soon">${ESM}<span class="t"><b>${g.name}</b><small>به‌زودی میاد</small></span><button class="hm-notify" data-notify="${g.id}"></button></div>`;
       const T = (TILE[g.id] || TILE.divar)(), b = open.has(g.id) ? '<span class="hm-bdg open">میز باز داری</span>' : (badge[g.id] || '');
       return `<a class="hm-tl ${T.cls}" href="${g.href}" style="--sh:${T.sh}"><span class="bg" aria-hidden="true">${T.bg}</span>${T.out}${b}<b>${g.name}</b><small>${g.sub}</small></a>`;
     }).join('');
@@ -354,7 +354,7 @@
       const sync = () => { const on = notify.includes(b.dataset.notify); b.classList.toggle('on', on); b.innerHTML = on ? icon('check', 3) + 'خبرت می‌کنیم' : icon('bell', 2.6) + 'خبرم کن'; };
       sync();
       b.onclick = async () => {
-        try { const r = await GC.data.notify(b.dataset.notify); notify = r.on ? [...notify, b.dataset.notify] : notify.filter(x => x !== b.dataset.notify); sync(); if (r.on) toast('وقتی آماده شد، ربات خبرت می‌کند'); }
+        try { const r = await GC.data.notify(b.dataset.notify); notify = r.on ? [...notify, b.dataset.notify] : notify.filter(x => x !== b.dataset.notify); sync(); if (r.on) toast('آماده که شد ربات خبرت می‌کنه'); }
         catch (e) { toast(errText(e)); }
       };
     });
@@ -373,8 +373,8 @@
   /* ---------- دعوت دوست ---------- */
   $('invite').onclick = () => {
     const bot = me && me.settings && me.settings.bot;
-    if (!bot) { toast('لینک دعوت فقط داخل تلگرام ساخته می‌شود'); return; }
-    GC.openLink('https://t.me/share/url?url=' + encodeURIComponent('https://t.me/' + bot) + '&text=' + encodeURIComponent('بیا توی AsoTas با هم حکم، فوتبال و منچ بازی کنیم!'));
+    if (!bot) { toast('لینک دعوت فقط تو تلگرام ساخته می‌شه'); return; }
+    GC.openLink('https://t.me/share/url?url=' + encodeURIComponent('https://t.me/' + bot) + '&text=' + encodeURIComponent('بیا تو AsoTas با هم حکم و فوتبال و منچ بزنیم 🎲'));
   };
 
   renderAll();
@@ -386,8 +386,8 @@
       notify = me.notify || [];
       renderHeader(); renderNameHint();
       sig = ''; setTables(me.tables || []);
-      const note = me.banned ? 'حساب تو در AsoTas مسدود شده است. برای پیگیری به پشتیبانی عبور پیام بده.'
-        : me.maintenance ? 'در حال به‌روزرسانی هستیم؛ تا چند دقیقه دیگر میز تازه ساخته نمی‌شود.' : (me.notice || '');
+      const note = me.banned ? 'شرمنده داش حسابت تو AsoTas بسته شده اگه پیگیری می‌خوای به پشتیبانی عبور پیام بده'
+        : me.maintenance ? 'داریم آپدیت می‌کنیم و تا چند دقیقه میز تازه ساخته نمی‌شه' : (me.notice || '');
       if (note) { $('noteTx').textContent = note; $('noteIc').innerHTML = icon(me.banned ? 'shield' : me.maintenance ? 'clock' : 'bell'); $('noteBar').hidden = false; $('noteBar').classList.toggle('bad', !!me.banned); }
       $('admLink').hidden = !me.is_admin;
       if (!polling) { polling = true; setInterval(async () => { if (document.hidden || !GC.isActive('home')) return; try { const m = await GC.data.me(); me = Object.assign(me, m); setTables(m.tables || []); } catch (e) {} }, 5000); }
@@ -397,13 +397,13 @@
       const fr = await GC.data.friends(), on = fr.friends.filter(f => f.online);
       $('rankPos').innerHTML = icon('users');
       $('rankFaces').innerHTML = (on.length ? on : fr.friends).slice(0, 3).map(f => face(f)).join('');
-      $('rankT').textContent = on.length ? 'دوستان آنلاین' : 'دوستان';
-      $('rankS').textContent = on.length ? `${FD(on.length)} نفر الان آنلاین‌اند` : fr.friends.length ? `${FD(fr.friends.length)} دوست · الان کسی آنلاین نیست` : 'با یوزرنیم دوستانت را اضافه کن';
+      $('rankT').textContent = on.length ? 'رفیقای آنلاین' : 'دوستان';
+      $('rankS').textContent = on.length ? `${FD(on.length)} نفر الان آنلاینن` : fr.friends.length ? `${FD(fr.friends.length)} رفیق داری · الان کسی آنلاین نیست` : 'رفیقاتو با یوزرنیمشون اضافه کن';
     } catch (e) { $('rankS').textContent = errText(e); }
     if (GC.S.shopOn) try {
       const sh = await GC.data.shop();
       $('shopTeaser').innerHTML = sh.plans.slice(0, 2).map(p => `<li><a class="row" href="shop.html"><span class="ic-box" style="background:var(--obour-night);color:var(--obour-aqua)">${icon('globe')}</span><span class="name">${p.title}<span class="meta">${p.days ? FD(p.days) + ' روزه' : ''}</span></span>${amount(p.points)}</a></li>`).join('')
-        || '<li class="hint">فعلا پلنی برای فروش نیست.</li>';
+        || '<li class="hint">فعلاً پلنی واسه فروش نیست</li>';
     } catch (e) { $('shopTeaser').innerHTML = `<li class="hint">${errText(e)}</li>`; }
     GC.mount();
   }
