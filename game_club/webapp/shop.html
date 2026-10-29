@@ -62,7 +62,7 @@
 .receipt span{color:var(--ink-muted)}
 .packs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
 .pack{position:relative;display:grid;justify-items:center;gap:4px;padding:14px 8px 12px;border-radius:var(--radius-lg);background:var(--surface);box-shadow:0 0 0 1px var(--line);text-align:center}
-.pack .coin svg{width:34px;height:34px}
+.pack .coin{width:34px;height:34px}
 .pack b{font-size:18px;line-height:26px;font-weight:900}
 .pack small{font-size:12px;color:var(--ink-muted)}
 .pack{border:0;font:inherit;color:inherit;cursor:pointer}
@@ -150,7 +150,7 @@
     $('hist').innerHTML = rows.length ? rows.map(l => {
       const [ic, bg, fg, lab] = KIND[l.kind], day = dayOf(l.created_at), head = day !== last ? `<p class="day">${day}</p>` : '';
       last = day;
-      return `${head}<div class="tx"><span class="ic-box" style="background:${bg};color:${fg}">${icon(ic)}</span><span class="name">${l.note || lab}<span class="meta">${clock(l.created_at)}${l.status === 'pending' ? ' · داره انجام می‌شه' : ''}</span></span><span class="v ${l.amount >= 0 ? 'plus-a' : 'minus-a'}" dir="ltr">${l.amount >= 0 ? '+' : '−'}${fa(Math.abs(l.amount))}</span></div>`;
+      return `${head}<div class="tx"><span class="ic-box" style="background:${bg};color:${fg}">${icon(ic)}</span><span class="name">${FD(l.note || lab)}<span class="meta">${clock(l.created_at)}${l.status === 'pending' ? ' · داره انجام می‌شه' : ''}</span></span><span class="v ${l.amount >= 0 ? 'plus-a' : 'minus-a'}" dir="ltr">${l.amount >= 0 ? '+' : '−'}${fa(Math.abs(l.amount))}</span></div>`;
     }).join('') : '<p class="hint" style="padding:12px 0">هنوز سکه‌ای جابه‌جا نکردی با جایزهٔ روزانه شروع کن 🎁</p>';
     if (me.daily) GC.dailyMount($('daily'), me.daily, async () => { try { me = await GC.refreshMe(); renderWallet(); } catch (e) {} });
     mount();
