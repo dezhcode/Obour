@@ -35,7 +35,7 @@
 </header>
 <main class="page no-nav">
   <div class="gp" id="gp"></div>
-  <a class="card card-link resume" id="resume" href="esmfamil.html" hidden><span class="tag tag-live">بازی نیمه‌کاره</span><b>برگرد سر برگت</b><span class="muted">بازی هنوز ادامه داره و بقیه دارن می‌نویسن؛ زود بیا!</span></a>
+  <a class="card card-link resume" id="resume" href="esmfamil.html" hidden><span class="tag tag-live">بازی نیمه‌کاره</span><b>برگرد سر برگت</b><span class="muted">بازی هنوز ادامه داره و بقیه دارن می‌نویسن زود بیا!</span></a>
 </main>
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
@@ -74,7 +74,7 @@
       shown = sig; if (L.seats.length > 1) { sfx.turn(); haptic('light'); }
       const ok = L.seats.length >= 2;
       const sh = sheet(`${sheetHead('سر میز اسم‌فامیل')}
-        <p>${FD(c.rounds)} دور، هر دور ${FD(Math.round(c.secs / 60))} دقیقه؛ داورمون هم هوش مصنوعی عبوره 🤖</p>
+        <p>${FD(c.rounds)} دور · هر دور ${FD(Math.round(c.secs / 60))} دقیقه · داورمون هم هوش مصنوعی عبوره 🤖</p>
         <div class="seatgrid">${L.seats.map(s => `<div class="seatw">${face(s, s.me ? '#F5C451' : 'var(--sky)')}<span class="uname">${s.name}</span>${s.me ? '<small>تو</small>' : ''}</div>`).join('')}
           ${L.seats.length < 10 ? '<div class="seatw"><span class="wait">؟</span><small>جا هست!</small></div>' : ''}</div>
         <div class="wait-line"><span class="spinner"></span>${ok ? (L.host ? 'هر وقت دلت خواست بزن بریم' : 'منتظریم سازنده شروع کنه…') : 'حداقل یه نفر دیگه باید از گروه «بشین» رو بزنه'}</div>
@@ -88,17 +88,17 @@
 
   gp = GCGame.build({
     game: 'esmfamil', title: 'اسم‌فامیل', help: 'help.html#hEsm', who: ['group'],
-    whoDesc: 'اسم‌فامیل توی گروه یا کانال مزه می‌ده: کارت میز رو بفرست تو گروه یا کانالت، بچه‌ها «بشین» رو می‌زنن و تو شروع می‌کنی.',
+    whoDesc: 'اسم‌فامیل تو گروه یا کانال مزه می‌ده 😉 کارت میزو بفرست تو گروه یا کانالت تا بچه‌ها «بشین» رو بزنن و تو شروع کنی',
     modes: [
-      { v: 'g', label: 'گروهی', ic: icon('users'), desc: '۲ تا ۱۰ نفر، همه با هم با یه حرف. تعداد دور (۱، ۳ یا ۵) و وقت هر دور (۳، ۵ یا ۸ دقیقه) رو توی کارت گروه انتخاب می‌کنی.', short: 'دور و وقت رو توی کارت گروه انتخاب کن', cfg: {} },
+      { v: 'g', label: 'گروهی', ic: icon('users'), desc: '۲ تا ۱۰ نفر و همه با هم با یه حرف · تعداد دور (۱ یا ۳ یا ۵) و وقت هر دور (۳ یا ۵ یا ۸ دقیقه) رو تو کارت گروه انتخاب می‌کنی', short: 'دور و وقتو تو کارت گروه انتخاب کن', cfg: {} },
     ],
-    rules: [['گروه یا کانال:', 'توی گروه بنویس /esmfamil، توی گروه و کانال هم آیدی ربات و esmfamil رو تایپ کن، یا از همین‌جا کارت میز رو بفرست. ۲ تا ۱۰ نفر می‌شینن و سازنده بازی رو شروع می‌کنه.'],
-      ['حرف:', 'حرف هر دور رو هوش مصنوعی عبور انتخاب می‌کنه و واسه همه با هم رو می‌شه؛ کسی جلو نمی‌افته.'],
-      ['نوشتن:', 'اسم، فامیل، شهر، کشور، غذا، حیوان، میوه، اشیا و رنگ رو با همون حرف بنویس. هر چی می‌نویسی خودکار ذخیره می‌شه.'],
-      ['استپ:', 'برگت که کامل شد «استپ!» بزن؛ بقیه فقط ۲۰ ثانیه وقت دارن (اگه کمتر از این مونده باشه، همون باقی‌مونده) 😎'],
-      ['امتیاز:', 'جواب درستی که فقط تو نوشتی ۱۰، تکراری ۵، غلط یا خالی ۰. داور هر جوابی رو خط بزنه دلیلشم می‌نویسه.'],
-      ['اعتراض:', 'داور بی‌انصافی کرد؟ رو جواب خط‌خورده‌ت بزن و اعتراض کن؛ بقیه رأی می‌دن و هر چی اکثریت گفت.'],
-      ['برنده:', 'هر کی آخر بازی بیشترین امتیاز رو داشت می‌بره. برگ همه با امتیازا توی گروه هم میاد تا همه ببینن 🏆']],
+    rules: [['گروه یا کانال', 'تو گروه بنویس /esmfamil یا تو گروه و کانال آیدی ربات و esmfamil رو تایپ کن یا از همین‌جا کارت میزو بفرست<br>۲ تا ۱۰ نفر می‌شینن و سازنده بازیو شروع می‌کنه'],
+      ['حرف', 'حرف هر دورو هوش مصنوعی عبور انتخاب می‌کنه و واسه همه با هم رو می‌شه و کسی جلو نمی‌افته'],
+      ['نوشتن', 'اسم و فامیل و شهر و کشور و غذا و حیوان و میوه و اشیا و رنگو با همون حرف بنویس<br>هر چی می‌نویسی خودکار ذخیره می‌شه'],
+      ['استپ', 'برگت که کامل شد «استپ!» بزن تا بقیه فقط ۲۰ ثانیه وقت داشته باشن (اگه کمتر از این مونده باشه همون باقی‌مونده) 😎'],
+      ['امتیاز', 'جواب درستی که فقط تو نوشتی ۱۰ و تکراری ۵ و غلط یا خالی ۰<br>داور هر جوابی رو خط بزنه دلیلشم می‌نویسه'],
+      ['اعتراض', 'داور بی‌انصافی کرد؟ رو جواب خط‌خورده‌ت بزن و اعتراض کن<br>بقیه رأی می‌دن و هر چی اکثریت گفت همون'],
+      ['برنده', 'هر کی آخر بازی بیشترین امتیازو داشت می‌بره<br>برگ همه با امتیازا تو گروه هم میاد تا همه ببینن 🏆']],
     play: () => {},
   });
 
@@ -113,7 +113,7 @@
         const v = await GC.esm.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);
         else if (v && v.status === 'playing') { store.set('emid', v.id); if (code) { location.replace('esmfamil.html'); return; } $('resume').hidden = false; }
-      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یه بازی ${o[0]} نیمه‌کاره داری؛ اول اونو تموم کن 😉`; }
+      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یه بازی ${o[0]} نیمه‌کاره داری اول اونو تموم کن 😉`; }
       else if (code && GC.live) {
         try { const r = await GC.esm.join(code); await GC.refreshMe(); lobbyLoop(r.match); }
         catch (err) { toast(errText(err)); }

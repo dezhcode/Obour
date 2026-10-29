@@ -126,7 +126,7 @@ function renderDots() {
   if (!show) return;
   const q = geo();
   for (const m of g.moves) {
-    const [r, c] = cellV(m), d = document.createElement('button'); d.className = 'dv-dot'; d.setAttribute('aria-label', 'برو به این خانه');
+    const [r, c] = cellV(m), d = document.createElement('button'); d.className = 'dv-dot'; d.setAttribute('aria-label', 'برو تو این خونه');
     Object.assign(d.style, { left: q.x(c) + 'px', top: q.x(r) + 'px', width: q.S + 'px', height: q.S + 'px' });
     d.onclick = () => doMove(m); b.appendChild(d);
   }
@@ -144,7 +144,7 @@ function renderPlayers(g) {
   box.classList.toggle('four', g.n === 4);
   box.innerHTML = order.map(s => {
     const p = g.players[s] || {}, col = colorOf(s);
-    return `<div class="dv-pl${g.turn === s ? ' on' : ''}${p.out ? ' out' : ''}" data-seat="${s}" style="--pc:${col.pc}"><span class="tm">${CLOCK}<span class="tr"><i></i></span></span>${face(p, col.pc)}<span class="tx"><span class="nm">${isMe(s) ? 'شما' : (p.name || '').replace(/[<>&]/g, '')}</span><span class="wc"><i></i>${FD(p.walls)}</span></span></div>`;
+    return `<div class="dv-pl${g.turn === s ? ' on' : ''}${p.out ? ' out' : ''}" data-seat="${s}" style="--pc:${col.pc}"><span class="tm">${CLOCK}<span class="tr"><i></i></span></span>${face(p, col.pc)}<span class="tx"><span class="nm">${isMe(s) ? 'خودت' : (p.name || '').replace(/[<>&]/g, '')}</span><span class="wc"><i></i>${FD(p.walls)}</span></span></div>`;
   }).join('');
   tickTimer();
 }
@@ -154,7 +154,7 @@ function renderStatus(g) {
   if (flash && Date.now() < flash.until) { t = flash.t; cls = flash.warn ? 'warn' : ''; }
   else if (g.over) t = 'پایان بازی';
   else if (!g.turn) t = '…';
-  else if (isMe(g.turn)) { t = 'نوبت توست · یک قدم برو یا دیوار بگذار'; cls = 'mine'; }
+  else if (isMe(g.turn)) { t = 'نوبت توئه · یه قدم برو یا دیوار بذار'; cls = 'mine'; }
   else t = `نوبت ${nameOf(g.turn)}…`;
   el.textContent = t; el.className = 'dv-pill' + (cls ? ' ' + cls : '');
 }
@@ -202,8 +202,8 @@ async function play(e) {
     if (!isMe(e.c)) flashMsg(`${nameOf(e.c)} دیوار گذاشت`);
     await sleep(isMe(e.c) ? 120 : 300); return;
   }
-  if (e.t === 'timeout') { if (WATCH) return; flashMsg(isMe(e.c) ? 'وقتت تمام شد؛ یک قدم به جایت برداشتیم' : `${nameOf(e.c)} دیر کرد`, true); return; }
-  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}${g && g.n === 4 ? '؛ ربات جایش بازی می‌کند' : ''}`); return; }
+  if (e.t === 'timeout') { if (WATCH) return; flashMsg(isMe(e.c) ? 'وقتت تموم شد و یه قدم جات برداشتیم' : `${nameOf(e.c)} دیر کرد`, true); return; }
+  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازیو ول کرد و رفت'}${g && g.n === 4 ? ' و ربات جاش بازی می‌کنه' : ''}`); return; }
   if (e.t === 'win') { const el = els.pawns[e.c]; if (el) el.classList.add('win'); }
 }
 function syncFrom(g) {
@@ -237,7 +237,7 @@ function engineState() {
 document.querySelectorAll('.dv-slot').forEach(slot => slot.addEventListener('pointerdown', e => {
   const g = G(), mine = g && g.players[me];
   if (!myTurnNow() || !mine || mine.walls <= 0) {
-    if (g && !g.over && !WATCH) flashMsg(!mine || mine.walls > 0 ? 'صبر کن تا نوبتت شود' : 'دیوارهایت تمام شده؛ فقط می‌توانی حرکت کنی', true);
+    if (g && !g.over && !WATCH) flashMsg(!mine || mine.walls > 0 ? 'صبر کن نوبتت بشه' : 'دیوارات تموم شده و فقط می‌تونی حرکت کنی', true);
     return;
   }
   e.preventDefault();
@@ -267,7 +267,7 @@ document.querySelectorAll('.dv-slot').forEach(slot => slot.addEventListener('poi
     slot.removeEventListener('pointermove', mv); slot.removeEventListener('pointerup', up); slot.removeEventListener('pointercancel', up);
     pv.hidden = true;
     if (key && ok) { ghost.remove(); const [, oo, r, c] = key.match(/^([hv])(\d+),(\d+)$/); doWall(oo, +r, +c); return; }
-    if (key && !ok) { flashMsg('این‌جا نمی‌شود؛ روی دیوار دیگر می‌افتد یا راه کسی را کامل می‌بندد', true); sfx.error(); }
+    if (key && !ok) { flashMsg('اینجا نمی‌شه داش یا می‌افته رو یه دیوار دیگه یا راه یکیو کامل می‌بنده', true); sfx.error(); }
     const sr = slot.getBoundingClientRect();
     ghost.classList.add('back'); ghost.style.transform = `translate(${sr.left + sr.width / 2 - gw / 2}px,${sr.top + sr.height / 2 - gh / 2}px) scale(.7)`; ghost.style.opacity = 0;
     setTimeout(() => ghost.remove(), 260);
@@ -276,7 +276,7 @@ document.querySelectorAll('.dv-slot').forEach(slot => slot.addEventListener('poi
 }));
 
 /* ---------- گفتگو: نوار پایین و پیام های شناور مثل بیلیارد (tchat.js) ---------- */
-const QUICK = ['سلام!', 'خوش‌بازی!', 'عجب دیواری!', 'راهمو بستی 😅', 'زود باش', 'یک دست دیگه؟'];
+const QUICK = ['سلام!', 'خوش‌بازی!', 'عجب دیواری!', 'راهمو بستی 😅', 'زود باش', 'یه دست دیگه؟'];
 const chat = TChat.init({
   bar: $('chatbar'), quick: QUICK, face: m => face(m, colorOf(m.color).pc),
   canSend: () => mid && !WATCH,
@@ -331,7 +331,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
 function over(v) {
   const g = v.game;
-  if (WATCH) { sfx.win(); return GC.watchOver('divar', 'بازی تمام شد', g.winner == null ? 'بازی بدون برنده بسته شد.' : `${nameOf(g.winner)} اول رسید و برد.`); }
+  if (WATCH) { sfx.win(); return GC.watchOver('divar', 'بازی تموم شد', g.winner == null ? 'بازی بی برنده بسته شد' : `${nameOf(g.winner)} اول رسید و برد`); }
   chat.end();
   const r = v.result || {}, won = !!r.won;
   GC.guardClose(false); store.set('dmid', null);
@@ -340,42 +340,42 @@ function over(v) {
   const stake = v.cfg.mode === 'stake', ended = g.winner == null, left = g.n === 2 && Object.values(g.players).some(p => !p.me && p.out);
   sheet(`<div class="dv-res">
       <span class="ic${won ? '' : ' lost'}">${TROPHY}</span>
-      <h2>${ended ? 'بازی تمام شد' : won ? (left ? 'حریف رفت؛ تو بردی!' : 'اول رسیدی؛ بردی!') : `${nameOf(g.winner)} زودتر رسید`}</h2>
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه به کیف امتیازت اضافه شد.</p>` : ended ? '<p>ورودی‌ها برگشت.</p>' : `<p>ورودی این بازی (${fa(r.lost || v.cfg.entry)} امتیاز) را باختی.</p>`)
-        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت.' : 'بازی آزاد بود؛ چیزی از دست ندادی.'}</p>`}
+      <h2>${ended ? 'بازی تموم شد' : won ? (left ? 'حریف رفت و تو بردی!' : 'اول رسیدی و بردی!') : `${nameOf(g.winner)} زودتر رسید`}</h2>
+      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه ریخت تو کیف امتیازت 🎉</p>` : ended ? '<p>ورودیا برگشت</p>' : `<p>ورودی این بازیو (${fa(r.lost || v.cfg.entry)} امتیاز) باختی فدای سرت</p>`)
+        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت ولی دمت گرم' : 'بازی آزاد بود و چیزی از دست ندادی'}</p>`}
       <div class="facts"><div><b>${FD(st.moves)}</b><span>قدم</span></div><div><b>${FD(st.walls)}</b><span>دیوار گذاشتی</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
     </div>
-    <a class="btn btn-block" href="divar-lobby.html">یک بازی دیگر</a>
-    <a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+    <a class="btn btn-block" href="divar-lobby.html">یه دست دیگه</a>
+    <a class="btn btn-light btn-block" href="index.html">خونه</a>`, { center: true, dismiss: false });
   GC.refreshMe().catch(() => {});
 }
 function cancelled() {
   if (overShown) return;
   overShown = true;
-  if (WATCH) { GC.watchOver('divar', 'این بازی بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
+  if (WATCH) { GC.watchOver('divar', 'این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   chat.end(); GC.guardClose(false); store.set('dmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازی را بست و ورودی همه به کیف امتیازشان برگشت.</p>
-      <div class="dlg-acts"><a class="btn" href="divar-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و ورودی همه برگشت تو کیفشون</p>
+      <div class="dlg-acts"><a class="btn" href="divar-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
-  if (watchMid) { GC.watchOver('divar', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
+  if (watchMid) { GC.watchOver('divar', 'این بازیو نمی‌شه دید', 'بازی یا تموم شده یا هنوز شروع نشده'); return; }
   store.set('dmid', null);
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز وارد بازی‌ای نشده‌ای.</p>
-      <div class="dlg-acts"><a class="btn" href="divar-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی یا تموم شده یا هنوز تو هیچ بازی‌ای نیستی</p>
+      <div class="dlg-acts"><a class="btn" href="divar-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake', four = G() && G().n === 4;
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
-      <h2 id="dT">از بازی بیرون می‌روی؟</h2>
-      <p id="dD">${four ? 'خروج یعنی باخت تو؛ ربات جایت تا آخر بازی می‌کند.' : 'خروج یعنی باخت همین بازی و حریف برنده می‌شود.'}</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
+      <h2 id="dT">می‌خوای بری؟</h2>
+      <p id="dD">${four ? 'بری یعنی باختی و ربات تا آخر جات بازی می‌کنه' : 'بری یعنی همین بازیو باختی و حریف می‌بره'}</p>
+      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گرده` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
-      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ بازی می‌ماند</button>
-      <p class="dlg-fine">بازی در صفحهٔ خانه می‌ماند و با یک لمس برمی‌گردی. تا نیستی، وقت هر نوبتت که تمام شود یک قدم به جایت برداشته می‌شود${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}.</p>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برو خونه بازی سر جاش می‌مونه</button>
+      <p class="dlg-fine">بازی تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی وقت هر نوبتت که تموم شه یه قدم به جات برداشته می‌شه${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
     </div>`, { center: true });
   sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
@@ -430,16 +430,16 @@ function tour() {
   const walls = () => { const g = G(); return g && g.players[me] ? g.players[me].walls : 10; };
   return {
     id: 'divar', name: 'دیوار', color: '#4C8DFF', ink: '#fff', help: 'help.html#hDivar',
-    intro: 'یه مسابقهٔ فکری: زودتر از بقیه به اون‌ور صفحه برس و با دیوار، راه حریف رو طولانی کن.',
+    intro: 'یه مسابقهٔ فکری 🧠 زودتر از بقیه برس اون‌ور صفحه و با دیوار راه حریفو دراز کن',
     ready: () => !!(G() && !WATCH && !G().over && pawn()),
     turn: () => ({ mine: !!(G() && G().turn === me && !G().over), left: deadlineAt ? deadlineAt - Date.now() : null }),
     steps: [
-      { el: pawn, title: 'مهرهٔ تو آبیه', text: 'تو همیشه <b>پایین صفحه</b> شروع می‌کنی. باید زودتر از بقیه به <b>ضلع روبه‌رو</b> برسی؛ لبهٔ مقصد هر کس به رنگ خودشه.', pad: 12, round: 999 },
-      { el: '#board', title: 'یه قدم برو', text: 'نوبتت که شد، روی یکی از <b>خونه‌های روشن</b> کنار مهره‌ت بزن تا یه خونه بری. اگه مهرهٔ کسی درست کنارت باشه، از روش می‌پری.', hand: 'tap', at: [0.5, 0.82] },
-      { el: '#tray', title: 'یا دیوار بذار', text: () => `در عوض قدم، یه دیوار <b>افقی یا عمودی</b> رو از این سینی بگیر و روی شیار بین خونه‌ها رها کن. ${FD(walls())} تا دیوار داری؛ خوب خرجشون کن!`, hand: { type: 'drag', from: [0.3, 0.5], to: [0.45, -2.2] } },
-      { el: '#board', title: 'قانون دیوار', text: 'هر دیوار <b>دو خونه</b> رو می‌پوشونه و دیگه برداشته نمی‌شه. دیوارها روی هم نمی‌افتن و <b>نباید راه کسی رو کامل ببندن</b>؛ جای غیرمجاز قرمز می‌شه.' },
-      { el: '#players', title: 'نوبت و وقت', text: 'تایمر بالای سر کسیه که نوبتشه. وقتت تموم بشه، یه قدم توی کوتاه‌ترین راه خودکار برات برداشته می‌شه.' },
-      { el: '#chatbar', title: 'با بقیه حرف بزن', text: 'پیام سریع یا متن کوتاه بفرست.' },
+      { el: pawn, title: 'مهرهٔ تو آبیه', text: 'تو همیشه از <b>پایین صفحه</b> شروع می‌کنی و باید زودتر از بقیه برسی به <b>ضلع روبه‌رو</b><br>لبهٔ مقصد هر کی به رنگ خودشه', pad: 12, round: 999 },
+      { el: '#board', title: 'یه قدم برو', text: 'نوبتت که شد بزن رو یکی از <b>خونه‌های روشن</b> کنار مهره‌ت تا یه خونه بری<br>اگه مهرهٔ کسی درست کنارت باشه از روش می‌پری', hand: 'tap', at: [0.5, 0.82] },
+      { el: '#tray', title: 'یا دیوار بذار', text: () => `به جای قدم یه دیوار <b>افقی یا عمودی</b> از این سینی بردار و بذارش رو شیار بین خونه‌ها<br>${FD(walls())} تا دیوار داری پس حساب‌شده خرجشون کن!`, hand: { type: 'drag', from: [0.3, 0.5], to: [0.45, -2.2] } },
+      { el: '#board', title: 'قانون دیوار', text: 'هر دیوار <b>دو تا خونه</b> رو می‌پوشونه و دیگه برداشته نمی‌شه<br>دیوارا رو هم نمی‌افتن و <b>نباید راه کسیو کامل ببندن</b> و جای غیرمجاز قرمز می‌شه' },
+      { el: '#players', title: 'نوبت و وقت', text: 'تایمر بالا سر کسیه که نوبتشه<br>وقتت تموم بشه یه قدم تو کوتاه‌ترین راه خودکار برات برداشته می‌شه' },
+      { el: '#chatbar', title: 'با بقیه حرف بزن', text: 'پیام سریع یا یه متن کوتاه بفرست' },
     ],
   };
 }

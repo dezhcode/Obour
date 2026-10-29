@@ -137,7 +137,7 @@ function settle(m) {
   if (won) { S.wins++; if (m.cfg.mode === 'stake') { const p = m.state.pot / 2; S.bal += p; S.won += p; GC.ledger('جایزهٔ حکم', p, 'prize'); } }
   save();
 }
-const QUIPS = ['سلام!', 'خوش‌بازی!', 'آفرین', 'حکم خوبی بود', 'زود باش', 'یار، حواست باشه', 'یک دست دیگه؟'];
+const QUIPS = ['سلام!', 'خوش‌بازی!', 'آفرین', 'حکم خوبی بود', 'زود باش', 'یار حواست باشه', 'یک دست دیگه؟'];
 function botTalk(m) {
   if (m.status !== 'playing') return;
   m.chat = m.chat || []; m.chatAt = m.chatAt || Date.now();

@@ -17,11 +17,11 @@ const POLL_MS = 1000, SINK_TIME = .55;
 const BASE = { 1: '#FEC625', 2: '#1937A5', 3: '#FF2A24', 4: '#371594', 5: '#FF6A28', 6: '#1F530D', 7: '#560C11', 8: '#111111' };
 const colOf = k => k === 0 ? '#EAE9E3' : BASE[k > 8 ? k - 8 : k];
 const MSG = {
-  break: 'بریک', open: 'میز باز است', solids: 'گروه‌ها مشخص شد', stripes: 'گروه‌ها مشخص شد',
-  potted: 'افتاد! دوباره بزن', wrong_pot: 'توپ حریف افتاد', on_8: 'حالا نوبت توپ ۸ است',
-  scratch: 'خطا: توپ سفید افتاد', wrong_first: 'خطا: اول به توپ اشتباه خورد', no_hit: 'خطا: به هیچ توپی نخورد',
-  hit_8_first: 'خطا: اول باید به توپ ۸ بخوری', no_rail: 'خطا: هیچ توپی به ریل نخورد', jump: 'خطا: توپ از میز بیرون پرید',
-  timeout: 'وقت تمام شد', break_8: 'توپ ۸ در بریک افتاد؛ دوباره چیده شد', break_illegal: 'بریک ضعیف بود؛ دوباره چیده شد',
+  break: 'بریک', open: 'میز بازه', solids: 'گروه‌ها مشخص شد', stripes: 'گروه‌ها مشخص شد',
+  potted: 'افتاد! دوباره بزن', wrong_pot: 'توپ حریف افتاد', on_8: 'حالا نوبت توپ ۸ه',
+  scratch: 'خطا! توپ سفید افتاد', wrong_first: 'خطا! اول خورد به توپ اشتباه', no_hit: 'خطا! به هیچ توپی نخورد',
+  hit_8_first: 'خطا! اول باید بخوری به توپ ۸', no_rail: 'خطا! هیچ توپی به ریل نخورد', jump: 'خطا! توپ از میز پرید بیرون',
+  timeout: 'وقت تموم شد', break_8: 'توپ ۸ تو بریک افتاد و دوباره چیده شد', break_illegal: 'بریک ضعیف بود و دوباره چیده شد',
 };
 const GROUP_FA = { solids: 'تک‌رنگ', stripes: 'راه‌راه' };
 
@@ -855,7 +855,7 @@ function renderPlayers(g) {
    با هر تغییر نوبت از کنار می لغزد (۴۰۰ms quadOut)، ۵ ثانیه بعد برمی گردد و با شروع ضربه پنهان می شود.
    نوبت عادی بی پیام است (sl_turn ← پنهان). */
 const pname = c => (P()[c] && P()[c].name) || 'حریف';
-const SL_ONE = { true: 'توپر', false: 'راه راه' }, SL_MANY = { true: 'توپرها', false: 'راه راه ها' };
+const SL_ONE = { true: 'توپر', false: 'راه‌راه' };
 function banner(text, foul) {
   const el = $('msg'); clearTimeout(bannerT);
   if (!text) { el.classList.remove('show'); return; }
@@ -871,42 +871,42 @@ const leftOf = (balls, sol) => { let n = 0; for (let k = sol ? 1 : 9; k < (sol ?
 function turnMsg(e) {
   const last = lastShot ? lastShot.c : e.c, g = G() || {};
   switch (e.foul) {
-    case 'scratch': return [`${pname(last)} توپ سفید را انداخت`, 1];
-    case 'hit_8_first': return [`${pname(last)} نتوانست ابتدا توپ-8 را بزند`, 1];
+    case 'scratch': return [`${pname(last)} توپ سفیدو انداخت`, 1];
+    case 'hit_8_first': return [`${pname(last)} نتونست اول توپ ۸ رو بزنه`, 1];
     case 'wrong_first': {
       const sol = solidsFor(last, e.solids);
-      return [sol == null ? `${pname(last)} در زدن توپ ناموفق بود` : `${pname(last)} موفق نشد ابتدا ${SL_ONE[sol]} را بزند`, 1];
+      return [sol == null ? `${pname(last)} به توپ نخورد` : `${pname(last)} نتونست اول ${SL_ONE[sol]} بزنه`, 1];
     }
-    case 'no_hit': return [`${pname(last)} در زدن توپ ناموفق بود`, 1];
-    case 'no_rail': return ['هیچ توپی بعد از ضربه، به ریل برخورد نکرد', 1];
-    case 'jump': return [`${pname(last)} توپ را از میز بیرون انداخت`, 1];
-    case 'timeout': return [`وقت ${pname(last)} تمام شد`, 1];
+    case 'no_hit': return [`${pname(last)} به توپ نخورد`, 1];
+    case 'no_rail': return ['بعد از ضربه هیچ توپی به ریل نخورد', 1];
+    case 'jump': return [`${pname(last)} توپو از میز انداخت بیرون`, 1];
+    case 'timeout': return [`وقت ${pname(last)} تموم شد`, 1];
   }
-  if (e.bih && e.msg === 'break') return [`نوبت ${pname(e.c)} است تا بریک کند`];
+  if (e.bih && e.msg === 'break') return [`نوبت ${pname(e.c)} شده که بریک کنه`];
   if (justGroups && e.solids >= 0) {
     const sol = solidsFor(e.c, e.solids);
-    if (g.n === 4) { const tm = g.order.filter((c, k) => k % 2 === teamOf(e.c)); return [`${pname(tm[0])} و ${pname(tm[1])} ${SL_MANY[sol]} هستند`]; }
-    return [`${pname(e.c)} توپ ${SL_MANY[sol]} را دارد`];
+    if (g.n === 4) { const tm = g.order.filter((c, k) => k % 2 === teamOf(e.c)); return [`گروه ${pname(tm[0])} و ${pname(tm[1])} شد ${SL_ONE[sol]}`]; }
+    return [`گروه ${pname(e.c)} شد ${SL_ONE[sol]}`];
   }
   const sol = solidsFor(e.c, e.solids);
-  if (sol != null && !leftOf(e.balls, sol) && e.balls[8]) return [`${pname(e.c)} می تواند توپ-8 را پاکت کند!`];
-  if (e.solids < 0) return ['میز باز است'];
+  if (sol != null && !leftOf(e.balls, sol) && e.balls[8]) return [`${pname(e.c)} می‌تونه توپ ۸ رو بندازه!`];
+  if (e.solids < 0) return ['میز بازه'];
   if (lastShot) {
     const ls = solidsFor(lastShot.c, e.solids), inn = (lastShot.pots || []).map(q => q[0]).filter(n => n && n !== 8);
     const good = inn.filter(n => (n < 8) === ls), bad = inn.length - good.length;
-    if (good.length === 1) return [`${pname(lastShot.c)} توپ-${good[0]} را پاکت کرد`];
-    if (good.length > 1) return [`${pname(lastShot.c)} ${good.length} توپ را پاکت کرد`];
-    if (bad > 0) return [`${pname(lastShot.c)} توپ اشتباه را پاکت کرد`, 1];
+    if (good.length === 1) return [`${pname(lastShot.c)} توپ ${good[0]} رو انداخت`];
+    if (good.length > 1) return [`${pname(lastShot.c)} ${good.length} تا توپ انداخت`];
+    if (bad > 0) return [`${pname(lastShot.c)} توپ اشتباهو انداخت`, 1];
   }
   return [''];
 }
 // وقتی صفحه تازه باز می شود (onSynchronize): همان پیام از روی وضعیت فعلی
 function stateMsg(g) {
   if (!g.turn || g.over) return '';
-  if (g.breaking && g.bih) return `نوبت ${pname(g.turn)} است تا بریک کند`;
-  if (g.solids < 0) return 'میز باز است';
+  if (g.breaking && g.bih) return `نوبت ${pname(g.turn)} شده که بریک کنه`;
+  if (g.solids < 0) return 'میز بازه';
   const sol = solidsFor(g.turn, g.solids);
-  return !leftOf(g.balls, sol) && g.balls[8] ? `${pname(g.turn)} می تواند توپ-8 را پاکت کند!` : '';
+  return !leftOf(g.balls, sol) && g.balls[8] ? `${pname(g.turn)} می‌تونه توپ ۸ رو بندازه!` : '';
 }
 function renderAll(g) {
   renderPlayers(g);
@@ -1146,7 +1146,7 @@ async function play(e) {
       return;
     } else if (strike) strike.hold = false;
     await playShot(e);
-    if (e.auto && isMe(e.c)) toast('وقتت تمام شد؛ ربات جای تو زد');
+    if (e.auto && isMe(e.c)) toast('وقتت تموم شد و ربات جات زد');
     return;
   }
   if (e.t === 'groups') { justGroups = true; snd.turn(); return; }
@@ -1161,17 +1161,17 @@ async function play(e) {
     return;
   }
   if (e.t === 'rack') {
-    banner(e.why === 'break_8' ? `توپ-8 پاکت شد، ${pname(G() ? G().turn || e.c : e.c)} باید یکبار دیگر بریک کند` : `${pname(e.c)} بریک غیرمجاز انجام داد!`, true);
+    banner(e.why === 'break_8' ? `توپ ۸ افتاد و ${pname(G() ? G().turn || e.c : e.c)} باید یه بار دیگه بریک کنه` : `${pname(e.c)} بریک غیرمجاز زد!`, true);
     await sleep(500); snd.rack(); setBalls(e.balls); for (const b of balls) b.q = startQuat(); return;
   }
   if (e.t === 'spot') { const b = balls[e.k]; b.on = true; b.x = e.at[0]; b.y = e.at[1]; return; }
-  if (e.t === 'timeout') { lastShot = { c: e.c, pots: [] }; if (!WATCH && isMe(e.c) && snap.cfg.mode === 'stake' && e.n >= 2) toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یک نوبت دیگر غیبت = خروج'); return; }
-  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}${G() && G().n === 4 ? '؛ ربات جایش بازی می‌کند' : ''}`); return; }
+  if (e.t === 'timeout') { lastShot = { c: e.c, pots: [] }; if (!WATCH && isMe(e.c) && snap.cfg.mode === 'stake' && e.n >= 2) toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یه نوبت دیگه غیبت کنی از بازی بیرونی'); return; }
+  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازیو ول کرد و رفت'}${G() && G().n === 4 ? ' و ربات جاش بازی می‌کنه' : ''}`); return; }
   if (e.t === 'win' || e.t === 'end') { if (e.balls) setBalls(e.balls); return; }
 }
 
-/* ---------- گفتگو: نوار «Say hello...» و پیام های شناور روی میز مثل پلاتو (tchat.js) ---------- */
-const QUICK = ['سلام!', 'خوش‌بازی!', 'عجب ضربه‌ای!', 'شانس آوردی', 'زود باش', 'یک دست دیگه؟'];
+/* ---------- گفتگو: نوار «یه چیزی بگو…» و پیام های شناور روی میز مثل پلاتو (tchat.js) ---------- */
+const QUICK = ['سلام!', 'خوش‌بازی!', 'عجب ضربه‌ای!', 'شانس آوردی', 'زود باش', 'یه دست دیگه؟'];
 const chat = TChat.init({
   bar: $('chatbar'), quick: QUICK, face: m => face(m, 'transparent'),
   canSend: () => mid && !WATCH,
@@ -1270,14 +1270,14 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 
 /* ---------- پایان، خروج ---------- */
 const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
-const WHY = { pot8: 'توپ ۸ با ضربهٔ قانونی افتاد', foul8: 'توپ ۸ همراه با خطا افتاد', early8: 'توپ ۸ زودتر از وقتش افتاد', left: 'یک طرف بازی را ترک کرد' };
+const WHY = { pot8: 'توپ ۸ با ضربهٔ قانونی افتاد', foul8: 'توپ ۸ با خطا افتاد', early8: 'توپ ۸ زودتر از وقتش افتاد', left: 'یکی بازیو ول کرد و رفت' };
 function over(v) {
   chat.end();
   const g = v.game, lastWin = (g.events || []).filter(e => e.t === 'win' || e.t === 'end').pop() || {};
   if (WATCH) {
     sfx.win();
     const names = g.winner == null ? '' : g.order.filter((c, k) => k % 2 === g.winner).map(c => g.players[c].name).join(' و ');
-    return GC.watchOver('billiard', 'بازی تمام شد', g.winner == null ? 'بازی بدون برنده بسته شد.' : `${names} برد${g.n === 4 ? 'ند' : ''}.`);
+    return GC.watchOver('billiard', 'بازی تموم شد', g.winner == null ? 'بازی بی برنده بسته شد' : `${names} برد${g.n === 4 ? 'ن' : ''}`);
   }
   const r = v.result || {}, won = !!r.won, team = g.n === 4;
   GC.guardClose(false); store.set('bmid', null);
@@ -1286,43 +1286,43 @@ function over(v) {
   const stake = v.cfg.mode === 'stake', ended = g.winner == null;
   sheet(`<div class="bl-res">
       <span class="ic${won ? '' : ' lost'}">${TROPHY}</span>
-      <h2>${ended ? 'بازی تمام شد' : won ? (team ? 'تیم شما برد!' : 'بردی!') : (team ? 'تیم حریف برد' : 'این بازی را باختی')}</h2>
+      <h2>${ended ? 'بازی تموم شد' : won ? (team ? 'تیمتون برد!' : 'بردی!') : (team ? 'تیم حریف برد' : 'این دستو باختی')}</h2>
       ${WHY[lastWin.why] ? `<p>${WHY[lastWin.why]}</p>` : ''}
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه به کیف امتیازت اضافه شد.</p>` : ended ? '<p>ورودی‌ها برگشت.</p>' : `<p>ورودی این بازی (${fa(r.lost || v.cfg.entry)} امتیاز) را باختی.</p>`)
-        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت.' : 'بازی آزاد بود؛ چیزی از دست ندادی.'}</p>`}
+      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه ریخت تو کیف امتیازت 🎉</p>` : ended ? '<p>ورودیا برگشت</p>' : `<p>ورودی این بازیو (${fa(r.lost || v.cfg.entry)} امتیاز) باختی فدای سرت</p>`)
+        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت ولی دمت گرم' : 'بازی آزاد بود و چیزی از دست ندادی'}</p>`}
       <div class="facts"><div><b>${FD(st.pots)}</b><span>توپ انداختی</span></div><div><b>${FD(st.shots)}</b><span>ضربه</span></div><div><b>${FD(st.fouls)}</b><span>خطا</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت</span></div></div>
     </div>
-    <a class="btn btn-block" href="billiard-lobby.html">یک بازی دیگر</a>
-    <a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+    <a class="btn btn-block" href="billiard-lobby.html">یه دست دیگه</a>
+    <a class="btn btn-light btn-block" href="index.html">خونه</a>`, { center: true, dismiss: false });
   GC.refreshMe().catch(() => {});
 }
 function cancelled() {
   if (overShown) return;
   overShown = true; chat.end();
-  if (WATCH) { GC.watchOver('billiard', 'این بازی بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
+  if (WATCH) { GC.watchOver('billiard', 'این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   GC.guardClose(false); store.set('bmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازی را بست و ورودی همه به کیف امتیازشان برگشت.</p>
-      <div class="dlg-acts"><a class="btn" href="billiard-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و ورودی همه برگشت تو کیفشون</p>
+      <div class="dlg-acts"><a class="btn" href="billiard-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
-  if (watchMid) { GC.watchOver('billiard', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
+  if (watchMid) { GC.watchOver('billiard', 'این بازیو نمی‌شه دید', 'بازی یا تموم شده یا هنوز شروع نشده'); return; }
   store.set('bmid', null);
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز وارد بازی‌ای نشده‌ای.</p>
-      <div class="dlg-acts"><a class="btn" href="billiard-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی یا تموم شده یا هنوز تو هیچ بازی‌ای نیستی</p>
+      <div class="dlg-acts"><a class="btn" href="billiard-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake', team = G() && G().n === 4;
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
-      <h2 id="dT">از بازی بیرون می‌روی؟</h2>
-      <p id="dD">${team ? 'از این به بعد ربات جای تو کنار یارت بازی می‌کند و اگر تیمت ببرد سهمی نمی‌گیری.' : 'خروج یعنی باخت همین بازی و حریف برنده می‌شود.'}</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
+      <h2 id="dT">می‌خوای بری؟</h2>
+      <p id="dD">${team ? 'از این به بعد ربات جات کنار یارت بازی می‌کنه و اگه تیمت ببره سهمی نمی‌گیری' : 'بری یعنی همین بازیو باختی و حریف می‌بره'}</p>
+      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گرده` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
-      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ بازی می‌ماند</button>
-      <p class="dlg-fine">تا نیستی نوبتت می‌سوزد و حریف توپ در دست می‌گیرد${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی خروج' : ''}.</p>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برو خونه بازی سر جاش می‌مونه</button>
+      <p class="dlg-fine">تا نیستی نوبتت می‌سوزه و حریف توپ در دست می‌گیره${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی از بازی بیرونی' : ''}</p>
     </div>`, { center: true });
   sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
@@ -1368,19 +1368,19 @@ function tour() {
     return { x, y, w: Math.max(a.right, b.right) - x, h: Math.max(a.bottom, b.bottom) - y }; };
   return {
     id: 'billiard', name: 'بیلیارد', color: '#FFC928', help: 'help.html#hBilliard',
-    intro: 'بیلیارد هشت توپ: توپ‌های گروه خودت رو بنداز و آخر از همه توپ ۸ رو.',
+    intro: 'بیلیارد هشت توپ 🎱 توپای گروه خودتو بنداز و آخر از همه توپ ۸ رو',
     ready: () => !!(G() && !WATCH && snap.status === 'playing' && !G().over),
     turn: () => ({ mine: !!(G() && G().turn === me && !G().over), left: deadlineAt ? deadlineAt - Date.now() : null }),
     steps: [
-      { el: '#table', title: 'گروه توپ‌ها', text: 'بازی با بریک شروع می‌شه. اولین توپی که بیفته گروهت رو معلوم می‌کنه: <b>تک‌رنگ</b> (۱ تا ۷) یا <b>راه‌راه</b> (۹ تا ۱۵). توپ خودت بیفته، دوباره نوبت توئه.' },
-      { el: '#table', title: 'نشونه بگیر', text: 'یه بار <b>روی میز بزن</b> تا نوک چوب همون‌جا رو نشونه بگیره. خط سفید مسیر توپ سفیده و خط رنگی مسیر توپی که بهش می‌خوره.', hand: 'tap', at: [0.62, 0.32] },
-      { el: '#table', title: 'دقیق تنظیم کن', text: 'انگشتت رو <b>دور توپ سفید بکش</b> تا چوب همراهش بچرخه؛ آروم بکشی خیلی ظریف، تند بکشی سریع.', hand: { type: 'drag', from: [0.3, 0.62], to: [0.72, 0.62] } },
-      { el: '#power', title: 'قدرت و ضربه', text: 'نوار قدرت رو <b>پایین بکش</b>؛ هر چی بیشتر، محکم‌تر. رها کن تا ضربه بخوره.', hand: { type: 'drag', from: [0.5, 0.12], to: [0.5, 0.78] }, pad: 6 },
-      { el: '#english', title: 'پیچ بده', text: 'روی این توپ سفید بزن و نقطهٔ ضربه رو جابه‌جا کن: <b>بالا</b> سفید بعد از برخورد جلو می‌ره، <b>پایین</b> برمی‌گرده، چپ و راست هم کجش می‌کنه.', hand: 'tap', round: 999 },
-      { el: both, title: 'تنظیم خیلی دقیق', text: '<b>FINE AIM</b> رو نگه دار تا چوب خیلی آروم، درجه به درجه بچرخه.', hand: 'hold', at: [0.5, 0.25] },
-      { el: '#table', title: 'خطا نکن', text: 'سفید بیفته، اول به توپ حریف بخوری یا به هیچ توپی نخوری خطاست؛ حریف <b>توپ در دست</b> می‌گیره و سفید رو هر جا بخواد می‌ذاره.' },
-      { el: '#players', title: 'نوبت و توپ ۸', text: 'تایمر بالای سر کسیه که نوبتشه. گروهت که پاک شد، <b>توپ ۸</b> رو بنداز و ببر؛ اگه زودتر یا با خطا بیفته، باختی.' },
-      { el: '#items', title: 'پیام سریع', text: 'یه پیام یا شکلک سریع برای حریف بفرست.', hand: 'tap', round: 999 },
+      { el: '#table', title: 'گروه توپ‌ها', text: 'بازی با بریک شروع می‌شه و اولین توپی که بیفته گروهتو معلوم می‌کنه یعنی <b>تک‌رنگ</b> (۱ تا ۷) یا <b>راه‌راه</b> (۹ تا ۱۵)<br>توپ خودت بیفته دوباره نوبت خودته' },
+      { el: '#table', title: 'نشونه بگیر', text: 'یه بار <b>بزن رو میز</b> تا نوک چوب همون‌جا رو نشونه بگیره<br>خط سفید مسیر توپ سفیده و خط رنگی مسیر توپیه که بهش می‌خوره', hand: 'tap', at: [0.62, 0.32] },
+      { el: '#table', title: 'دقیق تنظیم کن', text: 'انگشتتو <b>دور توپ سفید بکش</b> تا چوب باهاش بچرخه و آروم بکشی ظریف می‌چرخه و تند بکشی سریع', hand: { type: 'drag', from: [0.3, 0.62], to: [0.72, 0.62] } },
+      { el: '#power', title: 'قدرت و ضربه', text: 'نوار قدرتو <b>بکش پایین</b> و هر چی بیشتر بکشی محکم‌تر می‌زنی<br>ول کن تا ضربه بخوره', hand: { type: 'drag', from: [0.5, 0.12], to: [0.5, 0.78] }, pad: 6 },
+      { el: '#english', title: 'پیچ بده', text: 'بزن رو این توپ سفید و نقطهٔ ضربه رو جابه‌جا کن<br><b>بالا</b> یعنی سفید بعد از برخورد می‌ره جلو و <b>پایین</b> یعنی برمی‌گرده و چپ و راست هم کجش می‌کنه', hand: 'tap', round: 999 },
+      { el: both, title: 'تنظیم خیلی دقیق', text: '<b>FINE AIM</b> رو نگه دار تا چوب خیلی آروم درجه به درجه بچرخه', hand: 'hold', at: [0.5, 0.25] },
+      { el: '#table', title: 'خطا نکن', text: 'سفید بیفته یا اول به توپ حریف بخوری یا به هیچ توپی نخوری خطاست<br>اون وقت حریف <b>توپ در دست</b> می‌گیره و سفیدو هر جا بخواد می‌ذاره' },
+      { el: '#players', title: 'نوبت و توپ ۸', text: 'تایمر بالا سر کسیه که نوبتشه<br>گروهت که پاک شد <b>توپ ۸</b> رو بنداز و ببر ولی اگه زودتر یا با خطا بیفته باختی' },
+      { el: '#items', title: 'پیام سریع', text: 'یه پیام یا شکلک سریع واسه حریف بفرست', hand: 'tap', round: 999 },
     ],
   };
 }

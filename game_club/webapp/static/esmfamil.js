@@ -88,12 +88,12 @@ function viewLetter() {
   if (!g.letter) {
     const waiting = (g.waiting || []).filter(c => c !== me());
     return `<section class="ef-reveal"><span class="ef-think">${PEN}</span><h2>داور داره حرف رو انتخاب می‌کنه…</h2>
-      <p class="ef-sub">هوش مصنوعی عبور داره حرفا رو می‌چینه؛ حرف واسه همه با هم رو می‌شه، پس کسی جلو نمی‌افته 😉</p>
+      <p class="ef-sub">هوش مصنوعی عبور داره حرفا رو می‌چینه و حرف واسه همه با هم رو می‌شه پس کسی جلو نمی‌افته 😉</p>
       ${waiting.length ? `<div class="ef-wait"><b>هنوز نیومدن:</b>${waiting.map(c => `<span class="ef-chip">${who(c)}</span>`).join('')}</div>` : ''}</section>`;
   }
   return `<section class="ef-reveal"><div class="ef-big">${RING}<b>${esc(g.letter)}</b></div>
     ${g.line ? `<p class="ef-line">${esc(g.line)}</p>` : `<p class="ef-line">حرف «${esc(g.letter)}»! بزن بریم</p>`}
-    <p class="ef-sub">برگت الان باز می‌شه؛ خودکارتو بردار ✍️</p><span class="ef-count" id="cnt">${FD(secsLeft() || 1)}</span></section>`;
+    <p class="ef-sub">برگت الان باز می‌شه خودکارتو بردار ✍️</p><span class="ef-count" id="cnt">${FD(secsLeft() || 1)}</span></section>`;
 }
 
 /* ---------- مرحلهٔ نوشتن ---------- */
@@ -121,7 +121,7 @@ function footWrite() {
   const chips = `<div class="ef-who"><b>برگ‌ها:</b>${doneC.map(c => `<span class="ef-chip done">${who(c)} ✓</span>`).join('')}${writing ? `<span class="ef-chip">${FD(writing)} نفر هنوز دارن می‌نویسن</span>` : ''}</div>`;
   if (WATCH) return chips;
   let btn;
-  if (g.submitted) btn = `<button class="ef-go soft" disabled>${icon('check')}تحویلش دادی؛ منتظر بقیه‌ایم</button>`;
+  if (g.submitted) btn = `<button class="ef-go soft" disabled>${icon('check')}تحویلش دادی و منتظر بقیه‌ایم</button>`;
   else if (g.phase === 'write' && all) btn = `<button class="ef-go stop" id="stopB">استپ!</button>`;
   else btn = `<button class="ef-go${all ? '' : ' soft'}" id="subB">برگمو بده (${FD(n)} از ${FD(g.cols.length)})</button>`;
   return chips + btn;
@@ -130,9 +130,9 @@ function noteWrite() {
   const g = G();
   if (g.phase === 'stop') {
     const s = Math.max(0, secsLeft());
-    return note(g.stopper === me() ? `استپ زدی! بقیه فقط ${FD(s)} ثانیه وقت دارن 😎` : `${who(g.stopper)} استپ زد! فقط ${FD(s)} ثانیه وقت داری، تند تند بنویس!`);
+    return note(g.stopper === me() ? `استپ زدی! بقیه فقط ${FD(s)} ثانیه وقت دارن 😎` : `${who(g.stopper)} استپ زد! فقط ${FD(s)} ثانیه وقت داری تند تند بنویس!`);
   }
-  if (WATCH) return note('داری تماشا می‌کنی؛ برگ هر کی رو بخوای از تب‌ها ببین 👀', icon('eye'));
+  if (WATCH) return note('داری تماشا می‌کنی و برگ هر کیو بخوای از تب‌ها ببین 👀', icon('eye'));
   note(null);
 }
 function bindWrite() {
@@ -184,7 +184,7 @@ function viewJudge() {
       ${(g.sheet && g.sheet[k]) || vals[k] ? `<span class="ro hand">${esc((g.sheet && g.sheet[k]) || vals[k])}</span>` : '<span class="ro empty">خالی موند</span>'}</div>`).join('')}</div>`;
   return `<div class="ef-jhead"><span class="ic">${PEN}</span><div><h2>داور داره برگ‌ها رو تصحیح می‌کنه…</h2><small>هوش مصنوعی عبور داره برگ همه رو با دقت می‌خونه 🧐</small></div></div>
     <div class="ef-prog"><i id="prog" style="width:4%"></i></div>${mine}
-    <p class="ef-tip">جواب درستی که فقط تو نوشتی ۱۰، درستِ تکراری ۵، غلط یا خالی ۰. هر جوابی رو که خط بزنه، دلیلشم کنارش می‌نویسه.</p>`;
+    <p class="ef-tip">جواب درستی که فقط تو نوشتی ۱۰ و درستِ تکراری ۵ و غلط یا خالی ۰<br>هر جوابی رو که خط بزنه دلیلشم کنارش می‌نویسه</p>`;
 }
 
 /* ---------- برگ دور (جدول) ---------- */
@@ -212,8 +212,8 @@ function whyHtml(g, i) {
   for (const c of g.order) for (const { k, fa } of g.cols) {
     const x = rec.cells[c] && rec.cells[c][k];
     if (!x || !x.a) continue;
-    if (!x.ok && x.why) out.push(`<span><span class="hand">${esc(x.a)}</span> (${fa}، ${who(c)}): ${esc(x.why)}</span>`);
-    else if (x.appealed) out.push(`<span><span class="hand">${esc(x.a)}</span> (${fa}، ${who(c)}): با رأی بچه‌ها قبول شد 🙌</span>`);
+    if (!x.ok && x.why) out.push(`<span><span class="hand">${esc(x.a)}</span> (${fa} · ${who(c)}) ${esc(x.why)}</span>`);
+    else if (x.appealed) out.push(`<span><span class="hand">${esc(x.a)}</span> (${fa} · ${who(c)}) با رأی بچه‌ها قبول شد 🙌</span>`);
   }
   return out.length ? `<div class="ef-why">${out.join('')}</div>` : '';
 }
@@ -224,16 +224,16 @@ function appealsHtml(g) {
   return `<div class="ef-aps">${aps.map(([key, ap]) => {
     const x = rec.cells[ap.c][ap.col], fa = (g.cols.find(c => c.k === ap.col) || {}).fa || '';
     const mine = ap.c === me(), canVote = !WATCH && !mine && me() && !g.players[me()].out;
-    const res = ap.res == null ? '' : ap.res ? 'قبول شد؛ دمتون گرم ✓' : 'قبول نشد؛ قسمت نبود';
+    const res = ap.res == null ? '' : ap.res ? 'قبول شد دمتون گرم ✓' : 'قبول نشد قسمت نبود';
     return `<div class="ef-ap${ap.res == null ? '' : ' res'}">${who(ap.c)} سر <span class="hand">${esc(x.a)}</span> (${fa}) اعتراض ${mine ? 'کردی' : 'داره'}! ${mine ? 'بچه‌ها دارن رأی می‌دن…' : 'قبوله یا نه؟'}
-      <div class="ef-apr"><span class="cnt">${res || `${FD(ap.yes)} موافق، ${FD(ap.no)} مخالف`}</span>
+      <div class="ef-apr"><span class="cnt">${res || `${FD(ap.yes)} موافق · ${FD(ap.no)} مخالف`}</span>
       ${ap.res == null && canVote ? `<span class="vb"><button data-vote="${key}" data-yes="1" aria-pressed="${ap.mine === 'yes'}">قبوله 👍</button><button data-vote="${key}" data-yes="0" aria-pressed="${ap.mine === 'no'}">قبول نیست 👎</button></span>` : ''}</div></div>`;
   }).join('')}</div>`;
 }
 function viewShow() {
   const g = G(), i = g.results.length - 1, rec = g.results[i];
   const mineBad = me() && g.cols.some(({ k }) => { const x = rec.cells[me()] && rec.cells[me()][k]; return x && x.a && !x.ok && !x.fix && !g.appeals[`${me()}:${k}`]; });
-  return `<div class="ef-rhead"><b>برگ دور ${FD(i + 1)}، حرف «${esc(rec.letter)}»</b><small>${rec.by === 'ai' ? 'داور: هوش مصنوعی عبور' : 'داوری خودکار'}</small></div>
+  return `<div class="ef-rhead"><b>برگ دور ${FD(i + 1)} · حرف «${esc(rec.letter)}»</b><small>${rec.by === 'ai' ? 'داور: هوش مصنوعی عبور' : 'داوری خودکار'}</small></div>
     ${appealsHtml(g)}<div class="ef-card">${tableHtml(g, i)}${whyHtml(g, i)}</div>
     ${mineBad ? '<p class="ef-hint">فکر می‌کنی داور بی‌انصافی کرده؟ رو جواب خط‌خورده‌ت بزن و اعتراض کن ✋</p>' : ''}`;
 }
@@ -251,16 +251,16 @@ function viewOver() {
   const rank = g.order.slice().sort((a, b) => (tot[b] || 0) - (tot[a] || 0) || g.order.indexOf(a) - g.order.indexOf(b));
   const myPos = me() ? rank.indexOf(me()) + 1 : 0, n = g.results.length;
   if (tab == null || tab >= n) tab = n - 1;
-  const title = !wins.length ? 'این دست کسی نبرد 🕊' : wins.includes(me()) ? (wins.length > 1 ? 'مساوی شدین؛ تو هم بردی! 🎉' : 'تو بردی! 🎉') : `${who(wins[0])}${wins.length > 1 ? ' و بقیه' : ''} برد!`;
-  return `<div class="ef-win"><div class="t"><small>بازی تموم شد، ${FD(n)} دور</small><h1>${title}</h1>
-      <span>${wins.length ? `${FD(tot[wins[0]] || 0)} امتیاز` : 'کسی امتیاز نگرفت'}${myPos ? `؛ تو ${myPos === 1 ? 'اول' : FD(myPos) + 'ام'} شدی${myPos === 1 ? '' : '، دست بعد مال توئه 😉'}` : ''}</span></div>
+  const title = !wins.length ? 'این دست کسی نبرد 🕊' : wins.includes(me()) ? (wins.length > 1 ? 'مساوی شدین و تو هم بردی! 🎉' : 'تو بردی! 🎉') : `${who(wins[0])}${wins.length > 1 ? ' و بقیه' : ''} برد!`;
+  return `<div class="ef-win"><div class="t"><small>بازی تموم شد · ${FD(n)} دور</small><h1>${title}</h1>
+      <span>${wins.length ? `${FD(tot[wins[0]] || 0)} امتیاز` : 'کسی امتیاز نگرفت'}${myPos ? ` · تو ${myPos === 1 ? 'اول' : FD(myPos) + 'ام'} شدی${myPos === 1 ? '' : ' دست بعد مال توئه 😉'}` : ''}</span></div>
       ${wins.length ? `<div class="ef-stamp">برنده<b>${FD(tot[wins[0]] || 0)}</b></div>` : ''}</div>
     <ol class="ef-rank">${rank.map((c, j) => `<li class="${c === me() ? 'me' : ''}${g.players[c].out ? ' out' : ''}"><span class="n">${FD(j + 1)}</span>${face(g.players[c])}<span class="nm">${who(c)}${g.players[c].out ? ' (وسط بازی رفت)' : ''}</span><span class="v">${FD(tot[c] || 0)}</span></li>`).join('')}</ol>
-    ${n > 1 ? `<div class="ef-tabs" role="tablist">${g.results.map((r, j) => `<button role="tab" data-tab="${j}" aria-selected="${j === tab}">دور ${FD(j + 1)}، «${esc(r.letter)}»</button>`).join('')}</div>` : ''}
-    ${n ? `<div class="ef-card">${tableHtml(g, tab)}${whyHtml(g, tab)}</div><p class="ef-hint">برگ همه رو با امتیازا توی گروه هم فرستادیم تا همه ببینن 📣</p>` : ''}`;
+    ${n > 1 ? `<div class="ef-tabs" role="tablist">${g.results.map((r, j) => `<button role="tab" data-tab="${j}" aria-selected="${j === tab}">دور ${FD(j + 1)} · «${esc(r.letter)}»</button>`).join('')}</div>` : ''}
+    ${n ? `<div class="ef-card">${tableHtml(g, tab)}${whyHtml(g, tab)}</div><p class="ef-hint">برگ همه رو با امتیازا تو گروه هم فرستادیم تا همه ببینن 📣</p>` : ''}`;
 }
 function footOver() {
-  return `<div class="ef-acts"><button class="ef-go" id="again">${icon('send')}یه دست دیگه توی گروه</button><a class="ef-go soft" href="index.html">برگرد خونه</a></div>`;
+  return `<div class="ef-acts"><button class="ef-go" id="again">${icon('send')}یه دست دیگه تو گروه</button><a class="ef-go soft" href="index.html">برگرد خونه</a></div>`;
 }
 
 /* ---------- چیدن صفحه ---------- */
@@ -339,8 +339,8 @@ function confirmSubmit() {
   const g = G(), n = filled(), left = g.cols.length - n;
   if (!left || g.phase === 'stop') return doSubmit();
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="sT" aria-describedby="sD"><span class="dlg-ic">${PEN}</span>
-    <h2 id="sT">برگتو تحویل می‌دی؟</h2><p id="sD">${FD(left)} تا خونه هنوز خالیه. تحویلش بدی دیگه نمی‌تونی چیزی بنویسی و خونهٔ خالی صفر می‌گیره.</p>
-    <div class="dlg-acts"><button class="btn" data-close>نه، می‌نویسم</button><button class="btn btn-light" id="ok">آره، تحویلش بده</button></div></div>`, { center: true });
+    <h2 id="sT">برگتو تحویل می‌دی؟</h2><p id="sD">${FD(left)} تا خونه هنوز خالیه<br>تحویلش بدی دیگه نمی‌تونی چیزی بنویسی و خونهٔ خالی صفر می‌گیره</p>
+    <div class="dlg-acts"><button class="btn" data-close>نه می‌نویسم</button><button class="btn btn-light" id="ok">آره تحویلش بده</button></div></div>`, { center: true });
   sh.querySelector('#ok').onclick = () => { close(); doSubmit(); };
 }
 function doSubmit() {
@@ -359,14 +359,14 @@ function cellSheet(ref) {
   const key = `${c}:${k}`, ap = current ? g.appeals[key] : null;
   const canAppeal = current && c === me() && !x.ok && !x.fix && !ap;
   const canVote = current && ap && ap.res == null && !WATCH && me() && c !== me();
-  const verdict = x.ok ? (x.appealed ? 'با رأی بچه‌ها قبول شد 🙌' : x.s === 10 ? 'درسته و فقط همین یه نفر نوشته: ۱۰ امتیاز' : 'درسته ولی یکی دیگه هم نوشته: ۵ امتیاز') : 'داور قبولش نکرد: ۰ امتیاز';
-  const sh = sheet(`<div class="ef-detail"><small>${fa}، ${who(c)}، دور ${FD(+i + 1)}</small><b class="hand">${esc(x.a)}</b>
+  const verdict = x.ok ? (x.appealed ? 'با رأی بچه‌ها قبول شد 🙌' : x.s === 10 ? 'درسته و فقط همین یه نفر نوشته · ۱۰ امتیاز' : 'درسته ولی یکی دیگه هم نوشته · ۵ امتیاز') : 'داور قبولش نکرد · ۰ امتیاز';
+  const sh = sheet(`<div class="ef-detail"><small>${fa} · ${who(c)} · دور ${FD(+i + 1)}</small><b class="hand">${esc(x.a)}</b>
       <span class="verdict ${x.ok ? 'ok' : 'no'}">${verdict}</span>${!x.ok && x.why ? `<span class="why">${esc(x.why)}</span>` : ''}
-      ${ap ? `<span class="verdict">${ap.res == null ? `دارن رأی می‌دن: ${FD(ap.yes)} موافق، ${FD(ap.no)} مخالف` : ap.res ? 'اعتراض قبول شد 🙌' : 'اعتراض قبول نشد'}</span>` : ''}</div>
-    ${canAppeal ? `<button class="btn btn-block" id="apB">${icon('flag')}اعتراض دارم!</button><p class="hint">بقیه رأی می‌دن؛ اگه موافقا بیشتر باشن جوابت قبول می‌شه.</p>` : ''}
+      ${ap ? `<span class="verdict">${ap.res == null ? `دارن رأی می‌دن: ${FD(ap.yes)} موافق · ${FD(ap.no)} مخالف` : ap.res ? 'اعتراض قبول شد 🙌' : 'اعتراض قبول نشد'}</span>` : ''}</div>
+    ${canAppeal ? `<button class="btn btn-block" id="apB">${icon('flag')}اعتراض دارم!</button><p class="hint">بقیه رأی می‌دن و اگه موافقا بیشتر باشن جوابت قبول می‌شه</p>` : ''}
     ${canVote ? `<div class="dlg-acts"><button class="btn" id="vY">قبوله 👍</button><button class="btn btn-light" id="vN">قبول نیست 👎</button></div>` : ''}
     <button class="btn btn-light btn-block" data-close>باشه</button>`, { center: true });
-  const a = sh.querySelector('#apB'); if (a) a.onclick = () => { close(); act(() => API.appeal(mid, k, since), () => toast('اعتراضت ثبت شد؛ حالا بقیه رأی می‌دن')); };
+  const a = sh.querySelector('#apB'); if (a) a.onclick = () => { close(); act(() => API.appeal(mid, k, since), () => toast('اعتراضت ثبت شد حالا بقیه رأی می‌دن')); };
   const y = sh.querySelector('#vY'); if (y) y.onclick = () => { close(); act(() => API.vote(mid, key, true, since)); };
   const n = sh.querySelector('#vN'); if (n) n.onclick = () => { close(); act(() => API.vote(mid, key, false, since)); };
 }
@@ -385,10 +385,10 @@ async function again(btn) {
   btn.disabled = true;
   try {
     const r = await GC.data.groupShare('esmfamil');
-    if (r.demo) toast('توی تلگرام گروهتو انتخاب می‌کنی و کارت میز همون‌جا می‌ره');
-    else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز رفت توی گروه؛ بچه‌ها رو خبر کن! 🎉'); } });
+    if (r.demo) toast('تو تلگرام گروهتو انتخاب می‌کنی و کارت میز همون‌جا می‌ره');
+    else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز رفت تو گروه بچه‌ها رو خبر کن! 🎉'); } });
     else if (at('6.7') && w.switchInlineQuery) w.switchInlineQuery('esmfamil', ['groups', 'channels']);
-    else toast('توی گروه بنویس /esmfamil');
+    else toast('تو گروه بنویس /esmfamil');
   } catch (e) { toast(errText(e)); }
   btn.disabled = false;
 }
@@ -399,10 +399,10 @@ function askExit() {
   if (!snap || snap.status !== 'playing' || WATCH || !g || g.over) { location.href = 'index.html'; return; }
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span><h2 id="dT">داری می‌ری؟</h2>
-      <p id="dD">اگه بری، دورهای بعد رو از دست می‌دی و برگت دیگه حساب نمی‌شه؛ امتیاز دورهای قبل سر جاش می‌مونه.</p>
-      <div class="dlg-acts"><button class="btn" data-close>نه، می‌مونم</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}آره، می‌رم</button></div>
-      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برم خونه؛ بازی سر جاش می‌مونه</button>
-      <p class="dlg-fine">هر چی نوشتی ذخیره شده و از صفحهٔ خونه با یه لمس برمی‌گردی؛ فقط حواست باشه وقت دور واسه کسی صبر نمی‌کنه ⏳</p></div>`, { center: true });
+      <p id="dD">اگه بری دورهای بعدو از دست می‌دی و برگت دیگه حساب نمی‌شه<br>امتیاز دورهای قبل سر جاش می‌مونه</p>
+      <div class="dlg-acts"><button class="btn" data-close>نه می‌مونم</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}آره می‌رم</button></div>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برم خونه بازی سر جاش می‌مونه</button>
+      <p class="dlg-fine">هر چی نوشتی ذخیره شده و از صفحهٔ خونه با یه لمس برمی‌گردی<br>فقط حواست باشه وقت دور واسه کسی صبر نمی‌کنه ⏳</p></div>`, { center: true });
   sh.querySelector('#home').onclick = async () => { await save().catch(() => {}); GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => { try { await API.leave(mid); } catch (e) {} GC.guardClose(false); store.set('emid', null); location.href = 'index.html'; };
 }
@@ -413,8 +413,8 @@ function dialog(title, text) {
       <h2 id="dT">${title}</h2><p id="dD">${text}</p>
       <div class="dlg-acts"><a class="btn" href="esmfamil-lobby.html">اسم‌فامیل</a><a class="btn btn-light" href="index.html">برگرد خونه</a></div></div>`, { center: true, dismiss: false });
 }
-function cancelled() { store.set('emid', null); GC.guardClose(false); dialog('این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد؛ یه دست تازه بچینید 😉'); }
-function noMatch() { if (!watchMid) store.set('emid', null); dialog(watchMid ? 'این بازی رو نمی‌شه دید' : 'بازی‌ای پیدا نشد', watchMid ? 'یا تموم شده یا هنوز شروع نشده.' : 'یا بازی تموم شده یا هنوز سر هیچ برگی نشستی.'); }
+function cancelled() { store.set('emid', null); GC.guardClose(false); dialog('این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد یه دست تازه بچینین 😉'); }
+function noMatch() { if (!watchMid) store.set('emid', null); dialog(watchMid ? 'این بازی رو نمی‌شه دید' : 'بازی‌ای پیدا نشد', watchMid ? 'یا تموم شده یا هنوز شروع نشده' : 'یا بازی تموم شده یا هنوز سر هیچ برگی ننشستی'); }
 
 /* ---------- پرسیدن پیاپی وضعیت ---------- */
 async function poll() {
@@ -454,15 +454,15 @@ const writing = () => !!(G() && ['write', 'stop'].includes(G().phase) && !G().su
 function tour() {
   return {
     id: 'esmfamil', name: 'اسم‌فامیل', color: '#C8323C', ink: '#fff', help: 'help.html#hEsm', pauseAt: Infinity, pauseText: 'وقت نوشتنه! بقیهٔ آموزش بعد از این دور',
-    intro: 'همون اسم‌فامیل خودمون، با داور هوش مصنوعی: سریع بنویس، جواب تکراری نده و بیشترین امتیاز رو بگیر.',
+    intro: 'همون اسم‌فامیل خودمون با داور هوش مصنوعی 🤖 تند بنویس و جواب تکراری نده و بیشترین امتیازو بگیر',
     ready: () => !!(G() && !WATCH && !G().over),
     turn: () => ({ mine: writing(), left: secsLeft() * 1000 }),
     steps: [
-      { el: '#mini', title: 'حرف این دور', text: 'هر دور یه حرف برای همه با هم رو می‌شه و اینجا می‌بینیش؛ حرف‌ها رو هوش مصنوعی عبور انتخاب می‌کنه.', round: 999 },
-      { el: '#clock', title: 'وقت دور', text: 'ساعت نشون می‌ده چقدر وقت داری؛ ۱۰ ثانیهٔ آخر قرمز می‌شه. آموزش هم موقع نوشتن کنار می‌ره تا وقتت نسوزه.' },
-      { el: () => $('sheet') || $('main'), title: 'برگت رو پر کن', text: '<b>اسم، فامیل، شهر، کشور، غذا، حیوان، میوه، اشیا و رنگ</b> رو با همون حرف بنویس. هر چی می‌نویسی خودکار ذخیره می‌شه.', hand: 'tap', at: [0.65, 0.18] },
-      { el: '#foot', title: 'استپ!', text: 'برگت که کامل شد <b>«استپ!»</b> بزن؛ بقیه فقط ۲۰ ثانیه وقت دارن. نمی‌خوای ادامه بدی؟ برگت رو زودتر تحویل بده.', center: true },
-      { el: '#round', title: 'امتیاز', text: 'جواب درستی که فقط تو نوشتی <b>۱۰</b>، تکراری <b>۵</b>، غلط یا خالی <b>۰</b>. هر کی آخر بازی بیشترین جمع رو داشت می‌بره.' },
+      { el: '#mini', title: 'حرف این دور', text: 'هر دور یه حرف واسه همه با هم رو می‌شه و اینجا می‌بینیش<br>حرفا رو هوش مصنوعی عبور انتخاب می‌کنه', round: 999 },
+      { el: '#clock', title: 'وقت دور', text: 'ساعت نشون می‌ده چقدر وقت داری و ۱۰ ثانیهٔ آخر قرمز می‌شه<br>آموزش هم موقع نوشتن می‌ره کنار تا وقتت نسوزه' },
+      { el: () => $('sheet') || $('main'), title: 'برگت رو پر کن', text: '<b>اسم و فامیل و شهر و کشور و غذا و حیوان و میوه و اشیا و رنگ</b> رو با همون حرف بنویس<br>هر چی می‌نویسی خودکار ذخیره می‌شه', hand: 'tap', at: [0.65, 0.18] },
+      { el: '#foot', title: 'استپ!', text: 'برگت که کامل شد <b>«استپ!»</b> بزن تا بقیه فقط ۲۰ ثانیه وقت داشته باشن<br>نمی‌خوای ادامه بدی؟ برگتو زودتر تحویل بده', center: true },
+      { el: '#round', title: 'امتیاز', text: 'جواب درستی که فقط تو نوشتی <b>۱۰</b> و تکراری <b>۵</b> و غلط یا خالی <b>۰</b><br>هر کی آخر بازی بیشترین جمعو داشت می‌بره' },
     ],
   };
 }
@@ -470,12 +470,12 @@ function tour2() {
   const mineX = () => { const x = document.querySelector('.ef-t td.me .w.x') || document.querySelector('.ef-t td .w.x'); return x && x.closest('td'); };
   return {
     id: 'esmfamil2', artId: 'esmfamil', name: 'اسم‌فامیل', color: '#C8323C', ink: '#fff', help: 'help.html#hEsm',
-    introTitle: 'برگ‌ها تصحیح شد!', intro: 'سه نکته دربارهٔ نتیجهٔ هر دور، اعتراض و رفتن به دور بعد.',
+    introTitle: 'برگ‌ها تصحیح شد!', intro: 'سه تا نکته دربارهٔ نتیجهٔ هر دور و اعتراض و رفتن به دور بعد',
     ready: () => !!(G() && !WATCH && G().phase === 'show' && document.querySelector('.ef-t')),
     steps: [
-      { el: '.ef-card', title: 'برگ همه', text: 'جواب همه با امتیاز هر خونه؛ جواب‌های رد شده <b>خط خوردن</b> و دلیل داور زیرشون نوشته شده.' },
-      { el: () => mineX() || document.querySelector('.ef-t'), title: 'اعتراض کن', text: 'فکر می‌کنی داور بی‌انصافی کرده؟ روی <b>جواب خط‌خوردهٔ خودت</b> بزن؛ بقیه رأی می‌دن و هر چی اکثریت گفت.', hand: 'tap' },
-      { el: '#rdy', title: 'دور بعد', text: 'آماده که شدی اینو بزن؛ همه که آماده شدن (یا وقتش تموم شد) دور بعد شروع می‌شه.', hand: 'tap' },
+      { el: '.ef-card', title: 'برگ همه', text: 'جواب همه با امتیاز هر خونه<br>جوابای رد شده <b>خط خوردن</b> و دلیل داور زیرشون نوشته شده' },
+      { el: () => mineX() || document.querySelector('.ef-t'), title: 'اعتراض کن', text: 'فکر می‌کنی داور بی‌انصافی کرده؟ بزن رو <b>جواب خط‌خوردهٔ خودت</b><br>بقیه رأی می‌دن و هر چی اکثریت گفت همون', hand: 'tap' },
+      { el: '#rdy', title: 'دور بعد', text: 'آماده که شدی اینو بزن و همه که آماده شدن (یا وقتش تموم شد) دور بعد شروع می‌شه', hand: 'tap' },
     ],
   };
 }

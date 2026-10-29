@@ -34,8 +34,8 @@
 </header>
 <main class="page no-nav">
   <div class="gp" id="gp"></div>
-  <a class="card card-link resume" id="resume" href="lashgar.html" hidden><span class="tag tag-live">جنگ نیمه‌کاره</span><b>برگرد سر برگه‌ت</b><span class="muted">جنگ هنوز ادامه داره و حریفت منتظره؛ زود بیا!</span></a>
-  <a class="card card-link resume" id="demo" href="lashgar.html" hidden><span class="tag">نمونه</span><b>یه جنگ نمونه بزن</b><span class="muted">بیرون از تلگرام، با یه حریف ساختگی امتحانش کن.</span></a>
+  <a class="card card-link resume" id="resume" href="lashgar.html" hidden><span class="tag tag-live">جنگ نیمه‌کاره</span><b>برگرد سر برگه‌ت</b><span class="muted">جنگ هنوز ادامه داره و حریفت منتظره زود بیا!</span></a>
+  <a class="card card-link resume" id="demo" href="lashgar.html" hidden><span class="tag">نمونه</span><b>یه جنگ نمونه بزن</b><span class="muted">بیرون از تلگرام با یه حریف الکی امتحانش کن</span></a>
 </main>
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
@@ -74,9 +74,9 @@
       shown = sig;
       const seat = s => `<div class="seatw">${face(s, s.me ? '#F5C451' : 'var(--sky)')}<span class="uname">${s.name}</span>${s.me ? '<small>تو</small>' : ''}</div>`;
       const sh = sheet(`${sheetHead('سر میز لشگر کاغذی')}
-        <p>تن‌به‌تن، ارتش ${c.army === 18 ? 'بزرگ (۱۸ نیرو)' : 'کوچک (۱۱ نیرو)'}؛ نقاشی وقت نداره، هر شلیک ۱ دقیقه.</p>
-        <div class="seatgrid">${seat(L.seats[0])}<span class="vs">در برابر</span>${L.seats[1] ? seat(L.seats[1]) : '<div class="seatw"><span class="wait">؟</span><small>یه حریف از گروه</small></div>'}</div>
-        <div class="wait-line"><span class="spinner"></span>منتظریم یکی از گروه «بشین» رو بزنه؛ همون لحظه جنگ شروع می‌شه</div>
+        <p>تن‌به‌تن با ارتش ${c.army === 18 ? 'بزرگ (۱۸ نیرو)' : 'کوچیک (۱۱ نیرو)'} · نقاشی وقت نداره و هر شلیک ۱ دقیقه</p>
+        <div class="seatgrid">${seat(L.seats[0])}<span class="vs">مقابل</span>${L.seats[1] ? seat(L.seats[1]) : '<div class="seatw"><span class="wait">؟</span><small>یه حریف از گروه</small></div>'}</div>
+        <div class="wait-line"><span class="spinner"></span>منتظریم یکی از گروه «بشین» رو بزنه تا همون لحظه جنگ شروع شه</div>
         <button class="btn btn-light btn-block" id="lv">${L.host ? 'میز رو جمع کن' : 'پاشم برم'}</button>`, { dismiss: false });
       sh.querySelector('#lv').onclick = async () => { token = null; try { await GC.lashgar.leave(mid); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
       await sleep(1500);
@@ -85,16 +85,16 @@
 
   gp = GCGame.build({
     game: 'lashgar', title: 'لشگر کاغذی', help: 'help.html#hLg', who: ['group'],
-    whoDesc: 'لشگر کاغذی توی گروه یا کانال مزه می‌ده: کارت میز رو بفرست تو گروه یا کانالت؛ اولین کسی که «بشین» رو بزنه حریفته و جنگ همون لحظه شروع می‌شه.',
+    whoDesc: 'لشگر کاغذی تو گروه یا کانال مزه می‌ده 😉 کارت میزو بفرست تو گروه یا کانالت و اولین کسی که «بشین» رو بزنه حریفته و جنگ همون لحظه شروع می‌شه',
     modes: [
-      { v: 'g', label: 'تن‌به‌تن', ic: icon('users'), desc: 'دو نفره، روی یه برگه. اندازهٔ ارتش (کوچک ۱۱ نیرو یا بزرگ ۱۸ نیرو) رو توی کارت گروه انتخاب می‌کنی.', short: 'اندازهٔ ارتش رو توی کارت گروه انتخاب کن', cfg: {} },
+      { v: 'g', label: 'تن‌به‌تن', ic: icon('users'), desc: 'دو نفره رو یه برگه · اندازهٔ ارتشو (کوچیک ۱۱ نیرو یا بزرگ ۱۸ نیرو) تو کارت گروه انتخاب می‌کنی', short: 'اندازهٔ ارتشو تو کارت گروه انتخاب کن', cfg: {} },
     ],
-    rules: [['گروه یا کانال:', 'توی گروه بنویس /lashgar، توی گروه و کانال هم آیدی ربات و lashgar رو تایپ کن، یا از همین‌جا کارت میز رو بفرست. با نشستن نفر دوم، جنگ شروع می‌شه.'],
-      ['اسم لشگر:', 'اول یه اسم باحال برای لشگرت می‌ذاری؛ خودت بنویس یا یکی از پیشنهادها رو بردار.'],
-      ['چیدن و نقاشی:', 'نیروها رو از سینی بکش روی نیمهٔ خودت. مداد رو با یه انگشت ببر و «رنگ کن» رو نگه دار تا بکشه. این مرحله وقت نداره و کسی برگهٔ تو رو نمی‌بینه.'],
-      ['شلیک:', 'یه نقطه روی نیمهٔ خودت بذار، برگه رو تا کن و از پشت فشار بده؛ ردش قرینه روی نیمهٔ حریف می‌افته. هر چی صاف‌تر تا کنی، دقیق‌تر. هر شلیک ۱ دقیقه وقت داره.'],
-      ['خط خوردن:', 'هر نیرویی که رد بهش بخوره خط می‌خوره. نقاشی‌ها هدف نیستن، فقط برای قشنگی‌ان.'],
-      ['برنده:', 'پرچم بخوره، جنگ همون‌جا تمومه؛ وگرنه هر کی زودتر کل ارتش حریف رو خط بزنه می‌بره. عکس برگهٔ آخر جنگ توی گروه هم میاد 🏆']],
+    rules: [['گروه یا کانال', 'تو گروه بنویس /lashgar یا تو گروه و کانال آیدی ربات و lashgar رو تایپ کن یا از همین‌جا کارت میزو بفرست<br>نفر دوم که بشینه جنگ شروع می‌شه'],
+      ['اسم لشگر', 'اول یه اسم باحال برای لشگرت می‌ذاری و می‌تونی خودت بنویسی یا یکی از پیشنهادها رو برداری'],
+      ['چیدن و نقاشی', 'نیروها رو از سینی بکش رو نیمهٔ خودت<br>مدادو با یه انگشت ببر و «رنگ کن» رو نگه دار تا بکشه<br>این مرحله وقت نداره و کسی برگهٔ تو رو نمی‌بینه'],
+      ['شلیک', 'یه نقطه رو نیمهٔ خودت بذار و برگه رو تا کن و از پشت فشار بده تا ردش قرینه بیفته رو نیمهٔ حریف<br>هر چی صاف‌تر تا کنی دقیق‌تره و هر شلیک ۱ دقیقه وقت داره'],
+      ['خط خوردن', 'هر نیرویی که رد بهش بخوره خط می‌خوره<br>نقاشیا هدف نیستن و فقط برای قشنگی‌ان'],
+      ['برنده', 'پرچم بخوره جنگ همون‌جا تمومه وگرنه هر کی زودتر کل ارتش حریفو خط بزنه می‌بره<br>عکس برگهٔ آخر جنگ تو گروه هم میاد 🏆']],
     play: () => {},
   });
 
@@ -110,7 +110,7 @@
         const v = await GC.lashgar.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);
         else if (v && v.status === 'playing') { store.set('lgmid', v.id); if (code) { location.replace('lashgar.html'); return; } $('resume').hidden = false; }
-      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یه بازی ${o[0]} نیمه‌کاره داری؛ اول اونو تموم کن 😉`; }
+      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یه بازی ${o[0]} نیمه‌کاره داری اول اونو تموم کن 😉`; }
       else if (code && GC.live) {
         try { const r = await GC.lashgar.join(code); await GC.refreshMe(); lobbyLoop(r.match); }
         catch (err) { toast(errText(err)); }

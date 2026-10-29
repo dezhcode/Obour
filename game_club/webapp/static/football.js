@@ -239,8 +239,8 @@ function renderStatus(g) {
   let html;
   if (g.over) html = 'پایان بازی';
   else if (g.phase === 'setup') html = 'انتخاب تیم و چیدمان…';
-  else if (isMe(g.turn)) html = `${g.kickoff ? 'ضربهٔ شروع با توست' : 'نوبت شماست'}${g.deadline_ms ? '<em id="clock"></em>' : ''}${g.passes ? `<em>پاس‌ها: ${FD(g.chain)}/${FD(g.passes)}</em>` : g.chain ? `<em>${FD(g.chain)} پاس</em>` : ''}`;
-  else { const q = g.players[g.turn] || {}; html = `${g.kickoff ? (q.name || 'حریف') + ' شوت شروع را می‌زند' : 'نوبت ' + (q.name || 'حریف')}<em>${q.bot || q.out ? 'فکر می‌کند…' : g.passes ? `پاس‌ها: ${FD(g.chain)}/${FD(g.passes)}` : ''}</em>`; }
+  else if (isMe(g.turn)) html = `${g.kickoff ? 'ضربهٔ شروع با خودته' : 'نوبت توئه'}${g.deadline_ms ? '<em id="clock"></em>' : ''}${g.passes ? `<em>پاس‌ها ${FD(g.chain)}/${FD(g.passes)}</em>` : g.chain ? `<em>${FD(g.chain)} پاس</em>` : ''}`;
+  else { const q = g.players[g.turn] || {}; html = `${g.kickoff ? (q.name || 'حریف') + ' شوت شروعو می‌زنه' : 'نوبت ' + (q.name || 'حریف')}<em>${q.bot || q.out ? 'داره فکر می‌کنه…' : g.passes ? `پاس‌ها ${FD(g.chain)}/${FD(g.passes)}` : ''}</em>`; }
   // هر پرسش سرور همین متن را می آورد؛ فقط وقتی عوض شده بنویس (وگرنه هر بار چیدمان و نقاشی دوباره)
   if (html !== st.dataset.k || !st.firstChild) { st.dataset.k = html; st.innerHTML = html; }
   setDeadline(g.deadline_ms, g._at);
@@ -348,7 +348,7 @@ async function showPass(e) {
   const d = cur[e.d];
   sfx.fb.pass(); haptic(isMe(e.c) ? 'success' : 'light');
   const st = $('status');
-  if (st) { st.classList.toggle('mine', isMe(e.c)); st.dataset.k = ''; st.innerHTML = isMe(e.c) ? `پاس! دوباره نوبت توست<em>${e.left == null ? '' : e.left > 0 ? FD(e.left) + ' پاس دیگر' : 'آخرین پاس بود'}</em>` : `${nameOf(e.c)} پاس داد`; }
+  if (st) { st.classList.toggle('mine', isMe(e.c)); st.dataset.k = ''; st.innerHTML = isMe(e.c) ? `پاس! دوباره نوبت خودته<em>${e.left == null ? '' : e.left > 0 ? FD(e.left) + ' پاس دیگه' : 'آخرین پاس بود'}</em>` : `${nameOf(e.c)} پاس داد`; }
   if (d) {
     const tag = document.createElement('span'); tag.className = 'fb-passtag' + (e.left != null && e.left <= 0 ? ' last' : ''); tag.textContent = passBalloon(e.left);
     const [x, y] = toView(d); tag.style.left = (x * s) + 'px'; tag.style.top = ((y - rOf(e.d)) * s) + 'px';
@@ -411,7 +411,7 @@ async function showVS(e) {
   const side = (c, p, cls, lab) => `<div class="side ${cls}"><small>${lab}</small>${discHtml(t[c] && t[c].team, t[c] && t[c].kit, 104)}<b>${TEAM[t[c] && t[c].team] ? TEAM[t[c].team].fa : ''}</b><span>${p.name || ''}</span></div>`;
   const el = document.createElement('div'); el.className = 'fb-layer fb-vs'; el.setAttribute('role', 'status');
   el.innerHTML = `<div class="band">${side(me, pm, '', WATCH ? 'میزبان' : 'تیم تو')}<span class="vs">مقابل</span>${side(opp(), po, 'op', WATCH ? 'مهمان' : 'حریف')}
-    <span class="info">تا ${FD(snap.game.target)} گل · ${isMe(e.kick) ? 'شروع با توست؛ آماده شو!' : 'شروع با ' + (po.name || 'حریف')}</span></div>`;
+    <span class="info">تا ${FD(snap.game.target)} گل · ${isMe(e.kick) ? 'شروع با خودته آماده باش!' : 'شروع با ' + (po.name || 'حریف')}</span></div>`;
   document.body.appendChild(el); sfx.enter();
   await sleep(2300); sfx.fb.whistle();
   await sleep(450); el.remove();
@@ -419,7 +419,7 @@ async function showVS(e) {
 async function showGoal(e) {
   if (e.foul) {   // گل از ضربهٔ شروع بازی: خطا، امتیاز ندارد (kickoff_foul پلاتو)
     const who = e.by === me ? 'تو' : nameOf(e.by), st = $('status');
-    if (st) { st.dataset.k = ''; st.classList.remove('mine'); st.innerHTML = `خطا برای ${who} بدلیل تک ضرب گل زدن<em>این گل حساب نمی‌شود</em>`; }
+    if (st) { st.dataset.k = ''; st.classList.remove('mine'); st.innerHTML = `خطای ${who} چون با تک ضرب گل زد<em>این گل حساب نمی‌شه</em>`; }
     sfx.fb.whistle(); haptic('warning'); await sleep(1800); return;
   }
   const scoredMe = e.c === me, sc = e.score;
@@ -464,8 +464,8 @@ function renderSetup() {
   const g = snap && snap.game, oppReady = g && g.players[opp()] && g.players[opp()].ready;
   if (setupStep === 'team') {
     el.innerHTML = `<div class="top"><span></span>${cd()}</div>
-      <div><h1>تیمت را انتخاب کن</h1><p class="sub">اگر حریف هم همین تیم را بردارد، یکی از شما لباس مهمان می‌پوشد.</p></div>
-      <div class="fb-tabs"><button aria-pressed="true">همه تیم‌ها</button><button disabled>ویژه · به‌زودی</button></div>
+      <div><h1>تیمتو انتخاب کن</h1><p class="sub">اگه حریف هم همین تیمو برداره یکی‌تون لباس مهمون می‌پوشه</p></div>
+      <div class="fb-tabs"><button aria-pressed="true">همه تیم‌ها</button><button disabled>ویژه · به‌زودی میاد</button></div>
       <div class="fb-teams">${TEAM_IDS.map(t => `<button class="fb-team" data-team="${t}" aria-pressed="${choice.team === t}"><span><b>${TEAM[t].fa}</b><small>${TEAM[t].sub}</small></span>
         <span class="fb-kit">${discHtml(t, 'home', 44)}خانگی</span><span class="fb-kit">${discHtml(t, 'away', 44)}مهمان</span></button>`).join('')}</div>
       <button class="fb-go" id="setNext">همین تیم · بعدی</button>`;
@@ -474,13 +474,13 @@ function renderSetup() {
   } else if (setupStep === 'form') {
     const opt = (kind, f) => `<button class="fb-opt" data-k="${kind}" data-f="${f}" aria-pressed="${choice[kind === 'a' ? 'fa' : 'fd'] === f}"><span class="fb-mini"><i style="left:50%;top:90%"></i>${MINI[kind][f].map(([x, y]) => `<i style="left:${x}%;top:${y}%"></i>`).join('')}</span>${FORM_FA[f]}</button>`;
     el.innerHTML = `<div class="top"><button class="fb-ib" id="setBack" aria-label="برگشت به انتخاب تیم">${icon('back')}</button>${cd()}</div>
-      <div><h1>چیدمان تیم</h1><p class="sub">بعد از هر گل مهره‌ها با همین چیدمان سر جایشان برمی‌گردند.</p></div>
-      <section class="fb-forms"><div class="h"><i style="background:var(--sky-tint);color:var(--sky)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i><b>حمله</b><span>وقتی شروع با توست</span></div>
+      <div><h1>چیدمان تیم</h1><p class="sub">بعد از هر گل مهره‌ها با همین چیدمان برمی‌گردن سر جاشون</p></div>
+      <section class="fb-forms"><div class="h"><i style="background:var(--sky-tint);color:var(--sky)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></i><b>حمله</b><span>وقتی شروع با خودته</span></div>
         <div class="row">${FORM_IDS.map(f => opt('a', f)).join('')}</div></section>
-      <section class="fb-forms"><div class="h"><i style="background:color-mix(in srgb,#F2603F 16%,var(--surface));color:#E4532F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/></svg></i><b>دفاع</b><span>وقتی شروع با حریف است</span></div>
+      <section class="fb-forms"><div class="h"><i style="background:color-mix(in srgb,#F2603F 16%,var(--surface));color:#E4532F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/></svg></i><b>دفاع</b><span>وقتی شروع با حریفه</span></div>
         <div class="row">${FORM_IDS.map(f => opt('d', f)).join('')}</div></section>
       <div style="flex:1"></div>
-      <button class="fb-go" id="setOk">تایید و آماده‌ام</button>`;
+      <button class="fb-go" id="setOk">حله آماده‌ام</button>`;
     el.querySelectorAll('.fb-opt').forEach(b => b.onclick = () => {
       const key = b.dataset.k === 'a' ? 'fa' : 'fd'; choice[key] = b.dataset.f; sfx.tap(); haptic('select');
       el.querySelectorAll(`.fb-opt[data-k="${b.dataset.k}"]`).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
@@ -492,8 +492,8 @@ function renderSetup() {
     };
   } else {
     el.innerHTML = `<div class="top"><span></span>${cd()}</div>
-      <div class="fb-wait">${discHtml(choice.team, 'home', 110)}<b>${TEAM[choice.team] ? TEAM[choice.team].fa : ''} آماده است</b>
-        <span>${oppReady ? 'حریف هم آماده است؛ الان شروع می‌شود…' : 'منتظر حریف که تیمش را انتخاب کند…'}</span><span class="spinner"></span></div>`;
+      <div class="fb-wait">${discHtml(choice.team, 'home', 110)}<b>${TEAM[choice.team] ? TEAM[choice.team].fa : ''} آماده‌ست</b>
+        <span>${oppReady ? 'حریف هم آماده‌ست الان شروع می‌شه…' : 'منتظریم حریف تیمشو انتخاب کنه…'}</span><span class="spinner"></span></div>`;
   }
   tickSetup(); mount(el);
 }
@@ -511,23 +511,23 @@ async function play(e) {
     } else if (e.frames && e.frames.length) {
       await playFrames(e);
     } else setAll(e.pos);
-    if (e.auto && isMe(e.c)) toast('وقتت تمام شد؛ یک شوت خودکار زده شد');
+    if (e.auto && isMe(e.c)) toast('وقتت تموم شد و یه شوت خودکار زدیم');
     return;
   }
   if (e.t === 'pass') { await showPass(e); return; }
   if (e.t === 'settle') { const q = cur.map(p => p.slice()); e.ids.forEach((id, j) => { q[id] = e.pos[j]; }); sfx.fb.ball(.25); await glide(q, 400); return; }
   if (e.t === 'lose') {
-    const st = $('status'); if (st) { st.dataset.k = ''; st.classList.remove('mine'); st.innerHTML = e.miss ? `${nameOf(e.c)} نوبت را از دست داد` : `${nameOf(e.c)} توپ را از دست داد`; }
+    const st = $('status'); if (st) { st.dataset.k = ''; st.classList.remove('mine'); st.innerHTML = e.miss ? `${nameOf(e.c)} نوبتو از دست داد` : `${nameOf(e.c)} توپو از دست داد`; }
     await sleep(350); return;
   }
   if (e.t === 'goal') { await showGoal(e); return; }
   if (e.t === 'reset') { sfx.fb.whistle(); rot = []; els.forEach((el, i) => { if (i < 12) { const n = el.querySelector('.in svg'); if (n) n.style.transform = ''; } }); await glide(e.pos); return; }
-  if (e.t === 'timeout') { if (WATCH) { toast(`${nameOf(e.c)} شوت نزد`); return; } if (e.c === me) toast(snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی؛ بازی را باختی' : 'یک نوبت دیگر غیبت = باخت') : 'وقتت تمام شد؛ نوبت به حریف رسید'); else toast(`${nameOf(e.c)} شوت نزد؛ نوبت شماست`); return; }
-  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازی را ترک کرد'}`); return; }
+  if (e.t === 'timeout') { if (WATCH) { toast(`${nameOf(e.c)} شوت نزد`); return; } if (e.c === me) toast(snap.cfg.mode === 'stake' && e.n >= 2 ? (e.n >= 3 ? 'سه نوبت غایب بودی و بازیو باختی' : 'یه نوبت دیگه غیبت کنی باختی') : 'وقتت تموم شد و نوبت رسید به حریف'); else toast(`${nameOf(e.c)} شوت نزد و نوبت توئه`); return; }
+  if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازیو ول کرد و رفت'}`); return; }
 }
 
 /* ---------- گفتگو: نوار پایین و پیام های شناور روی زمین مثل بیلیارد (tchat.js) ---------- */
-const QUICK = ['سلام!', 'خوش‌بازی!', 'چه شوتی!', 'شانس آوردی', 'زود باش', 'یک بازی دیگه؟'];
+const QUICK = ['سلام!', 'خوش‌بازی!', 'چه شوتی!', 'شانس آوردی', 'زود باش', 'یه دست دیگه؟'];
 const chat = TChat.init({
   bar: $('chatbar'), quick: QUICK, face: m => face(m, m.me ? 'var(--me)' : '#FF7A85'),
   canSend: () => mid && !WATCH,
@@ -591,7 +591,7 @@ function over(v) {
   if (WATCH) {
     sfx.fb.crowd(false); sfx.win();
     const g = v.game, w = g.winner, o = w === '0' ? '1' : '0';
-    return GC.watchOver('football', 'بازی تمام شد', w == null ? 'بازی بدون برنده بسته شد.' : `${nameOf(w)} با ${FD(g.score[+w])} به ${FD(g.score[+o])} برد.`);
+    return GC.watchOver('football', 'بازی تموم شد', w == null ? 'بازی بی برنده بسته شد' : `${nameOf(w)} ${FD(g.score[+w])} بر ${FD(g.score[+o])} برد`);
   }
   endChat(); closeSetup(); sfx.fb.crowd(false);
   const g = v.game, r = v.result || {}, won = !!r.won;
@@ -601,42 +601,42 @@ function over(v) {
   const stake = v.cfg.mode === 'stake', ended = g.winner == null, left = (g.players[opp()] || {}).out;
   sheet(`<div class="fb-res">
       <span class="ic${won ? '' : ' lost'}">${TROPHY}</span>
-      <h2>${ended ? 'بازی تمام شد' : won ? (left ? 'حریف رفت؛ تو بردی!' : 'بردی!') : 'این بازی را باختی'}</h2>
+      <h2>${ended ? 'بازی تموم شد' : won ? (left ? 'حریف رفت و تو بردی!' : 'بردی!') : 'این دستو باختی'}</h2>
       <div class="final">${discHtml((teams[me] || {}).team, (teams[me] || {}).kit, 40)}<b>${FD(g.score[+me])} - ${FD(g.score[+opp()])}</b>${discHtml((teams[opp()] || {}).team, (teams[opp()] || {}).kit, 40)}</div>
-      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه به کیف امتیازت اضافه شد.</p>` : ended ? '<p>ورودی‌ها برگشت.</p>' : `<p>ورودی این بازی (${fa(r.lost || v.cfg.entry)} امتیاز) را باختی.</p>`)
-        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت.' : 'بازی آزاد بود؛ چیزی از دست ندادی.'}</p>`}
+      ${stake ? (won ? `<div class="prize">${amount(r.prize || 0, 'lg')}</div><p>جایزه ریخت تو کیف امتیازت 🎉</p>` : ended ? '<p>ورودیا برگشت</p>' : `<p>ورودی این بازیو (${fa(r.lost || v.cfg.entry)} امتیاز) باختی فدای سرت</p>`)
+        : `<p>${won ? 'بازی آزاد بود و جایزه نداشت ولی دمت گرم' : 'بازی آزاد بود و چیزی از دست ندادی'}</p>`}
       <div class="facts"><div><b>${FD(st.goals)}</b><span>گل زدی</span></div><div><b>${FD(st.shots)}</b><span>شوت</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
     </div>
-    <a class="btn btn-block" href="football-lobby.html">یک بازی دیگر</a>
-    <a class="btn btn-light btn-block" href="index.html">خانه</a>`, { center: true, dismiss: false });
+    <a class="btn btn-block" href="football-lobby.html">یه دست دیگه</a>
+    <a class="btn btn-light btn-block" href="index.html">خونه</a>`, { center: true, dismiss: false });
   GC.refreshMe().catch(() => {});
 }
 function cancelled() {
   if (overShown) return;
-  if (WATCH) { overShown = true; GC.watchOver('football', 'این بازی بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
+  if (WATCH) { overShown = true; GC.watchOver('football', 'این بازی بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   overShown = true; endChat(); closeSetup(); GC.guardClose(false); store.set('fmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازی را بست و ورودی همه به کیف امتیازشان برگشت.</p>
-      <div class="dlg-acts"><a class="btn" href="football-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">این بازی بسته شد</h2><p id="dD">پشتیبانی این بازیو بست و ورودی همه برگشت تو کیفشون</p>
+      <div class="dlg-acts"><a class="btn" href="football-lobby.html">بازی تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
-  if (watchMid) { GC.watchOver('football', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
+  if (watchMid) { GC.watchOver('football', 'این بازیو نمی‌شه دید', 'بازی یا تموم شده یا هنوز شروع نشده'); return; }
   store.set('fmid', null); closeSetup();
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز وارد بازی‌ای نشده‌ای.</p>
-      <div class="dlg-acts"><a class="btn" href="football-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">بازی‌ای پیدا نشد</h2><p id="dD">این بازی یا تموم شده یا هنوز تو هیچ بازی‌ای نیستی</p>
+      <div class="dlg-acts"><a class="btn" href="football-lobby.html">شروع بازی</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function askExit() {
   if (!snap || snap.status === 'over' || WATCH) { location.href = 'index.html'; return; }
   const stake = snap.cfg.mode === 'stake';
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span>
-      <h2 id="dT">از بازی بیرون می‌روی؟</h2>
-      <p id="dD">خروج یعنی باخت همین بازی و حریف برنده می‌شود.</p>
-      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گردد` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</div>
+      <h2 id="dT">می‌خوای بری؟</h2>
+      <p id="dD">بری یعنی همین بازیو باختی و حریف می‌بره</p>
+      <div class="dlg-note">${stake ? `ورودی ${amount(snap.cfg.entry)} برنمی‌گرده` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</div>
       <div class="dlg-acts"><button class="btn" data-close>ادامهٔ بازی</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}خروج</button></div>
-      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برو خانه؛ بازی می‌ماند</button>
-      <p class="dlg-fine">بازی در صفحهٔ خانه می‌ماند و با یک لمس برمی‌گردی. تا نیستی نوبتت می‌سوزد${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}.</p>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برو خونه بازی سر جاش می‌مونه</button>
+      <p class="dlg-fine">بازی تو صفحهٔ خونه می‌مونه و با یه لمس برمی‌گردی<br>تا نیستی نوبتت می‌سوزه${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی باخت' : ''}</p>
     </div>`, { center: true });
   sh.querySelector('#home').onclick = () => { GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => {
@@ -688,16 +688,16 @@ function tour() {
   const G = () => snap && snap.game;
   return {
     id: 'football', name: 'فوتبال', color: '#7CE38B', help: 'help.html#hFootball',
-    intro: 'فوتبال دستی با مهره: نوبتی شوت بزن، پاس بده و زودتر از حریف گل بزن.',
+    intro: 'فوتبال دستی با مهره ⚽ نوبتی شوت بزن و پاس بده و زودتر از حریف گل بزن',
     ready: () => !!(G() && !WATCH && G().phase !== 'setup' && !document.querySelector('.fb-layer:not(.fb-setup)') && !document.querySelector('.fb-setup:not([hidden])') && document.querySelector('#pitch .me')),
     turn: () => ({ mine: !!(G() && isMe(G().turn) && !G().over), left: deadlineAt ? deadlineAt - Date.now() : null }),
     steps: [
-      { el: '#pitch', title: 'دروازهٔ تو پایینه', text: 'مهره‌های تو اونایی‌ان که <b>حلقه دارن</b>. توپ رو بفرست توی دروازهٔ <b>بالا</b> و نذار به دروازهٔ پایین برسه.' },
-      { el: myDisc, title: 'بکش عقب و رها کن', text: 'یکی از مهره‌هات رو بگیر و انگشتت رو <b>خلاف جهت شوت</b> بکش؛ فلش جهت رو نشون می‌ده و هر چی بیشتر بکشی محکم‌تر می‌زنی. رها کن تا شوت بزنی.', pad: 14, round: 999, hand: { type: 'drag', from: [0.5, 0.5], to: [0.5, 2.6] } },
-      { el: myDisc, title: 'پشیمون شدی؟', text: 'اگه انگشتت رو <b>روی خود مهره</b> برگردونی و رها کنی، شوت لغو می‌شه. هر نوبت فقط یه شوت داری.', pad: 14, round: 999, hand: 'tap' },
-      { el: '#pitch', title: 'پاس بده', text: 'اگه توپ بعد از ضربه‌ت به یه مهرهٔ دیگه‌ت برسه و کنارش بمونه، <b>پاس کامل</b>ه: توپ به گیرنده می‌چسبه و دوباره نوبت توئه. از دیواره‌ها هم برای شوت کج استفاده کن.' },
-      { el: '#status', title: 'نوبت و وقت', text: 'اینجا می‌بینی نوبت کیه و چقدر وقت داری. با هر پاس وقتت کمی کمتر می‌شه؛ پس سریع تصمیم بگیر!' },
-      { el: '#head', title: 'گل و برد', text: 'هر بار توپ کامل از خط دروازه بگذره گله. اولین کسی که به تعداد گل بازی برسه <b>برنده</b>ست.' },
+      { el: '#pitch', title: 'دروازهٔ تو پایینه', text: 'مهره‌های تو اونایی‌ان که <b>حلقه دارن</b><br>توپو بفرست تو دروازهٔ <b>بالا</b> و نذار برسه به دروازهٔ پایین' },
+      { el: myDisc, title: 'بکش عقب و ول کن', text: 'یکی از مهره‌هاتو بگیر و انگشتتو <b>خلاف جهت شوت</b> بکش<br>فلش جهتو نشون می‌ده و هر چی بیشتر بکشی محکم‌تر می‌زنی<br>ول کن تا شوت بزنی', pad: 14, round: 999, hand: { type: 'drag', from: [0.5, 0.5], to: [0.5, 2.6] } },
+      { el: myDisc, title: 'پشیمون شدی؟', text: 'اگه انگشتتو برگردونی <b>رو خود مهره</b> و ول کنی شوت کنسل می‌شه<br>هر نوبت فقط یه شوت داری', pad: 14, round: 999, hand: 'tap' },
+      { el: '#pitch', title: 'پاس بده', text: 'اگه توپ بعد از ضربه‌ت برسه به یه مهرهٔ دیگه‌ت و کنارش بمونه <b>پاس کامل</b>ه و توپ می‌چسبه به گیرنده و دوباره نوبت خودته<br>از دیواره‌ها هم برای شوت کج استفاده کن' },
+      { el: '#status', title: 'نوبت و وقت', text: 'اینجا می‌بینی نوبت کیه و چقدر وقت داری<br>با هر پاس وقتت یه کم کمتر می‌شه پس زود تصمیم بگیر!' },
+      { el: '#head', title: 'گل و برد', text: 'هر بار توپ کامل از خط دروازه رد بشه گله<br>اولین کسی که به تعداد گل بازی برسه <b>برده</b>' },
       { el: '#chatbar', title: 'کری بخون', text: 'پیام سریع بفرست و حریف رو بترسون 😄', hand: 'tap' },
     ],
   };

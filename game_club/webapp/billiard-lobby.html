@@ -35,7 +35,7 @@
 </header>
 <main class="page no-nav">
   <div class="gp" id="gp"></div>
-  <a class="card card-link resume" id="resume" href="billiard.html" hidden><span class="tag tag-live">بازی نیمه‌تمام</span><b>برگرد سر میز</b><span class="muted">بازی‌ات هنوز ادامه دارد؛ بقیه منتظر تواند.</span></a>
+  <a class="card card-link resume" id="resume" href="billiard.html" hidden><span class="tag tag-live">بازی نیمه‌کاره</span><b>برگرد سر میز</b><span class="muted">بازیت هنوز تموم نشده و بقیه منتظرتن</span></a>
 </main>
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
@@ -60,7 +60,7 @@
   async function go(mid) {
     token = null; store.set('bmid', mid);
     for (let n = 3; n >= 1; n--) {
-      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز آماده است!</h2><div class="count">${FD(n)}</div><p class="hint">بازی شروع می‌شود…</p>`, { center: true, dismiss: false });
+      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز حاضره!</h2><div class="count">${FD(n)}</div><p class="hint">الان بازی شروع می‌شه…</p>`, { center: true, dismiss: false });
       sfx.tick(); haptic('light'); await sleep(650);
     }
     location.href = 'billiard.html';
@@ -74,17 +74,17 @@
       if (st.state === 'matched') { sfx.turn(); haptic('success'); return go(st.match); }
       if (st.state !== 'waiting') { GC.close(); return; }
       const c = st.cfg, n = c.players === 4 ? 4 : 2;
-      const list = [{ name: 'شما', av: 7 }, ...[...Array(n - 1)].map((_, i) => i + 1 < st.found ? { name: 'بازیکن', av: 4 + i } : null)];
-      const line = `${FD(st.found)} از ${FD(st.need)} نفر، ${FD(st.waited)} ثانیه`;
+      const list = [{ name: 'خودت', av: 7 }, ...[...Array(n - 1)].map((_, i) => i + 1 < st.found ? { name: 'بازیکن', av: 4 + i } : null)];
+      const line = `${FD(st.found)} از ${FD(st.need)} نفر · ${FD(st.waited)} ثانیه`;
       if (shown === String(st.found)) { const el = document.getElementById('ql'); if (el) el.textContent = line; }
       else {
         shown = String(st.found);
         const prize = c.mode === 'stake' ? (n === 4 ? `هر نفر از تیم برنده ${fa(c.entry * 2)}` : `برنده ${fa(c.entry * 2)}`) : '';
         const sh = sheet(`${sheetHead(n === 4 ? 'پیدا کردن یار و حریف' : 'پیدا کردن حریف')}${seatsHtml(list, n)}
           <div class="wait-line"><span class="spinner"></span><span id="ql">${line}</span></div>
-          <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · ${prize} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگر تا ${FD(st.bots_in)} ثانیهٔ دیگر کسی نیاید، جای خالی را ربات پر می‌کند` : 'بازی وقتی شروع می‌شود که میز کامل شود'} · ناشناس می‌مانی</p>
-          ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مانم؛ جای خالی را ربات پر کند</button>' : ''}
-          <button class="btn btn-light btn-block" id="qc">انصراف${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
+          <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · ${prize} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگه تا ${FD(st.bots_in)} ثانیهٔ دیگه کسی نیاد ربات جای خالیو پر می‌کنه` : 'میز که پر شه بازی شروع می‌شه'} · ناشناس می‌مونی</p>
+          ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مونم بذار ربات جای خالیو پر کنه</button>' : ''}
+          <button class="btn btn-light btn-block" id="qc">بی‌خیال${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
         const qb = sh.querySelector('#qb');
         if (qb) qb.onclick = async () => { qb.disabled = true; try { const r = await GC.billiard.queueBots(); if (r.state === 'matched') { token = null; sfx.turn(); haptic('success'); return go(r.match); } } catch (e) { toast(errText(e)); } qb.disabled = false; };
         sh.querySelector('#qc').onclick = async () => { token = null; try { await GC.billiard.queueLeave(); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
@@ -102,27 +102,27 @@
       let v;
       try { v = await GC.billiard.match(mid, 0); } catch (e) { toast(errText(e)); GC.close(); return; }
       if (v.status === 'playing') return go(mid);
-      if (v.status === 'cancelled') { GC.close(); toast('سازنده میز را بست؛ ورودی‌ات برگشت'); await GC.refreshMe(); render(); return; }
+      if (v.status === 'cancelled') { GC.close(); toast('سازنده میزو بست و ورودیت برگشت'); await GC.refreshMe(); render(); return; }
       const L = v.lobby, c = v.cfg, n = c.players === 4 ? 4 : 2, full = L.seats.length === n, link = L.link;
       const sig = L.seats.map(s => s.color + s.name).join('|');
       if (sig === shown) { await sleep(1500); continue; }
       shown = sig; if (L.seats.length > 1) { sfx.turn(); haptic('light'); }
       const mine = L.seats.find(s => s.me), myTeam = mine ? (+mine.color) % 2 : 0;
       const mate = L.seats.find(s => !s.me && (+s.color) % 2 === myTeam), opp = L.seats.filter(s => (+s.color) % 2 !== myTeam);
-      const list = n === 4 ? [Object.assign({}, mine || {}, { name: 'شما' }), mate || null, opp[0] || null, opp[1] || null] : [Object.assign({}, mine || {}, { name: 'شما' }), opp[0] || null];
-      const msg = c.mode === 'stake' ? `بیا بیلیارد بازی کنیم! ورودی ${c.entry} امتیاز.` : n === 4 ? 'بیا یار من شو، بیلیارد بازی کنیم!' : 'بیا یه دست بیلیارد بزنیم!';
+      const list = n === 4 ? [Object.assign({}, mine || {}, { name: 'خودت' }), mate || null, opp[0] || null, opp[1] || null] : [Object.assign({}, mine || {}, { name: 'خودت' }), opp[0] || null];
+      const msg = c.mode === 'stake' ? `بیا بیلیارد بزنیم! ورودی ${c.entry} امتیاز` : n === 4 ? 'بیا یار من شو بیلیارد بزنیم!' : 'بیا یه دست بیلیارد بزنیم!';
       const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(msg);
-      const sh = sheet(`${sheetHead(L.host ? (n === 4 ? 'بازی با یار' : 'بازی با دوست') : 'سر میز دوستت')}
-        ${L.host ? `<p>این لینک را بفرست.${n === 4 ? ' اولین کسی که بازش کند یار تو می‌شود و دو نفر بعدی حریف.' : ' تا دوستت بازش کند بازی شروع می‌شود.'}${c.mode === 'stake' ? ' ' + fa(c.entry) + ' امتیاز ورودی از کیف هر نفر کم می‌شود.' : ''}</p>
-        <div class="linkbox"><code>${link || 'لینک دعوت فقط داخل تلگرام ساخته می‌شود'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
-        <button class="btn btn-block" id="shr">${icon('send')}ارسال در تلگرام</button>` : '<p>منتظر بقیه و شروع بازی…</p>'}
+      const sh = sheet(`${sheetHead(L.host ? (n === 4 ? 'بازی با یار' : 'بازی با رفیقت') : 'سر میز رفیقت')}
+        ${L.host ? `<p>این لینکو بفرست${n === 4 ? ' و اولین کسی که بازش کنه یارت می‌شه و دو نفر بعدی حریف' : ' تا رفیقت بازش کنه بازی شروع می‌شه'}${c.mode === 'stake' ? '<br>' + fa(c.entry) + ' امتیاز ورودی از کیف هر نفر کم می‌شه' : ''}</p>
+        <div class="linkbox"><code>${link || 'لینک دعوت فقط تو تلگرام ساخته می‌شه'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
+        <button class="btn btn-block" id="shr">${icon('send')}بفرست تو تلگرام</button>` : '<p>منتظر بقیه‌ایم تا بازی شروع شه…</p>'}
         ${seatsHtml(list, n)}
-        <div class="wait-line"><span class="spinner"></span>${full ? 'میز پر شد؛ بازی شروع می‌شود…' : `${FD(L.seats.length)} از ${FD(n)} نفر سر میزند…`}</div>
-        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">منتظر نمی‌مانم؛ جای خالی با ربات</button>' : ''}
+        <div class="wait-line"><span class="spinner"></span>${full ? 'میز پر شد الان بازی شروع می‌شه…' : `${FD(L.seats.length)} از ${FD(n)} نفر سر میزن…`}</div>
+        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">منتظر نمی‌مونم جای خالی با ربات</button>' : ''}
         <button class="btn btn-light btn-block" id="lv">${L.host ? 'بستن میز' : 'بلند شدن از میز'}</button>`, { dismiss: false });
       const cp = sh.querySelector('#cp');
-      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد؛ لینک را دستی بفرست')); } catch (e) { toast('کپی نشد؛ لینک را دستی بفرست'); } };
-      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط داخل تلگرام ساخته می‌شود');
+      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد لینکو دستی بفرست')); } catch (e) { toast('کپی نشد لینکو دستی بفرست'); } };
+      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط تو تلگرام ساخته می‌شه');
       const solo = sh.querySelector('#solo'); if (solo) solo.onclick = async () => { try { await GC.billiard.start(mid); } catch (e) { toast(errText(e)); } };
       sh.querySelector('#lv').onclick = async () => { token = null; try { await GC.billiard.leave(mid); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
       await sleep(1500);
@@ -143,18 +143,18 @@
   }
   gp = GCGame.build({
     game: 'billiard', title: 'بیلیارد', help: 'help.html#hBilliard',
-    privateSub: 'دو نفره رو در رو، یا چهار نفره با یارت',
+    privateSub: 'دو نفره رو در رو یا چهار نفره با یارت',
     modes: [
-      { v: 'b2', label: '۲ نفره', ic: icon('user'), desc: 'رو در رو، ۸ توپ؛ توپ‌های خودت را بنداز و آخر از همه توپ ۸.', short: 'رو در رو · ۸ توپ', cfg: { players: 2 } },
-      { v: 'b4', label: 'یاری ۴ نفره', ic: icon('users'), team: true, desc: 'دو تیم دونفره؛ یارها به نوبت می‌زنند و جایزه بین دو یار تقسیم می‌شود.', short: 'دو تیم دونفره', cfg: { players: 4 } },
+      { v: 'b2', label: '۲ نفره', ic: icon('user'), desc: 'رو در رو با ۸ توپ · توپای خودتو بنداز و آخر از همه توپ ۸', short: 'رو در رو · ۸ توپ', cfg: { players: 2 } },
+      { v: 'b4', label: 'یاری ۴ نفره', ic: icon('users'), team: true, desc: 'دو تیم دونفره · یارا نوبتی می‌زنن و جایزه بین دو تا یار نصف می‌شه', short: 'دو تیم دونفره', cfg: { players: 4 } },
     ],
-    rules: [['نشانه‌گیری:', 'یک بار روی میز بزن تا نوک چوب همان‌جا را بگیرد؛ با کشیدن انگشت دور توپ سفید، چوب همراه انگشت می‌چرخد؛ آرام بکشی خیلی ظریف و دقیق می‌چرخد و تند بکشی سریع؛ خط سفید مسیر توپ سفید و خط رنگی مسیر توپ هدف است.'],
-      ['ضربه:', 'نوار قدرت کنار میز را پایین بکش و رها کن؛ هر چه بیشتر بکشی محکم‌تر می‌زنی.'],
-      ['پیچ و تنظیم دقیق:', 'با توپ سفید کنار میز پیچ بده (بالا = جلو رفتن، پایین = برگشتن) و با دکمه‌های تنظیم دقیق، جهت را آرام جابه‌جا کن.'],
-      ['بریک و گروه‌ها:', 'اولین توپی که بعد از بریک بیفتد گروه تو را مشخص می‌کند: تک‌رنگ (۱ تا ۷) یا راه‌راه (۹ تا ۱۵).'],
-      ['خطا:', 'افتادن سفید، خوردن اول به توپ حریف یا نخوردن به هیچ توپی = حریف «توپ در دست» می‌گیرد و هر جا خواست سفید را می‌گذارد.'],
-      ['برد:', 'گروهت را پاک کن و بعد توپ ۸ را بینداز. ۸ زودتر یا همراه خطا = باخت.'],
-      ['یاری:', 'در چهار نفره یارت روبه‌رویت است و نوبت یکی در میان بین دو تیم می‌چرخد.']],
+    rules: [['نشونه‌گیری', 'یه بار رو میز بزن تا نوک چوب همون‌جا رو بگیره<br>انگشتتو دور توپ سفید بکش تا چوب باهاش بچرخه و آروم بکشی ظریف و دقیق می‌چرخه و تند بکشی سریع<br>خط سفید مسیر توپ سفیده و خط رنگی مسیر توپ هدف'],
+      ['ضربه', 'نوار قدرت کنار میزو بکش پایین و ول کن و هر چی بیشتر بکشی محکم‌تر می‌زنی'],
+      ['پیچ و تنظیم دقیق', 'با توپ سفید کنار میز پیچ بده (بالا یعنی بره جلو و پایین یعنی برگرده) و با دکمه‌های تنظیم دقیق جهتو آروم جابه‌جا کن'],
+      ['بریک و گروه‌ها', 'اولین توپی که بعد از بریک بیفته گروهتو معلوم می‌کنه یعنی تک‌رنگ (۱ تا ۷) یا راه‌راه (۹ تا ۱۵)'],
+      ['خطا', 'اگه سفید بیفته یا اول به توپ حریف بخوری یا به هیچ توپی نخوری حریف «توپ در دست» می‌گیره و سفیدو هر جا خواست می‌ذاره'],
+      ['برد', 'گروهتو پاک کن و بعد توپ ۸ رو بنداز<br>۸ زودتر یا با خطا بیفته باختی'],
+      ['یاری', 'تو چهار نفره یارت روبه‌روته و نوبت یکی در میون بین دو تیم می‌چرخه']],
     play,
   });
 
@@ -169,7 +169,7 @@
         const v = await GC.billiard.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);
         else if (v && v.status === 'playing') { store.set('bmid', v.id); if (code) { location.replace('billiard.html'); return; } $('resume').hidden = false; }
-      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یک بازی ${o[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
+      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یه بازی ${o[0]} نیمه‌کاره داری اول اونو تموم کن`; }
       else if (!GC.live && store.get('bmid', null)) {
         const v = await GC.billiard.match(store.get('bmid', null), 0).catch(() => null);
         if (v && v.status === 'playing') $('resume').hidden = false;

@@ -34,7 +34,7 @@
 </header>
 <main class="page no-nav">
   <div class="gp" id="gp"></div>
-  <a class="card card-link resume" id="resume" href="ludo.html" hidden><span class="tag tag-live">بازی نیمه‌تمام</span><b>برگرد سر میز</b><span class="muted">بازی‌ات هنوز ادامه دارد؛ تاس روی سرور منتظر توست.</span></a>
+  <a class="card card-link resume" id="resume" href="ludo.html" hidden><span class="tag tag-live">بازی نیمه‌کاره</span><b>برگرد سر میز</b><span class="muted">بازیت هنوز تموم نشده و تاس منتظرته</span></a>
 
 </main>
 <script src="static/gc.js"></script>
@@ -54,7 +54,7 @@
   async function go(mid) {
     token = null; store.set('mid', mid);
     for (let n = 3; n >= 1; n--) {
-      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز آماده است!</h2><div class="count">${FD(n)}</div><p class="hint">بازی شروع می‌شود…</p>`, { center: true, dismiss: false });
+      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز حاضره!</h2><div class="count">${FD(n)}</div><p class="hint">الان بازی شروع می‌شه…</p>`, { center: true, dismiss: false });
       sfx.tick(); haptic('light'); await sleep(650);
     }
     location.href = 'ludo.html';
@@ -67,17 +67,17 @@
     while (token === t) {
       if (st.state === 'matched') { sfx.turn(); haptic('success'); return go(st.match); }
       if (st.state !== 'waiting') { GC.close(); return; }
-      const c = st.cfg, list = [{ name: 'شما', av: 7, color: 'yellow' }];
+      const c = st.cfg, list = [{ name: 'خودت', av: 7, color: 'yellow' }];
       for (let i = 1; i < c.players; i++) list.push(i < st.found ? { name: 'بازیکن', av: 3 + i, color: ['red', 'blue', 'green'][i - 1] } : null);
-      const line = `${FD(st.found)} از ${FD(st.need)} نفر، ${FD(st.waited)} ثانیه`;
+      const line = `${FD(st.found)} از ${FD(st.need)} نفر · ${FD(st.waited)} ثانیه`;
       if (shown === String(st.found)) { const el = document.getElementById('ql'); if (el) el.textContent = line; }
       else {
       shown = String(st.found);
       const sh = sheet(`${sheetHead('پیدا کردن حریف')}${seatsHtml(list)}
         <div class="wait-line"><span class="spinner"></span><span id="ql">${line}</span></div>
-        <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · جایزه ${fa(c.entry * c.players)} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگر تا ${FD(st.bots_in)} ثانیهٔ دیگر کسی نیاید، جای خالی را ربات پر می‌کند` : 'بازی وقتی شروع می‌شود که میز کامل شود'} · ناشناس می‌مانی</p>
-        ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مانم؛ جای خالی را ربات پر کند</button>' : ''}
-        <button class="btn btn-light btn-block" id="qc">انصراف${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
+        <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · جایزه ${fa(c.entry * c.players)} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگه تا ${FD(st.bots_in)} ثانیهٔ دیگه کسی نیاد ربات جای خالیو پر می‌کنه` : 'میز که پر شه بازی شروع می‌شه'} · ناشناس می‌مونی</p>
+        ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مونم بذار ربات جای خالیو پر کنه</button>' : ''}
+        <button class="btn btn-light btn-block" id="qc">بی‌خیال${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
       const qb = sh.querySelector('#qb');
       if (qb) qb.onclick = async () => { qb.disabled = true; try { const r = await GC.ludo.queueBots(); if (r.state === 'matched') { token = null; sfx.turn(); haptic('success'); return go(r.match); } } catch (e) { toast(errText(e)); } qb.disabled = false; };
       sh.querySelector('#qc').onclick = async () => { token = null; try { await GC.ludo.queueLeave(); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
@@ -95,25 +95,25 @@
       let v;
       try { v = await GC.ludo.match(mid, 0); } catch (e) { toast(errText(e)); GC.close(); return; }
       if (v.status === 'playing') return go(mid);
-      if (v.status === 'cancelled') { GC.close(); toast('سازنده میز را بست؛ ورودی‌ات برگشت'); await GC.refreshMe(); render(); return; }
+      if (v.status === 'cancelled') { GC.close(); toast('سازنده میزو بست و ورودیت برگشت'); await GC.refreshMe(); render(); return; }
       const L = v.lobby, c = v.cfg, full = L.seats.length === c.players, link = L.link;
       const sig = L.seats.map(s => s.color + s.name).join('|');
       if (sig === shown) { await sleep(1500); continue; }
       shown = sig; if (L.seats.length > 1) { sfx.turn(); haptic('light'); }
-      const list = L.seats.map(s => Object.assign({}, s, { name: s.me ? 'شما' : s.name }));
+      const list = L.seats.map(s => Object.assign({}, s, { name: s.me ? 'خودت' : s.name }));
       while (list.length < c.players) list.push(null);
-      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(c.mode === 'stake' ? `بیا منچ بازی کنیم! ورودی ${c.entry} امتیاز، برنده همه را می‌برد.` : 'بیا منچ بازی کنیم!');
-      const sh = sheet(`${sheetHead(L.host ? 'دعوت دوست' : 'سر میز دوستت')}
-        ${L.host ? `<p>این لینک را بفرست. دوستت با بازکردنش مستقیم کنار تو می‌نشیند${c.mode === 'stake' ? ' و ' + fa(c.entry) + ' امتیاز ورودی از کیف خودش کم می‌شود' : ''}.</p>
-        <div class="linkbox"><code>${link || 'لینک دعوت فقط داخل تلگرام ساخته می‌شود'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
-        <button class="btn btn-block" id="shr">${icon('send')}ارسال در تلگرام</button>` : '<p>منتظر بقیه و شروع بازی توسط سازندهٔ میز…</p>'}
+      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(c.mode === 'stake' ? `بیا منچ بزنیم! ورودی ${c.entry} امتیاز و برنده همه رو می‌بره` : 'بیا یه دست منچ بزنیم!');
+      const sh = sheet(`${sheetHead(L.host ? 'دعوت رفیقت' : 'سر میز رفیقت')}
+        ${L.host ? `<p>این لینکو واسه رفیقت بفرست تا با باز کردنش مستقیم بشینه کنارت${c.mode === 'stake' ? ' و ' + fa(c.entry) + ' امتیاز ورودی از کیف خودش کم می‌شه' : ''}</p>
+        <div class="linkbox"><code>${link || 'لینک دعوت فقط تو تلگرام ساخته می‌شه'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
+        <button class="btn btn-block" id="shr">${icon('send')}بفرست تو تلگرام</button>` : '<p>منتظر بقیه‌ایم تا سازندهٔ میز بازیو شروع کنه…</p>'}
         ${seatsHtml(list)}
-        <div class="wait-line"><span class="spinner"></span>${FD(L.seats.length)} از ${FD(c.players)} نفر نشسته‌اند</div>
-        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">جای خالی را ربات پر کند و شروع کن</button>' : ''}
+        <div class="wait-line"><span class="spinner"></span>${FD(L.seats.length)} از ${FD(c.players)} نفر نشستن</div>
+        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">ربات جای خالیو پر کنه و شروع کن</button>' : ''}
         <button class="btn btn-light btn-block" id="lv">${L.host ? 'بستن میز' : 'بلند شدن از میز'}</button>`, { dismiss: false });
       const cp = sh.querySelector('#cp');
-      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد؛ لینک را دستی بفرست')); } catch (e) { toast('کپی نشد؛ لینک را دستی بفرست'); } };
-      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط داخل تلگرام ساخته می‌شود');
+      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد لینکو دستی بفرست')); } catch (e) { toast('کپی نشد لینکو دستی بفرست'); } };
+      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط تو تلگرام ساخته می‌شه');
       const solo = sh.querySelector('#solo'); if (solo) solo.onclick = async () => { try { await GC.ludo.start(mid); } catch (e) { toast(errText(e)); } };
       sh.querySelector('#lv').onclick = async () => { token = null; try { await GC.ludo.leave(mid); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
       await sleep(1500);
@@ -134,18 +134,18 @@
   }
   gp = GCGame.build({
     game: 'ludo', title: 'منچ', help: 'help.html#hLudo',
-    privateSub: 'لینک بفرست و با دوستانت منچ بزن',
+    privateSub: 'لینک بفرست و با رفقات منچ بزن',
     modes: [
-      { v: 'l22', label: 'سریع ۲ نفره', ic: icon('bolt'), desc: 'رو در رو با ۲ مهره؛ هر کس زودتر هر دو مهره را به خانه برساند می‌برد. حدود ۵ دقیقه.', short: '۲ مهره · حدود ۵ دقیقه', cfg: { players: 2, pawns: 2 } },
-      { v: 'l44', label: 'کلاسیک ۴ نفره', ic: icon('users'), desc: 'منچ کامل چهار نفره با ۴ مهره؛ شلوغ و هیجانی. حدود ۱۵ دقیقه.', short: '۴ مهره · حدود ۱۵ دقیقه', cfg: { players: 4, pawns: 4 } },
-      { v: 'l42', label: 'سریع ۴ نفره', ic: icon('dice'), desc: 'چهار نفره با ۲ مهره؛ شلوغ ولی کوتاه.', short: '۲ مهره · حدود ۸ دقیقه', cfg: { players: 4, pawns: 2 } },
-      { v: 'l24', label: 'کلاسیک ۲ نفره', ic: icon('user'), desc: 'رو در رو با ۴ مهره؛ بازی کامل و حساب‌شده.', short: '۴ مهره · حدود ۱۲ دقیقه', cfg: { players: 2, pawns: 4 } },
+      { v: 'l22', label: 'سریع ۲ نفره', ic: icon('bolt'), desc: 'رو در رو با ۲ مهره و هر کی زودتر هر دو مهره‌شو برسونه خونه برده · حدود ۵ دقیقه', short: '۲ مهره · حدود ۵ دقیقه', cfg: { players: 2, pawns: 2 } },
+      { v: 'l44', label: 'کلاسیک ۴ نفره', ic: icon('users'), desc: 'منچ کامل چهار نفره با ۴ مهره · شلوغ و پرهیجان · حدود ۱۵ دقیقه', short: '۴ مهره · حدود ۱۵ دقیقه', cfg: { players: 4, pawns: 4 } },
+      { v: 'l42', label: 'سریع ۴ نفره', ic: icon('dice'), desc: 'چهار نفره با ۲ مهره · شلوغ ولی کوتاه', short: '۲ مهره · حدود ۸ دقیقه', cfg: { players: 4, pawns: 2 } },
+      { v: 'l24', label: 'کلاسیک ۲ نفره', ic: icon('user'), desc: 'رو در رو با ۴ مهره · کامل و حساب‌شده', short: '۴ مهره · حدود ۱۲ دقیقه', cfg: { players: 2, pawns: 4 } },
     ],
-    rules: [['رنگ تو زرد است', 'و پایین سمت چپ می‌نشینی؛ هر بازیکن صفحه را از سمت خودش می‌بیند.'],
-      ['با ۶', 'مهره از خانه بیرون می‌آید و یک تاس دیگر هم می‌ریزی.'],
-      ['مهره‌ها', 'در جهت فلش‌ها دور صفحه می‌چرخند، وارد راهروی رنگ خودت می‌شوند و به مرکز می‌رسند.'],
-      ['اگر روی مهرهٔ حریف بنشینی', 'آن مهره به خانه برمی‌گردد؛ خانه‌های ستاره‌دار امن‌اند.'],
-      ['هر کس', 'زودتر همهٔ مهره‌هایش را به مرکز برساند برنده است.']],
+    rules: [['رنگ تو زرده', 'و پایین سمت چپ می‌شینی و هر کی صفحه رو از سمت خودش می‌بینه'],
+      ['با ۶', 'مهره از خونه میاد بیرون و یه تاس دیگه هم می‌ریزی'],
+      ['مهره‌ها', 'تو جهت فلش‌ها دور صفحه می‌چرخن و از راهروی رنگ خودت می‌رسن وسط'],
+      ['اگه رو مهرهٔ حریف بشینی', 'اون مهره برمی‌گرده خونه‌ش ولی خونه‌های ستاره‌دار امنن'],
+      ['هر کی', 'زودتر همهٔ مهره‌هاشو برسونه وسط برده']],
     play,
   });
 
@@ -156,7 +156,7 @@
       const url = new URL(location.href);
       const code = (url.searchParams.get('join') || '').trim() || (GC.startParam().startsWith('ludo_') ? GC.startParam().slice(5) : '');
       const other = { hokm: ['حکم', 'hokm.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'], esmfamil: ['اسم‌فامیل', 'esmfamil.html'], lashgar: ['لشگر کاغذی', 'lashgar.html'], snakes: ['مار و پله', 'snakes.html'] }[me.active_game];
-      if (me.active_match && other && GC.live) { $('resume').hidden = false; $('resume').href = other[1]; const t = $('resume').querySelector('.muted'); if (t) t.textContent = `یک بازی ${other[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
+      if (me.active_match && other && GC.live) { $('resume').hidden = false; $('resume').href = other[1]; const t = $('resume').querySelector('.muted'); if (t) t.textContent = `یه بازی ${other[0]} نیمه‌کاره داری اول اونو تموم کن`; }
       else if (me.active_match) {
         const v = await GC.ludo.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);

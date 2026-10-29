@@ -30,7 +30,7 @@ const COLORS = { 0: '#2F7BF6', 1: '#EF4136' };
 const ARMY_A = ['لشگر', 'گردان', 'تیپ', 'یگان', 'گروهان'];
 const ARMY_B = ['شیرها', 'عقاب‌ها', 'نیمکت آخر', 'زنگ تفریح', 'مداد سیاه‌ها', 'پاک‌کن دورنگ', 'کلاس پنجم', 'تخته‌سیاه', 'گچ‌های رنگی', 'دفتر مشق', 'جامدادی‌ها', 'پلنگ‌ها', 'ستاره‌ها', 'ساندویچ کالباس'];
 const SUGGEST = ['شیرهای کلاس پنجم', 'گردان نیمکت آخر', 'تیپ زنگ تفریح', 'لشگر مداد سیاه‌ها', 'یگان پاک‌کن دورنگ'];
-const QUICK = ['ای ول!', 'چه شلیکی!', 'نوبت توئه، بزن!', 'آخ!', 'دمت گرم', 'صاف تا کن 😄'];
+const QUICK = ['ای ول!', 'چه شلیکی!', 'نوبت توئه بزن!', 'آخ!', 'دمت گرم', 'صاف تا کن 😄'];
 const CLOCK_C = 56.55, PRESS_C = 163.4, PRESS_MS = 900;
 
 /* ---------- وضعیت ---------- */
@@ -361,15 +361,15 @@ function dropDrag(e) {
   if (d.i != null) {
     if (!d.moved) { sel = sel === d.i ? -1 : d.i; sfx.tap(); }
     else if (d.ok) { units[d.i] = d.u; sel = d.i; sfx.paper.press(); saveUnits(); }
-    else { toast(d.u.y < 0 ? 'نیرو باید روی نیمهٔ خودت باشه' : 'اینجا جا نمی‌شه؛ نیروها روی هم نیفتن'); sfx.error(); }
+    else { toast(d.u.y < 0 ? 'نیرو باید روی نیمهٔ خودت باشه' : 'اینجا جا نمی‌شه نیروها نباید بیفتن رو هم'); sfx.error(); }
   } else if (!d.moved) { autoOne(d.k); }
   else if (d.ok) { units.push(d.u); sel = units.length - 1; sfx.paper.press(); haptic('light'); saveUnits(); }
-  else { toast(d.u.y < -20 ? 'نیرو رو روی نیمهٔ خودت بذار' : 'اینجا جا نمی‌شه؛ یه جای خالی‌تر'); sfx.error(); }
+  else { toast(d.u.y < -20 ? 'نیرو رو روی نیمهٔ خودت بذار' : 'اینجا جا نمی‌شه یه جای خالی‌تر پیدا کن'); sfx.error(); }
   renderSheet(); renderTools(); placeOverlays();
 }
 function autoOne(k) {
   const u = freeSpot(k, units);
-  if (!u) return toast('دیگه جای خالی نیست؛ نیروها رو جابه‌جا کن');
+  if (!u) return toast('دیگه جای خالی نیست نیروها رو جابه‌جا کن');
   units.push(u); sel = units.length - 1; sfx.paper.press(); saveUnits(); renderSheet(); renderTools(); placeOverlays();
 }
 function autoAll() {
@@ -377,7 +377,7 @@ function autoAll() {
   for (const k of ['heli', 'tank', 'gun', 'flag', 'sol']) for (let i = 0; i < n[k]; i++) { const u = freeSpot(k, units); if (u) units.push(u); }
   sel = -1; sfx.paper.press(); haptic('success'); saveUnits(); renderSheet(); renderTools(); placeOverlays();
 }
-$('selRot').onclick = e => { e.stopPropagation(); const u = units[sel]; if (!u) return; const nu = Object.assign({}, u, { r: ((u.r || 0) + 45) % 360 }); if (okAt(units, nu, sel)) { units[sel] = nu; saveUnits(); sfx.tap(); } else { toast('این‌جا نمی‌چرخه؛ جاش تنگه'); sfx.error(); } renderSheet(); placeOverlays(); };
+$('selRot').onclick = e => { e.stopPropagation(); const u = units[sel]; if (!u) return; const nu = Object.assign({}, u, { r: ((u.r || 0) + 45) % 360 }); if (okAt(units, nu, sel)) { units[sel] = nu; saveUnits(); sfx.tap(); } else { toast('اینجا نمی‌چرخه جاش تنگه'); sfx.error(); } renderSheet(); placeOverlays(); };
 $('selDel').onclick = e => { e.stopPropagation(); if (sel < 0) return; units.splice(sel, 1); sel = -1; saveUnits(); sfx.tap(); renderSheet(); renderTools(); placeOverlays(); };
 
 /* ---------- جای دکمه های روی برگه (دستگیرهٔ نیرو، دستهٔ تا، حلقهٔ فشار) ---------- */
@@ -494,7 +494,7 @@ function pressOff() {
   cancelAnimationFrame(pressT); fold.st = 'folded';
   $('pressRing').style.strokeDashoffset = PRESS_C;
   const b = document.getElementById('pressBar'); if (b) b.style.transform = 'scaleX(0)';
-  toast('تا پر نشده ول نکن؛ از اول نگه دار');
+  toast('تا پر نشده ول نکن از اول نگه دار');
 }
 async function fire() {
   cancelAnimationFrame(pressT);
@@ -508,7 +508,7 @@ async function fire() {
     catch (e) { if (e.code !== 'not_ready') throw e; await wait(700); r = await API.shoot(mid, aim.x, aim.y, fold.a, since); }
     await apply(r);
   } catch (e) {
-    sfx.error(); toast(e.code === 'not_ready' ? 'یه لحظه صبر کن، هنوز نوبت شروع نشده' : errText(e));
+    sfx.error(); toast(e.code === 'not_ready' ? 'یه لحظه صبر کن هنوز نوبت شروع نشده' : errText(e));
     if (fold.st === 'firing') await unfoldMine();
   }
 }
@@ -540,7 +540,7 @@ async function playShot(x, idx) {
   else if (hit) {
     popWord(target, x.x, x.y, 'خورد!'); sfx.paper.boom(); haptic(target === me() ? 'error' : 'success');
     if (!WATCH) note(target === me() ? `آخ! ${kinds.join(' و ')}ت خورد 😖` : `زدی به ${kinds.join(' و ')} ${esc(armyOf(target))}! 💥`, target === me() ? 'bad' : 'ok');
-  } else { popWord(target, x.x, x.y, 'خطا رفت', true); sfx.paper.miss(); if (!WATCH) note(target === me() ? `${esc(armyOf(by))} خطا زد؛ نفس راحت 😅` : 'خطا رفت؛ دفعهٔ بعد صاف‌تر تا کن', ''); }
+  } else { popWord(target, x.x, x.y, 'خطا رفت', true); sfx.paper.miss(); if (!WATCH) note(target === me() ? `${esc(armyOf(by))} خطا زد نفس راحت 😅` : 'خطا رفت دفعهٔ بعد صاف‌تر تا کن', ''); }
   if (mine) aim = null;
   await wait(hit ? 900 : 500);
 }
@@ -551,8 +551,8 @@ async function playEvent(e) {
   if (e.t === 'battle') { await reveal(e.first); return; }
   if (e.t === 'shot') { const idx = g.shots.findIndex(x => x.n === e.n); if (idx >= 0 && idx >= shown) await playShot(g.shots[idx], idx); return; }
   if (e.t === 'timeout') { toast(e.c === me() ? 'وقتت تموم شد و نوبتت سوخت ⏳' : `نوبت ${armyOf(e.c)} سوخت ⏳`); if (e.c === me()) { aim = null; if (fold.st !== 'flat') await unfoldMine(); } sfx.nomove(); return; }
-  if (e.t === 'auto' && e.c !== me()) toast(`${armyOf(e.c)} خیلی معطل کرد؛ نیروهاش خودکار چیده شد`);
-  if (e.t === 'auto' && e.c === me()) toast('خیلی معطل کردی؛ بقیهٔ نیروهات خودکار چیده شد');
+  if (e.t === 'auto' && e.c !== me()) toast(`${armyOf(e.c)} خیلی معطل کرد و نیروهاش خودکار چیده شد`);
+  if (e.t === 'auto' && e.c === me()) toast('خیلی معطل کردی و بقیهٔ نیروهات خودکار چیده شد');
   if (e.t === 'leave' && e.c !== me()) toast(`${armyOf(e.c)} از جنگ رفت`);
 }
 // شروع جنگ: دفتر از روی نیمهٔ حریف کنار می رود، کل برگه پیدا می شود و نقاشی هر دو نفر می آید
@@ -587,7 +587,7 @@ function turnUi(first) {
   shownTurn = t || '';
   if (!t) return;
   const ban = $('turnBan'), toss = coinToss; coinToss = false;
-  const sub = toss ? (mine ? 'سکه انداختیم؛ اول تو شلیک می‌کنی' : 'سکه انداختیم؛ اول حریف شلیک می‌کنه') : mine ? 'یه نقطه روی نیمهٔ خودت بذار' : 'صبر کن تا شلیک کنه…';
+  const sub = toss ? (mine ? 'سکه انداختیم و اول تو شلیک می‌کنی' : 'سکه انداختیم و اول حریف شلیک می‌کنه') : mine ? 'یه نقطه روی نیمهٔ خودت بذار' : 'صبر کن تا شلیک کنه…';
   ban.className = 'lg-ban' + (mine ? '' : ' foe');
   ban.innerHTML = `<b>${mine ? 'نوبت توئه! 🎯' : WATCH ? `نوبت ${esc(armyOf(t))}` : `نوبت ${esc(armyOf(t))}`}</b><small>${sub}</small>`;
   void ban.offsetWidth; ban.classList.add('show');
@@ -605,7 +605,7 @@ function renderHead() {
     sc.innerHTML = [botC(), topC()].map(c => {
       const p = P(c);
       return `<div class="lg-pl${g.turn === c ? ' turn' : ''}${p.out ? ' out' : ''}" style="--c:${COLORS[c]}">${face(p)}
-        <span class="t"><b>${esc(p.army || p.name)}</b><small>${c === me() ? 'تو' : esc(p.name)}، ${FD(p.alive)} از ${FD(p.units ? p.units.length : total())} سالم</small></span></div>`;
+        <span class="t"><b>${esc(p.army || p.name)}</b><small>${c === me() ? 'تو' : esc(p.name)} · ${FD(p.alive)} از ${FD(p.units ? p.units.length : total())} سالم</small></span></div>`;
     }).join('');
   }
 }
@@ -629,7 +629,7 @@ setInterval(tickClock, 250);
 /* ---------- پایین صفحه: ابزار چیدن، نوبت، نتیجه ---------- */
 const UNIT_ICON = k => `<svg viewBox="${VB[k]}" aria-hidden="true"><g class="lg-u" style="stroke-width:1.6">${k === 'flag' ? `<path class="fl" d="M0 -16H17V-4H0Z" fill="${COLORS[me()] || COLORS[0]}"/>` : ''}<use href="#u-${k}"/></g></svg>`;
 const ERASER = '<svg class="er" viewBox="0 0 56 34" aria-hidden="true"><g transform="rotate(-10 28 17)"><rect x="3" y="8" width="50" height="20" rx="4" fill="#D64541"/><path d="M7 8H28V28H7a4 4 0 0 1 -4 -4V12a4 4 0 0 1 4 -4Z" fill="#2F6FBF"/><rect x="5" y="10" width="46" height="3" rx="1.5" fill="#fff" opacity=".22"/></g></svg>';
-const pencilBtn = (c, out) => { const [nm, body, lead] = PENCILS[c]; return `<button class="lg-pc${out ? ' out' : ''}" role="radio" aria-checked="${out}" aria-label="${nm}${out ? '، الان دستته' : ''}" data-pc="${c}"><svg viewBox="0 0 20 112"><path d="M10 0L18 26H2Z" fill="#E9C9A0"/><path d="M10 0L12.6 8.5H7.4Z" fill="${lead}"/><path d="M2 26q2.67-4 5.33 0t5.33 0t5.34 0V30H2Z" fill="${body}"/><rect x="2" y="27" width="16" height="85" fill="${body}"/><rect x="7" y="27" width="4" height="85" fill="#fff" opacity=".22"/><rect x="14" y="27" width="4" height="85" fill="#000" opacity=".14"/></svg></button>`; };
+const pencilBtn = (c, out) => { const [nm, body, lead] = PENCILS[c]; return `<button class="lg-pc${out ? ' out' : ''}" role="radio" aria-checked="${out}" aria-label="${nm}${out ? ' الان دستته' : ''}" data-pc="${c}"><svg viewBox="0 0 20 112"><path d="M10 0L18 26H2Z" fill="#E9C9A0"/><path d="M10 0L12.6 8.5H7.4Z" fill="${lead}"/><path d="M2 26q2.67-4 5.33 0t5.33 0t5.34 0V30H2Z" fill="${body}"/><rect x="2" y="27" width="16" height="85" fill="${body}"/><rect x="7" y="27" width="4" height="85" fill="#fff" opacity=".22"/><rect x="14" y="27" width="4" height="85" fill="#000" opacity=".14"/></svg></button>`; };
 function toolsHtml() {
   const n = left(), rem = Object.values(n).reduce((a, b) => a + b, 0);
   const tabs = `<div class="lg-tabs" role="tablist"><button role="tab" aria-selected="${!tool}" data-tab="units">${icon('users')}نیروها${rem ? `<span class="n">${FD(rem)}</span>` : `<span class="n ok">✓</span>`}</button>
@@ -637,22 +637,22 @@ function toolsHtml() {
   if (!tool) {
     return `${tabs}<div class="lg-units"><div class="lg-uhead"><b>نیروهات</b><span class="left${rem ? '' : ' ok'}">${rem ? `${FD(rem)} تا دیگه مونده` : 'همه چیده شد'}</span>
       ${rem ? `<button class="lg-auto" id="auto">${icon('spark')}بقیه رو خودت بچین</button>` : ''}</div>
-      <div class="lg-chips">${KINDS.map(k => `<button class="lg-chip${n[k] ? '' : ' done'}" data-k="${k}" aria-label="${KIND_FA[k]}، ${n[k] ? FD(n[k]) + ' تا مونده' : 'همه چیده شد'}">${UNIT_ICON(k)}<span>${KIND_FA[k]}</span><i class="n">${n[k] ? FD(n[k]) : '✓'}</i></button>`).join('')}</div>
-      <p class="lg-uhint">از اینجا بکش روی برگه؛ با یه لمس روی نیرو بچرخونش یا برش دار. نقاشی‌ها فقط برای قشنگی‌ان و هدف نیستن.</p></div>`;
+      <div class="lg-chips">${KINDS.map(k => `<button class="lg-chip${n[k] ? '' : ' done'}" data-k="${k}" aria-label="${KIND_FA[k]} ${n[k] ? FD(n[k]) + ' تا مونده' : 'همه چیده شد'}">${UNIT_ICON(k)}<span>${KIND_FA[k]}</span><i class="n">${n[k] ? FD(n[k]) : '✓'}</i></button>`).join('')}</div>
+      <p class="lg-uhint">از اینجا بکش رو برگه و با یه لمس رو نیرو بچرخونش یا برش دار<br>نقاشیا فقط برای قشنگی‌ان و هدف نیستن</p></div>`;
   }
   const pc = tool.k === 'pen' ? tool.c : -1;
   return `${tabs}<div class="lg-draw"><div class="lg-box"><div class="lg-pcs" role="radiogroup" aria-label="مدادرنگی‌ها">${PENCILS.map((_, c) => pencilBtn(c, c === pc)).join('')}</div>
       <div class="lg-tools"><button class="lg-tool${tool.k === 'eraser' ? ' on' : ''} keep" id="eraser" aria-pressed="${tool.k === 'eraser'}">${ERASER}پاک‌کن</button>
         <button class="lg-tool keep" id="undo"><span class="b">${icon('undo')}</span>برگردون</button>
         <button class="lg-tool" id="hand"><span class="b">${icon('users')}</span>نیروها</button></div></div>
-    <div class="lg-btn"><button class="lg-paint" id="paint" aria-pressed="false" style="--pc:${tool.k === 'eraser' ? '#2F6FBF' : PENCILS[pc][2]};--pc2:${tool.k === 'eraser' ? '#5B8FD6' : PENCILS[pc][1]}" aria-label="${tool.k === 'eraser' ? 'پاک کن' : 'رنگ کن'}؛ تا وقتی نگهش داری کار می‌کنه، یه ضربه روشن می‌مونه">
+    <div class="lg-btn"><button class="lg-paint" id="paint" aria-pressed="false" style="--pc:${tool.k === 'eraser' ? '#2F6FBF' : PENCILS[pc][2]};--pc2:${tool.k === 'eraser' ? '#5B8FD6' : PENCILS[pc][1]}" aria-label="${tool.k === 'eraser' ? 'پاک کن' : 'رنگ کن'} تا وقتی نگهش داری کار می‌کنه و یه ضربه بزنی روشن می‌مونه">
       ${icon(tool.k === 'eraser' ? 'close' : 'pen')}<b>${tool.k === 'eraser' ? 'پاک کن' : 'رنگ کن'}</b></button>
       <small id="paintHint"></small></div></div>`;
 }
 function renderPaint() {
   const b = $('paint'); if (!b) return;
   b.classList.toggle('on', painting); b.classList.toggle('lock', lock); b.setAttribute('aria-pressed', String(painting));
-  const h = $('paintHint'); if (h) h.textContent = lock ? 'روشنه؛ یه ضربه خاموش' : painting ? 'داره می‌کشه' : 'نگه دار؛ یه ضربه روشن';
+  const h = $('paintHint'); if (h) h.textContent = lock ? 'روشنه یه ضربه بزنی خاموش می‌شه' : painting ? 'داره می‌کشه' : 'نگه دار یا یه ضربه بزن روشن بمونه';
 }
 function renderTools() { if (phase() === 'draw' && !WATCH && me() && !P(me()).ready && P(me()).army) renderDock(); }
 function dockDraw() {
@@ -662,16 +662,16 @@ function dockDraw() {
 function dockWait() {
   const f = topC(), fp = P(f);
   return `<div class="lg-card"><div class="lg-row"><span class="ic ok">${icon('check')}</span><span class="tx"><h2>آماده‌ای!</h2>
-      <p>${fp.ready ? 'الان جنگ شروع می‌شه…' : `منتظر ${esc(fp.army || fp.name)} ایم؛ ${fp.army ? `${FD(fp.placed)} از ${FD(total())} نیرو چیده` : 'هنوز داره اسم می‌ذاره'}.`}</p></span>
+      <p>${fp.ready ? 'الان جنگ شروع می‌شه…' : `منتظر ${esc(fp.army || fp.name)} ایم ${fp.army ? `${FD(fp.placed)} از ${FD(total())} نیرو چیده` : 'هنوز داره اسم می‌ذاره'}`}</p></span>
       <span class="lg-dots" aria-hidden="true" style="--c:${COLORS[f]}"><i></i><i></i><i></i></span></div>
-    <button class="lg-link" id="unready">یه لحظه، می‌خوام عوضش کنم</button></div>`;
+    <button class="lg-link" id="unready">یه لحظه می‌خوام عوضش کنم</button></div>`;
 }
 const steps = n => `<ol class="lg-steps" aria-label="قدم های شلیک">${['نقطه بذار', 'تا کن', 'فشار بده'].map((t, i) =>
   `<li class="${i + 1 < n ? 'done' : i + 1 === n ? 'on' : ''}"${i + 1 === n ? ' aria-current="step"' : ''}><i>${i + 1 < n ? '✓' : FD(i + 1)}</i>${t}</li>`).join('')}</ol>`;
 function dockBattle() {
   const g = G();
   const msg = noteMsg && Date.now() - noteMsg.at < 6000 ? `<p class="lg-hint" style="font-weight:800;color:${noteMsg.kind === 'bad' ? 'var(--lg-red)' : noteMsg.kind === 'ok' ? 'var(--lg-green)' : 'var(--lg-muted)'}">${noteMsg.text}</p>` : '';
-  if (WATCH) return `<div class="lg-card"><div class="lg-row"><span class="ic">${icon('eye')}</span><span class="tx"><h2>${g.turn ? `نوبت ${esc(armyOf(g.turn))}` : 'جنگ'}</h2><p>داری جنگ رو تماشا می‌کنی؛ هر شلیک رو زنده می‌بینی.</p></span></div>${msg}</div>`;
+  if (WATCH) return `<div class="lg-card"><div class="lg-row"><span class="ic">${icon('eye')}</span><span class="tx"><h2>${g.turn ? `نوبت ${esc(armyOf(g.turn))}` : 'جنگ'}</h2><p>داری جنگو تماشا می‌کنی و هر شلیکو زنده می‌بینی</p></span></div>${msg}</div>`;
   if (!myTurn()) {
     const f = g.turn;
     return `<div class="lg-card"><div class="lg-row"><span class="ic" style="background:#EEF2EA;color:var(--lg-muted)">${icon('clock')}</span><span class="tx"><h2>نوبت ${esc(armyOf(f))}</h2><p>داره نشونه می‌گیره…</p></span>
@@ -679,31 +679,31 @@ function dockBattle() {
       <div class="lg-react">${QUICK.slice(0, 4).map(q => `<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div></div>`;
   }
   if (fold.st === 'folded' || fold.st === 'pressing' || fold.st === 'firing') {
-    return `<div class="lg-card">${steps(3)}<div class="lg-row"><span class="ic">${icon('bolt')}</span><span class="tx"><h2>محکم فشار بده!</h2><p>از پشت برگه، انگشتت رو روی نقطه نگه دار تا پررنگ بشه.</p></span></div>
+    return `<div class="lg-card">${steps(3)}<div class="lg-row"><span class="ic">${icon('bolt')}</span><span class="tx"><h2>محکم فشار بده!</h2><p>از پشت برگه انگشتتو رو نقطه نگه دار تا پررنگ بشه</p></span></div>
       <div role="progressbar" aria-label="پررنگ شدن نقطه" style="height:12px;border-radius:6px;background:var(--lg-sunk);overflow:hidden"><div id="pressBar" style="width:100%;height:100%;border-radius:6px;background:var(--lg-red);transform:scaleX(0);transform-origin:right"></div></div>
-      ${fold.st === 'folded' ? '<button class="lg-link" id="unfold">باز کن، دوباره نشونه بگیرم</button>' : ''}</div>`;
+      ${fold.st === 'folded' ? '<button class="lg-link" id="unfold">باز کن دوباره نشونه بگیرم</button>' : ''}</div>`;
   }
   return `<div class="lg-card">${steps(aim ? 2 : 1)}<div class="lg-row"><span class="ic">${icon('spark')}</span><span class="tx"><h2>نوبت توئه!</h2>
-      <p>${aim ? 'حالا برگه رو از دستهٔ پایین بکش بالا؛ هر چی صاف‌تر، دقیق‌تر.' : 'با مداد قرمز یه نقطه روی نیمهٔ خودت بذار؛ همون فاصله تا خط، اون‌ور می‌خوره.'}</p></span></div>${msg}
+      <p>${aim ? 'حالا برگه رو از دستهٔ پایین بکش بالا و هر چی صاف‌تر دقیق‌تر' : 'با مداد قرمز یه نقطه رو نیمهٔ خودت بذار و همون فاصله تا خط اون‌ور می‌خوره'}</p></span></div>${msg}
     <button class="lg-go" id="foldB"${aim && fold.st === 'flat' ? '' : ' disabled'}><span>${icon('up')}تا کن و شلیک کن</span></button></div>`;
 }
 function dockOver() {
   const g = G(), w = g.winner, mine = w && w === me();
   const title = !w ? 'جنگ بی‌برنده تموم شد 🕊' : WATCH ? `${esc(armyOf(w))} برد!` : mine ? 'لشگرت جنگ رو برد! 🎉' : `${esc(armyOf(w))} برد 😅`;
-  const why = { flag: 'پرچم خورد و جنگ همون‌جا تموم شد.', army: 'همهٔ نیروها خط خوردن.', left: 'حریف وسط جنگ رفت.', timeout: 'سه بار پشت هم نوبت سوخت.', idle: 'خیلی وقت کسی کاری نکرد.' }[g.why] || '';
+  const why = { flag: 'پرچم خورد و جنگ همون‌جا تموم شد', army: 'همهٔ نیروها خط خوردن', left: 'حریف وسط جنگ رفت', timeout: 'سه بار پشت هم نوبت سوخت', idle: 'خیلی وقت کسی کاری نکرد' }[g.why] || '';
   const row = c => {
     const mineS = g.shots.filter(x => x.by === c), good = mineS.filter(x => x.hit && x.hit.length).length;
     return `<tr><td>${esc(armyOf(c))}</td><td>${FD(mineS.length)}</td><td>${FD(good)}</td><td>${FD(mineS.length ? Math.round(good * 100 / mineS.length) : 0)}٪</td><td>${FD(P(c).alive)}</td></tr>`;
   };
   return `<div class="lg-card"><div class="lg-win">${w ? `<span class="lg-stamp">${mine || WATCH ? 'برنده' : 'باخت'}</span>` : ''}<h2>${title}</h2><p>${why}</p></div>
       <table class="lg-tbl"><thead><tr><th>لشگر</th><th>شلیک</th><th>خورد</th><th>دقت</th><th>سالم</th></tr></thead><tbody>${[w || botC(), ...g.order.filter(c => c !== (w || botC()))].map(row).join('')}</tbody></table>
-      <p class="lg-hint">عکس برگهٔ آخر جنگ توی گروه هم رفت 📣</p>
+      <p class="lg-hint">عکس برگهٔ آخر جنگ تو گروه هم رفت 📣</p>
       <div class="lg-acts"><button class="lg-go" id="again"><span>${icon('send')}یه جنگ دیگه</span></button><a class="lg-go blue" href="index.html"><span>${icon('home')}خونه</span></a></div></div>`;
 }
 function dockWatchDraw() {
   return `<div class="lg-card"><div class="lg-row"><span class="ic">${icon('eye')}</span><span class="tx"><h2>دارن ارتششون رو می‌چینن</h2>
-    <p>تو برگهٔ هر دو لشگر رو زنده می‌بینی؛ خودشون تا شروع جنگ برگهٔ همدیگه رو نمی‌بینن 🤫</p>
-    <p>${G().order.map(c => `${esc(P(c).army || P(c).name)}: ${P(c).ready ? 'آماده ✓' : `${FD(P(c).placed)} از ${FD(total())} نیرو`}`).join('، ')}</p></span></div></div>`;
+    <p>تو برگهٔ هر دو لشگرو زنده می‌بینی ولی خودشون تا شروع جنگ برگهٔ همدیگه رو نمی‌بینن 🤫</p>
+    <p>${G().order.map(c => `${esc(P(c).army || P(c).name)}: ${P(c).ready ? 'آماده ✓' : `${FD(P(c).placed)} از ${FD(total())} نیرو`}`).join(' · ')}</p></span></div></div>`;
 }
 function renderDock() {
   const g = G(), d = $('dock'); if (!g) return;
@@ -771,7 +771,7 @@ function nameScreen() {
   scr.dataset.on = '1';
   const v0 = store.get('lg_army', '') || '';
   scr.innerHTML = `<div class="lg-nhead"><button class="lg-ib" id="nExit" aria-label="خروج">${icon('exit')}</button>
-      <div class="lg-head"><b>لشگر کاغذی</b><span>قبل از جنگ، لشگرت یه اسم می‌خواد</span></div><button class="lg-ib" id="nHelp" aria-label="راهنما"><b>؟</b></button></div>
+      <div class="lg-head"><b>لشگر کاغذی</b><span>قبل از جنگ لشگرت یه اسم می‌خواد</span></div><button class="lg-ib" id="nHelp" aria-label="راهنما"><b>؟</b></button></div>
     <div class="lg-hero"><div class="lg-book"><div class="lab"><span>نام لشگر:</span><b id="nPrev"></b><span>فرمانده: ${esc(mine.name)}</span></div>
       <div class="tag"><svg viewBox="-6 -20 34 36" aria-hidden="true"><path d="M0 -16H17V-4H0Z" fill="${COLORS[me()]}" opacity=".7"/><g class="lg-u" style="stroke-width:1.4"><use href="#u-flag"/></g></svg>پرچم تو</div></div></div>
     <div class="lg-ncard"><div class="lg-row" style="gap:8px"><label for="nIn">اسم لشگرت</label><span class="cnt" id="nCnt"></span></div>
@@ -780,9 +780,9 @@ function nameScreen() {
       <span style="font-size:12.5px;font-weight:700;color:var(--lg-muted)">یا یکی از این‌ها رو بردار:</span>
       <div class="lg-sug" id="nSug">${SUGGEST.map(x => `<button data-s="${esc(x)}">${esc(x)}</button>`).join('')}<button class="rnd" id="nRnd">${icon('spin')}یه اسم شانسی</button></div>
       <p class="lg-err" id="nErr" role="alert"></p>
-      <span style="font-size:11.5px;color:var(--lg-muted)">اسمت توی گروه و آخر جنگ هم نشون داده می‌شه.</span></div>
+      <span style="font-size:11.5px;color:var(--lg-muted)">اسمت تو گروه و آخر جنگ هم نشون داده می‌شه</span></div>
     <div class="lg-foe" id="nFoe">${foeLine(f)}</div><div class="sp"></div>
-    <button class="lg-go blue" id="nGo"><span>ثبت اسم، بریم سراغ نقاشی</span></button>`;
+    <button class="lg-go blue" id="nGo"><span>ثبت اسم و بریم سراغ نقاشی</span></button>`;
   GC.mount(scr);
   const inp = $('nIn'), prev = $('nPrev'), cnt = $('nCnt');
   const sync = () => {
@@ -819,15 +819,15 @@ async function submitName() {
 function howTo() {
   const mini = (body, extra = '') => `<svg viewBox="0 0 150 104" aria-hidden="true"><rect x="8" y="8" width="134" height="88" rx="3" fill="#FCFBF7" stroke="#D8D2C2"/>${extra}<g filter="url(#lgPn)" class="lg-u" style="stroke-width:1.2">${body}</g></svg>`;
   const sh = sheet(`<div style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0;font-family:var(--font-rokh);font-weight:900;font-size:22px">لشگر کاغذی چطوریه؟</h2>
-    <p style="margin:0;font-size:13.5px;line-height:22px;color:var(--lg-muted)">همون جنگ کاغذی زنگ تفریح: یه برگه، وسطش یه خط، این‌ور ارتش تو و اون‌ور ارتش حریف.</p>
+    <p style="margin:0;font-size:13.5px;line-height:22px;color:var(--lg-muted)">همون جنگ کاغذی زنگ تفریح خودمون 😉 یه برگه با یه خط وسطش و این‌ور ارتش تو و اون‌ور ارتش حریف</p>
     <div class="lg-how">
-      <div>${mini('<use href="#u-tank" transform="translate(46 62) scale(.9)"/><use href="#u-sol" transform="translate(92 52) scale(.9)"/><use href="#u-flag" transform="translate(120 52) scale(.9)"/>', '<path d="M8 22q4 -3 8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t6 0" fill="none" stroke="#3A3A3A" stroke-width="1.4"/>')}<b>۱. ارتشت رو بچین</b><span>نیروها رو بکش رو برگه؛ مداد رو با انگشت ببر و «رنگ کن» رو نگه دار.</span></div>
-      <div>${mini('<use href="#u-tank" transform="translate(40 66) scale(.8)" opacity=".5"/>', '<circle cx="76" cy="46" r="4.5" fill="#C8323C"/>')}<b>۲. یه نقطه بذار</b><span>روی نیمهٔ خودت؛ همون فاصله تا خط، اون‌ور شلیک می‌شه.</span></div>
-      <div>${mini('', '<path d="M8 52L142 52L130 90L20 90Z" fill="#F1EEE6" stroke="#CFC8B6"/><path d="M140 92C150 70 150 44 128 30" fill="none" stroke="#1668D9" stroke-width="2.4" stroke-linecap="round"/>')}<b>۳. برگه رو تا کن</b><span>دستهٔ پایین رو بکش بالا؛ هر چی صاف‌تر، دقیق‌تر.</span></div>
-      <div>${mini('<use href="#u-tank" transform="translate(60 38) rotate(180) scale(.95)"/>', '<circle cx="62" cy="40" r="4.5" fill="#C8323C"/><path d="M38 26L84 52M38 52L84 26" stroke="#C8323C" stroke-width="2.4" stroke-linecap="round"/>')}<b>۴. فشار بده</b><span>روی نقطه نگه دار؛ به هر نیرویی بخوره، خط می‌خوره.</span></div>
+      <div>${mini('<use href="#u-tank" transform="translate(46 62) scale(.9)"/><use href="#u-sol" transform="translate(92 52) scale(.9)"/><use href="#u-flag" transform="translate(120 52) scale(.9)"/>', '<path d="M8 22q4 -3 8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t8 0t6 0" fill="none" stroke="#3A3A3A" stroke-width="1.4"/>')}<b>۱ · ارتشتو بچین</b><span>نیروها رو بکش رو برگه و مدادو با انگشت ببر و «رنگ کن» رو نگه دار</span></div>
+      <div>${mini('<use href="#u-tank" transform="translate(40 66) scale(.8)" opacity=".5"/>', '<circle cx="76" cy="46" r="4.5" fill="#C8323C"/>')}<b>۲ · یه نقطه بذار</b><span>رو نیمهٔ خودت تا همون فاصله تا خط اون‌ور شلیک بشه</span></div>
+      <div>${mini('', '<path d="M8 52L142 52L130 90L20 90Z" fill="#F1EEE6" stroke="#CFC8B6"/><path d="M140 92C150 70 150 44 128 30" fill="none" stroke="#1668D9" stroke-width="2.4" stroke-linecap="round"/>')}<b>۳ · برگه رو تا کن</b><span>دستهٔ پایینو بکش بالا و هر چی صاف‌تر دقیق‌تر</span></div>
+      <div>${mini('<use href="#u-tank" transform="translate(60 38) rotate(180) scale(.95)"/>', '<circle cx="62" cy="40" r="4.5" fill="#C8323C"/><path d="M38 26L84 52M38 52L84 26" stroke="#C8323C" stroke-width="2.4" stroke-linecap="round"/>')}<b>۴ · فشار بده</b><span>رو نقطه نگه دار و به هر نیرویی بخوره خط می‌خوره</span></div>
     </div>
-    <ul class="lg-rules"><li>اول یه اسم باحال برای لشگرت می‌ذاری. نقاشی وقت نداره، ولی هر شلیک ۱ دقیقه وقت داره.</li><li>هر نیرو با یه بار خوردن خط می‌خوره؛ نقاشی‌ها فقط برای قشنگی‌ان.</li><li>پرچم فرماندهٔ توئه: اگه بخوره، جنگ همون‌جا تمومه.</li><li>هر کی زودتر کل ارتش حریف رو خط بزنه، برنده‌ست.</li></ul>
-    <button class="btn btn-block" data-close>فهمیدم، بریم!</button></div>`);
+    <ul class="lg-rules"><li>اول یه اسم باحال برای لشگرت می‌ذاری<br>نقاشی وقت نداره ولی هر شلیک ۱ دقیقه وقت داره</li><li>هر نیرو با یه بار خوردن خط می‌خوره و نقاشیا فقط برای قشنگی‌ان</li><li>پرچم فرماندهٔ توئه و اگه بخوره جنگ همون‌جا تمومه</li><li>هر کی زودتر کل ارتش حریفو خط بزنه برده</li></ul>
+    <button class="btn btn-block" data-close>فهمیدم بزن بریم!</button></div>`);
   GC.mount(sh);
 }
 
@@ -890,10 +890,10 @@ async function again(btn) {
   btn.disabled = true;
   try {
     const r = await GC.data.groupShare('lashgar');
-    if (r.demo) toast('توی تلگرام گروهتو انتخاب می‌کنی و کارت میز همون‌جا می‌ره');
-    else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز رفت توی گروه؛ بچه‌ها رو خبر کن! 🎉'); } });
+    if (r.demo) toast('تو تلگرام گروهتو انتخاب می‌کنی و کارت میز همون‌جا می‌ره');
+    else if (at('8.0') && w.shareMessage) w.shareMessage(r.id, ok => { if (ok) { sfx.turn(); haptic('success'); toast('کارت میز رفت تو گروه بچه‌ها رو خبر کن! 🎉'); } });
     else if (at('6.7') && w.switchInlineQuery) w.switchInlineQuery('lashgar', ['groups', 'channels']);
-    else toast('توی گروه بنویس /lashgar');
+    else toast('تو گروه بنویس /lashgar');
   } catch (e) { toast(errText(e)); }
   btn.disabled = false;
 }
@@ -904,10 +904,10 @@ function askExit() {
   if (!snap || snap.status !== 'playing' || WATCH || !g || g.over) { location.href = 'index.html'; return; }
   const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD">
       <span class="dlg-ic warn">${icon('exit')}</span><h2 id="dT">از جنگ می‌ری؟</h2>
-      <p id="dD">اگه بری، جنگ رو باختی و حریفت برنده می‌شه.</p>
-      <div class="dlg-acts"><button class="btn" data-close>نه، می‌مونم</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}آره، می‌رم</button></div>
-      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فقط برم خونه؛ جنگ سر جاش می‌مونه</button>
-      <p class="dlg-fine">${phase() === 'draw' ? 'نقاشی و نیروهات ذخیره شده؛ از صفحهٔ خونه با یه لمس برمی‌گردی.' : 'حواست باشه هر شلیک فقط ۱ دقیقه وقت داره ⏳'}</p></div>`, { center: true });
+      <p id="dD">اگه بری جنگو باختی و حریفت می‌بره</p>
+      <div class="dlg-acts"><button class="btn" data-close>نه می‌مونم</button><button class="btn btn-danger-soft" id="leave">${icon('exit')}آره می‌رم</button></div>
+      <button class="btn btn-light btn-block dlg-home" id="home">${icon('home')}فعلاً برم خونه جنگ سر جاش می‌مونه</button>
+      <p class="dlg-fine">${phase() === 'draw' ? 'نقاشی و نیروهات ذخیره شده و از صفحهٔ خونه با یه لمس برمی‌گردی' : 'حواست باشه هر شلیک فقط ۱ دقیقه وقت داره ⏳'}</p></div>`, { center: true });
   sh.querySelector('#home').onclick = async () => { try { await saveUnits(true); await inkSettled(); } catch (e) {} GC.guardClose(false); location.href = 'index.html'; };
   sh.querySelector('#leave').onclick = async () => { try { await API.leave(mid); } catch (e) {} GC.guardClose(false); store.set('lgmid', null); location.href = 'index.html'; };
 }
@@ -919,8 +919,8 @@ function dialog(title, text) {
       <h2 id="dT">${title}</h2><p id="dD">${text}</p>
       <div class="dlg-acts"><a class="btn" href="lashgar-lobby.html">لشگر کاغذی</a><a class="btn btn-light" href="index.html">برگرد خونه</a></div></div>`, { center: true, dismiss: false });
 }
-function cancelled() { store.set('lgmid', null); GC.guardClose(false); dialog('این جنگ بسته شد', 'جنگ قبل از اینکه تموم شه بسته شد؛ یه میز تازه بچینید 😉'); }
-function noMatch() { if (!watchMid) store.set('lgmid', null); dialog(watchMid ? 'این جنگ رو نمی‌شه دید' : 'جنگی پیدا نشد', watchMid ? 'یا تموم شده یا هنوز شروع نشده.' : 'یا جنگ تموم شده یا هنوز سر هیچ میزی ننشستی.'); }
+function cancelled() { store.set('lgmid', null); GC.guardClose(false); dialog('این جنگ بسته شد', 'جنگ قبل از اینکه تموم شه بسته شد یه میز تازه بچینین 😉'); }
+function noMatch() { if (!watchMid) store.set('lgmid', null); dialog(watchMid ? 'این جنگ رو نمی‌شه دید' : 'جنگی پیدا نشد', watchMid ? 'یا تموم شده یا هنوز شروع نشده' : 'یا جنگ تموم شده یا هنوز سر هیچ میزی ننشستی'); }
 
 /* ---------- پرسیدن پیاپی وضعیت ---------- */
 async function poll() {
@@ -976,32 +976,32 @@ const halfRect = top => { const r = sheetRect(); if (!r.width) return null; cons
 function tourDraw() {
   return {
     id: 'lashgar', name: 'لشگر کاغذی', color: '#1A7A35', ink: '#fff', help: 'help.html#hLg',
-    introTitle: 'جنگ کاغذی شروع شد!', intro: 'همون جنگ زنگ تفریح: ارتشت رو روی نیمهٔ خودت بچین، هر چی خواستی بکش و بعد با تا کردن برگه شلیک کن.',
+    introTitle: 'جنگ کاغذی شروع شد!', intro: 'همون جنگ زنگ تفریح خودمون 🪖 ارتشتو رو نیمهٔ خودت بچین و هر چی خواستی بکش و بعد با تا کردن برگه شلیک کن',
     ready: () => !!(G() && !WATCH && phase() === 'draw' && me() && P(me()).army && !P(me()).ready && document.querySelector('.lg-chips') && $('nameScr').hidden),
     after: () => { if (phase() === 'draw') setTool(null); },
     steps: [
-      { el: '.lg-chips', title: 'ارتشت رو بچین', text: 'نیروها رو از اینجا <b>بکش روی نیمهٔ خودت</b>. با یه لمس روی هر نیرو، می‌چرخونیش یا برش می‌داری.', hand: { type: 'drag', from: [0.5, 0.45], to: [0.45, -2.4] }, before: () => setTool(null) },
-      { el: '#auto', title: 'عجله داری؟', text: '«بقیه رو خودت بچین» نیروهای باقی‌مونده رو یه جای خالی می‌ذاره؛ بعدش هم می‌تونی جابه‌جاشون کنی.', hand: 'tap' },
-      { el: () => halfRect(false), title: 'پرچم فرمانده‌ست', text: 'هر نیرو با یه بار خوردن خط می‌خوره. <b>پرچم</b> رو خوب قایم کن: اگه بخوره، جنگ همون‌جا تمومه. نقاشی‌ها هدف نیستن.', pad: 2, round: 6 },
-      { el: '.lg-pcs', title: 'یه مداد بردار', text: 'مداد رو با <b>یه انگشت</b> روی برگه ببر؛ سرش کمی بالای انگشتته تا ببینی کجا می‌کشی.', hand: 'tap', at: [0.85, 0.4], before: () => setTool({ k: 'pen', c: 0 }) },
-      { el: '#paint', title: 'رنگ کن', text: 'فقط وقتی این دکمه رو <b>نگه داشتی</b> مداد رنگ می‌ده. یه ضربهٔ کوتاه روشن نگهش می‌داره و ضربهٔ بعد خاموشش می‌کنه.', hand: 'hold', round: 999 },
-      { el: '.lg-tools', title: 'پاک‌کن و برگردون', text: 'پاک‌کن هم مثل مداده: با «رنگ کن» پاک می‌کنه. «برگردون» آخرین خط رو برمی‌داره.' },
-      { el: '#ready', title: 'آماده‌ام', text: 'همه چیده شد؟ <b>«آماده‌ام»</b> رو بزن. هر دو که آماده شدید، دفتر کنار می‌ره و جنگ شروع می‌شه. این مرحله وقت نداره.', before: () => setTool(null) },
+      { el: '.lg-chips', title: 'ارتشت رو بچین', text: 'نیروها رو از اینجا <b>بکش رو نیمهٔ خودت</b><br>با یه لمس رو هر نیرو می‌چرخونیش یا برش می‌داری', hand: { type: 'drag', from: [0.5, 0.45], to: [0.45, -2.4] }, before: () => setTool(null) },
+      { el: '#auto', title: 'عجله داری؟', text: '«بقیه رو خودت بچین» نیروهای باقی‌مونده رو یه جای خالی می‌ذاره و بعدش هم می‌تونی جابه‌جاشون کنی', hand: 'tap' },
+      { el: () => halfRect(false), title: 'پرچم فرمانده‌ست', text: 'هر نیرو با یه بار خوردن خط می‌خوره<br><b>پرچم</b> رو خوب قایم کن چون اگه بخوره جنگ همون‌جا تمومه<br>نقاشیا هدف نیستن', pad: 2, round: 6 },
+      { el: '.lg-pcs', title: 'یه مداد بردار', text: 'مدادو با <b>یه انگشت</b> رو برگه ببر<br>نوکش یه کم بالای انگشتته تا ببینی کجا می‌کشی', hand: 'tap', at: [0.85, 0.4], before: () => setTool({ k: 'pen', c: 0 }) },
+      { el: '#paint', title: 'رنگ کن', text: 'فقط وقتی این دکمه رو <b>نگه داشتی</b> مداد رنگ می‌ده<br>یه ضربهٔ کوتاه روشن نگهش می‌داره و ضربهٔ بعد خاموشش می‌کنه', hand: 'hold', round: 999 },
+      { el: '.lg-tools', title: 'پاک‌کن و برگردون', text: 'پاک‌کن هم مثل مداده و با «رنگ کن» پاک می‌کنه<br>«برگردون» آخرین خطو برمی‌داره' },
+      { el: '#ready', title: 'آماده‌ام', text: 'همه چیده شد؟ <b>«آماده‌ام»</b> رو بزن<br>هر دوتون که آماده شدین دفتر می‌ره کنار و جنگ شروع می‌شه و این مرحله وقت نداره', before: () => setTool(null) },
     ],
   };
 }
 function tourBattle() {
   return {
     id: 'lashgar2', artId: 'lashgar', name: 'لشگر کاغذی', color: '#C8323C', ink: '#fff', help: 'help.html#hLg', pauseAt: 15000,
-    introTitle: 'وقت جنگه!', intro: 'هر شلیک سه حرکته: نقطه بذار، برگه رو تا کن و از پشت فشار بده.',
+    introTitle: 'وقت جنگه!', intro: 'هر شلیک سه حرکته · نقطه بذار و برگه رو تا کن و از پشت فشار بده',
     ready: () => !!(G() && !WATCH && phase() === 'battle' && !animating && $('cover').hidden && fold.st === 'flat'),
     turn: () => ({ mine: !!myTurn(), left: deadlineAt ? deadlineAt - performance.now() : null }),
     steps: [
-      { el: '#score', title: 'دو لشگر', text: 'لشگری که نوبتشه دورش روشنه؛ تعداد نیروهای سالم هر طرف هم همین‌جاست.' },
-      { el: () => halfRect(false), title: 'یه نقطه بذار', text: 'نوبتت که شد، با <b>مداد قرمز</b> یه نقطه روی نیمهٔ خودت بذار. همون فاصله تا خط وسط، اون‌ور شلیک می‌شه.', hand: 'tap', at: [0.4, 0.3], pad: 2, round: 6 },
-      { el: () => halfRect(false), title: 'برگه رو تا کن', text: 'دستهٔ پایین برگه رو <b>بکش بالا</b> تا تا بخوره؛ هر چی صاف‌تر بکشی دقیق‌تر. دکمهٔ «تا کن و شلیک کن» هم هست.', hand: { type: 'drag', from: [0.5, 0.96], to: [0.5, 0.1] }, pad: 2, round: 6 },
-      { el: () => halfRect(true), title: 'محکم فشار بده', text: 'از پشت برگه روی نقطه <b>نگه دار</b> تا پررنگ بشه. ردش به هر نیرویی بخوره، خط می‌خوره.', hand: 'hold', at: [0.4, 0.7], pad: 2, round: 6 },
-      { el: '#clock', title: 'هر شلیک ۱ دقیقه', text: 'وقتت تموم بشه نوبتت می‌سوزه؛ <b>۳ بار پشت هم</b> یعنی باخت. پرچم حریف رو بزنی، جنگ همون‌جا تمومه!', center: true },
+      { el: '#score', title: 'دو لشگر', text: 'لشگری که نوبتشه دورش روشنه و تعداد نیروهای سالم هر طرف هم همین‌جاست' },
+      { el: () => halfRect(false), title: 'یه نقطه بذار', text: 'نوبتت که شد با <b>مداد قرمز</b> یه نقطه رو نیمهٔ خودت بذار<br>همون فاصله تا خط وسط اون‌ور شلیک می‌شه', hand: 'tap', at: [0.4, 0.3], pad: 2, round: 6 },
+      { el: () => halfRect(false), title: 'برگه رو تا کن', text: 'دستهٔ پایین برگه رو <b>بکش بالا</b> تا تا بخوره و هر چی صاف‌تر بکشی دقیق‌تره<br>دکمهٔ «تا کن و شلیک کن» هم هست', hand: { type: 'drag', from: [0.5, 0.96], to: [0.5, 0.1] }, pad: 2, round: 6 },
+      { el: () => halfRect(true), title: 'محکم فشار بده', text: 'از پشت برگه رو نقطه <b>نگه دار</b> تا پررنگ بشه<br>ردش به هر نیرویی بخوره خط می‌خوره', hand: 'hold', at: [0.4, 0.7], pad: 2, round: 6 },
+      { el: '#clock', title: 'هر شلیک ۱ دقیقه', text: 'وقتت تموم بشه نوبتت می‌سوزه و <b>۳ بار پشت هم</b> یعنی باخت<br>پرچم حریفو بزنی جنگ همون‌جا تمومه!', center: true },
     ],
   };
 }

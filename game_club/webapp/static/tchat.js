@@ -1,5 +1,5 @@
 /* گفتگوی میز مثل پلاتو؛ یکی برای همهٔ بازی ها (حکم، منچ، فوتبال، بیلیارد).
-   - نوار پایین: آیکن گفتگو، «Say hello...»، پیام سریع و فلش آبی فرستادن (هنگام نوشتن).
+   - نوار پایین: آیکن گفتگو، «یه چیزی بگو…»، پیام سریع و فلش آبی فرستادن (هنگام نوشتن).
      در بیلیارد همیشه پیداست؛ در بقیه با دکمهٔ گفتگوی خود بازی باز می شود و با زدن بیرونش بسته.
    - پیام ها روی خود بازی شناور می آیند، بالای نوار: پیام بقیه سمت چپ (عکس، نام بالای حباب خاکستری)،
      پیام خودم سمت راست (حباب آبی، نام با ✓ و عکس). چند ثانیه می مانند و محو می شوند؛ وقتی نوار باز است
@@ -24,7 +24,7 @@ const TChat = (() => {
     const bar = o.bar || document.createElement('form');
     bar.classList.add('tc-bar'); if (!persistent) bar.classList.add('tc-float');
     bar.innerHTML = `<button type="button" class="tc-ic" aria-label="گفتگو">${ICON.chat}${persistent && o.badge == null ? '<span class="badge" hidden></span>' : ''}</button>
-      <input class="tc-in" maxlength="140" placeholder="Say hello..." autocomplete="off" enterkeyhint="send" aria-label="پیام" dir="auto">
+      <input class="tc-in" maxlength="140" placeholder="یه چیزی بگو…" autocomplete="off" enterkeyhint="send" aria-label="پیام" dir="auto">
       <button type="button" class="tc-q" aria-label="پیام سریع">${ICON.sticker}</button>
       <button type="submit" class="tc-send" aria-label="فرستادن">${ICON.send}</button>`;
     if (!o.bar) document.body.appendChild(bar);

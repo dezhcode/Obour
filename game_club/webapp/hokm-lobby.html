@@ -70,7 +70,7 @@
 </header>
 <main class="page no-nav">
   <div class="gp" id="gp"></div>
-  <a class="card card-link resume" id="resume" href="hokm.html" hidden><span class="tag tag-live">بازی نیمه‌تمام</span><b>برگرد سر میز</b><span class="muted">بازی‌ات هنوز ادامه دارد؛ یارت منتظر توست.</span></a>
+  <a class="card card-link resume" id="resume" href="hokm.html" hidden><span class="tag tag-live">بازی نیمه‌کاره</span><b>برگرد سر میز</b><span class="muted">بازیت هنوز تموم نشده و یارت منتظرته</span></a>
 
 </main>
 <script src="static/gc.js"></script>
@@ -92,7 +92,7 @@
   async function go(mid) {
     token = null; store.set('hmid', mid);
     for (let n = 3; n >= 1; n--) {
-      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز آماده است!</h2><div class="count">${FD(n)}</div><p class="hint">بازی شروع می‌شود…</p>`, { center: true, dismiss: false });
+      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز حاضره!</h2><div class="count">${FD(n)}</div><p class="hint">الان بازی شروع می‌شه…</p>`, { center: true, dismiss: false });
       sfx.tick(); haptic('light'); await sleep(650);
     }
     location.href = 'hokm.html';
@@ -105,17 +105,17 @@
     while (token === t) {
       if (st.state === 'matched') { sfx.turn(); haptic('success'); return go(st.match); }
       if (st.state !== 'waiting') { GC.close(); return; }
-      const c = st.cfg, list = [{ name: 'شما', av: 7 }];
+      const c = st.cfg, list = [{ name: 'خودت', av: 7 }];
       for (let i = 1; i < 4; i++) list.push(i < st.found ? { name: 'بازیکن', av: 3 + i } : null);
-      const line = `${FD(st.found)} از ${FD(st.need)} نفر، ${FD(st.waited)} ثانیه`;
+      const line = `${FD(st.found)} از ${FD(st.need)} نفر · ${FD(st.waited)} ثانیه`;
       if (shown === String(st.found)) { const el = document.getElementById('ql'); if (el) el.textContent = line; }
       else {
       shown = String(st.found);
       const sh = sheet(`${sheetHead('پیدا کردن حریف')}${seatsHtml(list)}
         <div class="wait-line"><span class="spinner"></span><span id="ql">${line}</span></div>
-        <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · جایزهٔ هر برنده ${fa(c.entry * 2)} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگر تا ${FD(st.bots_in)} ثانیهٔ دیگر کسی نیاید، جای خالی را ربات پر می‌کند` : 'بازی وقتی شروع می‌شود که میز کامل شود'} · ناشناس می‌مانی</p>
-        ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مانم؛ جای خالی را ربات پر کند</button>' : ''}
-        <button class="btn btn-light btn-block" id="qc">انصراف${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
+        <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · جایزهٔ هر برنده ${fa(c.entry * 2)} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگه تا ${FD(st.bots_in)} ثانیهٔ دیگه کسی نیاد ربات جای خالیو پر می‌کنه` : 'میز که پر شه بازی شروع می‌شه'} · ناشناس می‌مونی</p>
+        ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مونم بذار ربات جای خالیو پر کنه</button>' : ''}
+        <button class="btn btn-light btn-block" id="qc">بی‌خیال${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
       const qb = sh.querySelector('#qb');
       if (qb) qb.onclick = async () => { qb.disabled = true; try { const r = await GC.hokm.queueBots(); if (r.state === 'matched') { token = null; sfx.turn(); haptic('success'); return go(r.match); } } catch (e) { toast(errText(e)); } qb.disabled = false; };
       sh.querySelector('#qc').onclick = async () => { token = null; try { await GC.hokm.queueLeave(); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
@@ -133,26 +133,26 @@
       let v;
       try { v = await GC.hokm.match(mid, 0); } catch (e) { toast(errText(e)); GC.close(); return; }
       if (v.status === 'playing') return go(mid);
-      if (v.status === 'cancelled') { GC.close(); toast('سازنده میز را بست؛ ورودی‌ات برگشت'); await GC.refreshMe(); render(); return; }
+      if (v.status === 'cancelled') { GC.close(); toast('سازنده میزو بست و ورودیت برگشت'); await GC.refreshMe(); render(); return; }
       const L = v.lobby, c = v.cfg, full = L.seats.length === 4, link = L.link;
       const sig = L.seats.map(s => s.color + s.name).join('|');
       if (sig === shown) { await sleep(1500); continue; }
       shown = sig; if (L.seats.length > 1) { sfx.turn(); haptic('light'); }
       // صندلی ۰ سازنده، ۲ یار او، ۱ و ۳ حریف ها؛ از دید خودم: من، یار، دو حریف
       const mine = (L.seats.find(s => s.me) || { color: '0' }).color, at = k => L.seats.find(s => s.color === String((+mine + k) % 4));
-      const list = [0, 2, 1, 3].map(k => { const s = at(k); return s ? Object.assign({}, s, { name: s.me ? 'شما' : s.name }) : null; });
-      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(c.mode === 'stake' ? `بیا یار من شو در حکم! ورودی ${c.entry} امتیاز.` : 'بیا یار من شو، حکم بازی کنیم!');
-      const sh = sheet(`${sheetHead(L.host ? 'بازی با یار' : 'سر میز دوستت')}
-        ${L.host ? `<p>این لینک را بفرست. اولین کسی که بازش کند یار تو می‌شود و بعدی‌ها حریف${c.mode === 'stake' ? ' و ' + fa(c.entry) + ' امتیاز ورودی از کیف خودش کم می‌شود' : ''}.</p>
-        <div class="linkbox"><code>${link || 'لینک دعوت فقط داخل تلگرام ساخته می‌شود'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
-        <button class="btn btn-block" id="shr">${icon('send')}ارسال در تلگرام</button>` : '<p>منتظر بقیه و شروع بازی توسط سازندهٔ میز…</p>'}
+      const list = [0, 2, 1, 3].map(k => { const s = at(k); return s ? Object.assign({}, s, { name: s.me ? 'خودت' : s.name }) : null; });
+      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(c.mode === 'stake' ? `بیا یار من شو تو حکم! ورودی ${c.entry} امتیاز` : 'بیا یار من شو حکم بزنیم!');
+      const sh = sheet(`${sheetHead(L.host ? 'بازی با یار' : 'سر میز رفیقت')}
+        ${L.host ? `<p>این لینکو بفرست و اولین کسی که بازش کنه یارت می‌شه و بعدیا حریف${c.mode === 'stake' ? ' و ' + fa(c.entry) + ' امتیاز ورودی از کیف خودش کم می‌شه' : ''}</p>
+        <div class="linkbox"><code>${link || 'لینک دعوت فقط تو تلگرام ساخته می‌شه'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
+        <button class="btn btn-block" id="shr">${icon('send')}بفرست تو تلگرام</button>` : '<p>منتظر بقیه‌ایم تا سازندهٔ میز بازیو شروع کنه…</p>'}
         ${seatsHtml(list)}
-        <div class="wait-line"><span class="spinner"></span>${FD(L.seats.length)} از ۴ نفر نشسته‌اند</div>
-        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">جای خالی را ربات پر کند و شروع کن</button>' : ''}
+        <div class="wait-line"><span class="spinner"></span>${FD(L.seats.length)} از ۴ نفر نشستن</div>
+        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">ربات جای خالیو پر کنه و شروع کن</button>' : ''}
         <button class="btn btn-light btn-block" id="lv">${L.host ? 'بستن میز' : 'بلند شدن از میز'}</button>`, { dismiss: false });
       const cp = sh.querySelector('#cp');
-      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد؛ لینک را دستی بفرست')); } catch (e) { toast('کپی نشد؛ لینک را دستی بفرست'); } };
-      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط داخل تلگرام ساخته می‌شود');
+      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد لینکو دستی بفرست')); } catch (e) { toast('کپی نشد لینکو دستی بفرست'); } };
+      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط تو تلگرام ساخته می‌شه');
       const solo = sh.querySelector('#solo'); if (solo) solo.onclick = async () => { try { await GC.hokm.start(mid); } catch (e) { toast(errText(e)); } };
       sh.querySelector('#lv').onclick = async () => { token = null; try { await GC.hokm.leave(mid); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
       await sleep(1500);
@@ -175,18 +175,18 @@
     document.body.appendChild(el);
     const tile = (i, k) => `<button class="hs-t" data-k="${k}" data-look="${i.look}" aria-pressed="${pick[k] === i.look}">
       ${k === 'table' ? `<span class="sw felt tbl-${i.look}"></span>` : `<span class="sw cs cards-${i.look}">${C.back('', 'left:12%;top:16%;transform:rotate(-10deg)')}${C.face(12, '', 'left:44%;top:10%;transform:rotate(7deg)')}</span>`}
-      ${i.name.replace(/^(میز|ورق) /, '')}${i.owned ? `<small class="own">${i.price ? 'خریده‌ای' : 'رایگان'}</small>` : `<small>${GC.coin()}${fa(i.price)}</small>`}</button>`;
+      ${i.name.replace(/^(میز|ورق) /, '')}${i.owned ? `<small class="own">${i.price ? 'خریدی' : 'مجانی'}</small>` : `<small>${GC.coin()}${fa(i.price)}</small>`}</button>`;
     function draw() {
       const need = ['table', 'cards'].map(k => find(k, pick[k])).filter(i => i && !i.owned);
       const cost = need.reduce((a, i) => a + i.price, 0), short = cost > GC.points;
       el.innerHTML = `<div class="top"><button class="hs-ib" id="hsX" aria-label="برگشت">${icon('back')}</button><span class="hs-bal">${GC.coin()}${fa(GC.points)}</span></div>
-        <div><h1>میز و ورقت را انتخاب کن</h1><p class="sub">سر میز هر کس همان میز و ورقی را می‌بیند که خودش انتخاب کرده.</p></div>
+        <div><h1>میز و ورقتو انتخاب کن</h1><p class="sub">سر میز هر کی همون میز و ورقی رو می‌بینه که خودش انتخاب کرده</p></div>
         <div class="hs-pv felt tbl-${pick.table} cards-${pick.cards}">${scene()}</div>
         <section class="hs-sec"><div class="h"><b>میز</b><span>${find('table', pick.table).name}</span></div>
           <div class="hs-row r3">${sty.items.filter(i => i.kind === 'table').map(i => tile(i, 'table')).join('')}</div></section>
         <section class="hs-sec"><div class="h"><b>ورق</b><span>${find('cards', pick.cards).name}</span></div>
           <div class="hs-row r4">${sty.items.filter(i => i.kind === 'cards').map(i => tile(i, 'cards')).join('')}</div></section>
-        <div class="hs-foot">${cost ? `<p class="hs-note">${need.map(i => i.name).join(' و ')} را نداری؛ یک بار بخری برای همیشه مال توست.</p>` : ''}
+        <div class="hs-foot">${cost ? `<p class="hs-note">${need.map(i => i.name).join(' و ')} رو نداری ولی یه بار بخری تا همیشه مال خودته</p>` : ''}
         <button class="hs-go${cost && !short ? ' buy' : ''}" id="hsGo"${short ? ' disabled' : ''}>${!cost ? 'همین · ' + GO[how] : short ? fa(cost - GC.points) + ' امتیاز کم داری' : `خرید با ${fa(cost)} امتیاز و ${GO[how]}`}</button></div>`;
       el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { pick[b.dataset.k] = b.dataset.look; sfx.tap(); haptic('select'); draw(); });
       el.querySelector('#hsX').onclick = () => { el.remove(); };
@@ -223,16 +223,16 @@
   }
   gp = GCGame.build({
     game: 'hokm', title: 'حکم', shop: true, help: 'help.html#hokm',
-    privateSub: 'یارت را خودت دعوت کن؛ نفرهای بعدی حریف می‌شوند',
+    privateSub: 'یارتو خودت دعوت کن و نفرای بعدی حریف می‌شن',
     modes: [
-      { v: 'h3', label: '۳ دست', ic: icon('bolt'), team: true, desc: 'چهار نفره، دو تیم دونفره؛ تیمی که زودتر ۳ دست ببرد برنده است. حدود ۱۰ دقیقه.', short: '۴ نفره · دو تیم · حدود ۱۰ دقیقه', cfg: { target: 3 } },
-      { v: 'h7', label: '۷ دست', ic: icon('cards'), team: true, desc: 'بازی کامل چهار نفره، دو تیم دونفره تا ۷ دست. حدود ۲۵ دقیقه.', short: '۴ نفره · دو تیم · حدود ۲۵ دقیقه', cfg: { target: 7 } },
+      { v: 'h3', label: '۳ دست', ic: icon('bolt'), team: true, desc: 'چهار نفره و دو تیم دونفره · هر تیمی زودتر ۳ دست ببره برده · حدود ۱۰ دقیقه', short: '۴ نفره · دو تیم · حدود ۱۰ دقیقه', cfg: { target: 3 } },
+      { v: 'h7', label: '۷ دست', ic: icon('cards'), team: true, desc: 'بازی کامل چهار نفره با دو تیم دونفره تا ۷ دست · حدود ۲۵ دقیقه', short: '۴ نفره · دو تیم · حدود ۲۵ دقیقه', cfg: { target: 7 } },
     ],
-    rules: [['دو تیم دونفره.', 'یارت روبه‌رویت می‌نشیند و با هم امتیاز می‌گیرید.'],
-      ['حاکم', 'با دیدن پنج برگ اول، خال حکم را انتخاب می‌کند.'],
-      ['هم‌خال بازی کن.', 'اگر از خال شروع‌شده نداری، می‌توانی حکم بزنی یا برگ دیگری بیندازی.'],
-      ['هر دست', 'را بالاترین برگِ خال شروع یا بالاترین حکم می‌برد.'],
-      ['هر تیم', 'که ۷ دست ببرد، آن دور را برده؛ بازی تا ۳ یا ۷ دور ادامه دارد.']],
+    rules: [['دو تیم دونفره', 'یارت روبه‌روت می‌شینه و با هم امتیاز می‌گیرین'],
+      ['حاکم', 'با دیدن پنج برگ اول خال حکمو انتخاب می‌کنه'],
+      ['هم‌خال بازی کن', 'اگه از خال شروع‌شده نداری می‌تونی حکم بزنی یا یه برگ دیگه بندازی'],
+      ['هر دست', 'رو بالاترین برگِ خال شروع یا بالاترین حکم می‌بره'],
+      ['هر تیم', 'که ۷ دست ببره اون دورو برده و بازی تا ۳ یا ۷ دور ادامه داره']],
     play,
   });
 
@@ -246,7 +246,7 @@
         const v = await GC.hokm.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);
         else if (v && v.status === 'playing') { store.set('hmid', v.id); if (code) { location.replace('hokm.html'); return; } $('resume').hidden = false; }
-      } else if (me.active_match && GC.live) { const o = { ludo: ['منچ', 'ludo.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'], esmfamil: ['اسم‌فامیل', 'esmfamil.html'], lashgar: ['لشگر کاغذی', 'lashgar.html'], snakes: ['مار و پله', 'snakes.html'] }[me.active_game] || ['منچ', 'ludo.html']; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یک بازی ${o[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
+      } else if (me.active_match && GC.live) { const o = { ludo: ['منچ', 'ludo.html'], football: ['فوتبال', 'football.html'], billiard: ['بیلیارد', 'billiard.html'], divar: ['دیوار', 'divar.html'], esmfamil: ['اسم‌فامیل', 'esmfamil.html'], lashgar: ['لشگر کاغذی', 'lashgar.html'], snakes: ['مار و پله', 'snakes.html'] }[me.active_game] || ['منچ', 'ludo.html']; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یه بازی ${o[0]} نیمه‌کاره داری اول اونو تموم کن`; }
       else if (!GC.live && store.get('hmid', null)) {
         const v = await GC.hokm.match(store.get('hmid', null), 0).catch(() => null);
         if (v && v.status === 'playing') $('resume').hidden = false;

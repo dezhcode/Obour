@@ -34,7 +34,7 @@
 </header>
 <main class="page no-nav">
   <div class="gp" id="gp"></div>
-  <a class="card card-link resume" id="resume" href="football.html" hidden><span class="tag tag-live">بازی نیمه‌تمام</span><b>برگرد به زمین</b><span class="muted">بازی‌ات هنوز ادامه دارد؛ حریفت منتظر توست.</span></a>
+  <a class="card card-link resume" id="resume" href="football.html" hidden><span class="tag tag-live">بازی نیمه‌کاره</span><b>برگرد به زمین</b><span class="muted">بازیت هنوز تموم نشده و حریفت منتظرته</span></a>
 
 </main>
 <script src="static/gc.js"></script>
@@ -57,7 +57,7 @@
   async function go(mid) {
     token = null; store.set('fmid', mid);
     for (let n = 3; n >= 1; n--) {
-      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز آماده است!</h2><div class="count">${FD(n)}</div><p class="hint">بازی شروع می‌شود…</p>`, { center: true, dismiss: false });
+      sheet(`<h2 style="text-align:center;font-size:22px;font-weight:900">میز حاضره!</h2><div class="count">${FD(n)}</div><p class="hint">الان بازی شروع می‌شه…</p>`, { center: true, dismiss: false });
       sfx.tick(); haptic('light'); await sleep(650);
     }
     location.href = 'football.html';
@@ -70,16 +70,16 @@
     while (token === t) {
       if (st.state === 'matched') { sfx.turn(); haptic('success'); return go(st.match); }
       if (st.state !== 'waiting') { GC.close(); return; }
-      const c = st.cfg, list = [{ name: 'شما', av: 7 }, st.found > 1 ? { name: 'بازیکن', av: 4 } : null];
-      const line = `${FD(st.found)} از ${FD(st.need)} نفر، ${FD(st.waited)} ثانیه`;
+      const c = st.cfg, list = [{ name: 'خودت', av: 7 }, st.found > 1 ? { name: 'بازیکن', av: 4 } : null];
+      const line = `${FD(st.found)} از ${FD(st.need)} نفر · ${FD(st.waited)} ثانیه`;
       if (shown === String(st.found)) { const el = document.getElementById('ql'); if (el) el.textContent = line; }
       else {
       shown = String(st.found);
       const sh = sheet(`${sheetHead('پیدا کردن حریف')}${seatsHtml(list)}
         <div class="wait-line"><span class="spinner"></span><span id="ql">${line}</span></div>
-        <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · جایزهٔ برنده ${fa(c.entry * 2)} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگر تا ${FD(st.bots_in)} ثانیهٔ دیگر کسی نیاید، جای خالی را ربات پر می‌کند` : 'بازی وقتی شروع می‌شود که میز کامل شود'} · ناشناس می‌مانی</p>
-        ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مانم؛ جای خالی را ربات پر کند</button>' : ''}
-        <button class="btn btn-light btn-block" id="qc">انصراف${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
+        <p class="hint">${c.mode === 'stake' ? `ورودی ${fa(c.entry)} · جایزهٔ برنده ${fa(c.entry * 2)} امتیاز · فقط با بازیکن واقعی` : st.bots_in != null && st.bots_in > 0 ? `اگه تا ${FD(st.bots_in)} ثانیهٔ دیگه کسی نیاد ربات جای خالیو پر می‌کنه` : 'میز که پر شه بازی شروع می‌شه'} · ناشناس می‌مونی</p>
+        ${st.can_bots ? '<button class="btn btn-block" id="qb">منتظر نمی‌مونم بذار ربات جای خالیو پر کنه</button>' : ''}
+        <button class="btn btn-light btn-block" id="qc">بی‌خیال${c.mode === 'stake' ? ' و برگشت ورودی' : ''}</button>`, { dismiss: false });
       const qb = sh.querySelector('#qb');
       if (qb) qb.onclick = async () => { qb.disabled = true; try { const r = await GC.football.queueBots(); if (r.state === 'matched') { token = null; sfx.turn(); haptic('success'); return go(r.match); } } catch (e) { toast(errText(e)); } qb.disabled = false; };
       sh.querySelector('#qc').onclick = async () => { token = null; try { await GC.football.queueLeave(); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
@@ -97,25 +97,25 @@
       let v;
       try { v = await GC.football.match(mid, 0); } catch (e) { toast(errText(e)); GC.close(); return; }
       if (v.status === 'playing') return go(mid);
-      if (v.status === 'cancelled') { GC.close(); toast('سازنده میز را بست؛ ورودی‌ات برگشت'); await GC.refreshMe(); render(); return; }
+      if (v.status === 'cancelled') { GC.close(); toast('سازنده میزو بست و ورودیت برگشت'); await GC.refreshMe(); render(); return; }
       const L = v.lobby, c = v.cfg, full = L.seats.length === 2, link = L.link;
       const sig = L.seats.map(s => s.color + s.name).join('|');
       if (sig === shown) { await sleep(1500); continue; }
       shown = sig; if (L.seats.length > 1) { sfx.turn(); haptic('light'); }
       const me0 = L.seats.find(s => s.me), other = L.seats.find(s => !s.me);
-      const list = [Object.assign({}, me0 || {}, { name: 'شما' }), other || null];
-      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(c.mode === 'stake' ? `بیا فوتبال بازی کنیم! ورودی ${c.entry} امتیاز، برنده همه را می‌برد.` : 'بیا یک دست فوتبال بازی کنیم!');
-      const sh = sheet(`${sheetHead(L.host ? 'بازی با دوست' : 'سر میز دوستت')}
-        ${L.host ? `<p>این لینک را برای دوستت بفرست. تا بازش کند بازی شروع می‌شود${c.mode === 'stake' ? ' و ' + fa(c.entry) + ' امتیاز ورودی از کیف خودش کم می‌شود' : ''}.</p>
-        <div class="linkbox"><code>${link || 'لینک دعوت فقط داخل تلگرام ساخته می‌شود'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
-        <button class="btn btn-block" id="shr">${icon('send')}ارسال در تلگرام</button>` : '<p>منتظر بقیه و شروع بازی توسط سازندهٔ میز…</p>'}
+      const list = [Object.assign({}, me0 || {}, { name: 'خودت' }), other || null];
+      const share = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent(c.mode === 'stake' ? `بیا فوتبال بزنیم! ورودی ${c.entry} امتیاز و برنده همه رو می‌بره` : 'بیا یه دست فوتبال بزنیم!');
+      const sh = sheet(`${sheetHead(L.host ? 'بازی با رفیقت' : 'سر میز رفیقت')}
+        ${L.host ? `<p>این لینکو واسه رفیقت بفرست تا بازش کنه بازی شروع می‌شه${c.mode === 'stake' ? ' و ' + fa(c.entry) + ' امتیاز ورودی از کیف خودش کم می‌شه' : ''}</p>
+        <div class="linkbox"><code>${link || 'لینک دعوت فقط تو تلگرام ساخته می‌شه'}</code><button class="btn btn-sm" id="cp">${icon('copy')}کپی</button></div>
+        <button class="btn btn-block" id="shr">${icon('send')}بفرست تو تلگرام</button>` : '<p>منتظر بقیه‌ایم تا سازندهٔ میز بازیو شروع کنه…</p>'}
         ${seatsHtml(list)}
-        <div class="wait-line"><span class="spinner"></span>${L.seats.length > 1 ? 'دوستت آمد؛ بازی شروع می‌شود…' : 'منتظر دوستت…'}</div>
-        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">منتظر نمی‌مانم؛ با ربات بازی کنم</button>' : ''}
+        <div class="wait-line"><span class="spinner"></span>${L.seats.length > 1 ? 'رفیقت اومد الان بازی شروع می‌شه…' : 'منتظر رفیقتیم…'}</div>
+        ${L.host && c.mode === 'free' && !full ? '<button class="btn btn-light btn-block" id="solo">منتظر نمی‌مونم با ربات بازی می‌کنم</button>' : ''}
         <button class="btn btn-light btn-block" id="lv">${L.host ? 'بستن میز' : 'بلند شدن از میز'}</button>`, { dismiss: false });
       const cp = sh.querySelector('#cp');
-      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد؛ لینک را دستی بفرست')); } catch (e) { toast('کپی نشد؛ لینک را دستی بفرست'); } };
-      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط داخل تلگرام ساخته می‌شود');
+      if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link).then(() => toast('لینک دعوت کپی شد'), () => toast('کپی نشد لینکو دستی بفرست')); } catch (e) { toast('کپی نشد لینکو دستی بفرست'); } };
+      const shr = sh.querySelector('#shr'); if (shr) shr.onclick = () => link ? GC.openLink(share) : toast('لینک فقط تو تلگرام ساخته می‌شه');
       const solo = sh.querySelector('#solo'); if (solo) solo.onclick = async () => { try { await GC.football.start(mid); } catch (e) { toast(errText(e)); } };
       sh.querySelector('#lv').onclick = async () => { token = null; try { await GC.football.leave(mid); await GC.refreshMe(); } catch (e) { toast(errText(e)); } GC.close(); render(); };
       await sleep(1500);
@@ -136,19 +136,19 @@
   }
   gp = GCGame.build({
     game: 'football', title: 'فوتبال', help: 'help.html#hFootball',
-    privateSub: 'لینک بفرست و رو در رو بازی کنید',
+    privateSub: 'لینک بفرست و رو در رو بازی کنین',
     modes: [
-      { v: 'f3', label: 'تا ۳ گل', ic: icon('bolt'), desc: 'رو در رو؛ هر کس زودتر ۳ گل بزند برنده است.', short: '۲ نفره · سریع', cfg: { target: 3, passes: 0 } },
-      { v: 'f5', label: 'تا ۵ گل', ic: icon('ball'), desc: 'بازی کامل رو در رو تا ۵ گل.', short: '۲ نفره · کامل', cfg: { target: 5, passes: 0 } },
-      { v: 'f2', label: 'تا ۲ گل', ic: icon('clock'), desc: 'خیلی سریع؛ دو گل بزنی بردی.', short: '۲ نفره · خیلی سریع', cfg: { target: 2, passes: 0 } },
+      { v: 'f3', label: 'تا ۳ گل', ic: icon('bolt'), desc: 'رو در رو و هر کی زودتر ۳ گل بزنه برده', short: '۲ نفره · سریع', cfg: { target: 3, passes: 0 } },
+      { v: 'f5', label: 'تا ۵ گل', ic: icon('ball'), desc: 'بازی کامل رو در رو تا ۵ گل', short: '۲ نفره · کامل', cfg: { target: 5, passes: 0 } },
+      { v: 'f2', label: 'تا ۲ گل', ic: icon('clock'), desc: 'خیلی سریع و دو گل بزنی بردی', short: '۲ نفره · خیلی سریع', cfg: { target: 2, passes: 0 } },
     ],
     extras: [{ key: 'passes', label: 'پاس‌ها', opts: [[0, 'بدون محدودیت', 'مثل پلاتو'], [3, '۳ پاس', 'پشت سر هم'], [6, '۶ پاس', 'پشت سر هم']] }],
-    rules: [['اول بازی', 'تیمت را انتخاب کن و یک چیدمان برای حمله و یکی برای دفاع؛ دروازهٔ خودت همیشه پایین صفحه است.'],
-      ['به عقب بکش و رها کن:', 'مهره را بگیر و انگشتت را به عقب بکش (خلاف جهت هدف)؛ فلش جهت شوت را نشان می‌دهد و هرچه بیشتر بکشی (تا ۲۵۰ واحد) محکم‌تر می‌زنی. رها کردن داخل خود مهره شوت را لغو می‌کند.'],
-      ['هر نوبت یک شوت:', 'فقط یک مهره را می‌زنی؛ مهره‌ها و توپ به هم و به دیواره می‌خورند و سنگینی هر مهره فرق دارد (دروازه‌بان سنگین‌تر است).'],
-      ['پاس:', 'اگر مهره‌ای از تو توپ را بزند و توپ بعد به مهرهٔ دیگرت برسد و تا ۲۳۶ واحد کنارش بماند، پاس کامل است: توپ به گیرنده می‌چسبد، گیرنده پشت توپ رو به دروازه می‌نشیند و دوباره نوبت توست. با هر پاس زمان نوبت ۳ ثانیه کمتر می‌شود (تا ۸ ثانیه).'],
-      ['بدون پاس', 'توپ را از دست می‌دهی و نوبت حریف است. گل مستقیم از ضربهٔ شروع بازی خطاست و حساب نمی‌شود.'],
-      ['اولین کسی', 'که به ۲، ۳ یا ۵ گل برسد برنده است.']],
+    rules: [['اول بازی', 'تیمتو انتخاب کن و یه چیدمان برای حمله و یکی برای دفاع بچین و دروازهٔ خودت همیشه پایین صفحه‌ست'],
+      ['بکش عقب و ول کن', 'مهره رو بگیر و انگشتتو خلاف جهت هدف بکش عقب<br>فلش جهت شوتو نشون می‌ده و هر چی بیشتر بکشی (تا ۲۵۰ واحد) محکم‌تر می‌زنی<br>اگه رو خود مهره ول کنی شوت کنسل می‌شه'],
+      ['هر نوبت یه شوت', 'فقط یه مهره رو می‌زنی و مهره‌ها و توپ به هم و به دیواره می‌خورن و وزن هر مهره فرق داره (دروازه‌بان سنگین‌تره)'],
+      ['پاس', 'اگه یکی از مهره‌هات توپو بزنه و توپ برسه به یه مهرهٔ دیگه‌ت و تا ۲۳۶ واحد کنارش بمونه پاس کامله<br>توپ می‌چسبه به گیرنده و گیرنده پشت توپ رو به دروازه وایمیسه و دوباره نوبت خودته<br>با هر پاس ۳ ثانیه از وقت نوبت کم می‌شه (تا ۸ ثانیه)'],
+      ['بی پاس', 'توپو از دست می‌دی و نوبت حریفه<br>گل مستقیم از ضربهٔ شروع خطاست و حساب نمی‌شه'],
+      ['اولین کسی', 'که به ۲ یا ۳ یا ۵ گل برسه برده']],
     play,
   });
 
@@ -163,7 +163,7 @@
         const v = await GC.football.match(me.active_match, 0).catch(() => null);
         if (v && v.status === 'lobby') lobbyLoop(v.id);
         else if (v && v.status === 'playing') { store.set('fmid', v.id); if (code) { location.replace('football.html'); return; } $('resume').hidden = false; }
-      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یک بازی ${o[0]} نیمه‌تمام داری؛ اول آن را تمام کن.`; }
+      } else if (me.active_match && GC.live) { const o = OTHER[me.active_game] || OTHER.ludo; $('resume').hidden = false; $('resume').href = o[1]; $('resume').querySelector('.muted').textContent = `یه بازی ${o[0]} نیمه‌کاره داری اول اونو تموم کن`; }
       else if (!GC.live && store.get('fmid', null)) {
         const v = await GC.football.match(store.get('fmid', null), 0).catch(() => null);
         if (v && v.status === 'playing') $('resume').hidden = false;

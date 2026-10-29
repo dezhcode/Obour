@@ -75,7 +75,7 @@ function renderScore(g) {
   const us = teamUs(), tr = g.trump;
   if (!stale($('score'), [us, tr, g.score, g.target, g.tricks, WATCH])) return;
   $('score').innerHTML = `
-    <div class="tm us"><span>${WATCH ? 'تیم ۱' : 'شما'}</span><b>${FD(g.score[us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[us])} دست</em></div>
+    <div class="tm us"><span>${WATCH ? 'تیم ۱' : 'خودت'}</span><b>${FD(g.score[us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[us])} دست</em></div>
     <div class="hk-trump"><span class="disc${tr == null ? ' unset' : ''}" id="trumpDisc">${tr == null ? '؟' : suitSvg(tr)}</span><small>${tr == null ? 'حکم' : 'حکم ' + SUIT_FA[tr]}</small></div>
     <div class="tm"><span>${WATCH ? 'تیم ۲' : 'حریف'}</span><b>${FD(g.score[1 - us])}<small> / ${FD(g.target)}</small></b><em>${FD(g.tricks[1 - us])} دست</em></div>`;
   painted($('score'));
@@ -89,7 +89,7 @@ function renderSeats(g) {
     el.dataset.seat = s;
     el.classList.toggle('out', !!p.out);
     el.innerHTML = `${hk ? `<span class="hk-crown" title="حاکم">${svgP(CROWN, '#3A2A00')}</span>` : ''}${face(p, turn ? 'var(--gold)' : partner ? '#9BE3B8' : '#FFFFFF', turn ? 'timer' : '')}
-      <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner && !WATCH ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جایش' : FD(p.count) + ' برگ'].filter(Boolean).join('، ')}</em>${fanHtml(p.count, rel(s))}`;
+      <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner && !WATCH ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جاشه' : FD(p.count) + ' برگ'].filter(Boolean).join(' · ')}</em>${fanHtml(p.count, rel(s))}`;
     painted(el);
   }
 }
@@ -120,7 +120,7 @@ function renderPile(g) {
   if (g && g.phase === 'trump' && !g.over) return renderPick(g);
   const tr = g ? g.trump : null;
   const w = pileShown.length >= 2 && tr != null ? winnerOf(pileShown, tr) : null;
-  const tip = w != null && pileShown.length < 4 ? `فعلا برگ ${nameOf(String(w))} بالاست` : '';
+  const tip = w != null && pileShown.length < 4 ? `فعلاً برگ ${nameOf(String(w))} بالاست` : '';
   const one = ([i, c], k) => { const [x, y, r] = slotOf(i, c); return cardHtml(c, 'tc', `left:${x}px;top:${y}px;z-index:${k + 1};transform:rotate(${r}deg)`); };
   const prev = pile._shown;
   // برگ تازه روی همان توده: فقط همان اضافه می شود و بقیهٔ برگ ها دست نمی خورند
@@ -140,22 +140,22 @@ function renderPick(g) {
     pile.innerHTML = `<div class="hk-choosing" data-h="${g.hakem}" role="status">
       <div class="hk-orbit"><span class="ring">${[0, 1, 2, 3].map(k => `<span class="o${k}">${suitSvg(k)}</span>`).join('')}</span>
         <span class="who">${face(hp, '#F5C451')}<i class="cr">${svgP(CROWN, '#3A2A00')}</i></span></div>
-      <b>${nameOf(g.hakem)} دارد حکم می‌کند<span class="hk-dots"></span></b>
-      <small>${WATCH ? 'حاکم' : hp.team === teamUs() ? 'یارت' : 'حریف'} از روی پنج برگ اولش خال حکم را انتخاب می‌کند</small></div>`;
+      <b>${nameOf(g.hakem)} داره حکم می‌کنه<span class="hk-dots"></span></b>
+      <small>${WATCH ? 'حاکم' : hp.team === teamUs() ? 'یارت' : 'حریف'} از رو پنج برگ اولش خال حکمو انتخاب می‌کنه</small></div>`;
     return;
   }
   if (pile.querySelector('.hk-pick')) { pile.querySelectorAll('[data-suit]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.suit === pick))); syncPickBtn(); return; }
   pile.innerHTML = `<section class="hk-pick" aria-labelledby="pickT" style="position:absolute;left:1px;top:50%;translate:0 -56%">
-    <span class="pick-cr">${svgP(CROWN, '#3A2A00')}</span><h2 id="pickT">تو حاکمی؛ حکم کن!</h2><p>از روی پنج برگ اولت خال حکم را بزن</p>
+    <span class="pick-cr">${svgP(CROWN, '#3A2A00')}</span><h2 id="pickT">تو حاکمی حکم کن!</h2><p>از رو پنج برگ اولت خال حکمو بزن</p>
     <div class="suits">${[0, 1, 3, 2].map(s => `<button data-suit="${s}" aria-pressed="${s === pick}" style="color:${red(s) ? '#D62839' : '#1C2230'}">${svgP(SP[s])}${SUIT_FA[s]}</button>`).join('')}</div>
-    <button class="btn ok" id="pickOk" disabled>یک خال را بزن</button></section>`;
+    <button class="btn ok" id="pickOk" disabled>یه خالو بزن</button></section>`;
   pile.querySelectorAll('[data-suit]').forEach(b => b.onclick = () => { pick = +b.dataset.suit; haptic('select'); renderPick(g); });
   $('pickOk').onclick = () => { if (pick == null) return; const k = pick; act(() => GC.hokm.trump(mid, k, since)); };
   syncPickBtn();
 }
 function syncPickBtn() {
   const b = $('pickOk'); if (!b) return;
-  b.disabled = pick == null; b.textContent = pick == null ? 'یک خال را بزن' : `حکم ${SUIT_FA[pick]} باشد`;
+  b.disabled = pick == null; b.textContent = pick == null ? 'یه خالو بزن' : `حکم ${SUIT_FA[pick]} باشه`;
 }
 function order(cards, tr) {
   // حکم اول، بعد بقیه خال ها یکی سیاه یکی قرمز؛ داخل هر خال از بزرگ به کوچک
@@ -201,15 +201,15 @@ function renderHand(g, anim = false) {
 function renderMe(g) {
   const p = g.players[me], mine = g.turn === me && !WATCH, hakemMe = g.hakem === me && !WATCH;
   let t, sub = '';
-  if (g.over) t = 'بازی تمام شد';
-  else if (g.phase === 'trump') { t = hakemMe ? 'تو حاکمی' : 'حاکم: ' + nameOf(g.hakem); sub = hakemMe ? 'حکم را انتخاب کن' : 'منتظر انتخاب حکم'; }
+  if (g.over) t = 'بازی تموم شد';
+  else if (g.phase === 'trump') { t = hakemMe ? 'تو حاکمی' : 'حاکم ' + nameOf(g.hakem); sub = hakemMe ? 'حکمو انتخاب کن' : 'منتظریم حکمو انتخاب کنه'; }
   else if (g.phase === 'play' && mine) {
-    t = 'نوبت شماست';
-    if (g.led == null) sub = 'دور را تو شروع کن';
-    else { const has = (g.hand || []).some(c => suit(c) === g.led); sub = `${SUIT_FA[g.led]} بازی شده؛ ` + (has ? `باید ${SUIT_FA[g.led]} بیاوری` : `${SUIT_FA[g.led]} نداری؛ حکم یا هر برگی`); }
-  } else if (g.phase === 'play') { const q = g.players[g.turn] || {}; t = 'نوبت ' + nameOf(g.turn); sub = q.bot || q.out ? 'ربات فکر می‌کند…' : 'منتظر بازی…'; }
-  else if (g.phase === 'collect') { t = 'دور تمام شد'; }
-  else { t = 'دست بعد…'; sub = 'ورق‌ها بُر می‌خورد'; }
+    t = 'نوبت توئه';
+    if (g.led == null) sub = 'دورو تو شروع کن';
+    else { const has = (g.hand || []).some(c => suit(c) === g.led); sub = `${SUIT_FA[g.led]} اومده و ` + (has ? `باید ${SUIT_FA[g.led]} بیاری` : `${SUIT_FA[g.led]} نداری پس حکم یا هر برگی`); }
+  } else if (g.phase === 'play') { const q = g.players[g.turn] || {}; t = 'نوبت ' + nameOf(g.turn); sub = q.bot || q.out ? 'ربات داره فکر می‌کنه…' : 'منتظریم بازی کنه…'; }
+  else if (g.phase === 'collect') { t = 'دور تموم شد'; }
+  else { t = 'دست بعد…'; sub = 'ورقا دارن بُر می‌خورن'; }
   const timer = (mine && g.phase === 'play') || (g.phase === 'trump' && hakemMe);
   const html = `<div class="hk-mb${timer ? ' mine' : ''}">${face(Object.assign({}, p, { name: p.name }), timer ? 'var(--gold)' : '#9BE3B8', timer ? 'timer' : '')}
     <span class="txt"><b>${t}${timer && g.deadline_ms ? '<span class="clock" id="clock"></span>' : ''}</b>${sub ? `<span>${sub}</span>` : ''}</span></div>`;
@@ -393,9 +393,9 @@ async function dealAnim(rounds, first) {
 async function trumpReveal(s, c) {
   const pile = $('pile'), k = pileScale();
   pile.innerHTML = `<div class="hk-reveal" role="status"><span class="rays"></span><span class="big" id="bigDisc">${suitSvg(s)}</span>
-    <b>حکم: ${SUIT_FA[s]}</b><small>${c === me ? 'تو حکم کردی' : (nameOf(c) + ' حکم کرد')}</small></div>`;
+    <b>حکم ${SUIT_FA[s]}</b><small>${c === me ? 'تو حکم کردی' : (nameOf(c) + ' حکم کرد')}</small></div>`;
   const big = $('bigDisc'), from = seatEl(c);
-  bar(`حکم: ${SUIT_FA[s]}`, 'هشت برگ بعدی پخش می‌شود…', c);
+  bar(`حکم ${SUIT_FA[s]}`, 'هشت برگ بعدی داره پخش می‌شه…', c);
   sfx.card.trump(); haptic('success');
   if (from) {
     const [fx, fy] = center(from), [bx, by] = center(big);
@@ -463,7 +463,7 @@ async function crownTo(s, from) {
 }
 // دست اول: برگ ها رو باز دور میز می روند تا اولین آس بیاید
 async function aceDraw(e) {
-  bar('انتخاب حاکم', 'برگ‌ها رو باز پخش می‌شود؛ اولین آس حاکم است');
+  bar('انتخاب حاکم', 'برگ‌ها رو باز پخش می‌شه و اولین آس حاکمه');
   $('pile').innerHTML = backHtml('deck', 'left:71px;top:73px;z-index:1');
   sfx.card.shuffle(); haptic('light');
   await sleep(700);
@@ -483,7 +483,7 @@ async function aceDraw(e) {
   const deck = $('pile').querySelector('.deck'); if (deck) deck.remove();
   last.classList.add('ace'); last.style.zIndex = 40;
   sfx.card.trump(); haptic('success');
-  bar(e.c === me ? 'آس آمد؛ تو حاکمی!' : 'آس آمد!', `آس ${SUIT_FA[suit(last.dataset.card)]} برای ${nameOf(e.c)}`);
+  bar(e.c === me ? 'آس اومد و تو حاکمی!' : 'آس اومد!', `آس ${SUIT_FA[suit(last.dataset.card)]} برای ${nameOf(e.c)}`);
   await sleep(650);
   crownStage(e.c, 'اولین آس', `آس ${SUIT_FA[suit(+last.dataset.card)]}`);
   await sleep(1100);
@@ -494,9 +494,9 @@ async function aceDraw(e) {
 async function hakemAnnounce(e) {
   $('pile').innerHTML = '';
   const kept = e.prev != null && e.prev === e.c, moved = e.prev != null && e.prev !== e.c;
-  bar(`دست ${FD((e.hand || 0) + 1)}`, kept ? 'تیم حاکم برد؛ حاکم همان می‌ماند' : moved ? 'تیم حاکم باخت؛ حکم به نفر بعد رسید' : 'حاکم این دست');
+  bar(`دست ${FD((e.hand || 0) + 1)}`, kept ? 'تیم حاکم برد و حاکم همون می‌مونه' : moved ? 'تیم حاکم باخت و حکم رسید به نفر بعدی' : 'حاکم این دست');
   sfx.turn();
-  crownStage(e.c, `دست ${FD((e.hand || 0) + 1)}`, kept ? 'باز هم حاکم است' : moved ? `حاکمی از ${nameOf(e.prev)} به او رسید` : '');
+  crownStage(e.c, `دست ${FD((e.hand || 0) + 1)}`, kept ? 'باز هم حاکمه' : moved ? `حاکمی از ${nameOf(e.prev)} رسید بهش` : '');
   await sleep(1250);
   await crownTo(e.c, moved ? seatEl(e.prev) : $('pile'));
   $('pile').innerHTML = '';
@@ -519,13 +519,13 @@ async function play(e) {
     pileShown = []; handShown = [];
     $('hand').innerHTML = ''; $('pile').innerHTML = '';
     renderSeats(Object.assign({}, g, { hakem: e.hakem, turn: null }));
-    bar(e.hakem === me ? 'تو حاکمی' : 'حاکم: ' + nameOf(e.hakem), 'پنج برگ اول پخش می‌شود…');
+    bar(e.hakem === me ? 'تو حاکمی' : 'حاکم: ' + nameOf(e.hakem), 'پنج برگ اول داره پخش می‌شه…');
     await dealAnim(5, true);
     return;
   }
   if (e.t === 'trump') {
     await trumpReveal(e.suit, e.c);
-    if (e.auto && e.c === me) toast('وقتت تمام شد؛ حکم خودکار انتخاب شد');
+    if (e.auto && e.c === me) toast('وقتت تموم شد و حکم خودکار انتخاب شد');
     pick = null;
     await dealAnim(4, false);
     return;
@@ -535,20 +535,20 @@ async function play(e) {
     let from = e.c === me ? $('hand').querySelector(`[data-card="${e.card}"]`) : seatEl(e.c);
     if (e.c === me && from) { const r = from.getBoundingClientRect(); const ghost = document.createElement('span'); ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`; $('fly').appendChild(ghost); from.remove(); from = ghost; setTimeout(() => ghost.remove(), 600); }
     await throwCard(e.c, e.card, from);
-    if (e.auto && e.c === me) toast('وقتت تمام شد؛ یک برگ خودکار بازی شد');
+    if (e.auto && e.c === me) toast('وقتت تموم شد و یه برگ خودکار بازی شد');
     return;
   }
   if (e.t === 'trick') {
     await collectTrick(e.c, e.tricks);
-    if (!store.get('hk_last_hint', false)) { store.set('hk_last_hint', true); toast('برای دیدن دست قبل، روی دستهٔ برگ‌های برده‌شده بزن'); }
+    if (!store.get('hk_last_hint', false)) { store.set('hk_last_hint', true); toast('برای دیدن دست قبل بزن رو دستهٔ برگ‌های برده‌شده'); }
     const us = teamUs();
     $('score').querySelectorAll('.tm em')[0].textContent = FD(e.tricks[us]) + ' دست';
     $('score').querySelectorAll('.tm em')[1].textContent = FD(e.tricks[1 - us]) + ' دست';
     return;
   }
   if (e.t === 'hand') { if (e.kot) await kotParty(e); if (e.score[e.team] < g.target) await handResult(e); return; }
-  if (e.t === 'timeout' && e.c === me && snap.cfg.mode === 'stake' && e.n >= 2) { toast(e.n >= 3 ? 'سه نوبت غایب بودی؛ ربات جایت بازی می‌کند' : 'یک نوبت دیگر غیبت = بیرون رفتن از بازی'); return; }
-  if (e.t === 'leave' && e.c !== me) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'رفت'}؛ ربات جایش بازی می‌کند`); return; }
+  if (e.t === 'timeout' && e.c === me && snap.cfg.mode === 'stake' && e.n >= 2) { toast(e.n >= 3 ? 'سه نوبت غایب بودی و ربات جات بازی می‌کنه' : 'یه نوبت دیگه غیبت کنی از بازی بیرونی'); return; }
+  if (e.t === 'leave' && e.c !== me) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'رفت'} و ربات جاش بازی می‌کنه`); return; }
 }
 function bars(score, target) {
   const us = teamUs(), seg = (n, cls) => `<div class="hk-bar ${cls}"><span>${cls === 'us' ? 'ما' : 'حریف'}</span><span class="seg7" style="grid-template-columns:repeat(${target},minmax(0,1fr))">${Array.from({ length: target }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span><b>${FD(n)}</b></div>`;
@@ -561,7 +561,7 @@ async function kotParty(e) {
   const [cx, cy] = center($('pile')), [sx, sy] = stack ? center(stack) : [cx, cy];
   const fx = document.createElement('div'); fx.className = 'hk-kotfx' + (won ? '' : ' them'); fx.setAttribute('role', 'status');
   fx.style.left = cx + 'px'; fx.style.top = cy + 'px';
-  fx.innerHTML = `<b>${won ? (e.pts === 3 ? 'حاکم کوت شد!' : 'کوت!') : 'کوت شدید!'}</b><span>هفت به صفر · ${FD(e.pts)} امتیاز برای ${won ? 'شما' : 'حریف'}</span>`;
+  fx.innerHTML = `<b>${won ? (e.pts === 3 ? 'حاکم کوت شد!' : 'کوت!') : 'کوت شدین!'}</b><span>هفت به صفر · ${FD(e.pts)} امتیاز برای ${won ? 'خودت' : 'حریف'}</span>`;
   $('fly').appendChild(fx);
   haptic(won ? 'success' : 'warning');
   if (reduced()) { await sleep(1600); fx.remove(); return; }
@@ -597,13 +597,13 @@ async function handResult(e) {
   const us = teamUs(), won = e.team === us, g = snap.game;
   const nh = e.team === +e.hakem % 2 ? e.hakem : String((+e.hakem + 1) % 4);
   won ? (sfx.coin(), haptic('success')) : (sfx.nomove(), haptic('warning'));
-  const kot = e.kot ? `<span class="kot">${e.pts === 3 ? 'حاکم کوت شد! ۳ امتیاز' : 'کوت! ۲ امتیاز'}</span>` : `<p>${won ? 'یک امتیاز برای شما' : 'یک امتیاز برای حریف'}</p>`;
+  const kot = e.kot ? `<span class="kot">${e.pts === 3 ? 'حاکم کوت شد! ۳ امتیاز' : 'کوت! ۲ امتیاز'}</span>` : `<p>${won ? 'یه امتیاز واسه شما' : 'یه امتیاز واسه حریف'}</p>`;
   sheet(`<div class="hk-res" role="status">
       <span class="ic${won ? '' : ' lost'}">${svgP(CROWN)}</span>
-      <h2>${won ? 'این دست مال شما شد' : 'این دست را باختید'}</h2>${kot}
+      <h2>${won ? 'این دست مال شما شد' : 'این دستو باختین'}</h2>${kot}
       <div class="hk-tricks"><div><b>${FD(e.tricks[us])}</b><span>دست ما</span></div><div><b>${FD(e.tricks[1 - us])}</b><span>دست حریف</span></div></div>
       ${bars(e.score, g.target)}
-      <p>حاکم دست بعد: <b>${nameOf(nh)}</b></p></div>`, { center: true, dismiss: false });
+      <p>حاکم دست بعد <b>${nameOf(nh)}</b></p></div>`, { center: true, dismiss: false });
   await sleep(3000);
   GC.close();
 }
@@ -646,7 +646,7 @@ document.addEventListener('pointerdown', e => { if (lastEl && !e.target.closest(
 addEventListener('keydown', e => { if (e.key === 'Escape') hideLast(); });
 
 /* ---------- گفتگوی سر میز: نوار و پیام های شناور مثل بیلیارد (tchat.js) ---------- */
-const QUICK = ['سلام!', 'خوش‌بازی!', 'آفرین یار', 'حکم خوبی بود', 'زود باش', 'یک دست دیگه؟'];
+const QUICK = ['سلام!', 'خوش‌بازی!', 'آفرین یار', 'حکم خوبی بود', 'زود باش', 'یه دست دیگه؟'];
 const chat = TChat.init({
   btn: $('chatBtn'), badge: $('chatBadge'), quick: QUICK, face: m => face(m, '#FFFFFF'),
   rest: () => { const r = $('meBar').getBoundingClientRect(); return r.height ? innerHeight - r.top + 8 : 140; },
@@ -773,8 +773,8 @@ function watchEnd(v) {
   const g = v.game, P = g.players || {}, t = g.winner;
   const names = k => g.order.filter(s => (P[s] || {}).team === k).map(s => P[s].name).join(' و ');
   sfx.win();
-  GC.watchOver('hokm', 'بازی تمام شد', t == null ? 'بازی پیش از رسیدن به امتیاز آخر بسته شد.'
-    : `${names(+t % 2)} با ${FD(g.score[+t % 2])} به ${FD(g.score[1 - +t % 2])} بردند.`);
+  GC.watchOver('hokm', 'بازی تموم شد', t == null ? 'بازی قبل از رسیدن به امتیاز آخر بسته شد'
+    : `${names(+t % 2)} ${FD(g.score[+t % 2])} بر ${FD(g.score[1 - +t % 2])} بردن`);
 }
 function over(v) {
   if (WATCH) return watchEnd(v);
@@ -787,18 +787,18 @@ function over(v) {
   const P = g.players || {}, seat = k => String((+me + k) % 4), pa = P[seat(2)] || {}, o1 = P[seat(1)] || {}, o2 = P[seat(3)] || {};
   const oppsLeft = o1.out && o2.out, mine = g.score[us], theirs = g.score[1 - us];
   const kind = ended ? 'draw' : won ? 'win' : 'lose';
-  const title = ended ? 'بازی تمام شد' : won ? (oppsLeft ? 'حریف‌ها رفتند؛ بردید!' : 'بردید!') : 'این بار نشد';
-  const line = ended ? 'بازی پیش از رسیدن به امتیاز آخر بسته شد.'
-    : won ? `شما و ${pa.name || 'یارت'} با ${FD(mine)} به ${FD(theirs)} بردید.` : `${o1.name || 'حریف'} و ${o2.name || 'یارش'} با ${FD(theirs)} به ${FD(mine)} بردند.`;
+  const title = ended ? 'بازی تموم شد' : won ? (oppsLeft ? 'حریفا رفتن و شما بردین!' : 'بردین!') : 'این بار نشد';
+  const line = ended ? 'بازی قبل از رسیدن به امتیاز آخر بسته شد'
+    : won ? `تو و ${pa.name || 'یارت'} ${FD(mine)} بر ${FD(theirs)} بردین` : `${o1.name || 'حریف'} و ${o2.name || 'یارش'} ${FD(theirs)} بر ${FD(mine)} بردن`;
   const team = (cls, a, b, names, score, win) => `<div class="e-tm ${cls}${win ? ' e-won' : ''}">
       ${win ? `<span class="e-rib">${svgP(CROWN)}برنده</span>` : ''}
       <span class="e-duo">${face(a, cls === 'us' ? '#9BE3B8' : 'var(--surface)')}${face(b, cls === 'us' ? '#9BE3B8' : 'var(--surface)')}</span>
       <b class="e-sc" data-n="${score}" data-at="350">${FD(score)}</b><span class="e-nm">${names}</span></div>`;
   const reward = stake
-    ? (won ? `<div class="e-rw e-gold"><span class="e-coin">${GC.coin()}</span><span><b data-n="${r.prize || 0}" data-pre="+" data-at="700">+${fa(r.prize || 0)}</b><small>جایزه به کیف امتیازت اضافه شد</small></span></div>`
+    ? (won ? `<div class="e-rw e-gold"><span class="e-coin">${GC.coin()}</span><span><b data-n="${r.prize || 0}" data-pre="+" data-at="700">+${fa(r.prize || 0)}</b><small>جایزه ریخت تو کیف امتیازت 🎉</small></span></div>`
       : ended ? `<div class="e-rw"><span class="e-ic">${icon('wallet')}</span><span><b>ورودی برگشت</b><small>${fa(v.cfg.entry)} امتیاز به کیفت برگشت</small></span></div>`
-      : `<div class="e-rw e-dim"><span class="e-ic">${icon('wallet')}</span><span><b>−${fa(r.lost || v.cfg.entry)} امتیاز</b><small>ورودی این بازی؛ دست بعد جبران کن</small></span></div>`)
-    : `<div class="e-rw"><span class="e-ic">${icon('users')}</span><span><b>بازی آزاد</b><small>${won ? 'جایزه نداشت؛ ولی برد برد است!' : 'چیزی از دست ندادی'}</small></span></div>`;
+      : `<div class="e-rw e-dim"><span class="e-ic">${icon('wallet')}</span><span><b>−${fa(r.lost || v.cfg.entry)} امتیاز</b><small>ورودی این بازی بود دست بعد جبران کن</small></span></div>`)
+    : `<div class="e-rw"><span class="e-ic">${icon('users')}</span><span><b>بازی آزاد</b><small>${won ? 'جایزه نداشت ولی برد بُرده!' : 'چیزی از دست ندادی'}</small></span></div>`;
   const el = document.createElement('div');
   el.className = 'hk-end gc-ui ' + kind; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'endT');
   el.innerHTML = `${kind === 'win' && !reduced() ? confetti() : ''}
@@ -809,7 +809,7 @@ function over(v) {
         <h1 id="endT">${title}</h1><p>${line}</p>
       </div>
       <div class="e-teams">
-        ${team('us', Object.assign({}, P[me], { name: 'شما' }), pa, `شما و ${pa.name || 'یار'}`, mine, !ended && won)}
+        ${team('us', Object.assign({}, P[me], { name: 'خودت' }), pa, `تو و ${pa.name || 'یار'}`, mine, !ended && won)}
         <span class="e-vs">به</span>
         ${team('them', o1, o2, `${o1.name || 'حریف'} و ${o2.name || 'حریف'}`, theirs, !ended && !won)}
       </div>
@@ -820,8 +820,8 @@ function over(v) {
         <div><span class="e-ic">${icon('clock')}</span><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><small>مدت بازی</small></div>
       </div>
       <div class="e-acts">
-        <a class="e-go" href="hokm-lobby.html">${won ? 'یک بازی دیگر' : 'دوباره بازی کن'}</a>
-        <a class="e-home" href="index.html">${icon('home')}خانه</a>
+        <a class="e-go" href="hokm-lobby.html">${won ? 'یه دست دیگه' : 'یه دست دیگه بزن جبران کن'}</a>
+        <a class="e-home" href="index.html">${icon('home')}خونه</a>
       </div>
     </div>`;
   document.body.appendChild(el);
@@ -831,18 +831,18 @@ function over(v) {
 }
 function cancelled() {
   if (overShown) return;
-  if (WATCH) { overShown = true; GC.watchOver('hokm', 'این میز بسته شد', 'بازی پیش از تمام شدن بسته شد.'); return; }
+  if (WATCH) { overShown = true; GC.watchOver('hokm', 'این میز بسته شد', 'بازی قبل از اینکه تموم شه بسته شد'); return; }
   overShown = true; endChat(); GC.guardClose(false); store.set('hmid', null); GC.refreshMe().catch(() => {});
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میز را بست و ورودی همه به کیف امتیازشان برگشت.</p>
-      <div class="dlg-acts"><a class="btn" href="hokm-lobby.html">میز تازه</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">این میز بسته شد</h2><p id="dD">پشتیبانی این میزو بست و ورودی همه برگشت تو کیفشون</p>
+      <div class="dlg-acts"><a class="btn" href="hokm-lobby.html">میز تازه</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 function noMatch() {
-  if (watchMid) { GC.watchOver('hokm', 'این بازی را نمی‌شود دید', 'بازی تمام شده یا هنوز شروع نشده است.'); return; }
+  if (watchMid) { GC.watchOver('hokm', 'این بازیو نمی‌شه دید', 'بازی یا تموم شده یا هنوز شروع نشده'); return; }
   store.set('hmid', null);
   sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT" aria-describedby="dD"><span class="dlg-ic">${icon('table')}</span>
-      <h2 id="dT">میزی پیدا نشد</h2><p id="dD">این بازی تمام شده یا هنوز سر میزی ننشسته‌ای.</p>
-      <div class="dlg-acts"><a class="btn" href="hokm-lobby.html">یک میز بساز</a><a class="btn btn-light" href="index.html">خانه</a></div></div>`, { center: true, dismiss: false });
+      <h2 id="dT">میزی پیدا نشد</h2><p id="dD">این بازی یا تموم شده یا هنوز سر میزی ننشستی</p>
+      <div class="dlg-acts"><a class="btn" href="hokm-lobby.html">یه میز بساز</a><a class="btn btn-light" href="index.html">خونه</a></div></div>`, { center: true, dismiss: false });
 }
 // خروج: برگه تیره به رنگ میز؛ «تو ← ربات» نشان می دهد چه می شود، دو راه روشن و ادامه بازی
 let exitEl = null;
@@ -855,15 +855,15 @@ function askExit() {
   exitEl = document.createElement('div'); exitEl.className = 'hk-exit gc-ui';
   exitEl.innerHTML = `<div class="x-sh" role="alertdialog" aria-modal="true" aria-labelledby="exT" aria-describedby="exD">
       <span class="x-grab" aria-hidden="true"></span>
-      <div class="x-swap" aria-hidden="true">${face(Object.assign({}, P[me], { name: 'شما' }), '#9BE3B8')}<span class="x-arr"><i></i><i></i><i></i></span>${face({ bot: true, av: 9 }, 'var(--gold)')}</div>
-      <h2 id="exT">از بازی بیرون می‌روی؟</h2>
-      <p id="exD">اگر بروی، ربات جای تو کنار ${pa.name || 'یارت'} بازی می‌کند.</p>
+      <div class="x-swap" aria-hidden="true">${face(Object.assign({}, P[me], { name: 'خودت' }), '#9BE3B8')}<span class="x-arr"><i></i><i></i><i></i></span>${face({ bot: true, av: 9 }, 'var(--gold)')}</div>
+      <h2 id="exT">می‌خوای بری؟</h2>
+      <p id="exD">اگه بری ربات جات کنار ${pa.name || 'یارت'} بازی می‌کنه</p>
       <div class="x-opts">
-        <button class="x-opt" id="exHome"><span class="x-ic">${icon('home')}</span><span><b>فعلا برو خانه</b><small>سر میز می‌مانی و از صفحهٔ خانه با یک لمس برمی‌گردی</small></span></button>
-        <button class="x-opt x-bad" id="exLeave"><span class="x-ic">${icon('exit')}</span><span><b>ترک بازی</b><small>${stake ? `ورودی ${fa(snap.cfg.entry)} امتیاز برنمی‌گردد و از جایزه سهمی نداری` : 'بازی آزاد است؛ امتیازی از دست نمی‌دهی'}</small></span></button>
+        <button class="x-opt" id="exHome"><span class="x-ic">${icon('home')}</span><span><b>فعلاً برو خونه</b><small>سر میز می‌مونی و از صفحهٔ خونه با یه لمس برمی‌گردی</small></span></button>
+        <button class="x-opt x-bad" id="exLeave"><span class="x-ic">${icon('exit')}</span><span><b>ترک بازی</b><small>${stake ? `ورودی ${fa(snap.cfg.entry)} امتیاز برنمی‌گرده و از جایزه سهمی نداری` : 'بازی آزاده و امتیازی از دست نمی‌دی'}</small></span></button>
       </div>
       <button class="x-stay" id="exStay">ادامهٔ بازی</button>
-      <p class="x-fine">تا نیستی نوبت‌هایت خودکار بازی می‌شود${stake ? '؛ در بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی بیرون رفتن از بازی' : ''}.</p>
+      <p class="x-fine">تا نیستی نوبتات خودکار بازی می‌شه${stake ? '<br>تو بازی امتیازی سه نوبت غیبت پشت‌سرهم یعنی از بازی بیرونی' : ''}</p>
     </div>`;
   document.body.appendChild(exitEl);
   const el = exitEl;
@@ -874,7 +874,7 @@ function askExit() {
   el.querySelector('#exLeave').onclick = async ev => {
     const b = ev.currentTarget;
     // بازی امتیازی: یک لمس دیگر برای اطمینان
-    if (stake && Date.now() - armed > 3000) { armed = Date.now(); b.classList.add('x-arm'); b.querySelector('b').textContent = 'مطمئنی؟ دوباره بزن'; haptic('warning'); setTimeout(() => { if (b.isConnected && Date.now() - armed >= 2900) { b.classList.remove('x-arm'); b.querySelector('b').textContent = 'ترک بازی'; } }, 3000); return; }
+    if (stake && Date.now() - armed > 3000) { armed = Date.now(); b.classList.add('x-arm'); b.querySelector('b').textContent = 'مطمئنی؟ یه بار دیگه بزن'; haptic('warning'); setTimeout(() => { if (b.isConnected && Date.now() - armed >= 2900) { b.classList.remove('x-arm'); b.querySelector('b').textContent = 'ترک بازی'; } }, 3000); return; }
     b.disabled = true;
     try { await GC.hokm.leave(mid); } catch (e) {}
     GC.guardClose(false); store.set('hmid', null); location.href = 'index.html';
@@ -1153,7 +1153,7 @@ function applyStyle(st) {
 async function start() {
   GC.portrait(true);
   GC.data.me().then(m => applyStyle(m && m.style)).catch(() => {});
-  $('meBar').innerHTML = '<div class="hk-mb solo"><span class="txt"><b>در حال وصل شدن…</b></span></div>';
+  $('meBar').innerHTML = '<div class="hk-mb solo"><span class="txt"><b>داریم وصل می‌شیم…</b></span></div>';
   fit();
   let first;
   try { first = await GC.hokm.match(mid, 0, 0); }
@@ -1172,7 +1172,7 @@ async function start() {
     // هنوز هیچ برگی در این دست بازی نشده: انتخاب حاکم و حکم را از اول ببیند
     snap = first; since = intro.seq - 1; pileShown = [];
     renderScore(Object.assign({}, g, { trump: null })); renderSeats(Object.assign({}, g, { hakem: null, turn: null }));
-    $('hand').innerHTML = ''; $('pile').innerHTML = ''; bar('میز آماده است', 'الان حاکم انتخاب می‌شود…');
+    $('hand').innerHTML = ''; $('pile').innerHTML = ''; bar('میز حاضره', 'الان حاکم انتخاب می‌شه…');
     mount(); fit();
     await apply(first);
     poll();
@@ -1189,18 +1189,18 @@ start();
 function tour() {
   return {
     id: 'hokm', name: 'حکم', color: '#F5C451', help: 'help.html#hokm',
-    intro: 'حکم بازی تیمیه: با یارت هماهنگ باش، دور ببر و زودتر از تیم حریف دست رو ببر.',
+    intro: 'حکم بازی تیمیه 🃏 با یارت هماهنگ باش و دور ببر و زودتر از تیم حریف دستو ببر',
     ready: () => !!(snap && snap.game && !WATCH && snap.game.phase === 'play' && $('hand').querySelector('.hk-card')),
     turn: () => ({ mine: !!(snap && snap.game && snap.game.turn === me && snap.game.phase === 'play'), left: deadlineAt ? deadlineAt - Date.now() : null }),
     steps: [
-      { el: '.hk-seat[data-rel="2"]', title: 'یارت روبه‌روته', text: 'دو تیم دونفره‌اید: <b>یارت روبه‌روت</b> نشسته و دو حریف دو طرفت. نوبت خلاف عقربه‌های ساعت می‌چرخه.' },
-      { el: '#score', title: 'حاکم و حکم', text: 'اول بازی هر کی آس بیاره <b>حاکم</b> می‌شه و از روی ۵ برگ اولش یه خال رو <b>حکم</b> می‌کنه. امتیاز دو تیم و خال حکم همین بالاست.' },
-      { el: '#hand', title: 'برگ بنداز', text: 'نوبتت که شد، روی برگ بزن یا <b>بکشش سمت وسط میز</b>. برگ‌هایی که الان مجاز نیستن کم‌رنگ می‌شن.', hand: { type: 'drag', from: [0.5, 0.55], to: [0.5, -1.4] } },
-      { el: '#center', title: 'از خال بیاور', text: 'هر دور یه نفر شروع می‌کنه؛ اگه از همون خال داری <b>باید همونو بیاری</b>. نداری؟ حکم بزن و دور رو ببر، یا یه برگ کم‌ارزش رد کن.' },
-      { el: '#stackUs', title: 'دورهای برده', text: 'بزرگ‌ترین حکم، وگرنه بزرگ‌ترین برگِ همون خال، دور رو می‌بره. دسته‌های برده اینجان؛ <b>نگهش دار</b> تا دور قبلی رو ببینی.', hand: 'hold' },
-      { el: '#score', title: 'برد دست و کوت', text: 'هر تیمی زودتر <b>۷ دور</b> ببره دست رو برده. اگه تیم دیگه هیچ دوری نبرده باشه <b>کوت</b> شده و امتیاز بیشتری می‌گیرید.' },
-      { el: '#meBar', title: 'نوبت و وقت', text: 'اینجا می‌بینی نوبت کیه و چقدر وقت مونده؛ وقتت تموم بشه، یه برگ مجاز <b>خودکار</b> بازی می‌شه.' },
-      { el: '#chatBtn', title: 'با یارت حرف بزن', text: 'پیام سریع یا متن کوتاه بفرست؛ ولی برگ‌هات رو لو نده 😉', hand: 'tap' },
+      { el: '.hk-seat[data-rel="2"]', title: 'یارت روبه‌روته', text: 'دو تیم دونفره‌این و <b>یارت روبه‌روت</b> نشسته و دو تا حریف دو طرفت<br>نوبت خلاف عقربه‌های ساعت می‌چرخه' },
+      { el: '#score', title: 'حاکم و حکم', text: 'اول بازی هر کی آس بیاره <b>حاکم</b> می‌شه و از رو ۵ برگ اولش یه خالو <b>حکم</b> می‌کنه<br>امتیاز دو تیم و خال حکم همین بالاست' },
+      { el: '#hand', title: 'برگ بنداز', text: 'نوبتت که شد بزن رو برگ یا <b>بکشش سمت وسط میز</b><br>برگ‌هایی که الان مجاز نیستن کم‌رنگ می‌شن', hand: { type: 'drag', from: [0.5, 0.55], to: [0.5, -1.4] } },
+      { el: '#center', title: 'از همون خال بیار', text: 'هر دورو یه نفر شروع می‌کنه و اگه از همون خال داری <b>باید همونو بیاری</b><br>نداری؟ حکم بزن و دورو ببر یا یه برگ کم‌ارزش رد کن' },
+      { el: '#stackUs', title: 'دورهای برده', text: 'بزرگ‌ترین حکم دورو می‌بره و اگه حکم نیومده باشه بزرگ‌ترین برگِ همون خال<br>دسته‌های برده اینجان و <b>نگهش داری</b> دور قبلیو می‌بینی', hand: 'hold' },
+      { el: '#score', title: 'برد دست و کوت', text: 'هر تیمی زودتر <b>۷ دور</b> ببره دستو برده<br>اگه تیم مقابل هیچ دوری نبرده باشه <b>کوت</b> شده و امتیاز بیشتری می‌گیرین' },
+      { el: '#meBar', title: 'نوبت و وقت', text: 'اینجا می‌بینی نوبت کیه و چقدر وقت مونده<br>وقتت تموم بشه یه برگ مجاز <b>خودکار</b> بازی می‌شه' },
+      { el: '#chatBtn', title: 'با یارت حرف بزن', text: 'پیام سریع یا یه متن کوتاه بفرست ولی برگاتو لو نده 😉', hand: 'tap' },
     ],
   };
 }
