@@ -18,7 +18,8 @@ cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o "$APP/main/jniLibs" build --r
 # strip شده و این فهرست را ندارد، پس از ساخت debug همین سیستم خوانده می شود؛
 # uniffi.toml صریح داده می شود تا پکیج کاتلین dezhcode.asotas.core باشد
 cargo build -q -p asotas-core
-HOSTLIB=$(ls target/debug/libasotas_core.so target/debug/libasotas_core.dylib 2>/dev/null | head -n1)
+HOSTLIB=target/debug/libasotas_core.so
+[ -f "$HOSTLIB" ] || HOSTLIB=target/debug/libasotas_core.dylib
 cargo run -q -p uniffi-bindgen -- generate \
   --library "$HOSTLIB" \
   --config crates/asotas-core/uniffi.toml \
