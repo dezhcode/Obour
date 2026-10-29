@@ -40,6 +40,13 @@ class GCConfig:
     # (بازیکن صف آزاد می تواند خودش «شروع با ربات» را بزند). کلید قدیمی
     # GAME_CLUB_BOT_FILL_SECONDS عمدا خوانده نمی شود تا مقدار ۱۵ مانده در .env اثری نداشته باشد.
     bot_fill_seconds: int = max(0, _int_env("GAME_CLUB_QUEUE_AUTOBOT_SECONDS", "0"))
+    # کد ورود ایمیلی برنامهٔ اندروید (mailer.py)؛ بدون HOST ورود با ایمیل خاموش است.
+    # پورت ۴۶۵ یعنی SSL، بقیه STARTTLS (اگر سرور داشته باشد)
+    smtp_host: str = os.getenv("GAME_CLUB_SMTP_HOST", "").strip()
+    smtp_port: int = _int_env("GAME_CLUB_SMTP_PORT", "465")
+    smtp_user: str = os.getenv("GAME_CLUB_SMTP_USER", "").strip()
+    smtp_password: str = os.getenv("GAME_CLUB_SMTP_PASSWORD", "")
+    smtp_from: str = os.getenv("GAME_CLUB_SMTP_FROM", "").strip()
     # این دو فقط از پنل مدیریت عوض می شوند (جدول settings):
     # تعمیرات = بازی تازه شروع نمی شود (میزهای در جریان ادامه دارند)؛ اطلاعیه = نوار بالای صفحه خانه
     maintenance: bool = False

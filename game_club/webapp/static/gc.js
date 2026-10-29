@@ -514,6 +514,7 @@ const P = {
   edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/>',
   send: '<path d="M21 4L10 14M21 4l-6.5 17-4.5-7-7-4.5z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7.5l8 5.5 8-5.5"/>',
   bell: '<path d="M6 10a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 15 6 10zM10 20a2 2 0 0 0 4 0"/>',
   ball: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8.2l3.3 2.4-1.3 3.9h-4l-1.3-3.9zM12 3.5v4.7M20.2 9.6l-4.9 1M17 19.3l-3-4.8M7 19.3l3-4.8M3.8 9.6l4.9 1"/>',
   dice: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 8.5h.01M15.5 15.5h.01M12 12h.01M15.5 8.5h.01M8.5 15.5h.01"/>',
@@ -715,6 +716,145 @@ function editName(me, done) {
   });
   check();
   if (!wait) setTimeout(() => { inp.focus(); inp.select(); }, 80);
+}
+
+/* ---------- ورود به حساب (فقط داخل برنامهٔ اندروید): تلگرام یا ایمیل، appauth.py ----------
+   ورود موفق: توکن تازه جای توکن این گوشی می نشیند و صفحه از نو بار می شود. */
+const LOGIN_ERR = {
+  bad_email: 'این ایمیل درست نیست یه نگاه بهش بنداز', email_off: 'ورود با ایمیل فعلاً بسته‌ست با تلگرام بیا',
+  tg_off: 'ورود با تلگرام فعلاً بسته‌ست با ایمیل بیا', email_limit: 'زیادی کد خواستی یه ساعت دیگه دوباره امتحان کن',
+  send_fail: 'ایمیل نرفت یه دقیقه دیگه دوباره امتحان کن', code_tries: 'زیادی اشتباه زدی یه کد تازه بگیر',
+  code_expired: 'وقت این کد تموم شده یه کد تازه بگیر',
+};
+function loginErr(e) {
+  const c = String((e && e.code) || ''), x = (e && e.extra) || {};
+  if (c === 'email_wait') return `یه کم صبر کن ${FD(x.wait || 60)} ثانیه دیگه دوباره بفرست`;
+  if (c === 'code_bad') return `کد اشتباهه ${FD(x.left)} بار دیگه می‌تونی بزنی`;
+  return LOGIN_ERR[c] || errText(e);
+}
+const toLatin = s => String(s || '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+// welcome: بار اول باز شدن برنامه (با «فعلاً مهمون می‌مونم»)؛ guestGames: مهمونی که بازی کرده
+function login({ welcome = false, guestGames = 0 } = {}) {
+  if (!APP) return;
+  const L = APP.login;
+  let run = 0;   // هر برگهٔ تازه پرسیدن قبلی را می خواباند
+  const done = () => { run++; haptic('success'); toast('حله وارد شدی ✅'); setTimeout(() => location.reload(), 700); };
+  function home() {
+    run++;
+    const sh = sheet(`${welcome ? '' : sheetHead('ورود به حساب')}<div class="acc">
+      ${welcome ? `<span class="acc-hi">${icon('dice')}</span><h2 class="acc-t">خوش اومدی داش 👋</h2>` : ''}
+      <p class="acc-lead">با تلگرام یا ایمیل بیا تو تا بازیا و رفیقا و سکه‌هات همیشه بمونن حتی اگه گوشیتو عوض کنی</p>
+      <button class="btn btn-block acc-tg" id="accTg">${icon('send')}ورود با تلگرام</button>
+      <button class="btn btn-light btn-block" id="accMail">${icon('mail')}ورود با ایمیل</button>
+      <p class="acc-note">قبلاً تو ربات تلگرام AsoTas بازی کردی؟ با تلگرام بیا تا همون حساب بیاد${guestGames ? '<br>بازیایی که مهمون بودی فقط با ایمیل همین‌جا می‌مونه' : ''}</p>
+      ${welcome ? '<button class="acc-skip" data-close>فعلاً مهمون می‌مونم</button>' : ''}</div>`, { dismiss: !welcome });
+    sh.querySelector('#accTg').onclick = tgFlow;
+    sh.querySelector('#accMail').onclick = () => mailFlow('');
+  }
+  async function tgFlow() {
+    const b = layer && layer.querySelector('#accTg'); if (b) b.disabled = true;
+    let r;
+    try { r = await L.tg(); } catch (e) { toast(loginErr(e)); if (b) b.disabled = false; return; }
+    L.open(r.link);
+    const my = ++run, until = Date.now() + (r.ttl || 600) * 1000;
+    const sh = sheet(`${sheetHead('ورود با تلگرام')}<div class="acc">
+      <div class="acc-wait" id="accWait"><span class="spinner"></span><b>منتظر تأیید تو تلگرامیم…</b></div>
+      <p class="acc-lead">تو ربات AsoTas «آره خودمم» رو بزن و برگرد همین‌جا خودش وارد می‌شی</p>
+      <button class="btn btn-block acc-tg" id="accOpen">${icon('send')}باز کردن تلگرام</button>
+      <button class="btn btn-light btn-block" id="accBack">برگشت</button>
+      <p class="acc-note acc-bad" id="accMsg" role="status"></p></div>`, { onClose: () => { run++; } });
+    const open = sh.querySelector('#accOpen'), msg = sh.querySelector('#accMsg');
+    open.onclick = () => L.open(r.link);
+    sh.querySelector('#accBack').onclick = home;
+    const fail = t => {
+      run++; msg.textContent = t; sh.querySelector('#accWait').hidden = true;
+      open.innerHTML = icon('send') + 'یه بار دیگه'; open.onclick = tgFlow;
+    };
+    const check = async () => {
+      if (my !== run) return;
+      try {
+        const j = await L.tgCheck(r.poll);
+        if (my !== run) return;
+        if (j.state === 'ok') done();
+        else if (j.state === 'no') fail('ورود رد شد اگه اشتباهی بود یه بار دیگه بزن');
+        else if (j.state === 'expired' || Date.now() > until) fail('وقت این لینک تموم شد یه بار دیگه بزن');
+      } catch (e) { if (e.code !== 'network' && my === run) msg.textContent = loginErr(e); }
+    };
+    const back = () => { if (my !== run) document.removeEventListener('visibilitychange', back); else if (!document.hidden) check(); };
+    document.addEventListener('visibilitychange', back);
+    while (my === run) { await sleep(2000); await check(); }
+  }
+  function mailFlow(prev) {
+    run++;
+    const sh = sheet(`${sheetHead('ورود با ایمیل')}<div class="acc">
+      <p class="acc-lead">ایمیلتو بزن تا یه کد ۶ رقمی برات بفرستیم</p>
+      <label class="un-box" dir="ltr"><input id="accEm" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="you@gmail.com" value="${escAttr(prev)}" aria-describedby="accMsg"></label>
+      <p class="un-msg" id="accMsg" role="status"></p>
+      <button class="btn btn-block" id="accSend">بفرست کد</button>
+      <button class="btn btn-light btn-block" id="accBack">برگشت</button></div>`);
+    const inp = sh.querySelector('#accEm'), msg = sh.querySelector('#accMsg'), go = sh.querySelector('#accSend');
+    const send = async () => {
+      const em = inp.value.trim();
+      if (!em) { inp.focus(); return; }
+      go.disabled = true; sh.classList.remove('un-err'); msg.textContent = 'داریم می‌فرستیم…';
+      try { const r = await L.email(em); codeStep(r.email, r.resend || 60); }
+      catch (e) { msg.textContent = loginErr(e); sh.classList.add('un-err'); go.disabled = false; }
+    };
+    go.onclick = send;
+    inp.onkeydown = e => { if (e.key === 'Enter') send(); };
+    sh.querySelector('#accBack').onclick = home;
+    setTimeout(() => inp.focus(), 80);
+  }
+  function codeStep(email, resend) {
+    const my = ++run;
+    const sh = sheet(`${sheetHead('کد ورود')}<div class="acc">
+      <p class="acc-lead">کد ۶ رقمی‌ای که به <bdi dir="ltr" class="acc-em">${escB(email)}</bdi> فرستادیم رو بزن</p>
+      <label class="un-box acc-code" dir="ltr"><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" aria-describedby="accMsg"></label>
+      <p class="un-msg" id="accMsg" role="status"></p>
+      <button class="btn btn-block" id="accGo" disabled>بزن بریم</button>
+      <div class="acc-row"><button class="acc-link" id="accRe" disabled></button><button class="acc-link" id="accEdit">ایمیلو اشتباه زدی؟</button></div>
+      <p class="acc-note">ایمیل نیومد؟ پوشهٔ اسپم رو هم یه نگاه بنداز</p></div>`, { onClose: () => { run++; } });
+    const inp = sh.querySelector('#accCode'), msg = sh.querySelector('#accMsg'), go = sh.querySelector('#accGo'), re = sh.querySelector('#accRe');
+    let left = resend, busy = false;
+    const tick = () => { re.disabled = left > 0; re.textContent = left > 0 ? `دوباره بفرست (${FD(left)})` : 'دوباره بفرست'; };
+    tick();
+    const timer = setInterval(() => { if (my !== run) return clearInterval(timer); left = Math.max(0, left - 1); tick(); }, 1000);
+    const verify = async () => {
+      const code = inp.value;
+      if (code.length !== 6 || busy) return;
+      busy = true; go.disabled = true; sh.classList.remove('un-err'); msg.textContent = 'یه لحظه…';
+      try { await L.emailVerify(email, code); clearInterval(timer); done(); }
+      catch (e) {
+        busy = false; msg.textContent = loginErr(e); sh.classList.add('un-err'); haptic('error');
+        inp.value = ''; inp.focus();
+        if (e.code === 'code_tries' || e.code === 'code_expired') left = 0, tick();
+      }
+    };
+    inp.oninput = () => {
+      const v = toLatin(inp.value).replace(/\D/g, '').slice(0, 6);
+      if (v !== inp.value) inp.value = v;
+      go.disabled = v.length !== 6;
+      if (v.length === 6) verify();
+    };
+    go.onclick = verify;
+    re.onclick = async () => {
+      re.disabled = true;
+      try { const r = await L.email(email); left = r.resend || 60; tick(); toast('یه کد تازه فرستادیم 📬'); sh.classList.remove('un-err'); msg.textContent = ''; }
+      catch (e) { msg.textContent = loginErr(e); sh.classList.add('un-err'); if (e.code === 'email_wait') left = (e.extra && e.extra.wait) || 60; tick(); }
+    };
+    sh.querySelector('#accEdit').onclick = () => { clearInterval(timer); mailFlow(email); };
+    setTimeout(() => inp.focus(), 80);
+  }
+  home();
+}
+function logoutSheet() {
+  if (!APP) return;
+  const sh = sheet(`<div class="dlg" role="alertdialog" aria-labelledby="dT">
+      <span class="dlg-ic warn">${icon('exit')}</span>
+      <h2 id="dT">از حسابت می‌ری بیرون؟</h2>
+      <p>هر وقت خواستی با همون تلگرام یا ایمیل برمی‌گردی و همه‌چی سر جاشه</p>
+      <div class="dlg-acts"><button class="btn" data-close>نه می‌مونم</button><button class="btn btn-danger-soft" id="accBye">آره خروج</button></div></div>`, { center: true });
+  sh.querySelector("#accBye").onclick = async () => { await APP.login.logout(); location.href = "index.html"; };
 }
 
 /* ---------- صدا: همه با Web Audio ساخته می شوند، بدون فایل ---------- */
@@ -1152,7 +1292,7 @@ function watchOver(game, title, line) {
 const RATE = 100; // هر امتیاز چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
-window.GC = { editName, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
+window.GC = { editName, login, logoutSheet, esc: escB, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
   get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, get snakes() { return live ? liveSnakes : GC.demo.snakes; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,

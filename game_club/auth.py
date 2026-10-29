@@ -42,6 +42,7 @@ def photo_ok(url: str) -> str:
 class GCUser(WebAppUser):
     last_name: str = ""
     photo_url: str = ""
+    app: bool = False       # از برنامهٔ اندروید (توکن نشست)، نه مینی اپ تلگرام
 
     @property
     def full_name(self) -> str:

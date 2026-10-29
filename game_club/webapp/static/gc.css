@@ -522,6 +522,25 @@ body.game .appbar-in{gap:var(--space-2)}
 body.game .appbar .turnbar{padding-inline-end:10px}
 body.game .appbar .turnbar .time{width:44px}
 
+/* ---------- برگهٔ ورود به حساب (برنامهٔ اندروید) ---------- */
+.acc{display:grid;gap:12px}
+.acc-hi{width:64px;height:64px;margin:4px auto 0;border-radius:20px;display:grid;place-items:center;background:var(--acc-tint);color:var(--acc-deep)}
+.acc-hi svg{width:34px;height:34px}
+.acc-t{text-align:center;font-size:22px;line-height:32px;font-weight:900}
+.acc-lead{font-size:14px;line-height:24px;color:var(--ink-muted);text-align:center}
+.acc .btn svg{width:20px;height:20px}
+.btn.acc-tg{--bg:#2AABEE;--fg:#fff;--edge:#1B8FCB}
+.acc-note{font-size:12.5px;line-height:21px;color:var(--ink-muted);text-align:center}
+.acc-bad:not(:empty){color:var(--danger);font-weight:700}
+.acc-skip{justify-self:center;border:0;background:none;padding:6px 12px;font:inherit;font-size:14px;font-weight:800;color:var(--ink-muted)}
+.acc-wait{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;border-radius:var(--radius-md);background:var(--surface-sunk);font-size:14.5px}
+.acc-wait[hidden]{display:none}
+.acc-em{font-weight:800;color:var(--ink)}
+.un-box.acc-code input{text-align:center;letter-spacing:10px;font-size:24px}
+.acc-row{display:flex;justify-content:space-between;gap:8px}
+.acc-link{border:0;background:none;padding:6px 4px;font:inherit;font-size:13px;font-weight:800;color:var(--acc-deep)}
+.acc-link:disabled{color:var(--ink-muted);opacity:.7}
+
 /* ---------- برگهٔ یوزرنیم ---------- */
 .un-lead{font-size:14px;line-height:23px;color:var(--ink-muted)}
 .un-box{display:flex;align-items:center;gap:8px;height:56px;padding:0 16px;border-radius:28px;background:var(--surface-sunk);box-shadow:inset 0 0 0 2px var(--line)}

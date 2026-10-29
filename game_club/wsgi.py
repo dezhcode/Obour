@@ -6,6 +6,8 @@
   *     /gc/api/<name>      API مینی اپ (initData در هدر X-Init-Data، یا توکن برنامهٔ اندروید در X-GC-Token)
   POST  /gc/app/guest       برنامهٔ اندروید: حساب مهمان تازه و توکن نشست (appauth.py)
   POST  /gc/app/logout      برنامهٔ اندروید: بستن توکن
+  POST  /gc/app/login/tg    ورود با تلگرام: لینک ربات و رمز پرسیدن نتیجه؛ /tg/check نتیجه و توکن تازه
+  POST  /gc/app/login/email ورود با ایمیل: فرستادن کد؛ /email/verify کد و توکن تازه
   GET   /gc/app/manifest    برنامهٔ اندروید: نسخهٔ تازهٔ صفحه ها و بازی ها (appbundle.py)
   GET   /gc/app/bundle/<v>.zip  همان بسته برای آپدیت خودکار
   POST  /gc/hook            وبهوک ربات AsoTas (هدر secret token)
@@ -224,13 +226,46 @@ def _app_user(runtime, token: str):  # noqa: ANN001
         raise AuthError("نشست برنامه منقضی شده")
     # photo_url=None یعنی عکس پروفایل دست نخورد (برنامه initData ندارد)
     return GCUser(id=p["tg_id"], first_name=(p.get("tg_name") or "")[:64], username=(p.get("username") or "")[:64],
-                  language_code="fa", is_premium=False, start_param="", last_name="", photo_url=None)
+                  language_code="fa", is_premium=False, start_param="", last_name="", photo_url=None, app=True)
 
 
 def _client_key(environ: dict, kind: str) -> int:
     """کلید محدودیت درخواست برای آی پی (منفی تا با آیدی کاربرها قاطی نشود)."""
     ip = (environ.get("HTTP_X_FORWARDED_FOR") or environ.get("REMOTE_ADDR") or "").split(",")[0].strip()
     return -1 - int(hashlib.sha1(f"{kind}:{ip}".encode()).hexdigest()[:12], 16)
+
+
+# سقف هر آی پی در ساعت؛ پرسیدن نتیجهٔ ورود تلگرام هر ۲ ثانیه است
+_LOGIN_LIMITS = {"/app/login/tg": 30, "/app/login/tg/check": 900, "/app/login/email": 20, "/app/login/email/verify": 60}
+
+
+def _login(environ: dict, start_response, sub: str, runtime):  # noqa: ANN001
+    """ورود برنامه: لینک ربات تلگرام و نتیجه اش، کد ایمیل و تأییدش (appauth.py)."""
+    from . import appauth
+    from .bot import gcrt
+
+    if not _rate_ok(_client_key(environ, sub), _LOGIN_LIMITS[sub], 3600):
+        return _json(start_response, "429 Too Many Requests", {"error": "rate"})
+    body = _body(environ, 2048)
+    tok = environ.get("HTTP_X_GC_TOKEN", "")
+    device = str(body.get("device") or "")
+
+    async def go():  # noqa: ANN202
+        db = (await gcrt.ensure()).db
+        if sub == "/app/login/tg":
+            if not gc.username:
+                raise appauth.LoginError("tg_off")
+            r = await appauth.tg_start(db, device)
+            return {"link": f"https://t.me/{gc.username}?start=login_{r['code']}", "poll": r["poll"], "ttl": r["ttl"]}
+        if sub == "/app/login/tg/check":
+            return await appauth.tg_check(db, str(body.get("poll") or ""), tok)
+        if sub == "/app/login/email":
+            return await appauth.email_start(db, str(body.get("email") or ""))
+        return await appauth.email_verify(db, str(body.get("email") or ""), str(body.get("code") or ""), tok, device)
+    try:
+        return _json(start_response, "200 OK", runtime.run(go(), timeout=40))
+    except appauth.LoginError as e:
+        return _json(start_response, "400 Bad Request", {"error": e.code, **e.extra})
 
 
 def _app_routes(environ: dict, start_response, sub: str, method: str, runtime):  # noqa: ANN001
@@ -254,6 +289,8 @@ def _app_routes(environ: dict, start_response, sub: str, method: str, runtime): 
             await appauth.logout((await gcrt.ensure()).db, tok)
         runtime.run(out(), timeout=15)
         return _json(start_response, "200 OK", {"ok": True})
+    if sub in _LOGIN_LIMITS and method == "POST":
+        return _login(environ, start_response, sub, runtime)
     if sub == "/app/manifest" and method == "GET":
         return _json(start_response, "200 OK", appbundle.manifest())
     if sub.startswith("/app/bundle/") and method == "GET":
