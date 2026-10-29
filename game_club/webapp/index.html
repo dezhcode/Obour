@@ -271,7 +271,8 @@
     const nm = document.createElement('bdi'); nm.className = 'uname'; nm.textContent = p.name || '';
     $('meName').replaceChildren(nm);
     const sub = $('meSub');
-    if (!me.obour.linked) { sub.className = 'me-sub bad'; sub.textContent = 'هنوز در ربات عبور نیستی'; }
+    // برنامهٔ اندروید (مهمان) کیف عبور ندارد؛ همان سطح بازیکن را می بیند
+    if (!me.obour.linked && !GC.app) { sub.className = 'me-sub bad'; sub.textContent = 'هنوز در ربات عبور نیستی'; }
     else { sub.className = 'me-sub'; sub.innerHTML = `سطح ${FD(L.lv)}<span class="bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span>`; sub.title = `${FD(L.left)} امتیاز تا سطح ${FD(L.lv + 1)}`; }
   }
   // اعلان ها: میزی که نوبت توست، میزی که منتظر توست و پیام مدیریت

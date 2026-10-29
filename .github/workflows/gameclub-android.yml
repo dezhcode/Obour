@@ -1,0 +1,101 @@
+# ساخت برنامهٔ اندروید Game Club (Capacitor) برای مایکت.
+# Actions → «Game Club Android» → Run workflow. بدون کلید امضا یک APK آزمایشی (debug) می سازد؛
+# با Secrets زیر APK امضاشدهٔ انتشار (release) هم می سازد:
+#   GC_KEYSTORE_BASE64   فایل keystore به base64
+#   GC_KEYSTORE_PASSWORD رمز keystore
+#   GC_KEY_ALIAS         نام کلید (alias)
+#   GC_KEY_PASSWORD      رمز کلید
+name: Game Club Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "versionCode (هر انتشار در مایکت یکی بیشتر)"
+        required: true
+        default: "1"
+      version_name:
+        description: "versionName (مثلا 1.0.0)"
+        required: true
+        default: "1.0.0"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: game_club/android-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: game_club/android-app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Web assets and Capacitor sync
+        run: |
+          npm ci --no-audit --no-fund
+          npm run www
+          npx cap sync android
+
+      - name: Signing key
+        env:
+          KS: ${{ secrets.GC_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.GC_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.GC_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.GC_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > "$RUNNER_TEMP/release.jks"
+            {
+              echo "GC_KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
+              echo "GC_KEYSTORE_PASSWORD=$KS_PASS"
+              echo "GC_KEY_ALIAS=$KEY_ALIAS"
+              echo "GC_KEY_PASSWORD=$KEY_PASS"
+            } >> "$GITHUB_ENV"
+            echo "SIGNED=1" >> "$GITHUB_ENV"
+          else
+            echo "::notice::کلید امضا تنظیم نشده؛ فقط APK آزمایشی (debug) ساخته می‌شود"
+          fi
+
+      - name: Build
+        working-directory: game_club/android-app/android
+        env:
+          VCODE: ${{ inputs.version_code }}
+          VNAME: ${{ inputs.version_name }}
+        run: |
+          chmod +x gradlew
+          case "$VCODE" in ''|*[!0-9]*) echo "::error::version_code باید عدد باشد"; exit 1;; esac
+          case "$VNAME" in ''|*[!0-9.]*) echo "::error::version_name مثل 1.0.0 باشد"; exit 1;; esac
+          V="-PgcVersionCode=$VCODE -PgcVersionName=$VNAME"
+          ./gradlew --no-daemon assembleDebug $V
+          if [ "$SIGNED" = "1" ]; then ./gradlew --no-daemon assembleRelease bundleRelease $V; fi
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/out/gameclub-$VNAME-debug.apk"
+          if [ "$SIGNED" = "1" ]; then
+            cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/out/gameclub-$VNAME-myket.apk"
+            cp app/build/outputs/bundle/release/app-release.aab "$GITHUB_WORKSPACE/out/gameclub-$VNAME.aab"
+          fi
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gameclub-android-${{ inputs.version_name }}
+          path: out/
+          retention-days: 30

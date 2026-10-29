@@ -592,7 +592,7 @@ async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
     link = app_link(row["game"], m.get("invite") or "")
     title = row.get("chat_title") or "گروه"
     for s in await _seats(db, m):
-        if s.get("bot"):
+        if s.get("bot") or (s.get("tg") or 0) < 0:   # ربات یا مهمان برنامه
             continue
         tg = s["tg"]
         # اسم‌فامیل میز «پر» ندارد: سازنده شروع می کند و هر کس باید زود برگش را باز کند

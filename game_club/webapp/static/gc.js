@@ -22,9 +22,12 @@ function ledger(t, a, k) { S.ledger.unshift({ t, a, k, at: Date.now() }); S.ledg
    حالت نمایشی با demo.js. قواعد تمام صفحه: محتوا زیر نوار وضعیت گوشی
    (safeAreaInset) و دکمه های شناور تلگرام (contentSafeAreaInset) نمی رود. */
 const tg = (window.Telegram && window.Telegram.WebApp) || null;
-const live = !!(tg && tg.initData);
+// داخل تلگرام (initData) یا داخل برنامهٔ اندروید (static/app.js، حساب مهمان)؛ هر دو یعنی همه چیز از سرور
+const APP = window.GCApp || null;
+const tgLive = !!(tg && tg.initData);
+const live = tgLive || !!APP;
 const root = document.documentElement;
-root.classList.toggle('tg', live);
+root.classList.toggle('tg', tgLive);
 const MOBILE = ['android', 'ios'];
 function applyInsets() {
   if (!tg) return;
@@ -44,10 +47,16 @@ function paintBars() {
   const desk = document.body.matches('.lashgar');   // لشگر کاغذی: میز چوبی مدرسه
   const top = desk ? '#8E5F38' : paper ? '#EFE6D2' : game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8';
   const bottom = desk ? '#7E5230' : paper ? '#FFFCF2' : game ? '#08120F' : night ? '#181C24' : '#FFFFFF';
+  if (APP) { APP.bars(top); return; }
   try { tg.setHeaderColor(top); tg.setBackgroundColor(top); } catch (e) {}
   try { ver('7.10') && tg.setBottomBarColor(bottom); } catch (e) {}
 }
-if (live) {
+if (APP) {
+  paintBars();
+  addEventListener('pageshow', e => { if (e.persisted) paintBars(); });
+  addEventListener('gc-theme', paintBars);
+}
+if (tgLive) {
   try { tg.ready(); tg.expand(); } catch (e) {}
   paintBars();
   // برگشت از حافظهٔ مرورگر (bfcache) اسکریپت را دوباره اجرا نمی کند؛ رنگ صفحه ای که برگشته از نو
@@ -110,7 +119,8 @@ const onFit = fn => { fits.push(fn); };
 const appHeight = () => appH || innerHeight;
 
 // فایل های بازی روی گوشی می مانند (sw.js)؛ بعد از بار شدن صفحه تا با خود صفحه رقابت نکند
-if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') {
+// داخل برنامهٔ اندروید فایل ها خودشان روی گوشی اند (و آپدیتشان با static/app.js است)
+if (!APP && 'serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') {
   addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {}); });
 }
 /* دکمه برگشت بومی تلگرام؛ دکمه برگشت داخل صفحه فقط بیرون از تلگرام دیده می شود.
@@ -123,7 +133,7 @@ function back(href) {
   applyBack(href);
 }
 function applyBack(href) {
-  if (!live || !ver('6.1')) return;
+  if (!tgLive || !ver('6.1')) return;
   try {
     if (backFn) { tg.BackButton.offClick(backFn); backFn = null; }
     if (!href) { tg.BackButton.hide(); return; }
@@ -132,7 +142,7 @@ function applyBack(href) {
   } catch (e) {}
 }
 function haptic(kind) {
-  if (!live || !ver('6.1')) return;
+  if (!tgLive || !ver('6.1')) return;
   try {
     const H = tg.HapticFeedback;
     if (['success', 'error', 'warning'].includes(kind)) H.notificationOccurred(kind);
@@ -140,12 +150,12 @@ function haptic(kind) {
     else H.impactOccurred(kind || 'light');
   } catch (e) {}
 }
-function guardClose(on) { if (!live || !ver('6.2')) return; try { on ? tg.enableClosingConfirmation() : tg.disableClosingConfirmation(); } catch (e) {} }
-function portrait(on) { if (!live || !ver('8.0')) return; try { on ? tg.lockOrientation() : tg.unlockOrientation(); } catch (e) {} }
+function guardClose(on) { if (!tgLive || !ver('6.2')) return; try { on ? tg.enableClosingConfirmation() : tg.disableClosingConfirmation(); } catch (e) {} }
+function portrait(on) { if (!tgLive || !ver('8.0')) return; try { on ? tg.lockOrientation() : tg.unlockOrientation(); } catch (e) {} }
 function openLink(url) {
-  if (live && /^https:\/\/t\.me\//.test(url)) { try { tg.openTelegramLink(url); return; } catch (e) {} }
-  if (live) { try { tg.openLink(url); return; } catch (e) {} }
-  window.open(url, '_blank', 'noopener');
+  if (tgLive && /^https:\/\/t\.me\//.test(url)) { try { tg.openTelegramLink(url); return; } catch (e) {} }
+  if (tgLive) { try { tg.openLink(url); return; } catch (e) {} }
+  window.open(url, '_blank', 'noopener');   // داخل برنامه: مرورگر یا خود تلگرام گوشی باز می شود
 }
 function startParam() { try { return (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || ''; } catch (e) { return ''; } }
 
@@ -179,15 +189,19 @@ const errText = e => {
   if (c.startsWith('name_wait:')) return `یوزرنیم را ${FD(c.split(':')[1])} روز دیگر می‌توانی عوض کنی`;
   return ERR[c] || ERR.server;
 };
-async function api(name, { body, q } = {}) {
+async function api(name, { body, q } = {}, again) {
   let r;
   try {
-    r = await fetch('api/' + name + (q ? '?' + new URLSearchParams(q) : ''), {
+    // داخل برنامه: صفحه ها روی گوشی اند و API روی سرور؛ به جای initData توکن نشست مهمان می رود
+    const auth = APP ? { 'X-GC-Token': await APP.token() } : { 'X-Init-Data': tg ? tg.initData : '' };
+    r = await fetch((APP ? APP.base : '') + 'api/' + name + (q ? '?' + new URLSearchParams(q) : ''), {
       method: body ? 'POST' : 'GET', cache: 'no-store',
-      headers: { 'X-Init-Data': tg ? tg.initData : '', 'Content-Type': 'application/json' },
+      headers: Object.assign(auth, { 'Content-Type': 'application/json' }),
       body: body ? JSON.stringify(body) : undefined,
     });
-  } catch (e) { const x = new Error('network'); x.code = 'network'; throw x; }
+  } catch (e) { const x = new Error((e && e.code) || 'network'); x.code = (e && e.code) || 'network'; throw x; }
+  // توکن برنامه دیگر کار نمی کند (مثلا نشست بسته شده): یک حساب مهمان تازه و همان درخواست یک بار دیگر
+  if (APP && r.status === 401 && !again) { await APP.token(true); return api(name, { body, q }, true); }
   let j = {}; try { j = await r.json(); } catch (e) {}
   if (!r.ok) {
     const x = new Error(j.error || 'server'); x.code = j.error || 'server'; x.data = j;
@@ -284,7 +298,7 @@ function showPopup() {
   bootCss();
   const el = document.createElement('div'); el.className = 'gk-scrim'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
   if (p.title) el.setAttribute('aria-label', p.title);
-  el.innerHTML = `<div class="gk-card">${p.img ? `<img class="gk-img" src="${escB(p.img)}" alt="">` : ''}
+  el.innerHTML = `<div class="gk-card">${p.img ? `<img class="gk-img" src="${escB(APP ? APP.srv(p.img) : p.img)}" alt="">` : ''}
     <button class="gk-x${p.img ? '' : ' plain'}" aria-label="بستن">✕</button>
     <div class="gk-body">${p.title ? `<h2>${escB(p.title)}</h2>` : ''}${p.text ? `<p>${escB(p.text)}</p>` : ''}
       ${p.btn && p.url ? `<button class="gk-btn" id="gkGo">${escB(p.btn)}</button>` : ''}
@@ -545,7 +559,7 @@ function face(p, ring, extra = '') {
   p = p || {};
   const seed = Math.abs(+p.av || 1);
   const base = p.bot ? avatar(seed) : `<span class="ini" style="background:${FACE_BG[seed % FACE_BG.length]}">${escAttr(initial(p.name))}</span>`;
-  const img = p.pic && !p.bot ? `<img src="${escAttr(p.pic)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-face>` : '';
+  const img = p.pic && !p.bot ? `<img src="${escAttr(APP ? APP.srv(p.pic) : p.pic)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-face>` : '';
   // pid: کلید عمومی بازیکن دیگر (لیدربرد، میز بازی، گفتگو)؛ با لمس، کارت پروفایلش باز می شود
   const tap = p.pid && !p.bot ? ` data-pid="${escAttr(p.pid)}" role="button" tabindex="0" aria-label="پروفایل ${escAttr(p.name || '')}"` : '';
   return `<span class="avatar ${extra}${tap ? ' tap' : ''}" style="--ring:${ring || 'var(--surface)'}"${tap}><span>${base}${img}</span></span>`;
@@ -987,7 +1001,7 @@ async function mountView(name, pre = false) {
   doc.head.querySelectorAll('style').forEach(st => { const n = document.createElement('style'); n.dataset.view = name; n.textContent = st.textContent; document.head.appendChild(n); });
   for (const sc of doc.querySelectorAll('script[src]')) {
     const src = sc.getAttribute('src');
-    if (/telegram-web-app|static\/gc\.js|static\/demo\.js/.test(src) || document.querySelector(`script[src="${src}"]`)) continue;
+    if (/telegram-web-app|app-config\.js|static\/app\.js|static\/gc\.js|static\/demo\.js/.test(src) || document.querySelector(`script[src="${src}"]`)) continue;
     await loadScript(src);
   }
   const v = document.createElement('div'); v.className = 'view'; v.dataset.view = name; v.hidden = true;
@@ -1138,7 +1152,7 @@ function watchOver(game, title, line) {
 const RATE = 100; // هر امتیاز چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
-window.GC = { editName, nameProblem, normName, tg, live, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
+window.GC = { editName, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
   get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, get snakes() { return live ? liveSnakes : GC.demo.snakes; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,

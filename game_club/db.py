@@ -259,6 +259,16 @@ CREATE TABLE IF NOT EXISTS dm_read (
   last_id INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (tg_id, other)
 );
+
+-- نشست برنامهٔ اندروید (appauth.py): فقط هش توکن نگه داشته می شود. حساب مهمان tg_id منفی دارد
+CREATE TABLE IF NOT EXISTS app_sessions (
+  token_hash TEXT PRIMARY KEY,
+  tg_id INTEGER NOT NULL,
+  device TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,
+  seen_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS app_sessions_tg ON app_sessions(tg_id);
 """
 
 
@@ -275,6 +285,8 @@ def pic_url(p: dict | None) -> str:
         return ""
     if p.get("photo"):
         return p["photo"]
+    if int(p.get("tg_id") or 0) < 0:      # مهمان برنامه: عکس تلگرامی ندارد
+        return ""
     return f"pic/{p['pic']}" if p.get("pic") else ""
 
 
@@ -1128,14 +1140,15 @@ class GCDatabase:
     def _bc_where(target: str) -> tuple[str, list]:
         """شرط مخاطبان: all، seen:<ts> (فعال از آن زمان)، game:<name> (کسانی که آن بازی را کرده اند)، id:<tg>"""
         kind, _, arg = (target or "all").partition(":")
+        # مهمان های برنامهٔ اندروید (tg_id منفی) پیوی تلگرام ندارند
         if kind == "seen" and arg.isdigit():
-            return "banned = 0 AND seen_at >= ?", [int(arg)]
+            return "tg_id > 0 AND banned = 0 AND seen_at >= ?", [int(arg)]
         if kind == "game" and arg:
-            return ("banned = 0 AND tg_id IN (SELECT mp.tg_id FROM match_players mp JOIN matches m ON m.id = mp.match_id "
+            return ("tg_id > 0 AND banned = 0 AND tg_id IN (SELECT mp.tg_id FROM match_players mp JOIN matches m ON m.id = mp.match_id "
                     "WHERE m.game = ?)", [arg])
         if kind == "id" and arg.isdigit():
             return "tg_id = ?", [int(arg)]
-        return "banned = 0", []
+        return "tg_id > 0 AND banned = 0", []
 
     async def bc_count(self, target: str) -> int:
         w, a = self._bc_where(target)

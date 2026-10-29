@@ -76,7 +76,8 @@ async def missing(db: GCDatabase, bot, tg: int, fresh: bool = False) -> list[dic
     from . import admin
 
     cfg = await load(db, "gate")
-    if not cfg.get("on") or not cfg.get("chats") or bot is None or admin.is_admin(tg):
+    # مهمان برنامهٔ اندروید حساب تلگرامی ندارد که عضویتش پرسیده شود
+    if not cfg.get("on") or not cfg.get("chats") or bot is None or tg < 0 or admin.is_admin(tg):
         return []
     out = []
     for c in cfg["chats"]:

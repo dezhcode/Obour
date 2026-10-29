@@ -52,7 +52,8 @@ function build(opt) {
   };
   const GO = { online: ['پیدا کردن حریف', 'play'], friends: ['ساختن لینک دعوت', 'link'], group: ['فرستادن به گروه', 'send'], bot: ['شروع با ربات', 'play'] };
   // بازی فقط گروهی (اسم‌فامیل): opt.who = ['group']
-  const WHOS = opt.who ? WHO.filter(([v]) => opt.who.includes(v)) : WHO;
+  // داخل برنامهٔ اندروید کارت میز به گروه تلگرام فرستاده نمی شود (مهمان حساب تلگرامی ندارد)
+  const WHOS = opt.who ? WHO.filter(([v]) => opt.who.includes(v)) : WHO.filter(([v]) => !(GC.app && v === 'group'));
   const saved = store.get('gp:' + opt.game, {});
   const pick = Object.assign({ mode: opt.modes[0].v, who: WHOS[0][0], entry: 0 }, saved);
   pick.extra = Object.assign({}, ...(opt.extras || []).map(x => ({ [x.key]: x.opts[0][0] })), saved.extra || {});
@@ -100,6 +101,7 @@ function build(opt) {
   /* فرستادن کارت میز به گروه یا چت: تلگرام پنجرهٔ انتخاب چت را باز می کند (WebApp 8.0+)؛
      در تلگرام قدیمی تر حالت اینلاین (@ربات hokm) با انتخاب چت باز می شود */
   async function share(btn) {
+    if (GC.app) { toast('این بازی فعلاً توی گروه‌های تلگرام بازی می‌شه؛ اتاق دوستانه‌ش به‌زودی توی برنامه هم میاد'); return; }
     const w = window.Telegram && Telegram.WebApp, at = v => w && w.isVersionAtLeast && w.isVersionAtLeast(v);
     const chats = opt.who && !opt.who.includes('friends') ? ['groups', 'channels'] : ['groups', 'users', 'channels'];
     const inline = () => { if (at('6.7') && w.switchInlineQuery) { w.switchInlineQuery(opt.game, chats); return true; } return false; };
