@@ -26,26 +26,87 @@ pub struct Daily {
     pub plan: Vec<i64>,
 }
 
+/// سطح بازیکن (همان level() در gc.js): هر بازی ۱۰ و هر برد ۱۵ تجربه؛ سطح بعد هر بار ۵۰ تجربه گران تر
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Level {
+    pub lv: i64,
+    pub xp: i64,
+    /// تجربهٔ باقی تا سطح بعد
+    pub left: i64,
+    /// پیشرفت در همین سطح، ۰ تا ۱
+    pub frac: f64,
+}
+
+/// میز باز کاربر برای «میزای دیگه‌ت» در خانه (service.my_tables)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct TableInfo {
+    /// queue (در صف)، lobby (منتظر بازیکن) یا playing
+    pub kind: String,
+    pub game: String,
+    pub id: Option<String>,
+    pub found: i64,
+    pub need: i64,
+}
+
 /// خلاصهٔ `GET /gc/api/me` برای صفحهٔ خانه
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct Me {
     pub name: String,
     /// آدرس کامل عکس پروفایل (یا None)
     pub pic: Option<String>,
+    /// شمارهٔ رنگ آواتار (av)
+    pub av: i64,
     /// سکه (فیلد points سرور)
     pub coins: i64,
     pub games: i64,
     pub wins: i64,
+    pub level: Level,
     pub bio: String,
     pub joined: i64,
+    /// یوزرنیم تازه هنوز به کاربر نشان داده نشده (کارت «اسمت تو بازی اینه»)
+    pub name_hint: bool,
     pub account: Account,
     pub daily: Daily,
+    /// درخواست های دوستی تازه و پیام های خوانده نشده
+    pub requests: i64,
+    pub unread: i64,
+    pub tables: Vec<TableInfo>,
     pub banned: bool,
     pub maintenance: bool,
     pub notice: String,
     pub ranked_enabled: bool,
     pub active_match: Option<String>,
     pub active_game: Option<String>,
+}
+
+/// یک بازیکن دیگر (social.public)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Person {
+    pub uid: String,
+    pub name: String,
+    pub av: i64,
+    pub pic: Option<String>,
+    pub bio: String,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Friend {
+    pub person: Person,
+    pub online: bool,
+    /// بازی که الان سرش است (hokm، ludo، ...) یا None
+    pub playing: Option<String>,
+    /// آخرین بار آنلاین (ثانیهٔ یونیکس)
+    pub seen: i64,
+    pub unread: i64,
+}
+
+/// `GET /gc/api/friends`
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Friends {
+    pub friends: Vec<Friend>,
+    pub incoming: Vec<Person>,
+    pub outgoing: Vec<Person>,
+    pub blocked: Vec<Person>,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -81,6 +142,26 @@ pub enum TelegramState {
 pub struct TelegramCheck {
     pub state: TelegramState,
     pub account: Option<Account>,
+}
+
+/// `GET name/check`: یوزرنیم پیشنهادی قبول است یا نه (و اگر گرفته شده، چند پیشنهاد)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct NameCheck {
+    pub name: String,
+    pub ok: bool,
+    pub error: Option<String>,
+    pub suggest: Vec<String>,
+}
+
+impl NameCheck {
+    pub(crate) fn from_json(v: &Value) -> Self {
+        NameCheck {
+            name: text(&v["name"]),
+            ok: truthy(&v["ok"]),
+            error: opt_text(&v["error"]),
+            suggest: v["suggest"].as_array().map(|a| a.iter().map(text).collect()).unwrap_or_default(),
+        }
+    }
 }
 
 /// کد ۶ رقمی فرستاده شد
@@ -148,20 +229,86 @@ impl Daily {
     }
 }
 
+#[uniffi::export]
+pub fn level(games: i64, wins: i64) -> Level {
+    let xp = games.max(0) * 10 + wins.max(0) * 15;
+    let (mut lv, mut base, mut need) = (1, 0, 100);
+    while xp >= base + need {
+        base += need;
+        lv += 1;
+        need = 100 + (lv - 1) * 50;
+    }
+    Level { lv, xp, left: base + need - xp, frac: (xp - base) as f64 / need as f64 }
+}
+
+impl TableInfo {
+    fn from_json(v: &Value) -> Self {
+        TableInfo {
+            kind: text(&v["kind"]),
+            game: text(&v["game"]),
+            id: opt_text(&v["id"]),
+            found: int(&v["found"]),
+            need: int(&v["need"]),
+        }
+    }
+}
+
+impl Person {
+    pub(crate) fn from_json(v: &Value, resolve: &impl Fn(&str) -> String) -> Self {
+        Person {
+            uid: text(&v["uid"]),
+            name: text(&v["name"]),
+            av: int(&v["av"]).max(1),
+            pic: opt_text(&v["pic"]).map(|u| resolve(&u)),
+            bio: text(&v["bio"]),
+        }
+    }
+}
+
+impl Friends {
+    pub(crate) fn from_json(v: &Value, resolve: impl Fn(&str) -> String) -> Self {
+        let people = |k: &str| -> Vec<Person> {
+            v[k].as_array().map(|a| a.iter().map(|p| Person::from_json(p, &resolve)).collect()).unwrap_or_default()
+        };
+        let friends = v["friends"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .map(|f| Friend {
+                        person: Person::from_json(f, &resolve),
+                        online: truthy(&f["online"]),
+                        playing: opt_text(&f["playing"]),
+                        seen: int(&f["seen"]),
+                        unread: int(&f["unread"]),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        Friends { friends, incoming: people("incoming"), outgoing: people("outgoing"), blocked: people("blocked") }
+    }
+}
+
 impl Me {
     /// `resolve` آدرس نسبی عکس (pic/...) را کامل می کند
     pub(crate) fn from_json(v: &Value, resolve: impl Fn(&str) -> String) -> Self {
         let p = &v["player"];
+        let (games, wins) = (int(&p["games"]), int(&p["wins"]));
         Me {
             name: text(&p["name"]),
             pic: opt_text(&p["pic"]).map(|u| resolve(&u)),
+            av: int(&p["av"]).max(1),
             coins: int(&p["points"]),
-            games: int(&p["games"]),
-            wins: int(&p["wins"]),
+            games,
+            wins,
+            level: level(games, wins),
             bio: text(&p["bio"]),
             joined: int(&p["joined"]),
+            name_hint: truthy(&p["name_hint"]),
             account: Account::from_json(&v["account"]),
             daily: Daily::from_json(&v["daily"]),
+            requests: int(&v["social"]["requests"]),
+            unread: int(&v["social"]["unread"]),
+            tables: v["tables"].as_array().map(|a| a.iter().map(TableInfo::from_json).collect()).unwrap_or_default(),
             banned: truthy(&v["banned"]),
             maintenance: truthy(&v["maintenance"]),
             notice: text(&v["notice"]),

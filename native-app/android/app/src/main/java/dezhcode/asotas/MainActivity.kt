@@ -2,17 +2,19 @@ package dezhcode.asotas
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dezhcode.asotas.ui.AppShell
 import dezhcode.asotas.ui.AsoTasTheme
-import dezhcode.asotas.ui.HomeScreen
-import dezhcode.asotas.ui.LoginSheet
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,12 +22,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val vm: AppViewModel = viewModel()
-            LaunchedEffect(vm) {
-                vm.toasts.collect { Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show() }
+            val dark = when (vm.theme) {
+                ThemeMode.AUTO -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
             }
-            AsoTasTheme {
-                HomeScreen(vm)
-                LoginSheet(vm, openLink = ::openLink)
+            // آیکن های نوار وضعیت و ناوبری گوشی هم رنگ پوسته
+            LaunchedEffect(dark) {
+                val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+            }
+            AsoTasTheme(dark) {
+                AppShell(vm, openLink = ::openLink)
             }
         }
     }

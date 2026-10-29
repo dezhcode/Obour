@@ -164,6 +164,28 @@ impl Client {
         Ok(DailyClaim { coins: int(&j["coins"]), balance: int(&j["points"]), daily: Daily::from_json(&j["daily"]) })
     }
 
+    pub fn friends(&self) -> Result<Friends, ApiError> {
+        let j = self.api("friends", Req::Get(&[]))?;
+        Ok(Friends::from_json(&j, |u| self.resolve(u)))
+    }
+
+    /// کارت «اسمت تو بازی اینه» دیده شد و دیگر نمی آید
+    pub fn name_seen(&self) -> Result<(), ApiError> {
+        self.api("name/seen", Req::Post(&json!({})))?;
+        Ok(())
+    }
+
+    pub fn name_check(&self, name: String) -> Result<NameCheck, ApiError> {
+        let j = self.api("name/check", Req::Get(&[("n".to_string(), name)]))?;
+        Ok(NameCheck::from_json(&j))
+    }
+
+    /// یوزرنیم تازه؛ نام نهایی (بعد از یکدست سازی سرور) برمی گردد
+    pub fn set_name(&self, name: String) -> Result<String, ApiError> {
+        let j = self.api("name", Req::Post(&json!({ "name": name })))?;
+        Ok(text(&j["name"]))
+    }
+
     /// هر اندپوینت دیگر (GET)؛ جواب خام JSON تا صفحه هایی که هنوز مدل ندارند هم کار کنند
     pub fn api_get(&self, name: String, query: HashMap<String, String>) -> Result<String, ApiError> {
         let mut q: Vec<(String, String)> = query.into_iter().collect();
@@ -220,13 +242,63 @@ mod tests {
     use mockito::{Matcher, Server};
 
     const ME: &str = r#"{
-        "player": {"name": "tasi_42", "points": "1250", "games": 9, "wins": 4, "bio": "", "pic": "pic/abc", "joined": 1700000000},
+        "player": {"name": "tasi_42", "av": 5, "points": "1250", "games": 9, "wins": 4, "bio": "", "pic": "pic/abc",
+                   "joined": 1700000000, "name_hint": true},
         "account": {"kind": "email", "email": "a@b.ir"},
         "daily": {"claimed": false, "day": 2, "next": 3, "plan": [10, 20, 30]},
+        "social": {"requests": 2, "unread": 7},
+        "tables": [{"kind": "queue", "game": "hokm", "found": 2, "need": 4},
+                   {"kind": "playing", "id": "m1", "game": "ludo", "players": []}],
         "banned": false, "maintenance": false, "notice": "",
         "settings": {"ranked": true},
         "active_match": null, "active_game": null
     }"#;
+
+    #[test]
+    fn level_matches_mini_app() {
+        let l = level(0, 0);
+        assert_eq!((l.lv, l.xp, l.left), (1, 0, 100));
+        let l = level(9, 4); // ۱۵۰ تجربه: سطح ۲ از ۱۰۰ تا ۲۵۰
+        assert_eq!((l.lv, l.left), (2, 100));
+        assert!((l.frac - 50.0 / 150.0).abs() < 1e-9);
+        let l = level(30, 10); // ۴۵۰ = ۱۰۰ + ۱۵۰ + ۲۰۰ ← درست اول سطح ۴
+        assert_eq!((l.lv, l.left), (4, 250));
+        assert!(l.frac.abs() < 1e-9);
+    }
+
+    #[test]
+    fn friends_and_names() {
+        let mut server = Server::new();
+        let dir = tempfile::tempdir().unwrap();
+        TokenStore::open(&dir.path().to_string_lossy()).set(Some("t".into()));
+        server.mock("GET", "/gc/api/friends").with_body(r#"{
+            "friends": [{"uid": "u1", "name": "kian", "av": 3, "pic": "pic/u1", "bio": "", "online": true,
+                         "playing": "hokm", "seen": 1700000000, "unread": 2},
+                        {"uid": "u2", "name": "sara", "av": 0, "pic": "", "online": false, "playing": null}],
+            "incoming": [{"uid": "u3", "name": "neg", "av": 2, "pic": ""}], "outgoing": [], "blocked": []}"#).create();
+        server.mock("GET", "/gc/api/name/check").match_query(Matcher::UrlEncoded("n".into(), "kian".into()))
+            .with_body(r#"{"name": "kian", "ok": false, "error": "name_taken", "suggest": ["kian_1", "kian22"]}"#).create();
+        let seen = server.mock("POST", "/gc/api/name/seen").with_body(r#"{"ok": true}"#).expect(1).create();
+        server.mock("POST", "/gc/api/name").match_body(Matcher::Json(json!({ "name": "Tasi_9" })))
+            .with_body(r#"{"name": "tasi_9", "name_next": 0, "name_hint": false}"#).create();
+        let c = client(&server, &dir);
+
+        let f = c.friends().unwrap();
+        assert_eq!(f.friends.len(), 2);
+        assert_eq!(f.friends[0].person.pic.as_deref(), Some(format!("{}/gc/pic/u1", server.url()).as_str()));
+        assert!(f.friends[0].online);
+        assert_eq!(f.friends[0].playing.as_deref(), Some("hokm"));
+        assert_eq!((f.friends[1].person.av, f.friends[1].person.pic.clone()), (1, None));
+        assert_eq!(f.incoming[0].name, "neg");
+
+        let n = c.name_check("kian".into()).unwrap();
+        assert!(!n.ok);
+        assert_eq!(n.error.as_deref(), Some("name_taken"));
+        assert_eq!(n.suggest, vec!["kian_1", "kian22"]);
+        c.name_seen().unwrap();
+        seen.assert();
+        assert_eq!(c.set_name("Tasi_9".into()).unwrap(), "tasi_9");
+    }
 
     fn client(server: &Server, dir: &tempfile::TempDir) -> Arc<Client> {
         Client::new(format!("{}/gc", server.url()), dir.path().to_string_lossy().into(), "Pixel 9".into())
@@ -258,6 +330,11 @@ mod tests {
         assert_eq!(m.daily.plan, vec![10, 20, 30]);
         assert!(m.ranked_enabled);
         assert_eq!(m.active_match, None);
+        assert_eq!((m.av, m.level.lv, m.name_hint), (5, 2, true));
+        assert_eq!((m.requests, m.unread), (2, 7));
+        assert_eq!(m.tables.len(), 2);
+        assert_eq!((m.tables[0].kind.as_str(), m.tables[0].game.as_str(), m.tables[0].found, m.tables[0].need), ("queue", "hokm", 2, 4));
+        assert_eq!(m.tables[1].id.as_deref(), Some("m1"));
 
         // برنامه دوباره باز شد: همان توکن از فایل
         assert!(client(&server, &dir).has_session());

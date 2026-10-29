@@ -76,6 +76,15 @@ jobs:
           cargo install cargo-ndk --locked
           bash build-rust.sh
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fonts (woff2 to ttf)
+        run: |
+          python -m pip install --quiet fonttools brotli
+          python tools/fonts.py
+
       - name: Signing key
         env:
           KS: ${{ secrets.GC_KEYSTORE_BASE64 }}

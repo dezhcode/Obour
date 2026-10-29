@@ -16,7 +16,15 @@ private val ERR = mapOf(
     "busy" to "یه لحظه دیگه دوباره امتحان کن",
     "not_found" to "این میز پیدا نشد داش",
     "in_match" to "داش تو الان سر یه میز دیگه‌ای",
+    "name_short" to "یوزرنیم حداقل ۳ تا حرف باشه", "name_long" to "یوزرنیم حداکثر ۱۶ تا حرفه",
+    "name_start" to "یوزرنیم باید با حرف انگلیسی شروع بشه", "name_chars" to "فقط حرف انگلیسی و عدد و _ قبوله",
+    "name_reserved" to "این یوزرنیمو نمی‌شه برداشت", "name_taken" to "این یوزرنیمو یکی دیگه زودتر برداشته",
 )
+
+/** خطای یوزرنیم (کد سرور، name_wait:<روز> هم) */
+fun nameErrorText(code: String): String =
+    if (code.startsWith("name_wait:")) "یوزرنیمو ${code.substringAfter(':').toLongOrNull()?.fd() ?: ""} روز دیگه می‌تونی عوض کنی"
+    else ERR[code] ?: ERR.getValue("server")
 
 private val LOGIN_ERR = mapOf(
     "bad_email" to "این ایمیل درست نیست یه نگاه بهش بنداز",
@@ -32,7 +40,7 @@ fun errorText(e: Throwable): String = when (e) {
     is ApiException.Network -> ERR.getValue("network")
     is ApiException.Auth -> ERR.getValue("auth")
     is ApiException.Rate -> ERR.getValue("rate")
-    is ApiException.Server -> ERR[e.code] ?: ERR.getValue("server")
+    is ApiException.Server -> if (e.code.startsWith("name_")) nameErrorText(e.code) else ERR[e.code] ?: ERR.getValue("server")
     else -> ERR.getValue("server")
 }
 

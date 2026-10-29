@@ -17,7 +17,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import dezhcode.asotas.core.ApiException
 import dezhcode.asotas.core.Client
+import dezhcode.asotas.core.Friends
 import dezhcode.asotas.core.Me
+import dezhcode.asotas.core.NameCheck
+import dezhcode.asotas.core.TableInfo
 import dezhcode.asotas.core.TelegramState
 
 sealed interface HomeState {
@@ -35,14 +38,32 @@ sealed interface LoginStep {
     data class Telegram(val link: String, val failed: String? = null) : LoginStep
 }
 
+/** بخش های نوار پایین */
+enum class Tab { HOME, FRIENDS, GAMES, SHOP, PROFILE }
+
+/** پوسته مثل مینی اپ: خودکار (مثل گوشی)، روشن یا تیره */
+enum class ThemeMode { AUTO, LIGHT, DARK }
+
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val client = Client(
         BuildConfig.SERVER_URL,
         app.noBackupFilesDir.absolutePath,
         Build.MODEL.orEmpty().ifBlank { "Android" },
     )
+    private val prefs = app.getSharedPreferences("asotas", android.content.Context.MODE_PRIVATE)
 
     var home by mutableStateOf<HomeState>(HomeState.Loading)
+        private set
+    var tab by mutableStateOf(Tab.HOME)
+        private set
+    var theme by mutableStateOf(runCatching { ThemeMode.valueOf(prefs.getString("theme", null) ?: "AUTO") }.getOrDefault(ThemeMode.AUTO))
+        private set
+    var friends by mutableStateOf<Friends?>(null)
+        private set
+    /** کارت جایزهٔ روزانه در خانه: اگر امروز گرفته نشده بود (بعد از گرفتن همان جا می ماند) */
+    var showDaily by mutableStateOf(false)
+        private set
+    var nameEdit by mutableStateOf(false)
         private set
     var login by mutableStateOf<LoginStep>(LoginStep.Closed)
         private set
@@ -53,6 +74,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val toasts = MutableSharedFlow<String>(extraBufferCapacity = 4)
 
     private var telegramJob: Job? = null
+
+    /** موجودی سکه برای سربرگ ها */
+    val balance: Long? get() = (home as? HomeState.Ready)?.me?.coins
 
     init {
         // بار اول: برگهٔ «خوش اومدی» (ورود یا «فعلاً مهمون می‌مونم»)
@@ -66,12 +90,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         toasts.tryEmit(text)
     }
 
+    private fun update(change: (Me) -> Me) {
+        (home as? HomeState.Ready)?.let { home = HomeState.Ready(change(it.me)) }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             val before = home
             if (before !is HomeState.Ready) home = HomeState.Loading
             home = try {
-                HomeState.Ready(io { client.me() })
+                val me = io { client.me() }
+                if (before !is HomeState.Ready) showDaily = !me.daily.claimed
+                HomeState.Ready(me)
             } catch (e: ApiException) {
                 if (before is HomeState.Ready) {
                     toast(errorText(e))
@@ -80,17 +110,32 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     HomeState.Failed(errorText(e))
                 }
             }
+            loadFriends()
         }
     }
 
+    private fun loadFriends() {
+        viewModelScope.launch {
+            friends = try { io { client.friends() } } catch (e: ApiException) { friends }
+        }
+    }
+
+    fun selectTab(t: Tab) {
+        tab = t
+    }
+
+    fun setTheme(m: ThemeMode) {
+        theme = m
+        prefs.edit().putString("theme", m.name).apply()
+    }
+
     fun claimDaily() {
-        val ready = home as? HomeState.Ready ?: return
-        if (busy) return
+        if (busy || home !is HomeState.Ready) return
         viewModelScope.launch {
             busy = true
             try {
                 val r = io { client.dailyClaim() }
-                home = HomeState.Ready(ready.me.copy(coins = r.balance, daily = r.daily))
+                update { it.copy(coins = r.balance, daily = r.daily) }
                 toast("+${r.coins.fa()} سکه ریخت تو کیفت 🎉")
             } catch (e: ApiException) {
                 toast(errorText(e))
@@ -100,8 +145,50 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun gameSoon(game: Game) {
+    fun openGame(game: Game) {
         toast("${game.title} به‌زودی تو برنامهٔ نیتیو میاد 🚧")
+    }
+
+    fun openTable(t: TableInfo) {
+        game(t.game)?.let(::openGame)
+    }
+
+    fun soon(what: String) {
+        toast("$what به‌زودی میاد 🚧")
+    }
+
+    // ---------- یوزرنیم ----------
+    fun hideNameHint() {
+        update { it.copy(nameHint = false) }
+        viewModelScope.launch { runCatching { io { client.nameSeen() } } }
+    }
+
+    fun openNameEdit() {
+        nameEdit = true
+    }
+
+    fun closeNameEdit() {
+        nameEdit = false
+    }
+
+    /** بررسی یوزرنیم با سرور؛ خطای شبکه = نامعلوم (null) */
+    suspend fun checkName(name: String): NameCheck? = try { io { client.nameCheck(name) } } catch (e: ApiException) { null }
+
+    fun saveName(name: String) {
+        if (busy) return
+        viewModelScope.launch {
+            busy = true
+            try {
+                val n = io { client.setName(name) }
+                update { it.copy(name = n, nameHint = false) }
+                nameEdit = false
+                toast("حله یوزرنیمت شد $n ✅")
+            } catch (e: ApiException) {
+                toast(errorText(e))
+            } finally {
+                busy = false
+            }
+        }
     }
 
     // ---------- ورود ----------
