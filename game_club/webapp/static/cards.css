@@ -1,7 +1,7 @@
 /* ورق واقعی (static/cards.js) و ماهوت میزها. اندازه ورق با font-size خودش (۶۴px = ۶۴ در ۹۰).
    طرح ورق با کلاس cards-a / cards-b / cards-c روی یک والد، طرح میز با tbl-a / tbl-b / tbl-c.
    A کلاسیک (عاجی، سریف، پشت سرمه ای مشبک)، B کافه شب (کرم با قاب طلایی، پشت زرشکی ستاره ای)،
-   C Game Club (سفید، شاخص درشت، پشت آبی با دانه های سکه). */
+   C AsoTas (سفید، شاخص درشت، پشت آبی با دانه های سکه). */
 .hk-card{position:absolute;width:1em;height:1.406em;font-size:64px;box-sizing:border-box;border-radius:.075em;overflow:hidden;direction:ltr;
   --paper:#FBF7EE;--edge:#D9D1BF;--k:#17191F;--rd:#C21F32;--gold:#B8912F;--robe:#AFC2DF;--cb:#EEF1F6;--alt:#B3262F;
   --ixf:Georgia,"Noto Serif","Times New Roman",serif;--ixw:700;--ixs:.17em;--pip:.17em;
@@ -62,7 +62,7 @@
 .cards-b .hk-back i::after{background:radial-gradient(circle,#D6B254 0 24%,#6A1B28 27%);box-shadow:0 0 0 1.5px #D6B254}
 .cards-c .hk-back{background:linear-gradient(160deg,#2B7DF0,#0E4FB3);
   background-image:radial-gradient(circle,rgba(255,196,59,.6) 0 .012em,transparent .017em),linear-gradient(160deg,#2B7DF0,#0E4FB3);background-size:.07em .07em,100% 100%}
-.cards-c .hk-back i::after{content:"Game Club";width:auto;height:auto;margin:0;transform:translate(-50%,-50%);padding:.02em .06em;border-radius:99px;
+.cards-c .hk-back i::after{content:"AsoTas";width:auto;height:auto;margin:0;transform:translate(-50%,-50%);padding:.02em .06em;border-radius:99px;
   background:#FFC43B;color:#3D2600;font:900 .1em/1.3 var(--font-peyda,Tahoma),Tahoma,sans-serif;white-space:nowrap;box-shadow:0 0 0 1px rgba(255,255,255,.9)}
 
 /* ماهوت میزها: --f1 روشن وسط، --f2، --f3 لبه تیره */

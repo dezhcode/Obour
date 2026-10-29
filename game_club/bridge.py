@@ -1,4 +1,4 @@
-"""پل Game Club به عبور. تنها جایی که به دیتابیس و پنل عبور دست می زند.
+"""پل AsoTas به عبور. تنها جایی که به دیتابیس و پنل عبور دست می زند.
 
 هر دو سرویس روی یک پروسه و یک event loop اند، پس پل یک فراخوانی مستقیم
 تابع است، نه درخواست شبکه. در عبور فقط از توابع اتمیک خود عبور استفاده
@@ -6,7 +6,7 @@
 سرویس خرید purchase)، تا قواعد مالی عبور یک جا بماند.
 
 سه کار:
-  charge   تومان از کیف پول عبور کم و امتیاز در Game Club اضافه می شود
+  charge   تومان از کیف پول عبور کم و امتیاز در AsoTas اضافه می شود
   buy      امتیاز کم، همان مبلغ به کیف عبور و بلافاصله خرید پلن
   transfer امتیاز کم و تومان به کیف پول عبور اضافه می شود
 """
@@ -65,7 +65,7 @@ async def charge(gdb: GCDatabase, odb: "Database", tg: int, points: int, idem: s
     await gdb.player(tg)
     await gdb.credit(tg, points)
     await gdb.set_ledger_status(lid, "done")
-    log.info("شارژ Game Club: کاربر %s، %s امتیاز (%s تومان)", tg, points, toman)
+    log.info("شارژ AsoTas: کاربر %s، %s امتیاز (%s تومان)", tg, points, toman)
     return {"ok": True, "points": points, "toman": toman}
 
 
@@ -127,7 +127,7 @@ async def buy(gdb: GCDatabase, odb: "Database", panel, bot, tg: int, plan_id: in
     fresh = await odb.get_user(user["id"])
     res = await purchase_svc.purchase(odb, panel, fresh, plan, idem="gcbuy:" + idem)
     if not res.ok:
-        log.warning("خرید Game Club ساخته نشد (%s)؛ %s تومان در کیف عبور کاربر %s ماند", res.error, toman, tg)
+        log.warning("خرید AsoTas ساخته نشد (%s)؛ %s تومان در کیف عبور کاربر %s ماند", res.error, toman, tg)
         return {"ok": False, "error": res.error, "credited": toman}
     await _deliver(bot, tg, res)
     return {"ok": True, "service_id": res.service_id, "title": plan["title"]}
@@ -152,4 +152,4 @@ async def _deliver(bot, tg: int, res) -> None:  # noqa: ANN001
         except Exception:  # noqa: BLE001
             await bot.send_message(tg, caption, reply_markup=kb, disable_web_page_preview=True)
     except Exception:  # noqa: BLE001
-        log.warning("تحویل خرید Game Club در ربات عبور نشد", exc_info=True)
+        log.warning("تحویل خرید AsoTas در ربات عبور نشد", exc_info=True)

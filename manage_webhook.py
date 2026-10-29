@@ -5,7 +5,7 @@
   python manage_webhook.py info     نمایش وضعیت فعلی وبهوک
   python manage_webhook.py delete   حذف وبهوک (برگشت به polling)
 
-ربات Game Club:
+ربات AsoTas:
   python manage_webhook.py gc-set   ثبت وبهوک + دستورها + دکمه منو (مینی اپ)
   python manage_webhook.py gc-info  نمایش وضعیت فعلی وبهوک
 """

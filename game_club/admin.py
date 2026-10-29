@@ -1,6 +1,6 @@
-"""پنل مدیریت Game Club (صفحه admin.html، همه زیر /gc/api/admin...).
+"""پنل مدیریت AsoTas (صفحه admin.html، همه زیر /gc/api/admin...).
 
-ادمین ها همان ADMIN_IDS عبور هستند؛ ورود با initData تلگرام از مینی اپ Game Club.
+ادمین ها همان ADMIN_IDS عبور هستند؛ ورود با initData تلگرام از مینی اپ AsoTas.
 برای غیر ادمین هر مسیر admin «پیدا نشد» برمی گرداند تا وجود پنل معلوم نشود.
 
 بخش ها: داشبورد، کاربران (جستجو، جزئیات، تغییر امتیاز، مسدود کردن، پیام مستقیم)،
@@ -97,7 +97,7 @@ def parse_buttons(raw: str) -> list[tuple[str, str, str]]:
         page, label, key = (line.split("|") + ["", "", ""])[:3]
         if page not in PAGES:
             continue
-        label = " ".join(label.split())[:40] or "ورود به Game Club"
+        label = " ".join(label.split())[:40] or "ورود به AsoTas"
         key = key.strip()
         out.append((page, label, key if key in emo.CATALOG or (key.isdigit() and len(key) < 25) else ""))
     return out[:BC_BUTTONS]
@@ -130,7 +130,7 @@ async def _send(bot, tg: int, text: str = "", button: str = "", src: tuple | Non
         except TelegramForbiddenError:
             return "blocked"
         except Exception as e:  # noqa: BLE001
-            log.info("پیام Game Club به %s نرسید: %s", tg, e)
+            log.info("پیام AsoTas به %s نرسید: %s", tg, e)
             return "failed"
     return "failed"
 
@@ -174,7 +174,7 @@ async def run_broadcasts(budget: float = 3600.0) -> None:
                 ids = await db.bc_targets(cur["target"], cur["cursor"], BATCH)
                 if not ids:
                     await db.bc_finish(cur["id"], "done")
-                    log.warning("پیام همگانی Game Club %s تمام شد", cur["id"])
+                    log.warning("پیام همگانی AsoTas %s تمام شد", cur["id"])
                     break
                 src = (cur["src_chat"], cur["src_msg"]) if cur["src_msg"] else None
                 n = {"ok": 0, "failed": 0, "blocked": 0}

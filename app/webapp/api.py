@@ -179,7 +179,7 @@ async def bootstrap(db: "Database", panel: "Panel | None", wuser: WebAppUser) ->
             "username": bot_username,
             "link": f"https://t.me/{bot_username}" if bot_username else "",
         },
-        # کارت Game Club در صفحه اصلی؛ بدون یوزرنیم در env پنهان می ماند
+        # کارت AsoTas در صفحه اصلی؛ بدون یوزرنیم در env پنهان می ماند
         "game_club": {
             "username": config.game_club_bot_username,
             "link": f"https://t.me/{config.game_club_bot_username}" if config.game_club_bot_username else "",

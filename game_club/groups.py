@@ -660,7 +660,7 @@ async def create(db: GCDatabase, bot: Bot, chat, user, game: str) -> str | None:
     await expire(db)
     me = await db.player(user.id, _name(user), user.username)
     if me.get("banned"):
-        return "حسابت توی Game Club مسدوده 🚫"
+        return "حسابت توی AsoTas مسدوده 🚫"
     name = GAMES[game]["name"]
     if await db.open_group_table(chat.id, game):
         return f"یه میز {name} همین الان تو این گروه بازه؛ برو همون‌جا «بشین» رو بزن 😉"
@@ -708,7 +708,7 @@ async def on_game(message: Message, gdb: GCDatabase, bot: Bot) -> None:
 @router.message(GROUP, Command("play", "start"))
 async def on_play(message: Message) -> None:
     await _send(message.chat.id, card(
-        st.frame("brand", "Game Club", "بازی در گروه", ["چی بازی کنیم؟ هر کی زودتر بزنه، میز رو می‌چینه و خودش اول می‌شینه."],
+        st.frame("brand", "AsoTas", "بازی در گروه", ["چی بازی کنیم؟ هر کی زودتر بزنه، میز رو می‌چینه و خودش اول می‌شینه."],
                  foot=("group", "بازی‌ها", "حکم، منچ، فوتبال، بیلیارد، دیوار، اسم‌فامیل، لشگر کاغذی و مار و پله؛ همه مجانی، فقط سر کل‌کل 😄")),
         *[_row(*[_bt(k, g["name"], "primary" if k == "hokm" else None, callback_data=f"gt:new:{k}") for k, g in list(GAMES.items())[i:i + 4]])
           for i in range(0, len(GAMES), 4)]))
@@ -802,7 +802,7 @@ async def on_button(cq: CallbackQuery, gdb: GCDatabase, bot: Bot) -> None:
         if cq.inline_message_id:   # کارت اینلاین: کارت تنظیم تازه در همان پیام، با کسی که دکمه را زد
             me = await gdb.player(u.id, _name(u), u.username)
             if me.get("banned"):
-                return await _draft_err(cq, "حسابت توی Game Club مسدوده 🚫")
+                return await _draft_err(cq, "حسابت توی AsoTas مسدوده 🚫")
             token = await gdb.new_draft(u.id, arg, dict(GAMES[arg]["def"]))
             await gdb.set_draft(token, inline_message_id=cq.inline_message_id)
             await cq.answer("حالت بازی رو انتخاب کن و میز رو باز کن 😉")

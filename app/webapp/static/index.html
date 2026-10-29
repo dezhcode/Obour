@@ -621,7 +621,7 @@ html.perf-low #store-box{will-change:auto}
 .ai-hot svg{width:12px;height:12px}
 .pv-banner{display:flex;gap:10px;align-items:flex-start;margin:0 var(--pad) 14px;padding:12px 14px;border-radius:var(--r-md);background:var(--ai-t);color:var(--ai-i);font-size:12.5px;line-height:1.9}
 .pv-banner svg{width:18px;height:18px;flex-shrink:0;margin-top:3px}
-/* کارت Game Club: ربات جدای بازی؛ تیره و بنفش مثل خود Game Club و میز منچ */
+/* کارت AsoTas: ربات جدای بازی؛ تیره و بنفش مثل خود AsoTas و میز منچ */
 .gclub{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 112px;align-items:center;gap:6px 12px;padding:16px;border-radius:var(--r-xl);overflow:hidden;cursor:pointer;color:#fff;
   background:radial-gradient(120% 100% at 100% 0%,#5B4A8F 0%,#3A3350 55%,#2B2540 100%);box-shadow:0 14px 30px -14px rgba(43,37,64,.9),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .15s}
 .gclub::after{content:"";position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(closest-side,rgba(124,102,242,.45),rgba(124,102,242,0));inset-inline-end:-60px;bottom:-110px;pointer-events:none}
@@ -1872,10 +1872,10 @@ const App = {
     else location.href = link;
   },
 
-  /* ربات Game Club؛ مثل openBot ولی ربات جدا، و مینی اپ عبور باز می ماند */
+  /* ربات AsoTas؛ مثل openBot ولی ربات جدا، و مینی اپ عبور باز می ماند */
   openGameClub(){
     const gc = this.boot && this.boot.game_club;
-    if (!gc || !gc.link) return this.toast('Game Club هنوز راه‌اندازی نشده', true);
+    if (!gc || !gc.link) return this.toast('AsoTas هنوز راه‌اندازی نشده', true);
     this.haptic('medium');
     const link = gc.link + '?start=obour';
     if (tg && tg.openTelegramLink) tg.openTelegramLink(link); else location.href = link;
@@ -2055,7 +2055,7 @@ function OrderPass(o){
       <button class="pass-btn" onclick="event.stopPropagation();App.go('ai_order', ${o.id})">جزئیات</button></div>
   </div>`;
 }
-/* Game Club: ربات جدای بازی (منچ، حکم، اسم فامیل). فقط وقتی GAME_CLUB_BOT_USERNAME در env باشد */
+/* AsoTas: ربات جدای بازی (منچ، حکم، اسم فامیل). فقط وقتی GAME_CLUB_BOT_USERNAME در env باشد */
 function GameClubCard(){
   const gc = App.boot.game_club;
   if (!gc || !gc.link) return '';
@@ -2073,8 +2073,8 @@ function GameClubCard(){
     g += `<rect x="${j + .08}" y="${i + .08}" width=".84" height=".84" rx=".22" fill="${lane ? (i < 7 ? C.r : C.y) : '#F4F2FA'}"/>`;
   }
   g += `<path d="M6 6L7.5 7.5L6 9z" fill="${C.b}"/><path d="M6 6L9 6L7.5 7.5z" fill="${C.r}"/><path d="M9 6L9 9L7.5 7.5z" fill="${C.g}"/><path d="M6 9L9 9L7.5 7.5z" fill="${C.y}"/>`;
-  return `<div class="gclub mx" role="button" tabindex="0" onclick="App.openGameClub()" aria-label="Game Club">
-      <div class="gclub-b"><span class="gclub-tag">آزمایشی</span><div class="gclub-t">Game Club</div>
+  return `<div class="gclub mx" role="button" tabindex="0" onclick="App.openGameClub()" aria-label="AsoTas">
+      <div class="gclub-b"><span class="gclub-tag">آزمایشی</span><div class="gclub-t">AsoTas</div>
         <div class="gclub-s">منچ، حکم و فوتبال آنلاین با دوستت، حریف ناشناس یا ربات</div><span class="gclub-go">${ic('play', 2.2)}بازی کن</span></div>
       <div class="gclub-art"><svg viewBox="-.5 -.5 16 16" aria-hidden="true">${g}</svg></div>
       <div class="gclub-games"><span><i></i>منچ</span><span><i></i>حکم</span><span><i></i>فوتبال</span><span class="soon"><i></i>اسم فامیل · به‌زودی</span></div></div>`;

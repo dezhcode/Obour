@@ -1,4 +1,4 @@
-"""دیتابیس جدای Game Club (SQLite با WAL).
+"""دیتابیس جدای AsoTas (SQLite با WAL).
 
 قواعد مالی همان قواعد عبور است:
 - هر تغییر امتیاز اتمیک است (UPDATE ... WHERE points >= ?)

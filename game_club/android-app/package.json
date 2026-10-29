@@ -2,7 +2,7 @@
   "name": "gameclub-android",
   "version": "1.0.0",
   "private": true,
-  "description": "Game Club Android app (Capacitor shell around game_club/webapp)",
+  "description": "AsoTas Android app (Capacitor shell around game_club/webapp)",
   "scripts": {
     "www": "cd ../.. && python3 -m game_club.appbundle --out game_club/android-app/www",
     "sync": "npm run www && npx cap sync android"

@@ -1,6 +1,6 @@
 # برنامهٔ اندروید AsoTas (برای مایکت)
 
-همان صفحه‌ها و بازی‌های مینی اپ Game Club (`game_club/webapp`) داخل یک برنامهٔ اندروید با **Capacitor**.
+همان صفحه‌ها و بازی‌های مینی اپ AsoTas (`game_club/webapp`) داخل یک برنامهٔ اندروید با **Capacitor**.
 
 | مورد | مقدار |
 |---|---|
@@ -30,7 +30,7 @@
 
 ## ساختن APK (بدون نصب اندروید استودیو)
 
-در گیت‌هاب: **Actions → Game Club Android → Run workflow**، `version_code` و `version_name` را بده.
+در گیت‌هاب: **Actions → AsoTas Android → Run workflow**، `version_code` و `version_name` را بده.
 بعد از چند دقیقه در پایین صفحهٔ همان اجرا، فایل‌ها زیر **Artifacts** هستند:
 
 - `gameclub-<نسخه>-debug.apk` همیشه ساخته می‌شود؛ برای نصب آزمایشی روی گوشی خودت.

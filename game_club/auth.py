@@ -1,7 +1,7 @@
-"""تایید initData مینی اپ Game Club.
+"""تایید initData مینی اپ AsoTas.
 
 همان الگوریتم مینی اپ عبور (app/webapp/auth.py) است، فقط با توکن ربات
-Game Club امضا می شود؛ initData ای که برای ربات عبور صادر شده اینجا قبول
+AsoTas امضا می شود؛ initData ای که برای ربات عبور صادر شده اینجا قبول
 نمی شود و برعکس.
 """
 from __future__ import annotations

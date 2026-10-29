@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
 <script src="static/theme.js"></script>
-<title>Game Club · پنل مدیریت</title>
+<title>AsoTas · پنل مدیریت</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
 <style>
@@ -169,10 +169,10 @@ async function act(name, body, ok) {
   try { const r = await post(name, body); haptic('success'); if (ok) toast(ok); return r; }
   catch (e) { haptic('error'); toast(ERR[e.code] || errText(e)); throw e; }
 }
-const ERR = { chat_not_found: 'ربات این کانال/گروه رو پیدا نکرد؛ یوزرنیم یا آیدی رو چک کن و ربات رو عضو کن', bot_not_admin: 'ربات Game Club باید ادمین این کانال/گروه باشه',
+const ERR = { chat_not_found: 'ربات این کانال/گروه رو پیدا نکرد؛ یوزرنیم یا آیدی رو چک کن و ربات رو عضو کن', bot_not_admin: 'ربات AsoTas باید ادمین این کانال/گروه باشه',
   need_id: 'برای کانال/گروه خصوصی آیدی عددی (مثل -100…) رو بنویس و لینک دعوت رو جدا بده', need_url: 'لینک عضویت رو بنویس (ربات نتونست لینک دعوت بسازه)',
   already: 'این کانال/گروه قبلا اضافه شده', too_many: 'حداکثر ۸ کانال/گروه', no_chats: 'اول یه کانال یا گروه اضافه کن', bad_url: 'لینک باید با https:// شروع بشه',
-  bad_image: 'عکس درست نیست (jpg، png یا webp تا ۱٫۵ مگابایت)', empty_popup: 'پاپ‌آپ خالیه؛ متن، تیتر یا عکس بذار', no_bot: 'ربات Game Club راه نیفتاده',
+  bad_image: 'عکس درست نیست (jpg، png یا webp تا ۱٫۵ مگابایت)', empty_popup: 'پاپ‌آپ خالیه؛ متن، تیتر یا عکس بذار', no_bot: 'ربات AsoTas راه نیفتاده',
   not_found: 'پیدا نشد (یا دسترسی ادمین نداری)', bad_amount: 'مقدار درست نیست', done_before: 'این کار قبلا انجام شده', insufficient: 'امتیاز کاربر کافی نیست',
   bad_text: 'تلگرام متن را نپذیرفت؛ برچسب‌های HTML را بررسی کن', send_blocked: 'کاربر ربات را بسته است', send_failed: 'پیام نرسید', not_open: 'این میز دیگر باز نیست', bad_input: 'ورودی درست نیست' };
 
@@ -343,7 +343,7 @@ function pointsSheet(u, sign) {
 }
 function msgSheet(u) {
   const sh = sheet(`${sheetHead('پیام مستقیم')}
-    <p class="hint" style="text-align:start">از طرف ربات Game Club برای ${esc(u.name)} فرستاده می‌شود.</p>
+    <p class="hint" style="text-align:start">از طرف ربات AsoTas برای ${esc(u.name)} فرستاده می‌شود.</p>
     <textarea id="mt" maxlength="3500" placeholder="متن پیام… (برای پررنگ: &lt;b&gt;متن&lt;/b&gt;)"></textarea>
     <button class="btn btn-block" id="mgo">${icon('send')}بفرست</button>`);
   sh.querySelector('#mgo').onclick = async e => {
@@ -445,7 +445,7 @@ PAGES.bc = async () => {
   view(`
     <section class="card stack">
       <div class="sec-head" style="margin:0"><h2>ارسال از ربات</h2></div>
-      <p class="hint" style="text-align:start;margin:0">پیامت را (متن، عکس یا ویدیو، با ایموجی پریمیوم) در ربات Game Club بفرست، رویش ریپلای کن و بنویس <bdi dir="ltr">/gcbc</bdi>. گیرنده‌ها، دکمه‌ها با ایموجی پریمیوم، نسخهٔ آزمایشی و ارسال همان‌جاست.</p>
+      <p class="hint" style="text-align:start;margin:0">پیامت را (متن، عکس یا ویدیو، با ایموجی پریمیوم) در ربات AsoTas بفرست، رویش ریپلای کن و بنویس <bdi dir="ltr">/gcbc</bdi>. گیرنده‌ها، دکمه‌ها با ایموجی پریمیوم، نسخهٔ آزمایشی و ارسال همان‌جاست.</p>
     </section>
     <div class="kpis">
       <div class="kpi"><span>پیام همگانی</span><b>${fa(s.count || 0)}</b><small>${s.active ? fa(s.active) + ' در حال ارسال' : 'هیچ‌کدام در حال ارسال نیست'}</small></div>
@@ -473,7 +473,7 @@ PAGES.emoji = async () => {
   const done = EMO.filter(e => e.id).length;
   view(`<section class="card stack">
       <div class="sec-head" style="margin:0"><h2>ایموجی‌های پریمیوم</h2><span class="aside">${fa(done)} از ${fa(EMO.length)}</span></div>
-      <p class="hint" style="text-align:start;margin:0">مثل عبور: در ربات Game Club بنویس <bdi dir="ltr">/gcemoji</bdi> (یا <bdi dir="ltr">/admin</bdi> ← ایموجی‌های پریمیوم)، دسته را انتخاب کن، روی ایموجی بزن و ایموجی پریمیوم را بفرست. «چندتا با هم» و «کپی از عبور» هم همان‌جاست.</p>
+      <p class="hint" style="text-align:start;margin:0">مثل عبور: در ربات AsoTas بنویس <bdi dir="ltr">/gcemoji</bdi> (یا <bdi dir="ltr">/admin</bdi> ← ایموجی‌های پریمیوم)، دسته را انتخاب کن، روی ایموجی بزن و ایموجی پریمیوم را بفرست. «چندتا با هم» و «کپی از عبور» هم همان‌جاست.</p>
       <button class="btn btn-soft" id="eob"${r.obour ? '' : ' disabled'}>${ic('smile')}کپی از عبور ${r.obour ? `(${fa(r.obour)} ایموجی هم‌شکل)` : '(چیزی تنظیم نشده)'}</button>
       <p class="hint" style="margin:0">صاحب ربات باید Telegram Premium داشته باشد؛ وگرنه همان ایموجی معمولی دیده می‌شود.</p>
     </section>
@@ -602,7 +602,7 @@ function drawGate() {
       <label class="lbl">لینک عضویت (برای خصوصی‌ها؛ اختیاری)<input class="in" id="gUrl" dir="ltr" placeholder="https://t.me/+AbCdEf…"></label>
       <label class="lbl">اسم نمایشی (اختیاری)<input class="in" id="gTitle" maxlength="60" placeholder="اسم خود کانال"></label>
       <button class="btn btn-block" id="gAdd">${ic('plus', 2.4)}افزودن</button>
-      <p class="hint" style="margin:0;text-align:start">اول ربات Game Club رو <b>ادمین</b> کانال یا گروه کن؛ وگرنه عضویت رو نمی‌شه چک کرد. برای کانال/گروه خصوصی، آیدی عددی رو بنویس؛ اگه لینک ندی، ربات خودش لینک دعوت می‌سازه.</p>
+      <p class="hint" style="margin:0;text-align:start">اول ربات AsoTas رو <b>ادمین</b> کانال یا گروه کن؛ وگرنه عضویت رو نمی‌شه چک کرد. برای کانال/گروه خصوصی، آیدی عددی رو بنویس؛ اگه لینک ندی، ربات خودش لینک دعوت می‌سازه.</p>
     </section>`);
   const v = $('view');
   v.querySelector('#gOn').onclick = async e => {
@@ -644,11 +644,11 @@ const MT = [{ id: 'K7QX2M', game: 'hokm', status: 'playing', mode: 'stake', entr
 let MS = [{ key: 'maintenance', kind: 'bool', min: 0, max: 1, value: false, env: false, custom: false }, { key: 'stake_enabled', kind: 'bool', min: 0, max: 1, value: true, env: true, custom: false },
   { key: 'turn_seconds', kind: 'int', min: 8, max: 60, value: 20, env: 20, custom: false }, { key: 'bot_fill_seconds', kind: 'int', min: 0, max: 120, value: 0, env: 0, custom: false },
   { key: 'rake_percent', kind: 'int', min: 0, max: 30, value: 0, env: 0, custom: false }, { key: 'notice', kind: 'text', min: 0, max: 300, value: '', env: '', custom: false }];
-let ME = [['brand', '🎮', 'نماد Game Club'], ['hello', '👋', 'سلام و خوش آمد'], ['hokm', '🃏', 'حکم'], ['ludo', '🎲', 'منچ'], ['football', '⚽', 'فوتبال'], ['seat', '🪑', 'بنشین و جای خالی'],
+let ME = [['brand', '🎮', 'نماد AsoTas'], ['hello', '👋', 'سلام و خوش آمد'], ['hokm', '🃏', 'حکم'], ['ludo', '🎲', 'منچ'], ['football', '⚽', 'فوتبال'], ['seat', '🪑', 'بنشین و جای خالی'],
   ['watch', '👀', 'دیدن بازی'], ['trophy', '🏆', 'برنده'], ['coin', '💰', 'امتیاز و کیف'], ['gift', '🎁', 'هدیه'], ['fire', '🔥', 'محبوب'], ['party', '🎉', 'تبریک'], ['megaphone', '📢', 'پیام همگانی']]
   .map(([key, emoji, title], i) => ({ key, emoji, title, id: i % 3 ? '' : String(5368324170671202286n + BigInt(i)) }));
-const MB = [{ id: 3, status: 'active', text: '', copy: true, target: 'همه', buttons: ['ورود به Game Club', 'بازی حکم'], total: 1840, sent: 1210, failed: 3, blocked: 41, created_at: now() - 120, finished_at: null },
-  { id: 2, status: 'done', text: 'فوتبال به Game Club اضافه شد ⚽️', copy: false, target: 'فعال ۷ روز', buttons: ['بازی فوتبال'], total: 1702, sent: 1655, failed: 2, blocked: 45, created_at: now() - 86400 * 3, finished_at: now() - 86400 * 3 + 95 }];
+const MB = [{ id: 3, status: 'active', text: '', copy: true, target: 'همه', buttons: ['ورود به AsoTas', 'بازی حکم'], total: 1840, sent: 1210, failed: 3, blocked: 41, created_at: now() - 120, finished_at: null },
+  { id: 2, status: 'done', text: 'فوتبال به AsoTas اضافه شد ⚽️', copy: false, target: 'فعال ۷ روز', buttons: ['بازی فوتبال'], total: 1702, sent: 1655, failed: 2, blocked: 45, created_at: now() - 86400 * 3, finished_at: now() - 86400 * 3 + 95 }];
 let MPOP = { on: true, v: 3, title: 'جام هفتگی حکم 🏆', text: 'جمعه ساعت ۲۱ مسابقهٔ حکم داریم؛ جایزهٔ نفر اول ۵۰۰۰ امتیاز!', img: '', btn: 'عضویت در کانال', url: 'https://t.me/obour', mode: 'once' };
 let MGATE = { on: false, chats: [{ id: '-1001234567890', title: 'کانال عبور', url: 'https://t.me/obour', kind: 'channel' }] };
 function MOCK(name, { q = {}, body } = {}) {

@@ -1,4 +1,4 @@
-Game Club is Obour's game room inside Telegram: Ludo first, then Esm-Famil and Hokm. Players play free or for points, and spend points on Obour services. The look follows social game apps like Plato: a light lavender-grey ground, white rounded cards with soft shadows, colorful game tiles, real Telegram photos for every player, and a dark game table for Ludo.
+AsoTas is Obour's game room inside Telegram: Ludo first, then Esm-Famil and Hokm. Players play free or for points, and spend points on Obour services. The look follows social game apps like Plato: a light lavender-grey ground, white rounded cards with soft shadows, colorful game tiles, real Telegram photos for every player, and a dark game table for Ludo.
 
 ## Voice and copy
 
@@ -7,7 +7,7 @@ Game Club is Obour's game room inside Telegram: Ludo first, then Esm-Famil and H
 - Buttons are verbs: "شروع منچ", "شارژ", "پرداخت با امتیاز", "بیرون برو".
 - Errors name the fix: "امتیاز کافی نیست؛ اول کیف را شارژ کن".
 - Losses and rules are stated plainly before they happen: "خروج یعنی باخت و ۱۰۰ امتیاز ورودی برنمی‌گردد".
-- Digits are always Persian (۰–۹) with `٬` for thousands. The product name stays Latin: "Game Club".
+- Digits are always Persian (۰–۹) with `٬` for thousands. The product name stays Latin: "AsoTas".
 - No emoji in the interface. Mark every sample number with the `tag-sample` tag ("نمونه").
 
 ## Color
@@ -50,7 +50,7 @@ All sounds are synthesized with Web Audio (no files) and start only after the pl
 
 ## Iconography
 
-Line icons, 24px grid, 2.2px stroke, round caps, `currentColor`, drawn for this system (home, trophy, wallet, bag, help, back, sound, users, link, bot, globe, bolt, clock, spark, shield, check, copy, send, bell, dice). The coin is the one filled, colored icon. Game pieces (pawn, die, avatar, board) are illustrations, never icons. There is no logo yet: the wordmark is "Game Club" set in Rokh 900 in `sky-deep`.
+Line icons, 24px grid, 2.2px stroke, round caps, `currentColor`, drawn for this system (home, trophy, wallet, bag, help, back, sound, users, link, bot, globe, bolt, clock, spark, shield, check, copy, send, bell, dice). The coin is the one filled, colored icon. Game pieces (pawn, die, avatar, board) are illustrations, never icons. There is no logo yet: the wordmark is "AsoTas" set in Rokh 900 in `sky-deep`.
 
 ## Layout
 

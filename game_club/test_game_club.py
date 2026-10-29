@@ -1,4 +1,4 @@
-"""آزمون های Game Club: قواعد منچ و پول بازی امتیازی.
+"""آزمون های AsoTas: قواعد منچ و پول بازی امتیازی.
 
     python -m pytest game_club/test_game_club.py -q
 یا بدون pytest:
@@ -1069,7 +1069,7 @@ def test_game_board():
 
 
 def test_profile_bio_cover():
-    """درباره من: نویسه های خطرناک حذف و ۸۰ نویسه نگه داشته می شود؛ کاور پیش فرض Game Club است."""
+    """درباره من: نویسه های خطرناک حذف و ۸۰ نویسه نگه داشته می شود؛ کاور پیش فرض AsoTas است."""
     tmp = tempfile.mkdtemp()
     from game_club import service
     from game_club.db import GCDatabase
@@ -1403,7 +1403,7 @@ def test_inline_tables():
 
 
 def test_emoji_and_style():
-    """ایموجی پریمیوم Game Club و قالب متنی عبور: متن، پیام غنی، دکمه ها، پیام همگانی با چند دکمه."""
+    """ایموجی پریمیوم AsoTas و قالب متنی عبور: متن، پیام غنی، دکمه ها، پیام همگانی با چند دکمه."""
     tmp = tempfile.mkdtemp()
     from aiogram.types import MessageEntity
     from game_club import admin, emoji as emo, groups, service, style as st
@@ -1457,8 +1457,8 @@ def test_emoji_and_style():
             # دکمه های کارت گروه ایموجی ندارند، حتی وقتی پریمیوم تنظیم شده
             assert open_btn.text == "باز کردن میز" and all(isinstance(b.text, str) for b in groups.buttons(card))
             # پیام همگانی: تا ۳ دکمه، شکل قدیمی هم، صفحهٔ ناشناخته کنار گذاشته می شود
-            btns = admin.parse_buttons("|ورود به Game Club|brand\nhokm-lobby.html|🃏 بازی حکم|\nbad.html|x|hokm\nludo-lobby.html|منچ|nope\nfriends.html|دوستان")
-            assert btns == [("", "ورود به Game Club", "brand"), ("hokm-lobby.html", "🃏 بازی حکم", ""), ("ludo-lobby.html", "منچ", "")]
+            btns = admin.parse_buttons("|ورود به AsoTas|brand\nhokm-lobby.html|🃏 بازی حکم|\nbad.html|x|hokm\nludo-lobby.html|منچ|nope\nfriends.html|دوستان")
+            assert btns == [("", "ورود به AsoTas", "brand"), ("hokm-lobby.html", "🃏 بازی حکم", ""), ("ludo-lobby.html", "منچ", "")]
             assert admin.parse_buttons("hokm-lobby.html|بازی") == [("hokm-lobby.html", "بازی", "")]
             url.start()
             kb = admin._kb("|ورود|play\nhokm-lobby.html|🃏 بازی حکم|")
@@ -1499,7 +1499,7 @@ def test_broadcast_from_bot():
         try:
             for i in (1, 2, 3):
                 await db.player(i, f"p{i}")
-            bid = await db.bc_draft(1, 1, 50, "|ورود به Game Club|brand", "all")
+            bid = await db.bc_draft(1, 1, 50, "|ورود به AsoTas|brand", "all")
             # پیش نویس نه فرستاده می شود نه در آمار پنل است
             assert not await db.bc_active() and not await db.bc_list()
             text, kb = await gbot._bc_panel(db, bid, 1)

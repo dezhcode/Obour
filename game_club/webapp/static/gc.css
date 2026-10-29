@@ -1,5 +1,5 @@
 @property --t{syntax:'<number>';inherits:true;initial-value:1}
-/* Game Club — components. همه رنگ ها و اندازه ها از tokens.css (ساخته شده از design/tokens.json) */
+/* AsoTas — components. همه رنگ ها و اندازه ها از tokens.css (ساخته شده از design/tokens.json) */
 
 /* ---------- تم روشن (صفحه های اصلی و لابی ها) ----------
    «کاشی برای مرور، جعبه برای ورود»: زمینهٔ روشن و خنثی تا رنگ و تصویر خود بازی ها دیده شود.
@@ -659,7 +659,7 @@ body.lobby-lashgar{--edge:#7A4E2A;--acc:#1A7A35;--acc-deep:#16692D;--acc-ink:#FF
 @keyframes gp-sk{to{background-position:-200% 0}}
 
 /* ---------- کاور پروفایل ----------
-   هر کاور یک کلاس cover-<id> است (service.COVERS). «Game Club»: ماهوت سبز با نقش ریز خال ها،
+   هر کاور یک کلاس cover-<id> است (service.COVERS). «AsoTas»: ماهوت سبز با نقش ریز خال ها،
    نور طلایی کم رنگ و نشان طلایی باشگاه */
 .cover{position:relative;overflow:hidden;background:#123A2F;isolation:isolate}
 .cover-gc{background:radial-gradient(70% 130% at 88% 0%,rgba(245,196,81,.26),rgba(245,196,81,0) 62%),radial-gradient(130% 150% at 15% 0%,#2C8068 0%,#185040 42%,#0D2A21 100%)}
