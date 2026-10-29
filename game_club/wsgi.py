@@ -3,7 +3,11 @@
   GET   /gc                 ریدایرکت به /gc/ (آدرس های نسبی صفحه ها درست شوند)
   GET   /gc/                صفحه خانه؛ /gc/<page>.html بقیه صفحه ها
   GET   /gc/static/<file>   css، js، فونت ها
-  *     /gc/api/<name>      API مینی اپ (initData در هدر X-Init-Data)
+  *     /gc/api/<name>      API مینی اپ (initData در هدر X-Init-Data، یا توکن برنامهٔ اندروید در X-GC-Token)
+  POST  /gc/app/guest       برنامهٔ اندروید: حساب مهمان تازه و توکن نشست (appauth.py)
+  POST  /gc/app/logout      برنامهٔ اندروید: بستن توکن
+  GET   /gc/app/manifest    برنامهٔ اندروید: نسخهٔ تازهٔ صفحه ها و بازی ها (appbundle.py)
+  GET   /gc/app/bundle/<v>.zip  همان بسته برای آپدیت خودکار
   POST  /gc/hook            وبهوک ربات Game Club (هدر secret token)
   GET   /gc/setwebhook?key= ثبت وبهوک، دستورها و دکمه منو (ADMIN_KEY عبور)
   GET   /gc/pic/<key>       عکس پروفایل تلگرام بازیکن (از Bot API، نگه داشته روی دیسک)
@@ -38,10 +42,15 @@ _CSP = (
 
 _RATE: dict[int, list[float]] = {}
 
+# برنامهٔ اندروید صفحه ها را از داخل خودش (Capacitor) باز می کند و به این سرور درخواست می زند
+APP_ORIGINS = {"https://localhost", "http://localhost", "capacitor://localhost", "ionic://localhost"} | {
+    o.strip() for o in os.getenv("GAME_CLUB_APP_ORIGINS", "").split(",") if o.strip()}
+_CORS_PATHS = ("/api/", "/app/", "/pic/", "/media/")
 
-def _rate_ok(uid: int, limit: int = 300) -> bool:
+
+def _rate_ok(uid: int, limit: int = 300, window: float = 60) -> bool:
     now = time.monotonic()
-    hits = [t for t in _RATE.get(uid, []) if now - t < 60]
+    hits = [t for t in _RATE.get(uid, []) if now - t < window]
     ok = len(hits) < limit
     if ok:
         hits.append(now)
@@ -185,9 +194,90 @@ def _file(start_response, rel: str, environ: dict | None = None):
     return _send(start_response, "200 OK", data, ctype, extra)
 
 
+def _cors(environ: dict, start_response):  # noqa: ANN001
+    """start_response ای که برای درخواست های برنامهٔ اندروید هدر CORS هم می گذارد."""
+    origin = environ.get("HTTP_ORIGIN", "")
+    if origin not in APP_ORIGINS:
+        return start_response
+
+    def sr(status, headers, exc_info=None):  # noqa: ANN001
+        headers = [h for h in headers if h[0].lower() != "vary"] + [
+            ("Access-Control-Allow-Origin", origin), ("Vary", "Origin")]
+        return start_response(status, headers, exc_info) if exc_info else start_response(status, headers)
+    return sr
+
+
+def _app_user(runtime, token: str):  # noqa: ANN001
+    """بازیکن صاحب توکن برنامه، به شکل کاربر مینی اپ؛ AuthError اگر توکن بسته یا منقضی است."""
+    from app.webapp.auth import AuthError
+
+    from . import appauth
+    from .auth import GCUser
+    from .bot import gcrt
+
+    async def go():  # noqa: ANN202
+        g = await gcrt.ensure()
+        return await appauth.session_player(g.db, token)
+
+    p = runtime.run(go(), timeout=15)
+    if not p:
+        raise AuthError("نشست برنامه منقضی شده")
+    # photo_url=None یعنی عکس پروفایل دست نخورد (برنامه initData ندارد)
+    return GCUser(id=p["tg_id"], first_name=(p.get("tg_name") or "")[:64], username=(p.get("username") or "")[:64],
+                  language_code="fa", is_premium=False, start_param="", last_name="", photo_url=None)
+
+
+def _client_key(environ: dict, kind: str) -> int:
+    """کلید محدودیت درخواست برای آی پی (منفی تا با آیدی کاربرها قاطی نشود)."""
+    ip = (environ.get("HTTP_X_FORWARDED_FOR") or environ.get("REMOTE_ADDR") or "").split(",")[0].strip()
+    return -1 - int(hashlib.sha1(f"{kind}:{ip}".encode()).hexdigest()[:12], 16)
+
+
+def _app_routes(environ: dict, start_response, sub: str, method: str, runtime):  # noqa: ANN001
+    from . import appauth, appbundle
+    from .bot import gcrt
+
+    if sub == "/app/guest" and method == "POST":
+        # اینترنت موبایل ایران پشت NAT مشترک است؛ سقف برای هر آی پی باید بلند باشد
+        if not _rate_ok(_client_key(environ, "guest"), 30, 3600):
+            return _json(start_response, "429 Too Many Requests", {"error": "rate"})
+        device = str(_body(environ, 1024).get("device") or "")
+
+        async def make():  # noqa: ANN202
+            return await appauth.new_guest((await gcrt.ensure()).db, device)
+        r = runtime.run(make(), timeout=15)
+        return _json(start_response, "200 OK", {"token": r["token"]})
+    if sub == "/app/logout" and method == "POST":
+        tok = environ.get("HTTP_X_GC_TOKEN", "")
+
+        async def out():  # noqa: ANN202
+            await appauth.logout((await gcrt.ensure()).db, tok)
+        runtime.run(out(), timeout=15)
+        return _json(start_response, "200 OK", {"ok": True})
+    if sub == "/app/manifest" and method == "GET":
+        return _json(start_response, "200 OK", appbundle.manifest())
+    if sub.startswith("/app/bundle/") and method == "GET":
+        b = appbundle.current()
+        if sub != f"/app/bundle/{b.version}.zip":
+            return _send(start_response, "404 Not Found", b"not found", "text/plain")
+        return _send(start_response, "200 OK", b.zip, "application/zip",
+                     [("Cache-Control", "public, max-age=31536000, immutable")])
+    return _send(start_response, "404 Not Found", b"not found", "text/plain")
+
+
 def handle(environ: dict, start_response, path: str, runtime, authorized):  # noqa: ANN001
     method = environ.get("REQUEST_METHOD", "GET").upper()
     sub = path[len(gc.path):] or ""
+    if sub.startswith(_CORS_PATHS):
+        if method == "OPTIONS":
+            origin = environ.get("HTTP_ORIGIN", "")
+            ok = origin in APP_ORIGINS
+            start_response("204 No Content", ([("Access-Control-Allow-Origin", origin), ("Vary", "Origin"),
+                                                ("Access-Control-Allow-Methods", "GET, POST, OPTIONS"),
+                                                ("Access-Control-Allow-Headers", "X-GC-Token, Content-Type"),
+                                                ("Access-Control-Max-Age", "86400")] if ok else []) + [("Content-Length", "0")])
+            return [b""]
+        start_response = _cors(environ, start_response)
 
     # _path() پسنجر اسلش آخر را برمی دارد؛ /gc و /gc/ فقط از PATH_INFO خام جدا می شوند
     if sub == "" and (environ.get("PATH_INFO") or "").endswith("/"):
@@ -230,6 +320,10 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
         except Exception:  # noqa: BLE001
             return _send(start_response, "500 Internal Server Error", traceback.format_exc().encode(), "text/plain")
 
+    # ---------- برنامهٔ اندروید: مهمان، نشست، آپدیت خودکار ----------
+    if sub.startswith("/app/"):
+        return _app_routes(environ, start_response, sub, method, runtime)
+
     # ---------- API ----------
     if sub.startswith("/api/"):
         from app.webapp.auth import AuthError
@@ -239,8 +333,9 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
         from .service import GCError
 
         init = environ.get("HTTP_X_INIT_DATA", "")
+        token = environ.get("HTTP_X_GC_TOKEN", "")
         try:
-            user = verify(init)
+            user = _app_user(runtime, token) if token and not init else verify(init)
         except AuthError as exc:
             return _json(start_response, "401 Unauthorized", {"error": "auth", "detail": str(exc)})
         if not _rate_ok(user.id):

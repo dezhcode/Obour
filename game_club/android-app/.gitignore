@@ -1,0 +1,5 @@
+node_modules/
+# www از روی game_club/webapp ساخته می شود: npm run www
+www/
+*.jks
+*.keystore

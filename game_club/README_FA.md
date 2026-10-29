@@ -90,10 +90,14 @@ game_club/
 |---|---|
 | `GET /gc/` و `/gc/<page>.html` | صفحه‌های مینی اپ |
 | `GET /gc/static/...` | css، js، فونت رخ |
-| `/gc/api/...` | API مینی اپ؛ initData در هدر `X-Init-Data` |
+| `/gc/api/...` | API مینی اپ؛ initData در هدر `X-Init-Data` (برنامهٔ اندروید: توکن مهمان در `X-GC-Token`) |
+| `POST /gc/app/guest`، `POST /gc/app/logout` | برنامهٔ اندروید: حساب مهمان و توکن نشست (`appauth.py`) |
+| `GET /gc/app/manifest`، `GET /gc/app/bundle/<v>.zip` | برنامهٔ اندروید: آپدیت خودکار صفحه‌ها و بازی‌ها (`appbundle.py`) |
 | `POST /gc/hook` | وبهوک ربات (هدر secret token) |
 | `GET /gc/setwebhook?key=` | ثبت وبهوک، دستورها، دکمهٔ منو |
 | `GET /gc/pic/<key>` | عکس پروفایل تلگرام بازیکن |
+
+برنامهٔ اندروید (Capacitor، مایکت): `game_club/android-app/README_FA.md`.
 
 API: `me`، `settings`، `notify`، `wallet/charge`، `shop`، `shop/buy`، `shop/transfer`،
 `leaderboard`، `ludo/queue` (+ `/leave`)، `ludo/invite`، `ludo/join`، `ludo/start`،

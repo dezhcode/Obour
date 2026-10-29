@@ -79,7 +79,7 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
 
     # ---------- خود من ----------
     if name == "me" and method == "GET":
-        ou = await bridge.obour_account(ob.db, tg)
+        ou = None if tg < 0 else await bridge.obour_account(ob.db, tg)   # مهمان برنامه حساب عبور ندارد
         active = await gdb.active_match_of(tg)
         q_row = await gdb.queue_row(tg)
         return {

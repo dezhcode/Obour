@@ -2787,7 +2787,11 @@ def test_snakes_bot_games_and_leave():
     Sn, st = _sn(3)
     Sn.leave(st, "0", 1.0)
     assert not st["over"] and st["players"]["0"]["out"]
-    Sn.tick(st, st["next_at"] + 0.01)
+    # ربات جای او تاس می ریزد؛ با ۶ یا پله/مار جایزه دوباره نوبت خودش است، پس تا عوض شدن نوبت جلو می رویم
+    for _ in range(10):
+        Sn.tick(st, st["next_at"] + 0.01)
+        if st["turn"] != 0:
+            break
     assert st["turn"] == 1
 
 
@@ -2861,3 +2865,123 @@ def test_snakes_service_flow():
             await db.close()
 
     asyncio.run(run())
+
+
+
+def test_app_guest_sessions_and_bundle():
+    """برنامهٔ اندروید: حساب مهمان با یوزرنیم تصادفی و توکن (فقط هش)، API با توکن و CORS، کارهای تلگرامی برای مهمان رد می شوند، بستهٔ آپدیت خودکار."""
+    import hashlib
+    import io
+    import json
+    import zipfile
+    from game_club import appauth, appbundle, gate, wsgi as W
+    from game_club import bot as gbot
+    from game_club.db import GCDatabase, pic_url
+    loop = asyncio.new_event_loop()
+    run = loop.run_until_complete
+    tmp = tempfile.mkdtemp()
+    db = GCDatabase(os.path.join(tmp, "gc.db"))
+    run(db.connect())
+    old_db = gbot.gcrt.db
+    try:
+        # --- مهمان و نشست ---
+        g1 = run(appauth.new_guest(db, "SM-A515F <x>"))
+        g2 = run(appauth.new_guest(db))
+        p1, p2 = g1["player"], g2["player"]
+        assert p1["tg_id"] < 0 and p2["tg_id"] < 0 and p1["tg_id"] != p2["tg_id"] and -p1["tg_id"] < 2 ** 52
+        assert p1["name"] and p1["name"] != p2["name"] and p1["tg_name"] == appauth.GUEST_NAME     # یوزرنیم تصادفی مثل مینی اپ
+        assert g1["token"].startswith("gcs_") and g1["token"] != g2["token"]
+        assert "gcs_" not in json.dumps(run(db.all("SELECT * FROM app_sessions")))                # فقط هش
+        assert run(db.one("SELECT device FROM app_sessions WHERE tg_id = ?", (p1["tg_id"],)))["device"] == "SM-A515F x"
+        assert run(appauth.session_player(db, g1["token"]))["tg_id"] == p1["tg_id"]
+        assert run(appauth.session_player(db, "gcs_" + "a" * 43)) is None and run(appauth.session_player(db, "")) is None
+        assert run(appauth.session_player(db, g2["token"], now=time.time() + 366 * 86400)) is None   # یک سال بی استفاده
+        assert run(appauth.session_player(db, g2["token"])) is None
+        # مهمان: عکس تلگرامی ندارد، عضویت اجباری از او پرسیده نمی شود، پیام همگانی به او نمی رود
+        assert pic_url(p1) == "" and pic_url({"tg_id": 5, "pic": "k"}) == "pic/k"
+        run(db.player(5, "tg5", "u5"))
+        run(gate.save(db, "gate", {"on": True, "chats": [{"id": "@c", "title": "c"}]}))
+        assert run(gate.missing(db, object(), p1["tg_id"])) == []
+        assert run(db.bc_count("all")) == 1 and run(db.bc_targets("all", 0, 50)) == [5]
+        run(gate.save(db, "gate", {"on": False, "chats": []}))
+
+        # --- wsgi: ساخت مهمان، API با توکن، CORS، خروج ---
+        class RT:
+            def run(self, coro, timeout=None):
+                return run(coro)
+        gbot.gcrt.db = db
+
+        def call(method, path, headers=None, body=b"", qs="", ip="5.6.7.8"):
+            env = {"REQUEST_METHOD": method, "PATH_INFO": path, "QUERY_STRING": qs, "CONTENT_LENGTH": str(len(body)),
+                   "wsgi.input": io.BytesIO(body), "REMOTE_ADDR": ip}
+            env.update(headers or {})
+            got = {}
+            out = W.handle(env, lambda s_, h, *a: got.update(status=s_, h=dict(h)), path, RT(), lambda e: False)
+            return got["status"], got["h"], b"".join(out)
+        s_, h_, _ = call("OPTIONS", "/gc/api/me", {"HTTP_ORIGIN": "https://localhost"})
+        assert s_.startswith("204") and h_["Access-Control-Allow-Origin"] == "https://localhost" and "X-GC-Token" in h_["Access-Control-Allow-Headers"]
+        assert "Access-Control-Allow-Origin" not in call("OPTIONS", "/gc/api/me", {"HTTP_ORIGIN": "https://evil.example"})[1]
+        s_, h_, b_ = call("POST", "/gc/app/guest", {"HTTP_ORIGIN": "https://localhost"}, b'{"device":"Pixel 8"}')
+        tok = json.loads(b_)["token"]
+        assert s_.startswith("200") and h_["Access-Control-Allow-Origin"] == "https://localhost" and set(json.loads(b_)) == {"token"}
+        from game_club import api as gapi
+
+        class OB:   # کیف عبور: مهمان اصلا سراغش نمی رود
+            class db:
+                @staticmethod
+                async def get_setting(k, d=""):
+                    return d
+
+                @staticmethod
+                async def get_user_by_tg(tg):
+                    raise AssertionError("guest must not touch the Obour wallet")
+        real_ob, gapi._obour = gapi._obour, lambda: OB
+        try:
+            s_, h_, b_ = call("GET", "/gc/api/me", {"HTTP_X_GC_TOKEN": tok, "HTTP_ORIGIN": "https://localhost"})
+        finally:
+            gapi._obour = real_ob
+        me = json.loads(b_)
+        assert s_.startswith("200") and h_["Access-Control-Allow-Origin"] == "https://localhost", (s_, b_)
+        assert me["player"]["name"] and me["player"]["pic"] == "" and me["obour"] == {"linked": False, "balance": 0}
+        s_, _, b_ = call("GET", "/gc/api/friends", {"HTTP_X_GC_TOKEN": tok})
+        assert s_.startswith("200"), b_
+        assert call("GET", "/gc/api/me", {"HTTP_X_GC_TOKEN": "gcs_" + "b" * 43})[0].startswith("401")
+        assert call("GET", "/gc/api/me")[0].startswith("401")
+        assert call("POST", "/gc/app/logout", {"HTTP_X_GC_TOKEN": tok})[0].startswith("200")
+        assert call("GET", "/gc/api/me", {"HTTP_X_GC_TOKEN": tok})[0].startswith("401")
+        # سقف ساختن مهمان برای هر آی پی (اینترنت موبایل پشت NAT مشترک است، پس سقف بلند است)
+        codes = [call("POST", "/gc/app/guest", body=b"{}", ip="9.9.9.9")[0][:3] for _ in range(32)]
+        assert codes.count("200") == 30 and codes[-1] == "429"
+
+        # --- بستهٔ صفحه ها برای برنامه و آپدیت خودکار ---
+        b = appbundle.build("https://x.test/gc/")
+        assert "index.html" in b.files and "static/gc.js" in b.files and "admin.html" not in b.files and "sw.js" not in b.files
+        for name, data in b.files.items():
+            if name.endswith(".html"):
+                html = data.decode()
+                assert "telegram-web-app.js" not in html and html.index("app-config.js") < html.index("static/app.js"), name
+                for later in ("static/theme.js", "static/gc.js"):
+                    assert later not in html or html.index("static/app.js") < html.index(later), (name, later)
+        cfg = json.loads(b.files["app-config.js"].decode().split("=", 1)[1].rstrip(";\n"))
+        assert cfg == {"base": "https://x.test/gc/", "bundle": b.version, "min_native": appbundle.MIN_NATIVE}
+        assert appbundle.build("https://x.test/gc/").zip == b.zip                       # همان فایل ها، همان زیپ (قابل مقایسه)
+        assert appbundle.build("https://y.test/gc/").version != b.version
+        with zipfile.ZipFile(io.BytesIO(b.zip)) as z:
+            assert sorted(z.namelist()) == sorted(b.files) and z.read("index.html") == b.files["index.html"]
+        assert json.loads(call("GET", "/gc/app/manifest")[2])["version"] is None       # آدرس سرور تنظیم نشده: آپدیتی نیست
+        from unittest import mock
+        with mock.patch.object(type(W.gc), "webapp_url", new_callable=mock.PropertyMock, return_value="https://x.test/gc/"):
+            s_, h_, b_ = call("GET", "/gc/app/manifest")
+            m = json.loads(b_)
+            cur = appbundle.current()
+            assert json.loads(cur.files["app-config.js"].decode().split("=", 1)[1].rstrip(";\n"))["base"] == "https://x.test/gc/"
+            assert m == {"version": cur.version, "url": f"app/bundle/{cur.version}.zip", "sha256": cur.sha256, "size": len(cur.zip),
+                         "min_native": appbundle.MIN_NATIVE}
+            s_, h_, b_ = call("GET", "/gc/" + m["url"])
+            assert s_.startswith("200") and h_["Content-Type"] == "application/zip" and "immutable" in h_["Cache-Control"]
+            assert hashlib.sha256(b_).hexdigest() == m["sha256"]
+            assert call("GET", "/gc/app/bundle/0000000000000000.zip")[0].startswith("404")
+    finally:
+        gbot.gcrt.db = old_db
+        run(db.close())
+        loop.close()

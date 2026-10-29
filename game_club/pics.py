@@ -71,8 +71,8 @@ async def fetch(key: str) -> bytes | None:
 
     g = await gcrt.ensure()
     p = await g.db.player_by_pic(key)
-    if not p or not g.bot:
-        return None  # کلید ناشناس: چیزی روی دیسک نوشته نمی شود
+    if not p or not g.bot or p["tg_id"] < 0:
+        return None  # کلید ناشناس یا مهمان برنامه: چیزی روی دیسک نوشته نمی شود
     jpg, none = _paths(key)
     try:
         photos = await g.bot.get_user_profile_photos(p["tg_id"], limit=1)

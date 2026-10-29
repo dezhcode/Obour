@@ -124,6 +124,8 @@ class GCRuntime:
                 bot = self.bot
 
                 async def notify(tg: int, text: str, page: str, key: str = "") -> None:
+                    if tg < 0:      # مهمان برنامهٔ اندروید پیوی تلگرام ندارد
+                        return
                     icon, sub, btn = NOTICE.get(key, ("bell", "اعلان", "باز کردن Game Club"))
                     body = st.to_html(st.frame(icon, "Game Club", sub, [st.Raw(text)]))
                     await bot.send_message(tg, body, reply_markup=open_kb(page, btn, "brand"))
