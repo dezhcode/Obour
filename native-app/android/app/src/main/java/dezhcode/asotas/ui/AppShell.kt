@@ -56,7 +56,12 @@ fun AppShell(vm: AppViewModel, openLink: (String) -> Unit) {
         BottomNav(vm, Modifier.align(Alignment.BottomCenter))
         // لابی بازی، خود بازی و چت خصوصی روی همه چیز (بی نوار پایین)، مثل صفحه های جدای مینی اپ
         vm.play.lobby?.let { LobbyScreen(vm, it) }
-        vm.play.playing?.let { if (it.game == "ludo") LudoScreen(vm, it.matchId) }
+        vm.play.playing?.let {
+            when (it.game) {
+                "ludo" -> LudoScreen(vm, it.matchId)
+                "hokm" -> HokmScreen(vm, it.matchId)
+            }
+        }
         vm.social.chat?.let { ChatScreen(vm, it) }
         vm.help?.let { HelpScreen(vm, it) }
         ToastHost(vm.toasts, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom + 40.dp))

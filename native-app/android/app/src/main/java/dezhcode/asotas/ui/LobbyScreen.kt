@@ -68,7 +68,8 @@ import org.json.JSONObject
 data class Mode(val v: String, val label: String, val icon: String, val desc: String, val short: String, val cfg: Map<String, Any>)
 
 /** ویژگی لابی هر بازی: حالت ها، قانون ها و رنگ تأکید */
-data class LobbySpec(val game: String, val modes: List<Mode>, val rules: List<Pair<String, String>>, val privateSub: String, val edge: Color, val acc: Color, val accDark: Color)
+data class LobbySpec(val game: String, val modes: List<Mode>, val rules: List<Pair<String, String>>, val privateSub: String, val edge: Color, val acc: Color, val accDark: Color,
+    val accDeepDark: Color, val tintLight: Color)
 
 val LOBBIES = mapOf(
     "ludo" to LobbySpec(
@@ -86,7 +87,22 @@ val LOBBIES = mapOf(
             "اگه رو مهرهٔ حریف بشینی" to "اون مهره برمی‌گرده خونه‌ش ولی خونه‌های ستاره‌دار امنن",
             "هر کی" to "زودتر همهٔ مهره‌هاشو برسونه وسط برده",
         ),
-        "لینک بفرست و با رفقات منچ بزن", Color(0xFF0B241C), Color(0xFF2B62D6), Color(0xFF3D74E6),
+        "لینک بفرست و با رفقات منچ بزن", Color(0xFF0B241C), Color(0xFF2B62D6), Color(0xFF3D74E6), Color(0xFF9BBBFF), Color(0xFFE7EEFC),
+    ),
+    "hokm" to LobbySpec(
+        "hokm",
+        listOf(
+            Mode("h3", "۳ دست", "bolt", "چهار نفره و دو تیم دونفره · هر تیمی زودتر ۳ دست ببره برده · حدود ۱۰ دقیقه", "۴ نفره · دو تیم · حدود ۱۰ دقیقه", mapOf("target" to 3)),
+            Mode("h7", "۷ دست", "cards", "بازی کامل چهار نفره با دو تیم دونفره تا ۷ دست · حدود ۲۵ دقیقه", "۴ نفره · دو تیم · حدود ۲۵ دقیقه", mapOf("target" to 7)),
+        ),
+        listOf(
+            "دو تیم دونفره" to "یارت روبه‌روت می‌شینه و با هم امتیاز می‌گیرین",
+            "حاکم" to "با دیدن پنج برگ اول خال حکمو انتخاب می‌کنه",
+            "هم‌خال بازی کن" to "اگه از خال شروع‌شده نداری می‌تونی حکم بزنی یا یه برگ دیگه بندازی",
+            "هر دست" to "رو بالاترین برگِ خال شروع یا بالاترین حکم می‌بره",
+            "هر تیم" to "که ۷ دست ببره اون دورو برده و بازی تا ۳ یا ۷ دور ادامه داره",
+        ),
+        "یارتو خودت دعوت کن و نفرای بعدی حریف می‌شن", Color(0xFF0F3F1D), Color(0xFF1F6B3B), Color(0xFF2B8A50), Color(0xFF7ED6A1), Color(0xFFE3F1E8),
     ),
 )
 
@@ -109,8 +125,8 @@ fun LobbyScreen(vm: AppViewModel, gameId: String) {
     val g = game(gameId) ?: return
     val base = Aso.c
     // رنگ تأکید لابی همان رنگ بازی است (body.lobby-<بازی>)
-    val c = base.copy(acc = if (base.dark) spec.accDark else spec.acc, accDeep = if (base.dark) Color(0xFF9BBBFF) else spec.acc,
-        accTint = if (base.dark) spec.accDark.copy(alpha = .22f) else Color(0xFFE7EEFC))
+    val c = base.copy(acc = if (base.dark) spec.accDark else spec.acc, accDeep = if (base.dark) spec.accDeepDark else spec.acc,
+        accTint = if (base.dark) spec.accDark.copy(alpha = .22f) else spec.tintLight)
     BackHandler { vm.play.closeLobby() }
     LaunchedEffect(gameId) { vm.profile.load() }
     var tab by rememberSaveable { mutableStateOf("play") }

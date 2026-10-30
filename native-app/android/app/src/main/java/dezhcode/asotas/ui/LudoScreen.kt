@@ -64,7 +64,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import dezhcode.asotas.AppViewModel
-import dezhcode.asotas.LudoModel
+import dezhcode.asotas.TableModel
 import dezhcode.asotas.core.LudoGame
 import dezhcode.asotas.fa
 import dezhcode.asotas.fd
@@ -118,7 +118,7 @@ private fun turn(p: Pair<Float, Float>, deg: Float): Pair<Float, Float> {
 }
 
 /** رنگ های «سالن شب» صفحهٔ بازی (gc.css: body.game) */
-private fun gameColors(base: AsoColors) = base.copy(
+internal fun gameColors(base: AsoColors) = base.copy(
     dark = true, ground = Color(0xFF0C1915), groundDeep = Color(0xFF08120F), surface = Color(0xFF17302A), surfaceSunk = Color(0xFF11251F),
     line = Color(0x1AFFFFFF), ink = Color(0xFFF3F1E8), inkMuted = Color(0xFF9DB0A8), night = Color(0xFF07110E),
     acc = Color(0xFFF5C451), accDeep = Color(0xFFF7CF6A), accInk = Color(0xFF3A2A00), accTint = Color(0x26F5C451),
@@ -131,7 +131,7 @@ private val PAWN_STAR = PathParser().parsePathString("M20 30.2l2 4.1 4.5.6-3.3 3
 /** صفحهٔ بازی منچ (ludo.html و ludo.js) */
 @Composable
 fun LudoScreen(vm: AppViewModel, matchId: String) {
-    val model = remember(matchId) { vm.ludo(matchId) }
+    val model = remember(matchId) { vm.table("ludo", matchId) }
     val scope = rememberCoroutineScope()
     var leaving by remember { mutableStateOf(false) }
     BackHandler { leaving = true }
@@ -182,7 +182,7 @@ fun LudoScreen(vm: AppViewModel, matchId: String) {
 }
 
 @Composable
-private fun Table(vm: AppViewModel, model: LudoModel, g: LudoGame, me: String, onLeave: () -> Unit) {
+private fun Table(vm: AppViewModel, model: TableModel, g: LudoGame, me: String, onLeave: () -> Unit) {
     val c = Aso.c
     val scope = rememberCoroutineScope()
     val rot = ROT[me] ?: 0f
@@ -276,7 +276,7 @@ private fun Table(vm: AppViewModel, model: LudoModel, g: LudoGame, me: String, o
 private fun nameOf(g: LudoGame, col: String): String = g.players[col]?.let { if (it.me) "تو" else it.name } ?: FA[col].orEmpty()
 
 @Composable
-private fun GameIcon(icon: String, onClick: () -> Unit) {
+internal fun GameIcon(icon: String, onClick: () -> Unit) {
     Box(Modifier.size(44.dp).clip(CircleShape).background(Aso.c.surface).press(.94f, onClick = onClick), contentAlignment = Alignment.Center) {
         Ic(icon, size = 22.dp, tint = Aso.c.ink)
     }

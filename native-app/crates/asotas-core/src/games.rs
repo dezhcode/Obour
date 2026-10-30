@@ -131,6 +131,124 @@ pub struct LudoGame {
     pub winner: Option<String>,
 }
 
+/// بازیکن حکم (صندلی "0" تا "3"، تیم = صندلی ٪ ۲)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct HokmPlayer {
+    pub name: String,
+    pub av: i64,
+    pub pic: Option<String>,
+    pub bot: bool,
+    pub out: bool,
+    pub me: bool,
+    pub team: i64,
+    /// تعداد برگ های دستش
+    pub count: i64,
+}
+
+/// برگی که سر میز آمده: صندلی و برگ (۰ تا ۵۱؛ خال = برگ / ۱۳، ارزش = برگ ٪ ۱۳)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Played {
+    pub seat: String,
+    pub card: i64,
+}
+
+/// رویداد میز حکم (hakem، trump، play، trick، hand، win، end)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct HokmEvent {
+    pub seq: i64,
+    pub t: String,
+    pub c: String,
+    pub suit: Option<i64>,
+    pub card: Option<i64>,
+    pub team: Option<i64>,
+    pub pts: i64,
+    pub kot: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct HokmGame {
+    pub players: HashMap<String, HokmPlayer>,
+    pub me: Option<String>,
+    pub hand: Vec<i64>,
+    /// trump، play، collect، handover یا over
+    pub phase: String,
+    pub turn: Option<String>,
+    pub hakem: String,
+    pub trump: Option<i64>,
+    pub trick: Vec<Played>,
+    pub led: Option<i64>,
+    pub last_trick: Vec<Played>,
+    pub last_winner: Option<String>,
+    /// دورهای بردهٔ هر تیم در این دست
+    pub tricks: Vec<i64>,
+    /// دست های بردهٔ هر تیم
+    pub score: Vec<i64>,
+    pub target: i64,
+    pub hand_no: i64,
+    pub legal: Vec<i64>,
+    pub deadline_ms: i64,
+    pub turn_ms: i64,
+    pub events: Vec<HokmEvent>,
+    pub seq: i64,
+    pub over: bool,
+    pub winner: Option<i64>,
+}
+
+fn played(v: &Value) -> Vec<Played> {
+    v.as_array().map(|a| a.iter().map(|x| Played { seat: int(&x[0]).to_string(), card: int(&x[1]) }).collect()).unwrap_or_default()
+}
+
+fn opt_int(v: &Value) -> Option<i64> {
+    if v.is_null() { None } else { Some(int(v)) }
+}
+
+impl HokmGame {
+    fn from_json(g: &Value, pic: &impl Fn(&Value) -> Option<String>) -> Self {
+        HokmGame {
+            players: map(&g["players"], |p| HokmPlayer {
+                name: text(&p["name"]),
+                av: int(&p["av"]).max(1),
+                pic: pic(&p["pic"]),
+                bot: yes(&p["bot"]),
+                out: yes(&p["out"]),
+                me: yes(&p["me"]),
+                team: int(&p["team"]),
+                count: int(&p["count"]),
+            }),
+            me: opt(&g["me"]),
+            hand: ints(&g["hand"]),
+            phase: text(&g["phase"]),
+            turn: opt(&g["turn"]),
+            hakem: text(&g["hakem"]),
+            trump: opt_int(&g["trump"]),
+            trick: played(&g["trick"]),
+            led: opt_int(&g["led"]),
+            last_trick: played(&g["last_trick"]["cards"]),
+            last_winner: opt(&g["last_trick"]["winner"]),
+            tricks: ints(&g["tricks"]),
+            score: ints(&g["score"]),
+            target: int(&g["target"]),
+            hand_no: int(&g["hand_no"]),
+            legal: ints(&g["legal"]),
+            deadline_ms: int(&g["deadline_ms"]),
+            turn_ms: int(&g["turn_ms"]),
+            events: g["events"].as_array().map(|a| a.iter().map(|e| HokmEvent {
+                seq: int(&e["seq"]),
+                t: text(&e["t"]),
+                c: text(&e["c"]),
+                suit: opt_int(&e["suit"]),
+                card: opt_int(&e["card"]),
+                team: opt_int(&e["team"]),
+                pts: int(&e["pts"]),
+                kot: yes(&e["kot"]),
+            }).collect()).unwrap_or_default(),
+            seq: int(&g["seq"]),
+            over: yes(&g["over"]),
+            winner: opt_int(&g["winner"]),
+        }
+    }
+}
+
 /// `GET <game>/match`: میز (لابی یا بازی) از دید من
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct MatchView {
@@ -143,6 +261,9 @@ pub struct MatchView {
     pub mode: String,
     pub lobby: Option<Lobby>,
     pub ludo: Option<LudoGame>,
+    pub hokm: Option<HokmGame>,
+    /// هدف حکم (۳ یا ۷ دست)
+    pub target: i64,
     pub result: Option<MatchResult>,
 }
 
@@ -215,6 +336,8 @@ impl MatchView {
             mode: opt(&v["cfg"]["mode"]).unwrap_or_else(|| "free".into()),
             lobby,
             ludo,
+            hokm: (game == "hokm" && g.is_object()).then(|| HokmGame::from_json(g, &pic)),
+            target: int(&v["cfg"]["target"]),
             result: r.is_object().then(|| MatchResult { won: yes(&r["won"]), coins: int(&r["coins"]), cups: int(&r["cups"]) }),
         }
     }

@@ -112,10 +112,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val play = PlayModel(viewModelScope, client, ::toast) { refresh() }
 
     /** بازی هایی که در برنامهٔ نیتیو آماده اند */
-    private val ready = setOf("ludo")
+    private val ready = setOf("ludo", "hokm")
 
-    /** میز منچ تازه برای صفحهٔ بازی */
-    fun ludo(matchId: String) = LudoModel(client, matchId, ::toast)
+    /** میز تازه برای صفحهٔ بازی */
+    fun table(game: String, matchId: String) = TableModel(client, game, matchId, ::toast)
 
     /** رده بندی یک بازی (JSON خام سرور) */
     suspend fun leaderboard(game: String, period: String): org.json.JSONObject? = try {

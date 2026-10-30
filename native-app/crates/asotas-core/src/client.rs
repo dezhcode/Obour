@@ -512,6 +512,37 @@ mod tests {
     }
 
     #[test]
+    fn hokm_view() {
+        let mut server = Server::new();
+        let dir = tempfile::tempdir().unwrap();
+        TokenStore::open(&dir.path().to_string_lossy()).set(Some("t".into()));
+        server.mock("POST", "/gc/api/hokm/play").match_body(Matcher::Json(json!({ "match": "h1", "k": 12, "since": 9 })))
+            .with_body(r#"{"id": "h1", "status": "playing", "cfg": {"game": "hokm", "target": 3, "mode": "free"}, "me": "0",
+                "game": {"order": ["0","1","2","3"], "me": "0",
+                    "players": {"0": {"name": "tasi", "av": 3, "pic": "", "bot": false, "out": false, "me": true, "team": 0, "count": 12},
+                                "1": {"name": "b1", "av": 2, "pic": "", "bot": true, "out": false, "me": false, "team": 1, "count": 12}},
+                    "hand": [1, 14, 27], "phase": "play", "turn": "1", "hakem": "0", "trump": 1,
+                    "trick": [[0, 12]], "led": 0, "last_trick": {"cards": [[3, 5], [0, 7]], "winner": "0"},
+                    "tricks": [2, 1], "score": [1, 0], "target": 3, "hand_no": 1, "legal": [],
+                    "deadline_ms": 15000, "turn_ms": 20000,
+                    "events": [{"seq": 10, "t": "play", "c": "0", "card": 12, "auto": false},
+                               {"seq": 11, "t": "hand", "team": 0, "pts": 2, "kot": true, "tricks": [7, 0], "score": [3, 0], "hakem": "0"}],
+                    "seq": 11, "over": false, "winner": null}}"#).create();
+        let c = client(&server, &dir);
+
+        let v = c.act("hokm".into(), "h1".into(), "play".into(), Some(12), 9).unwrap();
+        assert_eq!((v.target, v.ludo.is_none()), (3, true));
+        let g = v.hokm.unwrap();
+        assert_eq!((g.trump, g.led, g.turn.as_deref(), g.hakem.as_str()), (Some(1), Some(0), Some("1"), "0"));
+        assert_eq!(g.trick, vec![Played { seat: "0".into(), card: 12 }]);
+        assert_eq!((g.last_trick.len(), g.last_winner.as_deref()), (2, Some("0")));
+        assert_eq!((g.tricks.clone(), g.score.clone(), g.hand.clone()), (vec![2, 1], vec![1, 0], vec![1, 14, 27]));
+        assert!(g.players["0"].me && g.players["1"].bot);
+        assert_eq!((g.players["1"].team, g.players["0"].count), (1, 12));
+        assert_eq!((g.events[0].card, g.events[1].team, g.events[1].pts, g.events[1].kot), (Some(12), Some(0), 2, true));
+    }
+
+    #[test]
     fn level_matches_mini_app() {
         let l = level(0, 0);
         assert_eq!((l.lv, l.xp, l.left), (1, 0, 100));

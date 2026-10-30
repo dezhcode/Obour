@@ -202,19 +202,19 @@ class PlayModel(private val scope: CoroutineScope, private val client: Client, p
     }
 }
 
-/** میز منچ باز (ludo.js): هر ۰٫۹ ثانیه میز از سرور؛ تاس و حرکت به سرور فرستاده می شود */
-class LudoModel(private val client: Client, val matchId: String, private val toast: (String) -> Unit) {
+/** میز باز یک بازی (ludo.js، hokm.js، ...): میز از سرور گرفته می شود؛ هر حرکت به سرور فرستاده می شود */
+class TableModel(private val client: Client, val game: String, val matchId: String, private val toast: (String) -> Unit) {
     var view by mutableStateOf<MatchView?>(null)
         private set
     var acting by mutableStateOf(false)
         private set
     var failed by mutableStateOf<String?>(null)
         private set
-    private val since: Long get() = view?.ludo?.seq ?: 0L
+    private val since: Long get() = view?.ludo?.seq ?: view?.hokm?.seq ?: 0L
 
     suspend fun poll() {
         try {
-            merge(io { client.matchView("ludo", matchId, since) })
+            merge(io { client.matchView(game, matchId, since) })
         } catch (e: ApiException) {
             if (view == null) failed = errorText(e)
         }
@@ -229,7 +229,7 @@ class LudoModel(private val client: Client, val matchId: String, private val toa
         if (acting) return
         acting = true
         try {
-            merge(io { client.act("ludo", matchId, action, k, since) })
+            merge(io { client.act(game, matchId, action, k, since) })
         } catch (e: ApiException) {
             toast(errorText(e))
         } finally {
@@ -238,6 +238,6 @@ class LudoModel(private val client: Client, val matchId: String, private val toa
     }
 
     suspend fun leave() {
-        try { io { client.leaveMatch("ludo", matchId) } } catch (e: ApiException) { toast(errorText(e)) }
+        try { io { client.leaveMatch(game, matchId) } } catch (e: ApiException) { toast(errorText(e)) }
     }
 }
