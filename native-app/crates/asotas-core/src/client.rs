@@ -488,7 +488,8 @@ mod tests {
                     "deadline_ms": 18000, "turn_ms": 20000, "last": {"yellow": 6}, "done": {"red": 0, "yellow": 0},
                     "events": [{"seq": 5, "t": "roll", "c": "yellow", "v": 6, "auto": false},
                                {"seq": 6, "t": "move", "c": "red", "k": 1, "frm": 3, "to": 5, "cap": [["yellow", 0]], "fin": false}],
-                    "seq": 6, "over": false, "winner": null}}"#).create();
+                    "seq": 6, "over": false, "winner": null, "stats": {"caps": 2, "sixes": 3}, "started": 1700000000.5},
+                "result": {"won": true, "coins": 80, "cups": 12, "rank": {"cups": 240, "games": 9, "wins": 5, "league": "نقره‌ای"}}}"#).create();
         let c = client(&server, &dir);
 
         let q = c.queue_join("ludo".into(), r#"{"players":2,"pawns":2,"mode":"free"}"#.into()).unwrap();
@@ -508,6 +509,9 @@ mod tests {
         assert_eq!(g.pawns["red"], vec![-1, 5]);
         assert!(g.players["yellow"].me && g.players["red"].bot);
         assert_eq!((g.events.len(), g.events[1].from, g.events[1].to, g.events[1].caps.clone()), (2, 3, 5, vec!["yellow:0".to_string()]));
+        assert_eq!((g.caps, g.sixes, g.started, g.events[0].auto), (2, 3, 1700000000.5, false));
+        let r = v.result.unwrap();
+        assert_eq!((r.cups, r.league.as_deref(), r.total_cups), (12, Some("نقره‌ای"), 240));
         assert!(c.queue_join("ludo".into(), "not json".into()).is_err());
     }
 

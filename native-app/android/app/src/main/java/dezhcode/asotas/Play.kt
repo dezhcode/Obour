@@ -222,6 +222,11 @@ class TableModel(private val client: Client, val game: String, val matchId: Stri
 
     /** رویدادها فقط از since به بعد می آیند؛ وضعیت همیشه کامل است */
     private fun merge(v: MatchView) {
+        // پاسخ کهنه (پرسشی که پیش از حرکت فرستاده شده ولی دیرتر رسیده) وضعیت را عقب نمی برد
+        val old = view
+        val seq = v.ludo?.seq ?: v.hokm?.seq
+        val oldSeq = old?.ludo?.seq ?: old?.hokm?.seq
+        if (old != null && v.status == old.status && seq != null && oldSeq != null && seq < oldSeq) return
         view = v
     }
 

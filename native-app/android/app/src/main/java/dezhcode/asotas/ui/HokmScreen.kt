@@ -212,7 +212,7 @@ private fun HokmTable(vm: AppViewModel, model: TableModel, g: HokmGame, look: St
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val who = if (g.phase == "trump") g.hakem else cur
                 val p = who?.let { g.players[it] }
-                if (p != null) Face(if (p.me) "تو" else p.name, p.av, if (p.bot) null else p.pic, size = 36.dp)
+                if (p != null) Face(if (p.me) "تو" else p.name, p.av, if (p.bot) null else p.pic, size = 36.dp, bot = p.bot)
                 Column(Modifier.weight(1f)) {
                     val (t, s) = when {
                         g.over -> "بازی تموم شد" to ""
@@ -277,7 +277,7 @@ private fun Seat(g: HokmGame, s: String, cur: String?, frac: Float, look: String
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Box(contentAlignment = Alignment.Center) {
             if (active && frac > 0f) Canvas(Modifier.size(62.dp)) { drawArc(c.acc, -90f, 360f * frac.coerceIn(0f, 1f), false, style = Stroke(3.dp.toPx())) }
-            Face(p.name, p.av, if (p.bot) null else p.pic, size = 54.dp, ring = if (active) c.acc else Color.White.copy(alpha = .85f))
+            Face(p.name, p.av, if (p.bot) null else p.pic, size = 54.dp, ring = if (active) c.acc else Color.White.copy(alpha = .85f), bot = p.bot)
             if (s == g.hakem) {
                 Box(Modifier.align(Alignment.TopEnd).size(22.dp).clip(CircleShape).background(c.gold), contentAlignment = Alignment.Center) {
                     Text("👑", style = peyda(11f, 14f))

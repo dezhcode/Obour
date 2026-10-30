@@ -82,6 +82,9 @@ pub struct MatchResult {
     pub won: bool,
     pub coins: i64,
     pub cups: i64,
+    /// لیگ و جام کل بعد از این بازی (فقط بازی رتبه ای)
+    pub league: Option<String>,
+    pub total_cups: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -108,6 +111,10 @@ pub struct LudoEvent {
     pub fin: bool,
     /// مهره هایی که زده شدند: رنگ و شماره
     pub caps: Vec<String>,
+    /// تاس یا حرکت را خود سرور زد (وقت تمام شد)
+    pub auto: bool,
+    /// چرا رفت (leave): timeout یا left
+    pub why: String,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -129,6 +136,11 @@ pub struct LudoGame {
     pub seq: i64,
     pub over: bool,
     pub winner: Option<String>,
+    /// آمار من در این بازی: مهره هایی که زدم و شش هایی که آوردم
+    pub caps: i64,
+    pub sixes: i64,
+    /// زمان شروع بازی (ثانیهٔ یونیکس)
+    pub started: f64,
 }
 
 /// بازیکن حکم (صندلی "0" تا "3"، تیم = صندلی ٪ ۲)
@@ -321,10 +333,15 @@ impl MatchView {
                 fin: yes(&e["fin"]),
                 caps: e["cap"].as_array().map(|a| a.iter().map(|x| format!("{}:{}", text(&x[0]), int(&x[1])))
                     .collect()).unwrap_or_default(),
+                auto: yes(&e["auto"]),
+                why: text(&e["why"]),
             }).collect()).unwrap_or_default(),
             seq: int(&g["seq"]),
             over: yes(&g["over"]),
             winner: opt(&g["winner"]),
+            caps: int(&g["stats"]["caps"]),
+            sixes: int(&g["stats"]["sixes"]),
+            started: g["started"].as_f64().unwrap_or(0.0),
         });
         let r = &v["result"];
         MatchView {
@@ -338,7 +355,13 @@ impl MatchView {
             ludo,
             hokm: (game == "hokm" && g.is_object()).then(|| HokmGame::from_json(g, &pic)),
             target: int(&v["cfg"]["target"]),
-            result: r.is_object().then(|| MatchResult { won: yes(&r["won"]), coins: int(&r["coins"]), cups: int(&r["cups"]) }),
+            result: r.is_object().then(|| MatchResult {
+                won: yes(&r["won"]),
+                coins: int(&r["coins"]),
+                cups: int(&r["cups"]),
+                league: opt(&r["rank"]["league"]),
+                total_cups: int(&r["rank"]["cups"]),
+            }),
         }
     }
 }

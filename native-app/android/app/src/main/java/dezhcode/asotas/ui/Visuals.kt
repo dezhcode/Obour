@@ -1,5 +1,6 @@
 package dezhcode.asotas.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -28,6 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RadialGradientShader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -171,3 +176,44 @@ fun Cover(id: String, modifier: Modifier = Modifier, mark: Boolean = false) {
 
 @Composable
 fun FillBox(color: Color, modifier: Modifier) = Box(modifier.fillMaxSize().background(color))
+
+// ---------- آواتار کارتونی ربات ها (gc.js: avatar) ----------
+private fun svg(d: String) = PathParser().parsePathString(d).toPath()
+private val BOT_BODY = svg("M8 64c2-12 12-19 24-19s22 7 24 19z")
+private val BOT_HAIR_SHORT = svg("M17 29c0-10 7-16 15-16s15 6 15 16c-3-5-8-8-15-8s-12 3-15 8z")
+private val BOT_HAIR_LONG = svg("M15 32c0-12 7-19 17-19s17 7 17 19v12c-3 0-5-3-5-7 0-8-2-12-12-13-10 1-12 5-12 13 0 4-2 7-5 7z")
+private val BOT_CAP = svg("M15 28c0-9 8-15 17-15s17 6 17 15z")
+private val BOT_MOUTH = svg("M26 37c3 3 9 3 12 0")
+private val BOT_SKIN = longArrayOf(0xFFF6C9A0, 0xFFE8B48A, 0xFFD49A6A, 0xFFF2D3B3)
+private val BOT_HAIR = longArrayOf(0xFF3B2A20, 0xFF1E1A18, 0xFF8A5A2B, 0xFFB9B9B9)
+private val BOT_SHIRT = longArrayOf(0xFF2F7BF6, 0xFFEF4136, 0xFF2FB24C, 0xFFFFC226, 0xFF7C5CE0)
+
+/** چهرهٔ کارتونی ربات با seed = av بازیکن (همان رنگ و مو و کلاه مینی اپ) */
+@Composable
+fun BotAvatar(seed: Long, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val k = size.width / 64f
+        val skin = Color(BOT_SKIN[(seed % 4).toInt()])
+        val hair = Color(BOT_HAIR[((seed shr 2) % 4).toInt()])
+        val shirt = Color(BOT_SHIRT[(seed % 5).toInt()])
+        withTransform({ scale(k, k, Offset.Zero) }) {
+            drawRect(Color(0xFFCFE9FF), size = Size(64f, 64f))
+            drawPath(BOT_BODY, shirt)
+            drawCircle(skin, 15f, Offset(32f, 31f))
+            when ((seed % 3).toInt()) {
+                0 -> drawPath(BOT_HAIR_SHORT, hair)
+                1 -> drawPath(BOT_HAIR_LONG, hair)
+                else -> {
+                    drawPath(BOT_CAP, shirt)
+                    drawRoundRect(shirt, Offset(30f, 24f), Size(24f, 5.5f), CornerRadius(2.7f))
+                    drawRect(Color.Black.copy(alpha = .15f), Offset(15f, 26f), Size(34f, 3f))
+                }
+            }
+            drawCircle(Color(0xFF222222), 2.1f, Offset(26.5f, 31f))
+            drawCircle(Color(0xFF222222), 2.1f, Offset(37.5f, 31f))
+            drawPath(BOT_MOUTH, Color(0xFF7A3B2A), style = Stroke(2.2f, cap = StrokeCap.Round))
+            drawCircle(Color(0x38EF4136), 2.4f, Offset(22f, 35f))
+            drawCircle(Color(0x38EF4136), 2.4f, Offset(42f, 35f))
+        }
+    }
+}
