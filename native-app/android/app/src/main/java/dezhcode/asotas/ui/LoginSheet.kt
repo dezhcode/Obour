@@ -104,7 +104,7 @@ private fun Message(text: String?) {
 
 @Composable
 private fun Choose(vm: AppViewModel, welcome: Boolean, openLink: (String) -> Unit) {
-    Title(if (welcome) "خوش اومدی داش 👋" else "ورود به حساب")
+    Title(if (welcome) "خوش اومدی 👋" else "ورود به حساب")
     Lead("با تلگرام یا ایمیل بیا تو تا بازیا و رفیقا و سکه‌هات همیشه بمونن حتی اگه گوشیتو عوض کنی")
     Button(
         onClick = { vm.telegramStart(openLink) },

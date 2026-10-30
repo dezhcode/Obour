@@ -77,7 +77,7 @@ private fun Home(me: Me, vm: AppViewModel, bottom: Dp) {
         ) {
             if (me.maintenance) NoteBar("داریم آپدیت می‌کنیم بعضی میزها چند دقیقه دیگه باز می‌شن", bad = false)
             if (me.notice.isNotBlank()) NoteBar(me.notice, bad = false)
-            if (me.banned) NoteBar("شرمنده داش حسابت تو AsoTas بسته شده", bad = true)
+            if (me.banned) NoteBar("شرمنده حسابت تو AsoTas بسته شده", bad = true)
             if (me.nameHint) NameHint(me.name, ok = vm::hideNameHint, edit = vm::openNameEdit)
             if (vm.showDaily) DailyCard(me.daily, vm.busy, vm::claimDaily)
             Column {

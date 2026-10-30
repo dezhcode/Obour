@@ -523,7 +523,7 @@ private fun Recent(vm: AppViewModel) {
             when {
                 recent == null -> Text("یه لحظه…", style = peyda(12f, 18f), color = c.inkMuted, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp))
                 recent.isEmpty() -> Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("هنوز هیچ بازی‌ای رو تموم نکردی داش", style = peyda(12f, 18f), color = c.inkMuted)
+                    Text("هنوز هیچ بازی‌ای رو تموم نکردی", style = peyda(12f, 18f), color = c.inkMuted)
                     Btn("اولین بازیتو شروع کن", { vm.selectTab(Tab.GAMES) }, kind = BtnKind.Gold, small = true)
                 }
                 else -> recent.forEachIndexed { i, r ->

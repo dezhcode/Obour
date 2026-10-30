@@ -601,9 +601,9 @@ async def _announce_start(db: GCDatabase, m: dict, row: dict) -> None:
         # ۱) پیوی ربات (اگر کاربر قبلا ربات را استارت کرده باشد)
         try:
             from .bot import open_kb
-            line = (["اسم‌فامیل توی «", st.iso(title), "» شروع شد! برگتو باز کن داش که حرف رو بشه ساعت راه می‌افته ✍️"] if esm else
+            line = (["اسم‌فامیل توی «", st.iso(title), "» شروع شد! برگتو باز کن که حرف رو بشه ساعت راه می‌افته ✍️"] if esm else
                     ["جنگ کاغذی توی «", st.iso(title), "» شروع شد! اسم لشگرتو بذار و ارتشتو بکش هیچ عجله‌ای نیست 🪖"] if lg else
-                    ["بازی توی «", st.iso(title), "» شروع شد و همه منتظر توان دیر نکن داش! 🏃"])
+                    ["بازی توی «", st.iso(title), "» شروع شد و همه منتظر توان دیر نکن! 🏃"])
             text = st.to_html(st.frame(row["game"], f"بازی {g['name']}", "شروع شد", [line], foot=("play", "ورود", "دکمهٔ زیر رو بزن")))
             await _bot.send_message(tg, text, reply_markup=open_kb(f"{row['game']}.html", go, "play"))
         except Exception:  # noqa: BLE001
@@ -660,7 +660,7 @@ async def create(db: GCDatabase, bot: Bot, chat, user, game: str) -> str | None:
     await expire(db)
     me = await db.player(user.id, _name(user), user.username)
     if me.get("banned"):
-        return "شرمنده داش حسابت تو AsoTas بسته شده 🚫"
+        return "شرمنده حسابت تو AsoTas بسته شده 🚫"
     name = GAMES[game]["name"]
     if await db.open_group_table(chat.id, game):
         return f"یه میز {name} همین الان تو این گروه بازه برو همون‌جا «بشین» رو بزن 😉"
@@ -678,12 +678,12 @@ async def open_table(db: GCDatabase, d: dict) -> str | None:
     if d["chat_id"] and await db.open_group_table(d["chat_id"], d["game"]):
         return f"یه میز {name} همین الان تو این گروه بازه"
     if not await db.claim_draft(d["token"], "open"):
-        return "این کارت دیگه از کار افتاده داش"
+        return "این کارت دیگه از کار افتاده"
     try:
         r = await service.invite_create(db, d["host"], cfg_of(d["game"], d["cfg"]))
     except GCError as e:
         await db.unclaim_draft(d["token"])
-        return {"in_match": "داش تو الان سر یه میز دیگه‌ای اول اونو تموم کن بعد بیا 😅"}.get(e.code, "میز ساخته نشد یه بار دیگه امتحان کن")
+        return {"in_match": "تو الان سر یه میز دیگه‌ای اول اونو تموم کن بعد بیا 😅"}.get(e.code, "میز ساخته نشد یه بار دیگه امتحان کن")
     mid = r["match"]
     await db.add_group_table(mid, d["chat_id"], d["chat_title"], d["game"], d["host"])
     if d["message_id"]:
@@ -724,7 +724,7 @@ async def on_setup(cq: CallbackQuery, gdb: GCDatabase) -> None:
     act, _, token = (cq.data or "")[3:].partition(":")
     d = await gdb.draft(token)
     if not d or d["status"] != "setup":
-        return await _draft_err(cq, "این کارت دیگه از کار افتاده داش")
+        return await _draft_err(cq, "این کارت دیگه از کار افتاده")
     if cq.from_user.id != d["host"]:
         return await _draft_err(cq, "فقط سازنده تنظیمش می‌کنه 😉 صبر کن میز باز شه بعد «بشین» رو بزن")
     # کارت اینلاین یا فرستاده از مینی اپ: شناسهٔ پیام از همین لمس معلوم می شود
@@ -763,7 +763,7 @@ async def _act(cq: CallbackQuery, gdb: GCDatabase, act: str, match_id: str) -> N
     try:
         if act == "join":
             if m["status"] == "lobby" and any(s["tg"] == u.id for s in m["state"].get("seats", [])):
-                await cq.answer("داش تو که همین الان نشستی! 😄")
+                await cq.answer("تو که همین الان نشستی! 😄")
                 return
             p = await gdb.get_player(u.id) or {}
             if p.get("banned"):
@@ -783,10 +783,10 @@ async def _act(cq: CallbackQuery, gdb: GCDatabase, act: str, match_id: str) -> N
             await cq.answer()
             return
     except GCError as e:
-        text = {"in_match": "تو الان سر یه میز دیگه‌ای 😅", "full": "میز پره دفعهٔ بعد زودتر بجنب!", "started": "دیر رسیدی داش بازی شروع شده 😅",
+        text = {"in_match": "تو الان سر یه میز دیگه‌ای 😅", "full": "میز پره دفعهٔ بعد زودتر بجنب!", "started": "دیر رسیدی بازی شروع شده 😅",
                 "not_host": "فقط سازندهٔ میز می‌تونه شروعش کنه", "banned": "حسابت مسدوده 🚫",
                 "busy": "یه لحظه صبر کن و دوباره بزن", "not_found": "این میز دیگه نیست 👻",
-                "need_players": "حداقل 2 نفر باید بشینن تنهایی که مزه نداره 😄"}.get(e.code, "نشد داش یه بار دیگه بزن")
+                "need_players": "حداقل 2 نفر باید بشینن تنهایی که مزه نداره 😄"}.get(e.code, "نشد یه بار دیگه بزن")
         await cq.answer(text, show_alert=True)
     await refresh(gdb, m["id"])
 
@@ -802,7 +802,7 @@ async def on_button(cq: CallbackQuery, gdb: GCDatabase, bot: Bot) -> None:
         if cq.inline_message_id:   # کارت اینلاین: کارت تنظیم تازه در همان پیام، با کسی که دکمه را زد
             me = await gdb.player(u.id, _name(u), u.username)
             if me.get("banned"):
-                return await _draft_err(cq, "شرمنده داش حسابت تو AsoTas بسته شده 🚫")
+                return await _draft_err(cq, "شرمنده حسابت تو AsoTas بسته شده 🚫")
             token = await gdb.new_draft(u.id, arg, dict(GAMES[arg]["def"]))
             await gdb.set_draft(token, inline_message_id=cq.inline_message_id)
             await cq.answer("اول حالت بازی رو بچین و میزو باز کن 😉")

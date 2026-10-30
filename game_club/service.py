@@ -572,7 +572,7 @@ async def settle(db: GCDatabase, m: dict) -> None:
         won = r["color"] in winners
         prize, cups = got.get(r["tg_id"], (0, 0))
         if game == "esmfamil":   # برگ کامل همه را ربات در خود گروه فرستاده است
-            text = "اسم‌فامیل رو بردی داش! 🎉 برگت از همه پرتر بود برو برگ همه رو تو گروه ببین 😎" if won else \
+            text = "اسم‌فامیل رو بردی! 🎉 برگت از همه پرتر بود برو برگ همه رو تو گروه ببین 😎" if won else \
                 "اسم‌فامیل تموم شد و این دفعه نشد 😅 برگ همه با امتیازا تو گروهه دست بعد مال توئه!" if winners else \
                 "اسم‌فامیل تموم شد برو نتیجه رو تو گروه ببین"
         elif game == "lashgar":   # برگهٔ آخر جنگ را ربات در خود گروه فرستاده است
@@ -580,7 +580,7 @@ async def settle(db: GCDatabase, m: dict) -> None:
                 "این جنگو باختی 😅 برگهٔ آخر تو گروهه جنگ بعد مال توئه!" if winners else \
                 "جنگ کاغذی تموم شد برو نتیجه رو تو گروه ببین"
         elif won and cfg["mode"] == "ranked":
-            text = f"{name} رتبه‌ای رو بردی داش! 🏆 {cups:+} جام" + (f" و {prize} سکه جایزه ریخت تو کیفت" if prize else "") + " دمت گرم!"
+            text = f"{name} رتبه‌ای رو بردی! 🏆 {cups:+} جام" + (f" و {prize} سکه جایزه ریخت تو کیفت" if prize else "") + " دمت گرم!"
         elif won:
             text = f"{name} رو بردی! 🎉 حریفا هنوز تو شوکن"
         else:
@@ -1156,7 +1156,7 @@ async def _ping_turn(db: GCDatabase, m: dict, asker: int, now: float) -> None:
         else "نقطه رو بذار و برگه رو تا کن وگرنه نوبتت می‌سوزه 💥" if lg \
         else "تاسو بریز وگرنه خودمون جات می‌ریزیم 🎲" if sn else "وگرنه ربات جات تاس می‌ریزه 🎲"
     await _notify(db, uid, f"turn:{m['id']}:{uid}:{st.get('turn_id', 0)}",
-                  f"نوبت توئه داش تو {_gname(m['cfg'])}! {st.get('turn_s', gc.turn_seconds)} ثانیه وقت داری {what}{extra}",
+                  f"نوبت توئه تو {_gname(m['cfg'])}! {st.get('turn_s', gc.turn_seconds)} ثانیه وقت داری {what}{extra}",
                   _gpage(m["cfg"]))
 
 

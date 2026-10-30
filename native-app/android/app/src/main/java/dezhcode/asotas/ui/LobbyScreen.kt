@@ -302,7 +302,7 @@ private fun Board(gameId: String) {
         val rows = d.optJSONArray("rows")
         val medal = listOf(Color(0xFFF5C451), Color(0xFFC9D3DC), Color(0xFFD98B52))
         if (rows == null || rows.length() == 0) {
-            Empty("trophy", if (period == "cup") "هنوز کسی جام نگرفته" else "هنوز کسی تو این بازه نبرده", "اولین برنده تو باش داش")
+            Empty("trophy", if (period == "cup") "هنوز کسی جام نگرفته" else "هنوز کسی تو این بازه نبرده", "اولین برنده تو باش")
         } else {
             for (i in 0 until rows.length()) {
                 val r = rows.getJSONObject(i)

@@ -120,7 +120,7 @@ fun FriendsScreen(vm: AppViewModel, bottom: Dp) {
                 val on = list.filter { it.online }
                 val off = list.filter { !it.online }
                 when {
-                    data.friends.isEmpty() -> Empty("users", "هنوز رفیقی نداری داش", "رفیقاتو با یوزرنیمشون پیدا کن و با هم بازی کنید") {
+                    data.friends.isEmpty() -> Empty("users", "هنوز رفیقی نداری", "رفیقاتو با یوزرنیمشون پیدا کن و با هم بازی کنید") {
                         Btn("افزودن دوست", { vm.openSheet(Sheet.AddFriend) }, icon = "userAdd")
                     }
                     list.isEmpty() -> Empty("search", "پیدا نشد", "بین رفیقات کسی با این اسم نیست")

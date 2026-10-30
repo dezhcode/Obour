@@ -147,7 +147,7 @@ private fun AddFriendSheet(vm: AppViewModel) {
                     "incoming" -> Btn("قبول درخواست دوستی", { act("acc") }, Modifier.fillMaxWidth(), icon = "check")
                     "friend" -> Btn("رفیقید · پیام بده", { vm.closeSheet(); vm.social.openChat(u.person.uid) }, Modifier.fillMaxWidth(), kind = BtnKind.Light, icon = "chat")
                     "blocked" -> Btn("رفع بلاک", { act("unblock") }, Modifier.fillMaxWidth(), kind = BtnKind.Light)
-                    "self" -> Text("این که یوزرنیم خودته داش 😄", style = peyda(12f, 18f), color = c.inkMuted, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    "self" -> Text("این که یوزرنیم خودته 😄", style = peyda(12f, 18f), color = c.inkMuted, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
@@ -287,7 +287,7 @@ private fun BuySheet(vm: AppViewModel, s: Sheet.Buy) {
             ReceiptRow("مدت") { Text("برای همیشه", style = peyda(14.5f, 22f, 800), color = c.ink) }
         }
         if (have < it.price) {
-            Text("سکه‌ت کمه داش با جایزهٔ روزانه و برد رتبه‌ای جمعش کن", style = peyda(13f, 20f, 700), color = c.danger, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Text("سکه‌ت کمه با جایزهٔ روزانه و برد رتبه‌ای جمعش کن", style = peyda(13f, 20f, 700), color = c.danger, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         }
         Btn("بخرش", { vm.shop.buy(it) { vm.closeSheet() } }, Modifier.fillMaxWidth(), kind = BtnKind.Gold, enabled = have >= it.price && !vm.shop.busy)
     }
@@ -402,7 +402,7 @@ private fun NotificationsSheet(vm: AppViewModel) {
     AsoSheet(vm::closeSheet, "اعلان‌ها") {
         vm.inbox.forEach { m -> InboxCard(vm, m, fresh = m.at > seenBefore) }
         if (list.isEmpty() && vm.inbox.isEmpty()) {
-            Text("فعلاً خبری نیست داش هر وقت نوبتت شد یا یه میز منتظرت بود اینجا می‌بینی", style = peyda(12f, 18f), color = c.inkMuted,
+            Text("فعلاً خبری نیست هر وقت نوبتت شد یا یه میز منتظرت بود اینجا می‌بینی", style = peyda(12f, 18f), color = c.inkMuted,
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

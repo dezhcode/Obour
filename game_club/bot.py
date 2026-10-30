@@ -142,19 +142,19 @@ gcrt = GCRuntime()
 
 # نوع اعلان -> (ایموجی، زیرعنوان، متن دکمه)
 NOTICE = {
-    "turn": ("turn", "نوبت توئه داش!", "بپر سر بازی"),
+    "turn": ("turn", "نوبت توئه!", "بپر سر بازی"),
     "join": ("seat", "یکی نشست سر میزت", "برو سر میز"),
     "over": ("trophy", "بازی تموم شد", "ببین چی شد"),
     "freq": ("friend", "یکی می‌خواد رفیقت بشه", "ببین کیه"),
     "facc": ("friend", "یه رفیق تازه داری", "رفیقامو نشون بده"),
-    "dm": ("chat", "پیام داری داش", "بخونش"),
+    "dm": ("chat", "پیام داری", "بخونش"),
     "dminv": ("link", "دعوتت کردن سر میز", "بشین سر میز"),
 }
 
 
 def gate_text(need: list[dict]) -> str:
     names = " و ".join(f"«{c['title']}»" for c in need)
-    return st.to_html(st.frame("megaphone", "AsoTas", "اول عضو شو داش", [
+    return st.to_html(st.frame("megaphone", "AsoTas", "اول عضو شو", [
         f"واسه بازی تو AsoTas اول باید عضو {names} بشی", "",
         "عضو که شدی دکمهٔ «عضو شدم» رو بزن بریم سراغ بازی 🎮"]))
 
@@ -180,7 +180,7 @@ async def on_gate_ok(cb: CallbackQuery, gdb: GCDatabase) -> None:
         return
     await cb.answer("دمت گرم عضو شدی ✅")
     try:
-        await cb.message.edit_text(st.to_html(st.frame("ok", "AsoTas", "خوش اومدی داش!", [
+        await cb.message.edit_text(st.to_html(st.frame("ok", "AsoTas", "خوش اومدی!", [
             "حله عضو شدی ✅ حالا بزن بریم سراغ بازی"])), reply_markup=open_kb("", "بزن بریم بازی"))
     except Exception:  # noqa: BLE001
         pass
@@ -237,7 +237,7 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
     me = await gdb.player(u.id, _name(message), u.username)
     if me.get("banned"):
         await message.answer(_h("ban", "AsoTas", "حسابت بسته‌ست", [
-            "شرمنده داش حسابت تو AsoTas بسته شده 🚫"],
+            "شرمنده حسابت تو AsoTas بسته شده 🚫"],
             foot=(None, None, "اگه فکر می‌کنی اشتباه شده به پشتیبانی عبور پیام بده آدمای خوبی‌ان 😄")))
         return
     arg = (command.args or "").strip()
@@ -258,7 +258,7 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         code = "".join(ch for ch in arg.split("_", 1)[1].upper() if ch.isalnum())[:12]
         m = await gdb.match_by_invite(code)
         if not m or m["status"] != "lobby":
-            await message.answer(_h(game, f"میز {name}", "دیر رسیدی داش 😅", [
+            await message.answer(_h(game, f"میز {name}", "دیر رسیدی 😅", [
                 "این میز یا جمع شده یا بازیش شروع شده"], foot=(None, None, "فدای سرت خودت یه میز تازه بچین 👇")),
                 reply_markup=open_kb(f"{game}-lobby.html", f"میز تازهٔ {name}", "new"))
             return
@@ -267,12 +267,12 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
                "divar": "یه دست دیوار" + (" چهار نفره" if m["cfg"].get("players") == 4 else ""),
                "esmfamil": "یه دست اسم‌فامیل با داور هوش مصنوعی", "lashgar": "یه جنگ کاغذی حسابی",
                "snakes": "یه دست مار و پله" + (f" {m['cfg'].get('players')} نفره" if m["cfg"].get("players") else "")}[game]
-        await message.answer(_h(game, f"میز {name}", "دعوتت کردن داش!", [
+        await message.answer(_h(game, f"میز {name}", "دعوتت کردن!", [
             f"رفیقت دعوتت کرده به {who} 😎 منتظره بشینی کنارش"],
             foot=("coin", "نوع میز", "دوستانه · مجانی")),
             reply_markup=open_kb(f"{game}-lobby.html?join={code}", "بشین سر میز", "seat"))
         return
-    lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), " خوش اومدی داش! من تاسی‌ام 🎩 اینجا کسی حوصله‌ش سر نمی‌ره"], "",
+    lines = [["سلام ", st.iso(me.get("name") or "بازیکن"), " خوش اومدی! من تاسی‌ام 🎩 اینجا کسی حوصله‌ش سر نمی‌ره"], "",
              [st.E("hokm"), " حکم  ", st.E("ludo"), " منچ  ", st.E("football"), " فوتبال  ", st.E("billiard"), " بیلیارد  ", st.E("divar"), " دیوار  ", st.E("snakes"), " مار و پله"],
              "با رفیقات یا با ناشناس هر وقت حوصله‌ت سر رفت بیا 😄",
              [st.E("esmfamil"), " اسم‌فامیل هم داریم تو گروه یا کانال که داورش هوش مصنوعی عبوره!"],
@@ -374,7 +374,7 @@ async def on_points(message: Message, gdb: GCDatabase) -> None:
         return
     p = await gdb.player(u.id, _name(message), u.username)
     rate = round(p["wins"] * 100 / p["games"]) if p["games"] else 0
-    vibe = ("هنوز بازی نکردی داش زمین منتظرته!" if not p["games"] else "داری می‌ترکونی 🔥" if rate >= 60
+    vibe = ("هنوز بازی نکردی زمین منتظرته!" if not p["games"] else "داری می‌ترکونی 🔥" if rate >= 60
             else "بد نیست یه کم دیگه تمرین کنی آس می‌شی 😉" if rate >= 35 else "شانس فعلاً باهات قهره ولی آشتی می‌کنه 😄")
     await message.answer(_h("coin", "کیف سکه", "AsoTas", [
         [st.E("trophy"), " برد: ", st.num(p["wins"]), " از ", st.num(p["games"]), " بازی"], vibe, "",
@@ -840,7 +840,7 @@ async def on_bc_buttons(message: Message, gdb: GCDatabase) -> None:
 
 @router.message(F.chat.type == "private", F.text)
 async def on_text(message: Message) -> None:
-    await message.answer(_h("brand", "AsoTas", "بزن بریم داش", ["واسه بازی AsoTas رو باز کن 👇"],
+    await message.answer(_h("brand", "AsoTas", "بزن بریم", ["واسه بازی AsoTas رو باز کن 👇"],
                             foot=(None, None, ["یا تو گروهت بنویس ", st.iso(bot_at()), " و یه بازی انتخاب کن"])),
                          reply_markup=with_group_button(open_kb()))
 
