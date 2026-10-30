@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
@@ -1874,10 +1875,10 @@ private fun HkExit(g: HokmGame, me: Int, stake: Boolean, stay: () -> Unit, leave
     val dots = rememberInfiniteTransition(label = "dots")
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Box(Modifier.fillMaxSize().zIndex(96f).graphicsLayer { alpha = min(1f, up.value * 1.6f) }.background(c.scrim)
-            .pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures { stay() } }, contentAlignment = Alignment.BottomCenter) {
+            .pointerInput(Unit) { detectTapGestures { stay() } }, contentAlignment = Alignment.BottomCenter) {
             Column(Modifier.widthIn(max = 480.dp).fillMaxWidth().graphicsLayer { translationY = (1 - up.value) * size.height }
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(c.surface)
-                .pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures { } }
+                .pointerInput(Unit) { detectTapGestures { } }
                 .navigationBarsPadding().padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.padding(bottom = 6.dp).size(42.dp, 5.dp).clip(RoundedCornerShape(3.dp)).background(c.line))
