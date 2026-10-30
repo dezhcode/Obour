@@ -99,6 +99,8 @@
     const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
     const dark = (0.299 * r + 0.587 * g + 0.114 * b) < 150;
     call('SystemBars', 'setStyle', { style: dark ? 'DARK' : 'LIGHT' }).catch(() => {});
+    // رنگ پنجره پشت نوار وضعیت و نوار پایین (برنامه از نسخهٔ ۴ به بعد؛ نسخهٔ قدیمی تر این پلاگین را ندارد)
+    call('AsoUi', 'background', { color: '#' + h }).catch(() => {});
   }
 
   // ---------- نسخهٔ تازهٔ برنامه از مایکت ----------
