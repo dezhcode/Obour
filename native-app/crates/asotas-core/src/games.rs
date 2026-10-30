@@ -191,6 +191,18 @@ pub struct HokmEvent {
     pub team: Option<i64>,
     pub pts: i64,
     pub kot: bool,
+    /// آس کشی دست اول (hakem): برگ هایی که رو باز پخش شد تا اولین آس
+    pub draw: Vec<Played>,
+    /// حاکم دست قبل (hakem)، حاکم این دست (deal و hand)
+    pub prev: Option<String>,
+    pub hakem: Option<String>,
+    /// شمارهٔ دست (از ۰)
+    pub hand: i64,
+    /// دورهای برده و امتیاز هر تیم (trick و hand)
+    pub tricks: Vec<i64>,
+    pub score: Vec<i64>,
+    /// حکم یا برگ را خود سرور زد (وقت تمام شد)
+    pub auto: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -269,6 +281,13 @@ impl HokmGame {
                 team: opt_int(&e["team"]),
                 pts: int(&e["pts"]),
                 kot: yes(&e["kot"]),
+                draw: played(&e["draw"]),
+                prev: opt(&e["prev"]),
+                hakem: opt(&e["hakem"]),
+                hand: int(&e["hand"]),
+                tricks: ints(&e["tricks"]),
+                score: ints(&e["score"]),
+                auto: yes(&e["auto"]),
             }).collect()).unwrap_or_default(),
             seq: int(&g["seq"]),
             over: yes(&g["over"]),

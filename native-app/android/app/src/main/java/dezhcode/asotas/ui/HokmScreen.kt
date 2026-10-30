@@ -96,6 +96,7 @@ import dezhcode.asotas.core.MatchView
 import dezhcode.asotas.fd
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
@@ -379,6 +380,58 @@ private class Throwing(val c: Int, val run: CardPhysics.Flight, val tx: Float, v
     var t0 = 0L
 }
 
+/** برگ نمایشی وسط میز (آس کشی، بُر زدن): مختصات گوشهٔ بالا چپ در تودهٔ ۲۰۶×۲۳۶ */
+private class FxCard(c: Int?, x: Float, y: Float, rot: Float, z: Float) {
+    var c by mutableStateOf(c)
+    var x by mutableFloatStateOf(x)
+    var y by mutableFloatStateOf(y)
+    var rot by mutableFloatStateOf(rot)
+    var sx by mutableFloatStateOf(1f)
+    var scale by mutableFloatStateOf(1f)
+    var alpha by mutableFloatStateOf(1f)
+    var z by mutableFloatStateOf(z)
+    var dim by mutableStateOf(false)
+    var ace by mutableStateOf(false)
+    var deck = false
+}
+
+/** چیز پرنده روی کل صفحه (پشت ورق پخش، تاج، برگ های کوت): مرکزش به پیکسل ریشه */
+private class FlyItem(val crown: Boolean, x: Float, y: Float, val w: Dp) {
+    var x by mutableFloatStateOf(x)
+    var y by mutableFloatStateOf(y)
+    var rot by mutableFloatStateOf(0f)
+    var scale by mutableFloatStateOf(1f)
+    var alpha by mutableFloatStateOf(1f)
+}
+
+/** صحنهٔ وسط میز: تاج حاکم یا اعلام حکم */
+private sealed interface Stage {
+    class Crowned(val seat: String, val kick: String, val sub: String) : Stage
+    class Reveal(val suit: Int, val sub: String) : Stage {
+        var dx by mutableFloatStateOf(0f)
+        var dy by mutableFloatStateOf(0f)
+        var scale by mutableFloatStateOf(1f)
+        var rot by mutableFloatStateOf(0f)
+        var alpha by mutableFloatStateOf(1f)
+    }
+}
+
+/** پیشرفت یک انیمیشن (۰ تا ۱) با ساعت فریم ها */
+private suspend fun anim(ms: Int, ease: androidx.compose.animation.core.Easing = androidx.compose.animation.core.FastOutSlowInEasing, f: (Float) -> Unit) {
+    val start = withFrameNanos { it }
+    while (true) {
+        val t = withFrameNanos { it }
+        val q = ((t - start) / 1e6f / ms).coerceIn(0f, 1f)
+        f(ease.transform(q))
+        if (q >= 1f) break
+    }
+}
+private fun lerp(a: Float, b: Float, q: Float) = a + (b - a) * q
+private val EASE_OUT = androidx.compose.animation.core.CubicBezierEasing(.2f, .8f, .3f, 1f)
+
+/** جای برگ های «آس کشی» جلوی هر بازیکن (مختصات داخل توده) */
+private val DRAW_AT = mapOf(2 to floatArrayOf(71f, 2f, -4f), 0 to floatArrayOf(71f, 144f, 3f), 3 to floatArrayOf(2f, 73f, -8f), 1 to floatArrayOf(140f, 73f, 8f))
+
 @Stable
 private class HokmPlay {
     var me by mutableIntStateOf(0)
@@ -389,19 +442,34 @@ private class HokmPlay {
     val pile = mutableStateListOf<Pair<Int, Int>>()
     val flying = mutableStateListOf<Throwing>()
     var selfPlayed: Int? = null
-    var banner by mutableStateOf<String?>(null)
     var collecting by mutableStateOf<Int?>(null)
     var deadlineAt by mutableLongStateOf(0L)
     var turnMs = 20000L
     /** جای هر چیز روی صفحه برای پرتاب و جمع کردن (مختصات ریشه) */
     val seatRect = mutableStateMapOf<Int, Rect>()
     val handRect = HashMap<Int, Rect>()
+    var handArea = Rect.Zero
+    var trumpDisc = Rect.Zero
     var pileOrigin = Offset.Zero
     var pileK = 1f
     var stackUs = Offset.Zero
     var stackThem = Offset.Zero
     lateinit var motion: TableMotion
     var density = 1f
+    // ---- نمایش های مرحله ای
+    val fx = mutableStateListOf<FxCard>()
+    val flies = mutableStateListOf<FlyItem>()
+    var stage by mutableStateOf<Stage?>(null)
+    /** نوار من در میانهٔ نمایش ها (bar در hokm.js): متن، زیرنویس، صندلی */
+    var bar by mutableStateOf<Triple<String, String, String?>?>(null)
+    /** دست من تا پایان پخش ورق پنهان است؛ برگ های تازه با چرخش وارد می شوند */
+    var dealing by mutableStateOf(false)
+    var handShown: Set<Int> = emptySet()
+    /** حکم تا نشستن نشانش در سربرگ پنهان است */
+    var trumpHidden by mutableStateOf(false)
+    var kot by mutableStateOf<HokmEvent?>(null)
+    var result by mutableStateOf<HokmEvent?>(null)
+    var showLast by mutableStateOf(false)
 
     suspend fun apply(v: MatchView) {
         val g = v.hokm ?: return
@@ -411,6 +479,7 @@ private class HokmPlay {
             if (game == null) {
                 me = g.me?.toIntOrNull() ?: 0
                 since = g.seq
+                handShown = g.hand.map { it.toInt() }.toSet()
             } else {
                 for (e in g.events.filter { it.seq > since }.sortedBy { it.seq }) { play(e, g); since = e.seq }
             }
@@ -423,34 +492,228 @@ private class HokmPlay {
             if (dl == 0L) deadlineAt = 0L else if (deadlineAt == 0L || abs(dl - deadlineAt) > 700) deadlineAt = dl
             game = g
             view = v
+            bar = null
+            dealing = false
+            trumpHidden = false
         } finally {
             busy = false
         }
     }
 
-    private fun name(g: HokmGame, s: String) = if (s.toIntOrNull() == me) "تو" else g.players[s]?.name ?: "بازیکن"
+    private fun name(g: HokmGame, s: String?) = if (s?.toIntOrNull() == me) "تو" else g.players[s.orEmpty()]?.name ?: "بازیکن"
+    private fun pileCenter() = Offset(pileOrigin.x + 103 * pileK * density, pileOrigin.y + 118 * pileK * density)
+    private fun fxCenter(f: FxCard) = Offset(pileOrigin.x + (f.x + 32) * pileK * density, pileOrigin.y + (f.y + 45) * pileK * density)
+    private fun seatCenter(s: String?): Offset? = s?.toIntOrNull()?.let { seatRect[rel(it, me)]?.center }
 
     private suspend fun play(e: HokmEvent, g: HokmGame) {
         val seat = e.c.toIntOrNull() ?: 0
         when (e.t) {
-            "deal" -> { pile.clear(); motion.sync(pile, me); banner = "ورقا دارن پخش می‌شن…"; delay(900); banner = null }
+            "hakem" -> hakemIntro(e, g)
+            "deal" -> {
+                pile.clear(); motion.sync(pile, me); dealing = true; trumpHidden = true
+                bar = Triple(if (e.hakem?.toIntOrNull() == me) "تو حاکمی" else "حاکم: ${name(g, e.hakem)}", "پنج برگ اول داره پخش می‌شه…", null)
+                deal(5, true)
+            }
             "trump" -> {
-                val s = (e.suit ?: 0).toInt()
-                banner = "حکم ${SUIT_FA.getOrElse(s) { "" }} · " + (if (seat == me) "تو حکم کردی" else "${name(g, e.c)} حکم کرد")
-                delay(1500); banner = null
+                trumpReveal((e.suit ?: 0).toInt(), e.c, g)
+                deal(4, false)
             }
             "play" -> {
                 val c = (e.card ?: return).toInt()
                 if (seat == me && selfPlayed == c) { selfPlayed = null; return }
                 throwCard(seat, c, null, null)
             }
-            "trick" -> collect((e.team?.toInt() ?: (seat % 2)))
+            "trick" -> collect(seat % 2)
             "hand" -> {
-                val ours = e.team?.toInt() == me % 2
-                banner = (if (ours) "این دست مال ما شد" else "این دست مال حریف شد") + if (e.kot) " · کُت! (${e.pts.fd()} امتیاز)" else ""
-                delay(2200); banner = null
+                if (e.kot) kotParty(e)
+                if ((e.score.getOrNull(e.team?.toInt() ?: 0) ?: 0L) < g.target) { result = e; delay(3000); result = null }
             }
         }
+    }
+
+    // ---------- انتخاب حاکم ----------
+    private suspend fun hakemIntro(e: HokmEvent, g: HokmGame) {
+        pile.clear(); motion.sync(pile, me); dealing = true; trumpHidden = true
+        if (e.draw.isNotEmpty()) aceDraw(e, g) else hakemAnnounce(e, g)
+    }
+
+    /** دست اول: برگ ها رو باز دور میز می روند تا اولین آس بیاید */
+    private suspend fun aceDraw(e: HokmEvent, g: HokmGame) {
+        bar = Triple("انتخاب حاکم", "برگ‌ها رو باز پخش می‌شه و اولین آس حاکمه", null)
+        fx.clear()
+        fx += FxCard(null, 71f, 73f, 0f, 1f).also { it.deck = true }
+        delay(700)
+        val n = e.draw.size
+        val step = if (n > 14) 170 else if (n > 8) 230 else 300
+        val cnt = HashMap<Int, Int>()
+        var z = 2f
+        var last: FxCard? = null
+        for (d in e.draw) {
+            val s = d.seat.toIntOrNull() ?: 0
+            val c = d.card.toInt()
+            val r = rel(s, me)
+            val m = (cnt[s] ?: 0) + 1
+            cnt[s] = m
+            val at = DRAW_AT.getValue(r)
+            val x = at[0] + (if (r == 3) m * 3f else if (r == 1) -m * 3f else (m % 3 - 1) * 5f)
+            val y = at[1] + (if (r == 2) m * 2f else if (r == 0) -m * 2f else (m % 3 - 1) * 4f)
+            val rot = at[2] + ((c * 37) % 9) - 4
+            z += 1f
+            val b = FxCard(null, 71f, 73f, 0f, z).also { it.scale = .92f }
+            fx += b
+            anim((step * .5f).toInt(), EASE_OUT) { q -> b.x = lerp(71f, x, q); b.y = lerp(73f, y, q); b.rot = lerp(0f, rot, q); b.scale = lerp(.92f, 1f, q) }
+            // برگرداندن: باریک شدن، رو شدن، کمی بیش از اندازه و برگشت
+            anim((step * .4f * .45f).toInt(), androidx.compose.animation.core.EaseIn) { q -> b.sx = 1 - q }
+            b.c = c
+            anim((step * .4f * .55f).toInt(), androidx.compose.animation.core.EaseOut) { q -> b.sx = if (q < .7f) lerp(0f, 1.08f, q / .7f) else lerp(1.08f, 1f, (q - .7f) / .3f) }
+            last = b
+            if (c % 13 != 12) { b.dim = true; delay((step * .1f).toLong()) }
+        }
+        fx.removeAll { it.deck }
+        val l = last ?: return
+        l.ace = true
+        l.z = 40f
+        val who = e.c
+        val suitName = SUIT_FA[(l.c ?: 0) / 13]
+        bar = Triple(if (who.toIntOrNull() == me) "آس اومد و تو حاکمی!" else "آس اومد!", "آس $suitName برای ${name(g, who)}", null)
+        delay(650)
+        stage = Stage.Crowned(who, "اولین آس", "آس $suitName")
+        delay(1100)
+        crownTo(who, fxCenter(l))
+        sweep()
+        stage = null
+    }
+
+    /** دست های بعد: حاکم ماند یا به نفر بعد رسید */
+    private suspend fun hakemAnnounce(e: HokmEvent, g: HokmGame) {
+        fx.clear()
+        val kept = e.prev != null && e.prev == e.c
+        val moved = e.prev != null && e.prev != e.c
+        val hn = (e.hand + 1).fd()
+        bar = Triple("دست $hn", if (kept) "تیم حاکم برد و حاکم همون می‌مونه" else if (moved) "تیم حاکم باخت و حکم رسید به نفر بعدی" else "حاکم این دست", null)
+        stage = Stage.Crowned(e.c, "دست $hn", if (kept) "باز هم حاکمه" else if (moved) "حاکمی از ${name(g, e.prev)} رسید بهش" else "")
+        delay(1250)
+        crownTo(e.c, if (moved) seatCenter(e.prev) ?: pileCenter() else pileCenter())
+        stage = null
+    }
+
+    /** تاج از جای خودش به عکس حاکم می پرد */
+    private suspend fun crownTo(s: String, from: Offset) {
+        val to = seatCenter(s) ?: return
+        val f = FlyItem(true, from.x, from.y, 32.dp)
+        f.alpha = 0f
+        f.scale = 1.7f
+        flies += f
+        val midX = (from.x + to.x) / 2
+        val midY = (from.y + to.y) / 2 - 70 * density
+        anim(720, androidx.compose.animation.core.CubicBezierEasing(.3f, .6f, .4f, 1f)) { q ->
+            if (q < .5f) {
+                val k = q / .5f
+                f.x = lerp(from.x, midX, k); f.y = lerp(from.y, midY, k); f.scale = lerp(1.7f, 1.35f, k); f.rot = lerp(0f, -18f, k); f.alpha = k
+            } else {
+                val k = (q - .5f) / .5f
+                f.x = lerp(midX, to.x, k); f.y = lerp(midY, to.y - 30 * density, k); f.scale = lerp(1.35f, .75f, k); f.rot = lerp(-18f, 0f, k); f.alpha = 1f
+            }
+        }
+        flies -= f
+    }
+
+    /** برگ های وسط میز جمع و محو می شوند */
+    private suspend fun sweep() {
+        if (fx.isEmpty()) return
+        val st = fx.map { Triple(it.x, it.y, it.rot) }
+        anim(380, androidx.compose.animation.core.CubicBezierEasing(.5f, 0f, .7f, 1f)) { q ->
+            fx.forEachIndexed { i, f -> f.x = lerp(st[i].first, 71f, q); f.y = lerp(st[i].second, 73f, q); f.rot = lerp(st[i].third, 0f, q); f.scale = lerp(1f, .8f, q); f.alpha = 1 - q }
+        }
+        fx.clear()
+    }
+
+    // ---------- بُر زدن و پخش ورق ----------
+    /** بُر زدن: دسته دو نیم می شود و برگ ها یکی در میان لای هم می روند، بعد دسته جمع می شود */
+    private suspend fun riffle() {
+        fx.clear()
+        val L = FxCard(null, 30f, 73f, -9f, 1f).also { it.deck = true }
+        val R = FxCard(null, 112f, 73f, 9f, 1f).also { it.deck = true }
+        fx += L
+        fx += R
+        coroutineScope {
+            for (i in 0 until 16) {
+                val left = i % 2 == 0
+                val y = 73 - i * .4f
+                val x0 = 71f + (if (left) -41f else 41f)
+                val a0 = if (left) -9f else 9f
+                val b = FxCard(null, x0, y - 10, a0, 10f + i)
+                fx += b
+                val r1 = (((i * 37) % 7) - 3).toFloat()
+                launch { anim(120, androidx.compose.animation.core.CubicBezierEasing(.4f, 0f, .8f, 1f)) { q -> b.x = lerp(x0, 71f, q); b.y = lerp(y - 10, y, q); b.rot = lerp(a0, r1, q) } }
+                delay(36L + if (i < 8) 10 else 0)
+            }
+        }
+        fx.remove(L)
+        fx.remove(R)
+        delay(160)
+        val st = fx.map { it.rot }
+        anim(160) { q -> fx.forEachIndexed { i, f -> f.rot = lerp(st[i], 0f, q) } }
+        fx.clear()
+        fx += FxCard(null, 71f, 73f, 0f, 1f).also { it.deck = true }
+        delay(140)
+    }
+
+    /** پخش ورق: پشت ورق ها از وسط میز به سمت هر بازیکن پرواز می کنند */
+    private suspend fun deal(rounds: Int, first: Boolean) {
+        if (first) riffle()
+        val c = pileCenter()
+        coroutineScope {
+            repeat(rounds) {
+                for (s in 0..3) {
+                    val t = (if (s == me) handArea.center else seatRect[rel(s, me)]?.center) ?: continue
+                    val f = FlyItem(false, c.x, c.y, 64.dp)
+                    f.scale = .8f
+                    flies += f
+                    val endRot = s * 90f + 200
+                    launch {
+                        anim(300, androidx.compose.animation.core.CubicBezierEasing(.2f, .7f, .35f, 1f)) { q ->
+                            f.x = lerp(c.x, t.x, q); f.y = lerp(c.y, t.y, q); f.rot = lerp(0f, endRot, q)
+                            f.scale = lerp(.8f, if (s == me) .95f else .42f, q); f.alpha = lerp(1f, .35f, q)
+                        }
+                        flies -= f
+                    }
+                    delay(52)
+                }
+            }
+        }
+        delay(260)
+        fx.clear()
+    }
+
+    /** حکم اعلام شد: خال از جای حاکم به وسط میز می پرد، با پرتو و حلقه، بعد به جای حکم در سربرگ می نشیند */
+    private suspend fun trumpReveal(s: Int, c: String, g: HokmGame) {
+        fx.clear()
+        val st = Stage.Reveal(s, if (c.toIntOrNull() == me) "تو حکم کردی" else "${name(g, c)} حکم کرد")
+        stage = st
+        bar = Triple("حکم ${SUIT_FA[s]}", "هشت برگ بعدی داره پخش می‌شه…", c)
+        val from = seatCenter(c)
+        val pc = pileCenter()
+        if (from != null) {
+            val fx0 = from.x - pc.x
+            val fy0 = from.y - pc.y
+            anim(700, EASE_OUT) { q ->
+                if (q < .72f) {
+                    val k = q / .72f
+                    st.dx = lerp(fx0, 0f, k); st.dy = lerp(fy0, 0f, k); st.scale = lerp(.3f, 1.22f, k); st.rot = lerp(-200f, 12f, k); st.alpha = lerp(.3f, 1f, k)
+                } else {
+                    val k = (q - .72f) / .28f
+                    st.dx = 0f; st.dy = 0f; st.scale = lerp(1.22f, 1f, k); st.rot = lerp(12f, 0f, k); st.alpha = 1f
+                }
+            }
+        }
+        delay(850)
+        val d = trumpDisc.center
+        if (trumpDisc != Rect.Zero) {
+            anim(460, androidx.compose.animation.core.CubicBezierEasing(.5f, 0f, .6f, 1f)) { q -> st.dx = lerp(0f, d.x - pc.x, q); st.dy = lerp(0f, d.y - pc.y, q); st.scale = lerp(1f, .35f, q); st.alpha = lerp(1f, .9f, q) }
+        }
+        trumpHidden = false
+        stage = null
     }
 
     /** قدرت پرتاب (۰ آرام تا ۱ محکم): برگی که حکم می زند همیشه محکم، برگی که سر می شود اغلب محکم */
@@ -503,10 +766,54 @@ private class HokmPlay {
     private suspend fun collect(team: Int) {
         delay(420)
         collecting = team
-        delay(560)
+        delay(600)
         collecting = null
         pile.clear()
         motion.sync(pile, me)
+    }
+
+    /** کوت (هفت به صفر): برگ های برده شده از دستهٔ تیم برنده به هوا می روند و دوباره رویش می بارند */
+    private suspend fun kotParty(e: HokmEvent) {
+        kot = e
+        val won = e.team?.toInt() == me % 2
+        val src = if (won) stackUs else stackThem
+        val c = pileCenter()
+        coroutineScope {
+            repeat(21) { i ->
+                val f = FlyItem(false, src.x, src.y, 64.dp)
+                f.scale = .47f
+                flies += f
+                val a = i / 21f * Math.PI.toFloat() * 2 + Random.nextFloat() * .3f
+                val rr = (55 + Random.nextFloat() * 95) * density
+                val dx = c.x - src.x + cos(a) * rr
+                val dy = c.y - src.y + sin(a) * rr * .8f - 50 * density
+                val r1 = (Random.nextFloat() * 2 - 1) * 540
+                val top = .8f + Random.nextFloat() * .3f
+                launch {
+                    delay(i * 22L)
+                    anim(1500, LinearEasing) { q ->
+                        when {
+                            q < .42f -> {
+                                val k = EASE_OUT.transform(q / .42f)
+                                f.x = src.x + dx * k; f.y = src.y + dy * k; f.rot = r1 * .6f * k; f.scale = lerp(.47f, top, k)
+                            }
+                            q < .58f -> {
+                                val k = (q - .42f) / .16f
+                                f.x = src.x + lerp(dx, dx * .92f, k); f.y = src.y + lerp(dy, dy * .92f + 22 * density, k); f.rot = lerp(r1 * .6f, r1 * .75f, k); f.scale = lerp(top, .78f, k)
+                            }
+                            else -> {
+                                val k = androidx.compose.animation.core.FastOutSlowInEasing.transform((q - .58f) / .42f)
+                                f.x = src.x + lerp(dx * .92f, 0f, k); f.y = src.y + lerp(dy * .92f + 22 * density, 0f, k)
+                                f.rot = lerp(r1 * .75f, r1 + (if (i % 2 == 1) 90 else 0), k); f.scale = lerp(.78f, .47f, k)
+                            }
+                        }
+                    }
+                    flies -= f
+                }
+            }
+        }
+        delay(300)
+        kot = null
     }
 }
 
@@ -643,7 +950,7 @@ private fun HokmTable(vm: AppViewModel, model: TableModel, play: HokmPlay, motio
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             HkBtn("exit", onLeave)
-            ScoreBar(g, myTeam, Modifier.weight(1f))
+            ScoreBar(g, myTeam, play, Modifier.weight(1f))
             HkBtn("help") { vm.openHelp("hHokm") }
             HkBtn(if (vm.me?.sound != false) "soundOn" else "soundOff") { vm.toggleSound() }
         }
@@ -663,13 +970,13 @@ private fun HokmTable(vm: AppViewModel, model: TableModel, play: HokmPlay, motio
 
 /** امتیاز: ما | حکم | حریف */
 @Composable
-private fun ScoreBar(g: HokmGame, us: Int, modifier: Modifier) {
+private fun ScoreBar(g: HokmGame, us: Int, play: HokmPlay, modifier: Modifier) {
     Row(modifier.height(62.dp).clip(RoundedCornerShape(20.dp)).background(Color.Black.copy(alpha = .22f)), verticalAlignment = Alignment.CenterVertically) {
         TeamCol(g, "خودت", us, true, Modifier.weight(1f))
         Column(Modifier.width(62.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            val tr = g.trump?.toInt()
+            val tr = if (play.trumpHidden) null else g.trump?.toInt()
             Box(
-                Modifier.size(36.dp).then(
+                Modifier.size(36.dp).onGloballyPositioned { play.trumpDisc = it.boundsInRoot() }.then(
                     if (tr != null) Modifier.border(3.dp, GOLD, CircleShape).padding(0.dp).clip(CircleShape).background(Color.White)
                     else Modifier.drawBehind {
                         drawCircle(Color.White.copy(alpha = .5f), style = Stroke(2.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(6f, 5f))))
@@ -737,8 +1044,8 @@ private fun TableBody(vm: AppViewModel, model: TableModel, play: HokmPlay, motio
         // ستون وسط ۲۰۶، دو طرف سهم برابر؛ ردیف ها: یار، وسط، نوار من
         val side = (W - 206.dp - 12.dp) / 2
         // دسته های برده (ضربدری روی هم)
-        Stack(g.tricks.getOrElse(me % 2) { 0L }.toInt(), look, Modifier.absoluteOffset(4.dp, H - 76.dp - 60.dp + 12.dp).onGloballyPositioned { play.stackUs = it.boundsInRoot().center })
-        Stack(g.tricks.getOrElse(1 - me % 2) { 0L }.toInt(), look, Modifier.absoluteOffset(W - 60.dp - 4.dp, 0.dp).onGloballyPositioned { play.stackThem = it.boundsInRoot().center })
+        Stack(g.tricks.getOrElse(me % 2) { 0L }.toInt(), look, Modifier.absoluteOffset(4.dp, H - 76.dp - 60.dp + 12.dp).onGloballyPositioned { play.stackUs = it.boundsInRoot().center }.press(.96f) { play.showLast = !play.showLast })
+        Stack(g.tricks.getOrElse(1 - me % 2) { 0L }.toInt(), look, Modifier.absoluteOffset(W - 60.dp - 4.dp, 0.dp).onGloballyPositioned { play.stackThem = it.boundsInRoot().center }.press(.96f) { play.showLast = !play.showLast })
         Column(Modifier.fillMaxSize()) {
             // یار بالا
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -783,9 +1090,151 @@ private fun TableBody(vm: AppViewModel, model: TableModel, play: HokmPlay, motio
                 }
             }
         }
-        play.banner?.let { b ->
-            Text(b, Modifier.align(Alignment.Center).zIndex(80f).clip(RoundedCornerShape(16.dp)).background(Color.Black.copy(alpha = .55f)).padding(horizontal = 16.dp, vertical = 10.dp),
-                style = peyda(15f, 22f, 800), color = Color.White, textAlign = TextAlign.Center)
+        play.kot?.let { KotFx(it, play.me, Modifier.align(Alignment.Center).zIndex(85f)) }
+        if (play.showLast) LastTrick(play, g, look, Modifier.align(Alignment.Center).zIndex(70f))
+        play.result?.let { HandSheet(it, g, play.me, Modifier.align(Alignment.Center).zIndex(88f)) }
+    }
+}
+
+/** برگ نمایشی وسط میز (آس کشی، بُر زدن) */
+@Composable
+private fun FxCardView(f: FxCard, k: Float, look: String) {
+    val w = 64.dp * k
+    Box(Modifier.zIndex(f.z).graphicsLayer {
+        translationX = f.x * k * density; translationY = f.y * k * density
+        rotationZ = f.rot; scaleX = f.sx * f.scale; scaleY = f.scale; alpha = f.alpha
+    }) {
+        if (f.deck) for (i in 3 downTo 1) PlayingBack(look, w, Modifier.offset((i * 1.2f).dp, (i * 1.6f).dp), shadow = i == 3)
+        val c = f.c
+        if (c == null) PlayingBack(look, w) else PlayingCard(c, w, look)
+        if (f.dim) Box(Modifier.size(w, 90.dp * k).clip(RoundedCornerShape(6.dp * k)).background(Color.Black.copy(alpha = .38f)))
+        if (f.ace) Box(Modifier.size(w, 90.dp * k).border(3.dp, GOLD, RoundedCornerShape(7.dp * k)))
+    }
+}
+
+/** پرتوهای چرخان طلایی پشت تاج و حکم */
+@Composable
+private fun Rays(size: Dp) {
+    val spin by rememberInfiniteTransition(label = "rays").animateFloat(0f, 360f, infiniteRepeatable(tween(9000, easing = LinearEasing)), label = "s")
+    Canvas(Modifier.size(size).graphicsLayer { rotationZ = spin }) {
+        val b = Brush.radialGradient(listOf(GOLD.copy(alpha = .34f), Color.Transparent))
+        repeat(12) { i -> drawArc(b, i * 30f, 11f, useCenter = true) }
+    }
+}
+
+/** «X حاکم شد»: کارت سبز تیره با تاج بالای عکس (hk-crowned) */
+@Composable
+private fun CrownedStage(st: Stage.Crowned, g: HokmGame, me: Int, modifier: Modifier) {
+    val p = g.players[st.seat]
+    val bob by rememberInfiniteTransition(label = "cr").animateFloat(0f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "b")
+    val pop = remember(st) { Animatable(.6f) }
+    LaunchedEffect(st) { pop.animateTo(1f, tween(380, easing = androidx.compose.animation.core.CubicBezierEasing(.2f, .8f, .3f, 1.25f))) }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Box(modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value; alpha = ((pop.value - .6f) / .4f).coerceIn(0f, 1f) }, contentAlignment = Alignment.Center) {
+            Rays(250.dp)
+            Column(Modifier.width(176.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xD1082616)).border(1.5.dp, GOLD.copy(alpha = .55f), RoundedCornerShape(24.dp))
+                .padding(horizontal = 12.dp, vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(st.kick, Modifier.clip(CircleShape).background(GOLD).padding(horizontal = 10.dp, vertical = 1.dp), style = peyda(11f, 17f, 800), color = GOLD_INK)
+                Box(Modifier.padding(top = 14.dp)) {
+                    if (p != null) RingFace(p, GOLD, null, 56.dp)
+                    Box(Modifier.align(Alignment.TopCenter).offset(y = (-18).dp - (bob * 4).dp).size(26.dp).clip(CircleShape).background(GOLD), contentAlignment = Alignment.Center) { CrownIcon(15.dp) }
+                }
+                Text(if (st.seat.toIntOrNull() == me) "تو حاکم شدی!" else "${p?.name ?: "بازیکن"} حاکم شد", style = rokh(17f, 24f), color = Color(0xFFFFE08F),
+                    textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (st.sub.isNotEmpty()) Text(st.sub, style = peyda(11.5f, 16f), color = Color.White.copy(alpha = .75f), textAlign = TextAlign.Center)
+            }
+        }
+    }
+}
+
+/** اعلام حکم: خال در دایرهٔ سفید با حلقهٔ طلایی (hk-reveal) */
+@Composable
+private fun RevealStage(st: Stage.Reveal, modifier: Modifier) {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Box(modifier.graphicsLayer { translationX = st.dx; translationY = st.dy; scaleX = st.scale; scaleY = st.scale; rotationZ = st.rot; alpha = st.alpha },
+            contentAlignment = Alignment.Center) {
+            Box(Modifier.graphicsLayer { alpha = ((st.scale - .5f) / .5f).coerceIn(0f, 1f) }) { Rays(230.dp) }
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.size(108.dp).clip(CircleShape).background(Color.White).border(5.dp, GOLD, CircleShape), contentAlignment = Alignment.Center) { SuitIcon(st.suit, 58.dp) }
+                Column(Modifier.graphicsLayer { alpha = ((st.scale - .5f) / .5f).coerceIn(0f, 1f) }, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("حکم ${SUIT_FA[st.suit]}", style = rokh(23f, 30f), color = Color(0xFFFFE08F))
+                    Text(st.sub, style = peyda(12f, 17f), color = Color.White.copy(alpha = .8f))
+                }
+            }
+        }
+    }
+}
+
+/** کوت (هفت به صفر): نوشتهٔ بزرگ درخشان */
+@Composable
+private fun KotFx(e: HokmEvent, me: Int, modifier: Modifier) {
+    val won = e.team?.toInt() == me % 2
+    val pop = remember(e) { Animatable(2f) }
+    LaunchedEffect(e) { pop.animateTo(1f, tween(420, easing = androidx.compose.animation.core.CubicBezierEasing(.2f, .8f, .3f, 1.2f))) }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Column(modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value; alpha = (2f - pop.value).coerceIn(0f, 1f) },
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(if (won) "کوت!" else "کوت شدین!", style = rokh(58f, 70f).copy(shadow = androidx.compose.ui.graphics.Shadow(Color(0xFFFFB800), blurRadius = 28f)), color = Color(0xFFFFD95E))
+            Text("هفت به صفر · ${e.pts.fd()} امتیاز برای ${if (won) "شما" else "حریف"}", Modifier.clip(CircleShape).background(Color.Black.copy(alpha = .45f))
+                .padding(horizontal = 14.dp, vertical = 4.dp), style = peyda(13f, 19f, 800), color = Color.White)
+        }
+    }
+}
+
+/** دور قبل (با زدن روی دسته ها): چهار برگ جلوی هر بازیکن، تاج روی برنده */
+@Composable
+private fun LastTrick(play: HokmPlay, g: HokmGame, look: String, modifier: Modifier) {
+    LaunchedEffect(Unit) { delay(4000); play.showLast = false }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Box(modifier.size(232.dp, 256.dp).clip(RoundedCornerShape(24.dp)).background(Color.Black.copy(alpha = .6f)).border(1.dp, Color.White.copy(alpha = .1f), RoundedCornerShape(24.dp))
+            .press(1f) { play.showLast = false }) {
+            Text("دور قبل", Modifier.align(Alignment.TopCenter).padding(top = 8.dp), style = peyda(13f, 18f, 800), color = Color(0xFFFFE08F))
+            if (g.lastTrick.isEmpty()) Text("هنوز دوری تموم نشده", Modifier.align(Alignment.Center), style = peyda(13f, 20f), color = Color.White.copy(alpha = .8f))
+            g.lastTrick.forEachIndexed { i, p ->
+                val r = rel(p.seat.toIntOrNull() ?: 0, play.me)
+                val (dx, dy) = when (r) { 0 -> 0 to 46; 1 -> 58 to 6; 2 -> 0 to -34; else -> -58 to 6 }
+                Box(Modifier.align(Alignment.Center).offset(dx.dp, dy.dp)) {
+                    PlayingCard(p.card.toInt(), 52.dp, look)
+                    if (p.seat == g.lastWinner) Box(Modifier.align(Alignment.TopCenter).offset(y = (-10).dp).size(20.dp).clip(CircleShape).background(GOLD), contentAlignment = Alignment.Center) { CrownIcon(12.dp) }
+                    val nm = if (p.seat.toIntOrNull() == play.me) "تو" else g.players[p.seat]?.name.orEmpty()
+                    Text("${(i + 1).fd()}. $nm", Modifier.align(Alignment.BottomCenter).offset(y = 8.dp).widthIn(max = 70.dp).clip(CircleShape).background(Color.Black.copy(alpha = .7f))
+                        .padding(horizontal = 5.dp), style = peyda(9.5f, 14f, 700), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
+}
+
+/** نتیجهٔ دست (hk-res): برنده، امتیاز، دورهای هر تیم و حاکم دست بعد */
+@Composable
+private fun HandSheet(e: HokmEvent, g: HokmGame, me: Int, modifier: Modifier) {
+    val us = me % 2
+    val won = e.team?.toInt() == us
+    val pop = remember(e) { Animatable(.85f) }
+    LaunchedEffect(e) { pop.animateTo(1f, tween(320, easing = EASE_OUT)) }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Column(modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value; alpha = ((pop.value - .85f) / .15f).coerceIn(0f, 1f) }
+            .width(260.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF2102A1C)).border(1.dp, GOLD.copy(alpha = .4f), RoundedCornerShape(24.dp))
+            .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(GOLD), contentAlignment = Alignment.Center) { CrownIcon(26.dp) }
+            Text(if (won) "این دست مال شما شد" else "این دست رو حریف برد", style = rokh(19f, 26f), color = Color.White)
+            if (e.kot) Text("کوت · ${e.pts.fd()} امتیاز", Modifier.clip(CircleShape).background(GOLD).padding(horizontal = 12.dp, vertical = 2.dp), style = peyda(12.5f, 18f, 800), color = GOLD_INK)
+            else Text("${e.pts.fd()} امتیاز برای ${if (won) "تیم شما" else "حریف"}", style = peyda(13f, 19f, 700), color = Color(0xFFFFE08F))
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.Black.copy(alpha = .25f)).padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (t in listOf(us, 1 - us)) {
+                    val n = (e.tricks.getOrNull(t) ?: g.tricks.getOrNull(t) ?: 0L).toInt()
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(if (t == us) "شما" else "حریف", Modifier.width(38.dp), style = peyda(12f, 16f, 700), color = Color.White)
+                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            repeat(7) { i -> Box(Modifier.weight(1f).height(8.dp).clip(CircleShape).background(if (i < n) (if (t == us) GOLD else Color.White.copy(alpha = .85f)) else Color.White.copy(alpha = .15f))) }
+                        }
+                        Text(n.fd(), style = peyda(12f, 16f, 800), color = Color.White)
+                    }
+                }
+            }
+            e.hakem?.let { h ->
+                Text("حاکم دست بعد: ${if (h.toIntOrNull() == me) "تو" else g.players[h]?.name ?: "بازیکن"}", style = peyda(12f, 17f), color = Color.White.copy(alpha = .75f))
+            }
         }
     }
 }
@@ -858,6 +1307,16 @@ private fun Stack(n: Int, look: String, modifier: Modifier) {
 private fun Pile(play: HokmPlay, motion: TableMotion, g: HokmGame, look: String, k: Float, pick: Int?, onPick: (Int) -> Unit, onTrump: (Int) -> Unit, modifier: Modifier) {
     val me = play.me
     Box(modifier) {
+        // نمایش های انتخاب حاکم، بُر زدن و اعلام حکم
+        if (play.fx.isNotEmpty() || play.stage != null) {
+            for (f in play.fx) key(f) { FxCardView(f, k, look) }
+            when (val st = play.stage) {
+                is Stage.Crowned -> CrownedStage(st, g, play.me, Modifier.align(Alignment.Center).zIndex(60f))
+                is Stage.Reveal -> RevealStage(st, Modifier.align(Alignment.Center).zIndex(60f))
+                null -> {}
+            }
+            return@Box
+        }
         if (g.phase == "trump" && !g.over) {
             if (g.hakem.toIntOrNull() == me) TrumpPick(pick, onPick, onTrump, Modifier.align(Alignment.Center))
             else Choosing(g, play, Modifier.align(Alignment.Center))
@@ -878,7 +1337,7 @@ private fun Pile(play: HokmPlay, motion: TableMotion, g: HokmGame, look: String,
         LaunchedEffect(collect) { if (collect != null) cp.animateTo(1f, tween(520, easing = androidx.compose.animation.core.CubicBezierEasing(.45f, .05f, .3f, 1f))) }
         val origin = play.pileOrigin
         for (b in motion.order) key(b.c) {
-            PlayingCard(b.c, 64.dp * k, look, Modifier.zIndex(b.z).graphicsLayer {
+            Box(Modifier.zIndex(b.z).graphicsLayer {
                 @Suppress("UNUSED_VARIABLE") val t = motion.tick
                 var x = (b.x - 32) * k * density
                 var y = (b.y - 45) * k * density
@@ -894,7 +1353,11 @@ private fun Pile(play: HokmPlay, motion: TableMotion, g: HokmGame, look: String,
                     alpha = 1f - .4f * q
                 }
                 translationX = x; translationY = y; rotationZ = rot; scaleX = sc; scaleY = sc
-            }, sp = motion.sp, so = motion.so)
+            }) {
+                PlayingCard(b.c, 64.dp * k, look, sp = motion.sp, so = motion.so)
+                // در راه دسته پشت رو می شود
+                if (toward != null) PlayingBack(look, 64.dp * k, Modifier.graphicsLayer { alpha = ((cp.value - .25f) / .35f).coerceIn(0f, 1f) }, shadow = false)
+            }
         }
         // انگشت روی برگ های میز
         Box(Modifier.fillMaxSize().pointerInput(k) {
@@ -978,6 +1441,18 @@ private fun Choosing(g: HokmGame, play: HokmPlay, modifier: Modifier) {
 @Composable
 private fun MeBar(play: HokmPlay, g: HokmGame, left: Float, secs: Long) {
     val me = play.me
+    play.bar?.let { (t, sub, who) ->
+        val wp = g.players[who ?: me.toString()]
+        Row(Modifier.clip(CircleShape).background(Color.Black.copy(alpha = .3f)).border(1.dp, Color.White.copy(alpha = .09f), CircleShape)
+            .padding(start = 6.dp, end = 18.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (wp != null) RingFace(wp, Color(0xFF9BE3B8), null, 44.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(t, style = peyda(14.5f, 20f, 800), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (sub.isNotEmpty()) Text(sub, style = peyda(12f, 17f), color = Color.White.copy(alpha = .78f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        return
+    }
     val p = g.players[me.toString()]
     val mine = g.turn?.toIntOrNull() == me
     val hakemMe = g.hakem.toIntOrNull() == me
@@ -1024,7 +1499,9 @@ private fun MeBar(play: HokmPlay, g: HokmGame, left: Float, secs: Long) {
 @Composable
 private fun Hand(play: HokmPlay, g: HokmGame, look: String, canPlay: Boolean, motion: TableMotion, playCard: (Int, Float?, Float?) -> Unit) {
     val flying = play.flying.map { it.c }.toSet() + listOfNotNull(play.selfPlayed)
-    val cards = handOrder(g.hand.map { it.toInt() }, g.trump?.toInt()).filter { it !in flying }
+    val cards = if (play.dealing) emptyList() else handOrder(g.hand.map { it.toInt() }, g.trump?.toInt()).filter { it !in flying }
+    val fresh = cards.filter { it !in play.handShown }
+    androidx.compose.runtime.SideEffect { if (!play.dealing) play.handShown = play.handShown + cards }
     val n = cards.size
     val mine = g.turn?.toIntOrNull() == play.me && g.phase == "play"
     val ok = if (mine) g.legal.map { it.toInt() }.toSet() else emptySet()
@@ -1041,7 +1518,7 @@ private fun Hand(play: HokmPlay, g: HokmGame, look: String, canPlay: Boolean, mo
     val total = if (n > 1) pos[n - 1] else 0f
     val step = if (total > 0f) min(if (split) 9f else 6.5f, (if (split) 33f else 31f) / total) else 0f
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        BoxWithConstraints(Modifier.fillMaxWidth().height(150.dp)) {
+        BoxWithConstraints(Modifier.fillMaxWidth().height(150.dp).onGloballyPositioned { play.handArea = it.boundsInRoot() }) {
             val cx = maxWidth / 2 - 32.dp
             cards.forEachIndexed { i, c ->
                 key(c) {
@@ -1051,6 +1528,9 @@ private fun Hand(play: HokmPlay, g: HokmGame, look: String, canPlay: Boolean, mo
                     val isOk = mine && c in ok
                     val isNo = mine && c !in ok
                     val ty by animateFloatAsState(if (isOk) -24f else if (isNo) 10f else 0f, tween(240), label = "y")
+                    // برگ تازه (بعد از پخش): از پایین با چرخش رو می شود (hk-in)
+                    val inA = remember { Animatable(if (c in fresh) 0f else 1f) }
+                    LaunchedEffect(Unit) { if (inA.value < 1f) { delay(fresh.indexOf(c) * 45L); inA.animateTo(1f, tween(320, easing = androidx.compose.animation.core.CubicBezierEasing(.2f, .8f, .3f, 1.2f))) } }
                     var drag by remember { mutableStateOf(Offset.Zero) }
                     var dragging by remember { mutableStateOf(false) }
                     Box(Modifier.absoluteOffset(cx, 150.dp - 14.dp - 90.dp).size(64.dp, 90.dp).zIndex(if (dragging) 60f else (n - i).toFloat())
@@ -1063,7 +1543,9 @@ private fun Hand(play: HokmPlay, g: HokmGame, look: String, canPlay: Boolean, mo
                             val dx = jx * density
                             val dy = (ty + jy) * density
                             translationX = (dx * cos(r) - dy * sin(r)).toFloat() + drag.x
-                            translationY = (dx * sin(r) + dy * cos(r)).toFloat() + drag.y
+                            translationY = (dx * sin(r) + dy * cos(r)).toFloat() + drag.y + (1 - inA.value) * 60 * density
+                            alpha = min(1f, inA.value * 2.2f)
+                            rotationY = (1 - inA.value) * 90f
                         }
                         .then(if (isOk && canPlay) Modifier.pointerInput(c) {
                             awaitPointerEventScope {
@@ -1131,6 +1613,13 @@ private fun FlyLayer(play: HokmPlay, motion: TableMotion, look: String) {
     }
     var origin by remember { mutableStateOf(Offset.Zero) }
     Box(Modifier.fillMaxSize().zIndex(90f).onGloballyPositioned { origin = it.positionInRoot() }) {
+        for (f in play.flies) key(f) {
+            Box(Modifier.absoluteOffset { androidx.compose.ui.unit.IntOffset((f.x - origin.x - f.w.toPx() / 2).toInt(), (f.y - origin.y - f.w.toPx() * (if (f.crown) .5f else .703f)).toInt()) }
+                .graphicsLayer { rotationZ = f.rot; scaleX = f.scale; scaleY = f.scale; alpha = f.alpha }) {
+                if (f.crown) Box(Modifier.size(32.dp).clip(CircleShape).background(GOLD).border(3.dp, Color.Black.copy(alpha = .18f), CircleShape), contentAlignment = Alignment.Center) { CrownIcon(19.dp) }
+                else PlayingBack(look, f.w)
+            }
+        }
         val k = play.pileK
         for (f in play.flying) key(f) {
             val el = if (f.t0 == 0L) 0f else (now - f.t0) / 1e9f
