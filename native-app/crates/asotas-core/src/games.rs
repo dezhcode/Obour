@@ -1,0 +1,221 @@
+//! میزها: صف ناشناس، میز دعوت، لابی و خود بازی (service.py و ludo.py سرور).
+//! صف و لابی برای همهٔ بازی ها یکی است؛ وضعیت هر بازی مدل خودش را دارد (فعلا منچ).
+
+use std::collections::HashMap;
+
+use serde_json::Value;
+
+use crate::models::{int, text};
+
+fn opt(v: &Value) -> Option<String> {
+    Some(text(v)).filter(|s| !s.is_empty())
+}
+
+fn yes(v: &Value) -> bool {
+    match v {
+        Value::Bool(b) => *b,
+        Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0),
+        _ => false,
+    }
+}
+
+/// وضعیت صف ناشناس (queue_status)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct QueueState {
+    /// none، waiting یا matched
+    pub state: String,
+    pub match_id: Option<String>,
+    pub found: i64,
+    pub need: i64,
+    pub waited: i64,
+    /// چند ثانیهٔ دیگر ربات ها جای خالی را پر می کنند (فقط دوستانه)
+    pub bots_in: Option<i64>,
+    pub can_bots: bool,
+    /// free یا ranked
+    pub mode: String,
+}
+
+impl QueueState {
+    pub(crate) fn from_json(v: &Value) -> Self {
+        QueueState {
+            state: text(&v["state"]),
+            match_id: opt(&v["match"]),
+            found: int(&v["found"]),
+            need: int(&v["need"]),
+            waited: int(&v["waited"]),
+            bots_in: if v["bots_in"].is_null() { None } else { Some(int(&v["bots_in"])) },
+            can_bots: yes(&v["can_bots"]),
+            mode: opt(&v["cfg"]["mode"]).unwrap_or_else(|| "free".into()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Invited {
+    pub match_id: String,
+    pub code: String,
+    /// لینک t.me ربات (اگر ربات تنظیم شده باشد)
+    pub link: String,
+}
+
+/// کسی که سر میز دعوت نشسته
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Seat {
+    pub color: String,
+    pub name: String,
+    pub av: i64,
+    pub pic: Option<String>,
+    pub me: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Lobby {
+    pub seats: Vec<Seat>,
+    pub code: String,
+    pub host: bool,
+    pub link: String,
+}
+
+/// نتیجهٔ میز تمام شده برای من
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct MatchResult {
+    pub won: bool,
+    pub coins: i64,
+    pub cups: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct LudoPlayer {
+    pub name: String,
+    pub av: i64,
+    pub pic: Option<String>,
+    pub bot: bool,
+    pub out: bool,
+    pub me: bool,
+}
+
+/// یک رویداد میز منچ (تاس، حرکت، زدن، بی حرکت، سه شش)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct LudoEvent {
+    pub seq: i64,
+    /// roll، move، nomove، six3، ...
+    pub t: String,
+    pub c: String,
+    pub v: i64,
+    pub k: i64,
+    pub from: i64,
+    pub to: i64,
+    pub fin: bool,
+    /// مهره هایی که زده شدند: رنگ و شماره
+    pub caps: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct LudoGame {
+    pub order: Vec<String>,
+    pub players: HashMap<String, LudoPlayer>,
+    /// جای هر مهره: -۱ لانه، ۰ تا ۵۰ مسیر، ۵۱ تا ۵۵ راهرو، ۵۶ خانه
+    pub pawns: HashMap<String, Vec<i64>>,
+    pub turn: Option<String>,
+    /// roll یا move
+    pub phase: String,
+    pub dice: Option<i64>,
+    pub movable: Vec<i64>,
+    pub deadline_ms: i64,
+    pub turn_ms: i64,
+    pub last: HashMap<String, i64>,
+    pub done: HashMap<String, i64>,
+    pub events: Vec<LudoEvent>,
+    pub seq: i64,
+    pub over: bool,
+    pub winner: Option<String>,
+}
+
+/// `GET <game>/match`: میز (لابی یا بازی) از دید من
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct MatchView {
+    pub id: String,
+    /// lobby، playing، over یا cancelled
+    pub status: String,
+    pub me: Option<String>,
+    pub players: i64,
+    pub pawns: i64,
+    pub mode: String,
+    pub lobby: Option<Lobby>,
+    pub ludo: Option<LudoGame>,
+    pub result: Option<MatchResult>,
+}
+
+fn map<T>(v: &Value, f: impl Fn(&Value) -> T) -> HashMap<String, T> {
+    v.as_object().map(|o| o.iter().map(|(k, x)| (k.clone(), f(x))).collect()).unwrap_or_default()
+}
+
+fn ints(v: &Value) -> Vec<i64> {
+    v.as_array().map(|a| a.iter().map(int).collect()).unwrap_or_default()
+}
+
+impl MatchView {
+    pub(crate) fn from_json(v: &Value, game: &str, resolve: &impl Fn(&str) -> String) -> Self {
+        let pic = |p: &Value| opt(p).map(|u| resolve(&u));
+        let lobby = v.get("lobby").filter(|l| l.is_object()).map(|l| Lobby {
+            seats: l["seats"].as_array().map(|a| a.iter().map(|s| Seat {
+                color: text(&s["color"]),
+                name: text(&s["name"]),
+                av: int(&s["av"]).max(1),
+                pic: pic(&s["pic"]),
+                me: yes(&s["me"]),
+            }).collect()).unwrap_or_default(),
+            code: text(&l["code"]),
+            host: yes(&l["host"]),
+            link: text(&l["link"]),
+        });
+        let g = &v["game"];
+        let ludo = (game == "ludo" && g.is_object()).then(|| LudoGame {
+            order: g["order"].as_array().map(|a| a.iter().map(text).collect()).unwrap_or_default(),
+            players: map(&g["players"], |p| LudoPlayer {
+                name: text(&p["name"]),
+                av: int(&p["av"]).max(1),
+                pic: pic(&p["pic"]),
+                bot: yes(&p["bot"]),
+                out: yes(&p["out"]),
+                me: yes(&p["me"]),
+            }),
+            pawns: map(&g["pawns"], ints),
+            turn: opt(&g["turn"]),
+            phase: text(&g["phase"]),
+            dice: if g["dice"].is_null() { None } else { Some(int(&g["dice"])) },
+            movable: ints(&g["movable"]),
+            deadline_ms: int(&g["deadline_ms"]),
+            turn_ms: int(&g["turn_ms"]),
+            last: map(&g["last"], int),
+            done: map(&g["done"], int),
+            events: g["events"].as_array().map(|a| a.iter().map(|e| LudoEvent {
+                seq: int(&e["seq"]),
+                t: text(&e["t"]),
+                c: text(&e["c"]),
+                v: int(&e["v"]),
+                k: int(&e["k"]),
+                from: int(&e["frm"]),
+                to: int(&e["to"]),
+                fin: yes(&e["fin"]),
+                caps: e["cap"].as_array().map(|a| a.iter().map(|x| format!("{}:{}", text(&x[0]), int(&x[1])))
+                    .collect()).unwrap_or_default(),
+            }).collect()).unwrap_or_default(),
+            seq: int(&g["seq"]),
+            over: yes(&g["over"]),
+            winner: opt(&g["winner"]),
+        });
+        let r = &v["result"];
+        MatchView {
+            id: text(&v["id"]),
+            status: text(&v["status"]),
+            me: opt(&v["me"]),
+            players: int(&v["cfg"]["players"]),
+            pawns: int(&v["cfg"]["pawns"]),
+            mode: opt(&v["cfg"]["mode"]).unwrap_or_else(|| "free".into()),
+            lobby,
+            ludo,
+            result: r.is_object().then(|| MatchResult { won: yes(&r["won"]), coins: int(&r["coins"]), cups: int(&r["cups"]) }),
+        }
+    }
+}

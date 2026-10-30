@@ -92,6 +92,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    // عکس پروفایل
+    implementation("io.coil-kt:coil-compose:2.7.0")
 
     // کد اتصال UniFFI با JNA کتابخانهٔ Rust را صدا می زند
     implementation("net.java.dev.jna:jna:5.17.0@aar")

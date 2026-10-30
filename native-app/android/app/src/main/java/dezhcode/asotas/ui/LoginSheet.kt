@@ -51,6 +51,8 @@ import dezhcode.asotas.LoginStep
 import dezhcode.asotas.fa
 import dezhcode.asotas.toLatinDigits
 
+private val TelegramBlue = androidx.compose.ui.graphics.Color(0xFF229ED9)
+
 /** برگهٔ ورود: تلگرام (لینک ربات و تأیید) یا ایمیل (کد ۶ رقمی)؛ همان روند مینی اپ در gc.js */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,7 +110,7 @@ private fun Choose(vm: AppViewModel, welcome: Boolean, openLink: (String) -> Uni
         onClick = { vm.telegramStart(openLink) },
         enabled = !vm.busy,
         modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = Palette.Telegram),
+        colors = ButtonDefaults.buttonColors(containerColor = TelegramBlue),
     ) { Text("✈️  ورود با تلگرام") }
     OutlinedButton(onClick = { vm.emailStep() }, modifier = Modifier.fillMaxWidth()) { Text("✉️  ورود با ایمیل") }
     Message(vm.loginMessage)
@@ -214,7 +216,7 @@ private fun TelegramStep(vm: AppViewModel, step: LoginStep.Telegram, openLink: (
         Button(
             onClick = { openLink(step.link) },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Palette.Telegram),
+            colors = ButtonDefaults.buttonColors(containerColor = TelegramBlue),
         ) { Text("✈️  باز کردن تلگرام") }
     } else {
         Message(step.failed)
@@ -222,7 +224,7 @@ private fun TelegramStep(vm: AppViewModel, step: LoginStep.Telegram, openLink: (
             onClick = { vm.telegramStart(openLink) },
             enabled = !vm.busy,
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Palette.Telegram),
+            colors = ButtonDefaults.buttonColors(containerColor = TelegramBlue),
         ) { Text("یه بار دیگه") }
     }
     Message(vm.loginMessage)

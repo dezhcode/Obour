@@ -26,26 +26,201 @@ pub struct Daily {
     pub plan: Vec<i64>,
 }
 
+/// سطح بازیکن (همان level() در gc.js): هر بازی ۱۰ و هر برد ۱۵ تجربه؛ سطح بعد هر بار ۵۰ تجربه گران تر
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Level {
+    pub lv: i64,
+    pub xp: i64,
+    /// تجربهٔ باقی تا سطح بعد
+    pub left: i64,
+    /// پیشرفت در همین سطح، ۰ تا ۱
+    pub frac: f64,
+}
+
+/// میز باز کاربر برای «میزای دیگه‌ت» در خانه (service.my_tables)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct TableInfo {
+    /// queue (در صف)، lobby (منتظر بازیکن) یا playing
+    pub kind: String,
+    pub game: String,
+    pub id: Option<String>,
+    pub found: i64,
+    pub need: i64,
+    /// نوبت من است (فقط بازی در جریان)
+    pub my_turn: bool,
+    /// سازندهٔ میز دعوت منم
+    pub host: bool,
+}
+
 /// خلاصهٔ `GET /gc/api/me` برای صفحهٔ خانه
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct Me {
     pub name: String,
     /// آدرس کامل عکس پروفایل (یا None)
     pub pic: Option<String>,
+    /// شمارهٔ رنگ آواتار (av)
+    pub av: i64,
     /// سکه (فیلد points سرور)
     pub coins: i64,
     pub games: i64,
     pub wins: i64,
+    pub level: Level,
     pub bio: String,
     pub joined: i64,
+    /// یوزرنیم تازه هنوز به کاربر نشان داده نشده (کارت «اسمت تو بازی اینه»)
+    pub name_hint: bool,
     pub account: Account,
     pub daily: Daily,
+    /// درخواست های دوستی تازه و پیام های خوانده نشده
+    pub requests: i64,
+    pub unread: i64,
+    pub tables: Vec<TableInfo>,
+    /// کاور پروفایل (gc) و همهٔ کاورها
+    pub cover: String,
+    /// دست های حکم هفت به صفر (برای نشان ها)
+    pub kots: i64,
+    /// بیشترین جام در یکی از بازی های رتبه ای (نشان لیگ)
+    pub max_cups: i64,
+    pub sound: bool,
+    /// تاریخچهٔ سکه
+    pub history: Vec<Ledger>,
     pub banned: bool,
     pub maintenance: bool,
     pub notice: String,
     pub ranked_enabled: bool,
     pub active_match: Option<String>,
     pub active_game: Option<String>,
+}
+
+/// یک بازیکن دیگر (social.public)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Person {
+    pub uid: String,
+    pub name: String,
+    pub av: i64,
+    pub pic: Option<String>,
+    pub bio: String,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Friend {
+    pub person: Person,
+    pub online: bool,
+    /// بازی که الان سرش است (hokm، ludo، ...) یا None
+    pub playing: Option<String>,
+    /// آخرین بار آنلاین (ثانیهٔ یونیکس)
+    pub seen: i64,
+    pub unread: i64,
+}
+
+/// کارت یک بازیکن (friends/find و friends/user): همان آدم، کارنامه و وضعیت، و رابطه با من
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct UserCard {
+    pub person: Person,
+    pub games: i64,
+    pub wins: i64,
+    pub joined: i64,
+    pub online: bool,
+    pub playing: Option<String>,
+    pub seen: i64,
+    /// none، outgoing، incoming، friend، blocked یا self
+    pub relation: String,
+}
+
+/// یک پیام خصوصی؛ دعوت به بازی بازی و کد میز را هم دارد
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct DmMessage {
+    pub id: i64,
+    pub me: bool,
+    /// text یا invite
+    pub kind: String,
+    pub text: String,
+    pub at: i64,
+    pub game: Option<String>,
+    pub code: Option<String>,
+    /// شناسهٔ میز دعوت
+    pub match_id: Option<String>,
+}
+
+/// `GET dm`: طرف گفتگو، رابطه و پیام ها
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct DmChat {
+    pub user: Friend,
+    pub relation: String,
+    pub messages: Vec<DmMessage>,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct GameInvite {
+    pub match_id: String,
+    pub code: String,
+    pub game: String,
+}
+
+/// یک طرح میز یا ورق حکم در فروشگاه
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct StyleItem {
+    pub id: String,
+    /// table یا cards
+    pub kind: String,
+    pub look: String,
+    pub name: String,
+    pub price: i64,
+    pub owned: bool,
+    pub on: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Styles {
+    pub items: Vec<StyleItem>,
+    pub table: String,
+    pub cards: String,
+    pub points: i64,
+}
+
+/// یک ردیف تاریخچهٔ سکه
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Ledger {
+    pub kind: String,
+    pub amount: i64,
+    pub note: String,
+    pub status: String,
+    pub at: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct GameStat {
+    pub game: String,
+    pub games: i64,
+    pub wins: i64,
+    pub prize: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct RecentGame {
+    pub game: String,
+    pub won: bool,
+    pub prize: i64,
+    pub at: i64,
+    pub cups: i64,
+    /// free، ranked یا stake
+    pub mode: String,
+}
+
+/// `GET profile`: کارنامهٔ هر بازی و آخرین بازی ها
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Profile {
+    pub games: Vec<GameStat>,
+    pub recent: Vec<RecentGame>,
+}
+
+/// `GET /gc/api/friends`
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Friends {
+    pub friends: Vec<Friend>,
+    pub incoming: Vec<Person>,
+    pub outgoing: Vec<Person>,
+    pub blocked: Vec<Person>,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -81,6 +256,26 @@ pub enum TelegramState {
 pub struct TelegramCheck {
     pub state: TelegramState,
     pub account: Option<Account>,
+}
+
+/// `GET name/check`: یوزرنیم پیشنهادی قبول است یا نه (و اگر گرفته شده، چند پیشنهاد)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct NameCheck {
+    pub name: String,
+    pub ok: bool,
+    pub error: Option<String>,
+    pub suggest: Vec<String>,
+}
+
+impl NameCheck {
+    pub(crate) fn from_json(v: &Value) -> Self {
+        NameCheck {
+            name: text(&v["name"]),
+            ok: truthy(&v["ok"]),
+            error: opt_text(&v["error"]),
+            suggest: v["suggest"].as_array().map(|a| a.iter().map(text).collect()).unwrap_or_default(),
+        }
+    }
 }
 
 /// کد ۶ رقمی فرستاده شد
@@ -148,20 +343,172 @@ impl Daily {
     }
 }
 
+#[uniffi::export]
+pub fn level(games: i64, wins: i64) -> Level {
+    let xp = games.max(0) * 10 + wins.max(0) * 15;
+    let (mut lv, mut base, mut need) = (1, 0, 100);
+    while xp >= base + need {
+        base += need;
+        lv += 1;
+        need = 100 + (lv - 1) * 50;
+    }
+    Level { lv, xp, left: base + need - xp, frac: (xp - base) as f64 / need as f64 }
+}
+
+impl TableInfo {
+    fn from_json(v: &Value) -> Self {
+        TableInfo {
+            kind: text(&v["kind"]),
+            game: text(&v["game"]),
+            id: opt_text(&v["id"]),
+            found: int(&v["found"]),
+            need: int(&v["need"]),
+            my_turn: truthy(&v["my_turn"]),
+            host: truthy(&v["host"]),
+        }
+    }
+}
+
+impl Person {
+    pub(crate) fn from_json(v: &Value, resolve: &impl Fn(&str) -> String) -> Self {
+        Person {
+            uid: text(&v["uid"]),
+            name: text(&v["name"]),
+            av: int(&v["av"]).max(1),
+            pic: opt_text(&v["pic"]).map(|u| resolve(&u)),
+            bio: text(&v["bio"]),
+        }
+    }
+}
+
+fn list<T>(v: &Value, f: impl Fn(&Value) -> T) -> Vec<T> {
+    v.as_array().map(|a| a.iter().map(f).collect()).unwrap_or_default()
+}
+
+impl Friend {
+    pub(crate) fn from_json(f: &Value, resolve: &impl Fn(&str) -> String) -> Self {
+        Friend {
+            person: Person::from_json(f, resolve),
+            online: truthy(&f["online"]),
+            playing: opt_text(&f["playing"]),
+            seen: int(&f["seen"]),
+            unread: int(&f["unread"]),
+        }
+    }
+}
+
+impl UserCard {
+    pub(crate) fn from_json(v: &Value, resolve: &impl Fn(&str) -> String) -> Self {
+        let u = &v["user"];
+        UserCard {
+            person: Person::from_json(u, resolve),
+            games: int(&u["games"]),
+            wins: int(&u["wins"]),
+            joined: int(&u["joined"]),
+            online: truthy(&u["online"]),
+            playing: opt_text(&u["playing"]),
+            seen: int(&u["seen"]),
+            relation: text(&v["relation"]),
+        }
+    }
+}
+
+impl DmChat {
+    pub(crate) fn from_json(v: &Value, resolve: &impl Fn(&str) -> String) -> Self {
+        DmChat {
+            user: Friend::from_json(&v["user"], resolve),
+            relation: text(&v["relation"]),
+            messages: list(&v["messages"], |m| DmMessage {
+                id: int(&m["id"]),
+                me: truthy(&m["me"]),
+                kind: text(&m["kind"]),
+                text: text(&m["text"]),
+                at: int(&m["at"]),
+                game: opt_text(&m["meta"]["game"]),
+                code: opt_text(&m["meta"]["code"]),
+                match_id: opt_text(&m["meta"]["match"]),
+            }),
+        }
+    }
+}
+
+impl Styles {
+    pub(crate) fn from_json(v: &Value) -> Self {
+        Styles {
+            items: list(&v["items"], |i| StyleItem {
+                id: text(&i["id"]),
+                kind: text(&i["kind"]),
+                look: text(&i["look"]),
+                name: text(&i["name"]),
+                price: int(&i["price"]),
+                owned: truthy(&i["owned"]),
+                on: truthy(&i["on"]),
+            }),
+            table: text(&v["table"]),
+            cards: text(&v["cards"]),
+            points: int(&v["points"]),
+        }
+    }
+}
+
+impl Profile {
+    pub(crate) fn from_json(v: &Value) -> Self {
+        Profile {
+            games: list(&v["games"], |g| GameStat { game: text(&g["game"]), games: int(&g["games"]), wins: int(&g["wins"]), prize: int(&g["prize"]) }),
+            recent: list(&v["recent"], |r| RecentGame {
+                game: text(&r["game"]),
+                won: truthy(&r["won"]),
+                prize: int(&r["prize"]),
+                at: int(&r["at"]),
+                cups: int(&r["cups"]),
+                mode: opt_text(&r["mode"]).unwrap_or_else(|| "free".into()),
+            }),
+        }
+    }
+}
+
+impl Friends {
+    pub(crate) fn from_json(v: &Value, resolve: impl Fn(&str) -> String) -> Self {
+        let people = |k: &str| -> Vec<Person> {
+            v[k].as_array().map(|a| a.iter().map(|p| Person::from_json(p, &resolve)).collect()).unwrap_or_default()
+        };
+        let friends = list(&v["friends"], |f| Friend::from_json(f, &resolve));
+        Friends { friends, incoming: people("incoming"), outgoing: people("outgoing"), blocked: people("blocked") }
+    }
+}
+
 impl Me {
     /// `resolve` آدرس نسبی عکس (pic/...) را کامل می کند
     pub(crate) fn from_json(v: &Value, resolve: impl Fn(&str) -> String) -> Self {
         let p = &v["player"];
+        let (games, wins) = (int(&p["games"]), int(&p["wins"]));
         Me {
             name: text(&p["name"]),
             pic: opt_text(&p["pic"]).map(|u| resolve(&u)),
+            av: int(&p["av"]).max(1),
             coins: int(&p["points"]),
-            games: int(&p["games"]),
-            wins: int(&p["wins"]),
+            games,
+            wins,
+            level: level(games, wins),
             bio: text(&p["bio"]),
             joined: int(&p["joined"]),
+            name_hint: truthy(&p["name_hint"]),
             account: Account::from_json(&v["account"]),
             daily: Daily::from_json(&v["daily"]),
+            requests: int(&v["social"]["requests"]),
+            unread: int(&v["social"]["unread"]),
+            tables: list(&v["tables"], TableInfo::from_json),
+            cover: opt_text(&p["cover"]).unwrap_or_else(|| "gc".into()),
+            kots: int(&p["kots"]),
+            max_cups: v["ranks"].as_object().map(|o| o.values().map(|r| int(&r["cups"])).max().unwrap_or(0)).unwrap_or(0).max(0),
+            sound: p.get("sound").map(truthy).unwrap_or(true),
+            history: list(&v["history"], |l| Ledger {
+                kind: text(&l["kind"]),
+                amount: int(&l["amount"]),
+                note: text(&l["note"]),
+                status: text(&l["status"]),
+                at: int(&l["created_at"]),
+            }),
             banned: truthy(&v["banned"]),
             maintenance: truthy(&v["maintenance"]),
             notice: text(&v["notice"]),

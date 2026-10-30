@@ -8,3 +8,6 @@
 # ساخته می شوند (build-rust.sh)
 /android/app/src/main/jniLibs/
 /android/app/src/uniffi/
+/android/app/src/main/res/font/
+# صداهای آزمایشی که هنوز تأیید نشده اند
+/assets/sfx-test/

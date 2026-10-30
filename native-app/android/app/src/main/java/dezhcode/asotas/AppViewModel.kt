@@ -17,7 +17,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import dezhcode.asotas.core.ApiException
 import dezhcode.asotas.core.Client
+import dezhcode.asotas.core.Friends
 import dezhcode.asotas.core.Me
+import dezhcode.asotas.core.NameCheck
+import dezhcode.asotas.core.TableInfo
 import dezhcode.asotas.core.TelegramState
 
 sealed interface HomeState {
@@ -35,14 +38,32 @@ sealed interface LoginStep {
     data class Telegram(val link: String, val failed: String? = null) : LoginStep
 }
 
+/** بخش های نوار پایین */
+enum class Tab { HOME, FRIENDS, GAMES, SHOP, PROFILE }
+
+/** پوسته مثل مینی اپ: خودکار (مثل گوشی)، روشن یا تیره */
+enum class ThemeMode { AUTO, LIGHT, DARK }
+
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val client = Client(
         BuildConfig.SERVER_URL,
         app.noBackupFilesDir.absolutePath,
         Build.MODEL.orEmpty().ifBlank { "Android" },
     )
+    private val prefs = app.getSharedPreferences("asotas", android.content.Context.MODE_PRIVATE)
 
     var home by mutableStateOf<HomeState>(HomeState.Loading)
+        private set
+    var tab by mutableStateOf(Tab.HOME)
+        private set
+    var theme by mutableStateOf(runCatching { ThemeMode.valueOf(prefs.getString("theme", null) ?: "AUTO") }.getOrDefault(ThemeMode.AUTO))
+        private set
+    var friends by mutableStateOf<Friends?>(null)
+        private set
+    /** کارت جایزهٔ روزانه در خانه: اگر امروز گرفته نشده بود (بعد از گرفتن همان جا می ماند) */
+    var showDaily by mutableStateOf(false)
+        private set
+    var nameEdit by mutableStateOf(false)
         private set
     var login by mutableStateOf<LoginStep>(LoginStep.Closed)
         private set
@@ -53,6 +74,66 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val toasts = MutableSharedFlow<String>(extraBufferCapacity = 4)
 
     private var telegramJob: Job? = null
+
+    /** موجودی سکه برای سربرگ ها */
+    val balance: Long? get() = (home as? HomeState.Ready)?.me?.coins
+    val me: Me? get() = (home as? HomeState.Ready)?.me
+
+    /** برگه یا پنجرهٔ باز روی صفحه */
+    var sheet by mutableStateOf<Sheet?>(null)
+        private set
+
+    fun openSheet(s: Sheet) {
+        sheet = s
+    }
+
+    fun closeSheet() {
+        sheet = null
+    }
+
+    /** لرزش برگ ها در حکم (فقط روی همین گوشی، مثل S.tilt مینی اپ) */
+    var tilt by mutableStateOf(prefs.getBoolean("tilt", true))
+        private set
+
+    fun toggleTilt() {
+        tilt = !tilt
+        prefs.edit().putBoolean("tilt", tilt).apply()
+    }
+
+    fun toggleSound() {
+        val on = !(me?.sound ?: true)
+        update { it.copy(sound = on) }
+        profile.setSound(on)
+    }
+
+    val social = SocialModel(viewModelScope, client, ::toast) { refresh() }
+    val shop = ShopModel(viewModelScope, client, ::toast) { coins -> update { it.copy(coins = coins) } }
+    val profile = ProfileModel(viewModelScope, client, ::toast)
+    val play = PlayModel(viewModelScope, client, ::toast) { refresh() }
+
+    /** بازی هایی که در برنامهٔ نیتیو آماده اند */
+    private val ready = setOf("ludo")
+
+    /** میز منچ تازه برای صفحهٔ بازی */
+    fun ludo(matchId: String) = LudoModel(client, matchId, ::toast)
+
+    /** رده بندی یک بازی (JSON خام سرور) */
+    suspend fun leaderboard(game: String, period: String): org.json.JSONObject? = try {
+        org.json.JSONObject(io { client.apiGet("leaderboard", mapOf("game" to game, "period" to period)) })
+    } catch (e: Exception) {
+        null
+    }
+
+    /** آدرس نسبی سرور (pic/...) → کامل */
+    fun absolute(u: String): String = if (u.startsWith("pic/") || u.startsWith("media/")) BuildConfig.SERVER_URL + u else u
+
+    fun setBio(bio: String) {
+        update { it.copy(bio = bio) }
+    }
+
+    fun setCover(id: String) {
+        update { it.copy(cover = id) }
+    }
 
     init {
         // بار اول: برگهٔ «خوش اومدی» (ورود یا «فعلاً مهمون می‌مونم»)
@@ -66,12 +147,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         toasts.tryEmit(text)
     }
 
+    private fun update(change: (Me) -> Me) {
+        (home as? HomeState.Ready)?.let { home = HomeState.Ready(change(it.me)) }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             val before = home
             if (before !is HomeState.Ready) home = HomeState.Loading
             home = try {
-                HomeState.Ready(io { client.me() })
+                val me = io { client.me() }
+                if (before !is HomeState.Ready) showDaily = !me.daily.claimed
+                HomeState.Ready(me)
             } catch (e: ApiException) {
                 if (before is HomeState.Ready) {
                     toast(errorText(e))
@@ -80,17 +167,41 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     HomeState.Failed(errorText(e))
                 }
             }
+            loadFriends()
         }
     }
 
+    private fun loadFriends() {
+        viewModelScope.launch {
+            friends = try { io { client.friends() } } catch (e: ApiException) { friends }
+        }
+    }
+
+    fun selectTab(t: Tab) {
+        tab = t
+        when (t) {
+            Tab.FRIENDS -> loadFriends()
+            Tab.SHOP -> shop.load()
+            Tab.PROFILE -> { profile.load(); shop.load() }
+            else -> Unit
+        }
+    }
+
+    /** دوستان از نو (بعد از قبول، حذف، ...) */
+    fun reloadFriends() = loadFriends()
+
+    fun chooseTheme(m: ThemeMode) {
+        theme = m
+        prefs.edit().putString("theme", m.name).apply()
+    }
+
     fun claimDaily() {
-        val ready = home as? HomeState.Ready ?: return
-        if (busy) return
+        if (busy || home !is HomeState.Ready) return
         viewModelScope.launch {
             busy = true
             try {
                 val r = io { client.dailyClaim() }
-                home = HomeState.Ready(ready.me.copy(coins = r.balance, daily = r.daily))
+                update { it.copy(coins = r.balance, daily = r.daily) }
                 toast("+${r.coins.fa()} سکه ریخت تو کیفت 🎉")
             } catch (e: ApiException) {
                 toast(errorText(e))
@@ -100,8 +211,71 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun gameSoon(game: Game) {
-        toast("${game.title} به‌زودی تو برنامهٔ نیتیو میاد 🚧")
+    fun openGame(game: Game) {
+        if (game.id in ready) play.openLobby(game.id) else toast("${game.title} به‌زودی تو برنامهٔ نیتیو میاد 🚧")
+    }
+
+    fun openTable(t: TableInfo) {
+        if (t.game in ready) play.resume(t.game, t.id, t.kind) else game(t.game)?.let(::openGame)
+    }
+
+    /** کارت دعوت در چت: میز خودم را ادامه بده، یا با کد سر میز رفیقم بنشین */
+    fun openInvite(gameId: String, mine: Boolean, matchId: String?, code: String?) {
+        when {
+            gameId !in ready -> soon("میز ${game(gameId)?.title.orEmpty()}")
+            mine && matchId != null -> { social.closeChat(); play.resume(gameId, matchId, "lobby") }
+            code != null -> { social.closeChat(); play.join(gameId, code) }
+        }
+    }
+
+    /** راهنمای باز (شناسهٔ بخش، "" یعنی از اول) */
+    var help by mutableStateOf<String?>(null)
+        private set
+
+    fun openHelp(section: String = "") {
+        help = section
+    }
+
+    fun closeHelp() {
+        help = null
+    }
+
+    fun soon(what: String) {
+        toast("$what به‌زودی میاد 🚧")
+    }
+
+    // ---------- یوزرنیم ----------
+    fun hideNameHint() {
+        update { it.copy(nameHint = false) }
+        viewModelScope.launch { runCatching { io { client.nameSeen() } } }
+    }
+
+    fun openNameEdit() {
+        nameEdit = true
+    }
+
+    fun closeNameEdit() {
+        nameEdit = false
+    }
+
+    /** بررسی یوزرنیم با سرور؛ خطای شبکه = نامعلوم (null) */
+    suspend fun checkName(name: String): NameCheck? = try { io { client.nameCheck(name) } } catch (e: ApiException) { null }
+
+    fun saveName(name: String) {
+        if (busy) return
+        viewModelScope.launch {
+            busy = true
+            try {
+                val n = io { client.setName(name) }
+                update { it.copy(name = n, nameHint = false) }
+                nameEdit = false
+                toast("حله یوزرنیمت شد $n ✅")
+            } catch (e: ApiException) {
+                toast(errorText(e))
+            } finally {
+                busy = false
+            }
+        }
     }
 
     // ---------- ورود ----------

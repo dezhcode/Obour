@@ -10,9 +10,11 @@ uniffi::setup_scaffolding!();
 
 mod client;
 mod error;
+mod games;
 mod models;
 mod store;
 
 pub use client::Client;
 pub use error::ApiError;
+pub use games::*;
 pub use models::*;
