@@ -42,7 +42,7 @@ import dezhcode.asotas.Tab
 fun AppShell(vm: AppViewModel, openLink: (String) -> Unit) {
     val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val bottom = navBottom + 64.dp
-    BackHandler(enabled = vm.tab != Tab.HOME && vm.social.chat == null && vm.play.lobby == null && vm.play.playing == null) { vm.selectTab(Tab.HOME) }
+    BackHandler(enabled = vm.tab != Tab.HOME && vm.social.chat == null && vm.play.lobby == null && vm.play.playing == null && vm.help == null) { vm.selectTab(Tab.HOME) }
     Box(Modifier.fillMaxSize().background(Aso.c.ground)) {
         Box(Modifier.fillMaxSize().statusBarsPadding()) {
             when (vm.tab) {
@@ -58,6 +58,7 @@ fun AppShell(vm: AppViewModel, openLink: (String) -> Unit) {
         vm.play.lobby?.let { LobbyScreen(vm, it) }
         vm.play.playing?.let { if (it.game == "ludo") LudoScreen(vm, it.matchId) }
         vm.social.chat?.let { ChatScreen(vm, it) }
+        vm.help?.let { HelpScreen(vm, it) }
         ToastHost(vm.toasts, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom + 40.dp))
     }
     LoginSheet(vm, openLink)

@@ -90,6 +90,8 @@ val LOBBIES = mapOf(
     ),
 )
 
+private val HELP_ID = mapOf("ludo" to "hLudo", "hokm" to "hHokm", "football" to "hFootball", "billiard" to "hBilliard", "divar" to "hDivar", "snakes" to "hSnakes")
+
 private fun levelTitle(lv: Long) = when { lv < 3 -> "تازه‌کار"; lv < 6 -> "آشنا"; lv < 10 -> "حرفه‌ای"; else -> "استاد" }
 
 private val StarVector: ImageVector by lazy {
@@ -187,6 +189,7 @@ fun LobbyScreen(vm: AppViewModel, gameId: String) {
                             }
                         }
                         "rules" -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Btn("راهنمای کامل", { vm.openHelp(HELP_ID[gameId] ?: "") }, Modifier.fillMaxWidth(), kind = BtnKind.Light, icon = "help")
                             spec.rules.forEachIndexed { i, (b, s) ->
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Box(Modifier.size(26.dp).clip(CircleShape).background(c.accTint), contentAlignment = Alignment.Center) {

@@ -228,6 +228,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** راهنمای باز (شناسهٔ بخش، "" یعنی از اول) */
+    var help by mutableStateOf<String?>(null)
+        private set
+
+    fun openHelp(section: String = "") {
+        help = section
+    }
+
+    fun closeHelp() {
+        help = null
+    }
+
     fun soon(what: String) {
         toast("$what به‌زودی میاد 🚧")
     }

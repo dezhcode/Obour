@@ -93,7 +93,7 @@ fun ShopScreen(vm: AppViewModel, bottom: Dp) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("فروشگاه", style = rokh(24f, 32f), color = c.ink, modifier = Modifier.weight(1f))
-            IconBtn("help", onClick = { vm.soon("راهنما") })
+            IconBtn("help", onClick = { vm.openHelp("hClub") })
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(scroll).padding(PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottom + 24.dp)),

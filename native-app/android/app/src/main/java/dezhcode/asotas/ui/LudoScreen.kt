@@ -215,7 +215,7 @@ private fun Table(vm: AppViewModel, model: LudoModel, g: LudoGame, me: String, o
                 }
             }
             GameIcon(if (vm.me?.sound != false) "soundOn" else "soundOff") { vm.toggleSound() }
-            GameIcon("help") { vm.soon("آموزش منچ") }
+            GameIcon("help") { vm.openHelp("hLudo") }
         }
         // ---------- صندلی های بالا، صفحه، صندلی های پایین ----------
         val corner = { col: String -> ((BASE[col] ?: 0) + (rot / 90).toInt()) % 4 }
