@@ -55,6 +55,11 @@ body:is(.game,.hokm,.divar,.football,.billiard){color-scheme:dark;
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%;direction:rtl}
+/* مثل یک برنامه: نگه داشتن انگشت روی متن انتخاب و کپی نمی کند و لمس کادر آبی نمی گذارد؛
+   جای نوشتن (ورودی ها) و پنل مدیریت (.selectable) انتخاب می شوند */
+html{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+input,textarea,[contenteditable="true"],.selectable,.selectable *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+:focus:not(:focus-visible){outline:none}
 body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--font-peyda);font-size:14.5px;line-height:24px;font-weight:400;background:var(--ground)}
 body:is(.game,.hokm,.divar,.football,.billiard){background:linear-gradient(180deg,#0F201B 0,#0B1714 55%,#09130F) fixed var(--ground)}
 /* رخ فقط برای عنوان ها؛ بقیه متن ها با پیدا (فونت ربات عبور) */
