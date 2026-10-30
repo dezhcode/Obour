@@ -239,7 +239,7 @@ private fun Chip(label: String, icon: String, on: Boolean, onClick: () -> Unit) 
 private fun LevelCard(vm: AppViewModel, gameId: String, title: String) {
     val c = Aso.c
     val s = vm.profile.data?.games?.firstOrNull { it.game == gameId }
-    val l = level(s?.games ?: 0, s?.wins ?: 0)
+    val l = level(s?.games ?: 0L, s?.wins ?: 0L)
     val shape = RoundedCornerShape(18.dp)
     Row(Modifier.fillMaxWidth().padding(top = 12.dp).clip(shape).background(c.surface).lined(shape).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -250,7 +250,7 @@ private fun LevelCard(vm: AppViewModel, gameId: String, title: String) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row {
                 Text("${levelTitle(l.lv)} · سطح ${l.lv.fd()} در $title", style = peyda(13f, 18f, 800), color = c.ink, modifier = Modifier.weight(1f), maxLines = 1)
-                Text(if ((s?.games ?: 0) > 0) "${s!!.games.fd()} بازی · ${s.wins.fd()} برد" else "اولین بازیتو شروع کن", style = peyda(11.5f, 18f), color = c.inkMuted)
+                Text(if ((s?.games ?: 0L) > 0L) "${s!!.games.fd()} بازی · ${s.wins.fd()} برد" else "اولین بازیتو شروع کن", style = peyda(11.5f, 18f), color = c.inkMuted)
             }
             Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(c.line)) {
                 Box(Modifier.fillMaxWidth(l.frac.toFloat().coerceIn(0f, 1f)).height(6.dp).clip(RoundedCornerShape(3.dp)).background(c.acc))

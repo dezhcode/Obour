@@ -109,6 +109,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val social = SocialModel(viewModelScope, client, ::toast) { refresh() }
     val shop = ShopModel(viewModelScope, client, ::toast) { coins -> update { it.copy(coins = coins) } }
     val profile = ProfileModel(viewModelScope, client, ::toast)
+    val play = PlayModel(viewModelScope, client, ::toast) { refresh() }
+
+    /** بازی هایی که در برنامهٔ نیتیو آماده اند */
+    private val ready = setOf("ludo")
+
+    /** میز منچ تازه برای صفحهٔ بازی */
+    fun ludo(matchId: String) = LudoModel(client, matchId, ::toast)
+
+    /** رده بندی یک بازی (JSON خام سرور) */
+    suspend fun leaderboard(game: String, period: String): org.json.JSONObject? = try {
+        org.json.JSONObject(io { client.apiGet("leaderboard", mapOf("game" to game, "period" to period)) })
+    } catch (e: Exception) {
+        null
+    }
+
+    /** آدرس نسبی سرور (pic/...) → کامل */
+    fun absolute(u: String): String = if (u.startsWith("pic/") || u.startsWith("media/")) BuildConfig.SERVER_URL + u else u
 
     fun setBio(bio: String) {
         update { it.copy(bio = bio) }
@@ -195,11 +212,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun openGame(game: Game) {
-        toast("${game.title} به‌زودی تو برنامهٔ نیتیو میاد 🚧")
+        if (game.id in ready) play.openLobby(game.id) else toast("${game.title} به‌زودی تو برنامهٔ نیتیو میاد 🚧")
     }
 
     fun openTable(t: TableInfo) {
-        game(t.game)?.let(::openGame)
+        if (t.game in ready) play.resume(t.game, t.id, t.kind) else game(t.game)?.let(::openGame)
+    }
+
+    /** کارت دعوت در چت: میز خودم را ادامه بده، یا با کد سر میز رفیقم بنشین */
+    fun openInvite(gameId: String, mine: Boolean, matchId: String?, code: String?) {
+        when {
+            gameId !in ready -> soon("میز ${game(gameId)?.title.orEmpty()}")
+            mine && matchId != null -> { social.closeChat(); play.resume(gameId, matchId, "lobby") }
+            code != null -> { social.closeChat(); play.join(gameId, code) }
+        }
     }
 
     fun soon(what: String) {

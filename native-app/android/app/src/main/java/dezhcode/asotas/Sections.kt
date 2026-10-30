@@ -26,6 +26,7 @@ sealed interface Sheet {
     data class Buy(val item: StyleItem) : Sheet
     data object Bio : Sheet
     data object Cover : Sheet
+    data object Notifications : Sheet
 }
 
 internal suspend fun <T> io(block: () -> T): T = withContext(Dispatchers.IO) { block() }

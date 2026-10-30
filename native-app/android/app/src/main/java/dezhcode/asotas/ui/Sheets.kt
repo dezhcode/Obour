@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import dezhcode.asotas.AppViewModel
 import dezhcode.asotas.Sheet
 import dezhcode.asotas.core.UserCard
@@ -65,6 +66,7 @@ fun SheetHost(vm: AppViewModel) {
         is Sheet.Buy -> BuySheet(vm, s)
         Sheet.Bio -> BioSheet(vm)
         Sheet.Cover -> CoverSheet(vm)
+        Sheet.Notifications -> NotificationsSheet(vm)
     }
 }
 
@@ -338,5 +340,48 @@ private fun CoverSheet(vm: AppViewModel) {
         }
         Spacer(Modifier.height(0.dp))
         Text("کاورای تازه به‌زودی میان", style = peyda(12f, 18f), color = c.inkMuted, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+// ---------- اعلان ها (زنگ خانه): نوبت من، میز منتظر، درخواست دوستی، پیام تازه، پیام تاسی ----------
+private data class Alert(val icon: String, val fg: Color, val bg: Color, val title: String, val sub: String, val go: (() -> Unit)?)
+
+/** تعداد اعلان های تازه برای نشان زنگ (میز منتظر حساب نمی شود) */
+fun alertCount(me: dezhcode.asotas.core.Me): Int =
+    me.tables.count { it.kind == "playing" && it.myTurn } + me.requests.toInt() + me.unread.toInt()
+
+@Composable
+private fun NotificationsSheet(vm: AppViewModel) {
+    val c = Aso.c
+    val me = vm.me
+    val list = buildList {
+        me?.tables?.forEach { t ->
+            val g = game(t.game)
+            if (t.kind == "playing" && t.myTurn) add(Alert("clock", c.acc, c.accTint, "نوبت توئه تو ${g?.title.orEmpty()}", "برگرد سر میز تا وقتت نسوخته") { vm.closeSheet(); vm.openTable(t) })
+            else if (t.kind == "lobby") add(Alert("users", Color(0xFF1F6B3B), Color(0xFFE3F1E8), "میز ${g?.title.orEmpty()} منتظرته", "${t.found.fd()} از ${t.need.fd()} نفر نشستن") { vm.closeSheet(); vm.openTable(t) })
+        }
+        if ((me?.requests ?: 0) > 0) add(Alert("userAdd", c.acc, c.accTint, "${me!!.requests.fd()} درخواست دوستی تازه", "یه سر به تب درخواست‌ها بزن") { vm.closeSheet(); vm.selectTab(dezhcode.asotas.Tab.FRIENDS) })
+        if ((me?.unread ?: 0) > 0) add(Alert("chat", c.acc, c.accTint, "${me!!.unread.fd()} پیام نخونده", "رفیقات برات پیام فرستادن") { vm.closeSheet(); vm.selectTab(dezhcode.asotas.Tab.FRIENDS) })
+        if (!me?.notice.isNullOrBlank()) add(Alert("bell", c.inkMuted, c.surfaceSunk, "پیام از طرف تاسی", me!!.notice, null))
+    }
+    AsoSheet(vm::closeSheet, "اعلان‌ها") {
+        if (list.isEmpty()) {
+            Text("فعلاً خبری نیست داش هر وقت نوبتت شد یا یه میز منتظرت بود اینجا می‌بینی", style = peyda(12f, 18f), color = c.inkMuted,
+                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            list.forEach { a ->
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(c.surfaceSunk)
+                    .then(if (a.go != null) Modifier.press(.99f, onClick = a.go) else Modifier).padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(a.bg), contentAlignment = Alignment.Center) { Ic(a.icon, size = 21.dp, tint = a.fg) }
+                    Column(Modifier.weight(1f)) {
+                        Text(a.title, style = peyda(14f, 21f, 800), color = c.ink)
+                        Text(a.sub, style = peyda(12f, 18f), color = c.inkMuted)
+                    }
+                    if (a.go != null) Ic("fwd", size = 18.dp, tint = c.inkMuted)
+                }
+            }
+        }
     }
 }

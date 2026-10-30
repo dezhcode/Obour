@@ -115,7 +115,7 @@ private fun Header(me: Me, vm: AppViewModel) {
                 }
             }
         }
-        IconBtn("bell", onClick = { vm.selectTab(Tab.FRIENDS) }, badge = (me.requests + me.unread).toInt())
+        IconBtn("bell", onClick = { vm.openSheet(dezhcode.asotas.Sheet.Notifications) }, badge = alertCount(me))
         CoinPill(me.coins, onClick = { vm.selectTab(Tab.SHOP) })
     }
 }
@@ -284,7 +284,7 @@ private fun tableStatus(t: TableInfo): String = when (t.kind) {
 private fun Quick(vm: AppViewModel) {
     val c = Aso.c
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        QuickTile("userAdd", c.accTint, c.acc, "دعوت دوست", "با هم بازی کنیم", Modifier.weight(1f)) { vm.selectTab(Tab.FRIENDS) }
+        QuickTile("userAdd", c.accTint, c.acc, "دعوت دوست", "با هم بازی کنیم", Modifier.weight(1f)) { vm.openSheet(dezhcode.asotas.Sheet.AddFriend) }
         QuickTile("cards", if (c.dark) Color(0x2E3DD68C) else Color(0xFFE3F1E8), if (c.dark) Color(0xFF7ED6A1) else Color(0xFF1F6B3B),
             "ورق و میز", "قیافهٔ حکم", Modifier.weight(1f)) { vm.selectTab(Tab.SHOP) }
         QuickTile("help", c.surfaceSunk, c.inkMuted, "راهنما", "قانون بازیا", Modifier.weight(1f)) { vm.soon("راهنما") }

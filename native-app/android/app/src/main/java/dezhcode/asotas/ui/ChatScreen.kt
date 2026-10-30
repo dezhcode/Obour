@@ -208,7 +208,7 @@ private fun Bubble(m: DmMessage, them: Person?, vm: AppViewModel) {
                         Text(if (m.me) "سر میز منتظر رفیقتی" else "میز آزاد · ${clock(m.at)}", style = peyda(12f, 18f), color = c.inkMuted)
                     }
                 }
-                Btn(if (m.me) "برو سر میز" else "بشین سر میز", { vm.soon("میز ${g?.title.orEmpty()}") }, Modifier.fillMaxWidth().height(44.dp),
+                Btn(if (m.me) "برو سر میز" else "بشین سر میز", { vm.openInvite(m.game ?: "hokm", m.me, m.matchId, m.code) }, Modifier.fillMaxWidth().height(44.dp),
                     kind = if (m.me) BtnKind.Light else BtnKind.Primary, small = true)
             }
         } else {
