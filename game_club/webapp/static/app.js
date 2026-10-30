@@ -137,6 +137,9 @@
     register: quiet => call('AsoPush', 'register', { quiet: !!quiet }),
     remind: (at, title, body) => call('AsoPush', 'remind', { at, title, body }),
     unremind: () => call('AsoPush', 'unremind'),
+    // برنامهٔ بسته هم نوتیفیکیشن بگیرد: وضعیت و باز کردن تنظیمات گوشی (برنامه از نسخهٔ ۷)
+    status: () => call('AsoPush', 'status'),
+    open: what => call('AsoPush', { battery: 'openBattery', autostart: 'openAutostart', notify: 'openNotify' }[what]),
     onOpen(fn) {
       if (!push.ok()) return;
       try {

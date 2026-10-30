@@ -163,6 +163,7 @@
     <div class="sec-head"><h2 id="hSet">تنظیمات</h2></div>
     <div class="sets">
       <div class="set" id="pfAcc" hidden></div>
+      <button class="set" id="pfPush" hidden style="width:100%;border:0;background:none;font:inherit;color:inherit;text-align:right;cursor:pointer"><span><b>نوتیفیکیشن وقتی برنامه بسته‌ست</b><small>اگه نوبت و دعوت وقتی برنامه بسته‌ست نمی‌رسه</small></span><i data-ic="fwd"></i></button>
       <div class="set"><span><b>پوسته</b><small>خودکار مثل تلگرام</small></span><div class="seg" id="segTheme" role="group" aria-label="پوسته"><button data-m="auto">خودکار</button><button data-m="light">روشن</button><button data-m="dark">تیره</button></div></div>
       <div class="set"><span><b>صدای بازی</b><small>صدای ورق و تاس و توپ و تماشاچیا</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
       <div class="set"><span><b>تکون خوردن برگا تو حکم</b><small>گوشی رو کج کنی برگای وسط میز سُر می‌خورن</small></span><button class="switch" role="switch" id="swTilt" aria-label="تکان برگ‌ها در حکم"></button></div>
@@ -202,6 +203,7 @@
     $('kPts').textContent = fa(p.points);
     $('swSound').setAttribute('aria-checked', String(!!S.sound));
     $('swTilt').setAttribute('aria-checked', String(S.tilt !== false));
+    if (GC.pushHelpOk()) { $('pfPush').hidden = false; $('pfPush').onclick = () => GC.pushHelp(false); }
     // نسخهٔ صفحه ها داخل برنامه (آپدیت خودکار): برای پیگیری مشکل ها
     if (window.GCApp && window.GCApp.bundle) { $('pfVer').textContent = 'AsoTas · ' + window.GCApp.bundle; $('pfVer').hidden = false; }
   }

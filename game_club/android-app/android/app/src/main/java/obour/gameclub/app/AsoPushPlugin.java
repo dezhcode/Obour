@@ -4,8 +4,14 @@ import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
+
+import androidx.core.app.NotificationManagerCompat;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
@@ -22,6 +28,8 @@ import com.google.firebase.messaging.FirebaseMessaging;
  *  - register: اجازهٔ اندروید ۱۳، توکن فایربیس (سرور: POST /gc/api/push/token) و تاپیک all (پاپ آپ پنل)
  *  - remind / unremind: یادآوری جایزهٔ روزانه روی خود گوشی
  *  - رویداد open: کاربر نوتیفیکیشنی را لمس کرد؛ page صفحه ای است که باید باز شود
+ *  - status / openBattery / openAutostart / openNotify: برنامهٔ بسته نوتیفیکیشن بگیرد. شیائومی، هواوی، اوپو،
+ *    ویوو و ... برنامهٔ بسته را کامل می بندند مگر «اجرای خودکار» و «باتری بدون محدودیت» روشن باشد
  * بی google-services.json فایربیس راه نمی افتد و register با کد no_firebase رد می شود (بقیه کار می کند).
  */
 @CapacitorPlugin(name = "AsoPush", permissions = {
@@ -86,6 +94,78 @@ public class AsoPushPlugin extends Plugin {
             o.put("allowed", allowed);
             call.resolve(o);
         });
+    }
+
+    // سازنده هایی که برنامهٔ بسته را می کشند و صفحهٔ «اجرای خودکار» دارند
+    private static final String[][] AUTOSTART = {
+            {"com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"},
+            {"com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"},
+            {"com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"},
+            {"com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"},
+            {"com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity"},
+            {"com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"},
+            {"com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"},
+            {"com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity"},
+            {"com.asus.mobilemanager", "com.asus.mobilemanager.MainActivity"},
+    };
+
+    private Intent autostartIntent() {
+        for (String[] c : AUTOSTART) {
+            Intent in = new Intent().setComponent(new ComponentName(c[0], c[1])).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (in.resolveActivity(getContext().getPackageManager()) != null) return in;
+        }
+        return null;
+    }
+
+    private boolean batteryOk() {
+        PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+        return pm == null || pm.isIgnoringBatteryOptimizations(getContext().getPackageName());
+    }
+
+    /** وضعیت: اجازهٔ نوتیفیکیشن، باتری بدون محدودیت، و اینکه گوشی صفحهٔ «اجرای خودکار» دارد */
+    @PluginMethod
+    public void status(PluginCall call) {
+        JSObject o = new JSObject();
+        o.put("maker", Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.toLowerCase());
+        o.put("notify", NotificationManagerCompat.from(getContext()).areNotificationsEnabled());
+        o.put("battery", batteryOk());
+        o.put("autostart", autostartIntent() != null);
+        call.resolve(o);
+    }
+
+    private void open(PluginCall call, Intent... tries) {
+        for (Intent in : tries) {
+            if (in == null) continue;
+            try {
+                getActivity().startActivity(in.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                call.resolve();
+                return;
+            } catch (Exception ignored) {
+                // بعدی
+            }
+        }
+        call.reject("no settings page", "failed");
+    }
+
+    private Intent appDetails() {
+        return new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
+    }
+
+    @PluginMethod
+    public void openBattery(PluginCall call) {
+        Intent ask = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getContext().getPackageName()));
+        open(call, batteryOk() ? null : ask, new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS), appDetails());
+    }
+
+    @PluginMethod
+    public void openAutostart(PluginCall call) {
+        open(call, autostartIntent(), appDetails());
+    }
+
+    @PluginMethod
+    public void openNotify(PluginCall call) {
+        Intent n = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
+        open(call, n, appDetails());
     }
 
     private PendingIntent reminder(String title, String body) {

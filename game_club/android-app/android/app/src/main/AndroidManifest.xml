@@ -58,9 +58,23 @@
         </provider>
     </application>
 
+    <!-- صفحهٔ «اجرای خودکار» سازنده های گوشی (AsoPushPlugin.openAutostart)؛ اندروید ۱۱ به بعد بی این دیده نمی شوند -->
+    <queries>
+        <package android:name="com.miui.securitycenter" />
+        <package android:name="com.huawei.systemmanager" />
+        <package android:name="com.coloros.safecenter" />
+        <package android:name="com.oppo.safe" />
+        <package android:name="com.vivo.permissionmanager" />
+        <package android:name="com.iqoo.secure" />
+        <package android:name="com.letv.android.letvsafe" />
+        <package android:name="com.asus.mobilemanager" />
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- نوتیفیکیشن نوبت، دعوت و پیام ها (اندروید ۱۳ به بعد اجازه می خواهد) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- «باتری بدون محدودیت» تا برنامهٔ بسته هم نوتیفیکیشن بگیرد (کاربر خودش تأیید می کند) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 </manifest>

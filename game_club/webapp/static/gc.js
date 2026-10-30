@@ -811,7 +811,38 @@ async function pushSetup(me) {
       await api('push/token', { body: { token: r.token } });
       store.set('push_tok', mark); store.set('push_at', Date.now());
     }
+    if (!store.get('push_help', false)) setTimeout(async () => { if (await pushHelp(true)) store.set('push_help', true); }, 2500);
   } catch (e) {}
+}
+/* برنامهٔ بسته هم نوتیفیکیشن بگیرد: شیائومی، هواوی، اوپو و ... برنامهٔ بسته را کامل می بندند مگر «اجرای خودکار»
+   و «باتری بدون محدودیت» روشن باشد. برگهٔ چند قدمی با دکمهٔ باز کردن همان تنظیم (برنامه از نسخهٔ ۷) */
+const pushHelpOk = () => !!(APP && APP.push && APP.push.ok() && window.Capacitor && Capacitor.isPluginAvailable
+  && Capacitor.isPluginAvailable('AsoPush'));
+async function pushHelp(auto) {
+  const P = APP && APP.push;
+  if (!pushHelpOk()) return false;
+  let st;
+  try { st = await P.status(); } catch (e) { return false; }      // نسخهٔ قدیمی برنامه این را ندارد
+  if (auto && st.notify && st.battery && !st.autostart) return false;
+  const row = (key, ok, title, sub) => `<li class="row ph-row" data-ph="${key}"><span class="ic-box" style="background:${ok ? 'var(--success-tint)' : 'var(--coin-tint)'};color:${ok ? 'var(--success)' : 'var(--coin-text)'}">${icon(ok ? 'check' : 'bell')}</span>
+    <span class="name">${title}<span class="meta">${ok ? 'روشنه' : sub}</span></span>${ok ? '' : '<span class="btn btn-sm">روشن کن</span>'}</li>`;
+  const sh = sheet(`${sheetHead('نوتیفیکیشن وقتی برنامه بسته‌ست')}
+    <p class="hint" style="margin:0 0 var(--space-3)">بعضی گوشی‌ها (مخصوصاً شیائومی، هواوی، اوپو و ویوو) برنامهٔ بسته رو کامل خاموش می‌کنن و نوبت و دعوت نمی‌رسه. این سه تا رو روشن کن</p>
+    <ul class="list">
+      ${row('notify', st.notify, 'اجازهٔ نوتیفیکیشن', 'خاموشه و هیچ پیامی نمیاد')}
+      ${row('battery', st.battery, 'باتری بدون محدودیت', 'تو صفحهٔ بازشده «اجازه بده» یا «بدون محدودیت» رو بزن')}
+      ${st.autostart ? `<li class="row ph-row" data-ph="autostart"><span class="ic-box" style="background:var(--coin-tint);color:var(--coin-text)">${icon('bolt')}</span>
+        <span class="name">اجرای خودکار (Autostart)<span class="meta">تو لیست AsoTas رو روشن کن</span></span><span class="btn btn-sm">باز کن</span></li>` : ''}
+    </ul>
+    <button class="btn btn-light btn-block" data-close style="margin-top:var(--space-3)">باشه</button>`);
+  sh.querySelectorAll('[data-ph]').forEach(el => el.onclick = () => {
+    if (!el.querySelector('.btn')) return;
+    P.open(el.dataset.ph).catch(() => toast('این صفحه رو تو تنظیمات گوشی خودت باز کن'));
+  });
+  // برگشت از تنظیمات: وضعیت تازه
+  const again = () => { if (document.hidden || !sh.isConnected) return; removeEventListener('visibilitychange', again); close(); pushHelp(false); };
+  addEventListener('visibilitychange', again);
+  return true;
 }
 // یادآوری جایزهٔ روزانه: نگرفته = امروز ساعت ۲۰؛ گرفته (یا ساعت ۲۰ گذشته) = فردا ساعت ۱۲:۳۰
 function dailyRemind(d) {
@@ -1407,7 +1438,7 @@ function watchOver(game, title, line) {
 const RATE = 500; // هر سکه چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
-window.GC = { editName, login, logoutSheet, dailyMount, iapBuy, iapRestore, iapReady, esc: escB, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
+window.GC = { editName, login, logoutSheet, dailyMount, pushHelp, pushHelpOk, iapBuy, iapRestore, iapReady, esc: escB, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
   get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, get snakes() { return live ? liveSnakes : GC.demo.snakes; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,
