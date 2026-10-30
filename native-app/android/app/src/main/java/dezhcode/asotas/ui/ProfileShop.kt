@@ -501,7 +501,8 @@ private fun Kpi(v: String, label: String, color: Color, modifier: Modifier) {
 }
 
 // ---------- آخرین بازی ها ----------
-private fun ago(t: Long): String {
+/** چند وقت پیش (ثانیهٔ یونیکس) */
+internal fun ago(t: Long): String {
     val d = Math.round((System.currentTimeMillis() / 1000 - t) / 60.0)
     return when {
         d < 1 -> "همین حالا"

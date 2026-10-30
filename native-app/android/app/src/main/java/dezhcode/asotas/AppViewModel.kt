@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Build
 import android.os.SystemClock
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
@@ -19,6 +20,7 @@ import dezhcode.asotas.core.ApiException
 import dezhcode.asotas.core.Client
 import dezhcode.asotas.core.Friends
 import dezhcode.asotas.core.Me
+import dezhcode.asotas.core.InboxItem
 import dezhcode.asotas.core.NameCheck
 import dezhcode.asotas.core.Popup
 import dezhcode.asotas.core.TableInfo
@@ -160,6 +162,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** با باز شدن یا برگشتن به برنامه و بعد از هر بازی؛ هر نسخه یک بار (حالت always: هر بار باز شدن برنامه)، وسط بازی نه */
     fun checkPopup() {
+        loadInbox()
         if (!client.hasSession() || popup != null) return
         viewModelScope.launch {
             val p = try { io { client.boot() } } catch (e: ApiException) { null } ?: return@launch
@@ -174,6 +177,42 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun closePopup() {
         popup = null
+    }
+
+    // ---------- صندوق پیام: پیام های همگانی و مستقیم ادمین (پیوی ربات در مینی اپ) ----------
+    var inbox by mutableStateOf<List<InboxItem>>(emptyList())
+        private set
+    /** زمان تازه ترین پیامی که دیده شده؛ تازه تر ها نخوانده اند */
+    var inboxSeen by mutableLongStateOf(prefs.getLong("inbox_seen", 0L))
+        private set
+    val inboxUnread: Int get() = inbox.count { it.at > inboxSeen }
+
+    fun loadInbox() {
+        if (!client.hasSession()) return
+        viewModelScope.launch {
+            // سرور قدیمی این مسیر را ندارد: صندوق خالی می ماند
+            inbox = try { io { client.inbox() } } catch (e: ApiException) { inbox }
+        }
+    }
+
+    fun markInboxRead() {
+        val top = inbox.maxOfOrNull { it.at } ?: return
+        if (top > inboxSeen) {
+            inboxSeen = top
+            prefs.edit().putLong("inbox_seen", top).apply()
+        }
+    }
+
+    /** دکمهٔ پیام: صفحهٔ مینی اپ به صفحهٔ خود برنامه */
+    fun openPage(page: String) {
+        when (page) {
+            "" -> selectTab(Tab.HOME)
+            "shop.html" -> selectTab(Tab.SHOP)
+            "profile.html" -> selectTab(Tab.PROFILE)
+            "games.html" -> selectTab(Tab.GAMES)
+            "friends.html" -> selectTab(Tab.FRIENDS)
+            else -> game(page.removeSuffix("-lobby.html"))?.let(::openGame) ?: selectTab(Tab.HOME)
+        }
     }
 
     fun refresh() {

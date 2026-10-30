@@ -682,8 +682,24 @@ def _bc_help() -> str:
         foot=("chart", "آمار", "پیشرفت و آمار ارسال‌ها توی پنل مدیریت (مینی اپ)"))
 
 
+async def _bc_content(bot: Bot, src: Message) -> tuple[str, str]:
+    """متن (HTML) و عکس پیام همگانی برای صندوق پیام برنامهٔ اندروید (آنجا پیام تلگرام کپی نمی شود)"""
+    text = (src.html_text or "")[:3500]
+    img = ""
+    if src.photo:
+        from . import gate
+        try:
+            # بزرگ ترین اندازه ای که زیر سقف عکس است
+            size = next((p for p in reversed(src.photo) if (p.file_size or 0) <= gate.IMG_MAX), None)
+            if size is not None:
+                img = gate.store_media((await bot.download(size)).read(), "bc")
+        except Exception as e:  # noqa: BLE001
+            log.info("عکس پیام همگانی AsoTas ذخیره نشد: %s", e)
+    return text, img
+
+
 @router.message(Command("gcbc"))
-async def on_broadcast(message: Message, gdb: GCDatabase) -> None:
+async def on_broadcast(message: Message, gdb: GCDatabase, bot: Bot) -> None:
     """پیام همگانی با هر نوع محتوا: روی یک پیام (عکس، ویدیو، متن...) ریپلای کن و بنویس /gcbc"""
     if not _is_admin(message):
         return
@@ -693,7 +709,8 @@ async def on_broadcast(message: Message, gdb: GCDatabase) -> None:
         return
     days = (message.text or "").split()[1:2]
     target = {"7": "active7", "30": "active30"}.get(days[0] if days else "", "all")
-    bid = await gdb.bc_draft(message.from_user.id, src.chat.id, src.message_id, "|ورود به AsoTas|brand", target)
+    text, img = await _bc_content(bot, src)
+    bid = await gdb.bc_draft(message.from_user.id, src.chat.id, src.message_id, "|ورود به AsoTas|brand", target, text, img)
     text, kb = await _bc_panel(gdb, bid, message.from_user.id)
     await message.answer(text, reply_markup=kb, reply_to_message_id=src.message_id)
 

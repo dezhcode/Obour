@@ -320,6 +320,38 @@ impl Popup {
     }
 }
 
+/// دکمهٔ زیر پیام صندوق: صفحهٔ مینی اپ (خالی = خانه، ludo-lobby.html، shop.html ...)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct InboxButton {
+    pub page: String,
+    pub label: String,
+}
+
+/// پیام صندوق: همگانی (broadcast) یا مستقیم از ادمین (admin)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct InboxItem {
+    pub id: String,
+    pub kind: String,
+    pub text: String,
+    pub img: Option<String>,
+    pub buttons: Vec<InboxButton>,
+    pub at: i64,
+}
+
+impl InboxItem {
+    pub(crate) fn from_json(v: &Value, resolve: &impl Fn(&str) -> String) -> Self {
+        InboxItem {
+            id: text(&v["id"]),
+            kind: text(&v["kind"]),
+            text: text(&v["text"]),
+            img: opt_text(&v["img"]).map(|u| resolve(&u)),
+            buttons: v["buttons"].as_array().map(|a| a.iter().map(|b| InboxButton { page: text(&b["page"]), label: text(&b["label"]) }).collect())
+                .unwrap_or_default(),
+            at: int(&v["at"]),
+        }
+    }
+}
+
 // ---------- خواندن JSON با تحمل ----------
 
 pub(crate) fn int(v: &Value) -> i64 {

@@ -69,6 +69,9 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
     # ---------- باز شدن مینی اپ: کانال های لازم و پیام پاپ آپ ----------
     if name == "boot" and method == "GET":
         return {"gate": [] if in_app else await gate.missing(gdb, g.bot, tg), "popup": await gate.popup_view(gdb)}
+    # صندوق پیام برنامهٔ اندروید: پیام های همگانی و پیام های مستقیم ادمین
+    if name == "inbox" and method == "GET":
+        return await admin.inbox_view(gdb, tg)
     if name == "gate/check" and method == "POST":      # «عضو شدم»: بدون حافظه دوباره از تلگرام
         return {"gate": await gate.missing(gdb, g.bot, tg, fresh=True)}
 

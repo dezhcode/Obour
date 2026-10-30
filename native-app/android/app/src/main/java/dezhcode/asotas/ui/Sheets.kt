@@ -4,6 +4,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -350,6 +352,36 @@ private data class Alert(val icon: String, val fg: Color, val bg: Color, val tit
 fun alertCount(me: dezhcode.asotas.core.Me): Int =
     me.tables.count { it.kind == "playing" && it.myTurn } + me.requests.toInt() + me.unread.toInt()
 
+/** یک پیام صندوق: «پیام از طرف تاسی»، عکس، متن، زمان و دکمه هایش */
+@Composable
+private fun InboxCard(vm: AppViewModel, m: dezhcode.asotas.core.InboxItem, fresh: Boolean) {
+    val c = Aso.c
+    val shape = RoundedCornerShape(22.dp)
+    Column(
+        Modifier.fillMaxWidth().clip(shape).background(c.surfaceSunk)
+            .then(if (fresh) Modifier.border(1.5.dp, c.acc, shape) else Modifier).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(c.accTint), contentAlignment = Alignment.Center) {
+                Ic(if (m.kind == "admin") "send" else "bell", size = 21.dp, tint = c.acc)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(if (m.kind == "admin") "پیام از طرف تاسی" else "پیام همگانی AsoTas", style = peyda(14f, 21f, 800), color = c.ink)
+                Text(ago(m.at), style = peyda(12f, 18f), color = c.inkMuted)
+            }
+        }
+        m.img?.let {
+            coil.compose.AsyncImage(model = it, contentDescription = null, contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 260.dp).clip(RoundedCornerShape(16.dp)))
+        }
+        if (m.text.isNotBlank()) Text(m.text, style = peyda(14f, 24f), color = c.ink)
+        m.buttons.forEach { b ->
+            Btn(b.label, { vm.closeSheet(); vm.openPage(b.page) }, Modifier.fillMaxWidth(), kind = BtnKind.Soft, small = true)
+        }
+    }
+}
+
 @Composable
 private fun NotificationsSheet(vm: AppViewModel) {
     val c = Aso.c
@@ -364,8 +396,12 @@ private fun NotificationsSheet(vm: AppViewModel) {
         if ((me?.unread ?: 0) > 0) add(Alert("chat", c.acc, c.accTint, "${me!!.unread.fd()} پیام نخونده", "رفیقات برات پیام فرستادن") { vm.closeSheet(); vm.selectTab(dezhcode.asotas.Tab.FRIENDS) })
         if (!me?.notice.isNullOrBlank()) add(Alert("bell", c.inkMuted, c.surfaceSunk, "پیام از طرف تاسی", me!!.notice, null))
     }
+    // باز شدن اعلان ها یعنی پیام ها دیده شدند (نشان زنگ پاک می شود، تازه ها تا بسته شدن برگه پررنگ می مانند)
+    val seenBefore = remember { vm.inboxSeen }
+    LaunchedEffect(vm.inbox) { vm.markInboxRead() }
     AsoSheet(vm::closeSheet, "اعلان‌ها") {
-        if (list.isEmpty()) {
+        vm.inbox.forEach { m -> InboxCard(vm, m, fresh = m.at > seenBefore) }
+        if (list.isEmpty() && vm.inbox.isEmpty()) {
             Text("فعلاً خبری نیست داش هر وقت نوبتت شد یا یه میز منتظرت بود اینجا می‌بینی", style = peyda(12f, 18f), color = c.inkMuted,
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         }

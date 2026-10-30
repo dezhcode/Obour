@@ -115,7 +115,7 @@ private fun Header(me: Me, vm: AppViewModel) {
                 }
             }
         }
-        IconBtn("bell", onClick = { vm.openSheet(dezhcode.asotas.Sheet.Notifications) }, badge = alertCount(me))
+        IconBtn("bell", onClick = { vm.openSheet(dezhcode.asotas.Sheet.Notifications) }, badge = alertCount(me) + vm.inboxUnread)
         CoinPill(me.coins, onClick = { vm.selectTab(Tab.SHOP) })
     }
 }

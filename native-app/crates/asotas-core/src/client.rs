@@ -179,6 +179,13 @@ impl Client {
         Ok(Popup::from_json(&j["popup"], |u| self.resolve(u)))
     }
 
+    /// صندوق پیام: پیام های همگانی و مستقیم ادمین (تازه ترین اول)
+    pub fn inbox(&self) -> Result<Vec<InboxItem>, ApiError> {
+        let j = self.api("inbox", Req::Get(&[]))?;
+        let r = |u: &str| self.resolve(u);
+        Ok(j["items"].as_array().map(|a| a.iter().map(|v| InboxItem::from_json(v, &r)).collect()).unwrap_or_default())
+    }
+
     pub fn daily_claim(&self) -> Result<DailyClaim, ApiError> {
         let j = self.api("daily", Req::Post(&json!({})))?;
         Ok(DailyClaim { coins: int(&j["coins"]), balance: int(&j["points"]), daily: Daily::from_json(&j["daily"]) })
@@ -547,6 +554,22 @@ mod tests {
         on.remove();
         server.mock("GET", "/gc/api/boot").with_body(r#"{"gate": [], "popup": null}"#).create();
         assert_eq!(c.boot().unwrap(), None);
+    }
+
+    #[test]
+    fn inbox_items() {
+        let mut server = Server::new();
+        let dir = tempfile::tempdir().unwrap();
+        TokenStore::open(&dir.path().to_string_lossy()).set(Some("t".into()));
+        server.mock("GET", "/gc/api/inbox")
+            .with_body(r#"{"items": [{"id": "m3", "kind": "admin", "text": "سلام", "img": "", "buttons": [{"page": "", "label": "خونه"}], "at": 20},
+                {"id": "b2", "kind": "broadcast", "text": "جام", "img": "media/bc-0123456789ab.jpg", "buttons": [], "at": 10}]}"#)
+            .create();
+        let c = client(&server, &dir);
+        let items = c.inbox().unwrap();
+        assert_eq!(items.len(), 2);
+        assert_eq!((items[0].id.as_str(), items[0].kind.as_str(), items[0].img.clone(), items[0].buttons[0].label.as_str()), ("m3", "admin", None, "خونه"));
+        assert!(items[1].img.as_deref().is_some_and(|u| u.ends_with("media/bc-0123456789ab.jpg")) && items[1].at == 10);
     }
 
     #[test]
