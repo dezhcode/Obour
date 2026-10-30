@@ -89,7 +89,7 @@
     if (tab === 'friends') {
       const list = data.friends.filter(f => !q || f.name.includes(q));
       const on = list.filter(f => f.online), off = list.filter(f => !f.online);
-      if (!data.friends.length) html = empty('users', 'هنوز رفیقی نداری داش', 'رفیقاتو با یوزرنیمشون پیدا کن و با هم بازی کنید', `<button class="btn" data-add>${icon('userAdd')}افزودن دوست</button>`);
+      if (!data.friends.length) html = empty('users', 'هنوز رفیقی نداری', 'رفیقاتو با یوزرنیمشون پیدا کن و با هم بازی کنید', `<button class="btn" data-add>${icon('userAdd')}افزودن دوست</button>`);
       else if (!list.length) html = empty('search', 'پیدا نشد', 'بین رفیقات کسی با این اسم نیست');
       else {
         if (on.length) html += `<h2 class="fl-h">آنلاین <i>${FD(on.length)}</i></h2><ul class="fl-list">${on.map(row).join('')}</ul>`;

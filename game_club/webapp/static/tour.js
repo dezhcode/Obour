@@ -133,7 +133,7 @@ window.GCTour = (() => {
       const art = cfg.art || (window.GC && GC.GAME_ART && GC.GAME_ART[aid] ? `<span class="g-art ${(GC.GAMES.find(g => g.id === aid) || {}).tint || ''}">${GC.GAME_ART[aid]()}</span>` : '');
       ui.card.className = 'gt-card mid gt-intro';
       ui.card.innerHTML = done
-        ? `<div class="gt-done">${window.GC ? GC.icon('check', 3) : '✓'}</div><h3 id="gtT">${esc(cfg.outroTitle || 'آماده‌ای داش! 🎉')}</h3>
+        ? `<div class="gt-done">${window.GC ? GC.icon('check', 3) : '✓'}</div><h3 id="gtT">${esc(cfg.outroTitle || 'آماده‌ای! 🎉')}</h3>
            <p>${esc(cfg.outro || 'همه چی رو بلدی هر وقت خواستی از دکمهٔ راهنمای بالای صفحه دوباره این آموزشو ببین')}</p>
            <div class="gt-foot"><button class="gt-btn gt-next" data-a="end">${esc(cfg.endLabel || 'بزن بریم!')}</button>${cfg.help ? `<a class="gt-link" href="${cfg.help}">قانونای کامل ${esc(cfg.name || '')}</a>` : ''}</div>`
         : `${art ? `<div class="gt-art">${art}</div>` : ''}<span class="gt-kick">آموزش سریع · ${FD(steps.length)} قدم</span>

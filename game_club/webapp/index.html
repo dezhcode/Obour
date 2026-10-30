@@ -161,7 +161,7 @@
   <div class="appbar-in">
     <a class="me-chip" href="profile.html" aria-label="پروفایل من">
       <span id="meAv"></span>
-      <span style="min-width:0"><span class="me-name" id="meName">سلام داش!</span><span class="me-sub" id="meSub">…</span></span>
+      <span style="min-width:0"><span class="me-name" id="meName">سلام!</span><span class="me-sub" id="meSub">…</span></span>
     </a>
     <div class="hd-acts">
       <button class="icon-btn bell" id="bell" aria-label="اعلان‌ها"><i data-ic="bell"></i><span class="badge" id="bellN" hidden></span></button>
@@ -286,7 +286,7 @@
   $('bell').onclick = () => {
     const list = alerts();
     const sh = sheet(`${sheetHead('اعلان‌ها')}<div class="ntf">${list.length ? list.map(a => `<${a.href ? `a href="${a.href}" data-g="${a.game || ''}" data-id="${a.id || ''}" data-k="${a.k || ''}"` : 'div'}><span class="ic" style="background:${a.bg};color:${a.c}">${icon(a.ic)}</span><span><b>${a.t}</b><small>${a.s}</small></span><span>${a.href ? icon('fwd') : ''}</span></${a.href ? 'a' : 'div'}>`).join('')
-      : '<p class="hint">فعلاً خبری نیست داش هر وقت نوبتت شد یا یه میز منتظرت بود اینجا می‌بینی</p>'}</div>`);
+      : '<p class="hint">فعلاً خبری نیست هر وقت نوبتت شد یا یه میز منتظرت بود اینجا می‌بینی</p>'}</div>`);
     sh.querySelectorAll('a[data-id]').forEach(a => a.addEventListener('click', () => { const g = GC.GAMES.find(x => x.id === a.dataset.g); if (a.dataset.k === 'playing' && a.dataset.id && g) store.set(KEY[g.id], a.dataset.id); }));
   };
 
@@ -385,7 +385,7 @@
       sig = ''; setTables(me.tables || []);
       // جایزهٔ روزانه فقط تا وقتی امروز گرفته نشده رو خونه دیده می شه (بعدش تو فروشگاه)
       if (me.daily && !me.daily.claimed) { $('daily').hidden = false; GC.dailyMount($('daily'), me.daily); } else $('daily').hidden = true;
-      const note = me.banned ? 'شرمنده داش حسابت تو AsoTas بسته شده اگه پیگیری می‌خوای به پشتیبانی عبور پیام بده'
+      const note = me.banned ? 'شرمنده حسابت تو AsoTas بسته شده اگه پیگیری می‌خوای به پشتیبانی عبور پیام بده'
         : me.maintenance ? 'داریم آپدیت می‌کنیم و تا چند دقیقه میز تازه ساخته نمی‌شه' : (me.notice || '');
       if (note) { $('noteTx').textContent = note; $('noteIc').innerHTML = icon(me.banned ? 'shield' : me.maintenance ? 'clock' : 'bell'); $('noteBar').hidden = false; $('noteBar').classList.toggle('bad', !!me.banned); }
       $('admLink').hidden = !me.is_admin;

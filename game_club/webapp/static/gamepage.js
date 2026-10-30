@@ -145,7 +145,7 @@ function build(opt) {
     const mine = cup ? (m.cups ? `${FD(m.cups)} جام · لیگ ${m.league}` : 'یه بازی رتبه‌ای ببر تا جام بگیری و بیای تو جدول')
       : m.wins ? `${FD(m.wins)} برد از ${FD(m.games)} بازی` : m.games ? `${FD(m.games)} بازی، هنوز بی‌برد` : 'یه بازی ببر تا بیای تو رده‌بندی';
     return `${per}${board.sample ? '<span class="tag tag-sample gp-sample">اینا نمونه‌ان</span>' : ''}
-      ${rows ? `<ol class="gp-board">${rows}</ol>` : `<div class="gp-empty">${icon('trophy')}<b>${cup ? 'هنوز کسی جام نگرفته' : 'هنوز کسی تو این بازه نبرده'}</b><small>اولین برنده تو باش داش</small></div>`}
+      ${rows ? `<ol class="gp-board">${rows}</ol>` : `<div class="gp-empty">${icon('trophy')}<b>${cup ? 'هنوز کسی جام نگرفته' : 'هنوز کسی تو این بازه نبرده'}</b><small>اولین برنده تو باش</small></div>`}
       ${!inList ? `<div class="gp-mine"><span class="n">${m.rank ? FD(m.rank) : '—'}</span><span class="t"><b>جای تو</b><small>${mine}</small></span></div>` : ''}`;
   }
   async function loadBoard() {

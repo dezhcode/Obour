@@ -267,7 +267,7 @@ document.querySelectorAll('.dv-slot').forEach(slot => slot.addEventListener('poi
     slot.removeEventListener('pointermove', mv); slot.removeEventListener('pointerup', up); slot.removeEventListener('pointercancel', up);
     pv.hidden = true;
     if (key && ok) { ghost.remove(); const [, oo, r, c] = key.match(/^([hv])(\d+),(\d+)$/); doWall(oo, +r, +c); return; }
-    if (key && !ok) { flashMsg('اینجا نمی‌شه داش یا می‌افته رو یه دیوار دیگه یا راه یکیو کامل می‌بنده', true); sfx.error(); }
+    if (key && !ok) { flashMsg('اینجا نمی‌شه یا می‌افته رو یه دیوار دیگه یا راه یکیو کامل می‌بنده', true); sfx.error(); }
     const sr = slot.getBoundingClientRect();
     ghost.classList.add('back'); ghost.style.transform = `translate(${sr.left + sr.width / 2 - gw / 2}px,${sr.top + sr.height / 2 - gh / 2}px) scale(.7)`; ghost.style.opacity = 0;
     setTimeout(() => ghost.remove(), 260);
