@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -82,13 +83,16 @@ fun HokmScreen(vm: AppViewModel, matchId: String) {
     var leaving by remember { mutableStateOf(false) }
     BackHandler { leaving = true }
     LaunchedEffect(Unit) { if (vm.shop.styles == null) vm.shop.load() }
-    LaunchedEffect(model) {
-        while (true) {
+    // فقط وقتی برنامه جلوی چشم است از سرور می پرسد؛ وگرنه سرور فکر می کند بازیکن سر میز است
+    // و نوتیفیکیشن نوبت نمی فرستد
+    val life = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(model, life) {
+        life.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { while (true) {
             model.poll()
             val v = model.view
             if (model.failed != null || v?.status == "over" || v?.status == "cancelled") break
             delay(900)
-        }
+        } }
     }
     val table = vm.shop.styles?.table ?: "a"
     val look = vm.shop.styles?.cards ?: "a"

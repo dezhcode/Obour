@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import html
 import json
 import logging
+import re
 import time
 
 import aiohttp
@@ -113,6 +115,8 @@ async def to_player(db, tg: int, text: str, page: str = "") -> None:  # noqa: AN
     """اعلان بازی (نوبت، میز منتظر و ...) به همهٔ گوشی های یک بازیکن"""
     if not enabled():
         return
+    # متن اعلان ها HTML تلگرام است (<b>نام</b>)؛ نوتیفیکیشن گوشی متن ساده می خواهد
+    text = html.unescape(re.sub(r"<[^>]+>", "", text)).strip()
     for t in await db.push_tokens_of(tg):
         r = await send(token=t, title="AsoTas", body=text, channel="turn", data={"page": page})
         if r == "gone":

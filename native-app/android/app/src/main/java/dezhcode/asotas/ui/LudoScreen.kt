@@ -59,6 +59,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -393,13 +394,16 @@ fun LudoScreen(vm: AppViewModel, matchId: String) {
         }
     }
     // پرسش هر ۰٫۹ ثانیه؛ تا رویدادها پخش می شوند پرسش تازه ای نمی رود
-    LaunchedEffect(model) {
-        while (true) {
+    // فقط وقتی برنامه جلوی چشم است از سرور می پرسد؛ وگرنه سرور فکر می کند بازیکن سر میز است
+    // و نوتیفیکیشن نوبت نمی فرستد
+    val life = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    LaunchedEffect(model, life) {
+        life.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) { while (true) {
             if (!play.busy && !model.acting) model.poll()
             val v = model.view
             if (model.failed != null || v?.status == "over" || v?.status == "cancelled") break
             delay(900)
-        }
+        } }
     }
     LaunchedEffect(model) { snapshotFlow { model.view }.filterNotNull().collect { play.apply(it) } }
 
