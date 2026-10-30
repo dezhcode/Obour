@@ -116,8 +116,9 @@ jobs:
           chmod +x gradlew
           V="-PgcVersionCode=$VCODE -PgcVersionName=$VNAME"
           # خطاهای کاتلین را به صورت annotation نشان بده (بدون ورود به گیت هاب هم دیده می‌شوند)
+          set -o pipefail
           ./gradlew --no-daemon assembleDebug $V 2>&1 | tee "$RUNNER_TEMP/gradle.log" || {
-            grep -E '^e: |^\* What went wrong' -A1 "$RUNNER_TEMP/gradle.log" | grep -v '^--$' | sed 's#file://[^ ]*/java/##' | head -20 |
+            grep -aE 'e: file|What went wrong' -A1 "$RUNNER_TEMP/gradle.log" | grep -v '^--$' | sed 's#file://[^ ]*/java/##' | head -20 |
               while IFS= read -r l; do echo "::error::$l"; done
             exit 1
           }

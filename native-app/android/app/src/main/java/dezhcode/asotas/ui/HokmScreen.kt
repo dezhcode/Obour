@@ -241,7 +241,7 @@ private class TableMotion {
         return CardPhysics.Box(l, t, r, bt)
     }
 
-    fun setBox(b: CardPhysics.Box) {
+    fun useBox(b: CardPhysics.Box) {
         box = b
         for (o in order) o.box = null
         kick()
@@ -729,7 +729,7 @@ private fun TableBody(vm: AppViewModel, model: TableModel, play: HokmPlay, motio
         val r = min(tableRect.right - wall, (rects["s1"]?.left ?: tableRect.right) - gap)
         val t = max(tableRect.top + wall, (rects["s2"]?.bottom ?: tableRect.top) + gap)
         val b = min(tableRect.bottom - wall, min(rects["me"]?.top ?: tableRect.bottom, rects["chat"]?.top ?: tableRect.bottom) - gap)
-        if (r > l && b > t) motion.setBox(CardPhysics.Box((l - pr.x) / k, (t - pr.y) / k, (r - pr.x) / k, (b - pr.y) / k))
+        if (r > l && b > t) motion.useBox(CardPhysics.Box((l - pr.x) / k, (t - pr.y) / k, (r - pr.x) / k, (b - pr.y) / k))
     }
     BoxWithConstraints(Modifier.fillMaxSize().onGloballyPositioned { tableRect = it.boundsInRoot(); remeasure() }.padding(horizontal = 8.dp, vertical = 12.dp)) {
         val W = maxWidth
