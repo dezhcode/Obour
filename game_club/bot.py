@@ -414,6 +414,7 @@ async def on_stats(message: Message, gdb: GCDatabase) -> None:
         ["الان: ", n(allt["playing"]), " میز در بازی، ", n(allt["lobby"]), " میز دعوت، ", n(allt["queue"]), " نفر تو صف"], "",
         [st.B("24 ساعت گذشته")],
         ["بازی تموم‌شده: ", n(day["games"])],
+        ["خرید سکه از مایکت: ", n(day["purchase"]), " سکه (", n(day["purchase"] * gc.point_toman), " تومن)"],
     ]))
 
 
