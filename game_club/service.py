@@ -130,13 +130,20 @@ AWAY = 12.0  # کسی که این مدت صفحه میز را نپرسیده، �
 
 
 async def _notify(db: GCDatabase, tg: int | None, key: str, text: str, page: str = "ludo.html") -> None:
-    """هر اعلان یک بار؛ خطای ارسال (مثلا ربات استارت نشده) بازی را نمی شکند."""
-    if notifier is None or not tg or not await db.ping_once(key):
+    """هر اعلان یک بار، در ربات تلگرام و نوتیفیکیشن گوشی (برنامهٔ اندروید)؛ خطای ارسال بازی را نمی شکند."""
+    from . import push
+
+    if (notifier is None and not push.enabled()) or not tg or not await db.ping_once(key):
         return
+    if notifier is not None and tg > 0:
+        try:
+            await notifier(tg, text, page, key=key.split(":", 1)[0])
+        except Exception:  # noqa: BLE001
+            log.debug("اعلان AsoTas نرفت", exc_info=True)
     try:
-        await notifier(tg, text, page, key=key.split(":", 1)[0])
+        await push.to_player(db, tg, text, page)
     except Exception:  # noqa: BLE001
-        log.debug("اعلان AsoTas نرفت", exc_info=True)
+        log.debug("نوتیفیکیشن گوشی AsoTas نرفت", exc_info=True)
 
 
 async def _away(db: GCDatabase, match_id: str, tg: int, now: float) -> bool:

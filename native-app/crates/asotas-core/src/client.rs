@@ -186,6 +186,12 @@ impl Client {
         Ok(j["items"].as_array().map(|a| a.iter().map(|v| InboxItem::from_json(v, &r)).collect()).unwrap_or_default())
     }
 
+    /// توکن نوتیفیکیشن گوشی (فایربیس) برای همین حساب
+    pub fn push_token(&self, token: String) -> Result<(), ApiError> {
+        self.api("push/token", Req::Post(&json!({ "token": token })))?;
+        Ok(())
+    }
+
     pub fn daily_claim(&self) -> Result<DailyClaim, ApiError> {
         let j = self.api("daily", Req::Post(&json!({})))?;
         Ok(DailyClaim { coins: int(&j["coins"]), balance: int(&j["points"]), daily: Daily::from_json(&j["daily"]) })
@@ -570,6 +576,18 @@ mod tests {
         assert_eq!(items.len(), 2);
         assert_eq!((items[0].id.as_str(), items[0].kind.as_str(), items[0].img.clone(), items[0].buttons[0].label.as_str()), ("m3", "admin", None, "خونه"));
         assert!(items[1].img.as_deref().is_some_and(|u| u.ends_with("media/bc-0123456789ab.jpg")) && items[1].at == 10);
+    }
+
+    #[test]
+    fn push_token_sent() {
+        let mut server = Server::new();
+        let dir = tempfile::tempdir().unwrap();
+        TokenStore::open(&dir.path().to_string_lossy()).set(Some("t".into()));
+        let m = server.mock("POST", "/gc/api/push/token").match_body(Matcher::Json(json!({ "token": "fcm:abc-123" })))
+            .with_body(r#"{"ok": true}"#).create();
+        let c = client(&server, &dir);
+        c.push_token("fcm:abc-123".into()).unwrap();
+        m.assert();
     }
 
     #[test]

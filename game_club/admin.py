@@ -436,7 +436,14 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
     if path == "popup":
         p = await gate.set_popup(db, body)
         await db.log_admin(admin, "popup", "popup", ("on " if p["on"] else "off ") + (p["title"] or p["text"])[:100])
-        return {"ok": True, "popup": p}
+        # گزینهٔ «نوتیفیکیشن گوشی»: تیتر، متن و عکس پاپ آپ برای همهٔ گوشی های برنامهٔ اندروید
+        pushed = False
+        if p["on"] and body.get("push") in (True, 1, "1", "true"):
+            from . import push
+            if push.enabled():
+                push.to_all(p["title"], p["text"], p.get("img") or "")
+                pushed = True
+        return {"ok": True, "popup": p, "pushed": pushed}
     if path == "setting":
         key = str(body.get("key") or "")
         if key not in SETTINGS:

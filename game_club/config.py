@@ -19,6 +19,8 @@ class GCConfig:
     token: str = os.getenv("GAME_CLUB_BOT_TOKEN", "").strip()
     username: str = os.getenv("GAME_CLUB_BOT_USERNAME", "").strip().lstrip("@")
     db_path: str = _abs_path(os.getenv("GAME_CLUB_DB_PATH", "").strip() or "data/game_club.db")
+    # کلید سرویس فایربیس (فایل JSON) برای نوتیفیکیشن گوشی برنامهٔ اندروید (push.py)؛ خالی = خاموش
+    fcm_key: str = _abs_path(os.getenv("GAME_CLUB_FCM_KEY", "").strip()) if os.getenv("GAME_CLUB_FCM_KEY", "").strip() else ""
     # زیرمسیر AsoTas روی همان دامنه عبور، مثلا https://site/obour/gc/
     path: str = "/" + (os.getenv("GAME_CLUB_PATH", "").strip().strip("/") or "gc")
     # رشته تصادفی جدا از WEBHOOK_SECRET عبور؛ بدونش وبهوک AsoTas بسته است

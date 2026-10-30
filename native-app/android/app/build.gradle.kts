@@ -5,6 +5,8 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    // google-services.json پروژهٔ فایربیس (نوتیفیکیشن نوبت و پاپ آپ پنل)
+    id("com.google.gms.google-services")
 }
 
 // شماره نسخه از workflow می آید: -PgcVersionCode=12 -PgcVersionName=1.2.0
@@ -91,6 +93,8 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.1")
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-messaging")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     // عکس پروفایل
     implementation("io.coil-kt:coil-compose:2.7.0")

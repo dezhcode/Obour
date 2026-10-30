@@ -203,6 +203,14 @@ CREATE TABLE IF NOT EXISTS inbox (
 );
 CREATE INDEX IF NOT EXISTS inbox_tg ON inbox(tg_id, id);
 
+-- توکن نوتیفیکیشن گوشی (فایربیس) هر نصب برنامهٔ اندروید
+CREATE TABLE IF NOT EXISTS push_tokens (
+  token TEXT PRIMARY KEY,
+  tg_id INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS push_tokens_tg ON push_tokens(tg_id);
+
 -- دوستی: هر جفت یک ردیف (a < b)؛ status = pending (درخواست requester) یا accepted
 CREATE TABLE IF NOT EXISTS friends (
   a INTEGER NOT NULL,
@@ -1349,6 +1357,20 @@ class GCDatabase:
     async def bc_progress(self, bid: int, cursor: int, sent: int, failed: int, blocked: int) -> None:
         await self.execute("UPDATE broadcasts SET cursor = ?, sent = sent + ?, failed = failed + ?, blocked = blocked + ? "
                            "WHERE id = ?", (cursor, sent, failed, blocked, bid))
+
+    # ---------- نوتیفیکیشن گوشی ----------
+    async def push_set(self, tg_id: int, token: str) -> None:
+        """توکن گوشی مال همین بازیکن می شود (اگر با حساب دیگری وارد شده بود جابه جا می شود)"""
+        await self.execute("INSERT INTO push_tokens(token, tg_id, updated_at) VALUES(?,?,?) ON CONFLICT(token) "
+                           "DO UPDATE SET tg_id = excluded.tg_id, updated_at = excluded.updated_at",
+                           (token, tg_id, int(time.time())))
+
+    async def push_tokens_of(self, tg_id: int) -> list[str]:
+        return [r["token"] for r in await self.all("SELECT token FROM push_tokens WHERE tg_id = ? ORDER BY updated_at DESC LIMIT 5",
+                                                   (tg_id,))]
+
+    async def push_drop(self, token: str) -> None:
+        await self.execute("DELETE FROM push_tokens WHERE token = ?", (token,))
 
     # ---------- صندوق پیام برنامه ----------
     async def bc_recent(self, since: int, limit: int = 40) -> list[dict]:

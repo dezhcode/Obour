@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- نوتیفیکیشن نوبت بازی و پیام های پنل (اندروید ۱۳ به بعد اجازه می خواهد) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- باز کردن ربات تلگرام برای ورود -->
     <queries>
@@ -28,5 +30,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- نوتیفیکیشن فایربیس: توکن گوشی برای سرور، و نمایش وقتی برنامه باز است -->
+        <service
+            android:name=".Push"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="turn" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
     </application>
 </manifest>

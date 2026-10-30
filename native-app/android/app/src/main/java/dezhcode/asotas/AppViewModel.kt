@@ -163,6 +163,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** با باز شدن یا برگشتن به برنامه و بعد از هر بازی؛ هر نسخه یک بار (حالت always: هر بار باز شدن برنامه)، وسط بازی نه */
     fun checkPopup() {
         loadInbox()
+        registerPush()
         if (!client.hasSession() || popup != null) return
         viewModelScope.launch {
             val p = try { io { client.boot() } } catch (e: ApiException) { null } ?: return@launch
@@ -177,6 +178,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun closePopup() {
         popup = null
+    }
+
+    /** نوتیفیکیشن گوشی: توکن فایربیس این نصب برای حساب فعلی (نوبت بازی) و تاپیک all (پاپ آپ پنل) */
+    fun registerPush() {
+        if (!client.hasSession()) return
+        runCatching {
+            val fm = com.google.firebase.messaging.FirebaseMessaging.getInstance()
+            fm.subscribeToTopic("all")
+            fm.token.addOnSuccessListener { tok ->
+                prefs.edit().putString("push_token", tok).apply()
+                viewModelScope.launch { try { io { client.pushToken(tok) } } catch (_: ApiException) {} }
+            }
+        }
     }
 
     // ---------- صندوق پیام: پیام های همگانی و مستقیم ادمین (پیوی ربات در مینی اپ) ----------
