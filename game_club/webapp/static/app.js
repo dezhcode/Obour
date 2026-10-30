@@ -24,9 +24,20 @@
   // ارتفاع نوار وضعیت را می دهد و فاصلهٔ بالای سربرگ دو برابر می شد
   const css = document.createElement('style');
   css.textContent = ':root{--sa-t:var(--safe-area-inset-top,0px);--sa-b:var(--safe-area-inset-bottom,0px);'
-    + '--sa-l:var(--safe-area-inset-left,0px);--sa-r:var(--safe-area-inset-right,0px)}';
+    + '--sa-l:var(--safe-area-inset-left,0px);--sa-r:var(--safe-area-inset-right,0px)}'
+    + 'html.app-boxed{--sa-t:0px;--sa-b:0px;--sa-l:0px;--sa-r:0px}';
   document.head.appendChild(css);
   document.documentElement.classList.add('app');
+  // صفحه زیر نوار وضعیت و نوار پایین گوشی کشیده شده؟ اگر نه (برنامه بین دو نوار است) فاصلهٔ بالا و پایین صفر،
+  // هر چه گوشی گزارش کند. بلندترین ارتفاع دیده شده حساب می شود تا باز شدن کیبورد اشتباهش نیندازد
+  let tallest = 0;
+  const edge = () => {
+    tallest = Math.max(tallest, innerHeight || 0);
+    document.documentElement.classList.toggle('app-boxed', !!screen.height && screen.height - tallest > 16);
+  };
+  edge();
+  addEventListener('resize', edge);
+  addEventListener('orientationchange', () => { tallest = 0; setTimeout(edge, 300); });
   // نگه داشتن انگشت: منوی کپی و ذخیرهٔ عکس نه (جای نوشتن همان رفتار عادی را دارد)
   addEventListener('contextmenu', e => { if (!e.target.closest('input,textarea,[contenteditable="true"]')) e.preventDefault(); }, true);
 
@@ -135,7 +146,7 @@
   };
 
   // ---------- آپدیت خودکار صفحه ها و بازی ها ----------
-  const OTA_EVERY = 20 * 60e3;
+  const OTA_EVERY = 5 * 60e3;
   async function ota() {
     if (Date.now() - (+ls.get('gc_ota_at') || 0) < OTA_EVERY) {
       if (ls.get('gc_ota_store')) storeBar();

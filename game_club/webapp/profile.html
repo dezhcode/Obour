@@ -167,6 +167,7 @@
       <div class="set"><span><b>صدای بازی</b><small>صدای ورق و تاس و توپ و تماشاچیا</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
       <div class="set"><span><b>تکون خوردن برگا تو حکم</b><small>گوشی رو کج کنی برگای وسط میز سُر می‌خورن</small></span><button class="switch" role="switch" id="swTilt" aria-label="تکان برگ‌ها در حکم"></button></div>
     </div>
+    <p class="hint" id="pfVer" dir="ltr" style="text-align:center;margin-top:var(--space-3)" hidden></p>
   </section>
 </main>
 <script src="static/gc.js"></script>
@@ -201,6 +202,8 @@
     $('kPts').textContent = fa(p.points);
     $('swSound').setAttribute('aria-checked', String(!!S.sound));
     $('swTilt').setAttribute('aria-checked', String(S.tilt !== false));
+    // نسخهٔ صفحه ها داخل برنامه (آپدیت خودکار): برای پیگیری مشکل ها
+    if (window.GCApp && window.GCApp.bundle) { $('pfVer').textContent = 'AsoTas · ' + window.GCApp.bundle; $('pfVer').hidden = false; }
   }
   // کلکسیون: میزها، ورق ها و کاورهایی که داری
   function renderCollection(sty) {
