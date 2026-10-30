@@ -2,4 +2,6 @@
 <resources>
     <!-- رنگ وسط زمینهٔ آبی و بنفش آیکون؛ زمینهٔ صفحهٔ شروع اندروید ۱۲ به بعد -->
     <color name="ic_launcher_background">#4F6DF2</color>
+    <!-- زمینهٔ صفحهٔ شروع (همان رنگ SplashScreen در capacitor.config.json) -->
+    <color name="splash_bg">#14213D</color>
 </resources>

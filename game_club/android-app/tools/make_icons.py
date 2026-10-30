@@ -94,6 +94,13 @@ def main() -> None:
             c = fit(full, round(min(W, H) * (.62 if orient == "port" else .72)))
             sp.alpha_composite(c, ((W - c.width) // 2, (H - c.height) // 2))
             save(sp.convert("RGB"), RES, f"drawable-{orient}-{dens}", "splash.png")
+    # صفحهٔ شروع اندروید ۱۲ به بعد: نشان گرد (آیکون نیم تنه روی همان زمینه) در دایرهٔ ۱۹۲ از بوم ۲۸۸ واحدی؛
+    # گوشی هایی که دایره را برش نمی زنند (مثل شیائومی) هم همان نشان گرد کامل را نشان می دهند
+    for dens, k in DENS.items():
+        n, d = round(288 * k), round(192 * k)
+        canvas = Image.new("RGBA", (n, n), (0, 0, 0, 0))
+        canvas.alpha_composite(masked(icon.resize((d, d), Image.LANCZOS), "circle"), ((n - d) // 2, (n - d) // 2))
+        save(canvas, RES, f"drawable-{dens}", "splash_icon.png")
     sp = background(480, 320, glow_at=(.5, .47), glow_r=.30)
     c = fit(full, 230)
     sp.alpha_composite(c, ((480 - c.width) // 2, (320 - c.height) // 2))
