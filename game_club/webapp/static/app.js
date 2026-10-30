@@ -27,6 +27,8 @@
     + '--sa-r:max(env(safe-area-inset-right,0px),var(--safe-area-inset-right,0px))}';
   document.head.appendChild(css);
   document.documentElement.classList.add('app');
+  // نگه داشتن انگشت: منوی کپی و ذخیرهٔ عکس نه (جای نوشتن همان رفتار عادی را دارد)
+  addEventListener('contextmenu', e => { if (!e.target.closest('input,textarea,[contenteditable="true"]')) e.preventDefault(); }, true);
 
   // ---------- حساب مهمان و توکن ----------
   const KEY = 'gc_app_token';
