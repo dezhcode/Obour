@@ -5,7 +5,7 @@
 | مورد | مقدار |
 |---|---|
 | اسم برنامه | **AsoTas** (آس‌وتاس)؛ شخصیت برند: «تاسی» داش‌مشتی |
-| نام بسته | `obour.gameclub.app` (بعد از اولین انتشار عوض نمی‌شود) |
+| نام بسته | `dezhcode.AsoTas.app`، همان برنامهٔ native-app (نسخهٔ آزمایشی debug: `dezhcode.AsoTas.app.dev`) |
 | سرور | `https://dezhcode.pyho.ir/obour/gc/` (همان سرور مینی اپ) |
 | ورود | مهمان، **تلگرام** (لینک ربات و تأیید) یا **ایمیل** (کد ۶ رقمی) |
 | آپدیت | صفحه‌ها و بازی‌ها خودکار از سرور؛ فقط تغییر کد اندروید آپدیت مایکت می‌خواهد |
@@ -113,19 +113,20 @@ cd android && ./gradlew assembleDebug        # یا با متغیرهای GC_KEY
 - لمس نوتیفیکیشن همان صفحه را باز می‌کند (میز، چت، فروشگاه). اجازهٔ اندروید ۱۳ یک بار بعد از خوش‌آمد پرسیده می‌شود.
 - کد: `AsoPushPlugin.java`، `PushService.java`، `Notify.java`، `ReminderReceiver.java`؛ از نسخهٔ ۳ برنامه.
 
-### راه‌اندازی (یک بار)
+### راه‌اندازی
 
-1. در [کنسول فایربیس](https://console.firebase.google.com) همان پروژهٔ برنامهٔ native (`second-cocoa-447009-m6`) ←
-   Add app ← Android با نام بستهٔ `obour.gameclub.app` ← فایل `google-services.json` را بگیر.
-2. گیت‌هاب ← Settings ← Secrets ← Actions ← `GC_GOOGLE_SERVICES` = همان فایل به base64
-   (`base64 -w0 google-services.json`). بدونش برنامه ساخته می‌شود ولی نوتیفیکیشن ندارد.
-3. سرور: `GAME_CLUB_FCM_KEY` = مسیر فایل کلید سرویس فایربیس (Project settings ← Service accounts ← Generate new
-   private key) کنار دیتابیس، هرگز در گیت. برای هر دو برنامه یکی است.
+- `android/app/google-services.json` همان فایل برنامهٔ native-app است (پروژهٔ `second-cocoa-447009-m6`، بسته‌های
+  `dezhcode.AsoTas.app` و `.dev`)؛ در فایربیس کاری لازم نیست. secret اختیاری `GC_GOOGLE_SERVICES` فقط جایش را عوض می‌کند.
+- سرور: `GAME_CLUB_FCM_KEY` = مسیر فایل کلید سرویس همان پروژه (Project settings ← Service accounts) کنار دیتابیس،
+  هرگز در گیت. برای هر دو برنامه یکی است.
 
 ## انتشار در مایکت
 
+> این برنامه و native-app یک نام بسته و یک کلید امضا (`GC_KEYSTORE_*`) دارند، پس در مایکت **یک برنامه**‌اند:
+> هر کدام را بفرستی جای دیگری را می‌گیرد. `version_code` هر انتشار باید از آخرین نسخهٔ منتشرشدهٔ هر دو بیشتر باشد.
+
 1. در [پنل توسعه‌دهندگان مایکت](https://developer.myket.ir) ثبت‌نام و احراز هویت کن.
-2. «برنامهٔ جدید» با نام بستهٔ `obour.gameclub.app`؛ فایل `gameclub-<نسخه>-myket.apk` را بارگذاری کن.
+2. «برنامهٔ جدید» (یا همان برنامهٔ native-app اگر قبلا ساخته شده) با نام بستهٔ `dezhcode.AsoTas.app`؛ فایل `gameclub-<نسخه>-myket.apk` را بارگذاری کن.
 3. آیکون ۵۱۲×۵۱۲: `game_club/android-app/store/icon-512.png`. اسکرین‌شات از خود برنامه روی گوشی
    (عکس‌های پوستر بازی‌ها هم برای تصویر شاخص مناسب‌اند).
 4. ردهٔ سنی، دسته (بازی ← فکری/تخته‌ای)، توضیحات و آدرس حریم خصوصی را پر کن و برای بررسی بفرست.

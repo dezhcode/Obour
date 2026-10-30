@@ -43,7 +43,7 @@ class GCConfig:
     iap_enabled: bool = _bool("GAME_CLUB_IAP", "true")
     myket_key: str = os.getenv("GAME_CLUB_MYKET_PUBLIC_KEY", "").strip()
     myket_token: str = os.getenv("GAME_CLUB_MYKET_ACCESS_TOKEN", "").strip()
-    app_package: str = os.getenv("GAME_CLUB_APP_PACKAGE", "").strip() or "obour.gameclub.app"
+    app_package: str = os.getenv("GAME_CLUB_APP_PACKAGE", "").strip() or "dezhcode.AsoTas.app"
     coin_packs: tuple[int, ...] = _ints("GAME_CLUB_COIN_PACKS", "50,120,250,600")
     turn_seconds: int = min(60, max(8, _int_env("GAME_CLUB_TURN_SECONDS", "20")))
     # چند ثانیه صبر در صف بازی آزاد قبل از پر کردن جای خالی با ربات

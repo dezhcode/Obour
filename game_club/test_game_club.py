@@ -406,7 +406,7 @@ def test_myket_iap_order_verify_and_credit_once():
     from game_club.db import GCDatabase
     from game_club.service import GCError
 
-    def purchase(sku, token, payload, state=0, pkg="obour.gameclub.app"):
+    def purchase(sku, token, payload, state=0, pkg="dezhcode.AsoTas.app"):
         data = json.dumps({"orderId": "MK-" + token, "packageName": pkg, "productId": sku, "purchaseTime": 1,
                            "purchaseState": state, "developerPayload": payload, "purchaseToken": token})
         return data, _iap_sign(data)
@@ -523,17 +523,17 @@ def test_myket_store_check_paths():
             super().__init__(transport=httpx.MockTransport(answer), **kw)
 
     old = (iap.gc.myket_token, iap.gc.app_package)
-    iap.gc.myket_token, iap.gc.app_package = "tok", "obour.gameclub.app"
+    iap.gc.myket_token, iap.gc.app_package = "tok", "dezhcode.AsoTas.app"
     httpx.AsyncClient = Fake
     try:
         replies = [httpx.Response(200, json={"purchaseState": 0, "developerPayload": "o1"})]
         assert asyncio.run(iap.store_check("coins_50", "t1")) == {"purchaseState": 0, "developerPayload": "o1"}
-        assert calls[-1] == ("POST", "/api/partners/applications/obour.gameclub.app/purchases/products/coins_50/verify",
+        assert calls[-1] == ("POST", "/api/partners/applications/dezhcode.AsoTas.app/purchases/products/coins_50/verify",
                              "tok", '{"tokenId":"t1"}')
         # مسیر تازه نبود: همان پرسش از مسیر قدیمی
         replies = [httpx.Response(404, text="Not Found"), httpx.Response(200, json={"purchaseState": 1})]
         assert asyncio.run(iap.store_check("coins_50", "t2")) == {"purchaseState": 1}
-        assert calls[-1][:2] == ("GET", "/api/applications/obour.gameclub.app/purchases/products/coins_50/tokens/t2")
+        assert calls[-1][:2] == ("GET", "/api/applications/dezhcode.AsoTas.app/purchases/products/coins_50/tokens/t2")
         replies = [httpx.Response(404, json={"code": 404, "messageCode": "PurchaseNotFound"})]
         assert asyncio.run(iap.store_check("coins_50", "t3")) is None
         for bad in (httpx.Response(401, json={"messageCode": "InvalidToken"}), httpx.Response(502, text="bad gateway")):

@@ -16,8 +16,8 @@
     get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
     set(k, v) { try { v ? localStorage.setItem(k, String(v)) : localStorage.removeItem(k); } catch (e) {} },
   };
-  const STORE = 'myket://details?id=obour.gameclub.app';
-  const STORE_WEB = 'https://myket.ir/app/obour.gameclub.app';
+  const STORE = 'myket://details?id=dezhcode.AsoTas.app';
+  const STORE_WEB = 'https://myket.ir/app/dezhcode.AsoTas.app';
 
   // safe area گوشی (لبه تا لبه): همان متغیرهایی که در تلگرام از safeAreaInset پر می شوند
   const css = document.createElement('style');
