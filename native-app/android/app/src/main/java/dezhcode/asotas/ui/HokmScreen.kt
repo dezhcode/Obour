@@ -1,7 +1,6 @@
 package dezhcode.asotas.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -198,7 +197,8 @@ private fun HokmTable(vm: AppViewModel, model: TableModel, g: HokmGame, look: St
                     Card(p.card, 56.dp, look, Modifier.align(Alignment.Center).offset(ox, oy).rotate(((p.card % 7) - 3) * 3f))
                 }
             }
-            AnimatedVisibility(banner != null, Modifier.align(Alignment.Center), enter = fadeIn() + scaleIn(initialScale = .9f), exit = fadeOut()) {
+            // نام کامل: وگرنه ColumnScope.AnimatedVisibility ستون بیرونی انتخاب می‌شود و کامپایل نمی‌شود
+            androidx.compose.animation.AnimatedVisibility(banner != null, Modifier.align(Alignment.Center), enter = fadeIn() + scaleIn(initialScale = .9f), exit = fadeOut()) {
                 Text(banner.orEmpty(), style = peyda(15f, 22f, 800), color = c.ink, textAlign = TextAlign.Center,
                     modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(Color.Black.copy(alpha = .55f)).padding(horizontal = 16.dp, vertical = 10.dp))
             }

@@ -115,7 +115,12 @@ jobs:
           case "$VNAME" in ''|*[!0-9.]*) echo "::error::version_name مثل 0.1.0 باشد"; exit 1;; esac
           chmod +x gradlew
           V="-PgcVersionCode=$VCODE -PgcVersionName=$VNAME"
-          ./gradlew --no-daemon assembleDebug $V
+          # خطاهای کاتلین را به صورت annotation نشان بده (بدون ورود به گیت هاب هم دیده می‌شوند)
+          ./gradlew --no-daemon assembleDebug $V 2>&1 | tee "$RUNNER_TEMP/gradle.log" || {
+            grep -E '^e: |^\* What went wrong' -A1 "$RUNNER_TEMP/gradle.log" | grep -v '^--$' | sed 's#file://[^ ]*/java/##' | head -20 |
+              while IFS= read -r l; do echo "::error::$l"; done
+            exit 1
+          }
           if [ "$SIGNED" = "1" ]; then ./gradlew --no-daemon assembleRelease bundleRelease $V; fi
           mkdir -p "$GITHUB_WORKSPACE/out"
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/out/asotas-native-$VNAME-debug.apk"
