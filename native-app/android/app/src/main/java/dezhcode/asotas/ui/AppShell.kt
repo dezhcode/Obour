@@ -24,6 +24,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,6 +67,11 @@ fun AppShell(vm: AppViewModel, openLink: (String) -> Unit) {
         }
         vm.social.chat?.let { ChatScreen(vm, it) }
         vm.help?.let { HelpScreen(vm, it) }
+        // پاپ آپ پنل مدیریت: با باز شدن یا برگشتن به برنامه و بعد از بازی (نه وسط بازی)
+        LifecycleEventEffect(Lifecycle.Event.ON_START) { vm.checkPopup() }
+        val free = vm.home is HomeState.Ready && vm.play.playing == null && vm.play.lobby == null
+        LaunchedEffect(free) { if (free) vm.checkPopup() }
+        vm.popup?.let { AdminPopup(it, openLink, vm::closePopup) }
         ToastHost(vm.toasts, Modifier.align(Alignment.BottomCenter).padding(bottom = bottom + 40.dp))
     }
     LoginSheet(vm, openLink)

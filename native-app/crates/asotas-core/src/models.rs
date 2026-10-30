@@ -288,6 +288,38 @@ pub struct EmailCode {
     pub resend: i64,
 }
 
+/// پاپ آپ پنل مدیریت (gate.popup_view)؛ با باز شدن برنامه نشان داده می شود
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct Popup {
+    /// نسخه: هر بار ادمین ذخیره کند بالا می رود؛ هر نسخه یک بار دیده می شود
+    pub v: i64,
+    pub title: String,
+    pub text: String,
+    pub img: Option<String>,
+    /// دکمه (برچسب و لینک)؛ هر دو باید باشند
+    pub btn: String,
+    pub url: String,
+    /// once (یک بار) یا always (هر بار باز شدن برنامه)
+    pub mode: String,
+}
+
+impl Popup {
+    pub(crate) fn from_json(v: &Value, resolve: impl Fn(&str) -> String) -> Option<Self> {
+        if !v.is_object() {
+            return None;
+        }
+        Some(Popup {
+            v: int(&v["v"]),
+            title: text(&v["title"]),
+            text: text(&v["text"]),
+            img: opt_text(&v["img"]).map(|u| resolve(&u)),
+            btn: text(&v["btn"]),
+            url: text(&v["url"]),
+            mode: opt_text(&v["mode"]).unwrap_or_else(|| "once".into()),
+        })
+    }
+}
+
 // ---------- خواندن JSON با تحمل ----------
 
 pub(crate) fn int(v: &Value) -> i64 {

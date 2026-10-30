@@ -20,6 +20,7 @@ import dezhcode.asotas.core.Client
 import dezhcode.asotas.core.Friends
 import dezhcode.asotas.core.Me
 import dezhcode.asotas.core.NameCheck
+import dezhcode.asotas.core.Popup
 import dezhcode.asotas.core.TableInfo
 import dezhcode.asotas.core.TelegramState
 
@@ -149,6 +150,30 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun update(change: (Me) -> Me) {
         (home as? HomeState.Ready)?.let { home = HomeState.Ready(change(it.me)) }
+    }
+
+    // ---------- پاپ آپ پنل مدیریت (gc.js: boot و showPopup) ----------
+    var popup by mutableStateOf<Popup?>(null)
+        private set
+    /** نسخه هایی که همین بار باز شدن برنامه دیده شده اند (sessionStorage مینی اپ) */
+    private val popupSeen = mutableSetOf<Long>()
+
+    /** با باز شدن یا برگشتن به برنامه و بعد از هر بازی؛ هر نسخه یک بار (حالت always: هر بار باز شدن برنامه)، وسط بازی نه */
+    fun checkPopup() {
+        if (!client.hasSession() || popup != null) return
+        viewModelScope.launch {
+            val p = try { io { client.boot() } } catch (e: ApiException) { null } ?: return@launch
+            if (play.playing != null || play.lobby != null || popup != null || p.v in popupSeen) return@launch
+            val key = "popup_${p.v}"
+            if (p.mode != "always" && prefs.getBoolean(key, false)) return@launch
+            popupSeen += p.v
+            prefs.edit().putBoolean(key, true).apply()
+            popup = p
+        }
+    }
+
+    fun closePopup() {
+        popup = null
     }
 
     fun refresh() {

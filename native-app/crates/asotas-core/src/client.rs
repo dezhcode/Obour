@@ -173,6 +173,12 @@ impl Client {
         Ok(Me::from_json(&j, |u| self.resolve(u)))
     }
 
+    /// باز شدن برنامه: پاپ آپ روشن پنل مدیریت (عضویت اجباری برای برنامه نیست)
+    pub fn boot(&self) -> Result<Option<Popup>, ApiError> {
+        let j = self.api("boot", Req::Get(&[]))?;
+        Ok(Popup::from_json(&j["popup"], |u| self.resolve(u)))
+    }
+
     pub fn daily_claim(&self) -> Result<DailyClaim, ApiError> {
         let j = self.api("daily", Req::Post(&json!({})))?;
         Ok(DailyClaim { coins: int(&j["coins"]), balance: int(&j["points"]), daily: Daily::from_json(&j["daily"]) })
@@ -524,6 +530,25 @@ mod tests {
         assert_eq!((r.cups, r.league.as_deref(), r.total_cups), (12, Some("نقره‌ای"), 240));
         assert!(c.queue_join("ludo".into(), "not json".into()).is_err());
         assert!(lobby.chat.is_empty());
+    }
+
+    #[test]
+    fn boot_popup() {
+        let mut server = Server::new();
+        let dir = tempfile::tempdir().unwrap();
+        TokenStore::open(&dir.path().to_string_lossy()).set(Some("t".into()));
+        let on = server.mock("GET", "/gc/api/boot")
+            .with_body(r#"{"gate": [], "popup": {"v": 4, "title": "جام هفتگی", "text": "خط اول
+خط دوم", "img": "media/popup-ab.jpg", "btn": "بزن بریم", "url": "https://t.me/x", "mode": "always"}}"#)
+            .create();
+        let c = client(&server, &dir);
+        let p = c.boot().unwrap().unwrap();
+        assert_eq!((p.v, p.title.as_str(), p.btn.as_str(), p.mode.as_str()), (4, "جام هفتگی", "بزن بریم", "always"));
+        assert!(p.text.contains('
+') && p.img.as_deref().is_some_and(|u| u.ends_with("media/popup-ab.jpg") && u.starts_with("http")));
+        on.remove();
+        server.mock("GET", "/gc/api/boot").with_body(r#"{"gate": [], "popup": null}"#).create();
+        assert_eq!(c.boot().unwrap(), None);
     }
 
     #[test]
