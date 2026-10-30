@@ -4,7 +4,8 @@ android {
     namespace = "obour.gameclub.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "obour.gameclub.app"
+        // همان بسته و همان پروژهٔ فایربیس برنامهٔ native-app (google-services.json کنار همین فایل)
+        applicationId "dezhcode.AsoTas.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // هر انتشار در مایکت: versionCode یکی بیشتر (./gradlew assembleRelease -PgcVersionCode=2 -PgcVersionName=1.0.1)
@@ -34,6 +35,11 @@ android {
         }
     }
     buildTypes {
+        // نسخهٔ آزمایشی پسوند .dev دارد تا کنار نسخهٔ مایکت نصب شود (فایربیس هر دو را می شناسد)
+        debug {
+            applicationIdSuffix ".dev"
+            versionNameSuffix "-dev"
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
