@@ -716,7 +716,8 @@ private fun Board(side: Dp, g: LudoGame?, play: LudoPlay, rot: Float, picking: B
     val cell = (side - 20.dp) / 15f
     val home = cell * 3 + 2.dp
     Box(
-        Modifier.size(side).shadow(18.dp, shape, ambientColor = Color.Black, spotColor = Color.Black).background(GAME_DEEP)
+        // بدون برش: مهرهٔ ردیف بالا مثل مینی اپ می تواند از لبهٔ صفحه بیرون بزند
+        Modifier.size(side).shadow(18.dp, shape, clip = false, ambientColor = Color.Black, spotColor = Color.Black).background(GAME_DEEP, shape)
             .border(1.dp, Color.White.copy(alpha = .07f), shape),
         contentAlignment = Alignment.Center,
     ) {
