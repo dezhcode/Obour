@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
@@ -827,7 +829,7 @@ fun HokmScreen(vm: AppViewModel, matchId: String) {
     play.density = LocalDensity.current.density
     val scope = rememberCoroutineScope()
     var leaving by remember { mutableStateOf(false) }
-    BackHandler { leaving = true }
+    BackHandler { if (play.view?.status == "over" || play.game?.over == true) vm.play.closeGame() else leaving = !leaving }
     LaunchedEffect(Unit) { if (vm.shop.styles == null) vm.shop.load() }
     // فقط وقتی برنامه جلوی چشم است از سرور می پرسد؛ وگرنه سرور فکر می کند بازیکن سر میز است
     // و نوتیفیکیشن نوبت نمی فرستد
@@ -884,25 +886,11 @@ fun HokmScreen(vm: AppViewModel, matchId: String) {
             TableChatLayer(model, HOKM_QUICK, rest = 204.dp, enabled = v?.status == "playing" && g?.over == false)
             val vv = play.view
             if (vv != null && g != null && (vv.status == "over" || g.over)) {
-                val myTeam = play.me % 2
-                val won = vv.result?.won ?: (g.winner?.toInt() == myTeam)
-                HokmResult(g, myTeam, won, vv.result?.coins ?: 0, vv.result?.cups ?: 0,
-                    again = { vm.play.closeGame(); vm.play.openLobby("hokm") }, home = vm.play::closeGame)
+                HokmEnd(vv, g, play.me, table, again = { vm.play.closeGame(); vm.play.openLobby("hokm") }, home = vm.play::closeGame)
             }
-        }
-        if (leaving) {
-            Dialog(onDismissRequest = { leaving = false }) {
-                Column(Modifier.clip(RoundedCornerShape(28.dp)).background(c.surface).padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.size(64.dp).clip(CircleShape).background(c.danger.copy(alpha = .16f)), contentAlignment = Alignment.Center) { Ic("exit", size = 30.dp, tint = c.danger) }
-                    Text("از میز بری بیرون؟", style = rokh(21f, 30f), color = c.ink)
-                    Text("اگه بری ربات جات بازی می‌کنه و یارت تنها نمی‌مونه ولی این بازی باخت حساب می‌شه", style = peyda(14f, 24f), color = c.inkMuted, textAlign = TextAlign.Center)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Btn("می‌مونم", { leaving = false }, Modifier.weight(1f))
-                        Btn("خروج", { leaving = false; scope.launch { model.leave(); vm.play.closeGame() } }, Modifier.weight(1f), kind = BtnKind.DangerSoft)
-                    }
-                    Btn("بعداً برمی‌گردم", { leaving = false; vm.play.closeGame() }, Modifier.fillMaxWidth(), kind = BtnKind.Light)
-                }
+            if (leaving && play.game != null) {
+                HkExit(play.game!!, play.me, (play.view?.mode ?: model.view?.mode) != "free", stay = { leaving = false },
+                    leave = { scope.launch { model.leave(); vm.play.closeGame() } }, home = { leaving = false; vm.play.closeGame() })
             }
         }
     }
@@ -1662,24 +1650,287 @@ private fun FlyLayer(play: HokmPlay, motion: TableMotion, look: String) {
     }
 }
 
+/** بالا آمدن نرم هر بخش صفحهٔ پایان با تاخیر (hke-up) */
 @Composable
-private fun HokmResult(g: HokmGame, myTeam: Int, won: Boolean, coins: Long, cups: Long, again: () -> Unit, home: () -> Unit) {
+private fun Rise(delayMs: Int, content: @Composable () -> Unit) {
+    val t = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { delay(delayMs.toLong()); t.animateTo(1f, tween(500, easing = EASE_OUT)) }
+    Box(Modifier.fillMaxWidth().graphicsLayer { alpha = t.value; translationY = (1 - t.value) * 18 * density }) { content() }
+}
+
+/** ریزش خال ها روی صفحهٔ برد (hke-fall، دو بار) */
+@Composable
+private fun SuitRain(modifier: Modifier) {
+    val bits = remember {
+        List(22) { i ->
+            floatArrayOf(Random.nextFloat(), Random.nextFloat() * 1200f, 2600f + Random.nextFloat() * 1300f,
+                (Random.nextFloat() * 2 - 1) * 60f, Random.nextFloat() * 360f, 14f + Random.nextFloat() * 12f, (i % 4).toFloat())
+        }
+    }
+    val t = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { t.animateTo(9000f, tween(9000, easing = LinearEasing)) }
+    BoxWithConstraints(modifier) {
+        val hPx = constraints.maxHeight.toFloat()
+        val wPx = constraints.maxWidth.toFloat()
+        for (b in bits) {
+            val sz = b[5].dp
+            Box(Modifier.graphicsLayer {
+                val local = t.value - b[1]
+                val q = if (local < 0 || local > b[2] * 2) -1f else (local % b[2]) / b[2]
+                if (q < 0) { alpha = 0f; return@graphicsLayer }
+                val e = androidx.compose.animation.core.CubicBezierEasing(.35f, .1f, .6f, 1f).transform(q)
+                val wx = b[3] * density
+                translationX = b[0] * wPx + if (e < .5f) wx * e * 2 else wx + (-.4f * wx - wx) * (e - .5f) * 2
+                translationY = -30 * density + e * 1.1f * hPx
+                rotationZ = b[4] + e * 420
+                alpha = if (q < .08f) q / .08f else 1 - .1f * q
+            }) { SuitIcon(b[6].toInt(), sz, if (b[6].toInt() % 2 == 1) Color(0xFFFF7A6B) else Color(0xFFFFE08F)) }
+        }
+    }
+}
+
+/** تیم در صفحهٔ پایان: دو عکس، امتیاز و نام ها؛ برنده با نوار «برنده» */
+@Composable
+private fun EndTeam(a: HokmPlayer?, b: HokmPlayer?, names: String, score: Long, win: Boolean, us: Boolean, modifier: Modifier) {
     val c = Aso.c
-    Dialog(onDismissRequest = home) {
-        Column(Modifier.clip(RoundedCornerShape(28.dp)).background(c.surface).padding(22.dp),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(if (won) "🏆" else "🃏", style = peyda(52f, 60f))
-            Text(if (won) "بردیم! دمت گرم 🎉" else "این بازی مال حریف شد", style = rokh(22f, 30f), color = c.ink, textAlign = TextAlign.Center)
-            Text("${g.score.getOrElse(myTeam) { 0L }.fd()} – ${g.score.getOrElse(1 - myTeam) { 0L }.fd()} · تا ${g.target.fd()} دست",
-                style = peyda(15f, 22f, 800), color = c.inkMuted)
-            if (cups != 0L || coins > 0) {
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (cups != 0L) Text("${if (cups > 0) "+" else "−"}${abs(cups).fd()} جام", style = peyda(18f, 26f, 800), color = if (cups > 0) c.coinText else c.inkMuted)
-                    if (coins > 0) Amount(coins, size = 18f)
+    val shape = RoundedCornerShape(22.dp)
+    Box(modifier) {
+        Column(Modifier.padding(top = 11.dp).fillMaxWidth().clip(shape).background(if (win) androidx.compose.ui.graphics.lerp(c.surface, GOLD, .12f) else c.surface)
+            .border(if (win) 2.dp else 1.dp, if (win) GOLD else c.line, shape).padding(start = 8.dp, end = 8.dp, top = 18.dp, bottom = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row {
+                    val ring = if (us) Color(0xFF9BE3B8) else c.surface
+                    a?.let { Face(it.name, it.av, if (it.bot) null else it.pic, size = 46.dp, ring = ring, bot = it.bot) }
+                    b?.let { Face(it.name, it.av, if (it.bot) null else it.pic, Modifier.offset(x = (-12).dp), size = 46.dp, ring = ring, bot = it.bot) }
                 }
             }
-            Btn("یه دست دیگه", again, Modifier.fillMaxWidth(), kind = BtnKind.Gold)
-            Btn("برگشت به خانه", home, Modifier.fillMaxWidth(), kind = BtnKind.Light)
+            Text(score.fd(), Modifier.padding(top = 8.dp), style = rokh(44f, 50f), color = if (win) c.ink else c.inkMuted)
+            Text(names, style = peyda(12f, 17f, 700), color = c.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (win) Row(Modifier.align(Alignment.TopCenter).clip(CircleShape).background(Color(0xFFF5C451)).padding(start = 8.dp, end = 10.dp, top = 2.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            CrownIcon(13.dp, Color(0xFF3A2A00))
+            Text("برنده", style = peyda(11.5f, 17f, 800), color = Color(0xFF3A2A00))
+        }
+    }
+}
+
+/** پایان بازی (hk-end): سر صفحه روی ماهوت میز با مدال و نور، بعد دو تیم، جایزه، آمار و دکمه ها */
+@Composable
+private fun HokmEnd(v: MatchView, g: HokmGame, me: Int, table: String, again: () -> Unit, home: () -> Unit) {
+    val c = Aso.c
+    val r = v.result
+    val us = me % 2
+    val ended = g.winner == null
+    val won = r?.won ?: (g.winner?.toInt() == us)
+    val kind = if (ended) "draw" else if (won) "win" else "lose"
+    val P = g.players
+    val seat = { k: Int -> ((me + k) % 4).toString() }
+    val pa = P[seat(2)]
+    val o1 = P[seat(1)]
+    val o2 = P[seat(3)]
+    val mine = g.score.getOrElse(us) { 0L }
+    val theirs = g.score.getOrElse(1 - us) { 0L }
+    val title = if (ended) "بازی تموم شد" else if (won) (if (o1?.out == true && o2?.out == true) "حریفا رفتن و شما بردین!" else "بردین!") else "این بار نشد"
+    val line = if (ended) "بازی قبل از رسیدن به امتیاز آخر بسته شد"
+        else if (won) "تو و ${pa?.name ?: "یارت"} ${mine.fd()} بر ${theirs.fd()} بردین"
+        else "${o1?.name ?: "حریف"} و ${o2?.name ?: "یارش"} ${theirs.fd()} بر ${mine.fd()} بردن"
+    val secs = remember { (System.currentTimeMillis() / 1000.0 - g.started).toLong().coerceAtLeast(0L) }
+    val f = FELT[table] ?: FELT.getValue("a")
+    val medal = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { delay(50); medal.animateTo(1f, tween(700, easing = androidx.compose.animation.core.CubicBezierEasing(.2f, 1.6f, .4f, 1f))) }
+    val spin by rememberInfiniteTransition(label = "end").animateFloat(0f, 360f, infiniteRepeatable(tween(26000, easing = LinearEasing)), label = "s")
+    val fade = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { fade.animateTo(1f, tween(350)) }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Box(Modifier.fillMaxSize().zIndex(95f).graphicsLayer { alpha = fade.value }.background(c.ground)
+            .pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }) {
+            Column(Modifier.align(Alignment.TopCenter).widthIn(max = 440.dp).fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .navigationBarsPadding().padding(bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // ---- سر صفحه «در جعبه»
+                val glow = when (kind) { "win" -> Color(0x52F5C451); "lose" -> Color(0x298CAAFF); else -> Color(0x24FFFFFF) }
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
+                    .background(cssEllipse(.5f, .3f, 1.3f, 1.2f, 0f to f[1], .7f to f[2], 1f to Color(0xFF06140B)))
+                    .background(cssEllipse(.5f, .28f, .9f, .7f, 0f to glow, .7f to Color.Transparent))
+                    .then(if (kind == "lose") Modifier.background(Color(0x520A0E1E)) else Modifier)) {
+                    if (kind == "win") Canvas(Modifier.align(Alignment.TopCenter).offset(y = 76.dp - 380.dp).size(760.dp).graphicsLayer { rotationZ = spin; alpha = .55f }) {
+                        val b = Brush.radialGradient(0f to Color(0x38FFE29A), .28f to Color(0x22FFE29A), .62f to Color.Transparent)
+                        repeat(24) { i -> drawArc(b, i * 15f, 9f, useCenter = true) }
+                    }
+                    Column(Modifier.fillMaxWidth().statusBarsPadding().padding(start = 18.dp, end = 18.dp, top = 24.dp, bottom = 26.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val gold = kind == "win"
+                        Box(Modifier.padding(bottom = 6.dp).size(104.dp).graphicsLayer { val m = medal.value; scaleX = .2f + .8f * m; scaleY = .2f + .8f * m; rotationZ = -25 * (1 - m); alpha = m.coerceIn(0f, 1f) }
+                            .clip(CircleShape).background(cssEllipse(.35f, .3f, .9f, .9f, *(if (gold) arrayOf(0f to Color(0xFFFFF1BF), .38f to Color(0xFFF5C451), 1f to Color(0xFFC9901F))
+                                else arrayOf(0f to Color(0xFFE7ECF7), .45f to Color(0xFF9AA6C2), 1f to Color(0xFF5D6886))))), contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(76.dp).clip(CircleShape).background(cssEllipse(.5f, .4f, .7f, .7f, *(if (gold) arrayOf(0f to Color(0xFFFFE7A0), 1f to Color(0xFFEDB43C))
+                                else arrayOf(0f to Color(0xFFF1F4FA), 1f to Color(0xFFB9C3DA))))), contentAlignment = Alignment.Center) {
+                                if (kind == "lose") SuitIcon(0, 44.dp, Color(0xFF3B4562)) else CrownIcon(44.dp, if (gold) Color(0xFF7A5200) else Color(0xFF3B4562))
+                            }
+                        }
+                        Text("پایان بازی · تا ${g.target.fd()} امتیاز", style = peyda(12f, 17f, 700), color = Color.White.copy(alpha = .7f))
+                        Text(title, style = if (gold) rokh(40f, 50f).copy(brush = Brush.verticalGradient(listOf(Color(0xFFFFF7DA), Color(0xFFFFD66B), Color(0xFFF2A922))))
+                            else rokh(40f, 50f), color = if (gold) Color.Unspecified else Color.White, textAlign = TextAlign.Center)
+                        Text(line, Modifier.widthIn(max = 300.dp), style = peyda(14f, 22f), color = Color.White.copy(alpha = .85f), textAlign = TextAlign.Center)
+                    }
+                }
+                Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // ---- دو تیم
+                    Rise(180) {
+                        Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            EndTeam(P[seat(0)]?.copy(name = "خودت"), pa, "تو و ${pa?.name ?: "یار"}", mine, !ended && won, true, Modifier.weight(1f))
+                            Text("به", style = peyda(13f, 18f, 800), color = c.inkMuted)
+                            EndTeam(o1, o2, "${o1?.name ?: "حریف"} و ${o2?.name ?: "حریف"}", theirs, !ended && !won, false, Modifier.weight(1f))
+                        }
+                    }
+                    // ---- جایزه
+                    Rise(300) { EndReward(v, r, won, ended) }
+                    // ---- آمار
+                    Rise(400) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            EndStat({ SuitIcon(3, 18.dp, c.coinText) }, g.wonTricks.fd(), "دست بردی")
+                            EndStat({ CrownIcon(18.dp, c.coinText) }, g.hakemTimes.fd(), "بار حاکم شدی")
+                            EndStat({ Ic("clock", size = 18.dp, tint = c.coinText) }, "${(secs / 60).fd()}:${(secs % 60 / 10).fd()}${(secs % 10).fd()}", "مدت بازی")
+                        }
+                    }
+                    // ---- دکمه ها
+                    Rise(500) {
+                        Column(Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(28.dp)).background(c.acc).press(.97f, onClick = again), contentAlignment = Alignment.Center) {
+                                Text(if (won) "یه دست دیگه" else "یه دست دیگه بزن جبران کن", style = peyda(17f, 24f, 900), color = c.accInk)
+                            }
+                            Row(Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(25.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(25.dp))
+                                .press(.97f, onClick = home), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
+                                Ic("home", size = 20.dp, tint = c.ink)
+                                Text("خونه", style = peyda(15f, 22f, 800), color = c.ink)
+                            }
+                        }
+                    }
+                }
+            }
+            if (kind == "win") SuitRain(Modifier.fillMaxSize())
+        }
+    }
+}
+
+@Composable
+private fun RowScope.EndStat(icon: @Composable () -> Unit, v: String, label: String) {
+    val c = Aso.c
+    Column(Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).background(c.surface).border(1.dp, c.line, RoundedCornerShape(18.dp)).padding(horizontal = 4.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        icon()
+        Text(v, style = peyda(19f, 26f, 900), color = c.ink)
+        Text(label, style = peyda(11f, 15f), color = c.inkMuted, maxLines = 1)
+    }
+}
+
+/** ردیف جایزه: دوستانه، امتیازی قدیمی، بی نتیجه، جام و سکه یا جام کم شده */
+@Composable
+private fun EndReward(v: MatchView, r: dezhcode.asotas.core.MatchResult?, won: Boolean, ended: Boolean) {
+    val c = Aso.c
+    val cups = r?.cups ?: 0L
+    val coins = r?.coins ?: 0L
+    val lg = r?.league?.let { "لیگ $it · ${r.totalCups.fd()} جام" }.orEmpty()
+    val gold = v.mode == "ranked" && !ended && won
+    val shape = RoundedCornerShape(20.dp)
+    val (ic, head, sub) = when {
+        v.mode == "free" -> Triple("users", "بازی دوستانه", if (won) "جام و سکه نداشت ولی برد بُرده!" else "چیزی از دست ندادی")
+        v.mode != "ranked" -> Triple("wallet", "میز امتیازی قدیمی", if (won) "جایزه‌ش با امتیازای قدیمیت برمی‌گرده به کیف عبور" else "فدای سرت")
+        ended -> Triple("trophy", "بی‌نتیجه", "بازی بسته شد و جامت دست نخورد")
+        won -> Triple("trophy", "⁦+${cups.fd()}⁩", "جام گرفتی" + (if (coins > 0) " و ${coins.fd()} سکه ریخت تو کیفت 🎉" else "") + (if (lg.isNotEmpty()) "\n$lg" else ""))
+        else -> Triple("trophy", if (cups != 0L) "⁦−${abs(cups).fd()}⁩ جام" else "جامی کم نشد",
+            (if (cups != 0L) "فدای سرت دست بعد جبران کن" else "جامی نداشتی که کم بشه") + (if (lg.isNotEmpty()) "\n$lg" else ""))
+    }
+    Row(Modifier.fillMaxWidth().clip(shape).background(if (gold) c.coinTint else c.surface).border(if (gold) 1.5.dp else 1.dp, if (gold) GOLD.copy(alpha = .7f) else c.line, shape)
+        .padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(c.accTint), contentAlignment = Alignment.Center) { Ic(ic, size = 22.dp, tint = c.accDeep) }
+        Column(Modifier.weight(1f)) {
+            Text(head, style = if (gold) rokh(26f, 32f) else peyda(17f, 24f, 900),
+                color = if (gold) c.coinText else if (v.mode == "ranked" && !ended && !won) c.danger else c.ink)
+            Text(sub, style = peyda(12f, 18f), color = c.inkMuted)
+        }
+        if (gold && coins > 0) {
+            val spin = remember { Animatable(0f) }
+            LaunchedEffect(Unit) { delay(700); spin.animateTo(1f, tween(1200, easing = androidx.compose.animation.core.CubicBezierEasing(.3f, 1.4f, .5f, 1f))) }
+            Coin(46.dp, Modifier.graphicsLayer { rotationY = 720 * spin.value; val s = .3f + .7f * spin.value; scaleX = s; scaleY = s; alpha = min(1f, spin.value * 1.6f) })
+        }
+    }
+}
+
+/** برگهٔ خروج (hk-exit): «تو ← ربات»، رفتن به خانه یا ترک بازی، و ادامهٔ بازی */
+@Composable
+private fun HkExit(g: HokmGame, me: Int, stake: Boolean, stay: () -> Unit, leave: () -> Unit, home: () -> Unit) {
+    val c = Aso.c
+    val P = g.players
+    val pa = P[((me + 2) % 4).toString()]
+    val mp = P[me.toString()]
+    val up = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { up.animateTo(1f, tween(320, easing = androidx.compose.animation.core.CubicBezierEasing(.2f, .9f, .3f, 1f))) }
+    var armed by remember { mutableLongStateOf(0L) }
+    val shake = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(armed) { if (armed > 0) { delay(3000); armed = 0L } }
+    val dots = rememberInfiniteTransition(label = "dots")
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Box(Modifier.fillMaxSize().zIndex(96f).graphicsLayer { alpha = min(1f, up.value * 1.6f) }.background(c.scrim)
+            .pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures { stay() } }, contentAlignment = Alignment.BottomCenter) {
+            Column(Modifier.widthIn(max = 480.dp).fillMaxWidth().graphicsLayer { translationY = (1 - up.value) * size.height }
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(c.surface)
+                .pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures { } }
+                .navigationBarsPadding().padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(Modifier.padding(bottom = 6.dp).size(42.dp, 5.dp).clip(RoundedCornerShape(3.dp)).background(c.line))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (mp != null) Face("خودت", mp.av, mp.pic, size = 58.dp, ring = Color(0xFF9BE3B8))
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        repeat(3) { i ->
+                            val q by dots.animateFloat(0f, 1f, infiniteRepeatable(tween(1200, delayMillis = 0, easing = LinearEasing), initialStartOffset = androidx.compose.animation.core.StartOffset(i * 150)), label = "d$i")
+                            val k = if (q < .4f) q / .4f else 1 - (q - .4f) / .6f
+                            Box(Modifier.size(7.dp).graphicsLayer { alpha = .25f + .75f * k; val s = .8f + .35f * k; scaleX = s; scaleY = s }.clip(CircleShape).background(c.acc))
+                        }
+                    }
+                    Face("ربات", 9, null, size = 58.dp, ring = GOLD, bot = true)
+                }
+                Text("می‌خوای بری؟", Modifier.padding(top = 4.dp), style = rokh(23f, 32f), color = c.ink)
+                Text(withIds("اگه بری ربات جات کنار ${pa?.name ?: "یارت"} بازی می‌کنه", listOfNotNull(pa?.name)), Modifier.widthIn(max = 310.dp),
+                    style = peyda(13.5f, 22f), color = c.inkMuted, textAlign = TextAlign.Center)
+                Column(Modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ExitOpt("home", "فعلاً برو خونه", "سر میز می‌مونی و از صفحهٔ خونه با یه لمس برمی‌گردی", bad = false, arm = false, shake = 0f, onClick = home)
+                    ExitOpt("exit", if (armed > 0) "مطمئنی؟ یه بار دیگه بزن" else "ترک بازی",
+                        if (stake) "بازی رتبه‌ایه و رفتنت یعنی باخت و کم شدن جام" else "بازی دوستانه‌ست و چیزی از دست نمی‌دی",
+                        bad = true, arm = armed > 0, shake = shake.value) {
+                        if (stake && armed == 0L) {
+                            armed = System.currentTimeMillis()
+                            scope.launch { shake.snapTo(0f); shake.animateTo(1f, tween(300, easing = LinearEasing)) }
+                        } else leave()
+                    }
+                }
+                Box(Modifier.padding(top = 4.dp).fillMaxWidth().height(54.dp).clip(RoundedCornerShape(27.dp)).background(c.acc).press(.97f, onClick = stay), contentAlignment = Alignment.Center) {
+                    Text("ادامهٔ بازی", style = peyda(16f, 22f, 900), color = c.accInk)
+                }
+                Text("تا نیستی نوبتات خودکار بازی می‌شه" + if (stake) "\nتو بازی رتبه‌ای سه نوبت غیبت پشت‌سرهم یعنی از بازی بیرونی" else "",
+                    style = peyda(11.5f, 18f), color = c.inkMuted, textAlign = TextAlign.Center)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExitOpt(icon: String, title: String, sub: String, bad: Boolean, arm: Boolean, shake: Float, onClick: () -> Unit) {
+    val c = Aso.c
+    val shape = RoundedCornerShape(18.dp)
+    val danger = androidx.compose.ui.graphics.lerp(c.surface, c.danger, .12f)
+    Row(Modifier.fillMaxWidth().graphicsLayer { translationX = (if (shake < .25f) -shake / .25f else if (shake < .75f) -1 + (shake - .25f) * 4 else 1 - (shake - .75f) * 4) * 4 * density * (if (shake in .01f..0.99f) 1f else 0f) }
+        .clip(shape).background(if (arm) danger else c.surfaceSunk).then(if (arm) Modifier.border(1.5.dp, c.danger, shape) else Modifier)
+        .press(.985f, onClick = onClick).padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(if (bad) androidx.compose.ui.graphics.lerp(c.surface, c.danger, .13f) else c.surface)
+            .then(if (bad) Modifier else Modifier.border(1.dp, c.line, RoundedCornerShape(14.dp))), contentAlignment = Alignment.Center) {
+            Ic(icon, size = 21.dp, tint = if (bad) c.danger else c.accDeep)
+        }
+        Column(Modifier.weight(1f)) {
+            Text(title, style = peyda(15f, 21f, 800), color = if (bad) c.danger else c.ink)
+            Text(sub, style = peyda(12f, 18f), color = c.inkMuted)
         }
     }
 }

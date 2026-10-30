@@ -232,6 +232,11 @@ pub struct HokmGame {
     pub seq: i64,
     pub over: bool,
     pub winner: Option<i64>,
+    /// آمار من: دورهایی که بردم و بارهایی که حاکم شدم
+    pub won_tricks: i64,
+    pub hakem_times: i64,
+    /// زمان شروع بازی (ثانیهٔ یونیکس)
+    pub started: f64,
 }
 
 fn played(v: &Value) -> Vec<Played> {
@@ -292,6 +297,9 @@ impl HokmGame {
             seq: int(&g["seq"]),
             over: yes(&g["over"]),
             winner: opt_int(&g["winner"]),
+            won_tricks: int(&g["stats"]["tricks"]),
+            hakem_times: int(&g["stats"]["hakem"]),
+            started: g["started"].as_f64().unwrap_or(0.0),
         }
     }
 }
