@@ -39,7 +39,7 @@ body{background:var(--ground)}
 .ch-empty .avatar{--size:72px}
 .ch-empty b{color:var(--ink);font-size:16px}
 .ch-bar{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);background:color-mix(in srgb,var(--surface) 97%,transparent);border-top:1px solid var(--line);
-  padding:8px 12px calc(10px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)))}
+  padding:8px 12px calc(10px + max(var(--sa-env-b),var(--sa-b,0px)))}
 .ch-bar-in{max-width:480px;margin:0 auto;display:grid;gap:8px}
 .ch-quick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .ch-quick::-webkit-scrollbar{display:none}

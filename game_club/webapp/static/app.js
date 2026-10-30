@@ -19,12 +19,12 @@
   const STORE = 'myket://details?id=dezhcode.AsoTas.app';
   const STORE_WEB = 'https://myket.ir/app/dezhcode.AsoTas.app';
 
-  // safe area گوشی (لبه تا لبه): همان متغیرهایی که در تلگرام از safeAreaInset پر می شوند
+  // safe area گوشی: همان متغیرهایی که در تلگرام از safeAreaInset پر می شوند. فقط از پلاگین SystemBars
+  // (--safe-area-inset-*): وقتی صفحه زیر نوار وضعیت کشیده نمی شود صفر است. env() مرورگر را نه، چون آنجا هم
+  // ارتفاع نوار وضعیت را می دهد و فاصلهٔ بالای سربرگ دو برابر می شد
   const css = document.createElement('style');
-  css.textContent = ':root{--sa-t:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px));'
-    + '--sa-b:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px));'
-    + '--sa-l:max(env(safe-area-inset-left,0px),var(--safe-area-inset-left,0px));'
-    + '--sa-r:max(env(safe-area-inset-right,0px),var(--safe-area-inset-right,0px))}';
+  css.textContent = ':root{--sa-t:var(--safe-area-inset-top,0px);--sa-b:var(--safe-area-inset-bottom,0px);'
+    + '--sa-l:var(--safe-area-inset-left,0px);--sa-r:var(--safe-area-inset-right,0px)}';
   document.head.appendChild(css);
   document.documentElement.classList.add('app');
   // نگه داشتن انگشت: منوی کپی و ذخیرهٔ عکس نه (جای نوشتن همان رفتار عادی را دارد)

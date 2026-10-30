@@ -145,7 +145,7 @@ body.watching .dv-tray{display:none}
 
 /* نوار پیام مثل بیلیارد */
 .dv-bar{flex:none;display:flex;align-items:center;gap:14px;min-height:56px;box-sizing:border-box;
-  padding:6px max(14px,var(--sa-r,0px)) calc(6px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px))) max(18px,var(--sa-l,0px));background:#141414}
+  padding:6px max(14px,var(--sa-r,0px)) calc(6px + max(var(--sa-env-b),var(--sa-b,0px))) max(18px,var(--sa-l,0px));background:#141414}
 .dv-say{flex:1;min-width:0;height:40px;border-radius:20px;background:#1d2330;color:rgba(255,255,255,.75);font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;padding:0 14px}
 .dv-say svg{width:18px;height:18px}
 

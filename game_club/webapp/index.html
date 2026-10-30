@@ -74,7 +74,7 @@
 .hm-notify.on{background:var(--success-tint);color:var(--success);box-shadow:none}
 
 /* ---------- بازی نیمه‌تمام: نوار شناور بالای ناوبری ---------- */
-.hm-cont{position:fixed;z-index:calc(var(--z-nav) - 1);inset-inline:max(12px,calc(50% - 228px));bottom:calc(84px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));
+.hm-cont{position:fixed;z-index:calc(var(--z-nav) - 1);inset-inline:max(12px,calc(50% - 228px));bottom:calc(84px + max(var(--sa-env-b),var(--sa-b,0px)));
   display:flex;align-items:center;gap:10px;padding:8px 8px 8px 12px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line),0 14px 28px -12px rgba(20,25,40,.38);animation:contIn .35s cubic-bezier(.2,.9,.3,1.2) both}
 .hm-cont .g-art{width:44px;height:44px;border-radius:13px;flex:none;display:grid;place-items:center;overflow:hidden}
 .hm-cont .g-art svg{display:block;width:76%;height:76%}

@@ -25,7 +25,7 @@
 /* پیش از شروع: انتخاب میز و ورق (مثل انتخاب تیم فوتبال)؛ قفل ها با قیمت، خرید همین جا.
    به سبک تازهٔ اپ (رنگ های اپ روشن یا تیره و سبز حکم)؛ ماهوت و ورق ها همان طرح خود بازی اند */
 .hs-layer{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;gap:12px;overflow-y:auto;color:var(--ink);background:var(--ground);
-  padding:calc(10px + var(--sa-t,0px) + var(--csa-t,0px)) 16px calc(16px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));animation:hs-in .25s ease-out}
+  padding:calc(10px + var(--sa-t,0px) + var(--csa-t,0px)) 16px calc(16px + max(var(--sa-env-b),var(--sa-b,0px)));animation:hs-in .25s ease-out}
 @keyframes hs-in{from{opacity:0}}
 .hs-layer .top{display:flex;align-items:center;justify-content:space-between}
 .hs-ib{width:44px;height:44px;flex:none;border-radius:50%;display:grid;place-items:center;color:var(--ink);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
