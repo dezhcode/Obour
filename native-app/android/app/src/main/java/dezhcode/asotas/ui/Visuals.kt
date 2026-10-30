@@ -48,81 +48,69 @@ fun ellipseBrush(cx: Float, cy: Float, rx: Float, vararg stops: Pair<Float, Colo
 }
 
 // ---------- ماهوت میز حکم (cards.css: tbl-a/b/c و .felt) ----------
-private val FELT = mapOf(
+/** --f1 روشن وسط، --f2، --f3 لبهٔ تیره */
+val FELT = mapOf(
     "a" to listOf(Color(0xFF2F8F4E), Color(0xFF1E6B3A), Color(0xFF0F3F1D)),
     "b" to listOf(Color(0xFF7E2737), Color(0xFF5A1A25), Color(0xFF2A0A10)),
     "c" to listOf(Color(0xFF157888), Color(0xFF0E5563), Color(0xFF062A33)),
 )
 
+/** گرادیان بیضی CSS: radial-gradient(ellipse rx% ry% at cx% cy%, ...) */
+fun cssEllipse(cx: Float, cy: Float, rx: Float, ry: Float, vararg stops: Pair<Float, Color>) = object : ShaderBrush() {
+    override fun createShader(size: Size): androidx.compose.ui.graphics.Shader {
+        val c = Offset(size.width * cx, size.height * cy)
+        val a = size.width * rx
+        val b = size.height * ry
+        return RadialGradientShader(c, a, stops.map { it.second }, stops.map { it.first }).apply {
+            setLocalMatrix(android.graphics.Matrix().apply { setScale(1f, b / a, c.x, c.y) })
+        }
+    }
+}
+
+/** ماهوت میز: نور وسط، بافت ریز پارچه، گرادیان سه رنگ و لبهٔ میز (--rim) با سایهٔ داخلی */
 @Composable
-fun Felt(look: String, modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit = {}) {
+fun Felt(look: String, modifier: Modifier = Modifier, radius: Dp = 0.dp, content: @Composable BoxScope.() -> Unit = {}) {
     val f = FELT[look] ?: FELT.getValue("a")
+    val shape = RoundedCornerShape(radius)
     Box(
-        modifier
-            .background(ellipseBrush(.5f, .46f, .85f, 0f to f[0], .55f to f[1], 1f to f[2]))
-            .background(ellipseBrush(.5f, .47f, .62f, 0f to Color(0x29FFECBE), .72f to Color.Transparent))
+        modifier.clip(shape)
+            .background(cssEllipse(.5f, .46f, .85f, .65f, 0f to f[0], .55f to f[1], 1f to f[2]))
+            .drawBehind {
+                // بافت: خط های افقی روشن و عمودی تیره هر ۳ پیکسل
+                val st = 3f
+                var y = 0f
+                while (y < size.height) { drawRect(Color.White.copy(alpha = .035f), Offset(0f, y), Size(size.width, 1f)); y += st }
+                var x = 0f
+                while (x < size.width) { drawRect(Color.Black.copy(alpha = .05f), Offset(x, 0f), Size(1f, size.height)); x += st }
+                drawRect(cssEllipse(.5f, .47f, .62f, .42f, 0f to Color(0x29FFECBE), .72f to Color.Transparent))
+                // سایهٔ داخلی لبه (inset 0 0 36px rgba(0,0,0,.32))
+                val v = 36.dp.toPx()
+                val dark = Color.Black.copy(alpha = .32f)
+                drawRect(Brush.verticalGradient(0f to dark, 1f to Color.Transparent, endY = v), size = Size(size.width, v))
+                drawRect(Brush.verticalGradient(0f to Color.Transparent, 1f to dark, startY = size.height - v, endY = size.height), Offset(0f, size.height - v), Size(size.width, v))
+                drawRect(Brush.horizontalGradient(0f to dark, 1f to Color.Transparent, endX = v), size = Size(v, size.height))
+                drawRect(Brush.horizontalGradient(0f to Color.Transparent, 1f to dark, startX = size.width - v, endX = size.width), Offset(size.width - v, 0f), Size(v, size.height))
+            }
             .then(
-                if (look == "b") Modifier.border(7.dp, Color(0xFF4A2C1A)).padding(7.dp).border(2.dp, Color(0xFF2B170C)).padding(2.dp).border(1.dp, Color(0x8CD6B254))
-                else Modifier.border(1.5.dp, Color.White.copy(alpha = .12f)),
+                if (look == "b") Modifier.border(7.dp, Color(0xFF4A2C1A), shape).padding(7.dp).border(2.dp, Color(0xFF2B170C), shape).padding(2.dp).border(1.dp, Color(0x8CD6B254), shape)
+                else Modifier.border(1.5.dp, Color.White.copy(alpha = if (look == "c") .14f else .12f), shape),
             ),
         content = content,
     )
 }
 
-// ---------- ورق (رو و پشت) به طرح هر ست (cards.css) ----------
-private fun paperOf(look: String) = if (look == "b") Color(0xFFF7EEDB) else Color.White
-private fun redOf(look: String) = when (look) { "b" -> Color(0xFFA51A2C); "c" -> Color(0xFFE0263E); "m" -> Color(0xFFD62839); else -> Color(0xFFD7263D) }
-private fun inkOf(look: String) = when (look) { "b" -> Color(0xFF2B1C12); "c" -> Color(0xFF141A26); else -> Color(0xFF1C2235) }
-
-/** روی ورق: ارزش و خال گوشه و خال بزرگ وسط */
+// ---------- ورق (رو و پشت) به طرح هر ست: Cards.kt (cards.js و cards.css) ----------
+/** پیش نمایش فروشگاه و جاهای دیگر: همان ورق واقعی بازی */
 @Composable
 fun CardFace(rank: String, suit: String, red: Boolean, w: Dp, look: String = "a", modifier: Modifier = Modifier) {
-    val ink = if (red) redOf(look) else inkOf(look)
-    val shape = RoundedCornerShape(w * .1f)
-    Box(modifier.size(w, w * 1.406f).shadow(4.dp, shape).clip(shape).background(paperOf(look))
-        .then(if (look == "b") Modifier.padding(w * .05f).border(1.dp, Color(0xFFC9A54A), RoundedCornerShape(w * .045f)) else Modifier)) {
-        Column(Modifier.align(AbsoluteAlignment.TopLeft).padding(w * .07f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(rank, style = rokh(w.value * .3f, w.value * .32f), color = ink)
-            Text(suit, style = peyda(w.value * .24f, w.value * .26f, 700), color = ink)
-        }
-        Text(suit, style = peyda(w.value * .6f, w.value * .64f, 700), color = ink, modifier = Modifier.align(Alignment.Center))
-    }
+    PlayingCard(cardIndex(rank, suit), w, look, modifier)
 }
 
 /** پشت ورق */
 @Composable
 fun CardBack(look: String, w: Dp, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(w * .075f)
-    val base = Modifier.size(w, w * 1.406f).shadow(4.dp, shape).clip(shape)
-    when (look) {
-        "m" -> Box(modifier.then(base).border(w * .0625f, Color.White, shape).background(Brush.linearGradient(0f to Color(0xFFF5C451), .5f to Color(0xFFF5C451), .5f to Color(0xFF1A7A47), 1f to Color(0xFF1A7A47))))
-        "c" -> Box(modifier.then(base).background(Brush.linearGradient(listOf(Color(0xFF2B7DF0), Color(0xFF0E4FB3)))).border(w * .055f, Color.White, shape), contentAlignment = Alignment.Center) {
-            Text("AsoTas", style = peyda(w.value * .13f, w.value * .17f, 800), color = Color(0xFF3D2600),
-                modifier = Modifier.clip(RoundedCornerShape(99.dp)).background(Color(0xFFFFC43B)).padding(horizontal = w * .06f))
-        }
-        else -> {
-            val b = look == "b"
-            val bg = if (b) Color(0xFF6A1B28) else Color(0xFF1D3461)
-            val line = if (b) Color(0x66D6B254) else Color(0x2BFFFFFF)
-            Box(
-                modifier.then(base).background(bg).drawBehind {
-                    val step = 6.dp.toPx()
-                    var x = -size.height
-                    while (x < size.width) {
-                        drawLine(line, Offset(x, size.height), Offset(x + size.height, 0f), 1.2f)
-                        drawLine(line, Offset(x, 0f), Offset(x + size.height, size.height), 1.2f)
-                        x += step
-                    }
-                }.border(w * .055f, if (b) Color(0xFFF3E6C8) else Color.White, shape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(Modifier.size(w * .32f).clip(RoundedCornerShape(99.dp)).background(if (b) Color(0xFFD6B254) else Color(0xFFFBF7EE)).padding(w * .1f)
-                    .clip(RoundedCornerShape(99.dp)).background(bg))
-            }
-        }
-    }
+    PlayingBack(look, w, modifier)
 }
-
 @Composable
 private fun BoxScope.At(leftPct: Float, topPct: Float, rot: Float, wFrame: Dp, hFrame: Dp, content: @Composable () -> Unit) {
     Box(Modifier.align(AbsoluteAlignment.TopLeft).absoluteOffset(wFrame * leftPct, hFrame * topPct).rotate(rot)) { content() }
