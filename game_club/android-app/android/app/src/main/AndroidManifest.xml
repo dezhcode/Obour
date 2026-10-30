@@ -25,6 +25,28 @@
 
         </activity>
 
+        <!-- نوتیفیکیشن فایربیس (AsoPushPlugin): توکن برای سرور و نمایش وقتی برنامه باز است -->
+        <service
+            android:name=".PushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="turn" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_asotas" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notify_gold" />
+        <!-- یادآوری جایزهٔ روزانه روی خود گوشی -->
+        <receiver
+            android:name=".ReminderReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -39,4 +61,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- نوتیفیکیشن نوبت، دعوت و پیام ها (اندروید ۱۳ به بعد اجازه می خواهد) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

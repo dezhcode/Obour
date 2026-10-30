@@ -5,6 +5,8 @@
 #   GC_KEYSTORE_PASSWORD رمز keystore
 #   GC_KEY_ALIAS         نام کلید (alias)
 #   GC_KEY_PASSWORD      رمز کلید
+# نوتیفیکیشن گوشی (اختیاری): GC_GOOGLE_SERVICES فایل google-services.json فایربیس (بستهٔ obour.gameclub.app)
+# به base64؛ بدونش برنامه ساخته می شود ولی نوتیفیکیشن ندارد
 name: AsoTas Android
 
 on:
@@ -53,6 +55,16 @@ jobs:
           npm ci --no-audit --no-fund
           npm run www
           npx cap sync android
+
+      - name: Firebase (notifications)
+        env:
+          GS: ${{ secrets.GC_GOOGLE_SERVICES }}
+        run: |
+          if [ -n "$GS" ]; then
+            echo "$GS" | base64 -d > android/app/google-services.json
+          else
+            echo "::notice::GC_GOOGLE_SERVICES تنظیم نشده؛ برنامه بی نوتیفیکیشن گوشی ساخته می‌شود"
+          fi
 
       - name: Signing key
         env:

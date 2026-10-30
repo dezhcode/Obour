@@ -9,3 +9,5 @@ qrcode[pil]>=7.4
 tzdata
 # برای پروکسی SOCKS5 لازم است (فقط اگر TG_PROXY از نوع socks5 باشد)
 aiohttp-socks>=0.9
+# امضای کلید فایربیس برای نوتیفیکیشن گوشی برنامهٔ اندروید (game_club/push.py)
+cryptography>=42
