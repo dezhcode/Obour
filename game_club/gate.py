@@ -25,7 +25,7 @@ log = logging.getLogger("gameclub.gate")
 
 MAX_CHATS = 8
 OK_TTL = 600            # عضویت تأیید شده ده دقیقه به خاطر می ماند
-MEDIA_RE = re.compile(r"^popup-[a-f0-9]{12}\.(jpg|png|webp|gif)$")
+MEDIA_RE = re.compile(r"^(popup|bc)-[a-f0-9]{12}\.(jpg|png|webp|gif)$")
 IMG_MAX = 1_500_000
 _TYPES = {b"\xff\xd8\xff": "jpg", b"\x89PNG": "png", b"RIFF": "webp", b"GIF8": "gif"}
 
@@ -172,12 +172,17 @@ def save_image(data_url: str) -> str:
         raw = base64.b64decode(m.group(1), validate=False)
     except ValueError:
         raise GCError("bad_image") from None
+    return store_media(raw, "popup")
+
+
+def store_media(raw: bytes, prefix: str) -> str:
+    """عکس (jpg، png، webp، gif تا IMG_MAX) روی دیسک ← "media/<prefix>-<hash>.<پسوند>"؛ prefix: popup یا bc"""
     if not raw or len(raw) > IMG_MAX:
         raise GCError("bad_image")
     ext = next((e for sig, e in _TYPES.items() if raw.startswith(sig)), None)
     if not ext or (ext == "webp" and raw[8:12] != b"WEBP"):
         raise GCError("bad_image")
-    name = f"popup-{hashlib.sha1(raw).hexdigest()[:12]}.{ext}"
+    name = f"{prefix}-{hashlib.sha1(raw).hexdigest()[:12]}.{ext}"
     os.makedirs(media_dir(), exist_ok=True)
     path = os.path.join(media_dir(), name)
     if not os.path.exists(path):

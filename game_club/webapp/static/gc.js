@@ -471,7 +471,7 @@ async function refreshMe() {
   const me = await GC.data.me();
   points = me.player.points;
   if (me.social) setNavBadge(me.social);
-  if (APP) iapCheck(me);
+  if (APP) { iapCheck(me); pushSetup(me); dailyRemind(me.daily); }
   mount();
   return me;
 }
@@ -748,7 +748,7 @@ function dailyMount(box, d, done) {
     try {
       const r = await GC.data.daily();
       points = r.points; sfx.coin(); haptic('success'); toast(`+${fa(r.coins)} سکه ریخت تو کیفت 🎉`);
-      dailyMount(box, r.daily, done); mount(); if (done) done(r.daily);
+      dailyMount(box, r.daily, done); mount(); dailyRemind(r.daily); if (done) done(r.daily);
     } catch (e) { b.disabled = false; toast(errText(e)); }
   };
 }
@@ -792,6 +792,46 @@ function iapBuy(sku, key) {
     return r;
   });
 }
+/* ---------- نوتیفیکیشن گوشی (فقط داخل برنامه؛ push.py و AsoPushPlugin.java) ----------
+   نوبت، دعوت، میز منتظر، درخواست و پیام رفیق و پاپ آپ پنل از سرور (فایربیس) می آیند؛
+   یادآوری جایزهٔ روزانه روی خود گوشی زنگ می زند. */
+let pushDone = false;
+async function pushSetup(me) {
+  const P = APP && APP.push;
+  if (pushDone || !P || !P.ok()) return;
+  pushDone = true;
+  // بار اول (بعد از خوش آمد) یک بار اجازه می پرسد؛ بعد بی صدا فقط توکن را تازه می کند
+  const asked = store.get('push_asked', false);
+  if (!asked && !store.get('welcome', false)) return;
+  store.set('push_asked', true);
+  try {
+    const r = await P.register(asked);
+    const mark = r.token + '|' + me.player.name;
+    if (store.get('push_tok', '') !== mark || Date.now() - (+store.get('push_at', 0) || 0) > 864e5) {
+      await api('push/token', { body: { token: r.token } });
+      store.set('push_tok', mark); store.set('push_at', Date.now());
+    }
+  } catch (e) {}
+}
+// یادآوری جایزهٔ روزانه: نگرفته = امروز ساعت ۲۰؛ گرفته (یا ساعت ۲۰ گذشته) = فردا ساعت ۱۲:۳۰
+function dailyRemind(d) {
+  const P = APP && APP.push;
+  if (!d || !d.plan || !P || !P.ok()) return;
+  const at = new Date(), now = Date.now();
+  at.setHours(20, 0, 0, 0);
+  let coins = d.plan[(d.next || 1) - 1];
+  if (d.claimed || at.getTime() <= now + 6e4) {
+    at.setDate(at.getDate() + 1); at.setHours(12, 30, 0, 0);
+    coins = d.plan[(d.claimed ? d.day : 0) % d.plan.length];
+  }
+  P.remind(at.getTime(), 'جایزهٔ روزانه‌ت آماده‌ست 🎁', `${fa(coins)} سکه منتظرته بیا بگیرش تا زنجیره‌ت نشکنه`).catch(() => {});
+}
+// لمس نوتیفیکیشن: همان صفحه (نوبت ← میز، دعوت ← چت، جایزه ← فروشگاه)
+if (APP && APP.push) APP.push.onOpen(page => {
+  const go = /^[\w-]+\.html([?#][^\s]*)?$/.test(page) ? page : 'index.html';
+  if (!location.pathname.endsWith('/' + go)) location.href = go;
+});
+
 // بعد از باز شدن صفحه ها: هر ۱۰ دقیقه یک بار سراغ خریدهای مانده
 function iapCheck(me) {
   const I = me && me.settings && me.settings.iap;

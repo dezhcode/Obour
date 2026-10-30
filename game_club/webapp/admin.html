@@ -539,11 +539,14 @@ function drawPopup() {
       <label class="lbl">لینک دکمه<input class="in" id="pUrl" dir="ltr" value="${esc(p.url || '')}" placeholder="https://t.me/channel یا هر لینک https"></label>
       <div class="lbl">چند بار نشون داده بشه؟
         <div class="seg"><button data-m="once" aria-pressed="${p.mode !== 'always'}">یک بار برای هر نفر</button><button data-m="always" aria-pressed="${p.mode === 'always'}">هر بار که مینی‌اپ باز می‌شه</button></div></div>
+      <div class="set" style="border:0;padding:0"><span><b>نوتیفیکیشن گوشی</b><small>تیتر، متن و عکس پاپ‌آپ همین الان برای گوشی همهٔ کاربرای برنامهٔ اندروید می‌ره (فقط وقتی پاپ‌آپ روشنه).</small></span>
+        <button class="switch" role="switch" id="pPush" aria-checked="false" aria-label="نوتیفیکیشن گوشی"></button></div>
       <button class="btn btn-block" id="pSave">${ic('send', 2.2)}ذخیره و انتشار</button>
       <button class="btn btn-light btn-block" id="pPrev">پیش‌نمایش</button>
     </section>
     <p class="hint">با هر ذخیره، پاپ‌آپ نسخهٔ تازه حساب می‌شه و دوباره برای همه نمایش داده می‌شه. صفحهٔ بازی‌ها وسط بازی شلوغ نمی‌شه.</p>`);
   const v = $('view');
+  v.querySelector('#pPush').onclick = e => e.currentTarget.setAttribute('aria-checked', String(e.currentTarget.getAttribute('aria-checked') !== 'true'));
   v.querySelector('#pOn').onclick = e => e.currentTarget.setAttribute('aria-checked', String(e.currentTarget.getAttribute('aria-checked') !== 'true'));
   v.querySelectorAll('[data-m]').forEach(b => b.onclick = () => v.querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', String(x === b))));
   const keep = () => Object.assign(pop, { on: v.querySelector('#pOn').getAttribute('aria-checked') === 'true', title: $('pTitle').value, text: $('pText').value,
@@ -556,9 +559,14 @@ function drawPopup() {
   $('pPrev').onclick = () => { keep(); previewPopup(Object.assign({}, pop, { img: popImg != null ? popImg : pop.img })); };
   $('pSave').onclick = async () => {
     keep();
-    const body = { on: pop.on, title: pop.title, text: pop.text, btn: pop.btn, url: pop.url, mode: pop.mode };
+    const push = v.querySelector('#pPush').getAttribute('aria-checked') === 'true';
+    const body = { on: pop.on, title: pop.title, text: pop.text, btn: pop.btn, url: pop.url, mode: pop.mode, push };
     if (popImg != null) body.img = popImg;
-    try { const r = await act('admin/popup', body, pop.on ? 'منتشر شد ✅' : 'ذخیره شد (خاموش)'); pop = r.popup; popImg = null; drawPopup(); } catch (e) {}
+    try {
+      const r = await act('admin/popup', body, !pop.on ? 'ذخیره شد (خاموش)' : push ? 'منتشر شد و نوتیفیکیشن رفت ✅' : 'منتشر شد ✅');
+      if (push && pop.on && !r.pushed) toast('نوتیفیکیشن نرفت: کلید فایربیس (GAME_CLUB_FCM_KEY) روی سرور تنظیم نشده');
+      pop = r.popup; popImg = null; drawPopup();
+    } catch (e) {}
   };
 }
 // عکس بزرگ گوشی کوچک و فشرده می شود (حداکثر ۱۰۸۰ پیکسل) تا زود باز شود

@@ -58,6 +58,9 @@ dependencies {
     implementation project(':capacitor-android')
     // کتابخانهٔ رسمی خرید درون برنامه ای مایکت (JitPack)؛ پلاگینش MyketBillingPlugin.java
     implementation 'com.github.myketstore:myket-billing-client:1.19'
+    // نوتیفیکیشن گوشی (AsoPushPlugin)؛ بی google-services.json فایربیس راه نمی افتد و فقط نوتیفیکیشن خاموش است
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    implementation 'com.google.firebase:firebase-messaging'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

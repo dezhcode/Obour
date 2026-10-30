@@ -192,6 +192,25 @@ CREATE TABLE IF NOT EXISTS broadcasts (
   finished_at INTEGER
 );
 
+-- پیام مستقیم ادمین به یک بازیکن: در پیوی ربات می رود و در صندوق پیام برنامهٔ اندروید هم می ماند
+CREATE TABLE IF NOT EXISTS inbox (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tg_id INTEGER NOT NULL,
+  admin INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  button TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS inbox_tg ON inbox(tg_id, id);
+
+-- توکن نوتیفیکیشن گوشی (فایربیس) هر نصب برنامهٔ اندروید
+CREATE TABLE IF NOT EXISTS push_tokens (
+  token TEXT PRIMARY KEY,
+  tg_id INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS push_tokens_tg ON push_tokens(tg_id);
+
 -- دوستی: هر جفت یک ردیف (a < b)؛ status = pending (درخواست requester) یا accepted
 CREATE TABLE IF NOT EXISTS friends (
   a INTEGER NOT NULL,
@@ -397,6 +416,12 @@ class GCDatabase:
         cur = await self._conn.execute("PRAGMA table_info(results)")
         if "cups" not in {r[1] for r in await cur.fetchall()}:
             await self._conn.execute("ALTER TABLE results ADD COLUMN cups INTEGER NOT NULL DEFAULT 0")
+        cur = await self._conn.execute("PRAGMA table_info(broadcasts)")
+        if "img" not in {r[1] for r in await cur.fetchall()}:   # عکس پیام همگانی برای صندوق پیام برنامه
+            try:
+                await self._conn.execute("ALTER TABLE broadcasts ADD COLUMN img TEXT NOT NULL DEFAULT ''")
+            except aiosqlite.OperationalError:   # پروسهٔ دیگری همین الان ساخت
+                pass
         cur = await self._conn.execute("PRAGMA table_info(group_tables)")
         if "inline_message_id" not in {r[1] for r in await cur.fetchall()}:
             await self._conn.execute("ALTER TABLE group_tables ADD COLUMN inline_message_id TEXT NOT NULL DEFAULT ''")
@@ -1343,10 +1368,13 @@ class GCDatabase:
         return await self.all("SELECT * FROM broadcasts WHERE status NOT IN ('draft', 'deleted') ORDER BY id DESC LIMIT ?", (limit,))
 
     # پیش نویس پیام همگانی در ربات: target تا لحظهٔ ارسال کلید فرم است (all، active7، game:hokm ...)
-    async def bc_draft(self, admin: int, src_chat: int, src_msg: int, button: str, target: str) -> int:
+    async def bc_draft(self, admin: int, src_chat: int, src_msg: int, button: str, target: str,
+                       text: str = "", img: str = "") -> int:
+        """text و img: متن (HTML) و عکس همان پیام تلگرام تا در صندوق پیام برنامه هم دیده شود"""
         return await self.insert(
-            "INSERT INTO broadcasts(admin, src_chat, src_msg, button, target, status, total, created_at) VALUES(?,?,?,?,?,'draft',0,?)",
-            (admin, src_chat, src_msg, button, target, int(time.time())))
+            "INSERT INTO broadcasts(admin, text, img, src_chat, src_msg, button, target, status, total, created_at) "
+            "VALUES(?,?,?,?,?,?,?,'draft',0,?)",
+            (admin, text, img, src_chat, src_msg, button, target, int(time.time())))
 
     async def bc_set_draft(self, bid: int, **kw) -> bool:
         cols = [k for k in kw if k in ("button", "target")]
@@ -1371,6 +1399,38 @@ class GCDatabase:
     async def bc_progress(self, bid: int, cursor: int, sent: int, failed: int, blocked: int) -> None:
         await self.execute("UPDATE broadcasts SET cursor = ?, sent = sent + ?, failed = failed + ?, blocked = blocked + ? "
                            "WHERE id = ?", (cursor, sent, failed, blocked, bid))
+
+    # ---------- نوتیفیکیشن گوشی ----------
+    async def push_set(self, tg_id: int, token: str) -> None:
+        """توکن گوشی مال همین بازیکن می شود (اگر با حساب دیگری وارد شده بود جابه جا می شود)"""
+        await self.execute("INSERT INTO push_tokens(token, tg_id, updated_at) VALUES(?,?,?) ON CONFLICT(token) "
+                           "DO UPDATE SET tg_id = excluded.tg_id, updated_at = excluded.updated_at",
+                           (token, tg_id, int(time.time())))
+
+    async def push_tokens_of(self, tg_id: int) -> list[str]:
+        return [r["token"] for r in await self.all("SELECT token FROM push_tokens WHERE tg_id = ? ORDER BY updated_at DESC LIMIT 5",
+                                                   (tg_id,))]
+
+    async def push_drop(self, token: str) -> None:
+        await self.execute("DELETE FROM push_tokens WHERE token = ?", (token,))
+
+    # ---------- صندوق پیام برنامه ----------
+    async def bc_recent(self, since: int, limit: int = 40) -> list[dict]:
+        """پیام های همگانی که رفته اند یا در حال رفتن اند (پیش نویس و لغو شده نه)"""
+        return await self.all("SELECT * FROM broadcasts WHERE status IN ('active', 'done') AND created_at >= ? "
+                              "ORDER BY id DESC LIMIT ?", (since, limit))
+
+    async def played(self, tg_id: int, game: str) -> bool:
+        return await self.one("SELECT 1 AS x FROM match_players mp JOIN matches m ON m.id = mp.match_id "
+                              "WHERE mp.tg_id = ? AND m.game = ? LIMIT 1", (tg_id, game)) is not None
+
+    async def inbox_add(self, tg_id: int, admin: int, text: str, button: str = "") -> int:
+        return await self.insert("INSERT INTO inbox(tg_id, admin, text, button, created_at) VALUES(?,?,?,?,?)",
+                                 (tg_id, admin, text, button, int(time.time())))
+
+    async def inbox_of(self, tg_id: int, since: int, limit: int = 40) -> list[dict]:
+        return await self.all("SELECT * FROM inbox WHERE tg_id = ? AND created_at >= ? ORDER BY id DESC LIMIT ?",
+                              (tg_id, since, limit))
 
     async def bc_finish(self, bid: int, status: str) -> bool:
         return bool(await self.execute("UPDATE broadcasts SET status = ?, finished_at = ? WHERE id = ? AND status = 'active'",

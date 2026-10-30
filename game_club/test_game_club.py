@@ -562,6 +562,47 @@ def test_myket_store_check_paths():
         iap.gc.myket_token, iap.gc.app_package = old
 
 
+def test_phone_push_for_game_events_admin_message_and_popup():
+    """نوتیفیکیشن گوشی: اعلان بازی (متن ساده، کانال turn)، پیام مستقیم ادمین (news) و پاپ آپ (تاپیک all)."""
+    tmp = tempfile.mkdtemp()
+    from game_club import admin, push, service
+    from game_club.db import GCDatabase
+
+    sent = []
+
+    async def fake_send(**kw):
+        sent.append(kw)
+        return "gone" if kw.get("token") == "dead-token-000000000000" else "ok"
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        real = (push.enabled, push.send, service.notifier)
+        push.enabled, push.send, service.notifier = (lambda: True), fake_send, None
+        try:
+            await db.player(-5, "guest")                    # فقط برنامه، بی تلگرام
+            await db.push_set(-5, "tok-aaaaaaaaaaaaaaaaaaaaaa")
+            await db.push_set(-5, "dead-token-000000000000")
+            await service._notify(db, -5, "turn:m1:-5:1", "نوبت <b>تو</b>ه تو منچ", "ludo.html")
+            await service._notify(db, -5, "turn:m1:-5:1", "تکراری", "ludo.html")   # یک بار
+            assert [(x["token"], x["body"], x["channel"], x["data"]) for x in sent] == [
+                ("tok-aaaaaaaaaaaaaaaaaaaaaa", "نوبت توه تو منچ", "turn", {"page": "ludo.html"}),
+                ("dead-token-000000000000", "نوبت توه تو منچ", "turn", {"page": "ludo.html"})]
+            assert await db.push_tokens_of(-5) == ["tok-aaaaaaaaaaaaaaaaaaaaaa"]       # توکن مرده پاک شد
+            sent.clear()
+            await push.to_player(db, -5, "سلام از پنل", "index.html", title="پیام از طرف AsoTas", channel="news")
+            assert sent[0]["title"] == "پیام از طرف AsoTas" and sent[0]["channel"] == "news"
+            sent.clear()
+            push.to_all("جشنواره", "سکهٔ دوبرابر", "")
+            await asyncio.sleep(0.05)
+            assert sent and sent[0]["topic"] == "all" and sent[0]["channel"] == "news"
+        finally:
+            push.enabled, push.send, service.notifier = real
+            await db.close()
+
+    asyncio.run(run())
+
+
 # ---------- حکم ----------
 def _card(s, r):
     """خال (۰ پیک، ۱ دل، ۲ خشت، ۳ گشنیز) و ارزش (۲ تا ۱۴)."""
@@ -3401,3 +3442,58 @@ def test_app_login_telegram_and_email():
         gbot.gcrt.db, gbot.gc.username = old_db, old_user
         run(db.close())
         loop.close()
+
+
+def test_app_inbox():
+    """صندوق پیام برنامهٔ اندروید: پیام همگانی (متن و عکس همان پیام تلگرام، با مخاطبانش) و پیام مستقیم ادمین.
+    پیش نویس و لغو شده دیده نمی شوند؛ پیام مستقیم بی ربات هم در صندوق می ماند."""
+    tmp = tempfile.mkdtemp()
+    from unittest import mock
+
+    from game_club import admin, gate
+    from game_club.bot import gcrt
+    from game_club.db import GCDatabase
+
+    async def run():
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        old_db, old_bot = gcrt.db, gcrt.bot
+        gcrt.db, gcrt.bot = db, None
+        try:
+            for i in (1, 2, -5):
+                await db.player(i, f"p{abs(i)}")
+            b1 = await db.bc_draft(1, 1, 50, "hokm-lobby.html|بازی حکم|", "all", "<b>جام</b> هفتگی &amp; جایزه",
+                                   "media/bc-0123456789ab.jpg")
+            await db.bc_launch(b1, "all")
+            b2 = await db.bc_draft(1, 1, 51, "", "all", "فقط حکمی ها")
+            await db.bc_launch(b2, "game:hokm")
+            await db.bc_draft(1, 1, 52, "", "all", "پیش نویس")
+            b4 = await db.bc_draft(1, 1, 53, "", "all", "لغو شد")
+            await db.bc_launch(b4, "all")
+            await db.bc_finish(b4, "cancelled")
+            items = (await admin.inbox_view(db, 2))["items"]
+            assert [i["text"] for i in items] == ["جام هفتگی & جایزه"]
+            assert items[0]["kind"] == "broadcast" and items[0]["img"] == "media/bc-0123456789ab.jpg"
+            assert items[0]["buttons"] == [{"page": "hokm-lobby.html", "label": "بازی حکم"}]
+            # مهمان برنامه (tg منفی) پیوی تلگرام ندارد ولی پیام همگانی را در برنامه می بیند
+            assert len((await admin.inbox_view(db, -5))["items"]) == 1
+            # پیام مستقیم ادمین
+            mock.patch.object(admin, "is_admin", return_value=True).start()
+            r = await admin.handle("admin/message", "POST", 1, {}, {"id": -5, "text": "سلام <b>تاسی</b>", "button": "|خونه|"}, db)
+            assert r["ok"] and r["telegram"] == "app"
+            adm = [i for i in (await admin.inbox_view(db, -5))["items"] if i["kind"] == "admin"]
+            assert len(adm) == 1 and adm[0]["text"] == "سلام تاسی" and adm[0]["buttons"] == [{"page": "", "label": "خونه"}]
+            assert all(i["kind"] != "admin" for i in (await admin.inbox_view(db, 2))["items"])
+            try:
+                await admin.handle("admin/message", "POST", 1, {}, {"id": 777, "text": "x"}, db)
+                raise AssertionError("message to unknown player")
+            except admin.GCError as e:
+                assert e.code == "not_found"
+            # عکس پیام همگانی با همان مسیر media خوانده می شود
+            assert gate.MEDIA_RE.match("bc-0123456789ab.jpg") and not gate.MEDIA_RE.match("x-0123456789ab.jpg")
+        finally:
+            mock.patch.stopall()
+            gcrt.db, gcrt.bot = old_db, old_bot
+            await db.close()
+
+    asyncio.run(run())

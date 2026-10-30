@@ -363,14 +363,21 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
     if path == "message":
         tg = _int(body.get("id"))
         text = _clean_text(body.get("text", ""))
-        g = await gcrt.ensure()
-        if not text or g.bot is None:
+        button = str(body.get("button") or "")
+        if not text:
             raise GCError("bad_input")
-        r = await _send(g.bot, tg, text, str(body.get("button") or ""))
-        if r != "ok":
-            raise GCError("send_" + r)
+        if not await db.get_player(tg):
+            raise GCError("not_found")
+        # همیشه در صندوق پیام برنامهٔ اندروید می ماند؛ اگر بازیکن تلگرام دارد پیوی ربات هم می رود
+        await db.inbox_add(tg, admin, text, button)
+        g = await gcrt.ensure()
+        r = await _send(g.bot, tg, text, button) if g.bot is not None and tg > 0 else "app"
+        # نوتیفیکیشن گوشی برنامهٔ اندروید (اگر فایربیس روشن است و بازیکن برنامه دارد)
+        from . import push
+        if push.enabled():
+            asyncio.get_running_loop().create_task(push.to_player(db, tg, text, "index.html", title="پیام از طرف AsoTas", channel="news"))
         await db.log_admin(admin, "message", str(tg), text[:120])
-        return {"ok": True}
+        return {"ok": True, "telegram": r}
     if path == "close":
         mid = str(body.get("id") or "")
         r = await service.admin_close(db, mid)
@@ -434,7 +441,14 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
     if path == "popup":
         p = await gate.set_popup(db, body)
         await db.log_admin(admin, "popup", "popup", ("on " if p["on"] else "off ") + (p["title"] or p["text"])[:100])
-        return {"ok": True, "popup": p}
+        # گزینهٔ «نوتیفیکیشن گوشی»: تیتر، متن و عکس پاپ آپ برای همهٔ گوشی های برنامهٔ اندروید
+        pushed = False
+        if p["on"] and body.get("push") in (True, 1, "1", "true"):
+            from . import push
+            if push.enabled():
+                push.to_all(p["title"], p["text"], p.get("img") or "")
+                pushed = True
+        return {"ok": True, "popup": p, "pushed": pushed}
     if path == "setting":
         key = str(body.get("key") or "")
         if key not in SETTINGS:
@@ -463,6 +477,47 @@ TARGET_KEYS = [("all", "همه"), ("active7", "فعال ۷ روز"), ("active30"
                ("game:billiard", "بازیکنان بیلیارد"), ("game:divar", "بازیکنان دیوار"),
                ("game:esmfamil", "بازیکنان اسم‌فامیل"),
                ("game:lashgar", "بازیکنان لشگر کاغذی"), ("game:snakes", "بازیکنان مار و پله"), ("me", "فقط خودم")]
+
+
+# ---------- صندوق پیام برنامهٔ اندروید ----------
+INBOX_DAYS = 60
+
+
+def _plain(text: str) -> str:
+    """متن HTML تلگرامی پیام برای برنامه: بی برچسب، با نویسه های اصلی"""
+    return html.unescape(re.sub(r"<[^>]+>", "", str(text or ""))).strip()
+
+
+async def _reaches(db: GCDatabase, p: dict, target: str) -> bool:
+    """پیام همگانی با این مخاطبان به این بازیکن می رسید؟ (همان db._bc_where، بی شرط تلگرام)"""
+    kind, _, arg = (target or "all").partition(":")
+    if kind == "seen" and arg.isdigit():
+        return int(p.get("seen_at") or 0) >= int(arg)
+    if kind == "game" and arg:
+        return await db.played(p["tg_id"], arg)
+    if kind == "id":
+        return str(p["tg_id"]) == arg
+    return True
+
+
+async def inbox_view(db: GCDatabase, tg: int) -> dict:
+    """پیام های همگانی که به این بازیکن می رسید (از وقتی آمده) و پیام های مستقیم ادمین؛ ۶۰ روز اخیر، تازه ترین اول.
+    دکمه ها همان صفحه های مینی اپ اند (page خالی = خانه) که برنامه به صفحهٔ خودش می برد."""
+    p = await db.get_player(tg)
+    if not p:
+        return {"items": []}
+    old = int(time.time()) - INBOX_DAYS * 86400
+    items = []
+    for b in await db.bc_recent(max(old, int(p.get("created_at") or 0))):
+        text = _plain(b.get("text"))
+        if (text or b.get("img")) and await _reaches(db, p, b["target"]):
+            items.append({"id": f"b{b['id']}", "kind": "broadcast", "text": text, "img": b.get("img") or "",
+                          "buttons": [{"page": pg, "label": lb} for pg, lb, _ in parse_buttons(b["button"])], "at": int(b["created_at"])})
+    for m in await db.inbox_of(tg, old):
+        items.append({"id": f"m{m['id']}", "kind": "admin", "text": _plain(m["text"]), "img": "",
+                      "buttons": [{"page": pg, "label": lb} for pg, lb, _ in parse_buttons(m["button"])], "at": int(m["created_at"])})
+    items.sort(key=lambda i: i["at"], reverse=True)
+    return {"items": items[:30]}
 
 
 def target_label(t: str) -> str:

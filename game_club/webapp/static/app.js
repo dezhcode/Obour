@@ -115,6 +115,23 @@
     update: () => { try { window.open(STORE, '_blank'); } catch (e) { window.open(STORE_WEB, '_blank'); } },
   };
 
+  // ---------- نوتیفیکیشن گوشی: پلاگین AsoPush خود برنامه (فایربیس؛ از نسخهٔ ۳ برنامه) ----------
+  // register: اجازه و توکن (quiet = بی پرسیدن اجازه)؛ remind: یادآوری جایزهٔ روزانه؛ onOpen: لمس نوتیفیکیشن
+  const push = {
+    ok: () => native && !!(C.isPluginAvailable && C.isPluginAvailable('AsoPush')),
+    register: quiet => call('AsoPush', 'register', { quiet: !!quiet }),
+    remind: (at, title, body) => call('AsoPush', 'remind', { at, title, body }),
+    unremind: () => call('AsoPush', 'unremind'),
+    onOpen(fn) {
+      if (!push.ok()) return;
+      try {
+        const cb = e => fn((e && e.page) || '');
+        if (C.addListener) C.addListener('AsoPush', 'open', cb);
+        else if (C.Plugins && C.Plugins.AsoPush) C.Plugins.AsoPush.addListener('open', cb);
+      } catch (e) {}
+    },
+  };
+
   // ---------- آپدیت خودکار صفحه ها و بازی ها ----------
   const OTA_EVERY = 20 * 60e3;
   async function ota() {
@@ -142,5 +159,5 @@
     addEventListener('load', () => { setTimeout(() => ota().catch(() => {}), 1500); });
   }
 
-  window.GCApp = { base: cfg.base, bundle: cfg.bundle, native, call, token, srv, bars, login, iap };
+  window.GCApp = { base: cfg.base, bundle: cfg.bundle, native, call, token, srv, bars, login, iap, push };
 })();
