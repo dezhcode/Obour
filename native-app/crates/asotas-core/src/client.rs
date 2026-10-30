@@ -538,14 +538,12 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         TokenStore::open(&dir.path().to_string_lossy()).set(Some("t".into()));
         let on = server.mock("GET", "/gc/api/boot")
-            .with_body(r#"{"gate": [], "popup": {"v": 4, "title": "جام هفتگی", "text": "خط اول
-خط دوم", "img": "media/popup-ab.jpg", "btn": "بزن بریم", "url": "https://t.me/x", "mode": "always"}}"#)
+            .with_body(r#"{"gate": [], "popup": {"v": 4, "title": "جام هفتگی", "text": "خط اول\nخط دوم", "img": "media/popup-ab.jpg", "btn": "بزن بریم", "url": "https://t.me/x", "mode": "always"}}"#)
             .create();
         let c = client(&server, &dir);
         let p = c.boot().unwrap().unwrap();
         assert_eq!((p.v, p.title.as_str(), p.btn.as_str(), p.mode.as_str()), (4, "جام هفتگی", "بزن بریم", "always"));
-        assert!(p.text.contains('
-') && p.img.as_deref().is_some_and(|u| u.ends_with("media/popup-ab.jpg") && u.starts_with("http")));
+        assert!(p.text.contains('\n') && p.img.as_deref().is_some_and(|u| u.ends_with("media/popup-ab.jpg") && u.starts_with("http")));
         on.remove();
         server.mock("GET", "/gc/api/boot").with_body(r#"{"gate": [], "popup": null}"#).create();
         assert_eq!(c.boot().unwrap(), None);
