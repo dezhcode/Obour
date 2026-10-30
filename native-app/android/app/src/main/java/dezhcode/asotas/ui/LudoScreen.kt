@@ -145,6 +145,9 @@ private val ROT = mapOf("yellow" to 0f, "green" to 90f, "red" to 180f, "blue" to
 private val BASE = mapOf("blue" to 0, "red" to 1, "green" to 2, "yellow" to 3)
 private val PIPS = mapOf(1 to setOf(4), 2 to setOf(0, 8), 3 to setOf(0, 4, 8), 4 to setOf(0, 2, 6, 8), 5 to setOf(0, 2, 4, 6, 8), 6 to setOf(0, 2, 3, 5, 6, 8))
 
+/** پیام های سریع گفتگوی میز منچ (ludo.js: QUICK) */
+private val QUICK = listOf("سلام!", "خوش‌بازی!", "آفرین", "شانسی بود", "زود باش", "یه دست دیگه؟")
+
 /** رنگ هر بازیکن (gc.js: COL) */
 private val HEX = mapOf("blue" to Color(0xFF4C8DFF), "red" to Color(0xFFFF5A6A), "green" to Color(0xFF2FC584), "yellow" to Color(0xFFFFC531))
 private val DEEP = mapOf("blue" to Color(0xFF2B62D6), "red" to Color(0xFFC93447), "green" to Color(0xFF1E8A5E), "yellow" to Color(0xFFC98A00))
@@ -404,6 +407,8 @@ fun LudoScreen(vm: AppViewModel, matchId: String) {
         CompositionLocalProvider(LocalAso provides gameColors(app)) {
             Table(vm, model, play, onLeave = ask)
         }
+        // گفتگوی سر میز: پیام ها بالای داک شناور می شوند
+        TableChatLayer(model, QUICK, rest = 114.dp, enabled = play.game != null && !play.over && !play.cancelled)
         // پنجره ها رنگ های خود اپ را دارند (gc.css: gc-ui)
         CompositionLocalProvider(LocalAso provides app) {
             val v = play.view
@@ -503,7 +508,7 @@ private fun Table(vm: AppViewModel, model: TableModel, play: LudoPlay, onLeave: 
                     turn != null -> "نوبت ${nameOf(turn)}" to (if (g.players[turn]?.bot == true) "ربات داره فکر می‌کنه…" else "منتظریم حریف بازی کنه…")
                     else -> "" to ""
                 }
-                Dock(state, me, play, title, sub, onRoll = { roll() }, onChat = { vm.soon("چت سر میز") })
+                Dock(state, me, play, title, sub, model.unread, onRoll = { roll() }, onChat = { model.openChat(true) })
             }
         }
     }
@@ -1070,7 +1075,7 @@ private fun FeedLine(f: Feed?) {
 
 /** داک پایین: تاس من، وضعیت و دکمهٔ گفتگو */
 @Composable
-private fun Dock(state: String, me: String, play: LudoPlay, title: String, sub: String, onRoll: () -> Unit, onChat: () -> Unit) {
+private fun Dock(state: String, me: String, play: LudoPlay, title: String, sub: String, unread: Int, onRoll: () -> Unit, onChat: () -> Unit) {
     val shape = RoundedCornerShape(28.dp)
     Row(
         Modifier.fillMaxWidth().clip(shape).background(Color(0xBD10261E)).border(1.dp, Color.White.copy(alpha = .08f), shape).padding(12.dp),
@@ -1085,11 +1090,14 @@ private fun Dock(state: String, me: String, play: LudoPlay, title: String, sub: 
             Text(title, style = peyda(16f, 24f, 800), color = ON_FILL)
             if (sub.isNotEmpty()) Text(sub, style = peyda(12.5f, 20f), color = GAME_INK)
         }
-        Box(
-            Modifier.size(56.dp).clip(CircleShape).background(Color(0xFFF5C451)).press(onClick = onChat).semantics { contentDescription = "گفتگوی میز" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Ic("chat", size = 24.dp, tint = Color(0xFF3A2A00))
+        Box {
+            Box(
+                Modifier.size(56.dp).clip(CircleShape).background(Color(0xFFF5C451)).press(onClick = onChat).semantics { contentDescription = "گفتگوی میز" },
+                contentAlignment = Alignment.Center,
+            ) {
+                Ic("chat", size = 24.dp, tint = Color(0xFF3A2A00))
+            }
+            ChatBadge(unread, Modifier.align(Alignment.TopEnd))
         }
     }
 }
@@ -1253,7 +1261,7 @@ private fun LudoResult(v: MatchView, g: LudoGame, me: String, again: () -> Unit,
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             CrownPawn(w ?: me, crown = w != null)
             val wn = w?.let { g.players[it]?.let { p -> if (p.me) "تو" else p.name } }.orEmpty()
-            Text(if (won) "بردی!" else if (w != null) "$wn برد" else "بازی تموم شد", style = rokh(30f, 38f), color = c.ink, textAlign = TextAlign.Center)
+            Text(withIds(if (won) "بردی!" else if (w != null) "$wn برد" else "بازی تموم شد", listOf(wn)), style = rokh(30f, 38f), color = c.ink, textAlign = TextAlign.Center)
             when (v.mode) {
                 "free" -> Text(
                     if (won) "بازی دوستانه بود و جام و سکه نداشت ولی دمت گرم" else "بازی دوستانه بود و چیزی از دست ندادی",

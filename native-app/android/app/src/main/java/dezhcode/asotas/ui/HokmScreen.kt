@@ -60,6 +60,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 // ---------- برگ ها: ۰ تا ۵۱؛ خال = برگ / ۱۳ (۰ پیک، ۱ دل، ۲ خشت، ۳ گشنیز)، ارزش = برگ ٪ ۱۳ (۰ = ۲ ... ۱۲ = آس) ----------
+/** پیام های سریع گفتگوی میز حکم (hokm.js: QUICK) */
+private val HOKM_QUICK = listOf("سلام!", "خوش‌بازی!", "آفرین یار", "حکم خوبی بود", "زود باش", "یه دست دیگه؟")
 private val RANKS = listOf("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
 private val SUITS = listOf("♠", "♥", "♦", "♣")
 val SUIT_FA = listOf("پیک", "دل", "خشت", "گشنیز")
@@ -104,6 +106,8 @@ fun HokmScreen(vm: AppViewModel, matchId: String) {
                 g == null -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = c.acc)
                 else -> HokmTable(vm, model, g, look, onLeave = { leaving = true })
             }
+            // گفتگوی سر میز: پیام ها بالای نوار وضعیت شناور می شوند (hokm.js: rest = meBar)
+            TableChatLayer(model, HOKM_QUICK, rest = 204.dp, enabled = v?.status == "playing" && g?.over == false)
             if (v != null && g != null && (v.status == "over" || g.over)) {
                 val myTeam = (g.me?.toIntOrNull() ?: 0) % 2
                 val won = v.result?.won ?: (g.winner?.toInt() == myTeam)
@@ -228,10 +232,13 @@ private fun HokmTable(vm: AppViewModel, model: TableModel, g: HokmGame, look: St
                     if (s.isNotEmpty()) Text(s, style = peyda(11.5f, 16f), color = c.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Row(Modifier.height(44.dp).clip(CircleShape).background(c.acc).press { vm.soon("چت سر میز") }.padding(horizontal = 14.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Ic("chat", size = 20.dp, tint = c.accInk)
-                Text("چت کن", style = peyda(14f, 20f, 800), color = c.accInk)
+            Box {
+                Row(Modifier.height(44.dp).clip(CircleShape).background(c.acc).press { model.openChat(true) }.padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Ic("chat", size = 20.dp, tint = c.accInk)
+                    Text("چت کن", style = peyda(14f, 20f, 800), color = c.accInk)
+                }
+                ChatBadge(model.unread, Modifier.align(Alignment.TopEnd), ring = Color(0xFF0C1915))
             }
         }
         // ---------- دست من ----------

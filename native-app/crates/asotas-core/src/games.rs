@@ -76,6 +76,22 @@ pub struct Lobby {
     pub link: String,
 }
 
+/// پیام گفتگوی سر میز (tchat.js)
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct TableChat {
+    pub id: i64,
+    /// رنگ (منچ) یا صندلی (حکم) فرستنده
+    pub color: String,
+    pub text: String,
+    pub at: i64,
+    pub name: String,
+    pub av: i64,
+    pub pic: Option<String>,
+    pub me: bool,
+    /// کلید عمومی فرستنده برای کارت پروفایل (برای خودم خالی)
+    pub pid: String,
+}
+
 /// نتیجهٔ میز تمام شده برای من
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
 pub struct MatchResult {
@@ -277,6 +293,8 @@ pub struct MatchView {
     /// هدف حکم (۳ یا ۷ دست)
     pub target: i64,
     pub result: Option<MatchResult>,
+    /// پیام های تازهٔ گفتگوی میز (فقط وقتی با chat پرسیده شود)
+    pub chat: Vec<TableChat>,
 }
 
 fn map<T>(v: &Value, f: impl Fn(&Value) -> T) -> HashMap<String, T> {
@@ -362,6 +380,17 @@ impl MatchView {
                 league: opt(&r["rank"]["league"]),
                 total_cups: int(&r["rank"]["cups"]),
             }),
+            chat: v["chat"].as_array().map(|a| a.iter().map(|m| TableChat {
+                id: int(&m["id"]),
+                color: text(&m["color"]),
+                text: text(&m["text"]),
+                at: int(&m["at"]),
+                name: text(&m["name"]),
+                av: int(&m["av"]).max(1),
+                pic: pic(&m["pic"]),
+                me: yes(&m["me"]),
+                pid: text(&m["pid"]),
+            }).collect()).unwrap_or_default(),
         }
     }
 }

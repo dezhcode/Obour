@@ -277,10 +277,20 @@ impl Client {
     }
 
     /// میز از دید من؛ since = آخرین رویداد دیده شده
-    pub fn match_view(&self, game: String, match_id: String, since: i64) -> Result<MatchView, ApiError> {
-        let q = [("id".to_string(), match_id), ("since".to_string(), since.max(0).to_string())];
+    /// chat: شمارهٔ آخرین پیام گفتگوی میز که دیده ام؛ پیام های بعدی در chat می آیند (None یعنی گفتگو نخواه)
+    pub fn match_view(&self, game: String, match_id: String, since: i64, chat: Option<i64>) -> Result<MatchView, ApiError> {
+        let mut q = vec![("id".to_string(), match_id), ("since".to_string(), since.max(0).to_string())];
+        if let Some(c) = chat {
+            q.push(("chat".to_string(), c.max(0).to_string()));
+        }
         let j = self.api(&format!("{game}/match"), Req::Get(&q))?;
         Ok(MatchView::from_json(&j, &game, &|u: &str| self.resolve(u)))
+    }
+
+    /// پیامی در گفتگوی سر میز (حداکثر ۱۴۰ نویسه)؛ شمارهٔ پیام برمی گردد
+    pub fn table_chat(&self, game: String, match_id: String, text: String) -> Result<i64, ApiError> {
+        let j = self.api(&format!("{game}/chat"), Req::Post(&json!({ "match": match_id, "text": text })))?;
+        Ok(int(&j["id"]))
     }
 
     /// حرکت در بازی (منچ: roll، move با k = شمارهٔ مهره)؛ میز تازه برمی گردد
@@ -498,7 +508,7 @@ mod tests {
         let inv = c.invite_create("ludo".into(), r#"{"players":2,"pawns":2,"mode":"free"}"#.into()).unwrap();
         assert_eq!((inv.match_id.as_str(), inv.code.as_str()), ("m8", "XY12"));
 
-        let lobby = c.match_view("ludo".into(), "m8".into(), 0).unwrap();
+        let lobby = c.match_view("ludo".into(), "m8".into(), 0, None).unwrap();
         let l = lobby.lobby.unwrap();
         assert!(l.host && l.seats[0].me);
         assert_eq!((lobby.status.as_str(), lobby.players, lobby.ludo), ("lobby", 2, None));
@@ -513,6 +523,31 @@ mod tests {
         let r = v.result.unwrap();
         assert_eq!((r.cups, r.league.as_deref(), r.total_cups), (12, Some("نقره‌ای"), 240));
         assert!(c.queue_join("ludo".into(), "not json".into()).is_err());
+        assert!(lobby.chat.is_empty());
+    }
+
+    #[test]
+    fn table_chat() {
+        let mut server = Server::new();
+        let dir = tempfile::tempdir().unwrap();
+        TokenStore::open(&dir.path().to_string_lossy()).set(Some("t".into()));
+        server.mock("GET", "/gc/api/hokm/match")
+            .match_query(Matcher::AllOf(vec![Matcher::UrlEncoded("id".into(), "h1".into()), Matcher::UrlEncoded("chat".into(), "3".into())]))
+            .with_body(r#"{"id": "h1", "status": "playing", "cfg": {"players": 4}, "me": "0",
+                "chat": [{"id": 4, "color": "1", "text": "سلام!", "at": 1700000000, "name": "brave_tiger", "av": 7, "pic": "", "me": false, "pid": "p9"},
+                         {"id": 5, "color": "0", "text": "خوش‌بازی!", "at": 1700000001, "name": "tasi", "av": 3, "pic": "pic/ab", "me": true, "pid": ""}]}"#).create();
+        server.mock("POST", "/gc/api/hokm/chat").match_body(Matcher::Json(json!({ "match": "h1", "text": "زود باش" })))
+            .with_body(r#"{"ok": true, "id": 6}"#).create();
+        server.mock("POST", "/gc/api/hokm/chat").match_body(Matcher::Json(json!({ "match": "h1", "text": "x" })))
+            .with_status(400).with_body(r#"{"error": "chat_slow"}"#).create();
+        let c = client(&server, &dir);
+
+        let v = c.match_view("hokm".into(), "h1".into(), 0, Some(3)).unwrap();
+        assert_eq!(v.chat.len(), 2);
+        assert_eq!((v.chat[0].id, v.chat[0].color.as_str(), v.chat[0].name.as_str(), v.chat[0].me, v.chat[0].pid.as_str()), (4, "1", "brave_tiger", false, "p9"));
+        assert!(v.chat[1].me && v.chat[1].pic.as_deref().is_some_and(|p| p.ends_with("pic/ab")));
+        assert_eq!(c.table_chat("hokm".into(), "h1".into(), "زود باش".into()).unwrap(), 6);
+        assert!(matches!(c.table_chat("hokm".into(), "h1".into(), "x".into()), Err(ApiError::Server { code, .. }) if code == "chat_slow"));
     }
 
     #[test]

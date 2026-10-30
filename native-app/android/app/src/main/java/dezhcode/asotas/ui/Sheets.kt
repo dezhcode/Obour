@@ -73,13 +73,13 @@ fun SheetHost(vm: AppViewModel) {
 /** برگهٔ پایین با سرتیتر و دکمهٔ بستن (.sheet و .sheet-head) */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AsoSheet(onClose: () -> Unit, title: String? = null, content: @Composable ColumnScope.() -> Unit) {
+fun AsoSheet(onClose: () -> Unit, title: String? = null, ids: List<String> = emptyList(), content: @Composable ColumnScope.() -> Unit) {
     val c = Aso.c
     ModalBottomSheet(onDismissRequest = onClose, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = c.surface) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             if (title != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(title, style = rokh(22f, 30f), color = c.ink, modifier = Modifier.weight(1f))
+                    Text(withIds(title, ids), style = rokh(22f, 30f), color = c.ink, modifier = Modifier.weight(1f))
                     Box(Modifier.size(40.dp).clip(CircleShape).background(c.surfaceSunk).press(onClick = onClose), contentAlignment = Alignment.Center) {
                         Ic("close", size = 18.dp, tint = c.inkMuted)
                     }
@@ -231,7 +231,7 @@ private fun Act(icon: String, text: String, bad: Boolean = false, onClick: () ->
 private fun InviteSheet(vm: AppViewModel, s: Sheet.Invite) {
     val c = Aso.c
     var busy by remember { mutableStateOf(false) }
-    AsoSheet(vm::closeSheet, "دعوت ${s.person.name} به بازی") {
+    AsoSheet(vm::closeSheet, "دعوت ${s.person.name} به بازی", ids = listOf(s.person.name)) {
         Text("یه میز آزاد ساخته می‌شه و دعوتش تو چت و تلگرام به رفیقت می‌رسه", style = peyda(14f, 23f), color = c.inkMuted)
         listOf("hokm", "ludo", "football", "billiard", "divar", "snakes").chunked(3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

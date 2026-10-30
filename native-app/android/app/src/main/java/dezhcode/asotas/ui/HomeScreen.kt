@@ -106,7 +106,7 @@ private fun Header(me: Me, vm: AppViewModel) {
         ) {
             Face(me.name, me.av, me.pic, Modifier.lined(CircleShape))
             Column(Modifier.weight(1f, fill = false)) {
-                Text(me.name, style = rokh(16f, 22f), color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(me.name, style = peyda(16f, 22f, 800), color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("سطح ${me.level.lv.fd()}", style = peyda(11.5f, 17f), color = c.inkMuted)
                     Box(Modifier.width(52.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(c.line)) {

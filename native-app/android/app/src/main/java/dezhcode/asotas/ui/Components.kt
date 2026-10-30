@@ -180,9 +180,9 @@ private val FACE_BG = listOf(0xFF5B4BC4, 0xFF2563C9, 0xFFC2414E, 0xFF1A7A53, 0xF
 fun initial(name: String): String = name.trim().firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "؟"
 
 @Composable
-fun Face(name: String, av: Long, pic: String?, modifier: Modifier = Modifier, size: Dp = 44.dp, ring: Color = Aso.c.surface, bot: Boolean = false) {
+fun Face(name: String, av: Long, pic: String?, modifier: Modifier = Modifier, size: Dp = 44.dp, ring: Color = Aso.c.surface, bot: Boolean = false, pad: Dp = 3.dp) {
     val fs = with(LocalDensity.current) { (size * .4f).toSp() }
-    Box(modifier.size(size).clip(CircleShape).background(ring).padding(3.dp)) {
+    Box(modifier.size(size).clip(CircleShape).background(ring).padding(pad)) {
         // ربات: آواتار کارتونی (gc.js: avatar)، بدون عکس
         if (bot) BotAvatar(abs(av).coerceAtLeast(1), Modifier.fillMaxSize().clip(CircleShape))
         else Box(

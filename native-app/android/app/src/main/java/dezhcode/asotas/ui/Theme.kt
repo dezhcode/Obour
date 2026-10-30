@@ -1,5 +1,8 @@
 package dezhcode.asotas.ui
 
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -95,6 +98,18 @@ fun rokh(size: Float, line: Float = size * 1.3f, weight: Int = 900) = TextStyle(
 )
 
 val Body = peyda(14.5f, 24f)
+
+/** آیدی ها (نام بازیکن ها) همیشه با فونت پیدا، حتی وسط عنوانی که با رخ نوشته شده */
+fun withIds(text: String, ids: List<String>): AnnotatedString = buildAnnotatedString {
+    append(text)
+    for (id in ids.filter { it.isNotBlank() }.distinct()) {
+        var i = text.indexOf(id)
+        while (i >= 0) {
+            addStyle(SpanStyle(fontFamily = Peyda, fontWeight = FontWeight.ExtraBold), i, i + id.length)
+            i = text.indexOf(id, i + id.length)
+        }
+    }
+}
 
 /** کل برنامه فارسی و راست به چپ؛ پوسته مثل مینی اپ «خودکار» (مثل گوشی) است مگر کاربر عوضش کند */
 @Composable

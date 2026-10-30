@@ -367,7 +367,7 @@ private fun MeCard(me: Me, vm: AppViewModel, toSettings: () -> Unit) {
                         .clip(RoundedCornerShape(12.dp)).background(c.acc).padding(horizontal = 11.dp))
             }
             Row(Modifier.padding(top = 10.dp, start = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(me.name, style = rokh(23f, 32f), color = c.ink)
+                Text(me.name, style = peyda(23f, 32f, 800), color = c.ink)
                 Box(Modifier.size(44.dp).clip(CircleShape).press(onClick = vm::openNameEdit), contentAlignment = Alignment.Center) { Ic("edit", size = 20.dp, tint = c.acc) }
             }
             Text(me.bio.ifBlank { "یه چیزی درباره خودت بنویس…" }, style = peyda(14f, 22f), color = if (me.bio.isBlank()) c.inkMuted else c.ink,

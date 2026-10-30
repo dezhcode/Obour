@@ -1,6 +1,8 @@
 package dezhcode.asotas
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dezhcode.asotas.core.ApiException
@@ -8,6 +10,7 @@ import dezhcode.asotas.core.Client
 import dezhcode.asotas.core.Lobby
 import dezhcode.asotas.core.MatchView
 import dezhcode.asotas.core.QueueState
+import dezhcode.asotas.core.TableChat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -109,7 +112,7 @@ class PlayModel(private val scope: CoroutineScope, private val client: Client, p
                     kind == "queue" -> queueLoop(game, io { client.queueStatus(game) })
                     matchId == null -> openLobby(game)
                     else -> {
-                        val v = io { client.matchView(game, matchId, 0) }
+                        val v = io { client.matchView(game, matchId, 0, null) }
                         when (v.status) {
                             "playing" -> playing = Playing(game, matchId)
                             "lobby" -> tableLoop(game, matchId)
@@ -143,7 +146,7 @@ class PlayModel(private val scope: CoroutineScope, private val client: Client, p
         stop()
         loop = scope.launch {
             while (isActive) {
-                val v: MatchView = try { io { client.matchView(game, matchId, 0) } } catch (e: ApiException) {
+                val v: MatchView = try { io { client.matchView(game, matchId, 0, null) } } catch (e: ApiException) {
                     toast(errorText(e)); waiting = null; return@launch
                 }
                 when (v.status) {
@@ -202,6 +205,9 @@ class PlayModel(private val scope: CoroutineScope, private val client: Client, p
     }
 }
 
+/** یک پیام گفتگوی میز و تا کی روی بازی شناور می ماند (۰ = فقط وقتی گفتگو باز است) */
+class ChatLine(val m: TableChat, val until: Long)
+
 /** میز باز یک بازی (ludo.js، hokm.js، ...): میز از سرور گرفته می شود؛ هر حرکت به سرور فرستاده می شود */
 class TableModel(private val client: Client, val game: String, val matchId: String, private val toast: (String) -> Unit) {
     var view by mutableStateOf<MatchView?>(null)
@@ -212,16 +218,64 @@ class TableModel(private val client: Client, val game: String, val matchId: Stri
         private set
     private val since: Long get() = view?.ludo?.seq ?: view?.hokm?.seq ?: 0L
 
+    // ---------- گفتگوی سر میز (tchat.js) ----------
+    /** پیام ها به ترتیب (۴۰ تای آخر) */
+    val chat = mutableStateListOf<ChatLine>()
+    var chatOpen by mutableStateOf(false)
+        private set
+    /** پیام های تازهٔ بقیه وقتی گفتگو بسته است (نشان روی دکمهٔ چت) */
+    var unread by mutableIntStateOf(0)
+        private set
+    var sending by mutableStateOf(false)
+        private set
+    private var chatLast = 0L
+
+    fun openChat(on: Boolean) {
+        chatOpen = on
+        if (on) unread = 0
+    }
+
+    /** پیام های تازه؛ quiet = تاریخچهٔ بار اول که روی بازی شناور نمی شود */
+    private fun addChat(list: List<TableChat>, quiet: Boolean) {
+        for (m in list.sortedBy { it.id }) {
+            if (m.id <= chatLast) continue
+            chatLast = m.id
+            val life = (3600L + m.text.length * 90L).coerceIn(5000L, 9000L)
+            chat += ChatLine(m, if (quiet) 0L else System.currentTimeMillis() + life)
+            if (!quiet && !m.me && !chatOpen) unread++
+        }
+        while (chat.size > 40) chat.removeAt(0)
+    }
+
+    /** فرستادن پیام؛ بعدش فقط گفتگو برداشته می شود و وضعیت میز با پرسش بعدی می آید تا پخش رویدادها به هم نریزد */
+    suspend fun say(text: String): Boolean {
+        val t = text.trim()
+        if (t.isEmpty() || sending) return false
+        sending = true
+        return try {
+            io { client.tableChat(game, matchId, t) }
+            addChat(io { client.matchView(game, matchId, since, chatLast) }.chat, quiet = false)
+            true
+        } catch (e: ApiException) {
+            toast(errorText(e))
+            false
+        } finally {
+            sending = false
+        }
+    }
+
     suspend fun poll() {
         try {
-            merge(io { client.matchView(game, matchId, since) })
+            val first = view == null
+            merge(io { client.matchView(game, matchId, since, chatLast) }, quietChat = first)
         } catch (e: ApiException) {
             if (view == null) failed = errorText(e)
         }
     }
 
     /** رویدادها فقط از since به بعد می آیند؛ وضعیت همیشه کامل است */
-    private fun merge(v: MatchView) {
+    private fun merge(v: MatchView, quietChat: Boolean = false) {
+        addChat(v.chat, quietChat)
         // پاسخ کهنه (پرسشی که پیش از حرکت فرستاده شده ولی دیرتر رسیده) وضعیت را عقب نمی برد
         val old = view
         val seq = v.ludo?.seq ?: v.hokm?.seq
