@@ -55,6 +55,10 @@ body:is(.game,.hokm,.divar,.football,.billiard){color-scheme:dark;
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%;direction:rtl}
+/* لبهٔ پایین گوشی از مرورگر؛ در برنامهٔ اندروید صفر چون آنجا --sa-b از خود برنامه می آید (app.js) و
+   مرورگر وقتی صفحه زیر نوار پایین نیست هم ارتفاعش را می دهد (فاصله دو برابر می شد) */
+:root{--sa-env-b:env(safe-area-inset-bottom,0px)}
+html.app{--sa-env-b:0px}
 /* مثل یک برنامه: نگه داشتن انگشت روی متن انتخاب و کپی نمی کند و لمس کادر آبی نمی گذارد؛
    جای نوشتن (ورودی ها) و پنل مدیریت (.selectable) انتخاب می شوند */
 html{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
@@ -194,7 +198,7 @@ body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui .btn.btn-light{--bg:var(-
    «بازی‌ها» تاس سفید وسط است که کمی بالاتر از نوار نشسته */
 .nav{position:fixed;inset-inline:0;bottom:0;z-index:var(--z-nav);display:flex;justify-content:center;pointer-events:none}
 .nav-in{position:relative;pointer-events:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;width:100%;max-width:480px;
-  padding:6px 8px calc(6px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));
+  padding:6px 8px calc(6px + max(var(--sa-env-b),var(--sa-b,0px)));
   background:color-mix(in srgb,var(--surface) 97%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   box-shadow:0 -1px 0 var(--line),0 -10px 24px -18px rgba(20,25,40,.35)}
 .nav-pill{position:absolute;top:0;left:0;width:0;height:3px;pointer-events:none;will-change:transform;opacity:0}
@@ -250,7 +254,7 @@ body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui .btn.btn-light{--bg:var(-
 /* ---------- برگه و پنجره ---------- */
 .scrim{position:fixed;inset:0;z-index:var(--z-sheet);background:var(--scrim);display:flex;align-items:flex-end;justify-content:center}
 .scrim.center{align-items:center;padding:var(--space-4)}
-.sheet{width:100%;max-width:480px;max-height:92vh;overflow:auto;background:var(--surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-3) var(--space-5) calc(var(--space-6) + env(safe-area-inset-bottom,0px));display:grid;gap:var(--space-5);align-content:start;box-shadow:var(--lift);animation:sheet-in .24s ease-out}
+.sheet{width:100%;max-width:480px;max-height:92vh;overflow:auto;background:var(--surface);border-radius:var(--radius-xl) var(--radius-xl) 0 0;padding:var(--space-3) var(--space-5) calc(var(--space-6) + var(--sa-env-b));display:grid;gap:var(--space-5);align-content:start;box-shadow:var(--lift);animation:sheet-in .24s ease-out}
 .scrim.center .sheet{max-width:360px;border-radius:var(--radius-xl);padding:var(--space-6) var(--space-5) var(--space-5);animation:pop-in .22s ease-out}
 
 /* پنجره تایید (خروج، میز بسته شد، میز پیدا نشد): آیکن، عنوان، توضیح کوتاه، دو دکمه کنار هم.
@@ -281,7 +285,7 @@ body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui .btn.btn-light{--bg:var(-
 @keyframes pop-in{from{transform:scale(.92);opacity:0}}
 
 /* ---------- اعلان کوتاه ---------- */
-.toast{position:fixed;left:50%;bottom:calc(104px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:var(--z-toast);background:var(--night);color:var(--on-fill);font-weight:800;font-size:14px;border-radius:var(--radius-pill);padding:10px 18px;box-shadow:var(--lift);max-width:calc(100% - 32px);text-align:center;animation:toast-in .2s ease-out}
+.toast{position:fixed;left:50%;bottom:calc(104px + var(--sa-env-b));transform:translateX(-50%);z-index:var(--z-toast);background:var(--night);color:var(--on-fill);font-weight:800;font-size:14px;border-radius:var(--radius-pill);padding:10px 18px;box-shadow:var(--lift);max-width:calc(100% - 32px);text-align:center;animation:toast-in .2s ease-out}
 @keyframes toast-in{from{transform:translate(-50%,14px);opacity:0}}
 
 /* ---------- نوار جایزه ---------- */
@@ -358,7 +362,7 @@ body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui .btn.btn-light{--bg:var(-
 .turnbar .txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .turnbar .time{width:64px;height:8px;border-radius:8px;background:var(--surface-sunk);overflow:hidden;flex:none}
 .turnbar .time i{display:block;height:100%;width:100%;background:var(--c);transform-origin:right;transition:transform .2s linear}
-.dock{position:sticky;bottom:calc(var(--space-2) + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));z-index:var(--z-nav);display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border-radius:var(--radius-xl);padding:var(--space-3);box-shadow:var(--lift)}
+.dock{position:sticky;bottom:calc(var(--space-2) + max(var(--sa-env-b),var(--sa-b,0px)));z-index:var(--z-nav);display:flex;align-items:center;gap:var(--space-3);background:var(--surface);border-radius:var(--radius-xl);padding:var(--space-3);box-shadow:var(--lift)}
 .dock .die{width:64px;height:64px;padding:11px}
 .dock-btn{border-radius:var(--radius-md)}
 .die.ghost i{background:var(--ink-muted);opacity:.5}
@@ -657,7 +661,7 @@ body.lobby-lashgar{--edge:#7A4E2A;--acc:#1A7A35;--acc-deep:#16692D;--acc-ink:#FF
 .gp-desc svg{width:16px;height:16px;flex:none;margin-top:2px;color:var(--acc)}
 .gp-desc b{color:var(--ink)}
 .gp-sub{margin:-4px 4px 0;font-size:12px;line-height:18px;color:var(--ink-muted)}
-.gp-dock{position:sticky;bottom:calc(var(--space-3) + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)));z-index:3;margin-top:18px;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:18px;background:color-mix(in srgb,var(--surface) 94%,transparent);box-shadow:var(--lift),inset 0 0 0 1px var(--line);backdrop-filter:blur(8px)}
+.gp-dock{position:sticky;bottom:calc(var(--space-3) + max(var(--sa-env-b),var(--sa-b,0px)));z-index:3;margin-top:18px;display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:18px;background:color-mix(in srgb,var(--surface) 94%,transparent);box-shadow:var(--lift),inset 0 0 0 1px var(--line);backdrop-filter:blur(8px)}
 .gp-dock .t{flex:1;display:grid;min-width:0;line-height:1.35}
 .gp-dock b{font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gp-dock small{font-size:11.5px;color:var(--ink-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

@@ -146,7 +146,7 @@ body.lashgar{--lg-paper:#FCFBF7;--lg-back:#F1EDE3;--lg-ink:#3A3A3A;--lg-red:#C83
   78%{opacity:1}100%{opacity:0;transform:translate(-50%,-190%) rotate(-8deg)}}
 
 /* ---------- پایین: ابزار، نوبت، نتیجه ---------- */
-.lg-dock{flex:none;display:flex;flex-direction:column;gap:10px;padding:10px 12px calc(12px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)))}
+.lg-dock{flex:none;display:flex;flex-direction:column;gap:10px;padding:10px 12px calc(12px + max(var(--sa-env-b),var(--sa-b,0px)))}
 .lg-load{display:flex;align-items:center;justify-content:center;gap:10px;padding:18px 0;color:#FFF6E8;font-weight:700}
 .lg-card{background:#fff;border-radius:20px;box-shadow:0 5px 0 rgba(60,30,8,.35);padding:12px;display:flex;flex-direction:column;gap:10px}
 .lg-row{display:flex;align-items:center;gap:10px;min-width:0}
@@ -227,7 +227,7 @@ body.lashgar{--lg-paper:#FCFBF7;--lg-back:#F1EDE3;--lg-ink:#3A3A3A;--lg-red:#C83
 /* ---------- اسم لشگر ---------- */
 .lg-namescr{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;overflow:auto;
   background:repeating-linear-gradient(92deg,#8E5F38 0,#9A6A40 7px,#865933 13px,#976640 21px);
-  padding:calc(var(--sa-t,0px) + var(--csa-t,0px) + 8px) 12px calc(14px + max(env(safe-area-inset-bottom,0px),var(--sa-b,0px)))}
+  padding:calc(var(--sa-t,0px) + var(--csa-t,0px) + 8px) 12px calc(14px + max(var(--sa-env-b),var(--sa-b,0px)))}
 .lg-namescr[hidden]{display:none}
 .lg-nhead{display:flex;align-items:center;gap:10px;padding:0 2px 6px}
 .lg-hero{flex:none;display:grid;place-items:center;padding:14px 0 20px}
