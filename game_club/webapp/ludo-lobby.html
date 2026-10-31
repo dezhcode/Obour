@@ -50,7 +50,7 @@
   let token = null, gp = null;
   const render = () => { if (gp) gp.refresh(); };
 
-  const seatsHtml = list => `<div class="seatline">${list.map(p => p ? `<div class="seatw">${face(p, GC.COL[p.color] ? GC.COL[p.color].hex : 'var(--sky)')}${p.name}</div>` : '<div class="seatw"><span class="wait">؟</span>…</div>').join('')}</div>`;
+  const seatsHtml = list => `<div class="seatline">${list.map(p => p ? `<div class="seatw">${face(p, GC.COL[p.color] ? GC.COL[p.color].hex : 'var(--sky)')}${GC.uname(p.name)}</div>` : '<div class="seatw"><span class="wait">؟</span>…</div>').join('')}</div>`;
   async function go(mid) {
     token = null; store.set('mid', mid);
     for (let n = 3; n >= 1; n--) {

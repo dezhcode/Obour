@@ -122,7 +122,7 @@ const TChat = (() => {
     function row(m) {
       const el = document.createElement('div');
       el.className = 'tc-m' + (m.me ? ' me' : '');
-      el.innerHTML = `${o.face ? o.face(m) : ''}<div class="tc-c"><b class="tc-n" dir="auto">${esc(m.name || '')}${m.me ? '<i class="tc-ok">✓</i>' : ''}</b><div class="tc-b" dir="auto">${esc(m.text)}</div></div>`;
+      el.innerHTML = `${o.face ? o.face(m) : ''}<div class="tc-c"><b class="tc-n" dir="auto">${GC.uname(m.name || '')}${m.me ? '<i class="tc-ok">✓</i>' : ''}</b><div class="tc-b" dir="auto">${esc(m.text)}</div></div>`;
       return el;
     }
     // نوار باز: چند پیام آخر ثابت؛ بسته: فقط پیام هایی که هنوز عمرشان تمام نشده

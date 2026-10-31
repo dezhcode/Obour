@@ -18,7 +18,7 @@ const av = (f, extra = '') => `<span class="fr-av${extra}">${face(f)}<i class="d
 
 /* ---------- دعوت به بازی: یک میز آزاد ساخته می شود و کارتش در چت دوست می آید ---------- */
 function invite(f, after) {
-  const sh = sheet(`${sheetHead('دعوت ' + esc(f.name) + ' به بازی')}<p class="fr-lead">یه میز آزاد ساخته می‌شه و دعوتش تو چت و تلگرام به رفیقت می‌رسه</p>
+  const sh = sheet(`${sheetHead('دعوت ' + GC.uname(f.name) + ' به بازی')}<p class="fr-lead">یه میز آزاد ساخته می‌شه و دعوتش تو چت و تلگرام به رفیقت می‌رسه</p>
     <div class="fr-games">${['hokm', 'ludo', 'football', 'billiard', 'divar', 'snakes'].map(g => { const x = GC.GAMES.find(y => y.id === g); return `<button class="fr-game" data-g="${g}"><span class="g-art ${x.tint}">${GC.GAME_ART[g]()}</span><b>${x.name}</b><small>${x.sub.split(' · ')[0]}</small></button>`; }).join('')}</div>`);
   sh.querySelectorAll('[data-g]').forEach(b => b.onclick = async () => {
     sh.querySelectorAll('[data-g]').forEach(x => { x.disabled = true; });

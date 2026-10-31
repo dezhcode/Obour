@@ -94,6 +94,7 @@ function layout() {
 }
 const clone = o => JSON.parse(JSON.stringify(o));
 const nameOf = c => { const p = snap && snap.game.players[c]; return !p ? '' : p.me ? 'تو' : p.name; };
+const nameH = c => { const p = snap && snap.game.players[c]; return !p ? '' : p.me ? 'تو' : GC.uname(p.name); };   // برای innerHTML
 
 /* ---------- صندلی ها، نوبت، داک ---------- */
 // صندلی ها و راهنمای حرکت فقط وقتی داده شان عوض شده دوباره ساخته می شوند: پرسش های پی در پی سرور
@@ -113,7 +114,7 @@ function renderSeats(g) {
     el.classList.toggle('turn', g.turn === c);
     const done = g.done[c] || 0, total = Math.max((g.pawns[c] || []).length, done);
     el.innerHTML = `${face(pl, 'var(--c)', 'timer')}
-      <div class="seat-txt" dir="rtl"><span class="seat-name">${pl.me ? 'خودت' : pl.name}${pl.out ? ' (رفت)' : ''}</span><span class="prog" title="مهره‌های رسیده">${Array.from({ length: total }, (_, i) => `<i class="${i < done ? 'done' : ''}"></i>`).join('')}</span></div>
+      <div class="seat-txt" dir="rtl"><span class="seat-name">${pl.me ? 'خودت' : GC.uname(pl.name)}${pl.out ? ' (رفت)' : ''}</span><span class="prog" title="مهره‌های رسیده">${Array.from({ length: total }, (_, i) => `<i class="${i < done ? 'done' : ''}"></i>`).join('')}</span></div>
       <span class="die sm c-${c}${g.last[c] ? '' : ' ghost'}" data-die="${c}">${pips(g.last[c] || 0)}</span>`;
   }
   document.querySelectorAll('.yard').forEach(y => y.classList.toggle('turn', g.turn === y.dataset.yard));
@@ -210,7 +211,7 @@ async function play(e) {
     sfx.nomove(); if (c === me) haptic('warning');
     const allYard = (shown[c] || []).every(p => p < 0);
     blocked(c, e.v, allYard);
-    feed(c, (c === me ? FD(e.v) + ' آوردی' : nameOf(c) + ' ' + FD(e.v) + ' آورد') + ' ولی ' + (allYard ? 'واسه اومدن مهره ۶ لازمه' : 'حرکتی نبود'));
+    feed(c, (c === me ? FD(e.v) + ' آوردی' : nameH(c) + ' ' + FD(e.v) + ' آورد') + ' ولی ' + (allYard ? 'واسه اومدن مهره ۶ لازمه' : 'حرکتی نبود'));
     await sleep(1000); return;
   }
   if (e.t === 'move') {
@@ -226,15 +227,15 @@ async function play(e) {
       e.cap.forEach(([o, j]) => { if (shown[o]) shown[o][j] = -1; });
       layout(); await sleep(300);
       const v = e.cap[0][0];
-      feed(c, c === me ? `مهرهٔ ${nameOf(v)} رو زدی! یه نوبت جایزه` : v === me ? `${nameOf(c)} مهره‌تو زد و فرستادش لونه` : `${nameOf(c)} مهرهٔ ${nameOf(v)} رو زد`);
-    } else if (e.fin) { sfx.home(); const [x, y] = SEAT[c].fin; flash(c, x, y); feed(c, (c === me ? 'یه مهره رسوندی وسط' : nameOf(c) + ' یه مهره رسوند وسط') + '! یه نوبت جایزه'); }
-    else if (e.frm < 0) feed(c, c === me ? '۶ آوردی و مهره اومد تو' : nameOf(c) + ' ۶ آورد و یه مهره آورد تو');
+      feed(c, c === me ? `مهرهٔ ${nameH(v)} رو زدی! یه نوبت جایزه` : v === me ? `${nameH(c)} مهره‌تو زد و فرستادش لونه` : `${nameH(c)} مهرهٔ ${nameH(v)} رو زد`);
+    } else if (e.fin) { sfx.home(); const [x, y] = SEAT[c].fin; flash(c, x, y); feed(c, (c === me ? 'یه مهره رسوندی وسط' : nameH(c) + ' یه مهره رسوند وسط') + '! یه نوبت جایزه'); }
+    else if (e.frm < 0) feed(c, c === me ? '۶ آوردی و مهره اومد تو' : nameH(c) + ' ۶ آورد و یه مهره آورد تو');
     if (e.auto && c === me) feed(c, 'وقتت تموم شد و بهترین حرکتو خودمون زدیم');
     return;
   }
-  if (e.t === 'six3') { feed(c, (c === me ? 'سه بار ۶ آوردی' : nameOf(c) + ' سه بار ۶ آورد') + ' و نوبت سوخت'); return; }
+  if (e.t === 'six3') { feed(c, (c === me ? 'سه بار ۶ آوردی' : nameH(c) + ' سه بار ۶ آورد') + ' و نوبت سوخت'); return; }
   if (e.t === 'timeout' && c === me && e.n >= 2 && snap && snap.cfg.mode !== 'free') { toast(e.n >= 3 ? 'سه نوبت غایب بودی' : 'یه نوبت دیگه غیبت کنی باختی'); return; }
-  if (e.t === 'leave') { feed(c, (c === me ? 'از بازی اومدی بیرون' : nameOf(c) + (e.why === 'timeout' ? ' به‌خاطر غیبت حذف شد' : ' از بازی رفت'))); return; }
+  if (e.t === 'leave') { feed(c, (c === me ? 'از بازی اومدی بیرون' : nameH(c) + (e.why === 'timeout' ? ' به‌خاطر غیبت حذف شد' : ' از بازی رفت'))); return; }
 }
 
 /* ---------- گفتگوی سر میز: نوار و پیام های شناور مثل بیلیارد (tchat.js) ----------
@@ -302,7 +303,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 
 /* ---------- پایان، خروج ---------- */
 function over(v) {
-  if (WATCH) { const w = v.game.winner; sfx.win(); GC.watchOver('ludo', 'بازی تموم شد', w ? nameOf(w) + ' برد' : 'بازی بی برنده تموم شد'); return; }
+  if (WATCH) { const w = v.game.winner; sfx.win(); GC.watchOver('ludo', 'بازی تموم شد', w ? nameH(w) + ' برد' : 'بازی بی برنده تموم شد'); return; }
   endChat();
   const g = v.game, r = v.result || {}, w = g.winner, won = w === me;
   GC.guardClose(false); store.set('mid', null);
@@ -310,7 +311,7 @@ function over(v) {
   const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { caps: 0, sixes: 0 };
   sheet(`<div class="result">
       <div class="crown-pawn">${pawn(w || me, !!w).replace('viewBox="0 0 40 50"', 'viewBox="0 -4 40 54"')}</div>
-      <h2>${won ? 'بردی!' : w ? nameOf(w) + ' برد' : 'بازی تموم شد'}</h2>
+      <h2>${won ? 'بردی!' : w ? nameH(w) + ' برد' : 'بازی تموم شد'}</h2>
       ${v.cfg.mode === 'free' ? `<p class="muted">${won ? 'بازی دوستانه بود و جام و سکه نداشت ولی دمت گرم' : 'بازی دوستانه بود و چیزی از دست ندادی'}</p>` : GC.rankResult(v, !w)}
       <div class="facts"><div><b>${FD(st.caps)}</b><span>مهره زدی</span></div><div><b>${FD(st.sixes)}</b><span>بار ۶ آوردی</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
     </div>

@@ -275,7 +275,7 @@ $('view').addEventListener('click', e => {
 
 /* ---------- کاربران ---------- */
 let uq = { q: '', f: 'all', sort: 'recent' }, uPage = 0, uList = [], uMore = false, uTimer = 0;
-const userRow = u => `<li class="row" data-user="${u.id}">${face(u, u.banned ? 'var(--danger)' : 'var(--sky)')}<span class="name">${esc(u.name || 'بی‌نام')}${u.banned ? ' <span class="tag ban">مسدود</span>' : ''}<span class="meta" dir="auto">${u.tg_name ? esc(u.tg_name) + ' · ' : ''}${u.username ? '@' + esc(u.username) + ' · ' : ''}${when(u.seen)}</span></span><span class="end">${fa(u.points)}<small>${fa(u.games)} بازی</small></span></li>`;
+const userRow = u => `<li class="row" data-user="${u.id}">${face(u, u.banned ? 'var(--danger)' : 'var(--sky)')}<span class="name"><bdi class="uname">${esc(u.name || 'بی‌نام')}</bdi>${u.banned ? ' <span class="tag ban">مسدود</span>' : ''}<span class="meta" dir="auto">${u.tg_name ? esc(u.tg_name) + ' · ' : ''}${u.username ? '@' + esc(u.username) + ' · ' : ''}${when(u.seen)}</span></span><span class="end">${fa(u.points)}<small>${fa(u.games)} بازی</small></span></li>`;
 PAGES.users = async () => {
   view(`
     <label class="search">${ic('search')}<input id="uq" type="search" placeholder="نام، @یوزرنیم یا آیدی عددی" value="${esc(uq.q)}" enterkeyhint="search" autocomplete="off"></label>
@@ -305,7 +305,7 @@ PAGES.user = async id => {
   view(`
     <section class="card prof">
       ${face(u, u.banned ? 'var(--danger)' : 'var(--sky)')}
-      <h2>${esc(u.name || 'بی‌نام')} ${u.banned ? '<span class="tag ban">مسدود</span>' : ''}${u.admin ? '<span class="tag t-live">ادمین</span>' : ''}</h2>
+      <h2><bdi class="uname">${esc(u.name || 'بی‌نام')}</bdi> ${u.banned ? '<span class="tag ban">مسدود</span>' : ''}${u.admin ? '<span class="tag t-live">ادمین</span>' : ''}</h2>
       <span class="id" id="cid" title="کپی آیدی">${u.tg_name ? 'تلگرام: ' + esc(u.tg_name) + ' · ' : ''}${u.username ? '@' + esc(u.username) + ' · ' : ''}${u.id}</span>
       <span class="muted" style="font-size:12.5px">عضویت ${date(u.created)} · آخرین بازدید ${when(u.seen)}</span>
       ${u.banned && u.ban_note ? `<div class="warn" style="width:100%">${ic('ban')}دلیل مسدودی: ${esc(u.ban_note)}</div>` : ''}
@@ -392,7 +392,7 @@ async function openTable(id) {
       <span>ساخته شده</span><b>${date(t.created)}</b>
       <span>آخرین تغییر</span><b>${when(t.updated)}</b>
     </div>
-    <ul class="list">${r.rows.map(p => `<li class="row" data-user="${p.tg_id}"><span class="ic-box">${icon('users')}</span><span class="name">${esc(p.name || p.tg_id)}<span class="meta">${p.paid ? 'ورودی ' + fa(p.paid) : 'بدون ورودی'}${p.active ? '' : ' · رفته'}</span></span><span class="end">›</span></li>`).join('') || '<li class="empty">بازیکن ثبت‌شده‌ای نیست</li>'}</ul>
+    <ul class="list">${r.rows.map(p => `<li class="row" data-user="${p.tg_id}"><span class="ic-box">${icon('users')}</span><span class="name"><bdi class="uname">${esc(p.name || p.tg_id)}</bdi><span class="meta">${p.paid ? 'ورودی ' + fa(p.paid) : 'بدون ورودی'}${p.active ? '' : ' · رفته'}</span></span><span class="end">›</span></li>`).join('') || '<li class="empty">بازیکن ثبت‌شده‌ای نیست</li>'}</ul>
     ${open ? `<button class="btn btn-danger btn-block" id="tclose">بستن میز و برگرداندن ورودی‌ها</button><p class="hint">برای میزهای گیرکرده. بازی بدون برنده تمام می‌شود و ورودی همه برمی‌گردد.</p>` : ''}`);
   sh.addEventListener('click', e => { const u = e.target.closest('[data-user]'); if (u) { close(); go('user=' + u.dataset.user); } });
   const b = sh.querySelector('#tclose');

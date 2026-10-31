@@ -10,85 +10,154 @@
 <link rel="stylesheet" href="static/gc.css">
 <link rel="stylesheet" href="static/cards.css">
 <style>
-/* پروفایل: عکس با حلقهٔ سطح، کارنامهٔ کلی، کارنامهٔ هر بازی، آخرین بازی ها، نشان ها (از کارنامهٔ
-   واقعی)، میز و ورق من و تنظیمات. همه چیز از سرور می آید؛ نشان ها از همان عددها حساب می شوند. */
-.pf-card{border-radius:24px;background:var(--surface);box-shadow:0 0 0 1px var(--line);overflow:hidden;padding-bottom:16px}
-.pf-cover{height:136px}
-.pf-cbtn{position:absolute;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(0,0,0,.32)}
-.pf-cbtn svg{width:20px;height:20px}
-.pf-cbtn.set-btn{top:8px;inset-inline-end:8px}
-.pf-cbtn.add-btn{bottom:8px;inset-inline-end:8px;width:38px;height:38px;background:color-mix(in srgb,var(--surface) 94%,transparent);color:var(--ink)}
-.pf-me{display:grid;justify-items:center;gap:6px;margin-top:-56px;padding:0 16px;text-align:center;position:relative}
-.pf-ring{position:relative;width:108px;height:108px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--acc) calc(var(--p,0)*1%),var(--line) 0);box-shadow:0 0 0 5px var(--surface)}
-.pf-ring .avatar{--size:96px;--ring:var(--surface)}
-.pf-ring b{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);height:24px;padding:0 11px;border-radius:12px;background:var(--acc);color:var(--acc-ink);font-size:12.5px;line-height:24px;font-weight:900;white-space:nowrap;box-shadow:0 0 0 3px var(--surface)}
-.pf-name{display:flex;align-items:center;gap:2px;margin-top:10px;padding-inline-start:44px}
-.pf-me h1{font-size:23px;line-height:32px;font-weight:900}
-.pf-edit{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--acc)}
+/* پروفایل «تالار افتخار»: قاب شب بالای صفحه (همان کاور بازیکن، همیشه تیره) با سربرگ روی آن، کارت سکه
+   که ۲۸ روی قاب می آید، لیگ هر بازی، تالار نشان ها، آخرین بازی ها، کلکسیون و تنظیمات.
+   فاصله ها روی شبکهٔ ۴: کناره ۱۶، بین بخش ها ۲۸، عنوان تا محتوا ۱۲، بین کاشی ها ۸، هر دکمه دست کم ۴۴. */
+.appbar.pf-bar{position:absolute;inset:0 0 auto 0;background:transparent;color:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}
+.pf-bar .icon-btn{width:44px;height:44px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);color:#fff}
+.pf-bar .icon-btn svg{width:20px;height:20px}
+.pf-bar h1{font-size:22px;line-height:30px}
+.pf-bar .top-l{display:flex;align-items:center;gap:8px}
+.pf-acts{display:flex;align-items:center;gap:8px}
+/* بعد از قاب، زیر نوار وضعیت گوشی زمینهٔ صفحه می آید */
+.pf-lid{display:none;position:fixed;inset:0 0 auto 0;z-index:calc(var(--z-nav) + 1);height:calc(var(--sa-t,0px) + var(--csa-t,0px));background:var(--ground)}
+.pf-hero.lid-off~.pf-lid{display:block}
+
+.pf-hero{margin-inline:calc(var(--space-4) * -1);color:#fff;border-radius:0 0 32px 32px;padding:calc(var(--sa-t,0px) + var(--csa-t,0px) + 68px) var(--space-4) 52px}
+.pf-hin{max-width:448px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center}
+.pf-ring{position:relative;width:112px;height:112px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#F5C451 calc(var(--p,0)*1%),rgba(255,255,255,.18) 0)}
+.pf-ring .avatar{--size:100px;--ring:#172B5B}
+.pf-ring .avatar .ini{font-family:var(--font-peyda);font-weight:800}
+.pf-ring b{position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);height:24px;padding:0 10px;border-radius:12px;background:#F5C451;color:#3A2A00;font-size:12px;line-height:24px;font-weight:800;white-space:nowrap;box-shadow:0 0 0 3px #172B5B}
+.pf-name{display:flex;align-items:center;gap:4px;margin-top:16px;padding-inline-start:44px;max-width:100%}
+.pf-name h2{min-width:0;font-size:24px;line-height:32px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-edit{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff}
 .pf-edit svg{width:20px;height:20px}
-.pf-bio{width:100%;min-height:48px;padding:10px 14px;border-radius:16px;background:var(--surface-sunk);font-size:14px;line-height:22px;color:var(--ink);text-align:center}
-.pf-bio.empty{color:var(--ink-muted)}
-.pf-stats{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:8px}
-.pf-stats div{display:grid;gap:2px}
-.pf-stats div+div{border-inline-start:1px solid var(--line)}
-.pf-stats span{font-size:12px;font-weight:800;color:var(--ink-muted)}
+.pf-bio{min-height:44px;max-width:100%;padding:0 12px;border-radius:14px;color:rgba(255,255,255,.84);font-size:14px;line-height:22px;overflow-wrap:anywhere}
+.pf-bio.empty{color:rgba(255,255,255,.72);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
+.pf-stats{width:100%;margin-top:20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.pf-stats div{padding:10px 4px;border-radius:16px;background:rgba(255,255,255,.10);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);display:grid;justify-items:center}
 .pf-stats b{font-family:var(--font-rokh);font-size:20px;line-height:28px;font-weight:900}
-.pf-stats .gold{color:var(--acc)}
-.pf-xp{font-size:12px;color:var(--ink-muted)}
-.pf-bal{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:2px}
-.pf-bal .coin svg{width:26px;height:26px}
-.pf-bal b{font-size:21px;font-weight:900}
-.pf-plus,.pf-hist{width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
-.pf-plus{background:var(--gold);color:var(--gold-ink)}
-.pf-hist{border-radius:14px;background:var(--surface-sunk);color:var(--ink)}
-.pf-plus svg,.pf-hist svg{width:20px;height:20px}
-.pf-col{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.pf-colbar{flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
-.pf-colbar i{display:block;height:100%;border-radius:3px;background:var(--success)}
-.pf-coln{font-size:12.5px;font-weight:800;color:var(--ink-muted)}
-.pf-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.pf-it{display:grid;justify-items:center;gap:6px;padding:8px 6px 10px;border-radius:16px;background:var(--surface);box-shadow:0 0 0 1px var(--line);text-align:center;font-size:12.5px;font-weight:800}
-.pf-it .sw{position:relative;width:100%;height:54px;border-radius:10px;overflow:hidden}
-.pf-it .sw.cs{background:#0F201B}
-.pf-it .sw .hk-card,.pf-it .sw .hk-back{font-size:28px}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
-.kpi{display:grid;justify-items:center;gap:2px;padding:12px 4px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line);text-align:center}
-.kpi b{font-family:var(--font-rokh);font-size:20px;line-height:28px;font-weight:900}
-.kpi span{font-size:11.5px;color:var(--ink-muted)}
-.kpi .win{color:var(--success)}.kpi .gold{color:var(--coin-text)}
-.gtabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
-.gtabs button{display:grid;justify-items:center;gap:5px;padding:8px 1px 7px;border-radius:16px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);font-weight:700;font-size:11px;line-height:16px;color:var(--ink-muted);white-space:nowrap;min-width:0}
-.gtabs .g-art{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;overflow:hidden}
-.gtabs .g-art svg{display:block;width:76%;height:76%}
-.gtabs button[aria-selected="true"]{color:var(--ink);font-weight:900;box-shadow:inset 0 0 0 2px var(--acc)}
-.gstat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2);margin-top:var(--space-2)}
-.recent{display:grid;padding:4px 14px;border-radius:var(--radius-xl);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
-.rg{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:10px 0}
-.rg+.rg{border-top:1px solid var(--line)}
-.rg .g-art{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;overflow:hidden}
-.rg .g-art svg{display:block;width:76%;height:76%}
-.rg .t{min-width:0;display:grid}
-.rg .t b{display:flex;align-items:center;gap:6px;font-size:14px;line-height:21px;font-weight:800}
-.rg .t small{font-size:12px;line-height:18px;color:var(--ink-muted)}
-.res{font-size:11.5px;line-height:20px;font-weight:800;padding:0 8px;border-radius:10px}
-.res.w{background:var(--success-tint);color:var(--success)}
-.res.l{background:rgba(255,107,122,.14);color:var(--danger)}
-.rg .v{font-weight:900;font-size:14px}
-.badges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
-.pbdg{display:grid;justify-items:center;gap:6px;text-align:center;font-size:11.5px;line-height:16px;font-weight:700;color:var(--ink)}
-.pbdg .m{width:54px;height:54px;border-radius:17px;display:grid;place-items:center}
-.pbdg .m svg{width:24px;height:24px}
-.pbdg small{font-size:11.5px;color:var(--ink-muted);font-weight:600}
-.pbdg.off .m{background:var(--surface-sunk)!important;color:var(--ink-muted)!important}
-.pbdg.off{color:var(--ink-muted)}
-.sets{display:grid;padding:4px 14px;border-radius:var(--radius-xl);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
-.set{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:56px}
-.set+.set{border-top:1px solid var(--line)}
-.set[hidden]{display:none}
-.set[hidden]+.set{border-top:0}
-.set .btn-sm{flex:none}
-.acc-guest small{color:var(--danger)}
-.acc-mail{text-align:right;overflow-wrap:anywhere}
+.pf-stats span{font-size:12px;line-height:18px;color:rgba(255,255,255,.78)}
+.pf-xp{width:100%;margin-top:16px;display:grid;gap:6px}
+.pf-xp div{display:flex;justify-content:space-between;gap:8px;font-size:12px;line-height:18px}
+.pf-xp div b{font-weight:800}
+.pf-xp div span{color:rgba(255,255,255,.78)}
+.pf-xp .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
+.pf-xp .bar i{display:block;height:100%;border-radius:3px;background:#F5C451}
+
+.pf-page{padding-block-start:0;gap:28px;grid-template-columns:minmax(0,1fr)}
+.pf-page .sec-head{margin-block-end:12px}
+.pf-cnt{margin-inline-start:6px;font-family:var(--font-peyda);font-size:12px;line-height:18px;font-weight:800;color:var(--ink-muted)}
+.pf-page .sec-head .n{font-size:12px;line-height:18px;font-weight:800;color:var(--ink-muted)}
+.pf-coin{position:relative;z-index:1;margin-top:-56px;padding:14px;border-radius:20px;background:var(--surface);box-shadow:var(--lift),0 0 0 1px var(--line);display:flex;align-items:center;gap:12px}
+.pf-coin>.coin{width:40px;height:40px}
+.pf-coin .t{flex:1;min-width:0;display:grid}
+.pf-coin .t b{font-family:var(--font-rokh);font-size:22px;line-height:28px;font-weight:900;color:var(--coin-text)}
+.pf-coin .t small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.pf-daily{height:44px;padding:0 14px;border-radius:14px;display:flex;align-items:center;gap:6px;background:var(--gold);color:var(--gold-ink);font-size:13px;font-weight:800;white-space:nowrap}
+.pf-daily svg{width:18px;height:18px}
+.pf-hist{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink)}
+.pf-hist svg{width:20px;height:20px}
+
+/* لیگ هر بازی: کارت ۱۴۰×۱۸۴، رنگش از لیگ */
+.pf-lgrow{display:flex;gap:8px;overflow-x:auto;margin:0 calc(var(--space-4) * -1);padding:4px var(--space-4);scrollbar-width:none}
+.pf-lgrow::-webkit-scrollbar{display:none}
+.pf-lg{flex:none;width:140px;height:184px;padding:14px;border-radius:20px;display:flex;flex-direction:column;text-align:start;color:var(--lc);background:var(--lb)}
+.pf-lg[aria-selected="true"]{box-shadow:0 0 0 2px var(--ground),0 0 0 4px var(--acc)}
+.pf-lg .h{display:flex;align-items:center;gap:8px;height:28px}
+.pf-lg .g-art{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;overflow:hidden}
+.pf-lg .g-art svg{display:block;width:76%;height:76%}
+.pf-lg .h b{min-width:0;font-size:13px;line-height:20px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-lg .em{width:56px;height:56px;margin:8px auto}
+.pf-lg .cu{display:flex;align-items:baseline;gap:4px}
+.pf-lg .cu b{font-family:var(--font-rokh);font-size:22px;line-height:28px;font-weight:900}
+.pf-lg .cu span,.pf-lg small{font-size:12px;line-height:18px;font-weight:800}
+.pf-lg .pr{margin-top:auto;height:4px;border-radius:2px;background:color-mix(in srgb,var(--lc) 16%,transparent);overflow:hidden}
+.pf-lg .pr i{display:block;height:100%;background:var(--lc)}
+.pf-lg-brz{--lb:linear-gradient(160deg,#F4C9A3,#D98E52);--lc:#3B1E05}
+.pf-lg-slv{--lb:linear-gradient(160deg,#F1F3F8,#CDD4E0);--lc:#2A3140}
+.pf-lg-gld{--lb:linear-gradient(160deg,#FFDE85,#F5C451 55%,#E3AB31);--lc:#3A2A00}
+.pf-lg-dia{--lb:linear-gradient(160deg,#C9F3FF,#6FCDEB);--lc:#062C3A}
+.pf-lg-chp{--lb:linear-gradient(160deg,#E2D8FF,#A48CF5);--lc:#1E0F4A}
+.pf-lg-none{--lb:var(--surface);--lc:var(--ink-muted);box-shadow:inset 0 0 0 1px var(--line)}
+.pf-lg-none .h b{color:var(--ink)}
+.pf-lg-none[aria-selected="true"]{box-shadow:inset 0 0 0 1px var(--line),0 0 0 2px var(--ground),0 0 0 4px var(--acc)}
+.pf-kpi{margin-top:12px;padding:12px 0;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line);display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.pf-kpi div{display:grid;justify-items:center;text-align:center}
+.pf-kpi div+div{border-inline-start:1px solid var(--line)}
+.pf-kpi b{font-family:var(--font-rokh);font-size:18px;line-height:26px;font-weight:900}
+.pf-kpi span{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.pf-kpi .win{color:var(--success)}.pf-kpi .pc{color:var(--acc-deep)}
+.pf-try{margin-top:12px;padding:12px 16px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pf-try span{font-size:13px;line-height:20px;color:var(--ink-muted)}
+
+/* تالار نشان ها: ۳ ستون، مدال ۷۲ */
+.pf-medals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:8px;row-gap:16px}
+.pf-md{display:flex;flex-direction:column;align-items:center;text-align:center}
+.pf-md .m{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--mb) 45%,#fff),var(--mb) 60%,color-mix(in srgb,var(--mb) 82%,#000));color:var(--mc);box-shadow:inset 0 0 0 4px rgba(255,255,255,.35)}
+.pf-md .m svg{width:28px;height:28px}
+.pf-md b{margin-top:8px;font-size:13px;line-height:20px;font-weight:800}
+.pf-md small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.pf-md.off .m{background:var(--surface-sunk);color:var(--ink-muted);box-shadow:inset 0 0 0 2px var(--line)}
+.pf-md.off .m svg{width:26px;height:26px}
+.pf-md.off b{color:var(--ink-muted)}
+
+/* آخرین بازی ها */
+.pf-recent{padding:4px 16px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.pf-rg{min-height:68px;display:flex;align-items:center;gap:12px}
+.pf-rg+.pf-rg{border-top:1px solid var(--line)}
+.pf-rg .g-art{position:relative;flex:none;width:44px;height:44px;border-radius:13px;display:grid;place-items:center}
+.pf-rg .g-art>svg{display:block;width:76%;height:76%;border-radius:inherit}
+.pf-rg .dot{position:absolute;bottom:-4px;left:-4px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:#fff;box-shadow:0 0 0 2px var(--surface)}
+.pf-rg .dot svg{width:12px;height:12px;stroke-width:3.5}
+.pf-rg .dot.w{background:var(--success)}.pf-rg .dot.l{background:var(--danger)}
+.pf-rg .t{flex:1;min-width:0;display:grid}
+.pf-rg .t b{font-size:14px;line-height:22px;font-weight:800}
+.pf-rg .t small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.pf-rg .v{display:grid;justify-items:end;text-align:end}
+.pf-rg .v b{font-size:14px;line-height:22px;font-weight:800}
+.pf-rg .v b.up{color:var(--success)}.pf-rg .v b.down{color:var(--danger)}
+.pf-rg .v .amount{font-size:12px;line-height:18px}
+.pf-rg .v small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+
+/* کلکسیون: ردیف افقی ۱۱۲ */
+.pf-colrow{display:flex;gap:8px;overflow-x:auto;margin:0 calc(var(--space-4) * -1);padding:0 var(--space-4);scrollbar-width:none}
+.pf-colrow::-webkit-scrollbar{display:none}
+.pf-ci{flex:none;width:112px;display:flex;flex-direction:column;gap:6px;color:var(--ink)}
+.pf-ci .sw{position:relative;height:84px;border-radius:16px;overflow:hidden;display:block}
+.pf-ci .sw.cs{background:#0F201B}
+.pf-ci .sw .hk-card,.pf-ci .sw .hk-back{font-size:34px}
+.pf-ci.on .sw{box-shadow:inset 0 0 0 2px var(--acc)}
+.pf-ci .lk{position:absolute;inset:0;display:grid;place-items:center;background:rgba(15,18,24,.45);color:#fff}
+.pf-ci .lk svg{width:24px;height:24px}
+.pf-ci b{font-size:12px;line-height:18px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-ci small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.pf-ci.on small{color:var(--success);font-weight:800}
+.pf-ci .amount{font-size:12px;line-height:18px}
+
+/* تنظیمات */
+.pf-sets{padding:0 16px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.pf-set{width:100%;min-height:60px;display:flex;align-items:center;gap:12px;padding:8px 0;text-align:start;color:inherit;font:inherit;background:none;border:0}
+button.pf-set{cursor:pointer}
+.pf-set+.pf-set{border-top:1px solid var(--line)}
+.pf-set[hidden]{display:none}
+.pf-set[hidden]+.pf-set{border-top:0}
+.pf-set .ib{flex:none;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink)}
+.pf-set .ib svg{width:20px;height:20px}
+.pf-set .ib.blue{background:var(--acc-tint);color:var(--acc-deep)}
+.pf-set .ib.gold{background:var(--coin-tint);color:var(--coin-text)}
+.pf-set .pf-tx{flex:1;min-width:0;display:grid}
+.pf-set .pf-tx b{font-size:14px;line-height:22px;font-weight:800}
+.pf-set .pf-tx small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.pf-set .go{flex:none;width:20px;height:20px;color:var(--ink-muted)}
+.pf-set .btn-sm{flex:none;min-height:44px}
+.pf-set .seg{flex:none;padding:3px;border-radius:12px}
+.pf-set .seg button{min-height:38px;padding:0 10px;border-radius:9px;font-size:12.5px;line-height:18px;align-content:center;justify-content:center}
+.acc-guest .pf-tx small{color:var(--danger)}
+.acc-mail{overflow-wrap:anywhere}
+.pf-ver{text-align:center;margin-top:12px;font-size:12px;line-height:18px;color:var(--ink-muted)}
+
 .pf-ta{width:100%;box-sizing:border-box;padding:12px 14px;border:0;border-radius:16px;background:var(--surface-sunk);color:var(--ink);font:inherit;font-size:15px;line-height:24px;resize:none;outline:2px solid transparent}
 .pf-ta:focus{outline-color:var(--acc)}
 .pf-tn{margin-top:-14px;font-size:12px;color:var(--ink-muted);text-align:end}
@@ -98,77 +167,76 @@
 .pf-cv .cover{display:block;height:90px;border-radius:12px}
 .pf-cv b{font-size:14px;font-weight:900;padding-inline:4px}
 .pf-cv small{font-size:12px;color:var(--success);padding-inline:4px}
-.set b{display:block;font-weight:800;font-size:14px}
-.set small{display:block;font-size:12px;line-height:18px;color:var(--ink-muted)}
-.set .seg{flex:none;padding:3px}
-.set .seg button{padding:6px 11px;font-size:13px;line-height:18px}
 </style>
 </head>
 <body>
-<header class="appbar">
+<header class="appbar pf-bar">
   <div class="appbar-cap"><span>پروفایل</span></div>
   <div class="appbar-in">
-    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>پروفایل</h1></div>
-    <span class="tag tag-sample" id="pfSample" hidden>اینا نمونه‌ان</span>
+    <div class="top-l"><a class="icon-btn back" href="index.html" aria-label="برگشت"><i data-ic="back"></i></a><h1>پروفایل</h1><span class="tag tag-sample" id="pfSample" hidden>اینا نمونه‌ان</span></div>
+    <div class="pf-acts">
+      <button class="icon-btn" id="pfCoverBtn" aria-label="تغییر کاور"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg></button>
+      <button class="icon-btn" id="pfSet" aria-label="تنظیمات"><i data-ic="sliders"></i></button>
+    </div>
   </div>
 </header>
-<main class="page">
-  <section class="pf-card" aria-label="من">
-    <div class="pf-cover cover cover-gc" id="pfCover">
-      <span class="cv-mark" id="pfMark"></span>
-      <button class="pf-cbtn set-btn" id="pfSet" aria-label="تنظیمات"><i data-ic="sliders"></i></button>
-      <button class="pf-cbtn add-btn" id="pfCoverBtn" aria-label="تغییر کاور"><i data-ic="plus"></i></button>
-    </div>
-    <div class="pf-me">
+
+<main class="page pf-page">
+  <section class="pf-hero cover cover-gc" id="pfHero" aria-label="من">
+    <div class="pf-hin">
       <span class="pf-ring" id="ring" style="--p:0"><span id="av"></span><b id="lvTag">سطح ۱</b></span>
-      <div class="pf-name"><h1 id="name" class="uname">…</h1><button class="pf-edit" id="editName" aria-label="تغییر یوزرنیم"><i data-ic="edit"></i></button></div>
+      <div class="pf-name"><h2 id="name" class="uname">…</h2><button class="pf-edit" id="editName" aria-label="تغییر یوزرنیم"><i data-ic="edit"></i></button></div>
       <button class="pf-bio" id="pfBio"><span id="bioTx">یه چیزی درباره خودت بنویس…</span></button>
       <div class="pf-stats">
-        <div><span>برد</span><b id="kWins">…</b></div>
-        <div><span>عضویت</span><b id="kAge">…</b></div>
-        <div><span>سطح</span><b class="gold" id="kLv">…</b></div>
+        <div><b id="kWins">…</b><span>برد</span></div>
+        <div><b id="kGames">…</b><span>بازی</span></div>
+        <div><b id="kAge">…</b><span>عضو AsoTas</span></div>
       </div>
-      <p class="pf-xp" id="lvTxt">&nbsp;</p>
-      <div class="pf-bal">
-        <span data-coin></span><b id="kPts">…</b>
-        <a class="pf-plus" href="shop.html#daily" aria-label="جایزهٔ روزانه"><i data-ic="plus"></i></a>
-        <a class="pf-hist" href="shop.html#hist" aria-label="تاریخچهٔ سکه"><i data-ic="wallet"></i></a>
+      <div class="pf-xp">
+        <div><b id="lvNext">تا سطح ۲</b><span id="lvTxt">&nbsp;</span></div>
+        <span class="bar"><i id="xpBar" style="width:0"></i></span>
       </div>
     </div>
   </section>
-
-  <section aria-labelledby="hCol">
-    <div class="sec-head"><h2 id="hCol">کلکسیون من</h2><a href="shop.html">همه</a></div>
-    <div class="pf-col"><span class="pf-colbar"><i id="colBar" style="width:0"></i></span><span id="colN" class="pf-coln"></span></div>
-    <div class="pf-items" id="colItems"><div class="gp-skel"></div><div class="gp-skel"></div><div class="gp-skel"></div></div>
+  <div class="pf-lid" aria-hidden="true"></div>
+  <section class="pf-coin" aria-label="سکه">
+    <span data-coin></span>
+    <span class="t"><b id="kPts">…</b><small>سکه</small></span>
+    <a class="pf-daily" href="shop.html#daily"><i data-ic="gift"></i>جایزهٔ روزانه</a>
+    <a class="pf-hist" href="shop.html#hist" aria-label="تاریخچهٔ سکه"><i data-ic="clock"></i></a>
   </section>
 
-  <section aria-labelledby="hGame">
-    <div class="sec-head"><h2 id="hGame">کارنامهٔ هر بازی</h2></div>
-    <div class="gtabs" role="tablist" id="gtabs"></div>
-    <div class="gstat" id="gstat"></div>
+  <section aria-labelledby="hLeague">
+    <div class="sec-head"><h2 id="hLeague">لیگ‌های من</h2><span class="n" id="cupN"></span></div>
+    <div class="pf-lgrow" role="tablist" aria-labelledby="hLeague" id="leagues"><div class="gp-skel" style="flex:none;width:140px;height:184px;border-radius:20px"></div><div class="gp-skel" style="flex:none;width:140px;height:184px;border-radius:20px"></div><div class="gp-skel" style="flex:none;width:140px;height:184px;border-radius:20px"></div></div>
+    <div id="gstat"></div>
+  </section>
+
+  <section aria-labelledby="hBadge">
+    <div class="sec-head"><h2 id="hBadge">تالار نشان‌ها</h2><span class="n" id="badgeN"></span></div>
+    <div class="pf-medals" id="badges"></div>
   </section>
 
   <section aria-labelledby="hRecent">
     <div class="sec-head"><h2 id="hRecent">آخرین بازی‌ها</h2></div>
-    <div class="recent" id="recent"><p class="hint" style="padding:12px 0">یه لحظه…</p></div>
+    <div class="pf-recent" id="recent"><p class="hint" style="padding:12px 0">یه لحظه…</p></div>
   </section>
 
-  <section aria-labelledby="hBadge">
-    <div class="sec-head"><h2 id="hBadge">نشان‌ها</h2><span class="aside" id="badgeN"></span></div>
-    <div class="badges" id="badges"></div>
+  <section aria-label="کلکسیون">
+    <div class="sec-head"><h2>کلکسیون <small class="pf-cnt" id="colN"></small></h2><a href="shop.html">فروشگاه</a></div>
+    <div class="pf-colrow" id="colItems"><div class="gp-skel" style="flex:none;width:112px;height:84px"></div><div class="gp-skel" style="flex:none;width:112px;height:84px"></div><div class="gp-skel" style="flex:none;width:112px;height:84px"></div></div>
   </section>
 
   <section aria-labelledby="hSet">
     <div class="sec-head"><h2 id="hSet">تنظیمات</h2></div>
-    <div class="sets">
-      <div class="set" id="pfAcc" hidden></div>
-      <button class="set" id="pfPush" hidden style="width:100%;border:0;background:none;font:inherit;color:inherit;text-align:right;cursor:pointer"><span><b>نوتیفیکیشن وقتی برنامه بسته‌ست</b><small>اگه نوبت و دعوت وقتی برنامه بسته‌ست نمی‌رسه</small></span><i data-ic="fwd"></i></button>
-      <div class="set"><span><b>پوسته</b><small>خودکار مثل تلگرام</small></span><div class="seg" id="segTheme" role="group" aria-label="پوسته"><button data-m="auto">خودکار</button><button data-m="light">روشن</button><button data-m="dark">تیره</button></div></div>
-      <div class="set"><span><b>صدای بازی</b><small>صدای ورق و تاس و توپ و تماشاچیا</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
-      <div class="set"><span><b>تکون خوردن برگا تو حکم</b><small>گوشی رو کج کنی برگای وسط میز سُر می‌خورن</small></span><button class="switch" role="switch" id="swTilt" aria-label="تکان برگ‌ها در حکم"></button></div>
+    <div class="pf-sets">
+      <div class="pf-set" id="pfAcc" hidden></div>
+      <button class="pf-set" id="pfPush" hidden><span class="ib gold"><i data-ic="bell"></i></span><span class="pf-tx"><b>نوتیفیکیشن</b><small>اگه نوبت و دعوت وقتی برنامه بسته‌ست نمی‌رسه</small></span><span class="go"><i data-ic="fwd"></i></span></button>
+      <div class="pf-set"><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></span><span class="pf-tx"><b>پوسته</b></span><div class="seg" id="segTheme" role="group" aria-label="پوسته"><button data-m="auto">خودکار</button><button data-m="light">روشن</button><button data-m="dark">تیره</button></div></div>
+      <div class="pf-set"><span class="ib"><i data-ic="soundOn"></i></span><span class="pf-tx"><b>صدای بازی</b><small>ورق و تاس و توپ و تماشاچیا</small></span><button class="switch" role="switch" id="swSound" aria-label="صدای بازی"></button></div>
+      <div class="pf-set"><span class="ib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2.5" transform="rotate(-12 12 12)"/><path d="M11.5 17.5h1"/></svg></span><span class="pf-tx"><b>تکون برگا تو حکم</b><small>گوشی رو کج کنی برگای وسط میز سُر می‌خورن</small></span><button class="switch" role="switch" id="swTilt" aria-label="تکان برگ‌ها در حکم"></button></div>
     </div>
-    <p class="hint" id="pfVer" dir="ltr" style="text-align:center;margin-top:var(--space-3)" hidden></p>
+    <p class="pf-ver" id="pfVer" dir="ltr" hidden></p>
   </section>
 </main>
 <script src="static/gc.js"></script>
@@ -176,30 +244,37 @@
 <script src="static/cards.js"></script>
 <script>
 (() => {
-  const { fa, FD, face, icon, amount, toast, errText, S, setSound } = GC;
+  const { fa, FD, face, icon, amount, toast, errText, S, setSound, esc } = GC;
   const C = window.GCCards;
   const $ = id => document.getElementById(id);
   GC.back('index.html');
-  let me = null, pf = null, tab = 'hokm';
+  let me = null, pf = null, tab = null;
   const NAME = { hokm: 'حکم', football: 'فوتبال', ludo: 'منچ', billiard: 'بیلیارد', divar: 'دیوار', esmfamil: 'اسم‌فامیل', lashgar: 'لشگر کاغذی', snakes: 'مار و پله' };
+  const ORDER = ['hokm', 'football', 'ludo', 'billiard', 'divar', 'esmfamil', 'lashgar', 'snakes'];
   const pct = (w, g) => g ? FD(Math.round(w * 100 / g)) + '٪' : '—';
   const ago = t => { const d = Math.round((Date.now() / 1000 - t) / 60); return d < 1 ? 'همین حالا' : d < 60 ? FD(d) + ' دقیقه پیش' : d < 1440 ? FD(Math.round(d / 60)) + ' ساعت پیش' : FD(Math.round(d / 1440)) + ' روز پیش'; };
+  const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  const art = g => { const x = GC.GAMES.find(y => y.id === g) || GC.GAMES[2]; return [x.tint, GC.GAME_ART[x.id]()]; };
+
+  // قاب شب تا وقتی دیده می شود رنگ نوار وضعیت هم سرمه ای است؛ بعدش زمینهٔ صفحه
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { $('pfHero').classList.toggle('lid-off', !es[0].isIntersecting); GC.paintBars(); }, { rootMargin: '-90px 0px 0px 0px' }).observe($('pfHero'));
 
   const MARK = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21.5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/><path transform="translate(12 11.5)" fill="currentColor" d="M12 2C9 6.6 4 9.3 4 13.5c0 2.6 2 4.4 4.3 4.4 1.3 0 2.5-.6 3.1-1.5-.3 2-1.1 3.6-2.6 5.1h6.4c-1.5-1.5-2.3-3.1-2.6-5.1.6.9 1.8 1.5 3.1 1.5 2.3 0 4.3-1.8 4.3-4.4C20 9.3 15 6.6 12 2z"/></svg>';
   const coverMark = id => id === 'gc' ? MARK + '<b lang="en">AsoTas</b>' : '';
   function renderMe() {
     const p = me.player, L = GC.level(p);
-    $('av').innerHTML = face(p, 'var(--surface)');
+    $('av').innerHTML = face(p, '#172B5B');
     $('ring').style.setProperty('--p', Math.round(L.frac * 100));
     $('lvTag').textContent = 'سطح ' + FD(L.lv);
     $('name').textContent = p.name || '';
-    $('pfCover').className = 'pf-cover cover cover-' + (p.cover || 'gc');
-    $('pfMark').innerHTML = coverMark(p.cover || 'gc');
+    $('pfHero').className = 'pf-hero cover cover-' + (p.cover || 'gc') + ($('pfHero').classList.contains('lid-off') ? ' lid-off' : '');
     $('bioTx').textContent = p.bio || 'یه چیزی درباره خودت بنویس…';
     $('pfBio').classList.toggle('empty', !p.bio);
     const days = p.joined ? Math.max(1, Math.round((Date.now() / 1000 - p.joined) / 86400)) : 0;
-    $('kWins').textContent = fa(p.wins); $('kAge').textContent = days ? FD(days) + ' روز' : '—'; $('kLv').textContent = FD(L.lv);
-    $('lvTxt').textContent = `${FD(L.left)} تجربهٔ دیگه تا سطح ${FD(L.lv + 1)} · هر بازی ۱۰ و هر برد ۱۵`;
+    $('kWins').textContent = fa(p.wins); $('kGames').textContent = fa(p.games); $('kAge').textContent = days ? FD(days) + ' روز' : '—';
+    $('lvNext').textContent = 'تا سطح ' + FD(L.lv + 1);
+    $('lvTxt').textContent = `${FD(L.left)} تجربهٔ دیگه · هر برد ۱۵`;
+    $('xpBar').style.width = Math.round(L.frac * 100) + '%';
     $('kPts').textContent = fa(p.points);
     $('swSound').setAttribute('aria-checked', String(!!S.sound));
     $('swTilt').setAttribute('aria-checked', String(S.tilt !== false));
@@ -207,34 +282,49 @@
     // نسخهٔ صفحه ها داخل برنامه (آپدیت خودکار): برای پیگیری مشکل ها
     if (window.GCApp && window.GCApp.bundle) { $('pfVer').textContent = 'AsoTas · ' + window.GCApp.bundle; $('pfVer').hidden = false; }
   }
-  // کلکسیون: میزها، ورق ها و کاورهایی که داری
-  function renderCollection(sty) {
-    const covers = me.covers || [{ id: 'gc', name: 'AsoTas' }];
-    const items = (sty && sty.items || []).filter(i => i.owned);
-    const total = (sty && sty.items || []).length + covers.length, own = items.length + covers.length;
-    $('colBar').style.width = Math.round(own * 100 / Math.max(1, total)) + '%';
-    $('colN').textContent = `${FD(own)} از ${FD(total)}`;
-    const tile = i => `<div class="pf-it">${i.kind === 'table' ? `<span class="sw felt tbl-${i.look}"></span>` : `<span class="sw cs cards-${i.look}">${C.back('', 'left:18%;top:12%;transform:rotate(-10deg)')}${C.face(12, '', 'left:48%;top:8%;transform:rotate(8deg)')}</span>`}${i.name}</div>`;
-    const cov = c => `<div class="pf-it"><span class="sw cover cover-${c.id}"></span>کاور ${c.name}</div>`;
-    const list = [...covers.map(cov), ...items.filter(i => i.on).map(tile), ...items.filter(i => !i.on).map(tile)];
-    $('colItems').innerHTML = list.slice(0, 6).join('');
-  }
+
+  // لیگ هر بازی از جام بازی های رتبه ای؛ بازی بی لیگ کارت ساده دارد
+  const TIERS = [[1000, 'pf-lg-chp'], [600, 'pf-lg-dia'], [300, 'pf-lg-gld'], [100, 'pf-lg-slv'], [0, 'pf-lg-brz']];
+  const FLOORS = [0, 100, 300, 600, 1000];
+  const SHIELD = '<svg class="em" viewBox="0 0 56 56" aria-hidden="true"><path d="M28 4l20 7v14c0 13-8.5 22-20 27C16.5 47 8 38 8 25V11z" fill="#FFFFFF" fill-opacity="0.5" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M28 17l3.3 6.8 7.4 1-5.4 5.1 1.3 7.3L28 33.7l-6.6 3.5 1.3-7.3-5.4-5.1 7.4-1z" fill="currentColor"/></svg>';
+  const SHIELD_OFF = '<svg class="em" viewBox="0 0 56 56" aria-hidden="true"><path d="M28 4l20 7v14c0 13-8.5 22-20 27C16.5 47 8 38 8 25V11z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="5 5" stroke-linejoin="round"/></svg>';
+  const rankOf = g => { const r = me && me.ranks && me.ranks[g]; return r && (r.games || r.cups) ? r : null; };
   function stat(g) { return pf && pf.games.find(x => x.game === g) || { games: 0, wins: 0, prize: 0 }; }
   function renderGames() {
-    // هر بازی یک کاشی کوچک با تصویر و رنگ همان بازی
-    $('gtabs').innerHTML = ['hokm', 'football', 'ludo', 'billiard', 'divar', 'esmfamil', 'lashgar', 'snakes'].map(g => { const x = GC.GAMES.find(y => y.id === g) || {}; return `<button role="tab" data-g="${g}" aria-selected="${g === tab}"><span class="g-art ${x.tint || ''}">${GC.GAME_ART[g]()}</span>${NAME[g]}</button>`; }).join('');
-    const s = stat(tab);
-    $('gstat').innerHTML = `<div class="kpi"><b>${fa(s.games)}</b><span>بازی</span></div><div class="kpi"><b class="win">${fa(s.wins)}</b><span>برد</span></div>
-      <div class="kpi"><b>${fa(s.games - s.wins)}</b><span>باخت</span></div><div class="kpi"><b class="gold">${pct(s.wins, s.games)}</b><span>درصد برد</span></div>`;
+    const list = ORDER.map(g => ({ g, r: rankOf(g), s: stat(g) }))
+      .sort((a, b) => ((b.r ? b.r.cups + 1 : 0) - (a.r ? a.r.cups + 1 : 0)) || (b.s.games - a.s.games));
+    if (!tab || !ORDER.includes(tab)) tab = list[0].g;
+    const cups = list.reduce((n, x) => n + (x.r ? x.r.cups : 0), 0);
+    $('cupN').textContent = cups ? fa(cups) + ' جام' : '';
+    $('leagues').innerHTML = list.map(({ g, r, s }) => {
+      const [tint, pic] = art(g), sel = `role="tab" data-g="${g}" aria-selected="${g === tab}"`;
+      const head = `<span class="h"><span class="g-art ${tint}">${pic}</span><b>${NAME[g]}</b></span>`;
+      if (!r) return `<button class="pf-lg pf-lg-none" ${sel}>${head}${SHIELD_OFF}<small>${s.games ? 'فقط دوستانه' : 'هنوز بازی نکردی'}</small><small style="font-weight:400">${s.games ? fa(s.games) + ' بازی' : 'یه دست بزن'}</small></button>`;
+      const cls = TIERS.find(([f]) => r.cups >= f)[1], i = FLOORS.filter(f => r.cups >= f).length - 1;
+      const pr = i >= FLOORS.length - 1 ? 100 : Math.round((r.cups - FLOORS[i]) * 100 / (FLOORS[i + 1] - FLOORS[i]));
+      return `<button class="pf-lg ${cls}" ${sel} aria-label="${NAME[g]}، لیگ ${r.league}، ${fa(r.cups)} جام">${head}${SHIELD}<span class="cu"><b>${fa(r.cups)}</b><span>جام · ${r.league}</span></span><span class="pr"><i style="width:${Math.max(4, pr)}%"></i></span></button>`;
+    }).join('');
+    const s = stat(tab), x = GC.GAMES.find(y => y.id === tab);
+    $('gstat').innerHTML = s.games ? `<div class="pf-kpi"><div><b>${fa(s.games)}</b><span>بازی ${NAME[tab]}</span></div><div><b class="win">${fa(s.wins)}</b><span>برد</span></div>
+      <div><b>${fa(s.games - s.wins)}</b><span>باخت</span></div><div><b class="pc">${pct(s.wins, s.games)}</b><span>درصد برد</span></div></div>`
+      : `<div class="pf-try"><span>هنوز ${NAME[tab]} بازی نکردی</span>${x ? `<a class="btn btn-sm" href="${x.href}">یه دست بزن</a>` : ''}</div>`;
   }
-  $('gtabs').onclick = e => { const b = e.target.closest('[data-g]'); if (b) { tab = b.dataset.g; GC.haptic('select'); renderGames(); } };
+  $('leagues').onclick = e => { const b = e.target.closest('[data-g]'); if (b && b.dataset.g !== tab) { tab = b.dataset.g; GC.haptic('select'); renderGames(); } };
+
   function renderRecent() {
-    const art = g => { const x = GC.GAMES.find(y => y.id === g) || GC.GAMES[2]; return `<span class="g-art ${x.tint}">${GC.GAME_ART[x.id]()}</span>`; };
-    $('recent').innerHTML = pf.recent.length ? pf.recent.map(r => `<div class="rg">${art(r.game)}
-        <span class="t"><b>${NAME[r.game] || ''}<span class="res ${r.won ? 'w' : 'l'}">${r.won ? 'برد' : 'باخت'}</span></b><small>${r.mode === 'ranked' ? 'رتبه‌ای' + (r.cups ? ` · ${r.cups > 0 ? '+' : '−'}${fa(Math.abs(r.cups))} جام` : '') : r.mode === 'stake' ? 'امتیازی قدیمی' : 'دوستانه'} · ${ago(r.at)}</small></span>
-        <span class="v ${r.prize && r.mode === 'ranked' ? '' : 'muted'}">${r.prize && r.mode === 'ranked' ? amount(r.prize) : '—'}</span></div>`).join('')
-      : `<div style="display:grid;justify-items:center;gap:10px;padding:16px 0;text-align:center"><p class="hint">هنوز هیچ بازی‌ای رو تموم نکردی داش</p><a class="btn btn-gold btn-sm" href="hokm-lobby.html">اولین بازیتو شروع کن</a></div>`;
+    const ok = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    const no = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+    $('recent').innerHTML = pf.pf-recent.length ? pf.pf-recent.map(r => {
+      const [tint, pic] = art(r.game), ranked = r.mode === 'ranked';
+      const mode = ranked ? 'رتبه‌ای' : r.mode === 'stake' ? 'امتیازی قدیمی' : 'دوستانه';
+      const v = ranked && r.cups ? `<b class="${r.cups > 0 ? 'up' : 'down'}" dir="ltr">${r.cups > 0 ? '+' : '−'}${fa(Math.abs(r.cups))} جام</b>${r.prize ? amount(r.prize) : ''}`
+        : ranked && r.prize ? amount(r.prize) : `<small>${mode}</small>`;
+      return `<div class="pf-rg"><span class="g-art ${tint}">${pic}<span class="dot ${r.won ? 'w' : 'l'}">${r.won ? ok : no}</span></span>
+        <span class="t"><b>${NAME[r.game] || ''} · ${r.won ? 'برد' : 'باخت'}</b><small>${mode} · ${ago(r.at)}</small></span><span class="v">${v}</span></div>`;
+    }).join('')
+      : `<div style="display:grid;justify-items:center;gap:12px;padding:16px 0;text-align:center"><p class="hint">هنوز هیچ بازی‌ای رو تموم نکردی داش</p><a class="btn btn-gold btn-sm" href="hokm-lobby.html">اولین بازیتو شروع کن</a></div>`;
   }
+
   // نشان ها از کارنامهٔ واقعی؛ هر کدام با پیشرفتش
   function renderBadges() {
     const p = me.player, L = GC.level(p), played = new Set(pf.games.filter(g => g.games).map(g => g.game));
@@ -252,13 +342,26 @@
       ['استاد کوت', 'cards', '#FFB86B', '#3A1C00', kots >= 5, `${fa(Math.min(kots, 5))} از ۵ کوت`],
     ];
     $('badgeN').textContent = `${FD(B.filter(b => b[4]).length)} از ${FD(B.length)}`;
-    $('badges').innerHTML = B.map(([t, ic, bg, fg, on, sub]) => `<div class="pbdg${on ? '' : ' off'}"><span class="m" style="background:${bg};color:${fg}">${icon(on ? ic : 'shield')}</span>${t}<small>${on ? 'گرفتی' : sub}</small></div>`).join('');
+    $('badges').innerHTML = B.map(([t, ic, bg, fg, on, sub]) => `<div class="pf-md${on ? '' : ' off'}"><span class="m" style="--mb:${bg};--mc:${fg}">${on ? icon(ic) : LOCK}</span><b>${t}</b><small>${on ? 'گرفتی' : sub}</small></div>`).join('');
   }
+
+  // کلکسیون: کاورها و میز و ورقایی که داری، بعد اونایی که هنوز نخریدی (با قیمت، به فروشگاه)
+  function renderCollection(sty) {
+    const covers = me.covers || [{ id: 'gc', name: 'AsoTas' }], cur = me.player.cover || 'gc';
+    const all = sty && sty.items || [], items = all.filter(i => i.owned), rest = all.filter(i => !i.owned);
+    $('colN').textContent = `${FD(items.length + covers.length)} از ${FD(all.length + covers.length)}`;
+    const look = i => i.kind === 'table' ? `<span class="sw felt tbl-${i.look}">` : `<span class="sw cs cards-${i.look}">${C.back('', 'left:16%;top:12%;transform:rotate(-10deg)')}${C.face(12, '', 'left:48%;top:8%;transform:rotate(8deg)')}`;
+    const own = i => `<div class="pf-ci${i.on ? ' on' : ''}">${look(i)}</span><b>${esc(i.name)}</b><small>${i.on ? 'استفاده می‌شه' : 'داری'}</small></div>`;
+    const buy = i => `<a class="pf-ci" href="shop.html">${look(i)}<span class="lk">${LOCK}</span></span><b>${esc(i.name)}</b>${amount(i.price)}</a>`;
+    const cov = c => `<div class="pf-ci${c.id === cur ? ' on' : ''}"><span class="sw cover cover-${c.id}"></span><b>کاور ${esc(c.name)}</b><small>${c.id === cur ? 'استفاده می‌شه' : 'داری'}</small></div>`;
+    $('colItems').innerHTML = [...covers.map(cov), ...items.filter(i => i.on).map(own), ...items.filter(i => !i.on).map(own), ...rest.map(buy)].join('');
+  }
+
   $('swSound').onclick = () => { setSound(!S.sound); $('swSound').setAttribute('aria-checked', String(!!S.sound)); GC.data.setFlag('sound', S.sound).catch(() => {}); };
   $('swTilt').onclick = () => { S.tilt = S.tilt === false; GC.save(); $('swTilt').setAttribute('aria-checked', String(S.tilt)); GC.haptic('select'); };
   // پوسته: همان لحظه عوض می شود و روی همین گوشی می ماند
   const syncTheme = () => $('segTheme').querySelectorAll('[data-m]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === GCTheme.mode())));
-  $('segTheme').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; GCTheme.set(b.dataset.m); GC.haptic('select'); syncTheme(); };
+  $('segTheme').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; GCTheme.pf-set(b.dataset.m); GC.haptic('select'); syncTheme(); };
   syncTheme();
 
   $('editName').onclick = () => { if (me) GC.editName(me.player, r => { Object.assign(me.player, r); renderMe(); }); };
@@ -283,7 +386,7 @@
   $('pfCoverBtn').onclick = () => {
     if (!me) return;
     const cur = me.player.cover || 'gc', covers = me.covers || [{ id: 'gc', name: 'AsoTas' }];
-    const sh = GC.sheet(`${GC.sheetHead('کاور پروفایل')}<div class="pf-covers">${covers.map(c => `<button class="pf-cv${c.id === cur ? ' on' : ''}" data-cv="${c.id}"><span class="cover cover-${c.id}"><span class="cv-mark">${coverMark(c.id)}</span></span><b>${c.name}</b>${c.id === cur ? '<small>انتخاب شده</small>' : ''}</button>`).join('')}</div>
+    const sh = GC.sheet(`${GC.sheetHead('کاور پروفایل')}<div class="pf-covers">${covers.map(c => `<button class="pf-cv${c.id === cur ? ' on' : ''}" data-cv="${c.id}"><span class="cover cover-${c.id}"><span class="cv-mark">${coverMark(c.id)}</span></span><b>${esc(c.name)}</b>${c.id === cur ? '<small>انتخاب شده</small>' : ''}</button>`).join('')}</div>
       <p class="hint">کاورای تازه به‌زودی میان</p>`);
     sh.querySelectorAll('[data-cv]').forEach(b => b.onclick = async () => {
       if (b.dataset.cv === cur) { GC.close(); return; }
@@ -298,9 +401,9 @@
     if (!GC.app || !a) { box.hidden = true; return; }
     box.hidden = false;
     box.classList.toggle('acc-guest', a.kind === 'guest');
-    box.innerHTML = a.kind === 'guest'
-      ? `<span><b>حسابت مهمونه 😬</b><small>اگه برنامه پاک شه یا گوشیتو عوض کنی همه‌چی می‌پره</small></span><button class="btn btn-sm" id="accIn">ذخیرهٔ حساب</button>`
-      : `<span><b>${a.kind === 'telegram' ? 'وارد شدی با تلگرام ✈️' : 'وارد شدی با ایمیل 📬'}</b><small${a.kind === 'email' ? ' dir="ltr" class="acc-mail"' : ''}>${a.kind === 'email' ? GC.esc(a.email) : 'همون حساب ربات تلگرام AsoTas'}</small></span><button class="btn btn-sm btn-light" id="accOut">خروج</button>`;
+    box.innerHTML = `<span class="ib blue">${icon('user')}</span>` + (a.kind === 'guest'
+      ? `<span class="pf-tx"><b>حسابت مهمونه 😬</b><small>اگه برنامه پاک شه یا گوشیتو عوض کنی همه‌چی می‌پره</small></span><button class="btn btn-sm" id="accIn">ذخیرهٔ حساب</button>`
+      : `<span class="pf-tx"><b>${a.kind === 'telegram' ? 'وارد شدی با تلگرام ✈️' : 'وارد شدی با ایمیل 📬'}</b><small${a.kind === 'email' ? ' dir="ltr" class="acc-mail"' : ''}>${a.kind === 'email' ? esc(a.email) : 'همون حساب ربات تلگرام AsoTas'}</small></span><button class="btn btn-sm btn-light" id="accOut">خروج</button>`);
     const b = box.querySelector('button');
     b.onclick = a.kind === 'guest' ? () => GC.login({ guestGames: me.player.games }) : () => GC.logoutSheet();
   }
@@ -313,7 +416,6 @@
     } catch (e) { toast(errText(e)); }
     try { renderCollection(await GC.data.style()); } catch (e) { if (me) renderCollection(null); }
   }
-  renderGames();
   GC.page(load);
   GC.nav('profile'); GC.mount();
 })();
