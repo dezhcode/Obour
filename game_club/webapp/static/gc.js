@@ -168,8 +168,8 @@ const ERR = {
   not_friends: 'اول باید با هم رفیق بشید', you_blocked: 'این بنده خدا رو بلاک کردی', cant_add: 'این یکی رو نمی‌شه اضافه کرد',
   too_many_friends: 'لیست رفیقات پر شده', slow_requests: 'درخواستا زیاد شد یه کم دیگه دوباره امتحان کن', no_request: 'این درخواست دیگه نیست', bad_game: 'این بازی پیدا نشد داش',
   name_chars: 'فقط حرف انگلیسی و عدد و _ قبوله', name_reserved: 'این یوزرنیمو نمی‌شه برداشت', name_taken: 'این یوزرنیمو یکی دیگه زودتر برداشته',
-  must_join: 'اول عضو کانالای AsoTas شو بعد بزن بریم!',
-  banned: 'شرمنده داش حسابت تو AsoTas بسته شده', maintenance: 'داریم آپدیت می‌کنیم چند دقیقه دیگه دوباره سر بزن',
+  must_join: 'اول عضو کانالای آس و تاس شو بعد بزن بریم!',
+  banned: 'شرمنده داش حسابت تو آس و تاس بسته شده', maintenance: 'داریم آپدیت می‌کنیم چند دقیقه دیگه دوباره سر بزن',
   insufficient: 'سکه‌ت کمه داش با جایزهٔ روزانه و برد رتبه‌ای جمعش کن', daily_done: 'جایزهٔ امروزتو گرفتی فردا دوباره سر بزن 😉',
   ranked_off: 'بازی رتبه‌ای فعلاً خاموشه', ranked_online: 'رتبه‌ای فقط با حریف آنلاینه',
   iap_off: 'خرید سکه فعلاً بسته‌ست', iap_sku: 'این بسته فعلاً فروخته نمی‌شه', iap_item: 'این بسته فعلاً فروخته نمی‌شه',
@@ -265,7 +265,7 @@ function showGate(chats) {
   const many = chats.length > 1;
   gateEl.innerHTML = `<div class="gk-card"><div class="gk-body">
     <div class="gk-head"><div class="gk-ic">${icon('bell', 2)}</div><h2 id="gkT">یه قدم تا بازی!</h2>
-      <p>داش واسه بازی تو AsoTas باید عضو ${many ? 'این کانال‌ها و گروه‌ها' : 'این ' + (chats[0].kind === 'group' ? 'گروه' : 'کانال')} باشی عضو که شدی «عضو شدم» رو بزن</p></div>
+      <p>داش واسه بازی تو آس و تاس باید عضو ${many ? 'این کانال‌ها و گروه‌ها' : 'این ' + (chats[0].kind === 'group' ? 'گروه' : 'کانال')} باشی عضو که شدی «عضو شدم» رو بزن</p></div>
     <div class="gk-list">${chats.map((c, i) => `<div class="gk-row${clicked.has(c.url) ? ' done' : ''}"><span class="av">${c.kind === 'group' ? '👥' : '📢'}</span>
       <span class="t"><b>${escB(c.title)}</b><small>${c.kind === 'group' ? 'گروه' : 'کانال'}</small></span>
       <button class="go" data-i="${i}">${clicked.has(c.url) ? 'باز کن' : 'عضو شو'}</button></div>`).join('')}</div>
@@ -840,7 +840,7 @@ async function pushHelp(auto) {
       ${row('notify', st.notify, 'اجازهٔ نوتیفیکیشن', 'خاموشه و هیچ پیامی نمیاد')}
       ${row('battery', st.battery, 'باتری بدون محدودیت', 'تو صفحهٔ بازشده «اجازه بده» یا «بدون محدودیت» رو بزن')}
       ${st.autostart ? `<li class="row ph-row" data-ph="autostart"><span class="ic-box" style="background:var(--coin-tint);color:var(--coin-text)">${icon('bolt')}</span>
-        <span class="name">اجرای خودکار (Autostart)<span class="meta">تو لیست AsoTas رو روشن کن</span></span><span class="btn btn-sm">باز کن</span></li>` : ''}
+        <span class="name">اجرای خودکار (Autostart)<span class="meta">تو لیست آس و تاس رو روشن کن</span></span><span class="btn btn-sm">باز کن</span></li>` : ''}
     </ul>
     <button class="btn btn-light btn-block" data-close style="margin-top:var(--space-3)">باشه</button>`);
   sh.querySelectorAll('[data-ph]').forEach(el => el.onclick = () => {
@@ -910,7 +910,7 @@ function login({ welcome = false, guestGames = 0 } = {}) {
       <p class="acc-lead">با تلگرام یا ایمیل بیا تو تا بازیا و رفیقا و سکه‌هات همیشه بمونن حتی اگه گوشیتو عوض کنی</p>
       <button class="btn btn-block acc-tg" id="accTg">${icon('send')}ورود با تلگرام</button>
       <button class="btn btn-light btn-block" id="accMail">${icon('mail')}ورود با ایمیل</button>
-      <p class="acc-note">قبلاً تو ربات تلگرام AsoTas بازی کردی؟ با تلگرام بیا تا همون حساب بیاد${guestGames ? '<br>بازیایی که مهمون بودی فقط با ایمیل همین‌جا می‌مونه' : ''}</p>
+      <p class="acc-note">قبلاً تو ربات تلگرام آس و تاس بازی کردی؟ با تلگرام بیا تا همون حساب بیاد${guestGames ? '<br>بازیایی که مهمون بودی فقط با ایمیل همین‌جا می‌مونه' : ''}</p>
       ${welcome ? '<button class="acc-skip" data-close>فعلاً مهمون می‌مونم</button>' : ''}</div>`, { dismiss: !welcome });
     sh.querySelector('#accTg').onclick = tgFlow;
     sh.querySelector('#accMail').onclick = () => mailFlow('');
@@ -923,7 +923,7 @@ function login({ welcome = false, guestGames = 0 } = {}) {
     const my = ++run, until = Date.now() + (r.ttl || 600) * 1000;
     const sh = sheet(`${sheetHead('ورود با تلگرام')}<div class="acc">
       <div class="acc-wait" id="accWait"><span class="spinner"></span><b>منتظر تأیید تو تلگرامیم…</b></div>
-      <p class="acc-lead">تو ربات AsoTas «آره خودمم» رو بزن و برگرد همین‌جا خودش وارد می‌شی</p>
+      <p class="acc-lead">تو ربات آس و تاس «آره خودمم» رو بزن و برگرد همین‌جا خودش وارد می‌شی</p>
       <button class="btn btn-block acc-tg" id="accOpen">${icon('send')}باز کردن تلگرام</button>
       <button class="btn btn-light btn-block" id="accBack">برگشت</button>
       <p class="acc-note acc-bad" id="accMsg" role="status"></p></div>`, { onClose: () => { run++; } });
@@ -1210,7 +1210,7 @@ let navEl = null;
 function nav(active) {
   if (mountingView) return;
   if (navEl) { setActive(active, false); return; }
-  const n = navEl = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های AsoTas');
+  const n = navEl = document.createElement('nav'); n.className = 'nav'; n.setAttribute('aria-label', 'بخش‌های آس و تاس');
   // نام هر بخش زیر آیکونش؛ «بازی‌ها» وسط یک تاس است که کمی بالاتر از نوار نشسته و با لمس می چرخد
   const die = [1, 0, 1, 0, 1, 0, 1, 0, 1].map(p => `<i${p ? ' class="p"' : ''}></i>`).join('');
   n.innerHTML = `<div class="nav-in"><span class="nav-pill" aria-hidden="true"></span>${NAV.map(([id, href, label, ic]) =>

@@ -165,7 +165,7 @@
     },
   };
   const share = o => native && C.isPluginAvailable && C.isPluginAvailable('Share')
-    ? call('Share', 'share', { title: o.title || 'AsoTas', text: o.text || '', url: o.url || undefined, dialogTitle: o.title || 'فرستادن' })
+    ? call('Share', 'share', { title: o.title || 'آس و تاس', text: o.text || '', url: o.url || undefined, dialogTitle: o.title || 'فرستادن' })
     : Promise.reject(new Error('web'));
 
   // ---------- آپدیت خودکار صفحه ها و بازی ها ----------

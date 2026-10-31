@@ -127,8 +127,8 @@ class GCRuntime:
                 async def notify(tg: int, text: str, page: str, key: str = "") -> None:
                     if tg < 0:      # مهمان برنامهٔ اندروید پیوی تلگرام ندارد
                         return
-                    icon, sub, btn = NOTICE.get(key, ("bell", "اعلان", "باز کردن AsoTas"))
-                    body = st.to_html(st.frame(icon, "AsoTas", sub, [st.Raw(text)]))
+                    icon, sub, btn = NOTICE.get(key, ("bell", "اعلان", "باز کردن آس و تاس"))
+                    body = st.to_html(st.frame(icon, "آس و تاس", sub, [st.Raw(text)]))
                     await bot.send_message(tg, body, reply_markup=open_kb(page, btn, "brand"))
 
                 service.notifier = notify
@@ -154,8 +154,8 @@ NOTICE = {
 
 def gate_text(need: list[dict]) -> str:
     names = " و ".join(f"«{c['title']}»" for c in need)
-    return st.to_html(st.frame("megaphone", "AsoTas", "اول عضو شو داش", [
-        f"واسه بازی تو AsoTas اول باید عضو {names} بشی", "",
+    return st.to_html(st.frame("megaphone", "آس و تاس", "اول عضو شو داش", [
+        f"واسه بازی تو آس و تاس اول باید عضو {names} بشی", "",
         "عضو که شدی دکمهٔ «عضو شدم» رو بزن بریم سراغ بازی 🎮"]))
 
 
@@ -180,13 +180,13 @@ async def on_gate_ok(cb: CallbackQuery, gdb: GCDatabase) -> None:
         return
     await cb.answer("دمت گرم عضو شدی ✅")
     try:
-        await cb.message.edit_text(st.to_html(st.frame("ok", "AsoTas", "خوش اومدی داش!", [
+        await cb.message.edit_text(st.to_html(st.frame("ok", "آس و تاس", "خوش اومدی داش!", [
             "حله عضو شدی ✅ حالا بزن بریم سراغ بازی"])), reply_markup=open_kb("", "بزن بریم بازی"))
     except Exception:  # noqa: BLE001
         pass
 
 
-def open_kb(page: str = "", text: str = "ورود به AsoTas", icon: str | None = "brand") -> InlineKeyboardMarkup | None:
+def open_kb(page: str = "", text: str = "ورود به آس و تاس", icon: str | None = "brand") -> InlineKeyboardMarkup | None:
     """دکمهٔ باز کردن مینی اپ؛ ایموجی پریمیوم (اگر تنظیم شده) آیکن کنار متن دکمه است."""
     if not gc.webapp_url:
         return None
@@ -236,8 +236,8 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
         return
     me = await gdb.player(u.id, _name(message), u.username)
     if me.get("banned"):
-        await message.answer(_h("ban", "AsoTas", "حسابت بسته‌ست", [
-            "شرمنده داش حسابت تو AsoTas بسته شده 🚫"],
+        await message.answer(_h("ban", "آس و تاس", "حسابت بسته‌ست", [
+            "شرمنده داش حسابت تو آس و تاس بسته شده 🚫"],
             foot=(None, None, "اگه فکر می‌کنی اشتباه شده به پشتیبانی عبور پیام بده آدمای خوبی‌ان 😄")))
         return
     arg = (command.args or "").strip()
@@ -277,7 +277,7 @@ async def on_start(message: Message, command: CommandObject, gdb: GCDatabase) ->
              "با رفیقات یا با ناشناس هر وقت حوصله‌ت سر رفت بیا 😄",
              [st.E("esmfamil"), " اسم‌فامیل هم داریم تو گروه یا کانال که داورش هوش مصنوعی عبوره!"],
              [st.E("lashgar"), " لشگر کاغذی هم هست همون جنگ کاغذی زنگ تفریح تو گروه یا کانال 🪖"], "", *group_steps()]
-    await message.answer(_h("hello", "AsoTas", "منوی اصلی", lines, foot=("coin", "سکه", [st.num(me["points"]), " سکه"])),
+    await message.answer(_h("hello", "آس و تاس", "منوی اصلی", lines, foot=("coin", "سکه", [st.num(me["points"]), " سکه"])),
                          reply_markup=with_group_button(open_kb()))
 
 
@@ -287,14 +287,14 @@ async def app_login_ask(message: Message, gdb: GCDatabase, code: str) -> None:
 
     row = await appauth.tg_pending(gdb, code)
     if not row:
-        await message.answer(_h("warn", "ورود به اپ AsoTas", "این لینک دیگه کار نمی‌کنه", [
+        await message.answer(_h("warn", "ورود به اپ آس و تاس", "این لینک دیگه کار نمی‌کنه", [
             "لینک ورود یا وقتش گذشته یا یه بار استفاده شده 🤷"], foot=(None, None, "تو اپ دوباره «ورود با تلگرام» رو بزن")))
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [st.kb_button("آره خودمم بزن بریم", "ok", callback_data=f"al:ok:{code}")],
         [st.kb_button("نه من نبودم", "cancel", callback_data=f"al:no:{code}")]])
-    await message.answer(_h("link", "ورود به اپ AsoTas", "خودتی داش؟", [
-        "یه گوشی می‌خواد با همین تلگرامت وارد اپ AsoTas بشه 📱", ["گوشی ", st.iso(row["device"] or "اندروید")], "",
+    await message.answer(_h("link", "ورود به اپ آس و تاس", "خودتی داش؟", [
+        "یه گوشی می‌خواد با همین تلگرامت وارد اپ آس و تاس بشه 📱", ["گوشی ", st.iso(row["device"] or "اندروید")], "",
         "اگه خودت تو اپ «ورود با تلگرام» رو زدی تأیید کن",
         "اگه خودت نبودی بزن «نه» و این لینکو واسه هیچ‌کس نفرست 🔒"]), reply_markup=kb)
 
@@ -311,9 +311,9 @@ async def on_app_login(cb: CallbackQuery, gdb: GCDatabase) -> None:
         await cb.answer("این لینک دیگه کار نمی‌کنه از تو اپ دوباره «ورود با تلگرام» رو بزن 🤷", show_alert=True)
         return
     await cb.answer("حله ✅" if ok else "باشه رد شد 👍")
-    text = _h("ok", "ورود به اپ AsoTas", "حله وارد شدی ✅", [
-        "برگرد تو اپ AsoTas خودش میره تو حسابت 😎", "پروفایل و رفقا و بازیات همون‌جا منتظرتن"]) if ok else \
-        _h("cancel", "ورود به اپ AsoTas", "ورود رد شد 👍", ["کسی با این لینک وارد حسابت نشد خیالت راحت 🔒"])
+    text = _h("ok", "ورود به اپ آس و تاس", "حله وارد شدی ✅", [
+        "برگرد تو اپ آس و تاس خودش میره تو حسابت 😎", "پروفایل و رفقا و بازیات همون‌جا منتظرتن"]) if ok else \
+        _h("cancel", "ورود به اپ آس و تاس", "ورود رد شد 👍", ["کسی با این لینک وارد حسابت نشد خیالت راحت 🔒"])
     try:
         await cb.message.edit_text(text)
     except Exception:  # noqa: BLE001
@@ -376,7 +376,7 @@ async def on_points(message: Message, gdb: GCDatabase) -> None:
     rate = round(p["wins"] * 100 / p["games"]) if p["games"] else 0
     vibe = ("هنوز بازی نکردی داش زمین منتظرته!" if not p["games"] else "داری می‌ترکونی 🔥" if rate >= 60
             else "بد نیست یه کم دیگه تمرین کنی آس می‌شی 😉" if rate >= 35 else "شانس فعلاً باهات قهره ولی آشتی می‌کنه 😄")
-    await message.answer(_h("coin", "کیف سکه", "AsoTas", [
+    await message.answer(_h("coin", "کیف سکه", "آس و تاس", [
         [st.E("trophy"), " برد: ", st.num(p["wins"]), " از ", st.num(p["games"]), " بازی"], vibe, "",
         "سکه رو با جایزهٔ روزانه و برد رتبه‌ای جمع می‌کنی و باهاش میز و ورق و آیتم می‌خری 🪙"],
         foot=("coin", "موجودی", [st.num(p["points"]), " سکه"])),
@@ -409,7 +409,7 @@ async def on_stats(message: Message, gdb: GCDatabase) -> None:
     day = await gdb.stats(int(_t.time()) - 86400)
     allt = await gdb.stats(0)
     n = st.num
-    await message.answer(_h("chart", "آمار AsoTas", "امروز و کل", [
+    await message.answer(_h("chart", "آمار آس و تاس", "امروز و کل", [
         ["بازیکن: ", n(allt["players"]), " · سکه در گردش: ", n(allt["points"])],
         ["الان: ", n(allt["playing"]), " میز در بازی، ", n(allt["lobby"]), " میز دعوت، ", n(allt["queue"]), " نفر تو صف"], "",
         [st.B("24 ساعت گذشته")],
@@ -428,7 +428,7 @@ async def on_points_admin(message: Message, command: CommandObject, gdb: GCDatab
         return
     tg, amount = int(parts[0]), int(parts[1])
     if not await gdb.get_player(tg):
-        await message.answer("این بنده خدا هنوز AsoTas رو باز نکرده.")
+        await message.answer("این بنده خدا هنوز آس و تاس رو باز نکرده.")
         return
     from . import service
 
@@ -466,7 +466,7 @@ async def on_admin(message: Message) -> None:
     if gc.webapp_url:
         rows.append([st.kb_button("پنل مدیریت (مینی اپ)", "gear", web_app=WebAppInfo(url=gc.webapp_url + "admin.html"))])
     rows.append([_ib("ایموجی‌های پریمیوم", "ge:h", "brand"), _ib("پیام همگانی", "bc:help", "megaphone")])
-    await message.answer(_h("gear", "پنل مدیریت", "AsoTas", [
+    await message.answer(_h("gear", "پنل مدیریت", "آس و تاس", [
         "کاربرا، میزها، تراکنش‌ها، آمار پیام همگانی و تنظیمات توی مینی اپ.",
         "ایموجی‌ها و پیام همگانی همین‌جا توی ربات."], foot=(None, None, "از کجا شروع کنیم؟ 👇")),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
@@ -711,7 +711,7 @@ async def on_broadcast(message: Message, gdb: GCDatabase, bot: Bot) -> None:
     days = (message.text or "").split()[1:2]
     target = {"7": "active7", "30": "active30"}.get(days[0] if days else "", "all")
     text, img = await _bc_content(bot, src)
-    bid = await gdb.bc_draft(message.from_user.id, src.chat.id, src.message_id, "|ورود به AsoTas|brand", target, text, img)
+    bid = await gdb.bc_draft(message.from_user.id, src.chat.id, src.message_id, "|ورود به آس و تاس|brand", target, text, img)
     text, kb = await _bc_panel(gdb, bid, message.from_user.id)
     await message.answer(text, reply_markup=kb, reply_to_message_id=src.message_id)
 
@@ -753,7 +753,7 @@ async def on_bc_button(cq: CallbackQuery, gdb: GCDatabase, bot: Bot) -> None:
         await cq.answer()
         await cq.message.answer(_h("link", "دکمه‌های پیام", f"پیش‌نویس {bid}", [
             "هر خط یه دکمه (حداکثر 3 تا): متن دکمه | صفحه", "",
-            "🃏 بازی حکم | حکم", "🎮 ورود به AsoTas | خانه", "",
+            "🃏 بازی حکم | حکم", "🎮 ورود به آس و تاس | خانه", "",
             "صفحه‌ها: " + "، ".join(PAGE_FA.values()),
             "ایموجی اول هر خط اگه پریمیوم باشه، آیکن پریمیوم دکمه می‌شه."],
             foot=(None, None, "بدون دکمه؟ فقط یه - بفرست")))
@@ -841,12 +841,12 @@ async def on_bc_buttons(message: Message, gdb: GCDatabase) -> None:
 
 @router.message(F.chat.type == "private", F.text)
 async def on_text(message: Message) -> None:
-    await message.answer(_h("brand", "AsoTas", "بزن بریم داش", ["واسه بازی AsoTas رو باز کن 👇"],
+    await message.answer(_h("brand", "آس و تاس", "بزن بریم داش", ["واسه بازی آس و تاس رو باز کن 👇"],
                             foot=(None, None, ["یا تو گروهت بنویس ", st.iso(bot_at()), " و یه بازی انتخاب کن"])),
                          reply_markup=with_group_button(open_kb()))
 
 
-COMMANDS = [BotCommand(command="start", description="ورود به AsoTas"),
+COMMANDS = [BotCommand(command="start", description="ورود به آس و تاس"),
             BotCommand(command="points", description="موجودی سکه"),
             BotCommand(command="esmfamil", description="اسم‌فامیل تو گروه یا کانال"),
             BotCommand(command="lashgar", description="لشگر کاغذی تو گروه یا کانال"),

@@ -255,12 +255,12 @@ function rank(game, won) {
   save();
   return { cups, coins, rank: Object.assign({}, r, { league: league(r.cups) }) };
 }
-const STYLE = [['table:a', 'table', 'a', 'میز کلاسیک', 0], ['table:b', 'table', 'b', 'میز کافه شب', 80], ['table:c', 'table', 'c', 'میز AsoTas', 80],
-  ['cards:m', 'cards', 'm', 'ورق مدرن', 0], ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 50], ['cards:c', 'cards', 'c', 'ورق AsoTas', 50], ['cards:d', 'cards', 'd', 'ورق رنگ تمام', 50]];
+const STYLE = [['table:a', 'table', 'a', 'میز کلاسیک', 0], ['table:b', 'table', 'b', 'میز کافه شب', 80], ['table:c', 'table', 'c', 'میز آس و تاس', 80],
+  ['cards:m', 'cards', 'm', 'ورق مدرن', 0], ['cards:a', 'cards', 'a', 'ورق کلاسیک', 0], ['cards:b', 'cards', 'b', 'ورق کافه شب', 50], ['cards:c', 'cards', 'c', 'ورق آس و تاس', 50], ['cards:d', 'cards', 'd', 'ورق رنگ تمام', 50]];
 const data = {
   async me() {
     const F = fr(), unread = Object.keys(F.dms).reduce((a, u) => a + F.dms[u].filter(m => !m.me && m.id > (F.read[u] || 0)).length, 0);
-    return { social: { requests: F.incoming.length, unread }, covers: [{ id: 'gc', name: 'AsoTas' }], player: { bio: S.bio || '', cover: S.cover || 'gc', name: S.uname || 'lucky_falcon', name_next: S.unameAt ? S.unameAt + 30 * 86400 : 0, name_hint: !S.unameSeen && !S.unameAt,
+    return { social: { requests: F.incoming.length, unread }, covers: [{ id: 'gc', name: 'آس و تاس' }], player: { bio: S.bio || '', cover: S.cover || 'gc', name: S.uname || 'lucky_falcon', name_next: S.unameAt ? S.unameAt + 30 * 86400 : 0, name_hint: !S.unameSeen && !S.unameAt,
         joined: Math.round(Date.now() / 1000) - 42 * 86400, av: 7, points: S.bal, games: S.games, wins: S.wins, show_spend: 0 },
       history: S.ledger.map(l => ({ kind: l.k, amount: l.a, note: l.t, created_at: Math.round(l.at / 1000) })),
       notify: Object.keys(S.notify).filter(k => S.notify[k]), active_match: await ludo.active(), tables: demoTables(),

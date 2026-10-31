@@ -481,17 +481,17 @@ async def _esm_run(db: GCDatabase, match_id: str, job: str, st: dict) -> None:
 STYLE_ITEMS = {
     "table:a": ("table", "a", "میز کلاسیک", 0),
     "table:b": ("table", "b", "میز کافه شب", 80),
-    "table:c": ("table", "c", "میز AsoTas", 80),
+    "table:c": ("table", "c", "میز آس و تاس", 80),
     "cards:m": ("cards", "m", "ورق مدرن", 0),       # درشت خوان (طرح قبلی بازی)، رایگان
     "cards:a": ("cards", "a", "ورق کلاسیک", 0),
     "cards:b": ("cards", "b", "ورق کافه شب", 50),
-    "cards:c": ("cards", "c", "ورق AsoTas", 50),
+    "cards:c": ("cards", "c", "ورق آس و تاس", 50),
     "cards:d": ("cards", "d", "ورق رنگ تمام", 50),
 }
 
 
 # کاورهای پروفایل؛ طرح های بعدی همین جا (و کلاس cover-<id> در gc.css) اضافه می شوند
-COVERS = {"gc": "AsoTas"}
+COVERS = {"gc": "آس و تاس"}
 
 
 def style_of(player: dict) -> dict:

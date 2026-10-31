@@ -100,7 +100,7 @@ def parse_buttons(raw: str) -> list[tuple[str, str, str]]:
         page, label, key = (line.split("|") + ["", "", ""])[:3]
         if page not in PAGES:
             continue
-        label = " ".join(label.split())[:40] or "ورود به AsoTas"
+        label = " ".join(label.split())[:40] or "ورود به آس و تاس"
         key = key.strip()
         out.append((page, label, key if key in emo.CATALOG or (key.isdigit() and len(key) < 25) else ""))
     return out[:BC_BUTTONS]
@@ -375,7 +375,7 @@ async def handle(name: str, method: str, admin: int, q: dict, body: dict, db: GC
         # نوتیفیکیشن گوشی برنامهٔ اندروید (اگر فایربیس روشن است و بازیکن برنامه دارد)
         from . import push
         if push.enabled():
-            asyncio.get_running_loop().create_task(push.to_player(db, tg, text, "index.html", title="پیام از طرف AsoTas", channel="news"))
+            asyncio.get_running_loop().create_task(push.to_player(db, tg, text, "index.html", title="پیام از طرف آس و تاس", channel="news"))
         await db.log_admin(admin, "message", str(tg), text[:120])
         return {"ok": True, "telegram": r}
     if path == "close":
