@@ -73,6 +73,38 @@
 .pack.busy{box-shadow:0 0 0 2px var(--gold)}
 .pack.busy .buy{opacity:.6}
 #packNote .link{border:0;background:none;padding:0;font:inherit;font-weight:800;color:var(--acc-deep);text-decoration:underline}
+
+/* ---------- Arcade Lounge: گاوصندوق تیره و طلایی، برچسب های قیمت آویزان و ویترین ---------- */
+.wcard{background:radial-gradient(90% 120% at 100% 0%,rgba(245,196,81,.28),transparent 60%),linear-gradient(160deg,#25222E,#17161D 70%);color:#FFE7A3;box-shadow:inset 0 0 0 1px rgba(245,196,81,.22),var(--depth-md);padding-inline-end:150px}
+.wcard::before{left:-40px;top:-60px;width:180px;height:180px;border:20px solid rgba(245,196,81,.07)}
+.wcard::after{display:none}
+.wc-top{color:rgba(255,231,163,.8)}
+.wc-top [data-coin]{display:none}
+.wc-mid b{font-size:46px;line-height:56px;color:#F5C451;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.wc-mid small{color:rgba(255,231,163,.72);opacity:1}
+.wc-stack{position:absolute;left:22px;bottom:22px;width:104px;height:110px;pointer-events:none}
+.wc-stack i{position:absolute;left:var(--x);bottom:var(--y);width:62px;height:16px;border-radius:50%;background:linear-gradient(#FFE08A,#E3A92B);box-shadow:inset 0 -3px 0 #B9801A,0 3px 4px rgba(0,0,0,.35)}
+.wc-stack .wc-big{position:absolute;left:24px;top:0;width:68px;height:68px;transform:rotate(-12deg);filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+.wc-stack .wc-big svg{width:100%;height:100%}
+.wact .ic{box-shadow:var(--depth-sm)}
+.wact.gold .ic{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.16),0 6px 12px -6px rgba(180,120,0,.8)}
+.packs{gap:16px 12px;padding-top:14px}
+.pack{padding:24px 8px 14px;border-radius:20px 20px 24px 24px;box-shadow:var(--depth-sm);overflow:visible}
+.pack::before{content:"";position:absolute;top:9px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--ground);box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+.pack::after{content:"";position:absolute;top:-16px;left:50%;width:2px;height:28px;margin-left:-1px;background:linear-gradient(var(--line),var(--ink-muted));border-radius:1px;transform-origin:top;transform:rotate(-8deg)}
+.pack:nth-child(even)::after{transform:rotate(8deg)}
+.pack b{font-family:var(--font-rokh)}
+.pack .buy{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.16)}
+.pack .rib{position:absolute;top:12px;right:-6px;padding:2px 10px;background:#F0465B;color:#fff;font-size:11px;font-weight:800;border-radius:6px 0 0 6px;box-shadow:0 3px 6px -2px rgba(0,0,0,.35)}
+.pack .rib::after{content:"";position:absolute;right:0;bottom:-6px;border:3px solid #A52234;border-bottom-color:transparent;border-right-color:transparent}
+.pack.best{box-shadow:0 0 0 2px #F5C451,var(--depth-md)}
+.pack.chest{background:linear-gradient(160deg,#4A2E14,#2B1A0B);color:#FFE7A3}
+.pack.chest::before{background:#1C1008}
+.pack.chest small{color:rgba(255,231,163,.75)}
+.pack.chest .coin{width:44px;height:44px;filter:drop-shadow(0 0 10px rgba(245,196,81,.7))}
+/* ویترین: میز و ورق روی طبقهٔ چوبی */
+.sk-grid{padding:12px 10px 22px;border-radius:24px;background:var(--surface-sunk);box-shadow:inset 0 2px 6px rgba(0,0,0,.08),inset 0 -12px 0 #8A5A33,inset 0 -14px 0 #6E4524}
+.sk .pv{border-radius:50% / 40%}
 </style>
 </head>
 <body>
@@ -88,6 +120,7 @@
     <div class="wcard">
       <div class="wc-top"><span>کیف سکهٔ AsoTas</span><span data-coin></span></div>
       <div class="wc-mid"><small>موجودی</small><b data-bal>…</b><small>سکه فقط تو بازی خرج می‌شه</small></div>
+      <span class="wc-stack" aria-hidden="true"><i style="--x:0;--y:0"></i><i style="--x:4px;--y:11px"></i><i style="--x:-2px;--y:22px"></i><i style="--x:3px;--y:33px"></i><span class="wc-big" data-coin></span></span>
     </div>
     <div class="wacts">
       <button class="wact gold" id="toDaily"><span class="ic"><i data-ic="gift"></i></span>جایزهٔ روزانه</button>
@@ -166,7 +199,7 @@
     }
     // برنامهٔ قدیمی تر پلاگین خرید ندارد: اول آپدیت از مایکت
     const can = I.on && GC.iapReady(), old = I.on && !can;
-    $('packs').innerHTML = packs.map(p => `<button class="pack" data-sku="${p.sku}"${can ? '' : ' disabled'}>${GC.coin()}<b>${fa(p.coins)} سکه</b>
+    $('packs').innerHTML = packs.map((p, i) => `<button class="pack${i === 2 ? ' best' : ''}${i === packs.length - 1 && i > 2 ? ' chest' : ''}" data-sku="${p.sku}"${can ? '' : ' disabled'}>${i === 2 ? '<span class="rib">به‌صرفه</span>' : ''}${GC.coin()}<b>${fa(p.coins)} سکه</b>
       <small>${fa(p.toman)} تومان</small><span class="${can ? 'buy' : 'soon'}">${can ? 'خرید با مایکت' : old ? 'اول برنامه رو آپدیت کن' : 'به‌زودی از مایکت'}</span></button>`).join('');
     $('packNote').innerHTML = can ? 'پولو مایکت می‌گیره و سکه همون لحظه می‌ریزه تو کیفت'
       : old ? 'خرید سکه تو نسخهٔ تازهٔ برنامه‌ست <button class="link" id="pkUpd">آپدیت از مایکت</button>'

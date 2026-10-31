@@ -43,6 +43,35 @@
 .fl-empty b{font-size:16px;font-weight:900}
 .fl-empty small{font-size:13px;line-height:21px;color:var(--ink-muted)}
 .fl-empty .btn{margin-top:6px}
+
+/* ---------- Arcade Lounge: حلقهٔ استوری آنلاین ها، پاکت درخواست با مهر موم، دکمهٔ براق دعوت و بلیت یوزرنیم ---------- */
+.fl-list,.fl-empty{box-shadow:var(--depth-sm);border-radius:22px}
+.fl-search,.fl-add{box-shadow:var(--depth-sm)}
+.fl-ib.gold{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.18),0 4px 10px -4px rgba(0,0,0,.35)}
+.fl-acc{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.18)}
+.fl-st{display:flex;gap:14px;overflow-x:auto;margin:0 calc(var(--space-4) * -1);padding:4px var(--space-4) 2px;scrollbar-width:none}
+.fl-st::-webkit-scrollbar{display:none}
+.fl-st button{flex:none;width:66px;display:grid;justify-items:center;gap:6px;color:var(--ink)}
+.fl-st .rg{position:relative;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(from 210deg,#F5C451,#FF7AB6,#8E7CF8,#7CF29A,#F5C451)}
+.fl-st .rg .avatar{--size:56px;--ring:var(--ground)}
+.fl-st .rg .gb{position:absolute;bottom:-4px;left:-4px;width:24px;height:24px;border-radius:8px;display:grid;place-items:center;overflow:hidden;box-shadow:0 0 0 2px var(--ground)}
+.fl-st .rg .gb svg{width:80%;height:80%}
+.fl-st b{max-width:100%;font-size:11.5px;line-height:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl-env{position:relative;display:flex;align-items:center;gap:14px;width:100%;padding:16px;border-radius:20px;text-align:start;color:#4A3200;background:linear-gradient(160deg,#FFF4D6,#F8E2AE);box-shadow:var(--depth-sm);overflow:hidden}
+.fl-env::before{content:"";position:absolute;inset:0;background:linear-gradient(155deg,transparent 49.5%,rgba(160,110,20,.18) 50%,transparent 51%),linear-gradient(25deg,transparent 49.5%,rgba(160,110,20,.18) 50%,transparent 51%);background-size:100% 120%;background-position:0 100%;pointer-events:none}
+.fl-env .seal{position:relative;flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#F06A6A,#B3242E 70%);color:#FFE3E3;box-shadow:0 0 0 4px rgba(179,36,46,.25),0 6px 10px -4px rgba(120,10,20,.6);font-family:var(--font-rokh);font-size:18px;font-weight:900}
+.fl-env .t{position:relative;flex:1;min-width:0;display:grid}
+.fl-env b{font-size:15px;line-height:22px;font-weight:900}
+.fl-env small{font-size:12.5px;line-height:18px;opacity:.8}
+.fl-env>svg{position:relative;flex:none;width:20px;height:20px}
+.fl-tk{position:relative;display:flex;align-items:center;gap:12px;margin-top:6px;padding:14px 16px;border-radius:18px;background:var(--ink);color:var(--ground);
+  -webkit-mask:radial-gradient(circle 9px at 0 50%,transparent 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 9px at 100% 50%,transparent 97%,#000) right/51% 100% no-repeat;
+  mask:radial-gradient(circle 9px at 0 50%,transparent 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 9px at 100% 50%,transparent 97%,#000) right/51% 100% no-repeat}
+.fl-tk .t{flex:1;min-width:0;display:grid;padding-inline-end:12px;border-inline-end:2px dashed color-mix(in srgb,var(--ground) 30%,transparent)}
+.fl-tk small{font-size:12px;line-height:18px;opacity:.7}
+.fl-tk b{font-size:18px;line-height:26px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fl-tk button{flex:none;height:40px;padding:0 14px;border-radius:20px;background:#F5C451;color:#3A2A00;font-size:13px;font-weight:800;display:flex;align-items:center;gap:6px;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.16)}
+.fl-tk button svg{width:16px;height:16px}
 </style>
 </head>
 <body>
@@ -87,11 +116,15 @@
     if (!data) return;
     let html = '';
     if (tab === 'friends') {
+      if (nIn) html += `<button class="fl-env" data-req><span class="seal">${FD(nIn)}</span><span class="t"><b>${nIn > 1 ? `${FD(nIn)} نفر می‌خوان رفیقت بشن` : 'یکی می‌خواد رفیقت بشه'}</b><small>بازش کن و جواب بده</small></span>${icon('fwd')}</button>`;
       const list = data.friends.filter(f => !q || f.name.includes(q));
       const on = list.filter(f => f.online), off = list.filter(f => !f.online);
       if (!data.friends.length) html = empty('users', 'هنوز رفیقی نداری داش', 'رفیقاتو با یوزرنیمشون پیدا کن و با هم بازی کنید', `<button class="btn" data-add>${icon('userAdd')}افزودن دوست</button>`);
       else if (!list.length) html = empty('search', 'پیدا نشد', 'بین رفیقات کسی با این اسم نیست');
       else {
+        // حلقهٔ استوری: رفیقای آنلاین، با نشان بازی ای که الان توشن
+        if (on.length && !q) html += `<div class="fl-st" aria-label="آنلاین‌ها">${on.map(f => { const g = f.playing && GC.GAMES.find(x => x.id === f.playing);
+          return `<button data-who="${esc(f.uid)}"><span class="rg">${GC.face(f)}${g ? `<span class="gb ${g.tint}">${GC.GAME_ART[g.id]()}</span>` : ''}</span><b class="uname">${esc(f.name)}</b></button>`; }).join('')}</div>`;
         if (on.length) html += `<h2 class="fl-h">آنلاین <i>${FD(on.length)}</i></h2><ul class="fl-list">${on.map(row).join('')}</ul>`;
         if (off.length) html += `<h2 class="fl-h">آفلاین <i>${FD(off.length)}</i></h2><ul class="fl-list">${off.map(row).join('')}</ul>`;
       }
@@ -101,6 +134,7 @@
       if (data.blocked.length) html += `<h2 class="fl-h">بلاک شده‌ها</h2><ul class="fl-list">${data.blocked.map(f => reqRow(f, 'blk')).join('')}</ul>`;
       if (!html) html = empty('userAdd', 'درخواستی نداری', 'هر کی بخواد رفیقت بشه اینجا می‌بینیش');
     }
+    if (tab === 'friends' && me) html += `<div class="fl-tk"><span class="t"><small>یوزرنیم تو، بده رفیقات اضافه‌ت کنن</small><b class="uname">${esc(me.player.name || '')}</b></span><button data-copy>${icon('copy')}کپی</button></div>`;
     $('flBody').innerHTML = html;
     mount($('flBody'));
   }
@@ -119,6 +153,8 @@
   $('flAdd').onclick = add;
   $('flBody').onclick = async e => {
     if (e.target.closest('[data-add]')) { add(); return; }
+    if (e.target.closest('[data-req]')) { tab = 'req'; sfx.tap(); render(); return; }
+    if (e.target.closest('[data-copy]')) { try { await navigator.clipboard.writeText(me.player.name); toast('یوزرنیمت کپی شد'); } catch (err) { toast(me.player.name); } return; }
     const w = e.target.closest('[data-who]'); if (w) { const f = find(w.dataset.who); if (f) SO.friendSheet(f, load); return; }
     const inv = e.target.closest('[data-inv]'); if (inv) { const f = find(inv.dataset.inv); if (f) SO.invite(f, load); return; }
     const fnd = e.target.closest('[data-find]'); if (fnd) { SO.addSheet(me && me.player.name, load); return; }

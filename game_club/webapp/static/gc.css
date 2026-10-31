@@ -7,15 +7,15 @@
    (gamepage.js کلاس lobby-<بازی> را روی body می گذارد). طلایی فقط برای امتیاز.
    پنجره های داخل صفحهٔ بازی (برگه ها، خروج، نتیجه، انتخاب تیم؛ کلاس gc-ui) هم همین رنگ های اپ را دارند. */
 :root,body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui{color-scheme:light;
-  --ground:#F4F5F8;--ground-deep:#E9ECF2;--surface:#FFFFFF;--surface-sunk:#EEF0F5;--line:#E3E6EE;
-  --ink:#161922;--ink-muted:#6B7080;--night:#161922;
+  --ground:#F3F1EC;--ground-deep:#E9E5DC;--surface:#FFFFFF;--surface-sunk:#EDE9E1;--line:#E4DFD5;
+  --ink:#17161D;--ink-muted:#5E5B66;--night:#17161D;
   --sky:#2F6FEB;--sky-deep:#1F55C4;--sky-tint:#E9F0FE;--violet-tint:#EFEBFF;
   --gold:#F5C451;--gold-ink:#3A2A00;
   --acc:#2F6FEB;--acc-deep:#1F55C4;--acc-ink:#FFFFFF;--acc-tint:#E9F0FE;
   --game-bg:#12291F;--game-deep:#0A1914;--game-glass:rgba(255,255,255,.08);--game-ink:#D3E2DA;
   --coin-tint:#FFF4D6;--coin-text:#8A6200;
   --success:#1E8A5E;--success-tint:#E1F5EA;--danger:#D63447;
-  --depth-sm:0 0 0 1px var(--line);--depth-md:0 0 0 1px var(--line),0 10px 22px -16px rgba(20,25,40,.3);
+  --depth-sm:0 0 0 1px rgba(23,22,29,.06),0 2px 4px -1px rgba(23,22,29,.08),0 8px 20px -10px rgba(23,22,29,.18);--depth-md:0 0 0 1px rgba(23,22,29,.06),0 4px 10px -2px rgba(23,22,29,.1),0 14px 28px -12px rgba(23,22,29,.24);
   --lift:0 18px 40px -14px rgba(20,25,40,.32);--press:inset 0 -3px 0 rgba(0,0,0,.12);--press-sm:inset 0 -2px 0 rgba(0,0,0,.1);
   --scrim:rgba(14,18,26,.5)}
 
@@ -23,14 +23,14 @@
    همان طرح روشن با زمینهٔ خنثی تیره (کمی آبی، نه سیاه مطلق)، سطح ها یک پله روشن تر و خط های کم رنگ؛
    رنگ تاکید روشن تر تا روی زمینهٔ تیره خوانا بماند. خود میزهای بازی همان قبلی اند. */
 :root[data-theme="dark"],:root[data-theme="dark"] body:is(.game,.hokm,.divar,.football,.billiard) .gc-ui{color-scheme:dark;
-  --ground:#0F1218;--ground-deep:#0A0C11;--surface:#181C24;--surface-sunk:#20252F;--line:#2A303C;
-  --ink:#ECEFF5;--ink-muted:#9098A8;--night:#0A0C11;
+  --ground:#121017;--ground-deep:#0C0A10;--surface:#201D28;--surface-sunk:#1B1822;--line:#2E2A38;
+  --ink:#F1EEF6;--ink-muted:#A29DAE;--night:#0C0A10;
   --sky:#4C8DFF;--sky-deep:#8DB4FF;--sky-tint:rgba(76,141,255,.16);--violet-tint:rgba(124,102,242,.2);
   --gold:#F5C451;--gold-ink:#3A2A00;
   --acc:#3D7EF5;--acc-deep:#8DB4FF;--acc-ink:#FFFFFF;--acc-tint:rgba(61,126,245,.18);
   --coin-tint:rgba(245,196,81,.14);--coin-text:#F5C451;
   --success:#3DD68C;--success-tint:rgba(61,214,140,.15);--danger:#FF6B7A;
-  --depth-sm:0 0 0 1px var(--line);--depth-md:0 0 0 1px var(--line),0 12px 24px -16px rgba(0,0,0,.7);
+  --depth-sm:0 0 0 1px rgba(255,255,255,.06),0 2px 4px -1px rgba(0,0,0,.5),0 10px 24px -10px rgba(0,0,0,.6);--depth-md:0 0 0 1px rgba(255,255,255,.07),0 4px 10px -2px rgba(0,0,0,.5),0 14px 28px -12px rgba(0,0,0,.65);
   --lift:0 18px 40px -14px rgba(0,0,0,.7);--press:inset 0 -3px 0 rgba(0,0,0,.25);--press-sm:inset 0 -2px 0 rgba(0,0,0,.22);
   --scrim:rgba(0,0,0,.62)}
 .gc-ui{color:var(--ink)}
@@ -535,22 +535,24 @@ body.game .appbar-in{gap:var(--space-2)}
 body.game .appbar .turnbar{padding-inline-end:10px}
 body.game .appbar .turnbar .time{width:44px}
 
-/* ---------- جایزهٔ ورود روزانه ---------- */
-.dl{display:grid;gap:12px;padding:16px;border-radius:var(--radius-xl);background:var(--surface);box-shadow:0 0 0 1px var(--line)}
-.dl-h b{display:block;font-size:16px;line-height:24px;font-weight:900}
+/* ---------- جایزهٔ ورود روزانه: ردیف هفت صندوقچه (Arcade Lounge) ----------
+   روزهای گرفته شده تیک، صندوقچهٔ امروز بزرگ و طلایی، روزهای بعد خاکستری و روز هفتم صندوقچهٔ ویژهٔ تیره */
+.dl{display:grid;gap:14px;padding:16px;border-radius:24px;background:var(--surface);box-shadow:var(--depth-sm)}
+.dl-h b{display:block;font-family:var(--font-rokh);font-size:18px;line-height:26px;font-weight:900}
 .dl-h small{display:block;font-size:12.5px;line-height:20px;color:var(--ink-muted)}
-.dl-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0;padding:0;list-style:none}
-.dl-d{position:relative;display:grid;justify-items:center;gap:2px;padding:7px 2px 6px;border-radius:14px;background:var(--surface-sunk);box-shadow:inset 0 0 0 1.5px var(--line)}
-.dl-d small{font-size:10px;line-height:14px;font-weight:700;color:var(--ink-muted);white-space:nowrap}
-.dl-d .coin svg{width:20px;height:20px}
-.dl-d b{font-size:13px;line-height:18px;font-weight:900;color:var(--coin-text)}
-.dl-d.big{background:var(--coin-tint)}
-.dl-d.today{background:var(--coin-tint);box-shadow:inset 0 0 0 2px var(--gold, #F5C451);animation:dlPulse 1.6s ease-in-out infinite}
-.dl-d.done{opacity:.55}
-.dl-d i{position:absolute;top:-6px;inset-inline-end:-4px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--success);color:#fff}
-.dl-d i svg{width:11px;height:11px}
-@keyframes dlPulse{50%{transform:translateY(-2px)}}
+.dl-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0;padding:0;list-style:none;align-items:end}
+.dl-d{position:relative;height:66px;display:grid;justify-items:center;align-content:center;gap:1px;border-radius:14px;background:var(--surface-sunk);color:var(--ink-muted)}
+.dl-d svg.ch{width:26px;height:22px}
+.dl-d b{font-size:11.5px;line-height:15px;font-weight:800;font-variant-numeric:tabular-nums}
+.dl-d.done{background:var(--ground-deep)}
+.dl-d.done svg.ok{width:18px;height:18px}
+.dl-d.big:not(.done){background:#17161D;color:#F5C451}
+.dl-d.today{height:84px;transform:translateY(-2px);background:linear-gradient(180deg,#FFE08A,#F5C451 55%,#E3A21E);color:#3A2A00;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -3px 0 rgba(0,0,0,.18),0 6px 14px -6px rgba(176,110,0,.6);animation:dlPulse 1.6s ease-in-out infinite}
+.dl-d.today svg.ch{width:34px;height:30px}
+@keyframes dlPulse{50%{transform:translateY(-5px)}}
 @media (prefers-reduced-motion:reduce){.dl-d.today{animation:none}}
+.candy{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.18),0 4px 10px -4px rgba(0,0,0,.35)}
 
 /* ---------- برگهٔ ورود به حساب (برنامهٔ اندروید) ---------- */
 .acc{display:grid;gap:12px}

@@ -167,6 +167,35 @@ button.pf-set{cursor:pointer}
 .pf-cv .cover{display:block;height:90px;border-radius:12px}
 .pf-cv b{font-size:14px;font-weight:900;padding-inline:4px}
 .pf-cv small{font-size:12px;color:var(--success);padding-inline:4px}
+
+/* ---------- Arcade Lounge: آسمان پرستاره، کارت هولوگرامی بازیکن، جعبهٔ مخمل نشان ها و مهر برد و باخت ---------- */
+.pf-hero{position:relative;isolation:isolate;overflow:hidden}
+.pf-hero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(1.2px 1.2px at 12% 18%,#fff 90%,transparent),radial-gradient(1px 1px at 28% 42%,rgba(255,255,255,.8) 90%,transparent),radial-gradient(1.4px 1.4px at 74% 14%,#fff 90%,transparent),radial-gradient(1px 1px at 88% 36%,rgba(255,255,255,.7) 90%,transparent),radial-gradient(1.2px 1.2px at 56% 26%,rgba(255,255,255,.9) 90%,transparent),radial-gradient(1px 1px at 8% 62%,rgba(255,255,255,.6) 90%,transparent),radial-gradient(1.3px 1.3px at 92% 70%,rgba(255,255,255,.8) 90%,transparent),radial-gradient(1px 1px at 40% 8%,#fff 90%,transparent),radial-gradient(60% 50% at 80% 0%,rgba(130,110,255,.35),transparent 70%),radial-gradient(50% 40% at 0% 100%,rgba(245,196,81,.18),transparent 70%)}
+.pf-hin{position:relative;padding:22px 16px 18px;border-radius:28px;background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.04));box-shadow:inset 0 0 0 1px rgba(255,255,255,.18),0 24px 40px -24px rgba(0,0,0,.6);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.pf-hin::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;
+  background:conic-gradient(from 200deg,#F5C451,#FF7AB6,#8E7CF8,#6FCDEB,#7CF29A,#F5C451);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);opacity:.75}
+.pf-hin::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.16) 45%,transparent 60%);background-size:250% 100%;animation:pfHolo 6s ease-in-out infinite}
+@keyframes pfHolo{0%,100%{background-position:100% 0}50%{background-position:0 0}}
+@media (prefers-reduced-motion:reduce){.pf-hin::after{animation:none}}
+.pf-coin,.pf-kpi,.pf-try,.pf-recent,.pf-sets{box-shadow:var(--depth-sm)}
+.pf-coin{border-radius:24px;box-shadow:var(--depth-md)}
+.pf-daily{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.16)}
+.pf-lg{box-shadow:var(--depth-sm)}
+.pf-lg .em{filter:drop-shadow(0 6px 8px rgba(0,0,0,.25))}
+/* جعبهٔ مخمل: نشان ها با روبان روی مخمل سرمه ای */
+.pf-medals{padding:20px 12px 18px;border-radius:24px;background:radial-gradient(120% 90% at 50% 0%,#3A2160,#1F1236 70%);box-shadow:inset 0 0 0 6px #2A1A45,inset 0 0 0 7px rgba(245,196,81,.35),var(--depth-md);
+  background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 1.4px),radial-gradient(120% 90% at 50% 0%,#3A2160,#1F1236 70%);background-size:6px 6px,auto}
+.pf-md .m{position:relative;box-shadow:inset 0 0 0 4px rgba(255,255,255,.35),0 8px 14px -6px rgba(0,0,0,.6)}
+.pf-md:not(.off) .m::before{content:"";position:absolute;top:-14px;left:50%;width:30px;height:22px;transform:translateX(-50%);z-index:-1;background:linear-gradient(90deg,#C8323C 0 33%,#F5F0E6 33% 66%,#2A5BD7 66%);clip-path:polygon(0 0,100% 0,82% 100%,18% 100%)}
+.pf-md b{color:#F6EEFF}
+.pf-md small{color:rgba(246,238,255,.66)}
+.pf-md.off .m{background:rgba(0,0,0,.25);color:rgba(255,255,255,.4);box-shadow:inset 0 0 0 2px rgba(255,255,255,.12)}
+.pf-md.off b{color:rgba(246,238,255,.5)}
+/* مهر برد و باخت */
+.pf-rg .v b.up,.pf-rg .v b.down{padding:0 8px;border:2px solid currentColor;border-radius:8px;font-size:12px;line-height:18px;transform:rotate(-6deg);opacity:.92}
+.pf-rg .v b.down{transform:rotate(5deg)}
 </style>
 </head>
 <body>
