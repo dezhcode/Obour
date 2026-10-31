@@ -590,8 +590,8 @@ def test_phone_push_for_game_events_admin_message_and_popup():
                 ("dead-token-000000000000", "نوبت توه تو منچ", "turn", {"page": "ludo.html"})]
             assert await db.push_tokens_of(-5) == ["tok-aaaaaaaaaaaaaaaaaaaaaa"]       # توکن مرده پاک شد
             sent.clear()
-            await push.to_player(db, -5, "سلام از پنل", "index.html", title="پیام از طرف AsoTas", channel="news")
-            assert sent[0]["title"] == "پیام از طرف AsoTas" and sent[0]["channel"] == "news"
+            await push.to_player(db, -5, "سلام از پنل", "index.html", title="پیام از طرف آس و تاس", channel="news")
+            assert sent[0]["title"] == "پیام از طرف آس و تاس" and sent[0]["channel"] == "news"
             sent.clear()
             push.to_all("جشنواره", "سکهٔ دوبرابر", "")
             await asyncio.sleep(0.05)
@@ -1728,8 +1728,8 @@ def test_emoji_and_style():
             # دکمه های کارت گروه ایموجی ندارند، حتی وقتی پریمیوم تنظیم شده
             assert open_btn.text == "باز کردن میز" and all(isinstance(b.text, str) for b in groups.buttons(card))
             # پیام همگانی: تا ۳ دکمه، شکل قدیمی هم، صفحهٔ ناشناخته کنار گذاشته می شود
-            btns = admin.parse_buttons("|ورود به AsoTas|brand\nhokm-lobby.html|🃏 بازی حکم|\nbad.html|x|hokm\nludo-lobby.html|منچ|nope\nfriends.html|دوستان")
-            assert btns == [("", "ورود به AsoTas", "brand"), ("hokm-lobby.html", "🃏 بازی حکم", ""), ("ludo-lobby.html", "منچ", "")]
+            btns = admin.parse_buttons("|ورود به آس و تاس|brand\nhokm-lobby.html|🃏 بازی حکم|\nbad.html|x|hokm\nludo-lobby.html|منچ|nope\nfriends.html|دوستان")
+            assert btns == [("", "ورود به آس و تاس", "brand"), ("hokm-lobby.html", "🃏 بازی حکم", ""), ("ludo-lobby.html", "منچ", "")]
             assert admin.parse_buttons("hokm-lobby.html|بازی") == [("hokm-lobby.html", "بازی", "")]
             url.start()
             kb = admin._kb("|ورود|play\nhokm-lobby.html|🃏 بازی حکم|")
@@ -1770,7 +1770,7 @@ def test_broadcast_from_bot():
         try:
             for i in (1, 2, 3):
                 await db.player(i, f"p{i}")
-            bid = await db.bc_draft(1, 1, 50, "|ورود به AsoTas|brand", "all")
+            bid = await db.bc_draft(1, 1, 50, "|ورود به آس و تاس|brand", "all")
             # پیش نویس نه فرستاده می شود نه در آمار پنل است
             assert not await db.bc_active() and not await db.bc_list()
             text, kb = await gbot._bc_panel(db, bid, 1)

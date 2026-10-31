@@ -72,10 +72,10 @@ def _room_page(code: str) -> str:
     myket = f"https://myket.ir/app/{pkg}"
     btn = "display:block;margin:10px 0;padding:14px;border-radius:14px;text-decoration:none;font-weight:800;text-align:center"
     return f"""<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>دعوت به اتاق AsoTas</title>
-<meta property="og:title" content="بیا تو اتاق AsoTas 🎲"><meta property="og:description" content="کد اتاق: {code}">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>دعوت به اتاق آس و تاس</title>
+<meta property="og:title" content="بیا تو اتاق آس و تاس 🎲"><meta property="og:description" content="کد اتاق: {code}">
 </head><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#14213D;color:#fff;font-family:Tahoma,sans-serif">
-<main style="width:min(360px,90vw);text-align:center"><h1 style="font-size:22px">بیا تو اتاق AsoTas 🎲</h1>
+<main style="width:min(360px,90vw);text-align:center"><h1 style="font-size:22px">بیا تو اتاق آس و تاس 🎲</h1>
 <p style="opacity:.8">کد اتاق</p><p dir="ltr" style="font-size:34px;font-weight:800;letter-spacing:6px;margin:0 0 20px">{code}</p>
 <a href="{intent}" style="{btn};background:#F5C451;color:#3A2A00">باز کردن در برنامه</a>
 {f'<a href="{tg}" style="{btn};background:#2AABEE;color:#fff">باز کردن در تلگرام</a>' if tg else ''}

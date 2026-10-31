@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">AsoTas</string>
-    <string name="title_activity_main">AsoTas</string>
+    <string name="app_name">آس و تاس</string>
+    <string name="title_activity_main">آس و تاس</string>
     <string name="package_name">dezhcode.AsoTas.app</string>
     <string name="custom_url_scheme">dezhcode.AsoTas.app</string>
 </resources>

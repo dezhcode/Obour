@@ -1875,7 +1875,7 @@ const App = {
   /* ربات AsoTas؛ مثل openBot ولی ربات جدا، و مینی اپ عبور باز می ماند */
   openGameClub(){
     const gc = this.boot && this.boot.game_club;
-    if (!gc || !gc.link) return this.toast('AsoTas هنوز راه‌اندازی نشده', true);
+    if (!gc || !gc.link) return this.toast('آس و تاس هنوز راه‌اندازی نشده', true);
     this.haptic('medium');
     const link = gc.link + '?start=obour';
     if (tg && tg.openTelegramLink) tg.openTelegramLink(link); else location.href = link;
@@ -2073,8 +2073,8 @@ function GameClubCard(){
     g += `<rect x="${j + .08}" y="${i + .08}" width=".84" height=".84" rx=".22" fill="${lane ? (i < 7 ? C.r : C.y) : '#F4F2FA'}"/>`;
   }
   g += `<path d="M6 6L7.5 7.5L6 9z" fill="${C.b}"/><path d="M6 6L9 6L7.5 7.5z" fill="${C.r}"/><path d="M9 6L9 9L7.5 7.5z" fill="${C.g}"/><path d="M6 9L9 9L7.5 7.5z" fill="${C.y}"/>`;
-  return `<div class="gclub mx" role="button" tabindex="0" onclick="App.openGameClub()" aria-label="AsoTas">
-      <div class="gclub-b"><span class="gclub-tag">آزمایشی</span><div class="gclub-t">AsoTas</div>
+  return `<div class="gclub mx" role="button" tabindex="0" onclick="App.openGameClub()" aria-label="آس و تاس">
+      <div class="gclub-b"><span class="gclub-tag">آزمایشی</span><div class="gclub-t">آس و تاس</div>
         <div class="gclub-s">منچ، حکم و فوتبال آنلاین با دوستت، حریف ناشناس یا ربات</div><span class="gclub-go">${ic('play', 2.2)}بازی کن</span></div>
       <div class="gclub-art"><svg viewBox="-.5 -.5 16 16" aria-hidden="true">${g}</svg></div>
       <div class="gclub-games"><span><i></i>منچ</span><span><i></i>حکم</span><span><i></i>فوتبال</span><span class="soon"><i></i>اسم فامیل · به‌زودی</span></div></div>`;

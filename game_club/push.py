@@ -111,7 +111,7 @@ async def send(*, token: str = "", topic: str = "", title: str, body: str, img: 
     return "failed"
 
 
-async def to_player(db, tg: int, text: str, page: str = "", title: str = "AsoTas", channel: str = "turn") -> None:  # noqa: ANN001
+async def to_player(db, tg: int, text: str, page: str = "", title: str = "آس و تاس", channel: str = "turn") -> None:  # noqa: ANN001
     """اعلان بازی (نوبت، دعوت، میز منتظر و ...) یا پیام مستقیم ادمین به همهٔ گوشی های یک بازیکن"""
     if not enabled():
         return
@@ -128,4 +128,4 @@ def to_all(title: str, text: str, img: str = "") -> None:
     if not enabled():
         return
     asyncio.get_running_loop().create_task(
-        send(topic="all", title=title or "AsoTas", body=text or title, img=img, channel="news", data={"page": "popup"}))
+        send(topic="all", title=title or "آس و تاس", body=text or title, img=img, channel="news", data={"page": "popup"}))

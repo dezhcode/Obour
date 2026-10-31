@@ -25,14 +25,14 @@ def enabled() -> bool:
 
 def code_mail(code: str, minutes: int) -> tuple[str, str, str]:
     """(موضوع، متن ساده، html) ایمیل کد ورود با لحن تاسی."""
-    subject = f"کد ورود AsoTas · {code}"
-    text = (f"سلام رفیق 👋\n\nکد ورودت به AsoTas اینه\n\n{code}\n\n"
+    subject = f"کد ورود آس و تاس · {code}"
+    text = (f"سلام رفیق 👋\n\nکد ورودت به آس و تاس اینه\n\n{code}\n\n"
             f"تا {minutes} دقیقه کار می‌کنه\nاگه خودت نخواستی بی‌خیالش شو و به هیچ‌کس نده\n\nتاسی 🎲")
     html = f"""<!doctype html><html lang="fa" dir="rtl"><body style="margin:0;padding:24px 12px;background:#F2F0F8">
 <div style="max-width:420px;margin:0 auto;background:#fff;border-radius:20px;padding:28px 24px;text-align:center;
 font-family:Vazirmatn,Tahoma,'Segoe UI',sans-serif;color:#1B2340;direction:rtl">
-<div style="font-size:15px;font-weight:700;color:#5B5F7A">AsoTas</div>
-<p style="font-size:16px;line-height:28px;margin:16px 0 8px">سلام رفیق 👋<br>کد ورودت به AsoTas اینه</p>
+<div style="font-size:15px;font-weight:700;color:#5B5F7A">آس و تاس</div>
+<p style="font-size:16px;line-height:28px;margin:16px 0 8px">سلام رفیق 👋<br>کد ورودت به آس و تاس اینه</p>
 <div dir="ltr" style="font-size:36px;font-weight:800;letter-spacing:8px;background:#FFF4D6;color:#1B2340;
 border-radius:14px;padding:14px 0;margin:8px 0 16px">{code}</div>
 <p style="font-size:13px;line-height:24px;color:#5B5F7A;margin:0">تا {minutes} دقیقه کار می‌کنه<br>
@@ -45,7 +45,7 @@ def _send_sync(to: str, subject: str, text: str, html: str) -> None:
     sender = gc.smtp_from or gc.smtp_user
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = formataddr(("AsoTas", sender))
+    msg["From"] = formataddr(("آس و تاس", sender))
     msg["To"] = to
     msg["Date"] = formatdate(localtime=False)
     msg["Message-ID"] = make_msgid(domain=sender.rsplit("@", 1)[-1] if "@" in sender else None)

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
 <script src="static/theme.js"></script>
-<title>AsoTas · پروفایل</title>
+<title>آس و تاس · پروفایل</title>
 <link rel="stylesheet" href="static/tokens.css">
 <link rel="stylesheet" href="static/gc.css">
 <link rel="stylesheet" href="static/cards.css">
@@ -219,7 +219,7 @@ button.pf-set{cursor:pointer}
       <div class="pf-stats">
         <div><b id="kWins">…</b><span>برد</span></div>
         <div><b id="kGames">…</b><span>بازی</span></div>
-        <div><b id="kAge">…</b><span>عضو AsoTas</span></div>
+        <div><b id="kAge">…</b><span>عضو آس و تاس</span></div>
       </div>
       <div class="pf-xp">
         <div><b id="lvNext">تا سطح ۲</b><span id="lvTxt">&nbsp;</span></div>
@@ -289,7 +289,7 @@ button.pf-set{cursor:pointer}
   if ('IntersectionObserver' in window) new IntersectionObserver(es => { $('pfHero').classList.toggle('lid-off', !es[0].isIntersecting); GC.paintBars(); }, { rootMargin: '-90px 0px 0px 0px' }).observe($('pfHero'));
 
   const MARK = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21.5" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="1" opacity=".55"/><path transform="translate(12 11.5)" fill="currentColor" d="M12 2C9 6.6 4 9.3 4 13.5c0 2.6 2 4.4 4.3 4.4 1.3 0 2.5-.6 3.1-1.5-.3 2-1.1 3.6-2.6 5.1h6.4c-1.5-1.5-2.3-3.1-2.6-5.1.6.9 1.8 1.5 3.1 1.5 2.3 0 4.3-1.8 4.3-4.4C20 9.3 15 6.6 12 2z"/></svg>';
-  const coverMark = id => id === 'gc' ? MARK + '<b lang="en">AsoTas</b>' : '';
+  const coverMark = id => id === 'gc' ? MARK + '<b>آس و تاس</b>' : '';
   function renderMe() {
     const p = me.player, L = GC.level(p);
     $('av').innerHTML = face(p, '#172B5B');
@@ -302,14 +302,14 @@ button.pf-set{cursor:pointer}
     const days = p.joined ? Math.max(1, Math.round((Date.now() / 1000 - p.joined) / 86400)) : 0;
     $('kWins').textContent = fa(p.wins); $('kGames').textContent = fa(p.games); $('kAge').textContent = days ? FD(days) + ' روز' : '—';
     $('lvNext').textContent = 'تا سطح ' + FD(L.lv + 1);
-    $('lvTxt').textContent = `${FD(L.left)} تجربهٔ دیگه · هر برد ۱۵`;
+    $('lvTxt').textContent = `${FD(L.left)} تجربهٔ دیگه، هر برد ۱۵`;
     $('xpBar').style.width = Math.round(L.frac * 100) + '%';
     $('kPts').textContent = fa(p.points);
     $('swSound').setAttribute('aria-checked', String(!!S.sound));
     $('swTilt').setAttribute('aria-checked', String(S.tilt !== false));
     if (GC.pushHelpOk()) { $('pfPush').hidden = false; $('pfPush').onclick = () => GC.pushHelp(false); }
     // نسخهٔ صفحه ها داخل برنامه (آپدیت خودکار): برای پیگیری مشکل ها
-    if (window.GCApp && window.GCApp.bundle) { $('pfVer').textContent = 'AsoTas · ' + window.GCApp.bundle; $('pfVer').hidden = false; }
+    if (window.GCApp && window.GCApp.bundle) { $('pfVer').textContent = 'آس و تاس · ' + window.GCApp.bundle; $('pfVer').hidden = false; }
   }
 
   // لیگ هر بازی از جام بازی های رتبه ای؛ بازی بی لیگ کارت ساده دارد
@@ -376,7 +376,7 @@ button.pf-set{cursor:pointer}
 
   // کلکسیون: کاورها و میز و ورقایی که داری، بعد اونایی که هنوز نخریدی (با قیمت، به فروشگاه)
   function renderCollection(sty) {
-    const covers = me.covers || [{ id: 'gc', name: 'AsoTas' }], cur = me.player.cover || 'gc';
+    const covers = me.covers || [{ id: 'gc', name: 'آس و تاس' }], cur = me.player.cover || 'gc';
     const all = sty && sty.items || [], items = all.filter(i => i.owned), rest = all.filter(i => !i.owned);
     $('colN').textContent = `${FD(items.length + covers.length)} از ${FD(all.length + covers.length)}`;
     const look = i => i.kind === 'table' ? `<span class="sw felt tbl-${i.look}">` : `<span class="sw cs cards-${i.look}">${C.back('', 'left:16%;top:12%;transform:rotate(-10deg)')}${C.face(12, '', 'left:48%;top:8%;transform:rotate(8deg)')}`;
@@ -414,7 +414,7 @@ button.pf-set{cursor:pointer}
   // کاور: فعلا «AsoTas»؛ طرح های تازه بعدا در همین برگه می آیند
   $('pfCoverBtn').onclick = () => {
     if (!me) return;
-    const cur = me.player.cover || 'gc', covers = me.covers || [{ id: 'gc', name: 'AsoTas' }];
+    const cur = me.player.cover || 'gc', covers = me.covers || [{ id: 'gc', name: 'آس و تاس' }];
     const sh = GC.sheet(`${GC.sheetHead('کاور پروفایل')}<div class="pf-covers">${covers.map(c => `<button class="pf-cv${c.id === cur ? ' on' : ''}" data-cv="${c.id}"><span class="cover cover-${c.id}"><span class="cv-mark">${coverMark(c.id)}</span></span><b>${esc(c.name)}</b>${c.id === cur ? '<small>انتخاب شده</small>' : ''}</button>`).join('')}</div>
       <p class="hint">کاورای تازه به‌زودی میان</p>`);
     sh.querySelectorAll('[data-cv]').forEach(b => b.onclick = async () => {
@@ -432,7 +432,7 @@ button.pf-set{cursor:pointer}
     box.classList.toggle('acc-guest', a.kind === 'guest');
     box.innerHTML = `<span class="ib blue">${icon('user')}</span>` + (a.kind === 'guest'
       ? `<span class="pf-tx"><b>حسابت مهمونه 😬</b><small>اگه برنامه پاک شه یا گوشیتو عوض کنی همه‌چی می‌پره</small></span><button class="btn btn-sm" id="accIn">ذخیرهٔ حساب</button>`
-      : `<span class="pf-tx"><b>${a.kind === 'telegram' ? 'وارد شدی با تلگرام ✈️' : 'وارد شدی با ایمیل 📬'}</b><small${a.kind === 'email' ? ' dir="ltr" class="acc-mail"' : ''}>${a.kind === 'email' ? esc(a.email) : 'همون حساب ربات تلگرام AsoTas'}</small></span><button class="btn btn-sm btn-light" id="accOut">خروج</button>`);
+      : `<span class="pf-tx"><b>${a.kind === 'telegram' ? 'وارد شدی با تلگرام ✈️' : 'وارد شدی با ایمیل 📬'}</b><small${a.kind === 'email' ? ' dir="ltr" class="acc-mail"' : ''}>${a.kind === 'email' ? esc(a.email) : 'همون حساب ربات تلگرام آس و تاس'}</small></span><button class="btn btn-sm btn-light" id="accOut">خروج</button>`);
     const b = box.querySelector('button');
     b.onclick = a.kind === 'guest' ? () => GC.login({ guestGames: me.player.games }) : () => GC.logoutSheet();
   }
