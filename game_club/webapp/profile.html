@@ -343,7 +343,7 @@ button.pf-set{cursor:pointer}
   function renderRecent() {
     const ok = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
     const no = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
-    $('recent').innerHTML = pf.pf-recent.length ? pf.pf-recent.map(r => {
+    $('recent').innerHTML = pf.recent.length ? pf.recent.map(r => {
       const [tint, pic] = art(r.game), ranked = r.mode === 'ranked';
       const mode = ranked ? 'رتبه‌ای' : r.mode === 'stake' ? 'امتیازی قدیمی' : 'دوستانه';
       const v = ranked && r.cups ? `<b class="${r.cups > 0 ? 'up' : 'down'}" dir="ltr">${r.cups > 0 ? '+' : '−'}${fa(Math.abs(r.cups))} جام</b>${r.prize ? amount(r.prize) : ''}`
@@ -390,7 +390,7 @@ button.pf-set{cursor:pointer}
   $('swTilt').onclick = () => { S.tilt = S.tilt === false; GC.save(); $('swTilt').setAttribute('aria-checked', String(S.tilt)); GC.haptic('select'); };
   // پوسته: همان لحظه عوض می شود و روی همین گوشی می ماند
   const syncTheme = () => $('segTheme').querySelectorAll('[data-m]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === GCTheme.mode())));
-  $('segTheme').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; GCTheme.pf-set(b.dataset.m); GC.haptic('select'); syncTheme(); };
+  $('segTheme').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; GCTheme.set(b.dataset.m); GC.haptic('select'); syncTheme(); };
   syncTheme();
 
   $('editName').onclick = () => { if (me) GC.editName(me.player, r => { Object.assign(me.player, r); renderMe(); }); };
