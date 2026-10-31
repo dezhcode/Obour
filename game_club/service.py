@@ -725,7 +725,8 @@ async def queue_leave(db: GCDatabase, tg: int) -> dict:
 
 
 # ---------- میز دعوت ----------
-async def invite_create(db: GCDatabase, tg: int, raw_cfg: dict) -> dict:
+async def invite_create(db: GCDatabase, tg: int, raw_cfg: dict, cap: int | None = None, room: bool = False) -> dict:
+    """میز دعوت با کد. room: اتاق برنامه (rooms.py) با آماده بودن و سقف نفر (cap، فقط اسم‌فامیل)."""
     cfg = norm_cfg(raw_cfg)
     if cfg["mode"] != "free":     # رتبه ای فقط با صف آنلاین (میز رفیقا جام نمی دهد)
         raise GCError("ranked_online")
@@ -738,6 +739,10 @@ async def invite_create(db: GCDatabase, tg: int, raw_cfg: dict) -> dict:
     paid, ref = 0, f"{mid}:{tg}:{int(time.time() * 1000)}"
     info = await _seat_info(db, tg)
     state = {"lobby": True, "seats": [{"color": colors[0], "tg": tg, "paid": paid, "ref": ref, **info}]}
+    if room:
+        state.update(room=True, invited=[])
+    if cap and 2 <= cap < cfg["players"]:
+        state["cap"] = int(cap)
     await db.create_match(mid, "lobby", cfg, state, tg, invite=code)
     await db.add_match_player(mid, tg, colors[0], paid)
     return {"match": mid, "code": code}
@@ -768,9 +773,11 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
         if any(s["tg"] == tg for s in seats):
             return False, None
         free = [c for c in _seat_order(cfg) if c not in {s["color"] for s in seats}]
-        if not free:
+        if not free or len(seats) >= _cap(mm):
             return False, "full"
         seats.append({"color": free[0], "tg": tg, "paid": paid, "ref": ref, **info})
+        if "invited" in mm["state"]:
+            mm["state"]["invited"] = [i for i in mm["state"]["invited"] if i["tg"] != tg]
         return True, free[0]
 
     try:
@@ -785,10 +792,15 @@ async def invite_join(db: GCDatabase, tg: int, code: str) -> dict:
         if host and host != tg and await _away(db, m["id"], host, time.time()):
             await _notify(db, host, f"join:{m['id']}:{tg}", f"{info['name']} نشست سر میز {_gname(cfg)}! زود بیا که منتظرن 😄",
                           _gpage(cfg).replace(".html", "-lobby.html"))
-        if len(mm["state"]["seats"]) == cfg["players"]:
+        if len(mm["state"]["seats"]) >= _cap(mm):
             await _lobby_go(db, mm)
         await _hook(db, m["id"])
     return {"match": m["id"]}
+
+
+def _cap(m: dict) -> int:
+    """چند نفر سر میز دعوت جا می شوند (اتاق اسم‌فامیل می تواند کمتر از ۱۰ باشد)"""
+    return int(m["state"].get("cap") or m["cfg"]["players"])
 
 
 async def _lobby_go(db: GCDatabase, m: dict) -> None:
@@ -799,6 +811,12 @@ async def _lobby_go(db: GCDatabase, m: dict) -> None:
         if e.code != "busy":
             raise
     await _jobs(db, await db.get_match(m["id"]))   # اسم‌فامیل: حرف ها از همین حالا آماده شوند
+
+
+def min_players(cfg: dict) -> int:
+    """کمترین آدم برای شروع میز دعوت (بقیه را ربات پر می کند؛ اسم‌فامیل و لشگر ربات ندارند)"""
+    g = game_of(cfg)
+    return esmfamil.MIN_PLAYERS if g == "esmfamil" else cfg["players"] if g == "lashgar" else 2
 
 
 async def lobby_start(db: GCDatabase, tg: int, match_id: str) -> None:
@@ -1030,9 +1048,14 @@ async def match_view(db: GCDatabase, tg: int, match_id: str, since: int = 0, cha
         out["chat"] = await chat_view(db, tg, match_id, chat_since)
     if m["status"] in ("lobby", "cancelled"):
         out["lobby"] = {"seats": [{"color": s["color"], "name": s["name"], "av": s["av"], "pic": s.get("pic", ""),
-                                   "me": s["tg"] == tg}
+                                   "me": s["tg"] == tg, "host": s["tg"] == m["host"],
+                                   "ready": s["tg"] == m["host"] or bool(s.get("ready"))}
                                   for s in m["state"].get("seats", [])],
-                        "code": m["invite"], "host": m["host"] == tg}
+                        "code": m["invite"], "host": m["host"] == tg, "cap": _cap(m)}
+        if m["state"].get("room"):   # اتاق برنامه: دعوت شده هایی که هنوز نیامده اند
+            out["lobby"].update(room=True, min=min_players(cfg), invited=[
+                {"name": i["name"], "av": i["av"], "pic": i.get("pic", ""), "uid": i.get("uid", "")}
+                for i in m["state"].get("invited", [])])
         return out
     st = m["state"]
     out["game"] = _eng(cfg).view(st, color, since, now)

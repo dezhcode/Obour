@@ -3497,3 +3497,82 @@ def test_app_inbox():
             await db.close()
 
     asyncio.run(run())
+
+
+def test_app_room_esmfamil_invite_ready_kick_start():
+    """اتاق برنامه: اسم‌فامیل بیرون از گروه، سقف نفر، دعوت چند دوست، آماده‌ام، بیرون کردن و شروع با میزبان."""
+    tmp = tempfile.mkdtemp()
+    from game_club import rooms, service, social
+    from game_club.db import GCDatabase
+
+    sent = []
+
+    async def notifier(tg, text, page, key=""):
+        sent.append((tg, page, text))
+
+    async def run():
+        service.notifier = notifier
+        db = GCDatabase(os.path.join(tmp, "gc.db"))
+        await db.connect()
+        try:
+            ps = [await db.player(i, f"p{i}") for i in (1, 2, 3, 4)]
+            for i in (2, 3, 4):
+                await social.request(db, 1, ps[i - 1]["pic"])
+                await social.accept(db, i, ps[0]["pic"])
+            assert any(g["id"] == "esmfamil" and g["cap"] for g in rooms.opts())
+            r = await rooms.create(db, 1, "esmfamil", {"rounds": 1, "secs": 180}, cap=4)
+            mid, code = r["match"], r["code"]
+            m = await db.get_match(mid)
+            assert m["cfg"]["rounds"] == 1 and m["state"]["cap"] == 4 and m["state"]["room"]
+            # دعوت دو دوست: پیام چت + اعلان با لینک اتاق؛ تکرار فوری یادآوری نمی شود
+            out = await rooms.invite(db, 1, mid, [ps[1]["pic"], ps[2]["pic"], "nobody"])
+            assert len(out["sent"]) == 2
+            assert any(x[0] == 2 and x[1] == f"room.html?join={code}" for x in sent)
+            assert (await rooms.invite(db, 1, mid, [ps[1]["pic"]]))["sent"] == []
+            v = await service.match_view(db, 1, mid)
+            assert v["lobby"]["room"] and v["lobby"]["cap"] == 4 and len(v["lobby"]["invited"]) == 2 and v["lobby"]["min"] == 2
+            pk = await rooms.peek(db, code.lower())
+            assert pk["game"] == "esmfamil" and pk["host"] == ps[0]["name"] and len(pk["seats"]) == 1
+            # نشستن با کد؛ از لیست دعوت شده ها بیرون می رود
+            await rooms.join(db, 2, code)
+            v = await service.match_view(db, 2, mid)
+            assert len(v["lobby"]["seats"]) == 2 and len(v["lobby"]["invited"]) == 1
+            assert not next(s for s in v["lobby"]["seats"] if s["me"])["ready"]
+            # شروع بدون آماده بودن مهمان نمی شود
+            try:
+                await rooms.start(db, 1, mid)
+                raise AssertionError("start without ready")
+            except service.GCError as e:
+                assert e.code == "need_ready"
+            try:
+                await rooms.start(db, 2, mid)
+                raise AssertionError("guest start")
+            except service.GCError as e:
+                assert e.code == "not_host"
+            await rooms.ready(db, 2, mid, True)
+            # بیرون کردن (فقط میزبان)
+            await rooms.join(db, 4, code)
+            c4 = next(s["color"] for s in (await db.get_match(mid))["state"]["seats"] if s["tg"] == 4)
+            try:
+                await rooms.kick(db, 2, mid, c4)
+                raise AssertionError("guest kick")
+            except service.GCError as e:
+                assert e.code == "not_host"
+            await rooms.kick(db, 1, mid, c4)
+            assert all(s["tg"] != 4 for s in (await db.get_match(mid))["state"]["seats"])
+            await rooms.start(db, 1, mid)
+            assert (await db.get_match(mid))["status"] == "playing"
+            # سقف نفر: اتاق ۲ نفره با رسیدن نفر دوم خودش شروع می شود
+            r2 = await rooms.create(db, 3, "lashgar", {"army": 11})
+            await rooms.join(db, 4, r2["code"])
+            assert (await db.get_match(r2["match"]))["status"] == "playing"
+            try:
+                await rooms.create(db, 3, "nope", {})
+                raise AssertionError("bad game")
+            except service.GCError as e:
+                assert e.code == "bad_game"
+        finally:
+            service.notifier = None
+            await db.close()
+
+    asyncio.run(run())

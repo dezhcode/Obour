@@ -46,17 +46,18 @@ function build(opt) {
   if ('IntersectionObserver' in window) new IntersectionObserver(es => document.body.classList.toggle('lid-off', !es[0].isIntersecting), { rootMargin: '-90px 0px 0px 0px' }).observe($('gpLid'));
 
   /* ---------- تب بازی: سه ردیف چیپ (حالت، حریف، دوستانه یا رتبه ای) و نوار شناور با خلاصه و یک دکمه ---------- */
-  const WHO = [['online', 'آنلاین', 'globe'], ['friends', 'دوستان', 'link'], ['group', 'گروه', 'users'], ['bot', 'ربات', 'bot']];
+  const WHO = [['online', 'آنلاین', 'globe'], ['room', 'اتاق', 'userAdd'], ['friends', 'دوستان', 'link'], ['group', 'گروه', 'users'], ['bot', 'ربات', 'bot']];
   const WHO_DESC = {
     online: 'با بازیکنای واقعی و ناشناس',
+    room: 'اتاق می‌سازی، رفیقاتو دعوت می‌کنی یا کدشو می‌فرستی و هر وقت همه اومدن شروع می‌کنی',
     friends: opt.privateSub || 'لینک دعوت می‌سازی و واسه رفیقات می‌فرستی',
     group: 'کارت میزو تو گروه تلگرام می‌فرستی و هر کی بخواد می‌شینه',
     bot: 'تمرین همیشه آزاد و بی‌معطلی',
   };
-  const GO = { online: ['پیدا کردن حریف', 'play'], friends: ['ساختن لینک دعوت', 'link'], group: ['فرستادن به گروه', 'send'], bot: ['شروع با ربات', 'play'] };
-  // بازی فقط گروهی (اسم‌فامیل): opt.who = ['group']
+  const GO = { online: ['پیدا کردن حریف', 'play'], room: ['ساختن اتاق', 'userAdd'], friends: ['ساختن لینک دعوت', 'link'], group: ['فرستادن به گروه', 'send'], bot: ['شروع با ربات', 'play'] };
+  // بازی گروهی (اسم‌فامیل، لشگر): opt.who = ['group']؛ «اتاق» (room.html) برای همهٔ بازی ها هست
   // داخل برنامهٔ اندروید کارت میز به گروه تلگرام فرستاده نمی شود (مهمان حساب تلگرامی ندارد)
-  const WHOS = opt.who ? WHO.filter(([v]) => opt.who.includes(v)) : WHO.filter(([v]) => !(GC.app && v === 'group'));
+  const WHOS = WHO.filter(([v]) => (v === 'room' || !opt.who || opt.who.includes(v)) && !(GC.app && v === 'group'));
   const saved = store.get('gp:' + opt.game, {});
   const pick = Object.assign({ mode: opt.modes[0].v, who: WHOS[0][0], rank: 0 }, saved);
   pick.extra = Object.assign({}, ...(opt.extras || []).map(x => ({ [x.key]: x.opts[0][0] })), saved.extra || {});
@@ -76,7 +77,7 @@ function build(opt) {
       <p class="gp-desc">${icon('info')}<span><b>${m.label}:</b> ${m.desc}</span></p>
       <h2 class="gp-h">حریف</h2>
       <div class="chips">${WHOS.map(([v, l, ic]) => chip('who', v, l, icon(ic), v === pick.who)).join('')}</div>
-      <p class="gp-sub">${opt.whoDesc || WHO_DESC[pick.who]}</p>
+      <p class="gp-sub">${pick.who !== 'room' && opt.whoDesc || WHO_DESC[pick.who]}</p>
       ${pick.who === 'friends' ? (opt.extras || []).map(x => `<h2 class="gp-h">${x.label}</h2>
         <div class="chips">${x.opts.map(([v, l, s]) => chip('x:' + x.key, v, l + (s ? ` <small>${s}</small>` : ''), '', String(pick.extra[x.key]) === String(v))).join('')}</div>`).join('') : ''}
       ${rankable() ? `<h2 class="gp-h">نوع بازی</h2>
@@ -93,6 +94,7 @@ function build(opt) {
   }
   function start(btn) {
     const cfg = cfgOf();
+    if (pick.who === 'room') { store.set('room_game', opt.game); location.href = 'room.html'; return; }
     if (pick.who === 'group') { share(btn); return; }
     opt.play(pick.who === 'friends' ? 'invite' : pick.who, cfg, btn);
   }

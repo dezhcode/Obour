@@ -23,6 +23,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- لینک اتاق بازی: صفحهٔ /r/<کد> سرور برنامه را با asotas://room/<کد> باز می کند -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="asotas" android:host="room" />
+            </intent-filter>
+
         </activity>
 
         <!-- نوتیفیکیشن فایربیس (AsoPushPlugin): توکن برای سرور و نمایش وقتی برنامه باز است -->

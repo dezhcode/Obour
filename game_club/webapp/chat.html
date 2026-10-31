@@ -99,7 +99,8 @@ body{background:var(--ground)}
     if (m.kind === 'invite') {
       const g = (m.meta && m.meta.game) || 'hokm', x = GC.GAMES.find(y => y.id === g) || GC.GAMES[0], code = (m.meta && m.meta.code) || '';
       return `<div class="ch-inv ${m.me ? 'me' : 'them'}"><div class="h"><span class="g-art ${x.tint}">${GC.GAME_ART[g]()}</span><span><b>دعوت به ${x.name}</b><small>${m.me ? 'سر میز منتظر رفیقتی' : 'میز آزاد · ' + clock(m.at)}</small></span></div>
-        ${m.me ? `<a class="btn btn-light btn-block" href="${g}-lobby.html">برو سر میز</a>` : `<a class="btn btn-block" href="${g}-lobby.html?join=${encodeURIComponent(code)}">بشین سر میز</a>`}</div>`;
+        ${m.meta && m.meta.room ? `<a class="btn${m.me ? ' btn-light' : ''} btn-block" href="room.html?join=${encodeURIComponent(code)}">${m.me ? 'برو تو اتاق' : 'بیا تو اتاق'}</a>`
+          : m.me ? `<a class="btn btn-light btn-block" href="${g}-lobby.html">برو سر میز</a>` : `<a class="btn btn-block" href="${g}-lobby.html?join=${encodeURIComponent(code)}">بشین سر میز</a>`}</div>`;
     }
     return `<div class="ch-m ${m.me ? 'me' : 'them'}"><span dir="auto">${esc(m.text)}</span><time>${clock(m.at)}</time></div>`;
   }

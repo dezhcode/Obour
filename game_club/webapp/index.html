@@ -192,7 +192,7 @@
   </section>
 
   <section class="quick" aria-label="کارهای سریع">
-    <button class="qa" id="invite"><span class="ic" style="background:var(--acc-tint);color:var(--acc)"><i data-ic="userAdd"></i></span><b>دعوت دوست</b><small>با هم بازی کنیم</small></button>
+    <a class="qa" href="room.html" id="invite"><span class="ic" style="background:var(--acc-tint);color:var(--acc)"><i data-ic="userAdd"></i></span><b>اتاق با دوستان</b><small>دعوت و بازی با هم</small></a>
     <a class="qa" href="shop.html"><span class="ic" style="background:#E3F1E8;color:#1F6B3B"><i data-ic="cards"></i></span><b>ورق و میز</b><small>قیافهٔ حکم</small></a>
     <a class="qa" href="help.html"><span class="ic" style="background:var(--surface-sunk);color:var(--ink-muted)"><i data-ic="help"></i></span><b>راهنما</b><small>قانون بازیا</small></a>
   </section>
@@ -221,6 +221,9 @@
   const sp = GC.startParam(), spm = sp.match(/^(hokm|ludo|football|billiard|divar|esmfamil|lashgar|snakes)_([A-Za-z0-9]{4,12})$/);
   let spSeen = false; try { spSeen = sessionStorage.getItem('gc_sp') === sp; sessionStorage.setItem('gc_sp', sp); } catch (e) {}
   if (spm && !spSeen) { location.replace(`${spm[1]}-lobby.html?join=${spm[2]}`); return; }
+  // لینک اتاق در تلگرام: startapp=room_CODE
+  const spr = sp.match(/^room_([A-Za-z0-9]{4,12})$/);
+  if (spr && !spSeen) { location.replace(`room.html?join=${spr[1]}`); return; }
   // دکمهٔ «دیدن بازی» کارت گروه: startapp=w_hokm_MATCHID ← صفحهٔ بازی در حالت تماشا (اگر خودش بازیکن باشد، بازی خودش)
   const spw = sp.match(/^w_(hokm|ludo|football|billiard|divar|esmfamil|lashgar|snakes)_([A-Za-z0-9]{6,16})$/);
   if (spw && !spSeen) { location.replace(`${spw[1]}.html?watch=${spw[2]}`); return; }
@@ -363,11 +366,6 @@
   function setTables(list) { const s = JSON.stringify(list); if (s === sig) return; sig = s; tables = list; renderAll(); }
 
   /* ---------- دعوت دوست ---------- */
-  $('invite').onclick = () => {
-    const bot = me && me.settings && me.settings.bot;
-    if (!bot) { toast('لینک دعوت فقط تو تلگرام ساخته می‌شه'); return; }
-    GC.openLink('https://t.me/share/url?url=' + encodeURIComponent('https://t.me/' + bot) + '&text=' + encodeURIComponent('بیا تو AsoTas با هم حکم و فوتبال و منچ بزنیم 🎲'));
-  };
 
   renderAll();
   let polling = false;
