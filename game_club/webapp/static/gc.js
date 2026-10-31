@@ -737,12 +737,15 @@ function editName(me, done) {
 function dailyHtml(d) {
   const boxes = d.plan.map((n, i) => {
     const k = i + 1, done = k <= d.day, today = !d.claimed && k === d.next;
-    return `<li class="dl-d${done ? ' done' : ''}${today ? ' today' : ''}${k === d.plan.length ? ' big' : ''}"><small>روز ${FD(k)}</small>${coin()}<b>${FD(n)}</b>${done ? `<i>${icon('check', 3)}</i>` : ''}</li>`;
+    // صندوقچه: درِ نیم گرد روی جعبه؛ امروز طلایی، روز آخر ویژه، بقیه خاکستری (رنگ از currentColor و کلاس)
+    const lid = today ? '#B0661F' : k === d.plan.length ? '#F5C451' : 'currentColor', box = today ? '#8A4B12' : k === d.plan.length ? '#E3A21E' : 'currentColor';
+    const chest = `<svg class="ch" viewBox="0 0 32 28" aria-hidden="true"><rect x="3" y="11" width="26" height="15" rx="3" fill="${box}" opacity="${today || k === d.plan.length ? 1 : .45}"/><path d="M3 11a13 8 0 0 1 26 0z" fill="${lid}" opacity="${today || k === d.plan.length ? 1 : .7}"/><rect x="14" y="13" width="4" height="6" rx="1.5" fill="${today ? '#F5C451' : k === d.plan.length ? '#8A4B12' : 'var(--surface)'}"/></svg>`;
+    return `<li class="dl-d${done ? ' done' : ''}${today ? ' today' : ''}${k === d.plan.length ? ' big' : ''}" aria-label="روز ${FD(k)}، ${FD(n)} سکه${done ? '، گرفتی' : ''}">${done ? `<svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>` : chest}<b>${today ? 'امروز' : FD(n)}</b></li>`;
   }).join('');
   return `<div class="dl"><div class="dl-h"><b>جایزهٔ روزانهٔ تاسی 🎁</b><small>${d.claimed ? 'امروزو گرفتی فردا دوباره سر بزن تا زنجیره‌ت نشکنه'
     : 'هر روز پشت هم بیای بیشتر می‌گیری و روز آخر یه جایزهٔ درشت داره'}</small></div>
     <ol class="dl-row">${boxes}</ol>
-    <button class="btn btn-block btn-gold dl-go"${d.claimed ? ' disabled' : ''}>${d.claimed ? 'فردا دوباره بیا 😉' : `بگیرش · ${FD(d.plan[(d.next || 1) - 1])} سکه`}</button></div>`;
+    <button class="btn btn-block btn-gold candy dl-go"${d.claimed ? ' disabled' : ''}>${d.claimed ? 'فردا دوباره بیا 😉' : `بگیرش · ${FD(d.plan[(d.next || 1) - 1])} سکه`}</button></div>`;
 }
 // box: جای کارت جایزه؛ done(daily تازه) بعد از گرفتن
 function dailyMount(box, d, done) {

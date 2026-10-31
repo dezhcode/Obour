@@ -15,26 +15,63 @@
    خود همان بازی (ماهوت و ورق خود بازیکن، صفحه و مهرهٔ منچ، زمین فوتبال، میز بیلیارد، نمد دیوار) که اجزایش
    از قاب بیرون زده، میزهای دیگرم، کارهای سریع و دوستان آنلاین. بازی نیمه‌تمام یک نوار شناور بالای ناوبری است. */
 .page.home-page{gap:var(--space-5);padding-block-start:var(--space-2)}
-.page.home-page.has-cont{padding-block-end:calc(196px + var(--sa-b,0px))}
 
-/* ---------- هدر ---------- */
+/* ---------- هدر: آواتار با حلقهٔ سطح، سلام، سکهٔ براق (Arcade Lounge) ---------- */
 .me-chip{display:flex;align-items:center;gap:var(--space-3);min-width:0}
-.me-chip .avatar{--size:44px;--ring:var(--surface);box-shadow:0 0 0 1px var(--line)}
-.me-name{display:block;font-weight:900;font-size:16px;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.me-sub{display:flex;align-items:center;gap:6px;font-size:11.5px;line-height:17px;color:var(--ink-muted);white-space:nowrap}
-.me-sub .bar{width:52px;height:5px;flex:none;border-radius:3px;background:var(--line);overflow:hidden}
-.me-sub .bar i{display:block;height:100%;border-radius:3px;background:var(--acc)}
+.me-ring{position:relative;flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#F5C451 calc(var(--p,0)*1%),var(--ground-deep) 0)}
+.me-ring .avatar{--size:40px;--ring:var(--ground)}
+.me-ring b{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);height:18px;padding:0 6px;border-radius:9px;background:#17161D;color:#F5C451;font-size:10.5px;line-height:18px;font-weight:800;box-shadow:0 0 0 2px var(--ground);white-space:nowrap}
+.me-sub{display:block;font-size:12px;line-height:16px;color:var(--ink-muted);font-weight:600;white-space:nowrap}
 .me-sub.bad{color:var(--danger)}
+.me-name{display:block;font-weight:800;font-size:17px;line-height:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hd-acts{display:flex;align-items:center;gap:var(--space-2);flex:none}
 .bell{position:relative}
 .bell .badge{position:absolute;top:-3px;left:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#F0465B;color:#fff;font-size:10.5px;line-height:17px;font-weight:800;text-align:center;box-shadow:0 0 0 2px var(--surface)}
-.appbar .pill{padding:4px 6px 4px 12px;font-size:15px}
+.appbar .pill.vault{background:#17161D;color:#FFE7A3;padding:4px 4px 4px 12px;font-size:15px;box-shadow:var(--depth-sm)}
+.pill.vault .plus{width:32px;height:32px;background:#F5C451;color:#3A2A00;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 rgba(0,0,0,.18)}
 
-.home-q{font-size:28px;line-height:36px;font-weight:900;margin-top:var(--space-1)}
+/* ---------- بلیت میز نیمه‌کاره: لبه های بریده، خط پانچ، برگ ها یا جزء بازی از قاب بیرون ---------- */
+.hm-tk{position:relative;display:block;margin-top:30px;color:#fff;-webkit-tap-highlight-color:transparent}
+.hm-tk:active{transform:scale(.985)}
+.tk-card{position:relative;display:flex;flex-direction:column;border-radius:26px;overflow:hidden;box-shadow:var(--depth-md);
+  -webkit-mask:radial-gradient(circle 11px at 0 66%,transparent 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 11px at 100% 66%,transparent 97%,#000) right/51% 100% no-repeat;
+  mask:radial-gradient(circle 11px at 0 66%,transparent 97%,#000) left/51% 100% no-repeat,radial-gradient(circle 11px at 100% 66%,transparent 97%,#000) right/51% 100% no-repeat}
+.tk-card>.ra{position:absolute;inset:0}
+.tk-card::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1.6px);background-size:12px 12px;opacity:.5}
+.tk-card::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.42),rgba(0,0,0,0) 70%)}
+.tk-top{position:relative;z-index:1;padding:60px 18px 14px;display:grid;gap:2px}
+.tk-live{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:rgba(255,255,255,.88)}
+.tk-live i{width:8px;height:8px;border-radius:50%;background:#7CF29A;box-shadow:0 0 0 4px rgba(124,242,154,.25)}
+.tk-live .spinner{width:12px;height:12px;border-width:2px}
+.tk-top b{font-family:var(--font-rokh);font-size:28px;line-height:36px;font-weight:900;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.tk-top small{font-size:13px;line-height:20px;color:rgba(255,255,255,.86)}
+.tk-cut{position:relative;z-index:1;margin:0 22px;border-top:2px dashed rgba(255,255,255,.3)}
+.tk-foot{position:relative;z-index:1;padding:12px 18px 14px;display:flex;align-items:center;gap:10px}
+.home-q{font-family:var(--font-rokh);font-size:22px;line-height:30px;font-weight:900;margin:0}
+.tk-foot .tk-tag{flex:1;font-size:13px;font-weight:800;color:#FFE7A3}
+.tk-go{height:44px;padding:0 18px;border-radius:22px;background:#fff;color:#17161D;display:flex;align-items:center;gap:6px;font-weight:800;box-shadow:inset 0 -3px 0 rgba(0,0,0,.12)}
+.tk-go svg{width:15px;height:15px}
+.hm-tk.turn .tk-go{background:#F5C451;color:#3A2A00}
+.tk-out{position:absolute;z-index:2;top:-34px;left:26px;width:150px;height:96px;pointer-events:none;filter:drop-shadow(0 8px 10px rgba(0,0,0,.3))}
+.tk-out .hk-card{font-size:52px}
+.tk-out .g-art{position:absolute;top:6px;left:24px;width:78px;height:78px;border-radius:22px;display:grid;place-items:center;overflow:hidden;transform:rotate(-8deg);box-shadow:0 0 0 3px rgba(255,255,255,.9)}
+.tk-out .g-art svg{display:block;width:78%;height:78%}
+@media (prefers-reduced-motion:reduce){.hm-tk:active{transform:none}}
+
+/* ---------- رفقا: حباب گفتگو ---------- */
+.hm-fr{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:22px 22px 22px 6px;background:var(--surface);box-shadow:var(--depth-sm)}
+.hm-fr>a.t{flex:1;min-width:0;display:flex;align-items:center;gap:12px}
+.hm-fr .faces{display:flex;flex:none}
+.hm-fr .faces .avatar{--size:38px;--ring:var(--surface);margin-inline-start:-10px}
+.hm-fr .faces .avatar:first-child{margin-inline-start:0}
+.hm-fr .tx{flex:1;min-width:0;display:grid}
+.hm-fr .tx b{font-size:14px;line-height:21px;font-weight:800}
+.hm-fr .tx small{font-size:12px;line-height:18px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-fr .room{flex:none;height:40px;padding:0 14px;border-radius:20px;background:var(--acc);color:var(--acc-ink);display:flex;align-items:center;font-size:13px;font-weight:800}
 
 /* ---------- کاشی بازی ها ---------- */
 .hm-bento{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:30px}
-.hm-tl{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:flex-end;min-height:104px;padding:12px 14px;border-radius:22px;color:#fff;
+.hm-tl{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:flex-end;min-height:112px;padding:12px 14px;border-radius:24px;color:#fff;
   box-shadow:0 14px 22px -16px var(--sh,rgba(15,63,29,.75));transition:transform .25s cubic-bezier(.3,.7,.3,1);-webkit-tap-highlight-color:transparent}
 .hm-tl.hm-w2{grid-column:span 2}
 .hm-tl.hm-t2{grid-row:span 2}
@@ -73,20 +110,6 @@
 .hm-notify svg{width:14px;height:14px}
 .hm-notify.on{background:var(--success-tint);color:var(--success);box-shadow:none}
 
-/* ---------- بازی نیمه‌تمام: نوار شناور بالای ناوبری ---------- */
-.hm-cont{position:fixed;z-index:calc(var(--z-nav) - 1);inset-inline:max(12px,calc(50% - 228px));bottom:calc(84px + max(var(--sa-env-b),var(--sa-b,0px)));
-  display:flex;align-items:center;gap:10px;padding:8px 8px 8px 12px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line),0 14px 28px -12px rgba(20,25,40,.38);animation:contIn .35s cubic-bezier(.2,.9,.3,1.2) both}
-.hm-cont .g-art{width:44px;height:44px;border-radius:13px;flex:none;display:grid;place-items:center;overflow:hidden}
-.hm-cont .g-art svg{display:block;width:76%;height:76%}
-.hm-cont .t{flex:1;min-width:0;display:grid}
-.hm-cont .t b{font-size:13.5px;line-height:20px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hm-cont .t small{display:flex;align-items:center;gap:6px;font-size:11.5px;line-height:17px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hm-cont .t small .live{width:7px;height:7px;border-radius:50%;background:#2FC584;flex:none}
-.hm-cont.turn{box-shadow:0 0 0 2px var(--acc),0 14px 28px -12px rgba(47,111,235,.45)}
-.hm-cont .go{display:inline-flex;align-items:center;gap:4px;height:40px;padding:0 14px;border-radius:13px;background:var(--acc);color:var(--acc-ink);font-size:13.5px;font-weight:800;flex:none}
-.hm-cont .go svg{width:15px;height:15px}
-@keyframes contIn{from{opacity:0;transform:translateY(14px)}}
-
 /* ---------- میزهای دیگرم ---------- */
 .tables{display:grid;gap:var(--space-2)}
 .tbl{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-2);padding-inline-end:var(--space-3);
@@ -106,29 +129,7 @@
 .tbl.turn .tbl-go{background:var(--acc);color:var(--acc-ink)}
 .tbl-go svg{width:15px;height:15px}
 @keyframes tblIn{from{opacity:0;transform:translateY(10px) scale(.97)}}
-@media (prefers-reduced-motion:reduce){.tbl,.hm-cont{animation:none}.hm-tl,.hm-tl .hm-out{transition:none}}
-
-/* ---------- کارهای سریع ---------- */
-.quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
-.qa{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px 10px;border-radius:18px;background:var(--surface);box-shadow:0 0 0 1px var(--line);text-align:center}
-.qa:active{transform:scale(.97)}
-.qa .ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center}
-.qa .ic svg{width:21px;height:21px}
-.qa b{font-size:12.5px;line-height:18px;font-weight:800}
-.qa small{font-size:11px;line-height:16px;color:var(--ink-muted)}
-
-/* ---------- دوستان آنلاین ---------- */
-.rank-card{display:flex;align-items:center;gap:var(--space-3);padding:12px 14px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
-.rank-card:active{transform:scale(.985)}
-.rank-card .pos{width:44px;height:44px;flex:none;border-radius:14px;display:grid;place-items:center;background:var(--acc-tint);color:var(--acc)}
-.rank-card .pos svg{width:22px;height:22px}
-.rank-card .t{flex:1;min-width:0;display:grid}
-.rank-card .t b{font-size:14px;line-height:21px;font-weight:800}
-.rank-card .t small{font-size:11.5px;line-height:17px;color:var(--ink-muted)}
-.rank-card .faces{display:flex;flex:none}
-.rank-card .faces .avatar{--size:30px;--ring:var(--surface);margin-inline-start:-8px}
-.rank-card .chev{color:var(--ink-muted);display:grid}
-.rank-card .chev svg{width:18px;height:18px}
+@media (prefers-reduced-motion:reduce){.tbl{animation:none}.hm-tl,.hm-tl .hm-out{transition:none}}
 
 .sec-head h2{display:flex;align-items:center;gap:8px}
 .note-bar{display:flex;align-items:center;gap:var(--space-2);background:var(--acc-tint);color:var(--acc-deep);border-radius:var(--radius-lg);padding:var(--space-3);font-weight:800;font-size:13.5px;line-height:22px}
@@ -160,12 +161,12 @@
   <div class="appbar-cap"><span lang="en" dir="ltr">AsoTas</span></div>
   <div class="appbar-in">
     <a class="me-chip" href="profile.html" aria-label="پروفایل من">
-      <span id="meAv"></span>
-      <span style="min-width:0"><span class="me-name" id="meName">سلام داش!</span><span class="me-sub" id="meSub">…</span></span>
+      <span class="me-ring" id="meRing" style="--p:0"><span id="meAv"></span><b id="meLv">…</b></span>
+      <span style="min-width:0"><span class="me-sub" id="meSub">سلام</span><span class="me-name" id="meName">سلام داش!</span></span>
     </a>
     <div class="hd-acts">
       <button class="icon-btn bell" id="bell" aria-label="اعلان‌ها"><i data-ic="bell"></i><span class="badge" id="bellN" hidden></span></button>
-      <a class="pill" href="shop.html#daily" aria-label="کیف سکه"><span class="plus"><i data-ic="plus"></i></span><span class="num" data-bal>…</span><span data-coin></span></a>
+      <a class="pill vault" href="shop.html" aria-label="کیف سکه"><span data-coin></span><span class="num" data-bal>…</span><span class="plus"><i data-ic="plus"></i></span></a>
     </div>
   </div>
 </header>
@@ -179,10 +180,12 @@
     <span class="nh-acts"><button class="btn btn-light btn-sm" id="nhOk">همین خوبه</button><button class="btn btn-sm" id="nhEdit">عوضش کن</button></span>
   </section>
 
+  <div id="hero" hidden></div>
+
   <section class="hm-daily" id="daily" aria-label="جایزهٔ روزانه" hidden></section>
 
   <section aria-labelledby="hGames">
-    <h1 class="home-q" id="hGames">چی بازی کنیم؟</h1>
+    <div class="sec-head" style="margin:0"><h1 class="home-q" id="hGames">امشب چی بازی کنیم؟</h1><a href="games.html">همهٔ بازی‌ها</a></div>
     <div class="hm-bento" id="games"></div>
   </section>
 
@@ -191,21 +194,10 @@
     <div class="tables" id="tables"></div>
   </section>
 
-  <section class="quick" aria-label="کارهای سریع">
-    <a class="qa" href="room.html" id="invite"><span class="ic" style="background:var(--acc-tint);color:var(--acc)"><i data-ic="userAdd"></i></span><b>اتاق با دوستان</b><small>دعوت و بازی با هم</small></a>
-    <a class="qa" href="shop.html"><span class="ic" style="background:#E3F1E8;color:#1F6B3B"><i data-ic="cards"></i></span><b>ورق و میز</b><small>قیافهٔ حکم</small></a>
-    <a class="qa" href="help.html"><span class="ic" style="background:var(--surface-sunk);color:var(--ink-muted)"><i data-ic="help"></i></span><b>راهنما</b><small>قانون بازیا</small></a>
-  </section>
-
-  <a class="rank-card" id="rankCard" href="friends.html" aria-label="دوستان">
-    <span class="pos" id="rankPos">…</span>
-    <span class="t"><b id="rankT">دوستان</b><small id="rankS">یه لحظه…</small></span>
-    <span class="faces" id="rankFaces"></span>
-    <span class="chev"><i data-ic="fwd"></i></span>
-  </a>
-
-
-  <div class="hm-cont" id="cont" aria-live="polite" hidden></div>
+  <div class="hm-fr" id="rankCard">
+    <a class="t" href="friends.html" aria-label="دوستان"><span class="faces" id="rankFaces"></span><span class="tx"><b id="rankT">دوستان</b><small id="rankS">یه لحظه…</small></span></a>
+    <a class="room" href="room.html" id="invite">اتاق</a>
+  </div>
 </main>
 <script src="static/gc.js"></script>
 <script src="static/demo.js"></script>
@@ -267,8 +259,10 @@
     $('meAv').innerHTML = face(p, 'var(--surface)');
     const nm = document.createElement('bdi'); nm.className = 'uname'; nm.textContent = p.name || '';
     $('meName').replaceChildren(nm);
-    const sub = $('meSub');
-    sub.className = 'me-sub'; sub.innerHTML = `سطح ${FD(L.lv)}<span class="bar"><i style="width:${Math.round(L.frac * 100)}%"></i></span>`; sub.title = `${FD(L.left)} تجربه تا سطح ${FD(L.lv + 1)}`;
+    const h = new Date().getHours();
+    $('meSub').textContent = h < 5 ? 'شب بخیر' : h < 12 ? 'صبح بخیر' : h < 17 ? 'روز بخیر' : h < 20 ? 'عصر بخیر' : 'شب بخیر';
+    const r = $('meRing'); r.style.setProperty('--p', Math.round(L.frac * 100)); r.title = `${FD(L.left)} تجربه تا سطح ${FD(L.lv + 1)}`;
+    $('meLv').textContent = `سطح ${FD(L.lv)}`;
   }
   // اعلان ها: میزی که نوبت توست، میزی که منتظر توست و پیام مدیریت
   function alerts() {
@@ -306,18 +300,24 @@
       : t.alive ? `${FD(t.alive[0])} نیروی سالم داری و حریف ${FD(t.alive[1])}` : t.phase === 'draw' ? 'دارید ارتشتون رو می‌چینید' : 'بازی داره پیش می‌ره';
     return { k: 'بازی نصفه‌کاره', h: t.my_turn ? 'نوبت توئه!' : 'بازی داره پیش می‌ره', p: sc };
   }
-  // نوار شناور بالای ناوبری: میزی که نوبت توست، یا بازی در جریان، یا صف و میز دوستانه
-  function renderCont() {
-    const c = $('cont'), t = heroTable();
-    $('homePage').classList.toggle('has-cont', !!t);
+  // بلیت بالای خانه: میزی که نوبت توست، یا بازی در جریان، یا صف و میز دوستانه
+  function renderHero() {
+    const c = $('hero'), t = heroTable();
     if (!t) { c.hidden = true; c.innerHTML = ''; return; }
     const g = GC.GAMES.find(x => x.id === t.game) || GC.GAMES[2], st = stateLine(t);
-    const href = t.kind === 'playing' ? g.id + '.html' : g.href;
-    c.hidden = false; c.classList.toggle('turn', !!t.my_turn);
-    c.innerHTML = `<span class="g-art ${g.tint}">${GAME_ART[g.id]()}</span>
-      <span class="t"><b>${t.my_turn ? `نوبت توئه تو ${g.name}` : `${st.k} · ${g.name}`}</b><small>${t.kind === 'playing' ? '<i class="live"></i>' : '<span class="spinner"></span>'}${st.p}</small></span>
-      <a class="go" href="${href}" data-k="${t.kind}" data-g="${g.id}" data-id="${t.id || ''}">${t.my_turn ? 'بزن بریم' : 'برگرد'}${icon('fwd')}</a>`;
-    c.querySelector('.go').addEventListener('click', e => { const a = e.currentTarget; if (a.dataset.k === 'playing' && a.dataset.id) store.set(KEY[a.dataset.g], a.dataset.id); GC.haptic('light'); });
+    const href = t.kind === 'playing' ? g.id + '.html' : g.href, c2 = t.cfg || {};
+    const bg = g.id === 'hokm' ? `<span class="ra felt tbl-${style.table}"></span>` : `<span class="ra ${g.tint}"></span>`;
+    const out = g.id === 'hokm'
+      ? `<span class="tk-out cards-${style.cards}">${C.face(10 + 13 * 2, '', 'left:8px;top:6px;transform:rotate(-14deg)')}${C.face(11 + 13, '', 'left:46px;top:-4px;transform:rotate(-1deg)')}${C.face(12, '', 'left:84px;top:6px;transform:rotate(13deg)')}</span>`
+      : `<span class="tk-out"><span class="g-art ${g.tint}">${GAME_ART[g.id]()}</span></span>`;
+    c.hidden = false;
+    c.innerHTML = `<a class="hm-tk${t.my_turn ? ' turn' : ''}" href="${href}" data-k="${t.kind}" data-g="${g.id}" data-id="${t.id || ''}">
+      ${out}<span class="tk-card">${bg}
+        <span class="tk-top"><span class="tk-live">${t.kind === 'playing' ? '<i></i>' : '<span class="spinner"></span>'}${t.my_turn ? 'زنده، نوبت توئه' : st.k}</span><b>${g.name}</b><small>${st.p}</small></span>
+        <span class="tk-cut"></span>
+        <span class="tk-foot"><span class="tk-tag">${c2.mode === 'stake' ? `ورودی ${fa(c2.entry)} سکه` : 'میز آزاد'}</span><span class="tk-go">${t.my_turn ? 'بزن بریم' : 'برگرد سر میز'}${icon('fwd')}</span></span>
+      </span></a>`;
+    c.firstElementChild.addEventListener('click', e => { const a = e.currentTarget; if (a.dataset.k === 'playing' && a.dataset.id) store.set(KEY[a.dataset.g], a.dataset.id); GC.haptic('light'); });
   }
 
   /* ---------- میزهای دیگر ---------- */
@@ -340,7 +340,9 @@
   function renderGames() {
     const open = new Set(tables.map(t => t.game));
     const badge = { hokm: '<span class="hm-bdg hot">محبوب</span>', football: '<span class="hm-bdg new">تازه</span>', billiard: '<span class="hm-bdg new">تازه</span>', divar: '<span class="hm-bdg new">تازه</span>', snakes: '<span class="hm-bdg new">تازه</span>', esmfamil: '<span class="hm-bdg new">تازه</span>', lashgar: '<span class="hm-bdg new">تازه</span>' };
-    $('games').innerHTML = GC.GAMES.map(g => {
+    // خانه فقط چهار بازی پرطرفدار را نشان می‌دهد؛ بقیه در صفحهٔ بازی‌ها
+    const HOME = ['hokm', 'ludo', 'football', 'billiard'];
+    $('games').innerHTML = GC.GAMES.filter(g => HOME.includes(g.id)).map(g => {
       if (g.soon) return `<div class="hm-tl hm-soon">${ESM}<span class="t"><b>${g.name}</b><small>به‌زودی میاد</small></span><button class="hm-notify" data-notify="${g.id}"></button></div>`;
       const T = (TILE[g.id] || TILE.divar)(), b = open.has(g.id) ? '<span class="hm-bdg open">میز باز داری</span>' : (badge[g.id] || '');
       return `<a class="hm-tl ${T.cls}" href="${g.href}" style="--sh:${T.sh}"><span class="bg" aria-hidden="true">${T.bg}</span>${T.out}${b}<b>${g.name}</b><small>${g.sub}</small></a>`;
@@ -356,7 +358,7 @@
   }
 
   function renderAll() {
-    renderCont();
+    renderHero();
     const rest = tables.filter(t => t !== heroTable());
     $('tablesSec').hidden = !rest.length;
     $('tables').innerHTML = rest.map(tableHtml).join('');
@@ -364,8 +366,6 @@
   }
   let sig = '';
   function setTables(list) { const s = JSON.stringify(list); if (s === sig) return; sig = s; tables = list; renderAll(); }
-
-  /* ---------- دعوت دوست ---------- */
 
   renderAll();
   let polling = false;
@@ -392,10 +392,9 @@
     // دوستان آنلاین (رده بندی حالا در صفحهٔ هر بازی است)
     try {
       const fr = await GC.data.friends(), on = fr.friends.filter(f => f.online);
-      $('rankPos').innerHTML = icon('users');
       $('rankFaces').innerHTML = (on.length ? on : fr.friends).slice(0, 3).map(f => face(f)).join('');
       $('rankT').textContent = on.length ? 'رفیقای آنلاین' : 'دوستان';
-      $('rankS').textContent = on.length ? `${FD(on.length)} نفر الان آنلاینن` : fr.friends.length ? `${FD(fr.friends.length)} رفیق داری · الان کسی آنلاین نیست` : 'رفیقاتو با یوزرنیمشون اضافه کن';
+      $('rankS').textContent = on.length ? `${FD(on.length)} نفر الان آنلاینن` : fr.friends.length ? `${FD(fr.friends.length)} رفیق داری، الان کسی آنلاین نیست` : 'رفیقاتو با یوزرنیمشون اضافه کن';
     } catch (e) { $('rankS').textContent = errText(e); }
     GC.mount();
   }
