@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 
-from . import admin, appauth, gate, groups, iap, names, service, social
+from . import admin, appauth, gate, groups, iap, names, rooms, service, social
 from .bot import gcrt
 from .config import gc
 from .db import pic_url
@@ -199,6 +199,29 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
             raise GCError("bad_game")
         return {"on": await gdb.toggle_notify(tg, game)}
 
+    # ---------- اتاق بازی با دوستان (rooms.py) ----------
+    if name.startswith("room/"):
+        op = name[5:]
+        if op == "opts" and method == "GET":
+            return {"games": rooms.opts()}
+        if op == "peek" and method == "GET":
+            return await rooms.peek(gdb, str(q.get("code") or ""))
+        if method == "POST":
+            mid = str(body.get("match") or "")
+            if op == "create":
+                return await rooms.create(gdb, tg, str(body.get("game") or ""), body.get("cfg") or {}, body.get("cap"))
+            if op == "join":
+                return await rooms.join(gdb, tg, str(body.get("code") or ""))
+            if op == "ready":
+                return await rooms.ready(gdb, tg, mid, bool(body.get("on")))
+            if op == "kick":
+                return await rooms.kick(gdb, tg, mid, str(body.get("color") or ""))
+            if op == "start":
+                return await rooms.start(gdb, tg, mid)
+            if op == "invite":
+                return await rooms.invite(gdb, tg, mid, body.get("uids") or [])
+        raise GCError("not_found")
+
     # ---------- سکه: جایزهٔ روزانه ----------
     if name == "daily" and method == "POST":
         return await service.daily_claim(gdb, tg)
@@ -250,6 +273,9 @@ async def handle(name: str, method: str, user, q: dict, body: dict) -> dict:  # 
                                            int(chat) if str(chat or "").isdigit() else None)
             if out.get("lobby"):
                 out["lobby"]["link"] = invite_link(out["lobby"]["code"] or "", service.game_of(out["cfg"]))
+                if out["lobby"].get("room"):
+                    out["lobby"]["link"] = rooms.link(out["lobby"]["code"] or "")
+                    out["lobby"]["tg_link"] = f"https://t.me/{gc.username}?startapp=room_{out['lobby']['code']}" if gc.username else ""
             return out
         acts = {"ludo": ("roll", "move"), "hokm": ("trump", "play"), "football": ("setup", "shot"),
                 "billiard": ("shot", "aim"), "divar": ("move", "wall"),

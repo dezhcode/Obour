@@ -150,6 +150,24 @@
     },
   };
 
+  // ---------- لینک اتاق (asotas://room/<کد> از صفحهٔ /r/<کد> سرور) و منوی اشتراک گذاری گوشی ----------
+  const roomOf = u => { const m = /^asotas:\/\/room\/([A-Za-z0-9]{4,12})/.exec(String(u || '')); return m ? m[1].toUpperCase() : ''; };
+  const links = {
+    // fn(کد اتاق): وقتی برنامه با لینک اتاق باز شد یا وقتی باز بود و لینک رسید
+    onRoom(fn) {
+      if (!native) return;
+      call('App', 'getLaunchUrl').then(r => { const c = roomOf(r && r.url); if (c && ls.get('gc_room_seen') !== c) { ls.set('gc_room_seen', c); fn(c); } }).catch(() => {});
+      try {
+        const cb = e => { const c = roomOf(e && e.url); if (c) { ls.set('gc_room_seen', c); fn(c); } };
+        if (C.addListener) C.addListener('App', 'appUrlOpen', cb);
+        else if (C.Plugins && C.Plugins.App) C.Plugins.App.addListener('appUrlOpen', cb);
+      } catch (e) {}
+    },
+  };
+  const share = o => native && C.isPluginAvailable && C.isPluginAvailable('Share')
+    ? call('Share', 'share', { title: o.title || 'AsoTas', text: o.text || '', url: o.url || undefined, dialogTitle: o.title || 'فرستادن' })
+    : Promise.reject(new Error('web'));
+
   // ---------- آپدیت خودکار صفحه ها و بازی ها ----------
   const OTA_EVERY = 5 * 60e3;
   async function ota() {
@@ -177,5 +195,5 @@
     addEventListener('load', () => { setTimeout(() => ota().catch(() => {}), 1500); });
   }
 
-  window.GCApp = { base: cfg.base, bundle: cfg.bundle, native, call, token, srv, bars, login, iap, push };
+  window.GCApp = { base: cfg.base, bundle: cfg.bundle, native, call, token, srv, bars, login, iap, push, links, share };
 })();

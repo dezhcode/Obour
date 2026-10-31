@@ -162,6 +162,7 @@ function startParam() { try { return (tg && tg.initDataUnsafe && tg.initDataUnsa
 
 /* ---------- API سرور ---------- */
 const ERR = {
+  need_ready: 'هنوز آماده‌ها کمن؛ صبر کن بچه‌ها «آماده‌ام» رو بزنن', bad_input: 'یه چیزی درست نبود دوباره امتحان کن',
   not_owned: 'اول این طرحو بخر داش',
   name_short: 'یوزرنیم حداقل ۳ تا حرف باشه', name_long: 'یوزرنیم حداکثر ۱۶ تا حرفه', name_start: 'یوزرنیم باید با حرف انگلیسی شروع بشه',
   not_friends: 'اول باید با هم رفیق بشید', you_blocked: 'این بنده خدا رو بلاک کردی', cant_add: 'این یکی رو نمی‌شه اضافه کرد',
@@ -866,6 +867,9 @@ if (APP && APP.push) APP.push.onOpen(page => {
   const go = /^[\w-]+\.html([?#][^\s]*)?$/.test(page) ? page : 'index.html';
   if (!location.pathname.endsWith('/' + go)) location.href = go;
 });
+
+// لینک اتاق (asotas://room/<کد>): مستقیم صفحهٔ ورود به همان اتاق
+if (APP && APP.links) APP.links.onRoom(code => { location.href = 'room.html?join=' + encodeURIComponent(code); });
 
 // بعد از باز شدن صفحه ها: هر ۱۰ دقیقه یک بار سراغ خریدهای مانده
 function iapCheck(me) {

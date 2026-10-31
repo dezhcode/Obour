@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+<script src="static/theme.js"></script>
+<title>AsoTas · اتاق با دوستان</title>
+<link rel="stylesheet" href="static/tokens.css">
+<link rel="stylesheet" href="static/gc.css">
+<style>
+/* اتاق بازی با دوستان (rooms.py): ساختن، اتاق میزبان و مهمان، دعوت، کد و QR و لینک، ورود با کد.
+   فاصله ها روی شبکهٔ ۴: کناره ۱۶، بین بخش ها ۲۰، عنوان تا محتوا ۱۲، بین کاشی ها ۸، هر دکمه دست کم ۴۴. */
+.rm-page{gap:20px;padding-block-end:calc(120px + var(--sa-b,0px))}
+.rm-sub{font-size:12px;line-height:16px;color:var(--ink-muted);font-weight:600}
+.rm-games{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.rm-g{display:grid;justify-items:center;gap:6px;padding:10px 0 8px;border-radius:16px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);font-size:12px;line-height:16px;font-weight:700;color:var(--ink-muted)}
+.rm-g[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--acc);color:var(--ink);font-weight:800}
+.rm-g .g-art{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;overflow:hidden}
+.rm-g .g-art svg{display:block;width:76%;height:76%}
+.rm-card{padding:4px 16px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.rm-row{min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0}
+.rm-row+.rm-row{border-top:1px solid var(--line)}
+.rm-row>b,.rm-row .t b{font-size:14px;font-weight:800}
+.rm-row .t{display:grid;min-width:0}
+.rm-row .t small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.rm-row .seg{flex:none;padding:3px;border-radius:12px;gap:2px}
+.rm-row .seg button{min-height:38px;padding:0 10px;border-radius:9px;font-size:12.5px;line-height:18px;align-content:center;justify-content:center;white-space:nowrap}
+.rm-step{display:flex;align-items:center;gap:8px}
+.rm-step button{width:44px;height:44px;border-radius:14px;background:var(--surface-sunk);font-size:20px;font-weight:800}
+.rm-step b{width:32px;text-align:center;font-family:var(--font-rokh);font-size:20px;font-weight:900}
+.rm-foot{position:fixed;inset-inline:0;bottom:0;z-index:5;padding:12px max(16px,var(--sa-r,0px)) calc(16px + var(--sa-b,0px)) max(16px,var(--sa-l,0px));background:var(--ground);box-shadow:0 -1px 0 var(--line)}
+.rm-foot>div{max-width:448px;margin:0 auto;display:grid;gap:8px}
+.rm-foot .hint{margin:0}
+.rm-big{height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--acc);color:var(--acc-ink);font-size:16px;font-weight:800;width:100%}
+.rm-big svg{width:20px;height:20px}
+.rm-big[disabled]{opacity:.5}
+.rm-big.ready{background:var(--success-tint);color:var(--success);box-shadow:inset 0 0 0 2px var(--success)}
+.rm-code{padding:16px;border-radius:24px;background:linear-gradient(180deg,#14213D,#1F4FB8);color:#fff;display:grid;gap:14px}
+.rm-code .h{display:flex;justify-content:space-between;font-size:12px;line-height:18px;color:rgba(255,255,255,.78);font-weight:700}
+.rm-chars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;direction:ltr}
+.rm-chars b{height:48px;border-radius:12px;background:rgba(255,255,255,.12);display:grid;place-items:center;font-family:var(--font-peyda);font-size:24px;font-weight:800}
+.rm-acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rm-acts button{height:44px;border-radius:14px;background:rgba(255,255,255,.14);color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:800}
+.rm-acts button.gold{background:#F5C451;color:#3A2A00}
+.rm-acts svg{width:18px;height:18px}
+.rm-pl{min-height:60px;display:flex;align-items:center;gap:12px;padding:6px 0}
+.rm-pl+.rm-pl{border-top:1px solid var(--line)}
+.rm-pl .avatar{--size:40px}
+.rm-pl .t{flex:1;min-width:0;display:grid}
+.rm-pl .t b{font-size:14px;font-weight:800;text-align:start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rm-pl .t small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.rm-pl.wait{opacity:.8}
+.rm-st{flex:none;height:28px;padding:0 10px;border-radius:14px;font-size:12px;line-height:28px;font-weight:800;background:var(--surface-sunk);color:var(--ink-muted)}
+.rm-st.ok{background:var(--success-tint);color:var(--success)}
+.rm-x{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--ink-muted)}
+.rm-x svg{width:18px;height:18px}
+.rm-sm{flex:none;min-height:36px;padding:0 12px;border-radius:12px;background:var(--surface-sunk);font-size:12px;font-weight:800}
+.rm-inv{height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:inset 0 0 0 2px var(--line);color:var(--acc-deep);font-size:14px;font-weight:800;width:100%}
+.rm-inv svg{width:20px;height:20px}
+.rm-chat{display:grid;gap:8px;padding:12px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line);max-height:260px;overflow-y:auto}
+.rm-msg{max-width:80%;justify-self:start;padding:8px 12px;border-radius:16px 16px 16px 4px;background:var(--surface-sunk);font-size:14px;line-height:22px;overflow-wrap:anywhere}
+.rm-msg.me{justify-self:end;border-radius:16px 16px 4px 16px;background:var(--acc);color:var(--acc-ink)}
+.rm-msg b{display:block;font-size:12px;line-height:18px;color:var(--acc-deep);font-weight:800}
+.rm-chat .hint{padding:8px 0}
+.rm-send{height:48px;padding:0 6px 0 14px;border-radius:16px;background:var(--surface);box-shadow:0 0 0 1px var(--line);display:flex;align-items:center;gap:8px}
+.rm-send input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;color:var(--ink)}
+.rm-send button{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--acc-tint);color:var(--acc-deep)}
+.rm-send svg{width:18px;height:18px}
+.rm-in{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;direction:ltr}
+.rm-in input{height:56px;min-width:0;border:0;border-radius:14px;background:var(--surface);box-shadow:inset 0 0 0 2px var(--line);text-align:center;font:800 24px var(--font-peyda);color:var(--ink);text-transform:uppercase;outline:0}
+.rm-in input:focus{box-shadow:inset 0 0 0 2px var(--acc)}
+.rm-prev{padding:16px;border-radius:20px;background:var(--surface);box-shadow:0 0 0 1px var(--line);display:grid;gap:12px}
+.rm-prev .h{display:flex;align-items:center;gap:12px}
+.rm-prev .g-art{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;overflow:hidden}
+.rm-prev .g-art svg{display:block;width:76%;height:76%}
+.rm-prev .h b{font-size:16px;font-weight:800}
+.rm-faces{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-muted)}
+.rm-faces .avatar{--size:32px;margin-inline-start:-8px}
+.rm-faces .avatar:first-child{margin-inline-start:0}
+.rm-alt{display:flex;flex-direction:column;gap:8px}
+/* برگهٔ دعوت */
+.iv-q{height:48px;padding:0 14px;border-radius:14px;background:var(--surface-sunk);display:flex;align-items:center;gap:8px;color:var(--ink-muted)}
+.iv-q svg{width:18px;height:18px;flex:none}
+.iv-q input{flex:1;min-width:0;border:0;outline:0;background:none;font:inherit;color:var(--ink)}
+.iv-chips{display:flex;gap:8px;overflow-x:auto;min-height:0}
+.iv-chips:empty{display:none}
+.iv-chip{flex:none;height:36px;padding:0 6px 0 12px;border-radius:18px;background:var(--acc-tint);color:var(--acc-deep);display:flex;align-items:center;gap:4px;font-size:13px;font-weight:800}
+.iv-chip button{width:28px;height:28px;display:grid;place-items:center}
+.iv-chip svg{width:14px;height:14px}
+.iv-list{display:grid;max-height:46vh;overflow-y:auto}
+.iv-sec{padding:8px 0 4px;font-size:12px;line-height:18px;font-weight:800;color:var(--ink-muted)}
+.iv-row{min-height:60px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.iv-row+.iv-row{border-top:1px solid var(--line)}
+.iv-row .avatar{--size:40px}
+.iv-row .t{flex:1;min-width:0;display:grid}
+.iv-row .t b{font-weight:800;text-align:start}
+.iv-row .t small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.iv-row input{width:24px;height:24px;accent-color:var(--acc);flex:none}
+.iv-row.off{opacity:.55;cursor:default}
+/* برگهٔ فرستادن */
+.sh-qr{justify-self:center;width:212px;padding:8px;border-radius:24px;background:#fff;box-shadow:0 0 0 1px var(--line)}
+.sh-qr svg{display:block;width:100%;height:auto}
+.sh-link{padding:12px 14px;border-radius:16px;background:var(--surface-sunk);display:flex;align-items:center;gap:12px}
+.sh-link .t{flex:1;min-width:0;display:grid}
+.sh-link small{font-size:12px;line-height:18px;color:var(--ink-muted)}
+.sh-link b{font-size:13px;font-weight:800;direction:ltr;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sh-apps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.sh-apps button{display:grid;justify-items:center;gap:6px;font-size:12px;font-weight:800}
+.sh-apps span{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--surface-sunk);color:var(--ink)}
+.sh-apps svg{width:24px;height:24px}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-cap"><span>اتاق با دوستان</span></div>
+  <div class="appbar-in">
+    <div class="top-l" style="display:flex;align-items:center;gap:8px"><a class="icon-btn back" href="index.html" aria-label="برگشت" id="rmBack"><i data-ic="back"></i></a>
+      <span style="display:grid;min-width:0"><h1 id="rmTitle">اتاق تازه</h1><span class="rm-sub" id="rmSub" hidden></span></span></div>
+  </div>
+</header>
+<main class="page no-nav rm-page" id="rmMain"><div class="gp-skel" style="height:200px"></div></main>
+<div class="rm-foot" id="rmFoot" hidden><div id="rmFootIn"></div></div>
+<script src="static/gc.js"></script>
+<script src="static/demo.js"></script>
+<script src="static/qr.js"></script>
+<script>
+(() => {
+  const { FD, fa, face, icon, toast, errText, sheet, sheetHead, close, store, haptic, sfx, esc, uname } = GC;
+  const $ = id => document.getElementById(id);
+  const api = (n, o) => GC.api(n, o || {});
+  const fd = s => String(s).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  // صفحه و کلید میز هر بازی (همان که صفحهٔ بازی می خواند)
+  const PLAY = { ludo: 'mid', hokm: 'hmid', football: 'fmid', billiard: 'bmid', divar: 'dmid', esmfamil: 'emid', lashgar: 'lgmid', snakes: 'snmid' };
+  const gameOf = id => GC.GAMES.find(g => g.id === id) || GC.GAMES[0];
+  const art = id => { const g = gameOf(id); return `<span class="g-art ${g.tint}">${GC.GAME_ART[g.id]()}</span>`; };
+  const SVG = {
+    copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>',
+    qr: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/></svg>',
+    share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>',
+    play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    add: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="8.5" r="3.5"/><path d="M4 20c.6-3.6 3-5.5 6-5.5 1.6 0 3 .5 4 1.4M18 14v6M15 17h6"/></svg>',
+    send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3L3 10.5l7 2.5 2.5 7z"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
+    tg: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 4L2.8 11.1c-1 .4-1 1 0 1.3l4.6 1.4 1.8 5.5c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.2-2.1 4.6 3.4c.8.5 1.4.2 1.6-.8L22.3 5.3c.3-1.2-.5-1.8-1.3-1.3zM9.2 14.3l9.3-5.9-7.4 6.8-.3 3.1z"/></svg>',
+    wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.3-4A8 8 0 1 1 8 19z"/></svg>',
+    sms: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+  };
+
+  // پرسیدن قبل از کار برگشت ناپذیر (بیرون کردن، بستن اتاق)
+  function ask(title, text, ok, run) {
+    const sh = sheet(`<h2 style="text-align:center;font-size:20px;font-weight:900">${title}</h2><p class="hint">${text}</p>
+      <button class="btn btn-danger btn-block" id="akOk">${ok}</button><button class="btn btn-light btn-block" data-close>بیخیال</button>`, { center: true });
+    sh.querySelector('#akOk').onclick = () => { close(); run(); };
+  }
+
+  let me = null, OPTS = null, pick = { game: store.get('room_game', 'esmfamil'), cfg: {}, cap: 10 };
+  let room = null;   // { mid, game, v (آخرین نمای میز), chat: [], since }
+  let pollT = 0;
+
+  const head = (title, sub) => { $('rmTitle').textContent = title; $('rmSub').hidden = !sub; $('rmSub').textContent = sub || ''; };
+  const foot = html => { $('rmFoot').hidden = !html; $('rmFootIn').innerHTML = html || ''; };
+
+  /* ---------- ۱) ساخت اتاق ---------- */
+  function renderCreate() {
+    stopPoll(); room = null;
+    head('اتاق تازه');
+    const g = OPTS.find(x => x.id === pick.game) || OPTS[0];
+    pick.game = g.id;
+    const val = k => pick.cfg[k] != null ? pick.cfg[k] : g.def[k];
+    $('rmMain').innerHTML = `
+      <section aria-labelledby="hG"><div class="sec-head"><h2 id="hG">چی بازی کنیم؟</h2></div>
+        <div class="rm-games">${OPTS.map(x => `<button class="rm-g" data-g="${x.id}" aria-pressed="${x.id === g.id}">${art(x.id)}${x.name}</button>`).join('')}</div></section>
+      <section aria-labelledby="hS"><div class="sec-head"><h2 id="hS">تنظیمات ${g.name}</h2></div>
+        <div class="rm-card">${g.opts.map(o => `<div class="rm-row"><b>${o.title}</b><div class="seg" role="group" aria-label="${o.title}">${o.vals.map(([v, lab]) =>
+          `<button data-k="${o.key}" data-v="${v}" aria-pressed="${val(o.key) === v}">${fd(lab.split(' · ')[0])}</button>`).join('')}</div></div>`).join('')}
+          ${g.cap ? `<div class="rm-row"><span class="t"><b>حداکثر نفرات</b><small>از ۲ تا ۱۰ نفر؛ پر که شد خودش شروع می‌شه</small></span>
+            <div class="rm-step"><button data-cap="-1" aria-label="کمتر">−</button><b id="capN">${FD(pick.cap)}</b><button data-cap="1" aria-label="بیشتر">+</button></div></div>` : ''}
+        </div></section>
+      <section><button class="rm-inv" id="toJoin">کد اتاق داری؟ ورود با کد</button></section>`;
+    foot(`<button class="rm-big" id="mk">${icon('plus')}ساخت اتاق</button>`);
+    $('rmMain').onclick = e => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.g) { pick.game = b.dataset.g; pick.cfg = {}; store.set('room_game', pick.game); GC.haptic('select'); renderCreate(); }
+      else if (b.dataset.k) { pick.cfg[b.dataset.k] = +b.dataset.v; GC.haptic('select'); renderCreate(); }
+      else if (b.dataset.cap) { pick.cap = Math.max(2, Math.min(10, pick.cap + +b.dataset.cap)); $('capN').textContent = FD(pick.cap); GC.haptic('select'); }
+      else if (b.id === 'toJoin') renderJoin('');
+    };
+    $('mk').onclick = async ev => {
+      if (!GC.live) { toast('اتاق فقط تو نسخهٔ آنلاینه'); return; }
+      ev.currentTarget.disabled = true;
+      try {
+        const cfg = Object.fromEntries(g.opts.map(o => [o.key, val(o.key)]));
+        const r = await api('room/create', { body: { game: g.id, cfg, cap: g.cap ? pick.cap : null } });
+        sfx.tap(); haptic('success');
+        enter(r.match, r.game);
+      } catch (e) {
+        toast(errText(e)); ev.currentTarget.disabled = false;
+        if (e.code === 'in_match') resume();
+      }
+    };
+  }
+
+  /* ---------- ۲) ورود با کد (و لینک دعوت) ---------- */
+  async function renderJoin(code) {
+    stopPoll(); room = null;
+    head('ورود با کد');
+    code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    $('rmMain').innerHTML = `
+      <section style="display:grid;gap:12px"><label for="c0" class="hint" style="text-align:start;font-size:13px">کد ۶ حرفی که دوستت فرستاده رو بزن</label>
+        <div class="rm-in">${[0, 1, 2, 3, 4, 5].map(i => `<input id="c${i}" maxlength="1" inputmode="text" autocomplete="off" autocapitalize="characters" aria-label="حرف ${FD(i + 1)}" value="${code[i] || ''}">`).join('')}</div>
+        <p class="hint" style="text-align:start">QR رو با دوربین گوشی اسکن کن؛ خودش برنامه رو باز می‌کنه</p></section>
+      <section id="prev"></section>
+      <section><button class="rm-inv" id="toNew">اتاق خودتو بساز</button></section>`;
+    foot('');
+    const ins = [0, 1, 2, 3, 4, 5].map(i => $('c' + i));
+    const read = () => ins.map(x => x.value.trim().toUpperCase()).join('');
+    let last = '';
+    const check = async () => {
+      const c = read();
+      if (c.length < 6 || c === last) return;
+      last = c;
+      $('prev').innerHTML = '<div class="gp-skel" style="height:130px"></div>';
+      try {
+        const p = await api('room/peek', { q: { code: c } });
+        const g = gameOf(p.game);
+        $('prev').innerHTML = `<div class="rm-prev"><div class="h">${art(p.game)}<span style="display:grid"><b>اتاق ${g.name}</b>
+          <span class="rm-sub">میزبان ${uname(p.host)}، ${fd(p.summary).replace(/ · /g, '، ')}</span></span></div>
+          <div class="rm-faces">${p.seats.slice(0, 6).map(s => face(s, 'var(--surface)')).join('')}<span>${FD(p.seats.length)} از ${FD(p.cap)} نفر نشستن</span></div></div>`;
+        if (p.status !== 'lobby') { foot('<p class="hint">بازی این اتاق شروع شده 😅</p>'); return; }
+        foot(`<button class="rm-big" id="sit">بشین تو اتاق</button>`);
+        $('sit').onclick = async ev => {
+          ev.currentTarget.disabled = true;
+          try { const r = await api('room/join', { body: { code: c } }); haptic('success'); enter(r.match, r.game); }
+          catch (e) { toast(errText(e)); ev.currentTarget.disabled = false; if (e.code === 'in_match') resume(); }
+        };
+      } catch (e) { $('prev').innerHTML = `<p class="hint">${errText(e)}</p>`; foot(''); }
+    };
+    ins.forEach((x, i) => {
+      x.oninput = () => {
+        const v = x.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (v.length > 1) { v.split('').slice(0, 6 - i).forEach((ch, k) => { ins[i + k].value = ch; }); ins[Math.min(5, i + v.length - 1)].focus(); }
+        else { x.value = v; if (v && i < 5) ins[i + 1].focus(); }
+        check();
+      };
+      x.onkeydown = e => { if (e.key === 'Backspace' && !x.value && i > 0) ins[i - 1].focus(); };
+    });
+    $('toNew').onclick = () => renderCreate();
+    if (code.length === 6) check(); else setTimeout(() => ins[Math.min(code.length, 5)].focus(), 100);
+  }
+
+  /* ---------- ۳) اتاق (میزبان و مهمان) ---------- */
+  function enter(mid, game) {
+    room = { mid, game, v: null, chat: [], since: 0, draft: '' };
+    try { history.replaceState(null, '', 'room.html'); } catch (e) {}
+    poll();
+  }
+  function stopPoll() { clearTimeout(pollT); pollT = 0; }
+  async function poll() {
+    stopPoll();
+    if (!room) return;
+    const r = room;
+    try {
+      const v = await api(`${r.game}/match`, { q: { id: r.mid, since: 0, chat: r.since } });
+      if (room !== r) return;
+      if (v.chat && v.chat.length) { r.chat = r.chat.concat(v.chat).slice(-60); r.since = v.chat[v.chat.length - 1].id; }
+      if (v.status === 'playing' || v.status === 'over') { store.set(PLAY[r.game], r.mid); location.replace(`${r.game}.html`); return; }
+      if (v.status === 'cancelled') { toast('میزبان اتاقو بست 👋'); room = null; renderCreate(); return; }
+      r.v = v; renderRoom();
+    } catch (e) {
+      if (e.code === 'not_found') { toast('دیگه تو این اتاق نیستی'); room = null; renderCreate(); return; }
+    }
+    if (room === r && !document.hidden) pollT = setTimeout(poll, 1500);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && room) poll(); });
+
+  function renderRoom() {
+    const { v, game } = room, L = v.lobby, g = gameOf(game), host = L.host;
+    const ready = L.seats.filter(s => s.ready).length, mine = L.seats.find(s => s.me) || {};
+    const hostSeat = L.seats.find(s => s.host) || {};
+    head(`اتاق ${g.name}`, host ? `کد ${L.code}، ${FD(L.seats.length)} از ${FD(L.cap)} نفر` : `میزبان ${hostSeat.name || ''}`);
+    const keepChat = $('rmMsg') ? $('rmMsg').value : room.draft;
+    const focused = document.activeElement && document.activeElement.id === 'rmMsg';
+    const pl = s => `<div class="rm-pl">${face(s, s.ready ? 'var(--success)' : 'var(--line)')}
+      <span class="t"><b>${uname(s.name)}</b><small>${s.host ? 'میزبان' : ''}${s.host && s.me ? ' · ' : ''}${s.me ? 'خودت' : ''}</small></span>
+      <span class="rm-st${s.ready ? ' ok' : ''}">${s.ready ? 'آماده' : 'هنوز نه'}</span>
+      ${host && !s.me ? `<button class="rm-x" data-kick="${s.color}" aria-label="بیرون کردن ${esc(s.name)}">${SVG.x}</button>` : ''}</div>`;
+    const inv = i => `<div class="rm-pl wait">${face(i, 'var(--line)')}<span class="t"><b>${uname(i.name)}</b><small>دعوتش کردی · منتظر جوابه</small></span>
+      <button class="rm-sm" data-remind="${esc(i.uid)}">یادآوری</button></div>`;
+    $('rmMain').innerHTML = `
+      <section class="rm-code" aria-label="کد اتاق"><div class="h"><span>کد اتاق</span><span>${fd(groupsSummary(game, v.cfg))}</span></div>
+        <div class="rm-chars">${L.code.split('').map(c => `<b>${c}</b>`).join('')}</div>
+        <div class="rm-acts"><button id="cp">${SVG.copy}کپی</button><button id="qrB">${SVG.qr}QR</button><button class="gold" id="shB">${SVG.share}فرستادن</button></div></section>
+      <section aria-labelledby="hP"><div class="sec-head"><h2 id="hP">بازیکنا</h2><span class="aside" style="color:var(--ink-muted)">${FD(L.seats.length)} از ${FD(L.cap)} نفر، ${FD(ready)} آماده</span></div>
+        <div class="rm-card">${L.seats.map(pl).join('')}${(L.invited || []).map(inv).join('')}</div>
+        <button class="rm-inv" id="ivB" style="margin-top:12px">${SVG.add}دعوت از دوستان</button></section>
+      <section aria-labelledby="hC"><div class="sec-head"><h2 id="hC">گپ اتاق</h2></div>
+        <div class="rm-chat" id="rmChat">${room.chat.length ? room.chat.map(m => `<div class="rm-msg${m.me ? ' me' : ''}">${m.me ? '' : `<b>${uname(m.name)}</b>`}${esc(m.text)}</div>`).join('') : '<p class="hint">هنوز کسی چیزی نگفته؛ سلام بده 👋</p>'}</div>
+        <label class="rm-send" style="margin-top:8px"><input id="rmMsg" maxlength="200" placeholder="یه چیزی بگو…" aria-label="پیام"><button id="rmGo" aria-label="فرستادن">${SVG.send}</button></label></section>`;
+    $('rmMsg').value = keepChat || '';
+    if (focused) $('rmMsg').focus();
+    const ch = $('rmChat'); ch.scrollTop = ch.scrollHeight;
+    const need = L.min || 2;
+    foot(host
+      ? `<p class="hint">${ready >= need ? 'هر وقت دلت خواست شروع کن؛ بعد از شروع کسی نمی‌تونه بیاد' : `برای شروع دست‌کم ${FD(need)} نفر آماده لازمه`}</p>
+         <button class="rm-big" id="go"${ready >= need ? '' : ' disabled'}>${SVG.play}شروع بازی</button>`
+      : `<button class="rm-big${mine.ready ? ' ready' : ''}" id="rd" aria-pressed="${!!mine.ready}">${mine.ready ? SVG.check + 'آماده‌ای · برای لغو بزن' : 'آماده‌ام'}</button>`);
+    $('cp').onclick = () => copy(L.code, 'کد اتاق کپی شد');
+    $('qrB').onclick = () => shareSheet(true);
+    $('shB').onclick = () => shareSheet(false);
+    $('ivB').onclick = inviteSheet;
+    $('rmMain').querySelectorAll('[data-kick]').forEach(b => b.onclick = () => ask('بیرونش کنی؟', 'از اتاق بیرون می‌ره ولی با کد دوباره می‌تونه بیاد', 'بیرون کن', async () => {
+      try { await api('room/kick', { body: { match: room.mid, color: b.dataset.kick } }); poll(); } catch (e) { toast(errText(e)); }
+    }));
+    $('rmMain').querySelectorAll('[data-remind]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      try { const r = await api('room/invite', { body: { match: room.mid, uids: [b.dataset.remind] } }); toast(r.sent.length ? 'دوباره براش فرستادیم 🔔' : 'یه دقیقه دیگه دوباره بزن'); }
+      catch (e) { toast(errText(e)); b.disabled = false; }
+    });
+    const sendMsg = async () => {
+      const t = $('rmMsg').value.trim(); if (!t) return;
+      $('rmMsg').value = ''; room.draft = '';
+      try { await api(`${game}/chat`, { body: { match: room.mid, text: t } }); poll(); } catch (e) { toast(errText(e)); $('rmMsg').value = t; }
+    };
+    $('rmGo').onclick = e => { e.preventDefault(); sendMsg(); };
+    $('rmMsg').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); sendMsg(); } };
+    $('rmMsg').oninput = () => { room.draft = $('rmMsg').value; };
+    if ($('go')) $('go').onclick = async ev => {
+      ev.currentTarget.disabled = true;
+      try { await api('room/start', { body: { match: room.mid } }); haptic('success'); poll(); } catch (e) { toast(errText(e)); ev.currentTarget.disabled = false; }
+    };
+    if ($('rd')) $('rd').onclick = async ev => {
+      ev.currentTarget.disabled = true;
+      try { await api('room/ready', { body: { match: room.mid, on: !mine.ready } }); haptic('select'); poll(); } catch (e) { toast(errText(e)); ev.currentTarget.disabled = false; }
+    };
+  }
+  // خلاصهٔ تنظیم برای کارت کد (از گزینه های همان بازی)
+  function groupsSummary(game, cfg) {
+    const g = OPTS && OPTS.find(x => x.id === game);
+    if (!g) return '';
+    return g.opts.map(o => { const it = o.vals.find(([v]) => v === cfg[o.key]); return it ? it[1].split(' · ')[0] : ''; }).filter(Boolean).join('، ');
+  }
+
+  /* ---------- دعوت از دوستان ---------- */
+  async function inviteSheet() {
+    let list = [];
+    try { list = (await GC.data.friends()).friends || []; } catch (e) { toast(errText(e)); return; }
+    const L = room.v.lobby, there = new Set([...(L.invited || []).map(i => i.uid)]), seated = new Set(L.seats.map(s => s.name));
+    const sel = new Set();
+    const sh = sheet(`${sheetHead('کیا رو دعوت کنی؟')}
+      <label class="iv-q">${SVG.search}<input id="ivQ" placeholder="یوزرنیم دوستت" aria-label="جستجوی دوستان"></label>
+      <div class="iv-chips" id="ivChips"></div><div class="iv-list" id="ivList"></div>
+      <button class="btn btn-block" id="ivGo" disabled>دعوت</button>
+      <button class="btn btn-light btn-block" id="ivLink">دوستت توی برنامه نیست؟ لینک بفرست</button>`);
+    const draw = () => {
+      const q = sh.querySelector('#ivQ').value.trim().toLowerCase();
+      const f = list.filter(x => !q || x.name.toLowerCase().includes(q));
+      const row = x => {
+        const off = seated.has(x.name), st = off ? 'تو اتاقه' : there.has(x.uid) ? 'دعوت شده' : x.online ? (x.playing ? 'داره بازی می‌کنه' : 'آنلاینه') : 'نوتیفیکیشن براش می‌ره';
+        return `<label class="iv-row${off ? ' off' : ''}">${face(x, x.online ? 'var(--success)' : 'var(--surface)')}<span class="t"><b>${uname(x.name)}</b><small>${st}</small></span>
+          <input type="checkbox" data-u="${esc(x.uid)}"${sel.has(x.uid) ? ' checked' : ''}${off ? ' disabled' : ''}></label>`;
+      };
+      const on = f.filter(x => x.online), rest = f.filter(x => !x.online);
+      sh.querySelector('#ivList').innerHTML = !list.length ? '<p class="hint" style="padding:16px 0">هنوز رفیقی اضافه نکردی؛ از صفحهٔ دوستان پیداشون کن یا لینک بفرست</p>'
+        : (on.length ? `<span class="iv-sec">آنلاین · ${FD(on.length)}</span>${on.map(row).join('')}` : '') + (rest.length ? `<span class="iv-sec">بقیه</span>${rest.map(row).join('')}` : '')
+        || '<p class="hint" style="padding:16px 0">کسی با این اسم نیست</p>';
+      sh.querySelector('#ivChips').innerHTML = [...sel].map(u => { const x = list.find(y => y.uid === u); return x ? `<span class="iv-chip">${uname(x.name)}<button data-un="${esc(u)}" aria-label="برداشتن ${esc(x.name)}">${SVG.x}</button></span>` : ''; }).join('');
+      const go = sh.querySelector('#ivGo'); go.disabled = !sel.size; go.textContent = sel.size ? `دعوت ${FD(sel.size)} نفر` : 'دعوت';
+    };
+    sh.querySelector('#ivQ').oninput = draw;
+    sh.addEventListener('change', e => { const c = e.target.closest('[data-u]'); if (!c) return; c.checked ? sel.add(c.dataset.u) : sel.delete(c.dataset.u); draw(); });
+    sh.addEventListener('click', e => { const b = e.target.closest('[data-un]'); if (b) { sel.delete(b.dataset.un); draw(); } });
+    sh.querySelector('#ivLink').onclick = () => { close(); shareSheet(false); };
+    sh.querySelector('#ivGo').onclick = async ev => {
+      ev.currentTarget.disabled = true;
+      try { const r = await api('room/invite', { body: { match: room.mid, uids: [...sel] } }); close(); toast(r.sent.length ? `دعوت برای ${FD(r.sent.length)} نفر رفت 🎲` : 'دعوتی نرفت؛ یه دقیقه بعد دوباره امتحان کن'); haptic('success'); poll(); }
+      catch (e) { toast(errText(e)); ev.currentTarget.disabled = false; }
+    };
+    draw();
+  }
+
+  /* ---------- کد، QR و لینک ---------- */
+  function copy(text, ok) {
+    const done = () => toast(ok);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => fallback());
+    else fallback();
+    function fallback() { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) {} t.remove(); }
+  }
+  function shareSheet(qrOnly) {
+    const L = room.v.lobby, g = gameOf(room.game), url = L.link || L.tg_link || '';
+    const text = `بیا ${g.name} بازی کنیم 🎲 کد اتاق: ${L.code}` + (url ? `\nاگه AsoTas رو نداری از این لینک بیا:\n${url}` : '');
+    let qr = '';
+    try { qr = url ? GCQR.svg(url, { label: 'QR اتاق ' + L.code }) : ''; } catch (e) {}
+    const sh = sheet(`${sheetHead(qrOnly ? 'QR اتاق' : 'دوستاتو بیار تو اتاق')}
+      ${qr ? `<div class="sh-qr">${qr}</div><p class="hint">با دوربین گوشی اسکن کنن؛ برنامه یا تلگرام باز می‌شه</p>` : ''}
+      ${url ? `<div class="sh-link"><span class="t"><small>لینک اتاق</small><b>${esc(url)}</b></span><button class="btn btn-light btn-sm" id="shCp">کپی</button></div>` : ''}
+      ${qrOnly ? '' : `<div class="sh-apps"><button id="shTg"><span style="background:#2AABEE;color:#fff">${SVG.tg}</span>تلگرام</button>
+        <button id="shWa"><span style="background:#1F9D55;color:#fff">${SVG.wa}</span>واتساپ</button><button id="shSms"><span>${SVG.sms}</span>پیامک</button>
+        <button id="shMore"><span>${SVG.more}</span>بیشتر</button></div>`}`);
+    const open = u => GC.openLink(u);
+    if (sh.querySelector('#shCp')) sh.querySelector('#shCp').onclick = () => copy(url, 'لینک کپی شد');
+    if (qrOnly) return;
+    const enc = encodeURIComponent;
+    sh.querySelector('#shTg').onclick = () => { const u = `https://t.me/share/url?url=${enc(url)}&text=${enc(`بیا ${g.name} بازی کنیم 🎲 کد اتاق: ${L.code}`)}`; GC.tg && GC.tg.openTelegramLink ? GC.tg.openTelegramLink(u) : open(u); };
+    sh.querySelector('#shWa').onclick = () => open(`https://wa.me/?text=${enc(text)}`);
+    sh.querySelector('#shSms').onclick = () => open(`sms:?body=${enc(text)}`);
+    sh.querySelector('#shMore').onclick = () => {
+      if (GC.app && GC.app.share) GC.app.share({ title: 'دعوت به اتاق AsoTas', text, url }).catch(() => copy(text, 'متن دعوت کپی شد؛ هر جا خواستی بفرست'));
+      else if (navigator.share) navigator.share({ title: 'AsoTas', text }).catch(() => {});
+      else copy(text, 'متن دعوت کپی شد؛ هر جا خواستی بفرست');
+    };
+  }
+
+  /* ---------- برگشتن و بیرون رفتن ---------- */
+  $('rmBack').onclick = e => {
+    if (!room || !room.v) return;
+    e.preventDefault();
+    const host = room.v.lobby.host;
+    ask(host ? 'اتاقو می‌بندی؟' : 'از اتاق می‌ری بیرون؟', host ? 'اتاق برای همه بسته می‌شه' : 'جات خالی می‌شه ولی با کد دوباره می‌تونی بیای',
+      host ? 'ببند' : 'برو بیرون', async () => {
+        try { await api(`${room.game}/leave`, { body: { match: room.mid } }); } catch (err) {}
+        room = null; stopPoll(); location.href = 'index.html';
+      });
+  };
+
+  // اتاقی که هنوز سرش نشسته ای (بستن برنامه وسط کار): مستقیم همان
+  async function resume() {
+    me = await GC.refreshMe().catch(() => me);
+    const mid = me && me.active_match, game = me && me.active_game;
+    if (!mid || !game) return false;
+    const v = await api(`${game}/match`, { q: { id: mid, since: 0 } }).catch(() => null);
+    if (!v) return false;
+    if (v.status === 'playing') { store.set(PLAY[game], mid); location.replace(`${game}.html`); return true; }
+    if (v.status === 'lobby' && v.lobby && v.lobby.room) { enter(mid, game); return true; }
+    if (v.status === 'lobby') { location.replace(`${game}-lobby.html`); return true; }
+    return false;
+  }
+
+  GC.back('index.html');
+  (async () => {
+    try { OPTS = (await api('room/opts')).games; }
+    catch (e) {
+      // نسخهٔ نمونه (بدون سرور): فقط صفحهٔ ساخت با چند گزینه
+      OPTS = [{ id: 'esmfamil', name: 'اسم‌فامیل', def: { rounds: 3, secs: 300 }, cap: [2, 10], opts: [{ key: 'rounds', title: 'تعداد دور', vals: [[1, '1 دور'], [3, '3 دور'], [5, '5 دور']] }, { key: 'secs', title: 'وقت هر دور', vals: [[180, '3 دقیقه'], [300, '5 دقیقه'], [480, '8 دقیقه']] }] },
+        { id: 'hokm', name: 'حکم', def: { target: 7 }, opts: [{ key: 'target', title: 'طول بازی', vals: [[3, '3 دست'], [7, '7 دست']] }] }];
+    }
+    const url = new URL(location.href), code = (url.searchParams.get('join') || '').trim();
+    if (GC.live && await resume().catch(() => false)) return;
+    if (code || url.searchParams.has('code')) renderJoin(code);
+    else renderCreate();
+  })();
+  GC.mount();
+})();
+</script>
+</body>
+</html>

@@ -26,13 +26,14 @@ import os
 import re
 import time
 import traceback
+from urllib.parse import quote
 
 from .config import gc
 
 log = logging.getLogger("gameclub.wsgi")
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webapp")
-PAGES = {"index.html", "wallet.html", "profile.html", "games.html", "friends.html", "chat.html", "leaderboard.html", "shop.html", "help.html", "ludo-lobby.html", "ludo.html", "hokm-lobby.html", "hokm.html", "football-lobby.html", "football.html", "billiard-lobby.html", "billiard.html", "divar-lobby.html", "divar.html", "esmfamil-lobby.html", "esmfamil.html", "lashgar-lobby.html", "lashgar.html", "snakes-lobby.html", "snakes.html", "admin.html"}
+PAGES = {"index.html", "wallet.html", "profile.html", "games.html", "friends.html", "chat.html", "leaderboard.html", "shop.html", "help.html", "ludo-lobby.html", "ludo.html", "hokm-lobby.html", "hokm.html", "football-lobby.html", "football.html", "billiard-lobby.html", "billiard.html", "divar-lobby.html", "divar.html", "esmfamil-lobby.html", "esmfamil.html", "lashgar-lobby.html", "lashgar.html", "snakes-lobby.html", "snakes.html", "room.html", "admin.html"}
 
 # مثل مینی اپ عبور: فقط اسکریپت SDK تلگرام از بیرون، بقیه از خود سرور
 _CSP = (
@@ -60,6 +61,28 @@ def _rate_ok(uid: int, limit: int = 300, window: float = 60) -> bool:
     if len(_RATE) > 5000:
         _RATE.clear()
     return ok
+
+
+def _room_page(code: str) -> str:
+    """صفحهٔ لینک اتاق: روی اندروید اول خود برنامه (asotas://room/<کد>)، بعد دکمه های تلگرام و مایکت"""
+    pkg = gc.app_package
+    intent = f"intent://room/{code}#Intent;scheme=asotas;package={pkg};S.browser_fallback_url=" + \
+        quote(f"{gc.base_url}/r/{code}?n=1", safe="") + ";end"
+    tg = f"https://t.me/{gc.username}?startapp=room_{code}" if gc.username else ""
+    myket = f"https://myket.ir/app/{pkg}"
+    btn = "display:block;margin:10px 0;padding:14px;border-radius:14px;text-decoration:none;font-weight:800;text-align:center"
+    return f"""<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>دعوت به اتاق AsoTas</title>
+<meta property="og:title" content="بیا تو اتاق AsoTas 🎲"><meta property="og:description" content="کد اتاق: {code}">
+</head><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#14213D;color:#fff;font-family:Tahoma,sans-serif">
+<main style="width:min(360px,90vw);text-align:center"><h1 style="font-size:22px">بیا تو اتاق AsoTas 🎲</h1>
+<p style="opacity:.8">کد اتاق</p><p dir="ltr" style="font-size:34px;font-weight:800;letter-spacing:6px;margin:0 0 20px">{code}</p>
+<a href="{intent}" style="{btn};background:#F5C451;color:#3A2A00">باز کردن در برنامه</a>
+{f'<a href="{tg}" style="{btn};background:#2AABEE;color:#fff">باز کردن در تلگرام</a>' if tg else ''}
+<a href="{myket}" style="{btn};background:rgba(255,255,255,.12);color:#fff">برنامه رو نداری؟ نصب از مایکت</a>
+<p style="opacity:.7;font-size:13px">بعد از نصب، کد بالا رو تو «ورود با کد» بزن</p></main>
+<script>if(/Android/i.test(navigator.userAgent)&&!/[?&]n=1/.test(location.search))location.href={json.dumps(intent)};</script>
+</body></html>"""
 
 
 def is_gc_path(path: str) -> bool:
@@ -356,6 +379,14 @@ def handle(environ: dict, start_response, path: str, runtime, authorized):  # no
             return _send(start_response, "200 OK", note.encode("utf-8"), "text/plain; charset=utf-8")
         except Exception:  # noqa: BLE001
             return _send(start_response, "500 Internal Server Error", traceback.format_exc().encode(), "text/plain")
+
+    # ---------- لینک اتاق بازی (rooms.py): برنامه را باز می کند، وگرنه تلگرام یا مایکت ----------
+    if sub.startswith("/r/") and method == "GET":
+        code = sub[3:].strip("/").upper()
+        if not re.fullmatch(r"[A-Z0-9]{4,12}", code):
+            return _send(start_response, "404 Not Found", b"not found", "text/plain")
+        return _send(start_response, "200 OK", _room_page(code).encode("utf-8"), "text/html; charset=utf-8",
+                     [("Cache-Control", "no-store"), ("Content-Security-Policy", _CSP.replace("frame-ancestors https://web.telegram.org https://*.telegram.org", "frame-ancestors 'none'"))])
 
     # ---------- برنامهٔ اندروید: مهمان، نشست، آپدیت خودکار ----------
     if sub.startswith("/app/"):
