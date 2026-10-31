@@ -848,18 +848,19 @@ function renderPlayers(g) {
   if (at) tm.style.left = `calc(${at[1]} * var(--u))`;
   $('players').innerHTML = seatsLayout(g).map(([c, x]) => {
     const p = g.players[c] || {}, turn = g.turn === c && !g.over;
-    return `<div class="pl${turn ? ' turn' : ''}${isMe(c) ? ' mine' : ''}${p.out ? ' out' : ''}" data-seat="${c}" style="left:calc(${x} * var(--u))">${face(p, 'transparent')}<span class="pname">${(p.name || '').replace(/[<>&]/g, '')}</span><span class="yturn">Your Turn</span></div>`;
+    return `<div class="pl${turn ? ' turn' : ''}${isMe(c) ? ' mine' : ''}${p.out ? ' out' : ''}" data-seat="${c}" style="left:calc(${x} * var(--u))">${face(p, 'transparent')}<span class="pname">${GC.uname(p.name || '')}</span><span class="yturn">Your Turn</span></div>`;
   }).join('');
 }
 /* ---------- برچسب وضعیت بالای میز (status label و getTurnMsg پلاتو، متن های فارسی خود پلاتو) ----------
    با هر تغییر نوبت از کنار می لغزد (۴۰۰ms quadOut)، ۵ ثانیه بعد برمی گردد و با شروع ضربه پنهان می شود.
    نوبت عادی بی پیام است (sl_turn ← پنهان). */
-const pname = c => (P()[c] && P()[c].name) || 'حریف';
+// پیام های بنر HTML اند تا یوزرنیم با فونت پیدا بیاید
+const pname = c => (P()[c] && P()[c].name) ? GC.uname(P()[c].name) : 'حریف';
 const SL_ONE = { true: 'توپر', false: 'راه‌راه' };
 function banner(text, foul) {
   const el = $('msg'); clearTimeout(bannerT);
   if (!text) { el.classList.remove('show'); return; }
-  el.textContent = text; el.classList.toggle('foul', !!foul);
+  el.innerHTML = text; el.classList.toggle('foul', !!foul);
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   bannerT = setTimeout(() => el.classList.remove('show'), 5000);
 }
@@ -1276,7 +1277,7 @@ function over(v) {
   const g = v.game, lastWin = (g.events || []).filter(e => e.t === 'win' || e.t === 'end').pop() || {};
   if (WATCH) {
     sfx.win();
-    const names = g.winner == null ? '' : g.order.filter((c, k) => k % 2 === g.winner).map(c => g.players[c].name).join(' و ');
+    const names = g.winner == null ? '' : g.order.filter((c, k) => k % 2 === g.winner).map(c => GC.uname(g.players[c].name)).join(' و ');
     return GC.watchOver('billiard', 'بازی تموم شد', g.winner == null ? 'بازی بی برنده بسته شد' : `${names} برد${g.n === 4 ? 'ن' : ''}`);
   }
   const r = v.result || {}, won = !!r.won, team = g.n === 4;

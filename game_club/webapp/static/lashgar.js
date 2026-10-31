@@ -605,7 +605,7 @@ function renderHead() {
     sc.innerHTML = [botC(), topC()].map(c => {
       const p = P(c);
       return `<div class="lg-pl${g.turn === c ? ' turn' : ''}${p.out ? ' out' : ''}" style="--c:${COLORS[c]}">${face(p)}
-        <span class="t"><b>${esc(p.army || p.name)}</b><small>${c === me() ? 'تو' : esc(p.name)} · ${FD(p.alive)} از ${FD(p.units ? p.units.length : total())} سالم</small></span></div>`;
+        <span class="t"><b>${p.army ? esc(p.army) : GC.uname(p.name)}</b><small>${c === me() ? 'تو' : GC.uname(p.name)} · ${FD(p.alive)} از ${FD(p.units ? p.units.length : total())} سالم</small></span></div>`;
     }).join('');
   }
 }
@@ -662,7 +662,7 @@ function dockDraw() {
 function dockWait() {
   const f = topC(), fp = P(f);
   return `<div class="lg-card"><div class="lg-row"><span class="ic ok">${icon('check')}</span><span class="tx"><h2>آماده‌ای!</h2>
-      <p>${fp.ready ? 'الان جنگ شروع می‌شه…' : `منتظر ${esc(fp.army || fp.name)} ایم ${fp.army ? `${FD(fp.placed)} از ${FD(total())} نیرو چیده` : 'هنوز داره اسم می‌ذاره'}`}</p></span>
+      <p>${fp.ready ? 'الان جنگ شروع می‌شه…' : `منتظر ${fp.army ? esc(fp.army) : GC.uname(fp.name)} ایم ${fp.army ? `${FD(fp.placed)} از ${FD(total())} نیرو چیده` : 'هنوز داره اسم می‌ذاره'}`}</p></span>
       <span class="lg-dots" aria-hidden="true" style="--c:${COLORS[f]}"><i></i><i></i><i></i></span></div>
     <button class="lg-link" id="unready">یه لحظه می‌خوام عوضش کنم</button></div>`;
 }
@@ -703,7 +703,7 @@ function dockOver() {
 function dockWatchDraw() {
   return `<div class="lg-card"><div class="lg-row"><span class="ic">${icon('eye')}</span><span class="tx"><h2>دارن ارتششون رو می‌چینن</h2>
     <p>تو برگهٔ هر دو لشگرو زنده می‌بینی ولی خودشون تا شروع جنگ برگهٔ همدیگه رو نمی‌بینن 🤫</p>
-    <p>${G().order.map(c => `${esc(P(c).army || P(c).name)}: ${P(c).ready ? 'آماده ✓' : `${FD(P(c).placed)} از ${FD(total())} نیرو`}`).join(' · ')}</p></span></div></div>`;
+    <p>${G().order.map(c => `${P(c).army ? esc(P(c).army) : GC.uname(P(c).name)}: ${P(c).ready ? 'آماده ✓' : `${FD(P(c).placed)} از ${FD(total())} نیرو`}`).join(' · ')}</p></span></div></div>`;
 }
 function renderDock() {
   const g = G(), d = $('dock'); if (!g) return;
@@ -772,7 +772,7 @@ function nameScreen() {
   const v0 = store.get('lg_army', '') || '';
   scr.innerHTML = `<div class="lg-nhead"><button class="lg-ib" id="nExit" aria-label="خروج">${icon('exit')}</button>
       <div class="lg-head"><b>لشگر کاغذی</b><span>قبل از جنگ لشگرت یه اسم می‌خواد</span></div><button class="lg-ib" id="nHelp" aria-label="راهنما"><b>؟</b></button></div>
-    <div class="lg-hero"><div class="lg-book"><div class="lab"><span>نام لشگر:</span><b id="nPrev"></b><span>فرمانده: ${esc(mine.name)}</span></div>
+    <div class="lg-hero"><div class="lg-book"><div class="lab"><span>نام لشگر:</span><b id="nPrev"></b><span>فرمانده: ${GC.uname(mine.name)}</span></div>
       <div class="tag"><svg viewBox="-6 -20 34 36" aria-hidden="true"><path d="M0 -16H17V-4H0Z" fill="${COLORS[me()]}" opacity=".7"/><g class="lg-u" style="stroke-width:1.4"><use href="#u-flag"/></g></svg>پرچم تو</div></div></div>
     <div class="lg-ncard"><div class="lg-row" style="gap:8px"><label for="nIn">اسم لشگرت</label><span class="cnt" id="nCnt"></span></div>
       <div class="lg-in"><input id="nIn" maxlength="24" autocomplete="off" autocorrect="off" spellcheck="false" dir="rtl" placeholder="مثلا: شیرهای کلاس پنجم" enterkeyhint="done" value="${esc(v0)}">
@@ -802,7 +802,7 @@ function nameScreen() {
   sync();
 }
 function foeLine(f) {
-  return `${face(f)}<span>${esc(f.name)}${f.army ? ' اسم گذاشت:' : ''}</span>${f.army ? `<span class="hand">${esc(f.army)}</span>` : '<span style="color:var(--lg-muted)">هنوز داره فکر می‌کنه…</span>'}`;
+  return `${face(f)}<span>${GC.uname(f.name)}${f.army ? ' اسم گذاشت:' : ''}</span>${f.army ? `<span class="hand">${esc(f.army)}</span>` : '<span style="color:var(--lg-muted)">هنوز داره فکر می‌کنه…</span>'}`;
 }
 async function submitName() {
   const inp = $('nIn'), v = inp.value.replace(/\s+/g, ' ').trim(), b = $('nGo');
@@ -876,7 +876,7 @@ function coverHtml() {
   const sig = JSON.stringify([p.army, p.ready, p.placed, p.name]);
   if (el.dataset.sig === sig) return;
   el.dataset.sig = sig;
-  el.innerHTML = `<div class="lg-label"><span>لشگر: ${esc(p.army || '…')}</span><span>فرمانده: ${esc(p.name)}</span><span class="no">دید زدن ممنوع!</span></div>
+  el.innerHTML = `<div class="lg-label"><span>لشگر: ${esc(p.army || '…')}</span><span>فرمانده: ${GC.uname(p.name)}</span><span class="no">دید زدن ممنوع!</span></div>
     <div class="lg-who${p.ready ? ' ok' : ''}">${face(p, '#fff')}<span>${p.ready ? 'آماده‌ست!' : 'داره می‌کشه…'}</span><small>${p.ready ? 'منتظر توئه' : 'عجله‌ای نیست'}</small></div>`;
 }
 async function act(fn, ok) {

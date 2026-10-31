@@ -121,6 +121,7 @@ const flip = () => me === '1';
 const P = () => (snap && snap.game ? snap.game.players : {});
 const isMe = c => c === me && !WATCH;
 const nameOf = c => isMe(c) ? 'تو' : (P()[c] ? P()[c].name : 'حریف');
+const nameH = c => isMe(c) ? 'تو' : (P()[c] ? GC.uname(P()[c].name) : 'حریف');   // برای innerHTML
 const mine = i => (me === '0' ? i < 6 : i >= 6 && i < 12);
 const toView = ([x, y]) => flip() ? [W - x, H - y] : [x, y];
 
@@ -229,9 +230,9 @@ function renderHead(g) {
   const tm = TEAM[(teams[me] || pm).team], to = TEAM[(teams[opp()] || po).team];
   const turn = g.phase === 'play' && !g.over;
   $('head').innerHTML = `
-    <div class="fb-pl me" data-seat="${me}">${face(pm, 'var(--me)', turn && g.turn === me ? 'timer' : '')}<span class="nm"><b>${pm.name || 'تو'}</b><span>${tm ? tm.fa : WATCH ? '' : 'تیم تو'}</span></span></div>
+    <div class="fb-pl me" data-seat="${me}">${face(pm, 'var(--me)', turn && g.turn === me ? 'timer' : '')}<span class="nm"><b>${pm.name ? GC.uname(pm.name) : 'تو'}</b><span>${tm ? tm.fa : WATCH ? '' : 'تیم تو'}</span></span></div>
     <div class="fb-sc"><b id="score">${FD(g.score[+me])} - ${FD(g.score[+opp()])}</b><span>تا ${FD(g.target)} گل</span></div>
-    <div class="fb-pl op${po.out ? ' away' : ''}" data-seat="${opp()}">${face(po, '#FF7A85', turn && g.turn === opp() ? 'timer' : '')}<span class="dot"></span><span class="nm"><b>${po.name || 'حریف'}</b><span>${to ? to.fa : 'حریف'}</span></span></div>`;
+    <div class="fb-pl op${po.out ? ' away' : ''}" data-seat="${opp()}">${face(po, '#FF7A85', turn && g.turn === opp() ? 'timer' : '')}<span class="dot"></span><span class="nm"><b>${po.name ? GC.uname(po.name) : 'حریف'}</b><span>${to ? to.fa : 'حریف'}</span></span></div>`;
 }
 function renderStatus(g) {
   const st = $('status');
@@ -240,7 +241,7 @@ function renderStatus(g) {
   if (g.over) html = 'پایان بازی';
   else if (g.phase === 'setup') html = 'انتخاب تیم و چیدمان…';
   else if (isMe(g.turn)) html = `${g.kickoff ? 'ضربهٔ شروع با خودته' : 'نوبت توئه'}${g.deadline_ms ? '<em id="clock"></em>' : ''}${g.passes ? `<em>پاس‌ها ${FD(g.chain)}/${FD(g.passes)}</em>` : g.chain ? `<em>${FD(g.chain)} پاس</em>` : ''}`;
-  else { const q = g.players[g.turn] || {}; html = `${g.kickoff ? (q.name || 'حریف') + ' شوت شروعو می‌زنه' : 'نوبت ' + (q.name || 'حریف')}<em>${q.bot || q.out ? 'داره فکر می‌کنه…' : g.passes ? `پاس‌ها ${FD(g.chain)}/${FD(g.passes)}` : ''}</em>`; }
+  else { const q = g.players[g.turn] || {}; html = `${g.kickoff ? (q.name ? GC.uname(q.name) : 'حریف') + ' شوت شروعو می‌زنه' : 'نوبت ' + (q.name ? GC.uname(q.name) : 'حریف')}<em>${q.bot || q.out ? 'داره فکر می‌کنه…' : g.passes ? `پاس‌ها ${FD(g.chain)}/${FD(g.passes)}` : ''}</em>`; }
   // هر پرسش سرور همین متن را می آورد؛ فقط وقتی عوض شده بنویس (وگرنه هر بار چیدمان و نقاشی دوباره)
   if (html !== st.dataset.k || !st.firstChild) { st.dataset.k = html; st.innerHTML = html; }
   setDeadline(g.deadline_ms, g._at);
@@ -348,7 +349,7 @@ async function showPass(e) {
   const d = cur[e.d];
   sfx.fb.pass(); haptic(isMe(e.c) ? 'success' : 'light');
   const st = $('status');
-  if (st) { st.classList.toggle('mine', isMe(e.c)); st.dataset.k = ''; st.innerHTML = isMe(e.c) ? `پاس! دوباره نوبت خودته<em>${e.left == null ? '' : e.left > 0 ? FD(e.left) + ' پاس دیگه' : 'آخرین پاس بود'}</em>` : `${nameOf(e.c)} پاس داد`; }
+  if (st) { st.classList.toggle('mine', isMe(e.c)); st.dataset.k = ''; st.innerHTML = isMe(e.c) ? `پاس! دوباره نوبت خودته<em>${e.left == null ? '' : e.left > 0 ? FD(e.left) + ' پاس دیگه' : 'آخرین پاس بود'}</em>` : `${nameH(e.c)} پاس داد`; }
   if (d) {
     const tag = document.createElement('span'); tag.className = 'fb-passtag' + (e.left != null && e.left <= 0 ? ' last' : ''); tag.textContent = passBalloon(e.left);
     const [x, y] = toView(d); tag.style.left = (x * s) + 'px'; tag.style.top = ((y - rOf(e.d)) * s) + 'px';
@@ -408,17 +409,17 @@ function glide(pos, ms = 700) {
 }
 async function showVS(e) {
   const t = e.teams || {}, pm = P()[me] || {}, po = P()[opp()] || {};
-  const side = (c, p, cls, lab) => `<div class="side ${cls}"><small>${lab}</small>${discHtml(t[c] && t[c].team, t[c] && t[c].kit, 104)}<b>${TEAM[t[c] && t[c].team] ? TEAM[t[c].team].fa : ''}</b><span>${p.name || ''}</span></div>`;
+  const side = (c, p, cls, lab) => `<div class="side ${cls}"><small>${lab}</small>${discHtml(t[c] && t[c].team, t[c] && t[c].kit, 104)}<b>${TEAM[t[c] && t[c].team] ? TEAM[t[c].team].fa : ''}</b><span>${p.name ? GC.uname(p.name) : ''}</span></div>`;
   const el = document.createElement('div'); el.className = 'fb-layer fb-vs'; el.setAttribute('role', 'status');
   el.innerHTML = `<div class="band">${side(me, pm, '', WATCH ? 'میزبان' : 'تیم تو')}<span class="vs">مقابل</span>${side(opp(), po, 'op', WATCH ? 'مهمان' : 'حریف')}
-    <span class="info">تا ${FD(snap.game.target)} گل · ${isMe(e.kick) ? 'شروع با خودته آماده باش!' : 'شروع با ' + (po.name || 'حریف')}</span></div>`;
+    <span class="info">تا ${FD(snap.game.target)} گل · ${isMe(e.kick) ? 'شروع با خودته آماده باش!' : 'شروع با ' + (po.name ? GC.uname(po.name) : 'حریف')}</span></div>`;
   document.body.appendChild(el); sfx.enter();
   await sleep(2300); sfx.fb.whistle();
   await sleep(450); el.remove();
 }
 async function showGoal(e) {
   if (e.foul) {   // گل از ضربهٔ شروع بازی: خطا، امتیاز ندارد (kickoff_foul پلاتو)
-    const who = e.by === me ? 'تو' : nameOf(e.by), st = $('status');
+    const who = e.by === me ? 'تو' : nameH(e.by), st = $('status');
     if (st) { st.dataset.k = ''; st.classList.remove('mine'); st.innerHTML = `خطای ${who} چون با تک ضرب گل زد<em>این گل حساب نمی‌شه</em>`; }
     sfx.fb.whistle(); haptic('warning'); await sleep(1800); return;
   }
@@ -429,7 +430,7 @@ async function showGoal(e) {
   document.querySelectorAll('.fb-crowd').forEach(c => { c.classList.remove('cheer'); void c.offsetWidth; c.classList.add('cheer'); });
   sfx.fb.goal(); sfx.fb.roar(); haptic(scoredMe && !WATCH ? 'success' : 'warning');
   await sleep(450);
-  const t = teams[e.c] || {}, title = WATCH ? (e.own ? 'گل به خودی!' : (by.name || nameOf(e.c)) + ' گل زد') : scoredMe ? (e.own ? 'گل به خودی حریف!' : 'تو گل زدی!') : (e.own ? 'گل به خودی!' : (by.name || 'حریف') + ' گل زد');
+  const t = teams[e.c] || {}, title = WATCH ? (e.own ? 'گل به خودی!' : (by.name ? GC.uname(by.name) : nameH(e.c)) + ' گل زد') : scoredMe ? (e.own ? 'گل به خودی حریف!' : 'تو گل زدی!') : (e.own ? 'گل به خودی!' : (by.name ? GC.uname(by.name) : 'حریف') + ' گل زد');
   const el = document.createElement('div'); el.className = 'fb-layer fb-goal'; el.setAttribute('role', 'status');
   const conf = scoredMe ? Array.from({ length: 26 }, (_, i) => `<span class="fb-cf" style="left:${(i * 37) % 100}%;background:${['#F5C451', '#3D7BFF', '#FF7A85', '#3DD08E', '#fff', '#B78CFF'][i % 6]};animation-duration:${1.6 + (i % 5) * .3}s;animation-delay:${(i % 7) * .08}s"></span>`).join('') : '';
   el.innerHTML = `<span class="rays"></span>${conf}<b class="word${scoredMe ? '' : ' sad'}">گُل!</b>
@@ -517,7 +518,7 @@ async function play(e) {
   if (e.t === 'pass') { await showPass(e); return; }
   if (e.t === 'settle') { const q = cur.map(p => p.slice()); e.ids.forEach((id, j) => { q[id] = e.pos[j]; }); sfx.fb.ball(.25); await glide(q, 400); return; }
   if (e.t === 'lose') {
-    const st = $('status'); if (st) { st.dataset.k = ''; st.classList.remove('mine'); st.innerHTML = e.miss ? `${nameOf(e.c)} نوبتو از دست داد` : `${nameOf(e.c)} توپو از دست داد`; }
+    const st = $('status'); if (st) { st.dataset.k = ''; st.classList.remove('mine'); st.innerHTML = e.miss ? `${nameH(e.c)} نوبتو از دست داد` : `${nameH(e.c)} توپو از دست داد`; }
     await sleep(350); return;
   }
   if (e.t === 'goal') { await showGoal(e); return; }
@@ -591,7 +592,7 @@ function over(v) {
   if (WATCH) {
     sfx.fb.crowd(false); sfx.win();
     const g = v.game, w = g.winner, o = w === '0' ? '1' : '0';
-    return GC.watchOver('football', 'بازی تموم شد', w == null ? 'بازی بی برنده بسته شد' : `${nameOf(w)} ${FD(g.score[+w])} بر ${FD(g.score[+o])} برد`);
+    return GC.watchOver('football', 'بازی تموم شد', w == null ? 'بازی بی برنده بسته شد' : `${nameH(w)} ${FD(g.score[+w])} بر ${FD(g.score[+o])} برد`);
   }
   endChat(); closeSetup(); sfx.fb.crowd(false);
   const g = v.game, r = v.result || {}, won = !!r.won;

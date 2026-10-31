@@ -23,6 +23,7 @@ const els = { pawns: {}, walls: {} };
 const G = () => snap && snap.game;
 const isMe = c => c === me && !WATCH;
 const nameOf = c => isMe(c) ? 'تو' : (G() && G().players[c] ? G().players[c].name : 'حریف');
+const nameH = c => isMe(c) ? 'تو' : (G() && G().players[c] ? GC.uname(G().players[c].name) : 'حریف');   // برای innerHTML
 const colorOf = c => COLORS[((+c) - (+me) + 4) % 4];
 const wkey = (o, r, c) => o + r + ',' + c;
 
@@ -144,7 +145,7 @@ function renderPlayers(g) {
   box.classList.toggle('four', g.n === 4);
   box.innerHTML = order.map(s => {
     const p = g.players[s] || {}, col = colorOf(s);
-    return `<div class="dv-pl${g.turn === s ? ' on' : ''}${p.out ? ' out' : ''}" data-seat="${s}" style="--pc:${col.pc}"><span class="tm">${CLOCK}<span class="tr"><i></i></span></span>${face(p, col.pc)}<span class="tx"><span class="nm">${isMe(s) ? 'خودت' : (p.name || '').replace(/[<>&]/g, '')}</span><span class="wc"><i></i>${FD(p.walls)}</span></span></div>`;
+    return `<div class="dv-pl${g.turn === s ? ' on' : ''}${p.out ? ' out' : ''}" data-seat="${s}" style="--pc:${col.pc}"><span class="tm">${CLOCK}<span class="tr"><i></i></span></span>${face(p, col.pc)}<span class="tx"><span class="nm">${isMe(s) ? 'خودت' : GC.uname(p.name || '')}</span><span class="wc"><i></i>${FD(p.walls)}</span></span></div>`;
   }).join('');
   tickTimer();
 }
@@ -155,8 +156,8 @@ function renderStatus(g) {
   else if (g.over) t = 'پایان بازی';
   else if (!g.turn) t = '…';
   else if (isMe(g.turn)) { t = 'نوبت توئه · یه قدم برو یا دیوار بذار'; cls = 'mine'; }
-  else t = `نوبت ${nameOf(g.turn)}…`;
-  el.textContent = t; el.className = 'dv-pill' + (cls ? ' ' + cls : '');
+  else t = `نوبت ${nameH(g.turn)}…`;
+  el.innerHTML = t; el.className = 'dv-pill' + (cls ? ' ' + cls : '');
 }
 function flashMsg(t, warn) { flash = { t, warn, until: Date.now() + 2400 }; if (G()) renderStatus(G()); setTimeout(() => { if (G()) renderStatus(G()); }, 2500); }
 function renderTray(g) {
@@ -199,10 +200,10 @@ async function play(e) {
   }
   if (e.t === 'wall') {
     if (!vwalls.some(w => wkey(w[0], w[1], w[2]) === wkey(...e.w))) { vwalls.push([...e.w, e.c]); addWall([...e.w, e.c], true); sfx.enter(); }
-    if (!isMe(e.c)) flashMsg(`${nameOf(e.c)} دیوار گذاشت`);
+    if (!isMe(e.c)) flashMsg(`${nameH(e.c)} دیوار گذاشت`);
     await sleep(isMe(e.c) ? 120 : 300); return;
   }
-  if (e.t === 'timeout') { if (WATCH) return; flashMsg(isMe(e.c) ? 'وقتت تموم شد و یه قدم جات برداشتیم' : `${nameOf(e.c)} دیر کرد`, true); return; }
+  if (e.t === 'timeout') { if (WATCH) return; flashMsg(isMe(e.c) ? 'وقتت تموم شد و یه قدم جات برداشتیم' : `${nameH(e.c)} دیر کرد`, true); return; }
   if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازیو ول کرد و رفت'}${g && g.n === 4 ? ' و ربات جاش بازی می‌کنه' : ''}`); return; }
   if (e.t === 'win') { const el = els.pawns[e.c]; if (el) el.classList.add('win'); }
 }
@@ -331,7 +332,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 const TROPHY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
 function over(v) {
   const g = v.game;
-  if (WATCH) { sfx.win(); return GC.watchOver('divar', 'بازی تموم شد', g.winner == null ? 'بازی بی برنده بسته شد' : `${nameOf(g.winner)} اول رسید و برد`); }
+  if (WATCH) { sfx.win(); return GC.watchOver('divar', 'بازی تموم شد', g.winner == null ? 'بازی بی برنده بسته شد' : `${nameH(g.winner)} اول رسید و برد`); }
   chat.end();
   const r = v.result || {}, won = !!r.won;
   GC.guardClose(false); store.set('dmid', null);
@@ -340,7 +341,7 @@ function over(v) {
   const ended = g.winner == null, left = g.n === 2 && Object.values(g.players).some(p => !p.me && p.out);
   sheet(`<div class="dv-res">
       <span class="ic${won ? '' : ' lost'}">${TROPHY}</span>
-      <h2>${ended ? 'بازی تموم شد' : won ? (left ? 'حریف رفت و تو بردی!' : 'اول رسیدی و بردی!') : `${nameOf(g.winner)} زودتر رسید`}</h2>
+      <h2>${ended ? 'بازی تموم شد' : won ? (left ? 'حریف رفت و تو بردی!' : 'اول رسیدی و بردی!') : `${nameH(g.winner)} زودتر رسید`}</h2>
       ${v.cfg.mode === 'free' ? `<p>${won ? 'بازی دوستانه بود و جام و سکه نداشت ولی دمت گرم' : 'بازی دوستانه بود و چیزی از دست ندادی'}</p>` : GC.rankResult(v, ended)}
       <div class="facts"><div><b>${FD(st.moves)}</b><span>قدم</span></div><div><b>${FD(st.walls)}</b><span>دیوار گذاشتی</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت بازی</span></div></div>
     </div>

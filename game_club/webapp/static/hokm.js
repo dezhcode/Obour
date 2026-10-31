@@ -51,6 +51,7 @@ const rel = s => (+s - +me + 4) % 4;
 const teamUs = () => +me % 2;
 const P = () => (snap && snap.game ? snap.game.players : {});
 const nameOf = s => s === me && !WATCH ? 'تو' : (P()[s] ? P()[s].name : 'بازیکن');
+const nameH = s => s === me && !WATCH ? 'تو' : (P()[s] ? GC.uname(P()[s].name) : 'بازیکن');   // برای innerHTML
 const seatEl = s => s === me ? document.querySelector('#meBar .avatar') : document.querySelector(`.hk-seat[data-rel="${rel(s)}"] .avatar`);
 // جای هر برگ در توده وسط میز: کمی به سمت کسی که انداخته (بالا یار، راست نفر بعد، چپ نفر قبل، پایین خودم)
 const SLOT = { 2: [71, 26, -5], 3: [36, 64, -13], 1: [106, 60, 13], 0: [72, 104, 4] };
@@ -89,7 +90,7 @@ function renderSeats(g) {
     el.dataset.seat = s;
     el.classList.toggle('out', !!p.out);
     el.innerHTML = `${hk ? `<span class="hk-crown" title="حاکم">${svgP(CROWN, '#3A2A00')}</span>` : ''}${face(p, turn ? 'var(--gold)' : partner ? '#9BE3B8' : '#FFFFFF', turn ? 'timer' : '')}
-      <b>${p.name}</b><em class="${hk ? 'hk' : ''}">${[partner && !WATCH ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جاشه' : FD(p.count) + ' برگ'].filter(Boolean).join(' · ')}</em>${fanHtml(p.count, rel(s))}`;
+      <b>${GC.uname(p.name)}</b><em class="${hk ? 'hk' : ''}">${[partner && !WATCH ? 'یار تو' : '', hk ? 'حاکم' : '', p.out ? 'ربات جاشه' : FD(p.count) + ' برگ'].filter(Boolean).join(' · ')}</em>${fanHtml(p.count, rel(s))}`;
     painted(el);
   }
 }
@@ -140,7 +141,7 @@ function renderPick(g) {
     pile.innerHTML = `<div class="hk-choosing" data-h="${g.hakem}" role="status">
       <div class="hk-orbit"><span class="ring">${[0, 1, 2, 3].map(k => `<span class="o${k}">${suitSvg(k)}</span>`).join('')}</span>
         <span class="who">${face(hp, '#F5C451')}<i class="cr">${svgP(CROWN, '#3A2A00')}</i></span></div>
-      <b>${nameOf(g.hakem)} داره حکم می‌کنه<span class="hk-dots"></span></b>
+      <b>${nameH(g.hakem)} داره حکم می‌کنه<span class="hk-dots"></span></b>
       <small>${WATCH ? 'حاکم' : hp.team === teamUs() ? 'یارت' : 'حریف'} از رو پنج برگ اولش خال حکمو انتخاب می‌کنه</small></div>`;
     return;
   }
@@ -202,12 +203,12 @@ function renderMe(g) {
   const p = g.players[me], mine = g.turn === me && !WATCH, hakemMe = g.hakem === me && !WATCH;
   let t, sub = '';
   if (g.over) t = 'بازی تموم شد';
-  else if (g.phase === 'trump') { t = hakemMe ? 'تو حاکمی' : 'حاکم ' + nameOf(g.hakem); sub = hakemMe ? 'حکمو انتخاب کن' : 'منتظریم حکمو انتخاب کنه'; }
+  else if (g.phase === 'trump') { t = hakemMe ? 'تو حاکمی' : 'حاکم ' + nameH(g.hakem); sub = hakemMe ? 'حکمو انتخاب کن' : 'منتظریم حکمو انتخاب کنه'; }
   else if (g.phase === 'play' && mine) {
     t = 'نوبت توئه';
     if (g.led == null) sub = 'دورو تو شروع کن';
     else { const has = (g.hand || []).some(c => suit(c) === g.led); sub = `${SUIT_FA[g.led]} اومده و ` + (has ? `باید ${SUIT_FA[g.led]} بیاری` : `${SUIT_FA[g.led]} نداری پس حکم یا هر برگی`); }
-  } else if (g.phase === 'play') { const q = g.players[g.turn] || {}; t = 'نوبت ' + nameOf(g.turn); sub = q.bot || q.out ? 'ربات داره فکر می‌کنه…' : 'منتظریم بازی کنه…'; }
+  } else if (g.phase === 'play') { const q = g.players[g.turn] || {}; t = 'نوبت ' + nameH(g.turn); sub = q.bot || q.out ? 'ربات داره فکر می‌کنه…' : 'منتظریم بازی کنه…'; }
   else if (g.phase === 'collect') { t = 'دور تموم شد'; }
   else { t = 'دست بعد…'; sub = 'ورقا دارن بُر می‌خورن'; }
   const timer = (mine && g.phase === 'play') || (g.phase === 'trump' && hakemMe);
@@ -393,7 +394,7 @@ async function dealAnim(rounds, first) {
 async function trumpReveal(s, c) {
   const pile = $('pile'), k = pileScale();
   pile.innerHTML = `<div class="hk-reveal" role="status"><span class="rays"></span><span class="big" id="bigDisc">${suitSvg(s)}</span>
-    <b>حکم ${SUIT_FA[s]}</b><small>${c === me ? 'تو حکم کردی' : (nameOf(c) + ' حکم کرد')}</small></div>`;
+    <b>حکم ${SUIT_FA[s]}</b><small>${c === me ? 'تو حکم کردی' : (nameH(c) + ' حکم کرد')}</small></div>`;
   const big = $('bigDisc'), from = seatEl(c);
   bar(`حکم ${SUIT_FA[s]}`, 'هشت برگ بعدی داره پخش می‌شه…', c);
   sfx.card.trump(); haptic('success');
@@ -448,7 +449,7 @@ function crownStage(s, kick, sub) {
   const p = P()[s] || {};
   return pileEl(`<div class="hk-stage" role="status"><div class="hk-crowned">${kick ? `<span class="kick">${kick}</span>` : ''}
     <span class="who">${face(p, '#F5C451')}<i class="cr">${svgP(CROWN, '#3A2A00')}</i></span>
-    <b>${s === me ? 'تو حاکم شدی!' : nameOf(s) + ' حاکم شد'}</b>${sub ? `<small>${sub}</small>` : ''}</div></div>`);
+    <b>${s === me ? 'تو حاکم شدی!' : nameH(s) + ' حاکم شد'}</b>${sub ? `<small>${sub}</small>` : ''}</div></div>`);
 }
 async function crownTo(s, from) {
   const t = seatEl(s); if (!t) return;
@@ -483,7 +484,7 @@ async function aceDraw(e) {
   const deck = $('pile').querySelector('.deck'); if (deck) deck.remove();
   last.classList.add('ace'); last.style.zIndex = 40;
   sfx.card.trump(); haptic('success');
-  bar(e.c === me ? 'آس اومد و تو حاکمی!' : 'آس اومد!', `آس ${SUIT_FA[suit(last.dataset.card)]} برای ${nameOf(e.c)}`);
+  bar(e.c === me ? 'آس اومد و تو حاکمی!' : 'آس اومد!', `آس ${SUIT_FA[suit(last.dataset.card)]} برای ${nameH(e.c)}`);
   await sleep(650);
   crownStage(e.c, 'اولین آس', `آس ${SUIT_FA[suit(+last.dataset.card)]}`);
   await sleep(1100);
@@ -496,7 +497,7 @@ async function hakemAnnounce(e) {
   const kept = e.prev != null && e.prev === e.c, moved = e.prev != null && e.prev !== e.c;
   bar(`دست ${FD((e.hand || 0) + 1)}`, kept ? 'تیم حاکم برد و حاکم همون می‌مونه' : moved ? 'تیم حاکم باخت و حکم رسید به نفر بعدی' : 'حاکم این دست');
   sfx.turn();
-  crownStage(e.c, `دست ${FD((e.hand || 0) + 1)}`, kept ? 'باز هم حاکمه' : moved ? `حاکمی از ${nameOf(e.prev)} رسید بهش` : '');
+  crownStage(e.c, `دست ${FD((e.hand || 0) + 1)}`, kept ? 'باز هم حاکمه' : moved ? `حاکمی از ${nameH(e.prev)} رسید بهش` : '');
   await sleep(1250);
   await crownTo(e.c, moved ? seatEl(e.prev) : $('pile'));
   $('pile').innerHTML = '';
@@ -519,7 +520,7 @@ async function play(e) {
     pileShown = []; handShown = [];
     $('hand').innerHTML = ''; $('pile').innerHTML = '';
     renderSeats(Object.assign({}, g, { hakem: e.hakem, turn: null }));
-    bar(e.hakem === me ? 'تو حاکمی' : 'حاکم: ' + nameOf(e.hakem), 'پنج برگ اول داره پخش می‌شه…');
+    bar(e.hakem === me ? 'تو حاکمی' : 'حاکم: ' + nameH(e.hakem), 'پنج برگ اول داره پخش می‌شه…');
     await dealAnim(5, true);
     return;
   }
@@ -603,7 +604,7 @@ async function handResult(e) {
       <h2>${won ? 'این دست مال شما شد' : 'این دستو باختین'}</h2>${kot}
       <div class="hk-tricks"><div><b>${FD(e.tricks[us])}</b><span>دست ما</span></div><div><b>${FD(e.tricks[1 - us])}</b><span>دست حریف</span></div></div>
       ${bars(e.score, g.target)}
-      <p>حاکم دست بعد <b>${nameOf(nh)}</b></p></div>`, { center: true, dismiss: false });
+      <p>حاکم دست بعد <b>${nameH(nh)}</b></p></div>`, { center: true, dismiss: false });
   await sleep(3000);
   GC.close();
 }
@@ -626,7 +627,7 @@ function showLast() {
   lastEl.innerHTML = '<span class="t">دست قبل</span>' + lt.cards.map(([seat, c], i) => {
     const s = String(seat), [x, y] = AT[rel(s)];
     return `<div class="slot${s === w ? ' win' : ''}" style="left:calc(50% + ${x}px);top:calc(50% + ${y}px)">${cardHtml(+c, '', `position:relative;font-size:${fs}px`)}`
-      + `<b><i class="no">${FD(i + 1)}</i><span>${esc(nameOf(s))}</span></b>${s === w ? `<i class="cr">${svgP(CROWN)}</i>` : ''}</div>`;
+      + `<b><i class="no">${FD(i + 1)}</i><span>${nameH(s)}</span></b>${s === w ? `<i class="cr">${svgP(CROWN)}</i>` : ''}</div>`;
   }).join('');
   $('center').appendChild(lastEl);
   sfx.card.flip(); haptic('light');
@@ -771,7 +772,7 @@ function confetti(n = 34) {
 }
 function watchEnd(v) {
   const g = v.game, P = g.players || {}, t = g.winner;
-  const names = k => g.order.filter(s => (P[s] || {}).team === k).map(s => P[s].name).join(' و ');
+  const names = k => g.order.filter(s => (P[s] || {}).team === k).map(s => GC.uname(P[s].name)).join(' و ');
   sfx.win();
   GC.watchOver('hokm', 'بازی تموم شد', t == null ? 'بازی قبل از رسیدن به امتیاز آخر بسته شد'
     : `${names(+t % 2)} ${FD(g.score[+t % 2])} بر ${FD(g.score[1 - +t % 2])} بردن`);
@@ -789,7 +790,7 @@ function over(v) {
   const kind = ended ? 'draw' : won ? 'win' : 'lose';
   const title = ended ? 'بازی تموم شد' : won ? (oppsLeft ? 'حریفا رفتن و شما بردین!' : 'بردین!') : 'این بار نشد';
   const line = ended ? 'بازی قبل از رسیدن به امتیاز آخر بسته شد'
-    : won ? `تو و ${pa.name || 'یارت'} ${FD(mine)} بر ${FD(theirs)} بردین` : `${o1.name || 'حریف'} و ${o2.name || 'یارش'} ${FD(theirs)} بر ${FD(mine)} بردن`;
+    : won ? `تو و ${pa.name ? GC.uname(pa.name) : 'یارت'} ${FD(mine)} بر ${FD(theirs)} بردین` : `${o1.name ? GC.uname(o1.name) : 'حریف'} و ${o2.name ? GC.uname(o2.name) : 'یارش'} ${FD(theirs)} بر ${FD(mine)} بردن`;
   const team = (cls, a, b, names, score, win) => `<div class="e-tm ${cls}${win ? ' e-won' : ''}">
       ${win ? `<span class="e-rib">${svgP(CROWN)}برنده</span>` : ''}
       <span class="e-duo">${face(a, cls === 'us' ? '#9BE3B8' : 'var(--surface)')}${face(b, cls === 'us' ? '#9BE3B8' : 'var(--surface)')}</span>
@@ -811,9 +812,9 @@ function over(v) {
         <h1 id="endT">${title}</h1><p>${line}</p>
       </div>
       <div class="e-teams">
-        ${team('us', Object.assign({}, P[me], { name: 'خودت' }), pa, `تو و ${pa.name || 'یار'}`, mine, !ended && won)}
+        ${team('us', Object.assign({}, P[me], { name: 'خودت' }), pa, `تو و ${pa.name ? GC.uname(pa.name) : 'یار'}`, mine, !ended && won)}
         <span class="e-vs">به</span>
-        ${team('them', o1, o2, `${o1.name || 'حریف'} و ${o2.name || 'حریف'}`, theirs, !ended && !won)}
+        ${team('them', o1, o2, `${o1.name ? GC.uname(o1.name) : 'حریف'} و ${o2.name ? GC.uname(o2.name) : 'حریف'}`, theirs, !ended && !won)}
       </div>
       ${reward}
       <div class="e-stats">
@@ -859,7 +860,7 @@ function askExit() {
       <span class="x-grab" aria-hidden="true"></span>
       <div class="x-swap" aria-hidden="true">${face(Object.assign({}, P[me], { name: 'خودت' }), '#9BE3B8')}<span class="x-arr"><i></i><i></i><i></i></span>${face({ bot: true, av: 9 }, 'var(--gold)')}</div>
       <h2 id="exT">می‌خوای بری؟</h2>
-      <p id="exD">اگه بری ربات جات کنار ${pa.name || 'یارت'} بازی می‌کنه</p>
+      <p id="exD">اگه بری ربات جات کنار ${pa.name ? GC.uname(pa.name) : 'یارت'} بازی می‌کنه</p>
       <div class="x-opts">
         <button class="x-opt" id="exHome"><span class="x-ic">${icon('home')}</span><span><b>فعلاً برو خونه</b><small>سر میز می‌مونی و از صفحهٔ خونه با یه لمس برمی‌گردی</small></span></button>
         <button class="x-opt x-bad" id="exLeave"><span class="x-ic">${icon('exit')}</span><span><b>ترک بازی</b><small>${stake ? 'بازی رتبه‌ایه و رفتنت یعنی باخت و کم شدن جام' : 'بازی دوستانه‌ست و چیزی از دست نمی‌دی'}</small></span></button>

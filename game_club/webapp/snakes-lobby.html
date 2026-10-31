@@ -54,7 +54,7 @@
 
   // هر کس برای خودش؛ رنگ صندلی ها همان رنگ مهره ها (زرد، آبی، قرمز، سبز)
   const COL = ['#FFC531', '#4C8DFF', '#FF5A6A', '#2FC584'];
-  const one = (p, lab, k) => p ? `<div class="seatw">${face(p, COL[k])}${p.name}<small class="muted" style="font-size:11.5px">${lab}</small></div>` : `<div class="seatw"><span class="wait">؟</span>${lab}</div>`;
+  const one = (p, lab, k) => p ? `<div class="seatw">${face(p, COL[k])}${GC.uname(p.name)}<small class="muted" style="font-size:11.5px">${lab}</small></div>` : `<div class="seatw"><span class="wait">؟</span>${lab}</div>`;
   const seatsHtml = (list, n) => `<div class="seatline">${one(list[0], 'تو', 0)}<b class="vs">مقابل</b>${list.slice(1, n).map((p, i) => one(p, 'حریف', i + 1)).join('')}</div>`;
   async function go(mid) {
     token = null; store.set('snmid', mid);

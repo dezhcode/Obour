@@ -27,6 +27,7 @@ const vpos = {}, els = {}, moving = new Set();
 const G = () => snap && snap.game;
 const isMe = c => c === me && !WATCH;
 const nameOf = c => isMe(c) ? 'تو' : (G() && G().players[c] ? G().players[c].name : 'حریف');
+const nameH = c => isMe(c) ? 'تو' : (G() && G().players[c] ? GC.uname(G().players[c].name) : 'حریف');   // برای innerHTML
 
 /* ---------- صفحه و مهره ها ---------- */
 const cs = () => W / 10;
@@ -132,7 +133,7 @@ function renderSeats(g) {
   box.innerHTML = g.order.map(s => {
     const p = g.players[s], on = (animC != null ? animC : g.turn) === s && !g.over;
     return `<div class="sn-seat${on ? ' on' : ''}${p.out ? ' out' : ''}" data-s="${s}" style="--pc:${COL[s]}"><span class="tm"><i></i></span>${isMe(s) ? '<span class="me">تو</span>' : ''}
-      ${face(p, COL[s])}<span class="nm">${isMe(s) ? 'خودت' : String(p.name || '').replace(/[<>&]/g, '')}</span><span class="ps">خونهٔ ${FD(vpos[s] || p.pos)}</span>
+      ${face(p, COL[s])}<span class="nm">${isMe(s) ? 'خودت' : GC.uname(p.name || '')}</span><span class="ps">خونهٔ ${FD(vpos[s] || p.pos)}</span>
       <span class="pb"><i style="transform:scaleX(${((vpos[s] || p.pos) / 100).toFixed(3)})"></i></span></div>`;
   }).join('');
   for (const s of g.order) if (els[s]) { els[s].classList.toggle('turn', (animC != null ? animC : g.turn) === s && !g.over); els[s].classList.toggle('win', g.over && g.winner === s); }
@@ -145,10 +146,10 @@ function renderDock(g) {
   die.disabled = !mine; die.classList.toggle('ask', mine);
   const t = $('dt'), sub = $('ds');
   t.classList.toggle('mine', myTurn);
-  if (animC != null && !g.over) { t.classList.toggle('mine', isMe(animC)); t.textContent = isMe(animC) ? 'تاس تو' : `نوبت ${nameOf(animC)}`; sub.textContent = 'مهره داره می‌ره…'; }
-  else if (g.over) { t.textContent = g.winner != null ? `${nameOf(g.winner)} برد!` : 'بازی تموم شد'; sub.textContent = ''; }
+  if (animC != null && !g.over) { t.classList.toggle('mine', isMe(animC)); t.innerHTML = isMe(animC) ? 'تاس تو' : `نوبت ${nameH(animC)}`; sub.textContent = 'مهره داره می‌ره…'; }
+  else if (g.over) { t.innerHTML = g.winner != null ? `${nameH(g.winner)} برد!` : 'بازی تموم شد'; sub.textContent = ''; }
   else if (myTurn) { t.textContent = g.bonus ? 'باز نوبت توئه!' : 'نوبت توئه'; sub.textContent = mine ? 'روی تاس بزن تا بریزه' : 'یه لحظه…'; }
-  else if (g.turn) { t.textContent = `نوبت ${nameOf(g.turn)}`; sub.textContent = g.players[g.turn].bot || g.players[g.turn].out ? 'داره تاس می‌ریزه…' : 'منتظر تاسشیم…'; }
+  else if (g.turn) { t.innerHTML = `نوبت ${nameH(g.turn)}`; sub.textContent = g.players[g.turn].bot || g.players[g.turn].out ? 'داره تاس می‌ریزه…' : 'منتظر تاسشیم…'; }
   clearTimeout(readyT);
   if (myTurn && !mine && !busy && !acting && readyAt > Date.now()) readyT = setTimeout(() => G() && renderDock(G()), readyAt - Date.now() + 30);
 }
@@ -179,7 +180,7 @@ async function play(e) {
   if (e.t === 'turn') { if (isMe(e.c) && G() && !G().over) { sfx.turn(); haptic('light'); } return; }
   if (e.t === 'timeout') { if (isMe(e.c)) feed('وقتت تموم شد و خودمون جات تاس ریختیم', 'bad'); return; }
   if (e.t === 'leave' && !isMe(e.c)) { toast(`${nameOf(e.c)} ${e.why === 'timeout' ? 'غایب بود' : 'بازیو ول کرد و رفت'}${g && g.n > 2 ? ' و ربات جاش تاس می‌ریزه' : ''}`); return; }
-  if (e.t === 'win') { if (els[e.c]) els[e.c].classList.add('win'); pop('six', isMe(e.c) ? 'رسیدی به ۱۰۰!' : `${nameOf(e.c)} رسید به ۱۰۰`, null, null, 1600); }
+  if (e.t === 'win') { if (els[e.c]) els[e.c].classList.add('win'); pop('six', isMe(e.c) ? 'رسیدی به ۱۰۰!' : `${nameH(e.c)} رسید به ۱۰۰`, null, null, 1600); }
 }
 async function showRoll(e, g) {
   {
@@ -201,11 +202,11 @@ async function showRoll(e, g) {
         await sleep(120); target(0);
         if (e.via === 'ladder') {
           sfx.ladder(); if (mine) haptic('success');
-          pop('ladder', mine ? 'یوهو! رفتی بالا' : `${who} از نردبون رفت بالا`, e.mid, e.to);
+          pop('ladder', mine ? 'یوهو! رفتی بالا' : `${nameH(e.c)} از نردبون رفت بالا`, e.mid, e.to);
           feed(mine ? `با نردبون از ${FD(e.mid)} رفتی ${FD(e.to)}` : `${who} با نردبون از ${FD(e.mid)} رفت ${FD(e.to)}`, 'good');
         } else {
           sfx.snake(); if (mine) { haptic('error'); const b = $('board'); b.classList.remove('hurt'); void b.offsetWidth; b.classList.add('hurt'); }
-          pop('snake', mine ? 'آخ! مار نیشت زد' : `${who} رو مار نیش زد`, e.mid, e.to);
+          pop('snake', mine ? 'آخ! مار نیشت زد' : `${nameH(e.c)} رو مار نیش زد`, e.mid, e.to);
           feed(mine ? `مار از ${FD(e.mid)} پایینت آورد ${FD(e.to)}` : `مار ${who} رو از ${FD(e.mid)} آورد ${FD(e.to)}`, 'bad');
         }
         await slide(e.c, e.mid, e.to, e.via);
@@ -280,17 +281,17 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) poll
 /* ---------- پایان، خروج ---------- */
 function over(v) {
   const g = v.game;
-  if (WATCH) { sfx.win(); return GC.watchOver('snakes', 'بازی تموم شد', g.winner == null ? 'بازی بی برنده بسته شد' : `${nameOf(g.winner)} اول رسید ۱۰۰ و برد`); }
+  if (WATCH) { sfx.win(); return GC.watchOver('snakes', 'بازی تموم شد', g.winner == null ? 'بازی بی برنده بسته شد' : `${nameH(g.winner)} اول رسید ۱۰۰ و برد`); }
   chat.end(); $('chatBtn').hidden = true;
   const r = v.result || {}, won = !!r.won;
   GC.guardClose(false); store.set('snmid', null);
   won ? (sfx.win(), haptic('success')) : (sfx.lose(), haptic('warning'));
   const secs = Math.max(0, Math.round(Date.now() / 1000 - g.started)), st = g.stats || { rolls: 0, ladders: 0, snakes: 0 };
   const ended = g.winner == null, left = g.n === 2 && Object.values(g.players).some(p => !p.me && p.out);
-  const rank = (g.ranking || g.order).map((s, i) => `<div class="${s === g.winner ? 'w' : ''}" style="--pc:${COL[s]}"><b class="k">${FD(i + 1)}</b><i></i><span>${isMe(s) ? 'خودت' : String(g.players[s].name || '').replace(/[<>&]/g, '')}</span><small>خونهٔ ${FD(g.players[s].pos)}</small></div>`).join('');
+  const rank = (g.ranking || g.order).map((s, i) => `<div class="${s === g.winner ? 'w' : ''}" style="--pc:${COL[s]}"><b class="k">${FD(i + 1)}</b><i></i><span>${isMe(s) ? 'خودت' : GC.uname(g.players[s].name || '')}</span><small>خونهٔ ${FD(g.players[s].pos)}</small></div>`).join('');
   sheet(`<div class="sn-res">
       <span class="ic${won ? '' : ' lost'}">${SVG.trophy}</span>
-      <h2>${ended ? 'بازی تموم شد' : won ? (left ? 'حریف رفت و تو بردی!' : 'برنده شدی!') : `${nameOf(g.winner)} زودتر رسید`}</h2>
+      <h2>${ended ? 'بازی تموم شد' : won ? (left ? 'حریف رفت و تو بردی!' : 'برنده شدی!') : `${nameH(g.winner)} زودتر رسید`}</h2>
       ${v.cfg.mode === 'free' ? `<p>${won ? 'اولین نفری بودی که دقیقاً رسید ۱۰۰ دمت گرم' : 'بازی دوستانه بود و چیزی از دست ندادی'}</p>` : GC.rankResult(v, ended)}
       <div class="sn-rank">${rank}</div>
       <div class="facts"><div><b>${FD(st.rolls)}</b><span>بار تاس</span></div><div><b>${FD(st.ladders)}</b><span>نردبون</span></div><div><b>${FD(st.snakes)}</b><span>نیش مار</span></div><div><b>${FD(Math.floor(secs / 60))}:${FD(String(secs % 60).padStart(2, '0'))}</b><span>مدت</span></div></div>

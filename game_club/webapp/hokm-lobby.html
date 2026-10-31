@@ -88,7 +88,7 @@
   const render = () => { if (gp) gp.refresh(); };
 
   // صندلی ها به ترتیب: تو، یارت، دو حریف
-  const seatsHtml = list => `<div class="seatline">${list.map((p, i) => p ? `<div class="seatw">${face(p, i < 2 ? '#F5C451' : 'var(--sky)')}${p.name}<small class="muted" style="font-size:11.5px">${i === 0 ? 'تو' : i === 1 ? 'یار' : 'حریف'}</small></div>` : `<div class="seatw"><span class="wait">؟</span>${i === 1 ? 'یار' : 'حریف'}</div>`).join('')}</div>`;
+  const seatsHtml = list => `<div class="seatline">${list.map((p, i) => p ? `<div class="seatw">${face(p, i < 2 ? '#F5C451' : 'var(--sky)')}${GC.uname(p.name)}<small class="muted" style="font-size:11.5px">${i === 0 ? 'تو' : i === 1 ? 'یار' : 'حریف'}</small></div>` : `<div class="seatw"><span class="wait">؟</span>${i === 1 ? 'یار' : 'حریف'}</div>`).join('')}</div>`;
   async function go(mid) {
     token = null; store.set('hmid', mid);
     for (let n = 3; n >= 1; n--) {

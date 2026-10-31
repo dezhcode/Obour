@@ -44,7 +44,9 @@ function paintBars() {
   const game = document.body.matches('.game,.hokm,.divar,.football,.billiard,.snakes'), night = document.documentElement.dataset.theme === 'dark';
   const paper = document.body.matches('.esm');   // اسم‌فامیل: برگ دفتر، همیشه روشن
   const desk = document.body.matches('.lashgar');   // لشگر کاغذی: میز چوبی مدرسه
-  const top = desk ? '#8E5F38' : paper ? '#EFE6D2' : game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8';
+  // پروفایل: تا قاب شب بالای صفحه دیده می شود (بخش های پنهان offsetParent ندارند)
+  const hero = [...document.querySelectorAll('.pf-hero:not(.lid-off)')].some(h => h.offsetParent);
+  const top = hero ? '#14213D' : desk ? '#8E5F38' : paper ? '#EFE6D2' : game ? '#0C1915' : night ? '#0F1218' : '#F4F5F8';
   const bottom = desk ? '#7E5230' : paper ? '#FFFCF2' : game ? '#08120F' : night ? '#181C24' : '#FFFFFF';
   if (APP) { APP.bars(top); return; }
   try { tg.setHeaderColor(top); tg.setBackgroundColor(top); } catch (e) {}
@@ -565,6 +567,8 @@ const avatarEl = (seed, ring, extra = '') => `<span class="avatar ${extra}" styl
 // رنگ های سیر تا حرف سفید روی آن ها خوانا باشد (کنتراست ≥ ۴.۵)
 const FACE_BG = ['#5B4BC4', '#2563C9', '#C2414E', '#1A7A53', '#A6560F', '#147C8C', '#A8407E'];
 const escAttr = v => String(v || '').replace(/[&"'<>]/g, ch => ({ '&': '&amp;', '"': '&quot;', "'": '&#39;', '<': '&lt;', '>': '&gt;' }[ch]));
+// یوزرنیم داخل متن ها: جدا از جهت جمله و همیشه با فونت پیدا (.uname در gc.css)
+const uname = n => `<bdi class="uname">${escAttr(n)}</bdi>`;
 function initial(name) { const m = String(name || '').trim().match(/[\p{L}\p{N}]/u); return m ? m[0].toUpperCase() : '؟'; }
 function face(p, ring, extra = '') {
   p = p || {};
@@ -1323,6 +1327,7 @@ async function showView(name, push = true) {
   const v = views[name];
   Object.values(views).forEach(x => { x.el.hidden = x !== v; });
   scrollTo(0, v.scroll);
+  paintBars();
   if (!reduced()) v.el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: EASE });
   document.title = v.title;
   applyBack(v.back);
@@ -1438,7 +1443,7 @@ function watchOver(game, title, line) {
 const RATE = 500; // هر سکه چند تومان (نمونه)
 document.documentElement.lang = 'fa'; document.documentElement.dir = 'rtl';
 
-window.GC = { editName, login, logoutSheet, dailyMount, pushHelp, pushHelpOk, iapBuy, iapRestore, iapReady, esc: escB, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
+window.GC = { paintBars, uname, editName, login, logoutSheet, dailyMount, pushHelp, pushHelpOk, iapBuy, iapRestore, iapReady, esc: escB, nameProblem, normName, tg, live, app: APP, back, haptic, guardClose, portrait, openLink, startParam, api, errText, idem, refreshMe,
   get data() { return live ? liveData : GC.demo.data; }, get ludo() { return live ? liveLudo : GC.demo.ludo; },
   get hokm() { return live ? liveHokm : GC.demo.hokm; }, get football() { return live ? liveFootball : GC.demo.football; },
   get billiard() { return live ? liveBilliard : GC.demo.billiard; }, get divar() { return live ? liveDivar : GC.demo.divar; }, get snakes() { return live ? liveSnakes : GC.demo.snakes; }, esm: liveEsm, lashgar: liveLashgar, loadSamples,
