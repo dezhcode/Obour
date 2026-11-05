@@ -22,7 +22,7 @@ from app.config import config
 
 # زیرمسیر مینی اپ نسبت به ریشه اپ. آدرس نهایی که در BotFather ثبت
 # می شود: WEBHOOK_BASE_URL + WEBAPP_PATH  مثلا:
-#   https://dezhcode.pyho.ir/obour/app
+#   https://asotaasgo.com/obour/app
 WEBAPP_PATH = "/" + (os.getenv("WEBAPP_PATH", "").strip().strip("/") or "app")
 
 

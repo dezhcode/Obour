@@ -51,7 +51,7 @@ python check_marketapp.py --user YOUR_USERNAME [--channel CHANNEL] [--ads LINK] 
 یا از مرورگر (کل گزارش به صورت یک فایل `.txt` دانلود می‌شود):
 
 ```
-https://dezhcode.pyho.ir/obour/marketapp-check?key=ADMIN_KEY&user=USERNAME&channel=CHANNEL
+https://asotaasgo.com/obour/marketapp-check?key=ADMIN_KEY&user=USERNAME&channel=CHANNEL
 ```
 
 توکن از `MARKETAPP_TOKEN` در `.env` هاست؛ اگر نبود از پارامتر `mt=` (در access log هاست می‌ماند، پس فقط

@@ -1,6 +1,6 @@
 # راهنمای دپلوی Obour روی هاست سی پنل
 
-آدرس هدف: `https://dezhcode.pyho.ir/obour`
+آدرس هدف: `https://asotaasgo.com/obour`
 
 ---
 
@@ -31,7 +31,7 @@
 |---|---|
 | Python version | بالاترین نسخه موجود، حداقل `3.10` |
 | Application root | `obour_app` |
-| Application URL | دامنه `dezhcode.pyho.ir` و در کادر مسیر بنویس `obour` |
+| Application URL | دامنه `asotaasgo.com` و در کادر مسیر بنویس `obour` |
 | Application startup file | `passenger_wsgi.py` |
 | Application entry point | `application` |
 
@@ -190,7 +190,7 @@ BOT_TOKEN=توکنی که BotFather داده
 ADMIN_IDS=آیدی عددی خودت از @userinfobot
 
 WEBHOOK_MODE=true
-WEBHOOK_BASE_URL=https://dezhcode.pyho.ir/obour
+WEBHOOK_BASE_URL=https://asotaasgo.com/obour
 WEBHOOK_PATH=/tg/همان رشته تصادفی دوم
 WEBHOOK_SECRET=همان رشته تصادفی اول
 
@@ -204,7 +204,7 @@ PANEL_GROUP_ID=all
 
 > `WEBHOOK_BASE_URL` باید دقیقا شامل `/obour` باشد، چون اپ روی زیرمسیر
 > سوار شده. آدرس نهایی وبهوک می شود:
-> `https://dezhcode.pyho.ir/obour/tg/<رشته تصادفی>`
+> `https://asotaasgo.com/obour/tg/<رشته تصادفی>`
 
 ---
 
@@ -259,7 +259,7 @@ python check_setup.py
 در مرورگر باز کن:
 
 ```
-https://dezhcode.pyho.ir/obour/health
+https://asotaasgo.com/obour/health
 ```
 
 باید بنویسد `obour: ok`.
@@ -278,7 +278,7 @@ python manage_webhook.py set
 `WEBHOOK_SECRET` را بگذار):
 
 ```
-https://dezhcode.pyho.ir/obour/setwebhook?key=SECRET
+https://asotaasgo.com/obour/setwebhook?key=SECRET
 ```
 
 برای دیدن وضعیت:
@@ -287,7 +287,7 @@ https://dezhcode.pyho.ir/obour/setwebhook?key=SECRET
 python manage_webhook.py info
 ```
 
-یا در مرورگر: `https://dezhcode.pyho.ir/obour/status?key=SECRET`
+یا در مرورگر: `https://asotaasgo.com/obour/status?key=SECRET`
 
 در خروجی `pending_updates` باید صفر باشد و `last_error` خالی.
 
@@ -323,7 +323,7 @@ python manage_webhook.py info
 **ب) گرم نگه داشتن اپ — هر ۵ دقیقه** (`*/5 * * * *`):
 
 ```
-curl -s https://dezhcode.pyho.ir/obour/health >/dev/null 2>&1
+curl -s https://asotaasgo.com/obour/health >/dev/null 2>&1
 ```
 
 مورد ب باعث می شود پسنجر پروسه را نخواباند و اولین پیام کاربر با تاخیر
@@ -370,20 +370,20 @@ OBOUR_REPO=https://<TOKEN>@github.com/dezhcode/Obour.git bash update.sh
 
 - خاموش/روشن و دیدن نرخ ها: پنل ربات ← تنظیمات ← «📈 نرخ بازار (tgju)»، یا
   مینی اپ ← پنل مدیریت ← تنظیمات.
-- API عمومی خود اپ: `https://dezhcode.pyho.ir/obour/rates` (JSON، تومان).
+- API عمومی خود اپ: `https://asotaasgo.com/obour/rates` (JSON، تومان).
 - بررسی روی سرور: `python check_tgju.py` (نرخ ها و کلیدهای tgju را نشان می دهد).
 
 ---
 
 ## دستیار هوش مصنوعی (وب سرویس dezhcode)
 
-بخش های هوشمند ربات و مینی اپ از وب سرویس https://dezhcode.pyho.ir استفاده می کنند.
+بخش های هوشمند ربات و مینی اپ از وب سرویس https://asotaasgo.com استفاده می کنند.
 فقط کلید را در فایل `.env` هاست بگذار (هیچ جا کامیت یا ارسالش نکن):
 
 ```
 AI_API_KEY=کلید_وب_سرویس
 # اختیاری
-AI_BASE_URL=https://dezhcode.pyho.ir
+AI_BASE_URL=https://asotaasgo.com
 AI_TIMEOUT=38
 ```
 
@@ -443,7 +443,7 @@ bash ai_key.sh --service ~/easysaz-api
 لاگ خطا را ببین:
 
 ```bash
-tail -50 ~/logs/dezhcode.pyho.ir.error.log
+tail -50 ~/logs/asotaasgo.com.error.log
 tail -50 /home/USERNAME/obour_app/logs/obour.log
 ```
 
@@ -488,7 +488,7 @@ python manage_webhook.py info
 ```
 
 - `last_error` بگوید `SSL error` -> گواهی دامنه معتبر نیست، از سی پنل
-  AutoSSL را برای `dezhcode.pyho.ir` اجرا کن.
+  AutoSSL را برای `asotaasgo.com` اجرا کن.
 - `last_error` بگوید `404` یا `Wrong response` -> `WEBHOOK_PATH` در
   `.env` با آدرس ثبت شده فرق دارد. `manage_webhook.py set` را دوباره بزن.
 - `pending_updates` عدد بزرگی باشد و بالا برود -> اپ بالا نمی آید،

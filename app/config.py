@@ -204,7 +204,7 @@ class Config:
     # کلید فقط در .env می ماند. بدون کلید همه بخش های هوشمند خاموش اند و
     # ربات مثل قبل کار می کند.
     ai_api_key: str = os.getenv("AI_API_KEY", "").strip()
-    ai_base_url: str = (os.getenv("AI_BASE_URL", "").strip().rstrip("/") or "https://dezhcode.pyho.ir")
+    ai_base_url: str = (os.getenv("AI_BASE_URL", "").strip().rstrip("/") or "https://asotaasgo.com")
     # سقف انتظار برای جواب در ربات (ثانیه). وبهوک ۵۰ ثانیه وقت دارد،
     # پس بیشتر از ۴۰ نگذار.
     ai_timeout: float = float(os.getenv("AI_TIMEOUT", "38") or 38)

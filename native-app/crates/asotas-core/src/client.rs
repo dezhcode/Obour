@@ -148,7 +148,7 @@ impl Client {
 
 #[uniffi::export]
 impl Client {
-    /// `base_url` آدرس سرور با / آخر (مثل https://dezhcode.pyho.ir/obour/gc/)،
+    /// `base_url` آدرس سرور با / آخر (مثل https://asotaasgo.com/obour/gc/)،
     /// `data_dir` پوشهٔ خصوصی برنامه، `device` اسم گوشی برای فهرست نشست ها
     #[uniffi::constructor]
     pub fn new(base_url: String, data_dir: String, device: String) -> Arc<Self> {

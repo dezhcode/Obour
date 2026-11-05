@@ -15,7 +15,7 @@
 #
 # گزینه ها:
 #   --service DIR   پوشه وب سرویس (اگر خودکار پیدا نشد). یا متغیر AI_SERVICE_DIR
-#   --url URL       آدرس وب سرویس برای تست (پیش فرض AI_BASE_URL در .env یا https://dezhcode.pyho.ir)
+#   --url URL       آدرس وب سرویس برای تست (پیش فرض AI_BASE_URL در .env یا https://asotaasgo.com)
 #   --keep-old      کلید قبلی عبور را هم روی وب سرویس معتبر نگه دار
 #   --no-restart    ری استارت نکن
 #   --no-test       تست نکن
@@ -23,7 +23,7 @@ set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 VENV="${OBOUR_VENV:-/home/wmkmbrcs/virtualenv/obour/3.11}"
-APP_URL="${OBOUR_URL:-https://dezhcode.pyho.ir/obour}"
+APP_URL="${OBOUR_URL:-https://asotaasgo.com/obour}"
 SERVICE_DIR="${AI_SERVICE_DIR:-}"
 URL=""
 KEEP_OLD=0
@@ -67,7 +67,7 @@ echo "ربات عبور: $APP_DIR"
 
 if [ -z "$URL" ]; then
   URL="$(grep -E '^AI_BASE_URL=' "$APP_DIR/.env" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '"'"'"' \r' || true)"
-  URL="${URL:-https://dezhcode.pyho.ir}"
+  URL="${URL:-https://asotaasgo.com}"
 fi
 URL="${URL%/}"
 
