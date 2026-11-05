@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 from app import effects, i18n, texts
@@ -173,7 +174,7 @@ _FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٫", "0123456789.")
 SETTING_FIELDS = (
     "card_number", "card_holder", "bank_name", "min_charge",
     "stars_rate", "crypto_usdt_rate", "crypto_ton_rate", "crypto_fee_percent",
-    "ai_daily_limit",
+    "ai_daily_limit", "ai_model",
 )
 
 
@@ -195,6 +196,13 @@ def clean_setting(field: str, value: str) -> tuple[bool, str]:
         if not clean.isdigit() or int(clean) > 1000:
             return False, "لطفا یه عدد بین ۰ تا ۱۰۰۰ بفرست (۰ یعنی بدون سقف)."
         return True, str(int(clean))
+    if field == "ai_model":
+        # خالی یا «-» = مدل پیش فرض وب سرویس؛ وگرنه نام کوتاه یا کامل مدل (فهرست: GET /api/models)
+        if value in ("", "-", "—"):
+            return True, ""
+        if not re.fullmatch(r"[A-Za-z0-9._:/-]{1,80}", value):
+            return False, "نام مدل فقط حروف انگلیسی، عدد و . _ - باشد (مثلا luna یا haiku). برای مدل پیش فرض «-» بفرست."
+        return True, value
     if field == "crypto_fee_percent":
         clean = value.replace("٪", "").replace("%", "").translate(_FA_DIGITS)
         try:

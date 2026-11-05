@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING
 
@@ -585,9 +586,18 @@ async def ai_assist_status(db: "Database", panel: "Panel | None", wuser: WebAppU
 
     _require_admin(wuser)
     usage = await db.ai_usage(datetime.now(TZ).date().isoformat())
+    models: dict = {}
+    if assistant.configured():
+        try:                       # فهرست مدل ها فقط برای پیشنهاد در فیلد؛ اگر نشد، فیلد آزاد می ماند
+            models = (await asyncio.wait_for(assistant.list_models(), timeout=8))["models"]
+        except Exception:  # noqa: BLE001
+            models = {}
     return {
         "configured": assistant.configured(),
         "base_url": config.ai_base_url,
+        "model": (await db.get_setting(assistant.MODEL_KEY, "") or "").strip(),
+        "model_env": config.ai_model,
+        "models": models,
         "limit": int(await db.get_setting(assistant.DAILY_LIMIT_KEY, str(assistant.DAILY_LIMIT_DEFAULT)) or 0),
         "today": sum(v["n"] for v in usage.values()),
         "failed": sum(v["bad"] for v in usage.values()),

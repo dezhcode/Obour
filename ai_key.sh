@@ -51,13 +51,14 @@ command -v "$PY" >/dev/null 2>&1 || die "python3 پیدا نشد"
 
 # ---------- ۱. پیدا کردن وب سرویس ----------
 say "پیدا کردن وب سرویس هوش مصنوعی"
-is_service() { [ -f "$1/app.py" ] && [ -f "$1/copilot_client.py" ] && grep -q "_api_keys" "$1/app.py" 2>/dev/null; }
+# وب سرویس فعلی با موتور duck.ai (duck_client.py)؛ نسخه قدیمی هم (copilot_client.py) شناخته می شود
+is_service() { [ -f "$1/app.py" ] && { [ -f "$1/duck_client.py" ] || [ -f "$1/copilot_client.py" ]; } && grep -q "_api_keys" "$1/app.py" 2>/dev/null; }
 if [ -z "$SERVICE_DIR" ]; then
   while IFS= read -r f; do
     d="$(dirname "$f")"
     [ "$d" = "$APP_DIR" ] && continue
     if is_service "$d"; then SERVICE_DIR="$d"; break; fi
-  done < <(find "$HOME" -maxdepth 3 -name copilot_client.py -not -path "*/virtualenv/*" -not -path "*/.git/*" 2>/dev/null | sort)
+  done < <(find "$HOME" -maxdepth 3 \( -name duck_client.py -o -name copilot_client.py \) -not -path "*/virtualenv/*" -not -path "*/.git/*" 2>/dev/null | sort)
 fi
 [ -n "$SERVICE_DIR" ] || die "پوشه وب سرویس پیدا نشد. مسیرش را بده: bash ai_key.sh --service ~/پوشه_وب_سرویس"
 SERVICE_DIR="$(cd "$SERVICE_DIR" && pwd)"

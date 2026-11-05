@@ -289,6 +289,7 @@ async def _admin_text(db: Database) -> str:
         "🧠 <b>دستیار هوشمند</b>\n\n"
         + ("🟢 کلید تنظیم شده" if on else "🔴 کلید تنظیم نشده — AI_API_KEY را در فایل .env هاست بگذار و ری استارت کن")
         + f"\n🌐 <code>{esc(config.ai_base_url)}</code>\n"
+        f"🧬 مدل: <code>{esc(await assistant.current_model(db) or 'پیش فرض وب سرویس')}</code> (عکس را هم می بیند)\n"
         f"🔢 سقف روزانه هر کاربر: {limit}\n"
         f"📈 درخواست های امروز: {total}" + (f" (ناموفق {bad})" if bad else "") + "\n\n"
         + feats
@@ -301,8 +302,55 @@ async def _admin_text(db: Database) -> str:
 async def cb_admin_assist(call: CallbackQuery, db: Database) -> None:
     if not is_admin(call.from_user.id):
         return await call.answer()
-    await edit_or_send(call.message, await _admin_text(db), keyboards.admin_assist_kb(assistant.configured()))
+    await edit_or_send(call.message, await _admin_text(db),
+                       keyboards.admin_assist_kb(assistant.configured(), await assistant.current_model(db)))
     await call.answer()
+
+
+@router.callback_query(F.data == "aia:model")
+async def cb_admin_model(call: CallbackQuery, db: Database) -> None:
+    """فهرست مدل های وب سرویس (GET /api/models) برای انتخاب؛ در دیتابیس می ماند."""
+    if not is_admin(call.from_user.id):
+        return await call.answer()
+    if await _show_models(call, db):
+        await call.answer()
+
+
+async def _show_models(call: CallbackQuery, db: Database) -> bool:
+    try:
+        info = await assistant.list_models()
+    except AIError as exc:
+        await call.answer(f"فهرست مدل ها خوانده نشد: {exc}", show_alert=True)
+        return False
+    current = await assistant.current_model(db)
+    await edit_or_send(
+        call.message,
+        "🧬 <b>مدل هوش مصنوعی</b>\n\n"
+        f"فعلی: <code>{esc(current or 'پیش فرض وب سرویس')}</code>\n"
+        f"پیش فرض وب سرویس: <code>{esc(info['default'])}</code>\n\n"
+        "یکی را انتخاب کن؛ همه بخش های هوشمند (پشتیبانی، عکس و اسکرین شات، رسید و...) از همین مدل جواب می گیرند.",
+        keyboards.admin_model_kb(info["models"], current),
+    )
+    return True
+
+
+@router.callback_query(F.data.startswith("aia:m:"))
+async def cb_admin_model_set(call: CallbackQuery, db: Database) -> None:
+    if not is_admin(call.from_user.id):
+        return await call.answer()
+    alias = call.data.split(":", 2)[2]
+    if alias == "-":
+        alias = ""
+    else:
+        try:
+            known = (await assistant.list_models())["models"]
+        except AIError as exc:
+            return await call.answer(f"فهرست مدل ها خوانده نشد: {exc}", show_alert=True)
+        if alias not in known:
+            return await call.answer("این مدل دیگر در فهرست نیست", show_alert=True)
+    await db.set_setting(assistant.MODEL_KEY, alias)
+    await _show_models(call, db)
+    await call.answer("مدل پیش فرض شد" if not alias else f"مدل: {alias}")
 
 
 @router.callback_query(F.data == "aia:auto")
@@ -314,7 +362,8 @@ async def cb_admin_receipt_auto(call: CallbackQuery, db: Database) -> None:
         return await call.answer()
     on = await features.toggle(db, "ai_receipt_auto")
     await call.answer("بررسی خودکار رسید روشن شد" if on else "بررسی خودکار رسید خاموش شد", show_alert=True)
-    await edit_or_send(call.message, await _admin_text(db), keyboards.admin_assist_kb(assistant.configured()))
+    await edit_or_send(call.message, await _admin_text(db),
+                       keyboards.admin_assist_kb(assistant.configured(), await assistant.current_model(db)))
 
 
 @router.callback_query(F.data.in_({"aia:test", "aia:rep", "aia:names"}))
