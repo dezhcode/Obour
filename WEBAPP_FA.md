@@ -42,7 +42,7 @@ WEBAPP_MAX_AGE=21600
 و مطمئن شو این مقدار **دقیقا** همین است:
 
 ```ini
-WEBHOOK_BASE_URL=https://dezhcode.pyho.ir/obour
+WEBHOOK_BASE_URL=https://asotaasgo.com/obour
 APP_BASE_URI=/obour
 ```
 
@@ -56,14 +56,14 @@ APP_BASE_URI=/obour
 
 ```
 Application root         obour            (مسیر فایل ها روی هاست)
-Application URL          dezhcode.pyho.ir/obour
+Application URL          asotaasgo.com/obour
 Application startup file passenger_wsgi.py
 Application entry point  application
 ```
 
 بعد از هر تغییر فایل، **Restart** را بزن (یا `touch tmp/restart.txt`).
 
-پیش نیاز: AutoSSL روی `dezhcode.pyho.ir` صادر شده باشد. بدون گواهی
+پیش نیاز: AutoSSL روی `asotaasgo.com` صادر شده باشد. بدون گواهی
 معتبر، تلگرام صفحه را اصلا باز نمی کند و پیامی هم نشان نمی دهد.
 
 ## ۳) فونت (اختیاری ولی توصیه می شود)
@@ -77,7 +77,7 @@ Application entry point  application
 یک بار این آدرس را بزن:
 
 ```
-https://dezhcode.pyho.ir/obour/setwebhook?key=ADMIN_KEY
+https://asotaasgo.com/obour/setwebhook?key=ADMIN_KEY
 ```
 
 همین یک درخواست سه کار می کند: وبهوک، فهرست دستورها، و **دکمه منوی
@@ -87,8 +87,8 @@ https://dezhcode.pyho.ir/obour/setwebhook?key=ADMIN_KEY
 خروجی باید این شکلی باشد:
 
 ```
-webhook set: https://dezhcode.pyho.ir/obour/webhook/obour
-webapp: https://dezhcode.pyho.ir/obour/app
+webhook set: https://asotaasgo.com/obour/webhook/obour
+webapp: https://asotaasgo.com/obour/app
 ```
 
 اگر `webapp: off` دیدی یعنی `WEBHOOK_BASE_URL` یا https نیست یا

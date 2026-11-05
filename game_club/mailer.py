@@ -1,6 +1,6 @@
 """ایمیل کد ورود برنامهٔ اندروید AsoTas با SMTP همان هاست (تنظیمات GAME_CLUB_SMTP_* در .env).
 
-    GAME_CLUB_SMTP_HOST      مثلا mail.dezhcode.pyho.ir (بدون آن ورود با ایمیل خاموش است)
+    GAME_CLUB_SMTP_HOST      مثلا mail.asotaasgo.com (بدون آن ورود با ایمیل خاموش است)
     GAME_CLUB_SMTP_PORT      ۴۶۵ برای SSL (پیش فرض) یا ۵۸۷ برای STARTTLS
     GAME_CLUB_SMTP_USER      نام کاربری صندوق، معمولا خود آدرس
     GAME_CLUB_SMTP_PASSWORD

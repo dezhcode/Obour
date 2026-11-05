@@ -11,7 +11,7 @@ plugins {
 val vCode = (findProperty("gcVersionCode") as String?)?.toIntOrNull() ?: 1
 val vName = (findProperty("gcVersionName") as String?) ?: "0.1.0"
 // آدرس سرور: پیش فرض همان سرور مینی اپ؛ برای سرور آزمایشی -PgcServer=https://.../gc/
-val server = (findProperty("gcServer") as String?) ?: "https://dezhcode.pyho.ir/obour/gc/"
+val server = (findProperty("gcServer") as String?) ?: "https://asotaasgo.com/obour/gc/"
 
 android {
     namespace = "dezhcode.asotas"

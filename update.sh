@@ -19,7 +19,7 @@ APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 BRANCH="${1:-main}"
 REPO_URL="${OBOUR_REPO:-https://github.com/dezhcode/Obour.git}"
 VENV="${OBOUR_VENV:-/home/wmkmbrcs/virtualenv/obour/3.11}"
-APP_URL="${OBOUR_URL:-https://dezhcode.pyho.ir/obour}"
+APP_URL="${OBOUR_URL:-https://asotaasgo.com/obour}"
 
 cd "$APP_DIR"
 if [ -f "$VENV/bin/activate" ]; then

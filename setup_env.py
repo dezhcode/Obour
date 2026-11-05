@@ -410,7 +410,7 @@ def main(argv: list[str] | None = None) -> int:
     base = env.get("WEBHOOK_BASE_URL")
     if not base.startswith("https://"):
         print("— آدرس اپ")
-        url = ask.text("آدرس اپ روی هاست (مثل https://dezhcode.pyho.ir/obour)", base).rstrip("/")
+        url = ask.text("آدرس اپ روی هاست (مثل https://asotaasgo.com/obour)", base).rstrip("/")
         if url.startswith("https://"):
             put("WEBHOOK_BASE_URL", url)
     has_auth = env.get("PANEL_API_KEY") or (env.get("PANEL_USERNAME") and env.get("PANEL_PASSWORD"))
