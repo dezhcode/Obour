@@ -205,6 +205,9 @@ class Config:
     # ربات مثل قبل کار می کند.
     ai_api_key: str = os.getenv("AI_API_KEY", "").strip()
     ai_base_url: str = (os.getenv("AI_BASE_URL", "").strip().rstrip("/") or "https://asotaasgo.com")
+    # مدل پیش فرض موتور duck.ai (نام کوتاه مثل luna / mini / haiku یا نام کامل؛ GET /api/models).
+    # خالی = مدل پیش فرض خود وب سرویس. ادمین از پنل هم می تواند عوضش کند و آن بر این مقدم است.
+    ai_model: str = os.getenv("AI_MODEL", "").strip()
     # سقف انتظار برای جواب در ربات (ثانیه). وبهوک ۵۰ ثانیه وقت دارد،
     # پس بیشتر از ۴۰ نگذار.
     ai_timeout: float = float(os.getenv("AI_TIMEOUT", "38") or 38)

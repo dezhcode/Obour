@@ -2660,7 +2660,7 @@ def ticket_draft_kb(user_tg: int) -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def admin_assist_kb(configured: bool) -> InlineKeyboardMarkup:
+def admin_assist_kb(configured: bool, model: str = "") -> InlineKeyboardMarkup:
     kb = InlineKeyboardBuilder()
     if configured:
         _add(kb, "🧪 تست اتصال", style=PRIMARY, callback_data="aia:test")
@@ -2672,8 +2672,23 @@ def admin_assist_kb(configured: bool) -> InlineKeyboardMarkup:
         on = features.is_on("ai_receipt_auto")
         _add(kb, ("🟢 بررسی خودکار رسید: روشن" if on else "⚪️ بررسی خودکار رسید: خاموش"),
              style=SUCCESS if on else None, callback_data="aia:auto")
+        _add(kb, f"🧬 مدل: {model or 'پیش فرض'}", callback_data="aia:model")
     _add(kb, "🔢 سقف روزانه هر کاربر", callback_data="adm:set:ai_daily_limit")
     _btn(kb, "toggle", "بخش های ربات", callback_data="adm:feat")
     _add(kb, "🔙 تنظیمات", callback_data="adm:set")
-    kb.adjust(1, 2, 1, 1, 1, 1) if configured else kb.adjust(1, 1, 1)
+    kb.adjust(1, 2, 1, 1, 1, 1, 1) if configured else kb.adjust(1, 1, 1)
+    return kb.as_markup()
+
+
+def admin_model_kb(models: dict[str, str], current: str) -> InlineKeyboardMarkup:
+    """انتخاب مدل هوش مصنوعی: هر نام کوتاه یک دکمه، «-» یعنی پیش فرض وب سرویس."""
+    kb = InlineKeyboardBuilder()
+    for alias, full in models.items():
+        picked = current in (alias, full)
+        _add(kb, f"{'✅ ' if picked else ''}{alias} · {full}", style=SUCCESS if picked else None,
+             callback_data=f"aia:m:{alias}"[:64])
+    _add(kb, ("✅ " if not current else "") + "♻️ پیش فرض وب سرویس", callback_data="aia:m:-")
+    _add(kb, "✍️ نام دلخواه", callback_data="adm:set:ai_model")
+    _add(kb, "🔙 دستیار هوشمند", callback_data="aia")
+    kb.adjust(1)
     return kb.as_markup()

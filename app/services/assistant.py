@@ -1,8 +1,9 @@
-"""دستیار هوش مصنوعی عبور، روی وب سرویس dezhcode.
+"""دستیار هوش مصنوعی عبور، روی وب سرویس dezhcode (موتور duck.ai).
 
-وب سرویس فقط یک کار می کند: POST /api/chat با {"prompt", "image_base64"?}
-و جواب {"text"}. حافظه ندارد، پس هر بار همه زمینه (سرویس ها، تاریخچه
-گفتگو و...) داخل همان prompt می رود.
+وب سرویس یک کار اصلی می کند: POST /api/chat با {"prompt", "image_base64"?, "model"?}
+و جواب {"text", "model"}. حافظه ندارد، پس هر بار همه زمینه (سرویس ها، تاریخچه
+گفتگو و...) داخل همان prompt می رود. عکس به صورت base64 فرستاده می شود و مدل آن را می بیند.
+مدل از تنظیم «ai_model» پنل ادمین، وگرنه AI_MODEL در .env، وگرنه پیش فرض وب سرویس است.
 
 اصول این ماژول:
 - کلید فقط از .env (AI_API_KEY) خوانده می شود و هیچ جا نمایش داده نمی شود.
@@ -38,6 +39,7 @@ MAX_IMAGE = 9 * 1024 * 1024
 DEFAULT_NAME = "کاربر عبور"
 DAILY_LIMIT_KEY = "ai_daily_limit"
 DAILY_LIMIT_DEFAULT = 30
+MODEL_KEY = "ai_model"
 
 LANG_NAMES = {"fa": "Persian (Farsi)", "en": "English", "ru": "Russian", "zh": "Chinese (Simplified)"}
 
@@ -77,6 +79,48 @@ def _semaphore() -> asyncio.Semaphore:
     return _sem
 
 
+async def current_model(db: "Database | None" = None) -> str:
+    """مدل انتخاب شده: تنظیم پنل ادمین، وگرنه AI_MODEL؛ خالی یعنی پیش فرض وب سرویس."""
+    if db is not None:
+        try:
+            chosen = (await db.get_setting(MODEL_KEY, "") or "").strip()
+        except Exception:  # noqa: BLE001
+            chosen = ""
+        if chosen:
+            return chosen
+    return config.ai_model
+
+
+_MODELS: dict = {"at": 0.0, "data": None}
+
+
+async def list_models(*, force: bool = False) -> dict:
+    """{"default": ..., "models": {نام کوتاه: نام کامل}} از GET /api/models (ده دقیقه کش)."""
+    import aiohttp
+
+    if not force and _MODELS["data"] and time.monotonic() - _MODELS["at"] < 600:
+        return _MODELS["data"]
+    if not config.ai_api_key:
+        raise AIError("هوش مصنوعی تنظیم نشده", "not_configured")
+    headers = {"Authorization": f"Bearer {config.ai_api_key}"}
+    kw = {"proxy": config.ai_proxy} if config.ai_proxy.startswith("http") else {}
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15)) as s:
+            async with s.get(config.ai_base_url + "/api/models", headers=headers, **kw) as r:
+                data = json.loads(await r.text() or "{}")
+                if r.status == 401:
+                    raise AIError("کلید اشتباه است", "auth")
+                if r.status != 200 or not isinstance(data.get("models"), dict):
+                    raise AIError(str(data.get("error") or f"HTTP {r.status}")[:200], "error")
+    except AIError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise AIError(f"اتصال نشد: {type(exc).__name__}", "network") from exc
+    out = {"default": str(data.get("default") or ""), "models": {str(k): str(v) for k, v in data["models"].items()}}
+    _MODELS.update(at=time.monotonic(), data=out)
+    return out
+
+
 async def _http(payload: dict, timeout: float) -> str:
     import aiohttp
 
@@ -111,6 +155,9 @@ async def ask(
         raise AIError("هوش مصنوعی تنظیم نشده", "not_configured")
     prompt = prompt if len(prompt) <= MAX_PROMPT else prompt[: MAX_PROMPT - 40] + "\n…(کوتاه شد)"
     payload: dict = {"prompt": prompt}
+    model = await current_model(db)
+    if model:
+        payload["model"] = model
     if image:
         if len(image) > MAX_IMAGE:
             raise AIError("عکس خیلی بزرگه", "too_big")
@@ -133,6 +180,10 @@ async def ask(
                 except AIError as exc:
                     # 502 یعنی مدل جواب نداد؛ یک بار دیگر می ارزد
                     if exc.code == "upstream" and attempt == 0:
+                        continue
+                    # نام مدل اشتباه (مثلا بعد از تغییر لیست مدل ها): یک بار با مدل پیش فرض وب سرویس
+                    if exc.code == "bad_request" and "model" in payload and "model" in str(exc).lower() and attempt == 0:
+                        log.warning("مدل «%s» را وب سرویس نشناخت؛ با پیش فرض امتحان می شود", payload.pop("model"))
                         continue
                     raise
                 except Exception as exc:  # noqa: BLE001

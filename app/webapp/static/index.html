@@ -4558,6 +4558,10 @@ const AdminAssist = {
           ['وب سرویس', d.configured ? Badge('ok', 'متصل (کلید تنظیم شده)') : Badge('bad', 'کلید تنظیم نشده')],
           ['آدرس', `<span class="n" style="font-size:11px">${esc(d.base_url)}</span>`],
           ['درخواست امروز', N(fa(d.today)) + (d.failed ? ` · <span style="color:var(--bad)">${fa(d.failed)} ناموفق</span>` : '')]])
+        + `<div class="group" style="margin-top:10px"><div class="adm-f"><label for="st-ai_model">مدل هوش مصنوعی (عکس را هم می‌بیند)</label><div class="row2">
+            <input class="adm-in" id="st-ai_model" dir="ltr" list="ai-models" placeholder="${esc(d.model_env || 'پیش‌فرض وب‌سرویس')}" value="${esc(d.model || '')}">
+            <datalist id="ai-models">${Object.entries(d.models || {}).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('')}</datalist>
+            <button class="btn btn-sm btn-s" style="height:48px" onclick="AdminSettings.save('ai_model')">ذخیره</button></div><small>${d.models && Object.keys(d.models).length ? 'یکی از مدل‌ها: ' + Object.keys(d.models).map(esc).join('، ') + ' · ' : ''}خالی یعنی پیش‌فرض</small></div></div>`
         + `<div class="group" style="margin-top:10px"><div class="adm-f"><label for="st-ai_daily_limit">سقف سوال روزانه هر کاربر</label><div class="row2">
             <input class="adm-in" id="st-ai_daily_limit" inputmode="numeric" dir="ltr" value="${esc(String(d.limit))}">
             <button class="btn btn-sm btn-s" style="height:48px" onclick="AdminSettings.save('ai_daily_limit')">ذخیره</button></div><small>۰ یعنی بدون سقف</small></div></div>`
