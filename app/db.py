@@ -485,7 +485,9 @@ CREATE TABLE IF NOT EXISTS ai_log (
   user_id INTEGER,
   ok INTEGER NOT NULL DEFAULT 1,
   ms INTEGER,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  model TEXT,
+  err TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_ai_log_user ON ai_log(user_id, created_at);
 
@@ -699,6 +701,9 @@ class Database:
             ("tickets", "via", "ALTER TABLE tickets ADD COLUMN via TEXT"),
             # ریپلای ادمین به همان تیکتی برسد که پیامش را دیده (کاربر چند تیکت باز دارد)
             ("support_links", "thread_id", "ALTER TABLE support_links ADD COLUMN thread_id INTEGER"),
+            # آمار هوش مصنوعی در پنل ادمین: مدل درخواست (خالی = پیش فرض وب سرویس) و کد خطا
+            ("ai_log", "model", "ALTER TABLE ai_log ADD COLUMN model TEXT"),
+            ("ai_log", "err", "ALTER TABLE ai_log ADD COLUMN err TEXT"),
         ]
         for table, column, sql in migrations:
             cur = await self._conn.execute(f"PRAGMA table_info({table})")
@@ -3048,11 +3053,47 @@ class Database:
         return rows > 0
 
     # ---------- هوش مصنوعی ----------
-    async def ai_log_add(self, kind: str, user_id: int | None, ok: bool, ms: int) -> None:
+    async def ai_log_add(self, kind: str, user_id: int | None, ok: bool, ms: int,
+                         model: str = "", err: str = "") -> None:
         await self.execute(
-            "INSERT INTO ai_log(kind, user_id, ok, ms, created_at) VALUES (?, ?, ?, ?, ?)",
-            (kind, user_id, 1 if ok else 0, ms, now_str()),
+            "INSERT INTO ai_log(kind, user_id, ok, ms, created_at, model, err) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (kind, user_id, 1 if ok else 0, ms, now_str(), model or "", err or ""),
         )
+
+    async def ai_stats(self, days: int = 1) -> dict:
+        """آمار درخواست های هوش مصنوعی در `days` روز اخیر (۱ = فقط امروز).
+
+        {"total": {n, bad, ms, users}, "kinds": {kind: {n, bad, ms}}, "models": {model: {n, bad, ms}},
+         "errors": {کد: تعداد}, "daily": [(روز، n، bad)]}. model خالی یعنی پیش فرض وب سرویس.
+        """
+        days = max(1, min(int(days), 60))
+        since = (datetime.now(TZ).date() - timedelta(days=days - 1)).isoformat()
+        where = "substr(created_at, 1, 10) >= ?"
+        total = await self.fetchone(
+            "SELECT COUNT(*) AS n, SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS bad, "
+            "CAST(AVG(ms) AS INTEGER) AS ms, COUNT(DISTINCT user_id) AS users "
+            f"FROM ai_log WHERE {where}", (since,))
+
+        async def grouped(col: str) -> dict:
+            rows = await self.fetchall(
+                f"SELECT COALESCE({col}, '') AS k, COUNT(*) AS n, SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS bad, "
+                f"CAST(AVG(ms) AS INTEGER) AS ms FROM ai_log WHERE {where} GROUP BY k ORDER BY n DESC", (since,))
+            return {r["k"]: {"n": r["n"], "bad": r["bad"] or 0, "ms": r["ms"] or 0} for r in rows}
+
+        errs = await self.fetchall(
+            f"SELECT COALESCE(NULLIF(err, ''), 'error') AS e, COUNT(*) AS n FROM ai_log "
+            f"WHERE ok = 0 AND {where} GROUP BY e ORDER BY n DESC LIMIT 6", (since,))
+        daily = await self.fetchall(
+            f"SELECT substr(created_at, 1, 10) AS d, COUNT(*) AS n, SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS bad "
+            f"FROM ai_log WHERE {where} GROUP BY d ORDER BY d DESC LIMIT 7", (since,))
+        return {
+            "total": {"n": (total["n"] if total else 0) or 0, "bad": (total["bad"] if total else 0) or 0,
+                      "ms": (total["ms"] if total else 0) or 0, "users": (total["users"] if total else 0) or 0},
+            "kinds": await grouped("kind"),
+            "models": await grouped("model"),
+            "errors": {r["e"]: r["n"] for r in errs},
+            "daily": [(r["d"], r["n"], r["bad"] or 0) for r in daily],
+        }
 
     async def ai_user_count_today(self, user_id: int) -> int:
         today = datetime.now(TZ).date().isoformat()

@@ -166,6 +166,7 @@ async def ask(
     send = _transport or _http
     started = time.monotonic()
     ok = False
+    err = ""
     try:
         async with _semaphore():
             deadline = started + timeout
@@ -194,11 +195,14 @@ async def ask(
                 ok = True
                 return text
             raise AIError("جواب نیامد", "upstream")
+    except AIError as exc:
+        err = exc.code
+        raise
     finally:
         ms = int((time.monotonic() - started) * 1000)
         if db is not None:
             try:
-                await db.ai_log_add(kind, user_id, ok, ms)
+                await db.ai_log_add(kind, user_id, ok, ms, model=str(payload.get("model") or ""), err=err)
             except Exception:  # noqa: BLE001
                 log.debug("ثبت لاگ هوش مصنوعی نشد", exc_info=True)
         if not ok:

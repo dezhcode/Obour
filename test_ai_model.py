@@ -80,6 +80,35 @@ async def main() -> None:
         assert await assistant.ask("hi", db=db) == "fine"
         assert len(calls) == 2 and "model" in calls[0] and "model" not in calls[1], calls
         print("OK unknown model fallback")
+
+        # ۷) آمار ادمین: مدل و کد خطا هر درخواست ثبت می شود و ai_stats جمع می زند
+        async def broke(payload: dict, timeout: float) -> str:
+            raise assistant.AIError("bad key", "auth")
+
+        await db.execute("DELETE FROM ai_log")
+        u = await db.get_or_create_user(111, "ali", "Ali")
+        await admin_ops.save_setting(db, "ai_model", "mini", 1)
+        assistant.set_transport(fake)
+        await assistant.ask("a", kind="support", db=db, user_id=u["id"])
+        await assistant.ask("b", kind="fix", db=db, user_id=u["id"], image=b"\xff\xd8x")
+        assistant.set_transport(broke)
+        try:
+            await assistant.ask("c", kind="support", db=db, user_id=u["id"])
+            raise SystemExit("expected AIError")
+        except assistant.AIError:
+            pass
+        st = await db.ai_stats(1)
+        assert st["total"]["n"] == 3 and st["total"]["bad"] == 1 and st["total"]["users"] == 1, st
+        assert st["kinds"]["support"]["n"] == 2 and st["kinds"]["fix"]["n"] == 1, st
+        assert st["models"]["mini"]["n"] == 3, st
+        assert st["errors"] == {"auth": 1}, st
+        assert (await db.ai_stats(30))["total"]["n"] == 3
+        from app.handlers import assist as hassist
+        html = hassist.stats_html(st, 1, "mini")
+        assert "3" in html and "mini" in html and "کلید اشتباه" in html, html
+        empty = {"total": {"n": 0, "bad": 0, "ms": 0, "users": 0}, "kinds": {}, "models": {}, "errors": {}, "daily": []}
+        assert "درخواستی ثبت نشده" in hassist.stats_html(empty, 7, "")
+        print("OK stats")
     finally:
         assistant.set_transport(None)
         await db.close()

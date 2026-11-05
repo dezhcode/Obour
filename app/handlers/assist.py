@@ -307,6 +307,71 @@ async def cb_admin_assist(call: CallbackQuery, db: Database) -> None:
     await call.answer()
 
 
+_KIND_FA = {
+    "support": "پشتیبانی", "fix": "عیب یابی (اسکرین شات)", "recommend": "پیشنهاد پلن", "shop": "دستیار فروشگاه",
+    "receipt": "بررسی رسید", "ticket_draft": "پیش نویس جواب تیکت", "escalate": "خلاصه تیکت", "report": "گزارش روزانه",
+    "names": "حدس نام", "product_desc": "توضیح محصول", "product_guide": "آموزش محصول", "test": "تست اتصال",
+}
+_ERR_FA = {
+    "auth": "کلید اشتباه", "timeout": "وقت تمام شد", "upstream": "موتور جواب نداد", "network": "اتصال نشد",
+    "bad_request": "درخواست نامعتبر", "too_big": "عکس یا متن بزرگ", "empty": "جواب خالی",
+    "not_configured": "تنظیم نشده", "bad_json": "جواب خوانده نشد", "error": "نامشخص",
+}
+_PERIOD_FA = {1: "امروز", 7: "۷ روز اخیر", 30: "۳۰ روز اخیر"}
+
+
+def _sec(ms: int) -> str:
+    return f"{ms / 1000:.1f}s"
+
+
+def stats_html(s: dict, days: int, current_model: str) -> str:
+    """متن آمار هوش مصنوعی برای ادمین."""
+    t = s["total"]
+    head = f"📈 <b>آمار هوش مصنوعی</b> — {_PERIOD_FA.get(days, f'{days} روز اخیر')}\n"
+    if not t["n"]:
+        return head + f"\nدر این بازه درخواستی ثبت نشده.\n🧬 مدل فعلی: <code>{esc(current_model or 'پیش فرض وب سرویس')}</code>"
+    ok_pct = round(100 * (t["n"] - t["bad"]) / t["n"])
+    lines = [
+        head,
+        f"📨 درخواست: <b>{t['n']:,}</b> · موفق {ok_pct}٪" + (f" · ناموفق {t['bad']:,}" if t["bad"] else ""),
+        f"👥 کاربر مختلف: {t['users']:,}",
+        f"⏱ میانگین پاسخ: {_sec(t['ms'])}",
+        f"🧬 مدل فعلی: <code>{esc(current_model or 'پیش فرض وب سرویس')}</code>",
+    ]
+    if s["kinds"]:
+        lines.append("\n🧩 <b>به تفکیک بخش</b>")
+        for k, v in list(s["kinds"].items())[:10]:
+            lines.append(f"• {esc(_KIND_FA.get(k, k))}: {v['n']:,}" + (f" (ناموفق {v['bad']})" if v["bad"] else "")
+                         + f" · {_sec(v['ms'])}")
+    if len(s["models"]) > 1 or (s["models"] and "" not in s["models"]):
+        lines.append("\n🧬 <b>به تفکیک مدل</b>")
+        for m, v in list(s["models"].items())[:8]:
+            lines.append(f"• <code>{esc(m or 'پیش فرض')}</code>: {v['n']:,}" + (f" (ناموفق {v['bad']})" if v["bad"] else "")
+                         + f" · {_sec(v['ms'])}")
+    if s["errors"]:
+        lines.append("\n⚠️ <b>خطاها</b>")
+        lines += [f"• {esc(_ERR_FA.get(e, e))}: {n}" for e, n in s["errors"].items()]
+    if days > 1 and s["daily"]:
+        lines.append("\n📅 <b>روزها</b>")
+        lines += [f"• {d}: {n:,}" + (f" (ناموفق {b})" if b else "") for d, n, b in s["daily"]]
+    return "\n".join(lines)
+
+
+@router.callback_query(F.data.startswith("aia:st:"))
+async def cb_admin_stats(call: CallbackQuery, db: Database) -> None:
+    if not is_admin(call.from_user.id):
+        return await call.answer()
+    try:
+        days = int(call.data.split(":")[2])
+    except ValueError:
+        days = 1
+    days = days if days in _PERIOD_FA else 1
+    stats = await db.ai_stats(days)
+    await edit_or_send(call.message, stats_html(stats, days, await assistant.current_model(db)),
+                       keyboards.admin_ai_stats_kb(days))
+    await call.answer()
+
+
 @router.callback_query(F.data == "aia:model")
 async def cb_admin_model(call: CallbackQuery, db: Database) -> None:
     """فهرست مدل های وب سرویس (GET /api/models) برای انتخاب؛ در دیتابیس می ماند."""

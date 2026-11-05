@@ -2673,10 +2673,23 @@ def admin_assist_kb(configured: bool, model: str = "") -> InlineKeyboardMarkup:
         _add(kb, ("🟢 بررسی خودکار رسید: روشن" if on else "⚪️ بررسی خودکار رسید: خاموش"),
              style=SUCCESS if on else None, callback_data="aia:auto")
         _add(kb, f"🧬 مدل: {model or 'پیش فرض'}", callback_data="aia:model")
+    _add(kb, "📈 آمار هوش مصنوعی", callback_data="aia:st:1")
     _add(kb, "🔢 سقف روزانه هر کاربر", callback_data="adm:set:ai_daily_limit")
     _btn(kb, "toggle", "بخش های ربات", callback_data="adm:feat")
     _add(kb, "🔙 تنظیمات", callback_data="adm:set")
-    kb.adjust(1, 2, 1, 1, 1, 1, 1) if configured else kb.adjust(1, 1, 1)
+    kb.adjust(1, 2, 1, 1, 1, 1, 1, 1) if configured else kb.adjust(1, 1, 1, 1)
+    return kb.as_markup()
+
+
+def admin_ai_stats_kb(days: int) -> InlineKeyboardMarkup:
+    """بازه آمار هوش مصنوعی: امروز / ۷ روز / ۳۰ روز."""
+    kb = InlineKeyboardBuilder()
+    for d, title in ((1, "امروز"), (7, "۷ روز"), (30, "۳۰ روز")):
+        _add(kb, ("● " if d == days else "") + title, style=PRIMARY if d == days else None,
+             callback_data=f"aia:st:{d}")
+    _add(kb, "🧬 تغییر مدل", callback_data="aia:model")
+    _add(kb, "🔙 دستیار هوشمند", callback_data="aia")
+    kb.adjust(3, 1, 1)
     return kb.as_markup()
 
 
